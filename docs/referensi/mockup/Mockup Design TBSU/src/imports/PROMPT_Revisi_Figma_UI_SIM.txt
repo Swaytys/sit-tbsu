@@ -1,0 +1,95 @@
+PROMPT REVISI FIGMA MAKE — UI APLIKASI SIM (Sumber Urip)
+(Tempel teks di bawah ini ke project Figma Make "Mockup Design TBSU")
+
+========================================================================
+
+Revisi aplikasi dashboard SIM UD. Sumber Urip ini. PERTAHANKAN gaya desain yang sudah ada (sidebar gelap, topbar putih, kartu, warna biru aksen, font). Fokus revisi pada STRUKTUR MENU, HALAMAN YANG KURANG, dan HAK AKSES PER PERAN. Jangan merombak halaman yang sudah bagus (Dashboard, Order Penjualan, Penjualan Langsung, Penjualan Pengantaran, Persediaan, Retur, Penerimaan, Clerical Check).
+
+## 1. UBAH STRUKTUR SIDEBAR MENJADI GRUP YANG BISA DI-COLLAPSE
+
+Ganti menu datar sekarang menjadi grup-grup berikut (tiap grup header bisa diklik untuk buka/tutup, dengan panah chevron):
+
+- **Dashboard** (item tunggal, tanpa grup)
+- **Data Master** (grup, bisa collapse) berisi:
+  - Data Barang
+  - Data Pelanggan
+  - Data Pemasok
+  - Data Pengguna
+- **Transaksi Penjualan** (grup) berisi:
+  - Order Penjualan
+  - Penjualan Langsung
+  - Penjualan Pengantaran
+  - Retur Penjualan
+  - Void Transaksi
+- **Persediaan** (grup) berisi:
+  - Penerimaan Barang
+  - Stok Persediaan
+- **Clerical Check** (item tunggal)
+- **Laporan** (item tunggal)
+- **Pengaturan** (item tunggal)
+
+## 2. TERAPKAN HAK AKSES PER PERAN (4 level pengguna)
+
+Sistem punya 4 peran bertingkat. Menu yang tampil DIFILTER sesuai peran user yang login. Buat login mengatur peran (untuk mockup, sediakan pilihan peran atau beberapa akun demo), lalu tampilkan nama + peran user di sidebar bawah, dan sembunyikan menu yang tidak boleh diakses perannya.
+
+Tabel hak akses (tanda ✓ = menu tampil):
+
+| Menu                        | Staf Penjualan | Kasir | Admin | Owner |
+|-----------------------------|:--:|:--:|:--:|:--:|
+| Dashboard                   | ✓ | ✓ | ✓ | ✓ |
+| Data Master › Data Barang   |   |   | ✓ | ✓ |
+| Data Master › Data Pelanggan| ✓ | ✓ | ✓ | ✓ |
+| Data Master › Data Pemasok  |   |   | ✓ | ✓ |
+| Data Master › Data Pengguna |   |   |   | ✓ |
+| Order Penjualan             | ✓ | ✓ | ✓ | ✓ |
+| Penjualan Langsung          |   | ✓ | ✓ | ✓ |
+| Penjualan Pengantaran       |   | ✓ | ✓ | ✓ |
+| Retur Penjualan             |   | ✓ | ✓ | ✓ |
+| Void Transaksi              |   | ✓ | ✓ | ✓ |
+| Penerimaan Barang           |   |   | ✓ | ✓ |
+| Stok Persediaan             |   |   | ✓ | ✓ |
+| Clerical Check              |   | ✓ | ✓ | ✓ |
+| Laporan                     |   |   | ✓ | ✓ |
+| Pengaturan                  |   |   | ✓ | ✓ |
+
+(Peran bersifat kumulatif: Kasir mencakup Staf, Admin mencakup Kasir, Owner mencakup semua.)
+
+## 3. TAMBAHKAN HALAMAN-HALAMAN YANG BELUM ADA
+
+Gunakan pola tampilan yang sama dengan halaman Master Barang yang sudah ada (tabel data + tombol Tambah + form modal/drawer + tombol edit/hapus + pencarian).
+
+**a. Data Pengguna** (khusus Owner):
+- Tabel kolom: Nama Pengguna, Username, Peran, Status, No. HP, Aksi.
+- Form tambah/edit: Nama Pengguna, Username, Password, Peran (dropdown: Owner / Admin / Kasir / Staf Penjualan), Status (Aktif/Nonaktif), No. HP.
+
+**b. Data Pelanggan**:
+- Tabel kolom: Nama Pelanggan, No. HP, Email, Alamat, Status, Aksi.
+- Form: Nama Pelanggan, No. HP, Email, Alamat, Keterangan, Status.
+
+**c. Data Pemasok**:
+- Tabel kolom: Nama Pemasok, No. HP, Kontak Person, Alamat, Status, Aksi.
+- Form: Nama Pemasok, No. HP, Alamat, Kontak Person, Keterangan, Status.
+
+**d. Void Transaksi** (BARU, penting):
+- Tabel daftar transaksi penjualan yang bisa di-void: No. Penjualan, Tanggal, Pelanggan, Kasir, Total, Status Transaksi (Selesai/Void), Aksi.
+- Tombol "Void" per baris membuka modal berisi:
+  - Pilihan Scope Void: "Seluruh Transaksi" atau "Per Item".
+  - Jika "Per Item": tampilkan daftar item transaksi itu (checkbox untuk pilih item yang di-void).
+  - Field "Alasan Void" (textarea, wajib).
+  - Bagian Otorisasi: keterangan bahwa void butuh persetujuan Admin/Owner — tampilkan field "Diotorisasi oleh" (dropdown Admin/Owner) atau tombol "Ajukan Otorisasi".
+  - Tombol "Konfirmasi Void".
+- Di bawah tabel, tampilkan "Riwayat Void" (log): No. Void, Tanggal, No. Penjualan, Scope, Pengaju, Pengotorisasi, Alasan.
+
+**e. Pengaturan** (Admin/Owner):
+- Bagian "Profil Toko": Nama Toko, Alamat, Telepon, Email, Teks Footer Struk (semua field teks yang bisa diedit + tombol Simpan). Isi contoh: "UD. Sumber Urip", "Jl. Raya Bangunan No. 45, Surabaya Timur", "(031) 555-1234".
+- Bagian "Preferensi Sistem": Prefix Nomor Dokumen (mis. STR/INV/SJ), Stok Minimum Default.
+- Tombol Simpan Perubahan.
+
+**f. Login** (perbaiki):
+- Form login: Username, Password, tombol Masuk.
+- Untuk mockup, sediakan cara memilih peran demo (mis. tombol "Masuk sebagai Owner/Admin/Kasir/Staf") supaya bisa mendemokan filter menu per peran. Setelah masuk, arahkan ke Dashboard dan sidebar menampilkan nama + peran user tersebut.
+
+## 4. CATATAN
+- Elemen search & notifikasi di topbar: buat setidaknya terlihat interaktif (dropdown notifikasi contoh, hasil pencarian contoh).
+- Semua data boleh berupa data contoh (dummy) — ini mockup.
+- Jangan ubah skema warna atau tata letak keseluruhan; hanya tambah/rapikan sesuai instruksi di atas.
