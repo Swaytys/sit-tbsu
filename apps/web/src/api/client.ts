@@ -1,0 +1,47 @@
+import type { AppType } from '@sit/api';
+import { KODE_ERROR, type KodeError } from '@sit/shared';
+import { hc } from 'hono/client';
+
+/** Klien API bertipe: rute dan bentuk data mengikuti backend (apps/api/src/app.ts). */
+export const api = hc<AppType>('/api');
+
+/** Kesalahan dari API; `message` berisi pesan dari server yang siap ditampilkan. */
+export class GalatApi extends Error {
+  constructor(
+    public readonly kode: KodeError,
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = 'GalatApi';
+  }
+}
+
+function adalahKodeError(nilai: unknown): nilai is KodeError {
+  return typeof nilai === 'string' && (KODE_ERROR as readonly string[]).includes(nilai);
+}
+
+/** Membaca respons gagal `{ error: { kode, pesan } }` menjadi GalatApi. */
+export async function galatDariRespons(res: {
+  status: number;
+  json: () => Promise<unknown>;
+}): Promise<GalatApi> {
+  try {
+    const body = await res.json();
+    if (typeof body === 'object' && body !== null && 'error' in body) {
+      const { error } = body as { error: { kode?: unknown; pesan?: unknown } };
+      if (adalahKodeError(error.kode) && typeof error.pesan === 'string') {
+        return new GalatApi(error.kode, error.pesan, res.status);
+      }
+    }
+  } catch {
+    // Bukan JSON (mis. server API mati di belakang proxy).
+  }
+  return new GalatApi('INTERNAL', `Permintaan gagal (HTTP ${res.status}).`, res.status);
+}
+
+/** Pesan yang aman ditampilkan untuk kesalahan apa pun dari pemanggilan API. */
+export function pesanGalat(err: unknown): string {
+  if (err instanceof GalatApi) return err.message;
+  return 'Tidak dapat terhubung ke server. Periksa apakah server API berjalan.';
+}
