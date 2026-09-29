@@ -8,6 +8,8 @@ export default defineConfig({
   platform: 'node',
   target: 'node24',
   outDir: 'dist',
+  // Hasil bernama dist/index.js (paket bertipe module), sesuai docs/02 §12.
+  fixedExtension: false,
   clean: true,
   dts: false,
   deps: { alwaysBundle: [/^@sit\//] },
