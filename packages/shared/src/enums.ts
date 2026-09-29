@@ -1,0 +1,165 @@
+/**
+ * Semua enum status — SATU sumber untuk CHECK constraint DB (skema Drizzle), API, dan web.
+ * Nilai dan urutannya identik dengan CHECK di docs/03-skema-database-v3.sql (lihat docs/03 §5).
+ * Menambah nilai = migrasi baru (ubah CHECK) + ubah berkas ini.
+ */
+
+// --- Sistem & pengguna ---
+export const PERAN = ['STAF_PENJUALAN', 'KASIR', 'ADMIN', 'OWNER'] as const;
+export type Peran = (typeof PERAN)[number];
+
+export const STATUS_AKTIF = ['AKTIF', 'NONAKTIF'] as const;
+export type StatusAktif = (typeof STATUS_AKTIF)[number];
+
+export const TIPE_KONFIGURASI = ['TEKS', 'ANGKA', 'BOOL', 'JSON'] as const;
+export type TipeKonfigurasi = (typeof TIPE_KONFIGURASI)[number];
+
+// --- Master ---
+export const JENIS_DIMENSI = [
+  'PANJANG',
+  'LUAS',
+  'VOLUME',
+  'BERAT',
+  'DAYA',
+  'JUMLAH',
+  'LAINNYA',
+] as const;
+export type JenisDimensi = (typeof JENIS_DIMENSI)[number];
+
+/** Dimensi fisik: tepat satu satuan basis per dimensi dan boleh dikonversi antar-satuan. */
+export const JENIS_DIMENSI_FISIK = ['PANJANG', 'LUAS', 'VOLUME', 'BERAT', 'DAYA'] as const;
+
+export const TIPE_NILAI = ['ANGKA', 'TEKS'] as const;
+export type TipeNilai = (typeof TIPE_NILAI)[number];
+
+export const KEPEMILIKAN = ['MILIK_SENDIRI', 'KONSINYASI'] as const;
+export type Kepemilikan = (typeof KEPEMILIKAN)[number];
+
+export const METODE_HARGA = ['IKUT_TIER', 'MARKUP', 'TETAP'] as const;
+export type MetodeHarga = (typeof METODE_HARGA)[number];
+
+export const JENIS_POTONGAN = ['PERSEN', 'NOMINAL'] as const;
+export type JenisPotongan = (typeof JENIS_POTONGAN)[number];
+
+export const SASARAN_PROMO = ['SEMUA', 'KATEGORI', 'BARANG'] as const;
+export type SasaranPromo = (typeof SASARAN_PROMO)[number];
+
+// --- Persediaan & pemasok ---
+export const JENIS_PENERIMAAN = ['PEMBELIAN', 'KONSINYASI'] as const;
+export type JenisPenerimaan = (typeof JENIS_PENERIMAAN)[number];
+
+export const SYARAT_BAYAR = ['TUNAI', 'TEMPO'] as const;
+export type SyaratBayar = (typeof SYARAT_BAYAR)[number];
+
+export const STATUS_HUTANG = ['TIDAK_ADA', 'BELUM_LUNAS', 'SEBAGIAN', 'LUNAS'] as const;
+export type StatusHutang = (typeof STATUS_HUTANG)[number];
+
+export const JENIS_PENYESUAIAN = ['SALDO_AWAL', 'OPNAME', 'KOREKSI', 'RUSAK', 'MUSNAH'] as const;
+export type JenisPenyesuaian = (typeof JENIS_PENYESUAIAN)[number];
+
+export const STATUS_PENYESUAIAN = ['DRAFT', 'SELESAI', 'BATAL'] as const;
+export type StatusPenyesuaian = (typeof STATUS_PENYESUAIAN)[number];
+
+/** Bucket stok. */
+export const KONDISI_STOK = ['BAIK', 'RUSAK'] as const;
+export type KondisiStok = (typeof KONDISI_STOK)[number];
+
+export const JENIS_MUTASI = [
+  'SALDO_AWAL',
+  'PENERIMAAN',
+  'PENJUALAN',
+  'RETUR_JUAL',
+  'TUKAR_RETUR',
+  'VOID',
+  'PENYESUAIAN',
+  'PINDAH_KONDISI',
+  'RETUR_PEMASOK',
+  'MUSNAH',
+] as const;
+export type JenisMutasi = (typeof JENIS_MUTASI)[number];
+
+/** Dihitung dari stok, tidak disimpan (K-023). */
+export const STATUS_STOK = ['HABIS', 'KRITIS', 'PERLU_RESTOCK', 'AMAN'] as const;
+export type StatusStok = (typeof STATUS_STOK)[number];
+
+export const PENYELESAIAN_RETUR_PEMASOK = [
+  'POTONG_HUTANG',
+  'GANTI_BARANG',
+  'REFUND',
+  'PENGEMBALIAN_TITIPAN',
+] as const;
+export type PenyelesaianReturPemasok = (typeof PENYELESAIAN_RETUR_PEMASOK)[number];
+
+export const METODE_PEMBAYARAN_PEMASOK = ['TUNAI', 'TRANSFER', 'KOMPENSASI'] as const;
+export type MetodePembayaranPemasok = (typeof METODE_PEMBAYARAN_PEMASOK)[number];
+
+// --- Penjualan ---
+export const JENIS_PENJUALAN = ['LANGSUNG', 'PENGANTARAN'] as const;
+export type JenisPenjualan = (typeof JENIS_PENJUALAN)[number];
+
+export const PRIORITAS_ORDER = ['NORMAL', 'TINGGI'] as const;
+export type PrioritasOrder = (typeof PRIORITAS_ORDER)[number];
+
+export const STATUS_ORDER = ['DRAFT', 'MENUNGGU', 'DIPROSES', 'SELESAI', 'BATAL'] as const;
+export type StatusOrder = (typeof STATUS_ORDER)[number];
+
+export const STATUS_PEMBAYARAN = ['BELUM_BAYAR', 'DP', 'LUNAS'] as const;
+export type StatusPembayaran = (typeof STATUS_PEMBAYARAN)[number];
+
+export const STATUS_TRANSAKSI = ['SELESAI', 'VOID_SEBAGIAN', 'VOID'] as const;
+export type StatusTransaksi = (typeof STATUS_TRANSAKSI)[number];
+
+export const STATUS_PENGAMBILAN = ['DIAMBIL', 'BELUM_DIAMBIL'] as const;
+export type StatusPengambilan = (typeof STATUS_PENGAMBILAN)[number];
+
+/** Status pengiriman pada invoice (agregat dari surat jalan). */
+export const STATUS_PENGIRIMAN = ['BELUM', 'SEBAGIAN', 'SELESAI'] as const;
+export type StatusPengiriman = (typeof STATUS_PENGIRIMAN)[number];
+
+export const STATUS_SURAT_JALAN = ['DIPROSES', 'DIMUAT', 'DIKIRIM', 'SELESAI', 'BATAL'] as const;
+export type StatusSuratJalan = (typeof STATUS_SURAT_JALAN)[number];
+
+export const JENIS_PEMBAYARAN = ['PENUH', 'DP', 'PELUNASAN'] as const;
+export type JenisPembayaran = (typeof JENIS_PEMBAYARAN)[number];
+
+export const METODE_PEMBAYARAN = ['TUNAI', 'TRANSFER', 'EDC'] as const;
+export type MetodePembayaran = (typeof METODE_PEMBAYARAN)[number];
+
+export const STATUS_ITEM = ['NORMAL', 'RETUR_SEBAGIAN', 'RETUR', 'VOID'] as const;
+export type StatusItem = (typeof STATUS_ITEM)[number];
+
+// --- Retur & void ---
+/** Status persetujuan retur dan void. */
+export const STATUS_PERSETUJUAN = ['MENUNGGU', 'DISETUJUI', 'DITOLAK'] as const;
+export type StatusPersetujuan = (typeof STATUS_PERSETUJUAN)[number];
+
+export const PENYELESAIAN_RETUR = ['REFUND', 'TUKAR_BARANG', 'POTONG_TAGIHAN'] as const;
+export type PenyelesaianRetur = (typeof PENYELESAIAN_RETUR)[number];
+
+export const METODE_REFUND = ['TUNAI', 'TRANSFER'] as const;
+export type MetodeRefund = (typeof METODE_REFUND)[number];
+
+export const KONDISI_RETUR = ['BAIK', 'RUSAK', 'CACAT'] as const;
+export type KondisiRetur = (typeof KONDISI_RETUR)[number];
+
+export const LINGKUP_VOID = ['TRANSAKSI', 'ITEM'] as const;
+export type LingkupVoid = (typeof LINGKUP_VOID)[number];
+
+// --- Kas ---
+export const STATUS_SHIFT = ['BUKA', 'TUTUP'] as const;
+export type StatusShift = (typeof STATUS_SHIFT)[number];
+
+export const JENIS_KAS_SHIFT = [
+  'KASBON',
+  'SETOR_OWNER',
+  'TARIK_OWNER',
+  'REFUND_RETUR',
+  'REFUND_VOID',
+  'BAYAR_PEMASOK',
+  'MASUK_LAIN',
+  'KELUAR_LAIN',
+] as const;
+export type JenisKasShift = (typeof JENIS_KAS_SHIFT)[number];
+
+export const ARAH_KAS = ['MASUK', 'KELUAR'] as const;
+export type ArahKas = (typeof ARAH_KAS)[number];
