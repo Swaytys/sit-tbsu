@@ -15,6 +15,7 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",
+    "db:verifikasi": "tsx src/db/verifikasi-skema.ts",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:reset": "tsx src/db/reset.ts"
