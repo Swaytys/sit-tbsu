@@ -21,9 +21,12 @@
     "db:reset": "tsx src/db/reset.ts"
   },
   "dependencies": {
+    "@date-fns/tz": "catalog:",
     "@hono/node-server": "catalog:",
+    "@hono/zod-validator": "catalog:",
     "@sit/shared": "workspace:*",
     "argon2": "catalog:",
+    "date-fns": "catalog:",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",
     "pg": "catalog:",
