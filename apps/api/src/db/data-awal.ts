@@ -1,31 +1,25 @@
-import type { JenisDimensi, TipeKonfigurasi, TipeNilai } from '@sit/shared';
+import { eq, sql } from 'drizzle-orm';
+import {
+  KODE_DOKUMEN,
+  USERNAME_DEMO,
+  type JenisDimensi,
+  type Peran,
+  type TipeKonfigurasi,
+  type TipeNilai,
+} from '@sit/shared';
 import { hashPassword } from '../lib/password';
-import type { Db } from './client';
+import { sinkronkanKodeMaster, terbitkanKodeMaster } from '../modules/sistem/penomoran';
+import type { Db, Tx } from './client';
 import { jenisAtribut, kategori, konfigurasi, pengguna, satuan, tingkatHarga } from './schema';
 
 /*
- * Data awal (docs/03 §6). Idempoten: baris yang kodenya sudah ada TIDAK ditimpa, sehingga
+ * Data awal (docs/03 §6, docs/05 §15). Idempoten: baris yang kodenya sudah ada TIDAK ditimpa, sehingga
  * pengaturan yang sudah diubah Owner/Admin tetap aman bila seed dijalankan ulang.
  */
 
 type BarisKonfigurasi = { kode: string; nilai: string; tipe: TipeKonfigurasi; deskripsi: string };
 
-const PREFIX_DOKUMEN = [
-  'ORD',
-  'STR',
-  'INV',
-  'SJ',
-  'BYR',
-  'RTR',
-  'VD',
-  'RCV',
-  'ADJ',
-  'RTP',
-  'KSG',
-  'PBP',
-  'SHF',
-  'CLC',
-] as const;
+const PREFIX_DOKUMEN = KODE_DOKUMEN;
 
 const KONFIGURASI: BarisKonfigurasi[] = [
   {
@@ -157,7 +151,28 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     tipe: 'BOOL',
     deskripsi: 'Pembayaran TUNAI wajib shift terbuka',
   },
+  // docs/05 §15
+  {
+    kode: 'batas_kunci_order_menit',
+    nilai: '30',
+    tipe: 'ANGKA',
+    deskripsi: 'Order DIPROSES lebih lama dari ini kembali MENUNGGU (R8)',
+  },
+  {
+    kode: 'jatuh_tempo_default_hari',
+    nilai: '7',
+    tipe: 'ANGKA',
+    deskripsi: 'Jatuh tempo piutang bila term pelanggan 0 (P7)',
+  },
 ];
+
+/** Akun demo per peran (hanya NODE_ENV=development; docs/03 §6, K-021). */
+const NAMA_DEMO: Record<Peran, string> = {
+  OWNER: 'Demo Owner',
+  ADMIN: 'Demo Admin',
+  KASIR: 'Demo Kasir',
+  STAF_PENJUALAN: 'Demo Staf',
+};
 
 type BarisSatuan = {
   kode: string;
@@ -283,7 +298,42 @@ export type RingkasanSeed = Record<
   number
 >;
 
-export async function isiDataAwal(db: Db, opsi: { passwordOwner: string }): Promise<RingkasanSeed> {
+/**
+ * Menyamakan penghitung kode USR dengan kode tertinggi yang sudah ada (mis. `USR-00001` dari seed
+ * Fase 1 yang ditulis sebelum penomoran ada), agar kode pengguna berikutnya tidak bentrok (docs/05 N5).
+ */
+async function sinkronkanPenghitungPengguna(tx: Tx): Promise<void> {
+  const hasil = await tx.execute<{ maks: number | null }>(
+    sql`select max(substring(${pengguna.kode} from 5)::int) as maks from ${pengguna} where ${pengguna.kode} ~ '^USR-[0-9]+$'`,
+  );
+  await sinkronkanKodeMaster(tx, 'USR', hasil.rows[0]?.maks ?? 0);
+}
+
+/** Membuat pengguna bila username belum ada. Kode diterbitkan lewat penomoran (N5). */
+async function pastikanPengguna(
+  tx: Tx,
+  nilai: {
+    username: string;
+    namaPengguna: string;
+    peran: Peran;
+    passwordHash: string;
+    wajibGantiPassword: boolean;
+  },
+): Promise<boolean> {
+  const [ada] = await tx
+    .select({ id: pengguna.id })
+    .from(pengguna)
+    .where(eq(pengguna.username, nilai.username))
+    .limit(1);
+  if (ada) return false;
+  await tx.insert(pengguna).values({ ...nilai, kode: await terbitkanKodeMaster(tx, 'USR') });
+  return true;
+}
+
+export async function isiDataAwal(
+  db: Db,
+  opsi: { passwordOwner: string; akunDemo: boolean },
+): Promise<RingkasanSeed> {
   // Hash dihitung di luar transaksi agar transaksi tetap singkat.
   const hashOwner = await hashPassword(opsi.passwordOwner);
 
@@ -318,18 +368,30 @@ export async function isiDataAwal(db: Db, opsi: { passwordOwner: string }): Prom
       .onConflictDoNothing({ target: kategori.nama })
       .returning({ id: kategori.id });
 
-    const baruPengguna = await tx
-      .insert(pengguna)
-      .values({
-        kode: 'USR-00001',
-        namaPengguna: 'Owner',
-        username: 'owner',
-        passwordHash: hashOwner,
-        peran: 'OWNER',
-        wajibGantiPassword: true,
-      })
-      .onConflictDoNothing({ target: pengguna.username })
-      .returning({ id: pengguna.id });
+    await sinkronkanPenghitungPengguna(tx);
+    let baruPengguna = 0;
+    const owner = await pastikanPengguna(tx, {
+      username: 'owner',
+      namaPengguna: 'Owner',
+      peran: 'OWNER',
+      passwordHash: hashOwner,
+      wajibGantiPassword: true,
+    });
+    if (owner) baruPengguna++;
+
+    if (opsi.akunDemo) {
+      // Akun demo memakai password yang sama dengan SEED_OWNER_PASSWORD dan tidak wajib ganti.
+      for (const peran of Object.keys(USERNAME_DEMO) as Peran[]) {
+        const baru = await pastikanPengguna(tx, {
+          username: USERNAME_DEMO[peran],
+          namaPengguna: NAMA_DEMO[peran],
+          peran,
+          passwordHash: hashOwner,
+          wajibGantiPassword: false,
+        });
+        if (baru) baruPengguna++;
+      }
+    }
 
     return {
       konfigurasi: baruKonfigurasi.length,
@@ -337,7 +399,7 @@ export async function isiDataAwal(db: Db, opsi: { passwordOwner: string }): Prom
       jenisAtribut: baruJenisAtribut.length,
       tingkatHarga: baruTingkatHarga.length,
       kategori: baruKategori.length,
-      pengguna: baruPengguna.length,
+      pengguna: baruPengguna,
     };
   });
 }

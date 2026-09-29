@@ -1,0 +1,33 @@
+import { TZDate } from '@date-fns/tz';
+import { addHours, addMinutes, differenceInSeconds, format } from 'date-fns';
+
+/** Zona waktu operasional toko (K-042). Database dan server tetap UTC. */
+export const ZONA_TOKO = 'Asia/Jakarta';
+
+/** Waktu sekarang. Satu pintu agar tes bisa memakai waktu tiruan (vi.useFakeTimers). */
+export function sekarang(): Date {
+  return new Date();
+}
+
+/** Tanggal operasional (tanggal lokal Asia/Jakarta) dalam format `YYYY-MM-DD` (docs/05 U6). */
+export function tanggalOperasional(waktu: Date = sekarang()): string {
+  return format(new TZDate(waktu, ZONA_TOKO), 'yyyy-MM-dd');
+}
+
+/** Jam:menit lokal Asia/Jakarta, mis. untuk pesan "terkunci sampai pukul 14:30". */
+export function jamLokal(waktu: Date): string {
+  return format(new TZDate(waktu, ZONA_TOKO), 'HH:mm');
+}
+
+export function tambahMenit(waktu: Date, menit: number): Date {
+  return addMinutes(waktu, menit);
+}
+
+export function tambahJam(waktu: Date, jam: number): Date {
+  return addHours(waktu, jam);
+}
+
+/** Selisih detik `akhir − awal` (dibulatkan ke bawah). */
+export function selisihDetik(akhir: Date, awal: Date): number {
+  return differenceInSeconds(akhir, awal);
+}

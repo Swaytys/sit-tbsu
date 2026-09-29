@@ -42,7 +42,7 @@ try {
     }
 
     await jalankanMigrasi(env.DATABASE_URL);
-    const barisBaru = await isiDataAwal(db, { passwordOwner });
+    const barisBaru = await isiDataAwal(db, { passwordOwner, akunDemo: true });
     logger.info({ barisBaru }, `Database ${nama} dibuat ulang: migrasi + data awal.`);
   }
 } catch (err) {
