@@ -31,18 +31,20 @@ transaksi, tes otomatis, dan bisa dipindah dari satu PC toko ke VPS tanpa menuli
 | Excel | `exceljs` (ekspor & import) | Ekspor laporan, import master barang |
 | Cetak | HTML + CSS `@media print` / `@page` | Struk thermal 58/80 mm, invoice A4, surat jalan A4 lewat browser |
 
-### Versi target
+### Versi terkunci (K-050)
 
-Versi pasti **dikunci pada Fase 1** setelah dicek di registry npm dan dicatat sebagai keputusan. Perkiraan jalur
-mayor saat dokumen ini ditulis (perlu verifikasi, ekosistem bergerak cepat):
+Dikunci pada Fase 1 (29/09/2026). Daftar lengkap ada di K-050 dan di `catalog:` pada `pnpm-workspace.yaml`
+(satu-satunya tempat versi ditulis; `package.json` tiap paket menulis `"catalog:"`):
 
-Node.js 22 LTS · pnpm 10 · TypeScript 5.x · React 19 · Vite 7 · React Router 7 · Tailwind CSS 4 · Hono 4 ·
-Drizzle ORM 0.4x + drizzle-kit · PostgreSQL 17 · Zod 4 (bila resolver RHF dan shadcn kompatibel; jika tidak, Zod 3) ·
-TanStack Query 5 · React Hook Form 7 · Vitest 3 · Playwright 1.5x · pino 9 · argon2 0.4x · decimal.js 10 ·
-exceljs 4.
+Node.js 24 LTS · pnpm 12 · TypeScript 6.0 · React 19.3 · Vite 8.3 · React Router 8.4 · Tailwind CSS 4.3 ·
+Hono 4.13 · Drizzle ORM 0.45 + drizzle-kit 0.31 · PostgreSQL 17 · Zod 4.6 · TanStack Query 5 ·
+React Hook Form 7 · Vitest 5 · Playwright 1.63 · ESLint 10 · pino 10 · argon2 0.45.
 
-Aturan: versi di `package.json` dipin eksak (tanpa `^`) untuk paket inti (react, hono, drizzle-orm, drizzle-kit,
-zod, vite, tailwindcss). Upgrade dilakukan sadar, satu paket per commit, dengan tes lulus.
+TypeScript 7 belum dipakai karena typescript-eslint belum mendukungnya (K-050). Paket fase berikutnya
+(decimal.js, date-fns, exceljs, sonner) dipin saat pertama dipasang.
+
+Aturan: semua versi dipin eksak (tanpa `^`); versi baru dipilih bila sudah berumur ≥ 7 hari. Upgrade dilakukan
+sadar, satu paket per commit, dengan tes lulus.
 
 ### Alternatif yang ditolak
 
@@ -70,8 +72,13 @@ sit-tbsu/
 │   │   │   ├── app.ts            Hono app: middleware global, mount semua modul, serve web di produksi
 │   │   │   ├── db/
 │   │   │   │   ├── client.ts     koneksi pg + drizzle
-│   │   │   │   ├── schema/       skema Drizzle per domain: master.ts, persediaan.ts, penjualan.ts, ...
-│   │   │   │   └── migrations/   SQL migrasi (0000 = DDL v3), dikelola drizzle-kit
+│   │   │   │   ├── schema/       skema Drizzle per domain: sistem, master, persediaan, kas, penjualan,
+│   │   │   │   │                 koreksi, transaksi-pemasok (+ kolom.ts, index.ts) — K-053
+│   │   │   │   ├── migrations/   SQL migrasi (0000 = DDL v3), dikelola drizzle-kit
+│   │   │   │   ├── migrator.ts   jalankanMigrasi(url) — dipakai db:migrate, db:reset, setup tes
+│   │   │   │   ├── seed.ts, data-awal.ts   pnpm db:seed (K-053)
+│   │   │   │   ├── reset.ts      pnpm db:reset --ya (hanya *_dev)
+│   │   │   │   └── verifikasi-skema.ts     db:verifikasi: skema Drizzle = migrasi SQL (K-052)
 │   │   │   ├── middleware/       auth.ts (sesi), require-permission.ts, csrf, error-handler.ts, request-log.ts
 │   │   │   ├── modules/
 │   │   │   │   ├── auth/
@@ -111,7 +118,7 @@ sit-tbsu/
 │           ├── money.ts          helper uang integer (bulatkan, persen, format)
 │           ├── qty.ts            helper qty (decimal.js): tambah, kali, konversi satuan
 │           └── index.ts
-├── scripts/                      seed.ts, backup.ps1 / backup.sh
+├── scripts/                      backup.ps1 / backup.sh (Fase 8); seed ada di apps/api/src/db (K-053)
 ├── docker-compose.yml            PostgreSQL opsional (untuk yang tidak mau install native)
 ├── .env.example
 ├── package.json  pnpm-workspace.yaml  tsconfig.base.json  eslint.config.js  .prettierrc  .gitignore
@@ -234,13 +241,16 @@ API berada di origin yang sama (dev: proxy Vite `/api` → `:3000`; produksi: Ho
 ## 9. Migrasi database
 
 - Migrasi `0000_skema_v3.sql` = DDL di `docs/03-skema-database-v3.sql` apa adanya (K-003).
-- Skema Drizzle (`db/schema/*.ts`) ditulis agar **sama persis** dengan DDL; diverifikasi dengan `drizzle-kit pull`
-  / `drizzle-kit check` pada Fase 1. Setelah itu, perubahan skema selalu: ubah `schema/*.ts` → `drizzle-kit generate`
-  → tinjau SQL yang dihasilkan → commit → `pnpm db:migrate`.
+- Skema Drizzle (`db/schema/*.ts`) ditulis agar **sama persis** dengan DDL, termasuk nama constraint. Diverifikasi
+  dengan `pnpm --filter @sit/api db:verifikasi` (perbandingan `pg_dump` di database uji; Fase 1: identik) dan
+  `drizzle-kit check` (konsistensi riwayat migrasi) — K-052. Setelah itu, perubahan skema selalu: ubah
+  `schema/*.ts` → `pnpm --filter @sit/api db:generate` → tinjau SQL yang dihasilkan → `db:verifikasi` → commit →
+  `pnpm db:migrate`.
 - Migrasi yang sudah di-commit tidak pernah diedit. Kesalahan diperbaiki dengan migrasi baru.
 - Seed (`pnpm db:seed`) idempoten: konfigurasi default, satuan, jenis atribut, tier harga (Normal/Grosir/Distributor),
   kategori awal, satu akun Owner (`owner` / password dari `.env` `SEED_OWNER_PASSWORD`). Data contoh barang
-  hanya bila `SEED_CONTOH=true`.
+  hanya bila `SEED_CONTOH=true` (mulai Fase 3). Baris yang kodenya sudah ada tidak ditimpa.
+- `pnpm db:reset --ya` (hanya dev): kosongkan database `*_dev`, migrasi ulang, seed. Tanpa `--ya` perintah menolak.
 
 ## 10. Testing
 
@@ -289,3 +299,5 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 ## Riwayat
 
 - 2026-09-19 — v1.
+- 2026-09-29 — Fase 1: versi paket dikunci (§2, K-050); struktur `db/` dan letak seed disesuaikan (§3, K-053);
+  cara verifikasi skema dan `db:reset --ya` (§9, K-052).

@@ -357,15 +357,18 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 
 ## 8. Catatan implementasi Drizzle (Fase 1)
 
-- Migrasi `0000_skema_v3.sql` = berkas SQL ini apa adanya.
-- Skema Drizzle ditulis di `apps/api/src/db/schema/{sistem,master,persediaan,penjualan,koreksi,kas}.ts` agar sesuai
-  DDL; setelah itu `drizzle-kit check` harus melaporkan tidak ada perbedaan (kolom generated dideklarasikan dengan
-  `.generatedAlwaysAs()`).
+- Migrasi `0000_skema_v3.sql` = berkas SQL ini apa adanya (identik byte-per-byte).
+- Skema Drizzle ditulis di `apps/api/src/db/schema/{sistem,master,persediaan,kas,penjualan,koreksi,transaksi-pemasok}.ts`
+  agar sesuai DDL (kolom generated dideklarasikan dengan `.generatedAlwaysAs()`; nama constraint ditulis eksplisit
+  sama dengan nama bawaan PostgreSQL). Catatan: `drizzle-kit check` hanya memeriksa konsistensi riwayat migrasi;
+  kesamaan skema dibuktikan dengan `pnpm --filter @sit/api db:verifikasi` (perbandingan `pg_dump`) — K-052.
+  Hasil Fase 1: identik (1468 baris struktur).
 - Tipe kolom: uang `bigint({ mode: 'number' })`; qty `numeric({ precision: 14, scale: 3 })` (string di TS → helper
   `qty.ts`); waktu `timestamp({ withTimezone: true })`; tanggal operasional `date({ mode: 'string' })`.
-- CHECK constraint dideklarasikan di skema Drizzle dengan `check()` agar `drizzle-kit check` tidak melaporkan drift;
-  bila versi drizzle-kit yang terpasang belum mendukung sebagian, catat di keputusan dan verifikasi manual dengan
-  `pg_dump --schema-only`.
+- CHECK constraint dideklarasikan di skema Drizzle dengan `check()`; CHECK berbentuk `kolom in (...)` disusun dari
+  `packages/shared/src/enums.ts` (helper `dalamDaftar`), CHECK berlogika majemuk ditulis sama dengan DDL.
+- Seed ada di `apps/api/src/db/seed.ts` + `data-awal.ts` (bukan `scripts/seed.ts` seperti komentar penutup DDL; K-053).
+  Kode satuan luas/volume: `m2`, `m3`.
 - Fungsi `num_nonnulls` dan `unique nulls not distinct` adalah fitur PostgreSQL (≥ 9.6 dan ≥ 15); tidak ada
   ekstensi tambahan yang dibutuhkan.
 
@@ -375,3 +378,5 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-09-19 — v3.1. `penjualan`: `total_potong_tagihan` → `total_void`, `total_retur`, `total_refund` agar `sisa_tagihan`
   benar untuk void sebagian dan retur refund. `penerimaan_barang` + `total_retur_potong`. `pembayaran_pemasok` + metode
   KOMPENSASI + `id_retur_pemasok`. `retur_pemasok` + PENGEMBALIAN_TITIPAN. Diuji ulang (3 CHECK baru).
+- 2026-09-29 — Fase 1: DDL v3.1 dipasang sebagai migrasi `0000_skema_v3.sql` di PostgreSQL 17.11 (41 tabel); skema
+  Drizzle terverifikasi identik (K-052). §8 diperbarui (7 berkas skema, cara verifikasi, letak seed).

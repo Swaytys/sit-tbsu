@@ -71,12 +71,13 @@ Jangan pakai mode auto-accept.
 |---|---|---|
 | CLAUDE.md | Final v1 | 2026-09-19 |
 | 01-ikhtisar-sistem.md | Final v1 | 2026-09-19 |
-| 02-arsitektur.md | Final v1 (versi paket dikunci di Fase 1) | 2026-09-19 |
-| 03-skema-database-v3 (.md + .sql) | Final v3.1 (diuji PostgreSQL 16) | 2026-09-19 |
+| 02-arsitektur.md | Final v1 (versi paket dikunci, K-050) | 2026-09-29 |
+| 03-skema-database-v3 (.md + .sql) | Final v3.1 (terpasang di PostgreSQL 17 sebagai migrasi 0000) | 2026-09-29 |
 | 04-hak-akses.md | Final v1 | 2026-09-19 |
 | 05-aturan-bisnis-inti.md | Final v1 | 2026-09-19 |
 | 06-harga-piutang-hutang.md | Final v1 | 2026-09-19 |
-| 07-roadmap.md | Final v1 | 2026-09-19 |
+| 07-roadmap.md | Final v1 (Fase 1 selesai) | 2026-09-29 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
 | keputusan/2026-09-19-keputusan-tambahan.md | Final (K-044–K-049) | 2026-09-19 |
+| keputusan/2026-09-29-setup-fase-1.md | Final (K-050–K-053) | 2026-09-29 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |
