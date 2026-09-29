@@ -18,10 +18,16 @@ export const errorHandler: ErrorHandler = (err, c) => {
   }
 
   if (err instanceof HTTPException) {
-    // Dilempar middleware Hono (mis. body tidak valid, CSRF ditolak).
-    const body: ResponsGalat = {
-      error: { kode: err.status === 403 ? 'TIDAK_BERIZIN' : 'VALIDASI', pesan: err.message },
-    };
+    // Dilempar middleware Hono (mis. JSON rusak, CSRF ditolak). Pesan aslinya berbahasa Inggris.
+    const body: ResponsGalat =
+      err.status === 403
+        ? {
+            error: {
+              kode: 'TIDAK_BERIZIN',
+              pesan: 'Permintaan ditolak: asal permintaan tidak dikenal.',
+            },
+          }
+        : { error: { kode: 'VALIDASI', pesan: 'Format permintaan tidak valid.' } };
     return c.json(body, err.status);
   }
 
