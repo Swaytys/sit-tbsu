@@ -1,0 +1,11 @@
+# Dokumen ditulis manusia; tabel Markdown-nya tidak boleh dirapikan otomatis.
+docs/
+CLAUDE.md
+
+# Migrasi = SQL apa adanya (migrasi 0000 identik byte-per-byte dengan DDL v3.1).
+apps/api/src/db/migrations/
+
+pnpm-lock.yaml
+**/dist/
+**/playwright-report/
+**/test-results/

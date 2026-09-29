@@ -1,0 +1,24 @@
+# Dependency dan hasil build
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+
+# Rahasia lingkungan (.env.example tetap di-commit)
+.env
+.env.*
+!.env.example
+
+# Hasil tes
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Berkas unggahan aplikasi (Fase 3)
+storage/
+
+# Log dan sistem
+*.log
+.DS_Store
+Thumbs.db
