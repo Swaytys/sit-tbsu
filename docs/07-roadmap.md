@@ -13,7 +13,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | Fase | Nama | Status | Selesai |
 |---|---|---|---|
 | 0 | Fondasi (dokumen) | Selesai | 2026-09-19 |
-| 1 | Setup lingkungan | Aktif | — |
+| 1 | Setup lingkungan | Selesai | 2026-09-29 |
 | 2 | Akses dasar | Belum | — |
 | 3 | Data master | Belum | — |
 | 4 | Inti persediaan | Belum | — |
@@ -56,13 +56,24 @@ Deliverable:
 Selesai bila: `pnpm dev` menampilkan halaman satuan berisi data; `pnpm typecheck && pnpm lint && pnpm test` lulus;
 commit pertama di `main`.
 
+Catatan penyelesaian (2026-09-29, branch `feat/01-setup`):
+- Versi paket dikunci di `catalog:` `pnpm-workspace.yaml` (K-050). TypeScript 6.0, bukan 7 (lint bertipe belum
+  mendukung TS 7).
+- Skema Drizzle terbukti identik dengan migrasi 0000 lewat `db:verifikasi` (pg_dump, 1468 baris), karena
+  `drizzle-kit check` hanya memeriksa riwayat migrasi (K-052).
+- `GET /api/satuan` sementara tanpa izin; wajib diberi `requirePermission` di Fase 2 (K-051).
+- Penyimpangan kecil struktur (letak seed, 7 berkas skema, enums.ts lengkap, kode satuan `m2`/`m3`) — K-053.
+- Tes: 10 tes Vitest (service satuan + route health) dan 2 tes Playwright lulus; `pnpm build` berhasil.
+
 ### Fase 2 — Akses dasar
 Tujuan: login aman, hak akses berjalan, kerangka UI final.
 
 Deliverable:
 - Modul `auth`: login, logout, sesi (tabel `sesi_login`), idle/absolut timeout, penguncian gagal login, rate limit,
   middleware `auth` dan `requirePermission`, guard default menolak route tanpa izin, CSRF.
-- `packages/shared`: `permissions.ts`, `roles.ts` (matriks docs/04), `enums.ts` awal.
+- `packages/shared`: `permissions.ts`, `roles.ts` (matriks docs/04), `enums.ts` awal (sudah lengkap sejak Fase 1,
+  K-053).
+- Pasang `requirePermission` pada `GET /api/satuan` dan tentukan izin baca satuan (K-051).
 - Modul `sistem`: `penomoran.ts` (tabel `penghitung_nomor`, FOR UPDATE, format dari konfigurasi), `log-aktivitas.ts`,
   `konfigurasi` (baca/tulis, cache di memori dengan invalidasi).
 - Kelola pengguna (Owner): daftar, tambah, ubah, nonaktif, reset password, cabut sesi, aturan Owner terakhir.
@@ -201,5 +212,6 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 ## Riwayat
 
 - 2026-09-19 — Fase 0 selesai (Batch 1–3 diserahkan); Fase 1 diaktifkan.
+- 2026-09-29 — Fase 1 selesai (catatan di bawah Fase 1; K-050–K-053). Fase 2 ditambah tugas K-051.
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).

@@ -1,0 +1,5 @@
+# Semua berkas teks disimpan dengan akhir baris LF (sama dengan Prettier).
+* text=auto eol=lf
+
+# Salinan referensi asli (laporan KP, diagram, mockup) dibiarkan apa adanya.
+docs/referensi/** -text

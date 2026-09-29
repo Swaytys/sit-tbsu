@@ -1,0 +1,17 @@
+# OPSIONAL (K-035). Hanya untuk yang tidak memasang PostgreSQL langsung di Windows.
+# Jalankan: docker compose up -d
+# Buat database tes sekali: docker compose exec db createdb -U sit tbsu_test
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: sit
+      POSTGRES_PASSWORD: sit
+      POSTGRES_DB: tbsu_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
