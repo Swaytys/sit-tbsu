@@ -20,7 +20,7 @@ export function kolomImport(ref: ReferensiImport): KolomImport[] {
     { kunci: 'kode', petunjuk: 'Kosongkan = kode otomatis', lebar: 14 },
     { kunci: 'nama_barang', petunjuk: PETUNJUK_NAMA, lebar: 36 },
     { kunci: 'kategori', petunjuk: 'Wajib. Nama kategori', lebar: 20 },
-    { kunci: 'merk', petunjuk: 'Opsional', lebar: 14 },
+    { kunci: 'merk', petunjuk: 'Opsional. Nama merk', lebar: 16 },
     { kunci: 'satuan_dasar', petunjuk: 'Wajib. Kode satuan, mis. sak', lebar: 14 },
     { kunci: 'barcode', petunjuk: 'Opsional, unik', lebar: 16 },
     { kunci: 'stok_minimum', petunjuk: 'Kosong = bawaan toko', lebar: 14 },
@@ -88,12 +88,14 @@ export function buatTemplat(ref: ReferensiImport): ExcelJS.Workbook {
     { header: 'Nama satuan', key: 'namaSatuan', width: 22 },
     { header: 'Kode pemasok', key: 'pemasok', width: 14 },
     { header: 'Nama pemasok', key: 'namaPemasok', width: 30 },
+    { header: 'Merk', key: 'merk', width: 20 },
   ];
   r.getRow(1).font = { bold: true };
   const kategori = ref.kategori.filter((k) => k.statusAktif === 'AKTIF');
   const satuan = ref.satuan.filter((s) => s.statusAktif === 'AKTIF');
   const pemasok = ref.pemasok.filter((p) => p.statusAktif === 'AKTIF');
-  const panjang = Math.max(kategori.length, satuan.length, pemasok.length);
+  const merk = ref.merk.filter((m) => m.statusAktif === 'AKTIF');
+  const panjang = Math.max(kategori.length, satuan.length, pemasok.length, merk.length);
   for (let i = 0; i < panjang; i++) {
     r.addRow({
       kategori: kategori[i]?.nama,
@@ -101,6 +103,7 @@ export function buatTemplat(ref: ReferensiImport): ExcelJS.Workbook {
       namaSatuan: satuan[i]?.nama,
       pemasok: pemasok[i]?.kode,
       namaPemasok: pemasok[i]?.nama,
+      merk: merk[i]?.nama,
     });
   }
 
@@ -119,6 +122,7 @@ export function buatTemplat(ref: ReferensiImport): ExcelJS.Workbook {
   };
   if (kategori.length > 0) daftar('kategori', `Referensi!$A$2:$A$${kategori.length + 1}`);
   if (satuan.length > 0) daftar('satuan_dasar', `Referensi!$B$2:$B$${satuan.length + 1}`);
+  if (merk.length > 0) daftar('merk', `Referensi!$F$2:$F$${merk.length + 1}`);
   if (pemasok.length > 0) daftar('kode_pemasok', `Referensi!$D$2:$D$${pemasok.length + 1}`);
   daftar('kepemilikan', '"MILIK_SENDIRI,KONSINYASI"');
 

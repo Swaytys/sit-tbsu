@@ -9,6 +9,7 @@ import {
   jenisAtribut,
   kategori,
   logAktivitas,
+  merk,
   satuan,
 } from '../../db/schema';
 
@@ -21,7 +22,7 @@ let admin: Awaited<ReturnType<typeof sesiUji>>;
 
 beforeEach(async () => {
   await siapkanDatabaseSistem();
-  await kosongkanTabel(kategori, satuan, jenisAtribut, barang);
+  await kosongkanTabel(kategori, satuan, jenisAtribut, barang, merk);
   admin = await sesiUji('ADMIN');
 });
 
@@ -53,6 +54,30 @@ async function barangUji(idKategori: number, idSatuan: number) {
   if (!b) throw new Error('barang uji gagal');
   return b.id;
 }
+
+describe('merk', () => {
+  it('semua peran membaca; Admin mengelola; nama unik tanpa beda huruf besar/kecil; nonaktif tercatat', async () => {
+    const kasir = await sesiUji('KASIR');
+    expect((await minta('/api/merk', { cookie: kasir.cookie })).status).toBe(200);
+    expect(
+      (await minta('/api/merk', { method: 'POST', cookie: kasir.cookie, body: { nama: 'X' } }))
+        .status,
+    ).toBe(403);
+
+    const m = await buat('/api/merk', { nama: 'Gresik', keterangan: 'Semen' });
+    expect(m).toMatchObject({ nama: 'Gresik', statusAktif: 'AKTIF', jumlahBarang: 0 });
+    const kembar = await kirim('/api/merk', { nama: 'GRESIK' });
+    expect(kembar.status).toBe(409);
+    expect((await json<Galat>(kembar)).error.detail?.kolom?.nama?.[0]).toContain('sudah ada');
+
+    await kirim(`/api/merk/${m.id}/status`, { statusAktif: 'NONAKTIF' }, 'PATCH');
+    expect((await logTerakhir('MERK_NONAKTIF'))?.idEntitas).toBe(m.id);
+    const aktif = await json<{ data: Baris[] }>(
+      await minta('/api/merk?status=AKTIF', { cookie: admin.cookie }),
+    );
+    expect(aktif.data).toHaveLength(0);
+  });
+});
 
 describe('kategori', () => {
   it('semua peran boleh membaca; hanya Admin/Owner yang boleh mengelola', async () => {

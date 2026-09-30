@@ -114,6 +114,15 @@ function petakan(
     kolomDiperiksa.add('idKategori');
   }
 
+  const namaMerk = t('merk');
+  const merk = namaMerk
+    ? cari(ref.merk, (m) => m.nama.toLowerCase() === namaMerk.toLowerCase())
+    : undefined;
+  if (namaMerk && !merk) {
+    pesan.push(`Merk "${namaMerk}" tidak ditemukan; tambahkan dulu di Referensi Barang.`);
+    kolomDiperiksa.add('idMerk');
+  }
+
   const cariSatuan = (kode: string) =>
     cari(ref.satuan, (s) => s.kode === kode) ??
     cari(ref.satuan, (s) => s.kode.toLowerCase() === kode.toLowerCase());
@@ -179,7 +188,7 @@ function petakan(
     barcode: t('barcode'),
     namaBarang: t('nama_barang'),
     idKategori: kategori?.id ?? 0,
-    merk: t('merk'),
+    idMerk: merk?.id ?? null,
     idSatuanDasar: satuan?.id ?? 0,
     stokMinimum: stok.angka !== null ? String(stok.angka) : stok.teks,
     hargaModalAwal: rupiah(b.sel('harga_modal_awal'), 'Harga modal awal', pesan) ?? 0,

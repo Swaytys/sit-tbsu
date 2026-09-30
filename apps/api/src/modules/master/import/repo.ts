@@ -1,10 +1,22 @@
 import { asc, inArray } from 'drizzle-orm';
 import type { Executor } from '../../../db/client';
-import { barang, jenisAtribut, kategori, pemasok, satuan, tingkatHarga } from '../../../db/schema';
+import {
+  barang,
+  jenisAtribut,
+  kategori,
+  merk,
+  pemasok,
+  satuan,
+  tingkatHarga,
+} from '../../../db/schema';
 
 /** Data referensi untuk templat dan untuk mencocokkan isi sel (nama/kode) ke id. */
 export async function referensiImport(ex: Executor) {
   // Berurutan: di dalam transaksi satu koneksi tidak boleh menjalankan kueri bersamaan.
+  const daftarMerk = await ex
+    .select({ id: merk.id, nama: merk.nama, statusAktif: merk.statusAktif })
+    .from(merk)
+    .orderBy(asc(merk.nama));
   const daftarKategori = await ex
     .select({ id: kategori.id, nama: kategori.nama, statusAktif: kategori.statusAktif })
     .from(kategori)
@@ -50,6 +62,7 @@ export async function referensiImport(ex: Executor) {
     .orderBy(asc(jenisAtribut.urutan), asc(jenisAtribut.nama));
   return {
     kategori: daftarKategori,
+    merk: daftarMerk,
     satuan: daftarSatuan,
     pemasok: daftarPemasok,
     tier: daftarTier,

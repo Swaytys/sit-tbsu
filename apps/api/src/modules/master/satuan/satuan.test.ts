@@ -59,15 +59,13 @@ describe('satuan › daftarSatuan', () => {
 describe('satuan › aturan yang ditegakkan database', () => {
   beforeEach(async () => {
     await kosongkanTabel(satuan);
-    await db
-      .insert(satuan)
-      .values({
-        kode: 'm',
-        nama: 'Meter',
-        jenisDimensi: 'PANJANG',
-        faktorKeBasis: '1',
-        isBasis: true,
-      });
+    await db.insert(satuan).values({
+      kode: 'm',
+      nama: 'Meter',
+      jenisDimensi: 'PANJANG',
+      faktorKeBasis: '1',
+      isBasis: true,
+    });
   });
 
   it('dimensi fisik hanya boleh punya satu satuan basis', async () => {
