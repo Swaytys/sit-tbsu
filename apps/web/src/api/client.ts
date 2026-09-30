@@ -11,9 +11,20 @@ export class GalatApi extends Error {
     public readonly kode: KodeError,
     message: string,
     public readonly status: number,
+    /** Mis. `{ kolom: { username: ['Username sudah dipakai.'] } }` untuk galat validasi. */
+    public readonly detail?: unknown,
   ) {
     super(message);
     this.name = 'GalatApi';
+  }
+
+  /** Pesan per kolom form dari server (bila ada). */
+  get kolom(): Record<string, string[]> {
+    if (typeof this.detail === 'object' && this.detail !== null && 'kolom' in this.detail) {
+      const { kolom } = this.detail;
+      if (typeof kolom === 'object' && kolom !== null) return kolom as Record<string, string[]>;
+    }
+    return {};
   }
 }
 
@@ -21,7 +32,7 @@ function adalahKodeError(nilai: unknown): nilai is KodeError {
   return typeof nilai === 'string' && (KODE_ERROR as readonly string[]).includes(nilai);
 }
 
-/** Membaca respons gagal `{ error: { kode, pesan } }` menjadi GalatApi. */
+/** Membaca respons gagal `{ error: { kode, pesan, detail? } }` menjadi GalatApi. */
 export async function galatDariRespons(res: {
   status: number;
   json: () => Promise<unknown>;
@@ -29,15 +40,25 @@ export async function galatDariRespons(res: {
   try {
     const body = await res.json();
     if (typeof body === 'object' && body !== null && 'error' in body) {
-      const { error } = body as { error: { kode?: unknown; pesan?: unknown } };
+      const { error } = body as { error: { kode?: unknown; pesan?: unknown; detail?: unknown } };
       if (adalahKodeError(error.kode) && typeof error.pesan === 'string') {
-        return new GalatApi(error.kode, error.pesan, res.status);
+        return new GalatApi(error.kode, error.pesan, res.status, error.detail);
       }
     }
   } catch {
     // Bukan JSON (mis. server API mati di belakang proxy).
   }
   return new GalatApi('INTERNAL', `Permintaan gagal (HTTP ${res.status}).`, res.status);
+}
+
+/** Mengambil `data` dari respons sukses, atau melempar GalatApi berisi pesan dari server. */
+export async function ambilData<T>(res: {
+  ok: boolean;
+  status: number;
+  json: () => Promise<{ data: T }>;
+}): Promise<T> {
+  if (!res.ok) throw await galatDariRespons(res);
+  return (await res.json()).data;
 }
 
 /** Pesan yang aman ditampilkan untuk kesalahan apa pun dari pemanggilan API. */

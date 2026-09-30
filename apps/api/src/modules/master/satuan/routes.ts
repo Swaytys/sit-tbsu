@@ -1,8 +1,12 @@
 import { Hono } from 'hono';
+import type { EnvApp } from '../../../lib/konteks';
+import { requirePermission } from '../../../middleware/require-permission';
 import { daftarSatuan } from './service';
 
-// SEMENTARA (K-051): GET /api/satuan belum memakai requirePermission karena login dan izin
-// baru dibuat di Fase 2. Fase 2 wajib menambahkan requirePermission pada rute ini.
-export const satuanRoutes = new Hono().get('/', async (c) =>
-  c.json({ data: await daftarSatuan() }, 200),
+// Membaca satuan butuh `master.barang.lihat` (semua peran): nama satuan tampil di barang, order, dan
+// struk (K-054, menutup K-051). Mengubah satuan nanti memakai `master.satuan.kelola` (Fase 3).
+export const satuanRoutes = new Hono<EnvApp>().get(
+  '/',
+  requirePermission('master.barang.lihat'),
+  async (c) => c.json({ data: await daftarSatuan() }, 200),
 );

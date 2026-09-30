@@ -230,3 +230,5 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 
 - 2026-09-19 — v1. Konflik hak akses antar-sumber diselesaikan (K-019): Laporan untuk Kasir = penjualan tanpa HPP;
   Data Pemasok = Admin/Owner; Kelola pengguna = Owner.
+- 2026-09-30 — Membaca satuan (`GET /api/satuan`) memakai `master.barang.lihat`; rute milik sendiri (logout, profil,
+  ganti password) memakai `requireLogin()`; akun demo masuk cepat hanya mode pengembangan (K-054).

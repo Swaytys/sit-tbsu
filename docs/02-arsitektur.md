@@ -187,6 +187,8 @@ export class AppError extends Error {
 | `STOK_TIDAK_CUKUP` | 409 | Stok tersedia kurang |
 | `KONFLIK` | 409 | Unik terlanggar, data diubah orang lain |
 | `LIMIT_TERLAMPAUI` | 409 | Limit kredit / batas diskon |
+| `WAJIB_GANTI_PASSWORD` | 403 | Pengguna harus mengganti password sebelum memakai fitur lain (K-054) |
+| `TERLALU_BANYAK_PERCOBAAN` | 429 | Rate limit login per IP (K-054) |
 | `INTERNAL` | 500 | Tak terduga; pesan generik ke klien, detail ke log |
 
 ## 5. Frontend
@@ -234,6 +236,9 @@ dengan aturan pembulatan di docs/06. Tidak ada `parseFloat` pada uang.
    `c.var`. Idle diperpanjang tiap request (sliding), maksimum absolut sesuai docs/04.
 3. `POST /api/auth/logout` mencabut sesi. Owner bisa mencabut semua sesi seorang pengguna (saat menonaktifkan akun).
 4. Gagal login berulang → penguncian sementara (docs/04). Semua login sukses/gagal masuk log aktivitas.
+5. Rute dijaga `requirePermission('kode.izin')` atau, untuk data milik sendiri (logout, profil, ganti password),
+   `requireLogin()`. Server menolak menyala bila ada rute tanpa salah satunya yang tidak terdaftar publik (K-054).
+   `terakhir_aktif` diperbarui paling sering sekali per menit. `SESSION_SECRET` belum dipakai.
 
 Cookie `SameSite=Lax` + middleware `csrf()` Hono (memeriksa header `Origin`) melindungi dari CSRF. Frontend dan
 API berada di origin yang sama (dev: proxy Vite `/api` → `:3000`; produksi: Hono menyajikan `apps/web/dist`).
@@ -299,5 +304,7 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 ## Riwayat
 
 - 2026-09-19 — v1.
+- 2026-09-30 — Fase 2: kode error `WAJIB_GANTI_PASSWORD`, `TERLALU_BANYAK_PERCOBAAN` (§4); guard default dan
+  `requireLogin` (§8) — K-054.
 - 2026-09-29 — Fase 1: versi paket dikunci (§2, K-050); struktur `db/` dan letak seed disesuaikan (§3, K-053);
   cara verifikasi skema dan `db:reset --ya` (§9, K-052).

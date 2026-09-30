@@ -1,0 +1,63 @@
+import { zValidator } from '@hono/zod-validator';
+import { skemaGantiPassword, skemaLogin, skemaMasukCepat } from '@sit/shared';
+import { Hono, type Context } from 'hono';
+import { deleteCookie, setCookie } from 'hono/cookie';
+import { env } from '../../env';
+import type { EnvApp } from '../../lib/konteks';
+import { kaitValidasi } from '../../lib/validasi';
+import { batasPercobaanLogin } from '../../middleware/batas-percobaan';
+import { penggunaWajib, requireLogin } from '../../middleware/require-permission';
+import { gantiPassword, keSaya, login, logout, masukCepat, type HasilLogin } from './service';
+import { NAMA_COOKIE_SESI } from './token';
+
+/** Cookie sesi: httpOnly, SameSite=Lax, Secure di produksi (CLAUDE.md § Keamanan). */
+function pasangCookieSesi(c: Context<EnvApp>, hasil: HasilLogin): void {
+  setCookie(c, NAMA_COOKIE_SESI, hasil.token, {
+    httpOnly: true,
+    sameSite: 'Lax',
+    secure: env.NODE_ENV === 'production',
+    path: '/',
+    expires: hasil.kadaluarsa,
+  });
+}
+
+export const authRoutes = new Hono<EnvApp>()
+  // Rute publik (CLAUDE.md aturan 5).
+  .post('/login', batasPercobaanLogin, zValidator('json', skemaLogin, kaitValidasi), async (c) => {
+    const hasil = await login(c.req.valid('json'), c.get('asal'));
+    pasangCookieSesi(c, hasil);
+    return c.json({ data: hasil.pengguna }, 200);
+  })
+  .post('/logout', requireLogin({ bolehWajibGantiPassword: true }), async (c) => {
+    await logout(penggunaWajib(c), c.get('asal'));
+    deleteCookie(c, NAMA_COOKIE_SESI, { path: '/' });
+    return c.json({ data: { berhasil: true } }, 200);
+  })
+  .get('/saya', requireLogin({ bolehWajibGantiPassword: true }), (c) => {
+    const p = penggunaWajib(c);
+    return c.json({ data: keSaya(p) }, 200);
+  })
+  .post(
+    '/ganti-password',
+    requireLogin({ bolehWajibGantiPassword: true }),
+    zValidator('json', skemaGantiPassword, kaitValidasi),
+    async (c) => {
+      const pengguna = await gantiPassword(penggunaWajib(c), c.req.valid('json'), c.get('asal'));
+      return c.json({ data: pengguna }, 200);
+    },
+  );
+
+/**
+ * Masuk cepat per peran dengan akun demo. HANYA dipasang saat NODE_ENV=development (K-021), sehingga
+ * rute ini tidak ada di produksi. Service juga menolak bila bukan mode pengembangan.
+ */
+export const authDevRoutes = new Hono<EnvApp>().post(
+  '/masuk-cepat',
+  batasPercobaanLogin,
+  zValidator('json', skemaMasukCepat, kaitValidasi),
+  async (c) => {
+    const hasil = await masukCepat(c.req.valid('json').peran, c.get('asal'));
+    pasangCookieSesi(c, hasil);
+    return c.json({ data: hasil.pengguna }, 200);
+  },
+);

@@ -10,7 +10,11 @@ try {
   if (passwordOwner.length < 8 || passwordOwner === 'ganti') {
     throw new Error('SEED_OWNER_PASSWORD di .env wajib diisi, minimal 8 karakter.');
   }
-  const barisBaru = await isiDataAwal(db, { passwordOwner });
+  // Akun demo per peran hanya untuk pengembangan (docs/03 §6).
+  const barisBaru = await isiDataAwal(db, {
+    passwordOwner,
+    akunDemo: env.NODE_ENV === 'development',
+  });
   logger.info({ barisBaru }, `Seed selesai pada database ${namaDatabase(env.DATABASE_URL)}.`);
 } catch (err) {
   logger.error(err, 'Seed gagal.');

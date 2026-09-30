@@ -11,6 +11,9 @@ const skemaEnv = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL wajib diisi di .env'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  // Sesi login (docs/04 §7).
+  SESSION_IDLE_MENIT: z.coerce.number().int().positive().default(60),
+  SESSION_ABSOLUT_JAM: z.coerce.number().int().positive().default(12),
 });
 
 const hasil = skemaEnv.safeParse(process.env);
