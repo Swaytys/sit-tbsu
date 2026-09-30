@@ -14,7 +14,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 |---|---|---|---|
 | 0 | Fondasi (dokumen) | Selesai | 2026-09-19 |
 | 1 | Setup lingkungan | Selesai | 2026-09-29 |
-| 2 | Akses dasar | Belum | — |
+| 2 | Akses dasar | Berjalan | — |
 | 3 | Data master | Belum | — |
 | 4 | Inti persediaan | Belum | — |
 | 5 | Penjualan | Belum | — |
@@ -213,5 +213,6 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 - 2026-09-19 — Fase 0 selesai (Batch 1–3 diserahkan); Fase 1 diaktifkan.
 - 2026-09-29 — Fase 1 selesai (catatan di bawah Fase 1; K-050–K-053). Fase 2 ditambah tugas K-051.
+- 2026-09-30 — Fase 2 diaktifkan; branch `feat/02-akses` (login, sesi, izin, penomoran, log, menu) di-merge (K-054).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).
