@@ -2,6 +2,7 @@ import type { Pelanggan, StatusAktif } from '@sit/shared';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useDaftarPelanggan, useStatusPelanggan } from '@/api/mitra';
+import { useBarisPerHalaman } from '@/api/pengaturan';
 import { BilahSaring, type SaringStatus } from '@/components/bilah-saring';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { MenuAksiMaster } from '@/components/menu-aksi-master';
@@ -20,7 +21,13 @@ export function HalamanPelanggan() {
   const [halaman, setHalaman] = useState(1);
   const [dialog, setDialog] = useState<{ pelanggan: Pelanggan | null } | null>(null);
 
-  const daftar = useDaftarPelanggan({ cari: cariTertunda, status, halaman, perHalaman: 25 });
+  const barisPerHalaman = useBarisPerHalaman();
+  const daftar = useDaftarPelanggan({
+    cari: cariTertunda,
+    status,
+    halaman,
+    perHalaman: barisPerHalaman,
+  });
   const ubahStatus = useStatusPelanggan();
 
   const kolom: KolomTabel<Pelanggan>[] = [

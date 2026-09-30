@@ -1,7 +1,7 @@
 import { AKSI_LOG, type AksiLog, type BarisLog } from '@sit/shared';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
-import { useDaftarLog } from '@/api/pengaturan';
+import { useDaftarLog, useBarisPerHalaman } from '@/api/pengaturan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -101,7 +101,8 @@ export function TabLog() {
   const cariTertunda = useTunda(cari, 300);
   const [aksi, setAksi] = useState<AksiLog | ''>('');
   const [halaman, setHalaman] = useState(1);
-  const log = useDaftarLog({ cari: cariTertunda, aksi, halaman, perHalaman: 25 });
+  const barisPerHalaman = useBarisPerHalaman();
+  const log = useDaftarLog({ cari: cariTertunda, aksi, halaman, perHalaman: barisPerHalaman });
 
   return (
     <Card className="gap-0 overflow-hidden py-0">

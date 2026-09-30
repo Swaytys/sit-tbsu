@@ -3,6 +3,7 @@ import { Columns3, Download, FileSpreadsheet, ImageOff, Plus } from 'lucide-reac
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePengguna } from '@/api/auth';
+import { useBarisPerHalaman } from '@/api/pengaturan';
 import { useDaftarBarang, useStatusBarang } from '@/api/barang';
 import { useDaftarTingkatHarga } from '@/api/mitra';
 import { useDaftarKategori, useDaftarMerk } from '@/api/referensi';
@@ -61,6 +62,7 @@ export function HalamanBarang() {
   const merk = useDaftarMerk();
   const tier = useDaftarTingkatHarga();
   const tierAktif = (tier.data ?? []).filter((t) => t.statusAktif === 'AKTIF');
+  const barisPerHalaman = useBarisPerHalaman();
   const daftar = useDaftarBarang({
     cari: cariTertunda,
     idKategori,
@@ -68,7 +70,7 @@ export function HalamanBarang() {
     status,
     perluTinjau,
     halaman,
-    perHalaman: 25,
+    perHalaman: barisPerHalaman,
   });
   const ubahStatus = useStatusBarang();
 

@@ -84,9 +84,9 @@ Sprint pertama v2 dibuka dengan audit terarah; hasilnya daftar temuan berpriorit
 | Parameter | Keputusan |
 |---|---|
 | Nama perusahaan, alamat, telp | Sudah ada (Pengaturan › Profil toko). |
-| Logo perusahaan (gambar) | Dikerjakan sekarang (Fase 3, perbaikan). |
-| Slip memakai nama / logo perusahaan | Dikerjakan sekarang: opsi struk. |
-| Jumlah baris per halaman | Dikerjakan sekarang: bawaan tabel. |
+| Logo perusahaan (gambar) | Selesai (K-065): Pengaturan › Profil toko › Logo toko; tampil di sidebar. |
+| Slip memakai nama / logo perusahaan | Selesai (K-065): dua opsi kop struk; dipakai saat cetak struk (Fase 5). |
+| Jumlah baris per halaman | Selesai (K-065): Pengaturan › Operasional; berlaku di semua tabel data. |
 | Kas utama / bank utama | v2 Sprint C (C3). Rekening transfer untuk nota ikut C3. |
 | Themes | v2 Sprint D (kenyamanan). |
 | Metode persediaan FIFO | Tidak: HPP rata-rata tertimbang sudah dikunci (K-008). |

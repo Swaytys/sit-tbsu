@@ -31,7 +31,13 @@ export const skemaProfilToko = z.object({
   lebarStrukMm: z.coerce
     .number()
     .refine((v) => v === 58 || v === 80, 'Lebar struk hanya 58 atau 80 mm.'),
+  /** Kop struk memakai nama toko / logo toko (K-065). */
+  strukTampilkanNama: z.boolean(),
+  strukTampilkanLogo: z.boolean(),
 });
+
+/** Pilihan jumlah baris per halaman tabel (K-065). */
+export const PILIHAN_BARIS_PER_HALAMAN = [10, 25, 50, 100] as const;
 
 export const skemaPrefixDokumen = z
   .string()
@@ -74,6 +80,12 @@ export const skemaOperasional = z.object({
   termHariDefault: bulat('Term piutang bawaan', 0, 365),
   jatuhTempoDefaultHari: bulat('Jatuh tempo bawaan', 0, 365),
   checkoutWajibShift: z.boolean(),
+  barisPerHalaman: z.coerce
+    .number('Jumlah baris harus berupa angka.')
+    .refine(
+      (v) => (PILIHAN_BARIS_PER_HALAMAN as readonly number[]).includes(v),
+      'Pilih 10, 25, 50, atau 100 baris.',
+    ),
 });
 
 export const DASAR_MARKUP = ['HARGA_BELI_TERAKHIR', 'HPP_RATA2'] as const;
@@ -110,6 +122,15 @@ export const skemaUbahPengaturan = skemaPengaturan
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Tidak ada pengaturan yang dikirim.');
 export type InputUbahPengaturan = z.input<typeof skemaUbahPengaturan>;
+
+/** Identitas toko dan preferensi tampilan yang boleh dibaca semua pengguna login (K-065). */
+export type TampilanToko = {
+  namaToko: string;
+  namaBadanUsaha: string;
+  /** URL logo (dilayani API), `null` bila belum ada. */
+  logo: string | null;
+  barisPerHalaman: number;
+};
 
 // --- Log aktivitas (Pengaturan › tab Log Aktivitas, izin sistem.log.lihat; docs/04 §8) ---
 

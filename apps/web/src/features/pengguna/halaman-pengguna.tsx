@@ -13,6 +13,7 @@ import {
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
+import { useBarisPerHalaman } from '@/api/pengaturan';
 import { pesanGalat } from '@/api/client';
 import {
   useAktifkanPengguna,
@@ -68,7 +69,13 @@ export function HalamanPengguna() {
   const [halaman, setHalaman] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
 
-  const daftar = useDaftarPengguna({ cari: cariTertunda, status, halaman, perHalaman: 25 });
+  const barisPerHalaman = useBarisPerHalaman();
+  const daftar = useDaftarPengguna({
+    cari: cariTertunda,
+    status,
+    halaman,
+    perHalaman: barisPerHalaman,
+  });
   const nonaktifkan = useNonaktifkanPengguna();
   const aktifkan = useAktifkanPengguna();
   const cabutSesi = useCabutSesiPengguna();

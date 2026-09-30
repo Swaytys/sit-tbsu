@@ -4,6 +4,7 @@ import {
   aturKonfigurasi,
   json,
   minta,
+  mintaForm,
   PASSWORD_UJI,
   sesiUji,
   siapkanDatabaseSistem,
@@ -66,6 +67,8 @@ describe('pengaturan › baca dan ubah', () => {
       email_toko: '',
       footer_struk: 'Terima kasih.',
       lebar_struk_mm: '80',
+      struk_tampilkan_nama: 'true',
+      struk_tampilkan_logo: 'false',
     });
     const sekarang = await baca();
 
@@ -149,5 +152,57 @@ describe('pengaturan › validasi', () => {
     const kosong = await ubah({});
     expect(kosong.status).toBe(400);
     expect((await json<Galat>(kosong)).error.pesan).toBe('Tidak ada pengaturan yang dikirim.');
+  });
+});
+
+describe('pengaturan › tampilan toko dan logo (K-065)', () => {
+  const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 1]);
+
+  it('semua peran membaca tampilan; baris per halaman hanya 10/25/50/100', async () => {
+    await aturKonfigurasi({ nama_toko: 'Toko Uji', baris_per_halaman: '50' });
+    const staf = await sesiUji('STAF_PENJUALAN');
+    const res = await minta('/api/pengaturan/tampilan', { cookie: staf.cookie });
+    expect(res.status).toBe(200);
+    expect((await json<{ data: unknown }>(res)).data).toEqual({
+      namaToko: 'Toko Uji',
+      namaBadanUsaha: 'UD. Sumber Urip',
+      logo: null,
+      barisPerHalaman: 50,
+    });
+    expect((await minta('/api/pengaturan/tampilan')).status).toBe(401);
+
+    const sekarang = await json<{ data: { operasional: Record<string, unknown> } }>(
+      await minta('/api/pengaturan', { cookie: admin.cookie }),
+    );
+    const salah = await ubah({
+      operasional: { ...sekarang.data.operasional, barisPerHalaman: 30 },
+    });
+    expect(salah.status).toBe(400);
+  });
+
+  it('Admin mengunggah logo; semua peran bisa melihat; Kasir tidak bisa mengganti; hapus logo', async () => {
+    const form = new FormData();
+    form.set('berkas', new File([PNG], 'logo.png'));
+    const res = await mintaForm('/api/pengaturan/logo', form, admin.cookie);
+    expect(res.status).toBe(200);
+    const logo = (await json<{ data: { logo: string } }>(res)).data.logo;
+    expect(logo).toMatch(/^\/api\/pengaturan\/logo\?v=logo-/);
+
+    const kasir = await sesiUji('KASIR');
+    const lihat = await minta(logo, { cookie: kasir.cookie });
+    expect(lihat.status).toBe(200);
+    expect(lihat.headers.get('content-type')).toBe('image/png');
+    expect((await mintaForm('/api/pengaturan/logo', form, kasir.cookie)).status).toBe(403);
+
+    const [log] = await db
+      .select()
+      .from(logAktivitas)
+      .where(eq(logAktivitas.aksi, 'PENGATURAN_UBAH'))
+      .orderBy(desc(logAktivitas.id));
+    expect(log?.ringkasan).toBe('Mengganti logo toko');
+
+    const hapus = await minta('/api/pengaturan/logo', { method: 'DELETE', cookie: admin.cookie });
+    expect((await json<{ data: { logo: string | null } }>(hapus)).data.logo).toBeNull();
+    expect((await minta(logo, { cookie: kasir.cookie })).status).toBe(404);
   });
 });

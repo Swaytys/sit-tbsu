@@ -54,6 +54,24 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     tipe: 'ANGKA',
     deskripsi: 'Lebar kertas struk: 58 atau 80',
   },
+  {
+    kode: 'struk_tampilkan_nama',
+    nilai: 'true',
+    tipe: 'BOOL',
+    deskripsi: 'Kop struk memakai nama toko (K-065)',
+  },
+  {
+    kode: 'struk_tampilkan_logo',
+    nilai: 'false',
+    tipe: 'BOOL',
+    deskripsi: 'Kop struk memakai logo toko (K-065)',
+  },
+  {
+    kode: 'baris_per_halaman',
+    nilai: '25',
+    tipe: 'ANGKA',
+    deskripsi: 'Jumlah baris per halaman tabel: 10, 25, 50, 100 (K-065)',
+  },
   ...PREFIX_DOKUMEN.map((p): BarisKonfigurasi => ({
     kode: `prefix_${p}`,
     nilai: p,

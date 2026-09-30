@@ -22,7 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useTampilanToko } from '@/api/pengaturan';
 import { KartuBagian } from './bagian';
 import { useSimpanPengaturan } from './use-simpan-pengaturan';
 
@@ -37,6 +39,7 @@ export function FormProfil({ pengaturan }: { pengaturan: Pengaturan }) {
     defaultValues: pengaturan.profil,
   });
   const nilai = useWatch({ control: form.control });
+  const logo = useTampilanToko().data?.logo;
   const contohNomor = `${pengaturan.penomoran.prefix.STR}-${format(new TZDate(new Date(), 'Asia/Jakarta'), 'yyMMdd')}-001`;
 
   async function kirim(data: Keluaran) {
@@ -160,13 +163,50 @@ export function FormProfil({ pengaturan }: { pengaturan: Pengaturan }) {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            {(
+              [
+                [
+                  'strukTampilkanNama',
+                  'Kop struk memakai nama toko',
+                  'Nama dan badan usaha di atas struk.',
+                ],
+                ['strukTampilkanLogo', 'Kop struk memakai logo toko', 'Logo dari kartu Logo toko.'],
+              ] as const
+            ).map(([nama, label, ket]) => (
+              <FormField
+                key={nama}
+                control={form.control}
+                name={nama}
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                    <div>
+                      <FormLabel>{label}</FormLabel>
+                      <FormDescription>{ket}</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            ))}
+          </div>
+
           <div className="rounded-lg border bg-slate-50 p-4">
             <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
               Pratinjau struk
             </p>
             <div className="mx-auto max-w-xs space-y-1 rounded border border-dashed border-slate-300 bg-white p-4 text-center font-mono text-xs text-slate-700">
-              <p className="text-sm font-bold">{nilai.namaToko}</p>
-              {nilai.namaBadanUsaha && <p>{nilai.namaBadanUsaha}</p>}
+              {nilai.strukTampilkanLogo && logo && (
+                <img src={logo} alt="" className="mx-auto mb-1 size-10 object-contain grayscale" />
+              )}
+              {nilai.strukTampilkanNama && (
+                <>
+                  <p className="text-sm font-bold">{nilai.namaToko}</p>
+                  {nilai.namaBadanUsaha && <p>{nilai.namaBadanUsaha}</p>}
+                </>
+              )}
               <p className="text-slate-500">{nilai.alamatToko}</p>
               {nilai.telpToko && <p className="text-slate-500">Telp: {nilai.telpToko}</p>}
               <div className="my-2 border-t border-dashed border-slate-300" />

@@ -179,3 +179,19 @@ tiap hari (boros ruang).
 **Alasan:** Memperbaiki satu sel tidak perlu bolak-balik ke Excel; kolom banyak menakutkan pengguna baru;
 validasi di Excel mencegah salah ketik sejak awal.
 **Ditolak:** memperbarui barang lama lewat import (K-056 tetap: hanya menambah).
+
+### K-065 — Parameter pengaturan tambahan (masukan pemilik, tinjauan sistem lain)
+**Keputusan:**
+1. **Logo toko**: diunggah di Pengaturan › Profil toko (JPG/PNG/WebP ≤ 2 MB, diperiksa dari isi berkas), disimpan
+   di `storage/toko`, nama berkas di konfigurasi `logo_toko`. Tampil di sidebar (bila kosong: inisial nama toko).
+   Ganti/hapus logo tercatat `PENGATURAN_UBAH`.
+2. **Kop struk**: `struk_tampilkan_nama` (bawaan ya) dan `struk_tampilkan_logo` (bawaan tidak); pratinjau struk
+   di Pengaturan mengikuti; dipakai saat struk dicetak (Fase 5).
+3. **Baris per halaman**: `baris_per_halaman` (10/25/50/100, bawaan 25) di Pengaturan › Operasional; berlaku di
+   semua tabel data berhalaman.
+4. `GET /api/pengaturan/tampilan` (nama toko, badan usaha, logo, baris per halaman) dan `GET /api/pengaturan/logo`
+   bisa dibaca semua pengguna login; mengubah tetap `sistem.pengaturan.kelola`.
+5. Parameter lain dari sistem pembanding dijadwalkan/ditolak dengan alasan di `docs/08-backlog.md`.
+
+**Alasan:** Identitas toko konsisten di aplikasi dan dokumen cetak; jumlah baris menyesuaikan layar kasir/admin.
+**Ditolak:** logo di halaman login (butuh rute publik tambahan di luar daftar CLAUDE.md aturan 5).

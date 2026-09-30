@@ -10,6 +10,7 @@ import { FormKeamanan } from './form-keamanan';
 import { FormOperasional } from './form-operasional';
 import { FormPenomoran } from './form-penomoran';
 import { FormProfil } from './form-profil';
+import { KartuLogo } from './kartu-logo';
 import { TabLog } from './tab-log';
 
 /** Pengaturan sistem (Admin, Owner). Tab "Log Aktivitas" hanya bila `sistem.log.lihat` (docs/04 §4). */
@@ -50,7 +51,10 @@ export function HalamanPengaturan() {
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
           </TabsList>
           <TabsContent value="profil">
-            <FormProfil pengaturan={pengaturan.data} />
+            <div className="space-y-4">
+              <FormProfil pengaturan={pengaturan.data} />
+              <KartuLogo />
+            </div>
           </TabsContent>
           <TabsContent value="penomoran">
             <FormPenomoran pengaturan={pengaturan.data} />

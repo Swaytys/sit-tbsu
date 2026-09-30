@@ -3,6 +3,7 @@ import { ChevronDown, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
+import { useTampilanToko } from '@/api/pengaturan';
 import { menuUntuk, type ItemMenu } from '@/lib/menu';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,20 @@ export function Sidebar({ terbuka }: { terbuka: boolean }) {
   const logout = useLogout();
   const [grupTertutup, setGrupTertutup] = useState<Record<string, boolean>>({});
   const menu = menuUntuk(pengguna);
+  const toko = useTampilanToko().data;
+  const namaToko = toko?.namaToko ?? 'BonsaiUrip';
+  // "BonsaiUrip" → "BU", "Toko Maju" → "TM".
+  const kapital = namaToko.match(/[A-Z]/g) ?? [];
+  const inisial = (
+    kapital.length >= 2
+      ? kapital.join('')
+      : namaToko
+          .split(/\s+/)
+          .map((k) => k.charAt(0))
+          .join('')
+  )
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <aside
@@ -46,13 +61,21 @@ export function Sidebar({ terbuka }: { terbuka: boolean }) {
       )}
     >
       <div className="flex h-14 shrink-0 items-center border-b border-slate-800 px-4">
-        <div className="flex size-7 shrink-0 items-center justify-center rounded bg-blue-600 text-xs font-black text-white">
-          BU
-        </div>
+        {toko?.logo ? (
+          <img
+            src={toko.logo}
+            alt="Logo toko"
+            className="size-7 shrink-0 rounded bg-white object-contain"
+          />
+        ) : (
+          <div className="flex size-7 shrink-0 items-center justify-center rounded bg-blue-600 text-xs font-black text-white">
+            {inisial}
+          </div>
+        )}
         {terbuka && (
           <div className="ml-2.5 overflow-hidden leading-tight">
-            <div className="truncate text-sm font-bold text-white">BonsaiUrip</div>
-            <div className="truncate text-xs text-slate-400">UD. Sumber Urip</div>
+            <div className="truncate text-sm font-bold text-white">{namaToko}</div>
+            <div className="truncate text-xs text-slate-400">{toko?.namaBadanUsaha ?? ''}</div>
           </div>
         )}
       </div>
