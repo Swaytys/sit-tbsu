@@ -65,3 +65,41 @@ pemegang `master.barang.lihat_hpp`.
 **Alasan:** Staf tidak boleh mengganti tier di order (`penjualan.tier.ubah`); tanpa pembatasan ini Staf bisa
 memberi harga lebih murah lewat tier default pelanggan. Term dan limit adalah kebijakan kredit toko.
 **Ditolak:** semua pemegang `master.pelanggan.kelola` boleh mengatur (celah harga); Kasir ke atas.
+
+### K-060 — Aturan teknis barang, harga, dan tier (Fase 3)
+**Keputusan:**
+1. **Hanya `persediaan/ledger.ts` yang menulis tabel `persediaan`.** Fase 3 mengisinya dengan `buatPersediaan()`
+   (L10) dan `selaraskanHppMaster()`: barang KONSINYASI → `hpp_rata2 = harga_titip` (L7); barang MILIK_SENDIRI
+   yang belum pernah punya mutasi (`terakhir_mutasi` kosong) → `hpp_rata2 = harga_beli_terakhir =
+   harga_modal_awal`. `catatMutasi()` menyusul di Fase 4.
+2. **Harga modal awal dan satuan dasar dikunci setelah ada mutasi stok** (API 409, isian dinonaktifkan di UI).
+   Sebelum itu harga modal awal boleh diubah dan HPP awal ikut (butir 1). Kepemilikan dikunci selama stok
+   fisik + rusak > 0 (KS1).
+3. **"Belum ada penerimaan" (docs/06 H3)** = `persediaan.tanggal_beli_terakhir` kosong; saat itu dasar markup
+   `D = harga_modal_awal`.
+4. **Harga di form barang hanya dikirim bila bagian harga disentuh.** Mengubah harga modal awal / harga titip /
+   kepemilikan tanpa menyentuh harga → `perlu_tinjau_harga = true` dan baris IKUT_TIER belum dihitung ulang.
+   Menyimpan harga (form barang atau halaman Harga Jual) menghitung ulang IKUT_TIER dengan `D` terkini dan
+   melepas tanda. Tier default harus tetap TETAP.
+5. **Kelola tier** ada di halaman Harga Jual (tombol "Kelola tier"): tambah (baris IKUT_TIER dibuat untuk semua
+   barang, H2), ubah (markup berubah → tanda tinjau untuk barang IKUT_TIER di tier itu), nonaktif (tier default
+   ditolak, H1), aktifkan kembali (melengkapi baris yang belum ada). Mengganti tier default belum disediakan.
+6. **Menambah/mengubah barang** membutuhkan `master.barang.kelola` + `master.barang.lihat_hpp` (form memuat harga
+   modal); menambah barang juga `master.harga.kelola` (harga tier default wajib). Daftar/detail barang dibaca
+   semua peran; harga modal, harga titip, HPP, harga beli terakhir, dan dasar markup hanya dikirim ke pemegang
+   `master.barang.lihat_hpp`. `markup_default_persen` tier juga disaring.
+7. **Atribut barang** disimpan ulang seluruhnya mengikuti isi form (tabel `barang_atribut` tidak punya status
+   aktif; atribut yang dihapus dari form dihapus barisnya dan dicatat di log BARANG_UBAH).
+8. **Kode barang**: kosong → `BRG-nnnnn` dari penomoran (kode yang sudah dipakai manual dilewati); kode sendiri
+   berpola `BRG-nnnnn` menaikkan penghitung agar tidak bentrok.
+9. **Gambar barang** disimpan di `STORAGE_DIR` (bawaan `storage/` di root repo, tidak di-commit) dengan nama acak
+   buatan server; hanya JPG/PNG/WebP (diperiksa dari isi berkas), maksimal 2 MB; dilayani lewat
+   `GET /api/barang/:id/gambar` dengan izin `master.barang.lihat`.
+10. **Pelanggaran UNIQUE** yang lolos pemeriksaan service (dua simpan bersamaan) dijawab 409 KONFLIK.
+11. **Status stok 4 tingkat (ST1)** belum ditampilkan di daftar barang; daftar hanya menampilkan angka stok
+    tersedia dan minimum. Status dibangun bersama halaman Stok Persediaan (Fase 4).
+
+**Alasan:** Menjaga satu penulis cache persediaan (CLAUDE.md aturan 2) dan HPP yang konsisten dengan ledger;
+mencegah perubahan harga tidak sengaja saat hanya mengubah nama barang.
+**Ditolak:** menghitung ulang semua harga IKUT_TIER otomatis setiap kali dasar berubah (itu fitur `harga_otomatis`,
+Fase 9, H7).
