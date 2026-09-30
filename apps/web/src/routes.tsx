@@ -23,7 +23,7 @@ const HALAMAN: Record<string, MuatHalaman> = {
   '/barang': () => import('@/features/barang/halaman-barang').then((m) => m.HalamanBarang),
   '/harga-jual': () =>
     import('@/features/harga-jual/halaman-harga-jual').then((m) => m.HalamanHargaJual),
-  '/kategori-satuan': () =>
+  '/referensi': () =>
     import('@/features/referensi/halaman-referensi').then((m) => m.HalamanReferensi),
   '/pelanggan': () =>
     import('@/features/pelanggan/halaman-pelanggan').then((m) => m.HalamanPelanggan),

@@ -1,4 +1,10 @@
-import type { DataJenisAtribut, DataKategori, DataSatuan, StatusAktif } from '@sit/shared';
+import type {
+  DataJenisAtribut,
+  DataKategori,
+  DataMerk,
+  DataSatuan,
+  StatusAktif,
+} from '@sit/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, api } from './client';
 
@@ -8,6 +14,7 @@ export type SaringStatus = StatusAktif | 'SEMUA';
 
 export const kunciReferensi = {
   kategori: (status: SaringStatus) => ['kategori', status] as const,
+  merk: (status: SaringStatus) => ['merk', status] as const,
   satuan: (status: SaringStatus) => ['satuan', status] as const,
   jenisAtribut: (status: SaringStatus) => ['jenis-atribut', status] as const,
 };
@@ -16,6 +23,13 @@ export function useDaftarKategori(status: SaringStatus = 'SEMUA') {
   return useQuery({
     queryKey: kunciReferensi.kategori(status),
     queryFn: async () => ambilData(await api.kategori.$get({ query: { status } })),
+  });
+}
+
+export function useDaftarMerk(status: SaringStatus = 'SEMUA') {
+  return useQuery({
+    queryKey: kunciReferensi.merk(status),
+    queryFn: async () => ambilData(await api.merk.$get({ query: { status } })),
   });
 }
 
@@ -59,6 +73,22 @@ export function useSimpanKategori() {
 export function useStatusKategori() {
   return useMutasi('kategori', async ({ id, statusAktif }: Status) =>
     ambilData(await api.kategori[':id'].status.$patch({ param: param(id), json: { statusAktif } })),
+  );
+}
+
+export function useSimpanMerk() {
+  return useMutasi('merk', async ({ id, json }: Simpan<DataMerk>) =>
+    ambilData(
+      id === undefined
+        ? await api.merk.$post({ json })
+        : await api.merk[':id'].$patch({ param: param(id), json }),
+    ),
+  );
+}
+
+export function useStatusMerk() {
+  return useMutasi('merk', async ({ id, statusAktif }: Status) =>
+    ambilData(await api.merk[':id'].status.$patch({ param: param(id), json: { statusAktif } })),
   );
 }
 

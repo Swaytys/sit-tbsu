@@ -5,14 +5,14 @@ test('belum login diarahkan ke halaman login, lalu kembali ke halaman tujuan', a
   const password = process.env.SEED_OWNER_PASSWORD;
   test.skip(!password, 'SEED_OWNER_PASSWORD tidak ada di .env');
 
-  await page.goto('/kategori-satuan');
-  await expect(page).toHaveURL(/\/login\?kembali=%2Fkategori-satuan$/);
+  await page.goto('/referensi');
+  await expect(page).toHaveURL(/\/login\?kembali=%2Freferensi$/);
 
   await page.getByLabel('Username').fill('demo.admin');
   await page.getByLabel('Password').fill(password ?? '');
   await page.getByRole('button', { name: 'Masuk' }).click();
 
-  await expect(page).toHaveURL(/\/kategori-satuan$/);
+  await expect(page).toHaveURL(/\/referensi$/);
 });
 
 test('password salah menampilkan pesan dan tetap di halaman login', async ({ page }) => {

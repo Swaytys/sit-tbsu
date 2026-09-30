@@ -14,6 +14,7 @@ import { ambilData, ambilIsi, api, galatDariRespons } from './client';
 export type ParamDaftarBarang = {
   cari: string;
   idKategori: number | null;
+  idMerk?: number | null;
   status: StatusAktif | 'SEMUA';
   perluTinjau: boolean;
   halaman: number;
@@ -29,6 +30,7 @@ export function useDaftarBarang(p: ParamDaftarBarang) {
           query: {
             cari: p.cari || undefined,
             idKategori: p.idKategori === null ? undefined : String(p.idKategori),
+            idMerk: p.idMerk ? String(p.idMerk) : undefined,
             status: p.status,
             perluTinjau: p.perluTinjau ? 'true' : undefined,
             halaman: String(p.halaman),
