@@ -30,7 +30,8 @@ memakai kode di luar daftar gagal typecheck.
 | `master.harga.kelola` | Ubah harga jual per tier per barang; kelola master tier |
 | `master.harga.tinjau` | (M2) Terapkan usulan harga dari markup |
 | `master.pelanggan.lihat` | Lihat pelanggan |
-| `master.pelanggan.kelola` | Tambah/ubah/nonaktifkan pelanggan |
+| `master.pelanggan.kelola` | Tambah/ubah/nonaktifkan pelanggan (data kontak) |
+| `master.pelanggan.atur_kredit` | Atur tier harga default, term hari, dan limit kredit pelanggan (K-059) |
 | `master.pemasok.lihat` | Lihat pemasok |
 | `master.pemasok.kelola` | Tambah/ubah/nonaktifkan pemasok |
 | `master.import.jalankan` | Import Excel barang / saldo awal |
@@ -118,6 +119,7 @@ memakai kode di luar daftar gagal typecheck.
 | master.harga.tinjau | | | ✓ | ✓ |
 | master.pelanggan.lihat | ✓ | ✓ | ✓ | ✓ |
 | master.pelanggan.kelola | ✓ | ✓ | ✓ | ✓ |
+| master.pelanggan.atur_kredit | | | ✓ | ✓ |
 | master.pemasok.lihat | | | ✓ | ✓ |
 | master.pemasok.kelola | | | ✓ | ✓ |
 | master.import.jalankan | | | ✓ | ✓ |
@@ -232,3 +234,6 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
   Data Pemasok = Admin/Owner; Kelola pengguna = Owner.
 - 2026-09-30 — Membaca satuan (`GET /api/satuan`) memakai `master.barang.lihat`; rute milik sendiri (logout, profil,
   ganti password) memakai `requireLogin()`; akun demo masuk cepat hanya mode pengembangan (K-054).
+- 2026-09-30 — Izin baru `master.pelanggan.atur_kredit` (Admin/Owner): tier default, term hari, limit kredit
+  pelanggan. Staf/Kasir tetap mengelola data kontak pelanggan (K-059). Menu Kategori, Satuan & Atribut memakai
+  `master.kategori.kelola`; kategori dan satuan dibaca dengan `master.barang.lihat` (K-057).

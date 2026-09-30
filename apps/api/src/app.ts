@@ -9,8 +9,11 @@ import { periksaDeklarasiIzin } from './middleware/require-permission';
 import { authDevRoutes, authRoutes } from './modules/auth/routes';
 import { jenisAtributRoutes } from './modules/master/jenis-atribut/routes';
 import { kategoriRoutes } from './modules/master/kategori/routes';
+import { pelangganRoutes } from './modules/master/pelanggan/routes';
+import { pemasokRoutes } from './modules/master/pemasok/routes';
 import { penggunaRoutes } from './modules/master/pengguna/routes';
 import { satuanRoutes } from './modules/master/satuan/routes';
+import { tingkatHargaRoutes } from './modules/master/tingkat-harga/routes';
 import { healthRoutes } from './modules/sistem/health/routes';
 import { logRoutes } from './modules/sistem/log/routes';
 import { pengaturanRoutes } from './modules/sistem/pengaturan/routes';
@@ -22,6 +25,9 @@ const rute = new Hono<EnvApp>()
   .route('/satuan', satuanRoutes)
   .route('/kategori', kategoriRoutes)
   .route('/jenis-atribut', jenisAtributRoutes)
+  .route('/tingkat-harga', tingkatHargaRoutes)
+  .route('/pelanggan', pelangganRoutes)
+  .route('/pemasok', pemasokRoutes)
   .route('/pengguna', penggunaRoutes)
   .route('/pengaturan', pengaturanRoutes)
   .route('/log-aktivitas', logRoutes);

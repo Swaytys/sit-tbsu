@@ -223,6 +223,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-09-19 — Fase 0 selesai (Batch 1–3 diserahkan); Fase 1 diaktifkan.
 - 2026-09-29 — Fase 1 selesai (catatan di bawah Fase 1; K-050–K-053). Fase 2 ditambah tugas K-051.
 - 2026-09-30 — Fase 3 diaktifkan; `feat/03-referensi` (kategori, satuan, jenis atribut) di-merge (K-056–K-058).
+- 2026-09-30 — `feat/03-mitra` (pelanggan, pemasok) di-merge (K-059).
 - 2026-09-30 — Fase 2 selesai: `feat/02-pengguna` dan `feat/02-pengaturan` di-merge (K-055).
 - 2026-09-30 — Fase 2 diaktifkan; branch `feat/02-akses` (login, sesi, izin, penomoran, log, menu) di-merge (K-054).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
