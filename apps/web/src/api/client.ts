@@ -61,6 +61,16 @@ export async function ambilData<T>(res: {
   return (await res.json()).data;
 }
 
+/** Seperti `ambilData`, tetapi mengembalikan seluruh isi (mis. `{ data, meta }` daftar berhalaman). */
+export async function ambilIsi<T>(res: {
+  ok: boolean;
+  status: number;
+  json: () => Promise<T>;
+}): Promise<T> {
+  if (!res.ok) throw await galatDariRespons(res);
+  return res.json();
+}
+
 /** Pesan yang aman ditampilkan untuk kesalahan apa pun dari pemanggilan API. */
 export function pesanGalat(err: unknown): string {
   if (err instanceof GalatApi) return err.message;
