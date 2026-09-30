@@ -1,0 +1,609 @@
+import {
+  bandingQty,
+  keQty,
+  LABEL_JENIS_DIMENSI,
+  type AtributBarang,
+  type BarisBarang,
+  type DataBarang,
+  type DetailBarang,
+  type HargaTierBarang,
+  type Izin,
+  type MetaHalaman,
+  type StatusAktif,
+} from '@sit/shared';
+import { db, type Tx } from '../../../db/client';
+import { AppError } from '../../../lib/errors';
+import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
+import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
+import { bacaGambar, hapusBerkas, simpanGambar } from '../../../lib/penyimpanan';
+import { selisih } from '../../../lib/perubahan';
+import { dalamTransaksi } from '../../../lib/transaksi';
+import { sekarang } from '../../../lib/waktu';
+import { buatPersediaan, kunciPersediaan, selaraskanHppMaster } from '../../persediaan/ledger';
+import { ambilAngka } from '../../sistem/konfigurasi/service';
+import { catatLog } from '../../sistem/log-aktivitas';
+import { sinkronkanKodeMaster, terbitkanKodeMaster } from '../../sistem/penomoran';
+import { hargaBarangDasar } from '../harga/repo';
+import {
+  dasarMarkup,
+  muatKonteksHarga,
+  ringkasPerubahanHarga,
+  terapkanHargaBarang,
+  type KonteksHarga,
+  type PerubahanHarga,
+} from '../harga/service';
+import * as repo from './repo';
+
+/*
+ * Barang (docs/03 §3.2, docs/05 L10, docs/06 H2–H5, KS1). Tidak dihapus; dinonaktifkan (K-021).
+ * Field sensitif hanya dikirim ke pemegang `master.barang.lihat_hpp` (CLAUDE.md aturan 6).
+ */
+
+const FOLDER_GAMBAR = 'barang';
+const POLA_KODE_OTOMATIS = /^BRG-(\d{1,8})$/;
+
+type Baris = NonNullable<Awaited<ReturnType<typeof repo.barangById>>>;
+
+// --- Respons ---
+
+function urlGambar(id: number, gambar: string | null): string | null {
+  return gambar ? `/api/barang/${id}/gambar?v=${encodeURIComponent(gambar)}` : null;
+}
+
+/** "12.5000" → "12.5". */
+function rapikanAngka(nilai: string): string {
+  return nilai.includes('.') ? nilai.replace(/0+$/, '').replace(/\.$/, '') : nilai;
+}
+
+function keBaris(
+  b: Baris,
+  harga: HargaTierBarang[],
+  izin: ReadonlySet<Izin>,
+  konteks: KonteksHarga,
+): BarisBarang {
+  const umum: BarisBarang = {
+    id: b.id,
+    kode: b.kode,
+    barcode: b.barcode,
+    namaBarang: b.namaBarang,
+    idKategori: b.idKategori,
+    namaKategori: b.namaKategori,
+    merk: b.merk,
+    idSatuanDasar: b.idSatuanDasar,
+    kodeSatuan: b.kodeSatuan,
+    stokMinimum: b.stokMinimum,
+    stokFisik: b.stokFisik,
+    stokTersedia: keQty(b.stokTersedia),
+    kepemilikan: b.kepemilikan,
+    idPemasokKonsinyasi: b.idPemasokKonsinyasi,
+    namaPemasokKonsinyasi: b.namaPemasokKonsinyasi,
+    perluTinjauHarga: b.perluTinjauHarga,
+    gambar: urlGambar(b.id, b.gambar),
+    statusAktif: b.statusAktif,
+    harga,
+  };
+  if (!izin.has('master.barang.lihat_hpp')) return umum;
+  return {
+    ...umum,
+    hargaModalAwal: b.hargaModalAwal,
+    hargaTitip: b.hargaTitip,
+    hppRata2: b.hppRata2,
+    hargaBeliTerakhir: b.hargaBeliTerakhir,
+    dasarMarkup: dasarMarkup(b, konteks.modeDasar),
+  };
+}
+
+async function hargaPerBarang(idBarang: number[]): Promise<Map<number, HargaTierBarang[]>> {
+  const peta = new Map<number, HargaTierBarang[]>();
+  for (const h of await hargaBarangDasar(db, idBarang)) {
+    const daftar = peta.get(h.idBarang) ?? [];
+    daftar.push({
+      idTingkatHarga: h.idTingkatHarga,
+      metode: h.metode,
+      hargaTetap: h.hargaTetap,
+      hargaJual: h.hargaJual,
+    });
+    peta.set(h.idBarang, daftar);
+  }
+  return peta;
+}
+
+export async function daftarBarang(
+  p: repo.SaringBarang & { halaman: number; perHalaman: number },
+  izin: ReadonlySet<Izin>,
+): Promise<{ data: BarisBarang[]; meta: MetaHalaman }> {
+  const { baris, total } = await repo.daftarBarang(db, { ...p, ...batasHalaman(p) });
+  const harga = await hargaPerBarang(baris.map((b) => b.id));
+  const konteks = await muatKonteksHarga(db);
+  return {
+    data: baris.map((b) => keBaris(b, harga.get(b.id) ?? [], izin, konteks)),
+    meta: metaHalaman(total, p),
+  };
+}
+
+function tidakDitemukan(): AppError {
+  return new AppError('TIDAK_DITEMUKAN', 'Barang tidak ditemukan.', 404);
+}
+
+export async function detailBarang(id: number, izin: ReadonlySet<Izin>): Promise<DetailBarang> {
+  const b = await repo.barangById(db, id);
+  if (!b) throw tidakDitemukan();
+  const harga = await hargaPerBarang([id]);
+  const atribut: AtributBarang[] = (await repo.atributBarang(db, id)).map((a) => ({
+    idJenisAtribut: a.idJenisAtribut,
+    kodeJenis: a.kodeJenis,
+    namaJenis: a.namaJenis,
+    tipeNilai: a.tipeNilai,
+    nilai: a.nilaiAngka === null ? (a.nilaiTeks ?? '') : rapikanAngka(a.nilaiAngka),
+    idSatuan: a.idSatuan,
+    kodeSatuan: a.kodeSatuan,
+  }));
+  return {
+    ...keBaris(b, harga.get(id) ?? [], izin, await muatKonteksHarga(db)),
+    keterangan: b.keterangan,
+    atribut,
+    sudahAdaMutasi: b.terakhirMutasi !== null,
+  };
+}
+
+// --- Validasi ---
+
+function galatKolom(kode: 'VALIDASI' | 'KONFLIK', kolom: string, pesan: string): AppError {
+  return new AppError(kode, pesan, kode === 'KONFLIK' ? 409 : 400, { kolom: { [kolom]: [pesan] } });
+}
+
+function pastikanBolehHpp(pelaku: PenggunaAktif): void {
+  // Form barang memuat harga modal dan harga titip (data sensitif, CLAUDE.md aturan 6).
+  if (!pelaku.izin.has('master.barang.lihat_hpp')) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Mengelola barang membutuhkan izin melihat harga modal.',
+      403,
+    );
+  }
+}
+
+/** N5: kode sendiri boleh selama unik; kode berpola `BRG-nnnnn` ikut menaikkan penghitung. */
+async function tentukanKode(tx: Tx, kode: string | undefined, kecualiId?: number): Promise<string> {
+  if (kode !== undefined) {
+    if (await repo.kodeDipakai(tx, kode, kecualiId)) {
+      throw galatKolom('KONFLIK', 'kode', `Kode ${kode} sudah dipakai barang lain.`);
+    }
+    const cocok = POLA_KODE_OTOMATIS.exec(kode);
+    if (cocok?.[1]) await sinkronkanKodeMaster(tx, 'BRG', Number.parseInt(cocok[1], 10));
+    return kode;
+  }
+  // Lewati kode yang kebetulan sudah diketik manual tanpa melalui penghitung.
+  for (let i = 0; i < 1000; i++) {
+    const baru = await terbitkanKodeMaster(tx, 'BRG');
+    if (!(await repo.kodeDipakai(tx, baru))) return baru;
+  }
+  throw new Error('Gagal menerbitkan kode barang yang belum dipakai');
+}
+
+async function pastikanBarcodeBebas(tx: Tx, barcode: string | null, kecualiId?: number) {
+  if (barcode !== null && (await repo.barcodeDipakai(tx, barcode, kecualiId))) {
+    throw galatKolom('KONFLIK', 'barcode', `Barcode ${barcode} sudah dipakai barang lain.`);
+  }
+}
+
+/** Kategori, satuan dasar, dan pemasok konsinyasi harus aktif bila baru dipilih. */
+async function pastikanReferensiAktif(
+  tx: Tx,
+  nilai: repo.NilaiBarang,
+  lama?: repo.NilaiBarang,
+): Promise<void> {
+  const status = await repo.statusReferensi(tx, {
+    idKategori: nilai.idKategori,
+    idSatuan: nilai.idSatuanDasar,
+    idPemasok: nilai.idPemasokKonsinyasi,
+  });
+  const baruDipilih = (k: 'idKategori' | 'idSatuanDasar' | 'idPemasokKonsinyasi') =>
+    !lama || lama[k] !== nilai[k];
+  if (baruDipilih('idKategori') && status.kategori !== 'AKTIF') {
+    throw galatKolom('VALIDASI', 'idKategori', 'Kategori tidak ditemukan atau nonaktif.');
+  }
+  if (baruDipilih('idSatuanDasar') && status.satuan !== 'AKTIF') {
+    throw galatKolom('VALIDASI', 'idSatuanDasar', 'Satuan tidak ditemukan atau nonaktif.');
+  }
+  if (
+    nilai.idPemasokKonsinyasi !== null &&
+    baruDipilih('idPemasokKonsinyasi') &&
+    status.pemasok !== 'AKTIF'
+  ) {
+    throw galatKolom('VALIDASI', 'idPemasokKonsinyasi', 'Pemasok tidak ditemukan atau nonaktif.');
+  }
+}
+
+const POLA_ANGKA_ATRIBUT = /^\d{1,14}(\.\d{1,4})?$/;
+
+/**
+ * Atribut dinamis (K-014): TEKS tanpa satuan; ANGKA berdimensi wajib memakai satuan berdimensi sama;
+ * ANGKA tanpa dimensi tanpa satuan. Jenis atribut/satuan nonaktif hanya boleh bila sudah dipakai barang ini.
+ */
+async function siapkanAtribut(
+  tx: Tx,
+  input: DataBarang['atribut'],
+  lama: { idJenis: Set<number>; idSatuan: Set<number> },
+): Promise<repo.NilaiAtribut[]> {
+  const { jenis, satuan } = await repo.jenisAtributDanSatuan(
+    tx,
+    input.map((a) => a.idJenisAtribut),
+    input.flatMap((a) => (a.idSatuan ? [a.idSatuan] : [])),
+  );
+  const perJenis = new Map(jenis.map((j) => [j.id, j]));
+  const perSatuan = new Map(satuan.map((s) => [s.id, s]));
+
+  return input.map((a, i) => {
+    const galat = (kolom: string, pesan: string) =>
+      galatKolom('VALIDASI', `atribut.${i}.${kolom}`, pesan);
+    const j = perJenis.get(a.idJenisAtribut);
+    if (!j) throw galat('idJenisAtribut', 'Jenis atribut tidak ditemukan.');
+    if (j.statusAktif !== 'AKTIF' && !lama.idJenis.has(j.id)) {
+      throw galat('idJenisAtribut', `Jenis atribut ${j.nama} nonaktif.`);
+    }
+    const idSatuan = a.idSatuan ?? null;
+    if (j.tipeNilai === 'TEKS') {
+      if (idSatuan !== null)
+        throw galat('idSatuan', `Atribut ${j.nama} berupa teks, tanpa satuan.`);
+      return { idJenisAtribut: j.id, nilaiAngka: null, nilaiTeks: a.nilai, idSatuan, urutan: i };
+    }
+
+    const angka = a.nilai.replace(',', '.');
+    if (!POLA_ANGKA_ATRIBUT.test(angka)) {
+      throw galat('nilai', `Nilai ${j.nama} harus angka ≥ 0 dengan maksimal 4 desimal.`);
+    }
+    if (j.jenisDimensi === null) {
+      if (idSatuan !== null) throw galat('idSatuan', `Atribut ${j.nama} tidak memakai satuan.`);
+    } else {
+      const dimensi = LABEL_JENIS_DIMENSI[j.jenisDimensi].toLowerCase();
+      if (idSatuan === null)
+        throw galat('idSatuan', `Satuan ${j.nama} wajib dipilih (${dimensi}).`);
+      const s = perSatuan.get(idSatuan);
+      if (!s) throw galat('idSatuan', 'Satuan tidak ditemukan.');
+      if (s.jenisDimensi !== j.jenisDimensi) {
+        throw galat(
+          'idSatuan',
+          `Satuan ${s.kode} bukan satuan ${dimensi}; atribut ${j.nama} butuh satuan ${dimensi}.`,
+        );
+      }
+      if (s.statusAktif !== 'AKTIF' && !lama.idSatuan.has(s.id)) {
+        throw galat('idSatuan', `Satuan ${s.kode} nonaktif.`);
+      }
+    }
+    return { idJenisAtribut: j.id, nilaiAngka: angka, nilaiTeks: null, idSatuan, urutan: i };
+  });
+}
+
+function nilaiDari(input: DataBarang, kode: string, stokMinimum: string): repo.NilaiBarang {
+  const konsinyasi = input.kepemilikan === 'KONSINYASI';
+  return {
+    kode,
+    barcode: input.barcode ?? null,
+    namaBarang: input.namaBarang,
+    idKategori: input.idKategori,
+    merk: input.merk ?? null,
+    idSatuanDasar: input.idSatuanDasar,
+    stokMinimum,
+    hargaModalAwal: input.hargaModalAwal,
+    kepemilikan: input.kepemilikan,
+    idPemasokKonsinyasi: konsinyasi ? (input.idPemasokKonsinyasi ?? null) : null,
+    hargaTitip: konsinyasi ? (input.hargaTitip ?? null) : null,
+    keterangan: input.keterangan ?? null,
+  };
+}
+
+function dataDasarDari(
+  nilai: repo.NilaiBarang,
+  p: { hppRata2: number; hargaBeliTerakhir: number; tanggalBeliTerakhir: string | null },
+) {
+  return {
+    kepemilikan: nilai.kepemilikan,
+    hargaModalAwal: nilai.hargaModalAwal,
+    hargaTitip: nilai.hargaTitip,
+    hppRata2: p.hppRata2,
+    hargaBeliTerakhir: p.hargaBeliTerakhir,
+    tanggalBeliTerakhir: p.tanggalBeliTerakhir,
+  };
+}
+
+async function catatLogHarga(
+  tx: Tx,
+  id: number,
+  nama: string,
+  perubahan: PerubahanHarga[],
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+) {
+  if (perubahan.length === 0) return;
+  await catatLog(tx, {
+    aksi: 'HARGA_UBAH',
+    idPengguna: pelaku.id,
+    entitas: 'barang',
+    idEntitas: id,
+    ringkasan: `Harga ${nama}: ${ringkasPerubahanHarga(perubahan)}`,
+    dataLama: Object.fromEntries(perubahan.map((p) => [p.tier, p.lama])),
+    dataBaru: Object.fromEntries(perubahan.map((p) => [p.tier, p.baru])),
+    ip: asal.ip,
+  });
+}
+
+// --- Mutasi ---
+
+export async function tambahBarang(
+  input: DataBarang,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<DetailBarang> {
+  pastikanBolehHpp(pelaku);
+  if (!pelaku.izin.has('master.harga.kelola')) {
+    throw new AppError('TIDAK_BERIZIN', 'Menambah barang membutuhkan izin mengelola harga.', 403);
+  }
+  if (!input.hargaTier || input.hargaTier.length === 0) {
+    throw galatKolom('VALIDASI', 'hargaTier', 'Harga jual tier default wajib diisi.');
+  }
+  const hargaTier = input.hargaTier;
+
+  const id = await dalamTransaksi(async (tx) => {
+    const stokMinimum = keQty(
+      input.stokMinimum ?? (await ambilAngka('stok_minimum_default', 0, tx)),
+    );
+    const kode = await tentukanKode(tx, input.kode);
+    const nilai = nilaiDari(input, kode, stokMinimum);
+    await pastikanBarcodeBebas(tx, nilai.barcode);
+    await pastikanReferensiAktif(tx, nilai);
+    const atribut = await siapkanAtribut(tx, input.atribut, {
+      idJenis: new Set(),
+      idSatuan: new Set(),
+    });
+
+    const idBaru = await repo.tambahBarang(tx, nilai);
+    await buatPersediaan(tx, idBaru, nilai);
+    await repo.gantiAtribut(tx, idBaru, atribut);
+    const konteks = await muatKonteksHarga(tx);
+    const persediaanBaru = await kunciPersediaan(tx, idBaru);
+    const perubahanHarga = await terapkanHargaBarang(tx, idBaru, hargaTier, {
+      dasar: dasarMarkup(dataDasarDari(nilai, persediaanBaru), konteks.modeDasar),
+      konteks,
+      idPengguna: pelaku.id,
+    });
+
+    await catatLog(tx, {
+      aksi: 'BARANG_BUAT',
+      idPengguna: pelaku.id,
+      entitas: 'barang',
+      idEntitas: idBaru,
+      ringkasan: `Menambah barang ${kode} ${nilai.namaBarang}`,
+      dataBaru: {
+        ...nilai,
+        atribut,
+        harga: perubahanHarga.map((p) => ({ tier: p.tier, ...p.baru })),
+      },
+      ip: asal.ip,
+    });
+    return idBaru;
+  });
+  return detailBarang(id, pelaku.izin);
+}
+
+export async function ubahBarang(
+  id: number,
+  input: DataBarang,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<DetailBarang> {
+  pastikanBolehHpp(pelaku);
+  if (input.hargaTier !== undefined && !pelaku.izin.has('master.harga.kelola')) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Mengubah harga jual membutuhkan izin mengelola harga.',
+      403,
+    );
+  }
+
+  await dalamTransaksi(async (tx) => {
+    const lama = await repo.kunciBarang(tx, id);
+    if (!lama) throw tidakDitemukan();
+    const stok = await kunciPersediaan(tx, id);
+    const sudahAdaMutasi = stok.terakhirMutasi !== null;
+
+    const kode = input.kode === undefined || input.kode === lama.kode ? lama.kode : input.kode;
+    if (kode !== lama.kode) await tentukanKode(tx, kode, id);
+    const nilai = nilaiDari(
+      input,
+      kode,
+      input.stokMinimum ? keQty(input.stokMinimum) : lama.stokMinimum,
+    );
+    const beda = selisih(lama, nilai);
+
+    if (beda.kolom.includes('barcode')) await pastikanBarcodeBebas(tx, nilai.barcode, id);
+    await pastikanReferensiAktif(tx, nilai, lama);
+    if (sudahAdaMutasi && beda.kolom.includes('idSatuanDasar')) {
+      throw galatKolom(
+        'KONFLIK',
+        'idSatuanDasar',
+        'Satuan dasar tidak bisa diubah setelah ada mutasi stok.',
+      );
+    }
+    if (sudahAdaMutasi && beda.kolom.includes('hargaModalAwal')) {
+      throw galatKolom(
+        'KONFLIK',
+        'hargaModalAwal',
+        'Harga modal awal tidak bisa diubah setelah ada mutasi stok; HPP mengikuti penerimaan.',
+      );
+    }
+    // KS1: kepemilikan dikunci selama masih ada stok (baik maupun rusak).
+    const adaStok = bandingQty(stok.stokFisik, 0) > 0 || bandingQty(stok.stokRusak, 0) > 0;
+    if (beda.kolom.includes('kepemilikan') && adaStok) {
+      throw galatKolom(
+        'KONFLIK',
+        'kepemilikan',
+        'Kepemilikan tidak bisa diubah selama barang masih punya stok.',
+      );
+    }
+
+    const lamaAtribut = await repo.atributBarang(tx, id);
+    const atribut = await siapkanAtribut(tx, input.atribut, {
+      idJenis: new Set(lamaAtribut.map((a) => a.idJenisAtribut)),
+      idSatuan: new Set(lamaAtribut.flatMap((a) => (a.idSatuan ? [a.idSatuan] : []))),
+    });
+    const ringkasAtribut = (
+      a: { idJenisAtribut: number; nilai: string; idSatuan: number | null }[],
+    ) => a.map((x) => `${x.idJenisAtribut}:${x.nilai}:${x.idSatuan ?? ''}`).join('|');
+    const atributLamaRingkas = lamaAtribut.map((a) => ({
+      idJenisAtribut: a.idJenisAtribut,
+      nilai: a.nilaiAngka === null ? (a.nilaiTeks ?? '') : rapikanAngka(a.nilaiAngka),
+      idSatuan: a.idSatuan,
+    }));
+    const atributBaruRingkas = atribut.map((a) => ({
+      idJenisAtribut: a.idJenisAtribut,
+      nilai: a.nilaiTeks ?? rapikanAngka(a.nilaiAngka ?? '0'),
+      idSatuan: a.idSatuan,
+    }));
+    const atributBerubah =
+      ringkasAtribut(atributLamaRingkas) !== ringkasAtribut(atributBaruRingkas);
+
+    // H5: dasar markup berubah → tandai perlu tinjau, kecuali harga ikut disimpan sekarang.
+    const dasarBerubah = ['hargaModalAwal', 'hargaTitip', 'kepemilikan'].some((k) =>
+      beda.kolom.includes(k),
+    );
+    const waktu = sekarang();
+    if (beda.kolom.length > 0) await repo.ubahBarang(tx, id, nilai, waktu);
+    if (atributBerubah) await repo.gantiAtribut(tx, id, atribut);
+    const hpp = dasarBerubah ? await selaraskanHppMaster(tx, id, nilai) : null;
+
+    let perubahanHarga: PerubahanHarga[] = [];
+    if (input.hargaTier !== undefined) {
+      const konteks = await muatKonteksHarga(tx);
+      const persediaanKini = await kunciPersediaan(tx, id);
+      perubahanHarga = await terapkanHargaBarang(tx, id, input.hargaTier, {
+        dasar: dasarMarkup(dataDasarDari(nilai, persediaanKini), konteks.modeDasar),
+        konteks,
+        idPengguna: pelaku.id,
+      });
+      if (lama.perluTinjauHarga) await repo.ubahBarang(tx, id, { perluTinjauHarga: false }, waktu);
+    } else if (dasarBerubah && !lama.perluTinjauHarga) {
+      await repo.ubahBarang(tx, id, { perluTinjauHarga: true }, waktu);
+    }
+
+    if (beda.kolom.length > 0 || atributBerubah || hpp) {
+      await catatLog(tx, {
+        aksi: 'BARANG_UBAH',
+        idPengguna: pelaku.id,
+        entitas: 'barang',
+        idEntitas: id,
+        ringkasan: `Mengubah barang ${kode} ${nilai.namaBarang}: ${[
+          ...beda.kolom,
+          ...(atributBerubah ? ['atribut'] : []),
+        ].join(', ')}`,
+        dataLama: {
+          ...beda.dataLama,
+          ...(atributBerubah ? { atribut: atributLamaRingkas } : {}),
+          ...(hpp ? { persediaan: hpp.lama } : {}),
+        },
+        dataBaru: {
+          ...beda.dataBaru,
+          ...(atributBerubah ? { atribut: atributBaruRingkas } : {}),
+          ...(hpp ? { persediaan: hpp.baru } : {}),
+        },
+        ip: asal.ip,
+      });
+    }
+    await catatLogHarga(tx, id, nilai.namaBarang, perubahanHarga, pelaku, asal);
+  });
+  return detailBarang(id, pelaku.izin);
+}
+
+export async function ubahStatusBarang(
+  id: number,
+  statusAktif: StatusAktif,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<DetailBarang> {
+  await dalamTransaksi(async (tx) => {
+    const lama = await repo.kunciBarang(tx, id);
+    if (!lama) throw tidakDitemukan();
+    if (lama.statusAktif === statusAktif) return;
+    await repo.ubahBarang(tx, id, { statusAktif }, sekarang());
+    await catatLog(tx, {
+      aksi: statusAktif === 'AKTIF' ? 'BARANG_AKTIFKAN' : 'BARANG_NONAKTIF',
+      idPengguna: pelaku.id,
+      entitas: 'barang',
+      idEntitas: id,
+      ringkasan: `${statusAktif === 'AKTIF' ? 'Mengaktifkan' : 'Menonaktifkan'} barang ${lama.kode} ${lama.namaBarang}`,
+      dataLama: { statusAktif: lama.statusAktif },
+      dataBaru: { statusAktif },
+      ip: asal.ip,
+    });
+  });
+  return detailBarang(id, pelaku.izin);
+}
+
+// --- Gambar ---
+
+export async function unggahGambar(
+  id: number,
+  isi: Uint8Array,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<DetailBarang> {
+  const nama = await simpanGambar(FOLDER_GAMBAR, String(id), isi);
+  let namaLama: string | null = null;
+  try {
+    await dalamTransaksi(async (tx) => {
+      const lama = await repo.kunciBarang(tx, id);
+      if (!lama) throw tidakDitemukan();
+      namaLama = lama.gambar;
+      await repo.ubahBarang(tx, id, { gambar: nama }, sekarang());
+      await catatLog(tx, {
+        aksi: 'BARANG_UBAH',
+        idPengguna: pelaku.id,
+        entitas: 'barang',
+        idEntitas: id,
+        ringkasan: `Mengganti gambar barang ${lama.kode} ${lama.namaBarang}`,
+        dataLama: { gambar: lama.gambar },
+        dataBaru: { gambar: nama },
+        ip: asal.ip,
+      });
+    });
+  } catch (err) {
+    await hapusBerkas(FOLDER_GAMBAR, nama);
+    throw err;
+  }
+  await hapusBerkas(FOLDER_GAMBAR, namaLama);
+  return detailBarang(id, pelaku.izin);
+}
+
+export async function hapusGambar(
+  id: number,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<DetailBarang> {
+  const namaLama = await dalamTransaksi(async (tx) => {
+    const lama = await repo.kunciBarang(tx, id);
+    if (!lama) throw tidakDitemukan();
+    if (lama.gambar === null) return null;
+    await repo.ubahBarang(tx, id, { gambar: null }, sekarang());
+    await catatLog(tx, {
+      aksi: 'BARANG_UBAH',
+      idPengguna: pelaku.id,
+      entitas: 'barang',
+      idEntitas: id,
+      ringkasan: `Menghapus gambar barang ${lama.kode} ${lama.namaBarang}`,
+      dataLama: { gambar: lama.gambar },
+      dataBaru: { gambar: null },
+      ip: asal.ip,
+    });
+    return lama.gambar;
+  });
+  await hapusBerkas(FOLDER_GAMBAR, namaLama);
+  return detailBarang(id, pelaku.izin);
+}
+
+export async function ambilGambar(id: number) {
+  const b = await repo.barangById(db, id);
+  if (!b?.gambar) throw new AppError('TIDAK_DITEMUKAN', 'Barang belum punya gambar.', 404);
+  const berkas = await bacaGambar(FOLDER_GAMBAR, b.gambar);
+  if (!berkas) throw new AppError('TIDAK_DITEMUKAN', 'Berkas gambar tidak ditemukan.', 404);
+  return berkas;
+}

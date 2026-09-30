@@ -237,3 +237,6 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-09-30 — Izin baru `master.pelanggan.atur_kredit` (Admin/Owner): tier default, term hari, limit kredit
   pelanggan. Staf/Kasir tetap mengelola data kontak pelanggan (K-059). Menu Kategori, Satuan & Atribut memakai
   `master.kategori.kelola`; kategori dan satuan dibaca dengan `master.barang.lihat` (K-057).
+- 2026-09-30 — Barang dibaca semua peran (`master.barang.lihat`) dengan field sensitif disaring; menambah/mengubah
+  barang juga butuh `master.barang.lihat_hpp`, menambah barang butuh `master.harga.kelola`; markup default tier
+  hanya untuk `master.barang.lihat_hpp` (K-060).

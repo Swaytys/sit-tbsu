@@ -50,3 +50,8 @@ export function formatRupiah(nilai: number): string {
     .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return `${nilai < 0 ? '-' : ''}Rp ${teks}`;
 }
+
+/** Persen numeric(6,2) sebagai teks 2 desimal, mis. `"12.5"` → `"12.50"`. */
+export function keTeksPersen(nilai: NilaiDesimal): string {
+  return new Decimal(nilai).toFixed(2, Decimal.ROUND_HALF_UP);
+}

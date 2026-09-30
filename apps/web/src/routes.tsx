@@ -7,7 +7,10 @@ import {
   HalamanWajibGantiPassword,
 } from '@/features/auth/halaman-ganti-password';
 import { HalamanLogin } from '@/features/auth/halaman-login';
+import { HalamanBarang } from '@/features/barang/halaman-barang';
+import { HalamanFormBarang } from '@/features/barang/halaman-form-barang';
 import { HalamanBeranda } from '@/features/beranda/halaman-beranda';
+import { HalamanHargaJual } from '@/features/harga-jual/halaman-harga-jual';
 import { HalamanPelanggan } from '@/features/pelanggan/halaman-pelanggan';
 import { HalamanPemasok } from '@/features/pemasok/halaman-pemasok';
 import { HalamanPengaturan } from '@/features/pengaturan/halaman-pengaturan';
@@ -20,6 +23,8 @@ import { SEMUA_ITEM_MENU } from '@/lib/menu';
 /** Halaman yang sudah dibangun, per path menu. Path lain menampilkan "sedang disiapkan". */
 const HALAMAN: Record<string, ReactNode> = {
   '/dashboard': <HalamanBeranda />,
+  '/barang': <HalamanBarang />,
+  '/harga-jual': <HalamanHargaJual />,
   '/kategori-satuan': <HalamanReferensi />,
   '/pelanggan': <HalamanPelanggan />,
   '/pemasok': <HalamanPemasok />,
@@ -56,6 +61,15 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       ...ruteMenu,
+      ...['barang/baru', 'barang/:id'].map((path) => ({
+        path,
+        handle: { judul: 'Data Barang' },
+        element: (
+          <WajibIzin izin="master.barang.kelola">
+            <HalamanFormBarang />
+          </WajibIzin>
+        ),
+      })),
       {
         path: 'akun/password',
         element: <HalamanGantiPasswordAkun />,

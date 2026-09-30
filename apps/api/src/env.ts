@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { muatEnvFile } from './lib/env-file';
 
@@ -14,6 +15,11 @@ const skemaEnv = z.object({
   // Sesi login (docs/04 §7).
   SESSION_IDLE_MENIT: z.coerce.number().int().positive().default(60),
   SESSION_ABSOLUT_JAM: z.coerce.number().int().positive().default(12),
+  // Folder berkas unggahan (gambar barang). Bawaan: storage/ di root repo (tidak di-commit).
+  STORAGE_DIR: z
+    .string()
+    .min(1)
+    .default(fileURLToPath(new URL('../../../storage', import.meta.url))),
 });
 
 const hasil = skemaEnv.safeParse(process.env);
