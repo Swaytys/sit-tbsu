@@ -1,7 +1,8 @@
 import { formatRupiah, type BarisBarang, type StatusAktif } from '@sit/shared';
-import { Columns3, ImageOff, Plus } from 'lucide-react';
+import { Columns3, FileSpreadsheet, ImageOff, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { usePengguna } from '@/api/auth';
 import { useDaftarBarang, useStatusBarang } from '@/api/barang';
 import { useDaftarTingkatHarga } from '@/api/mitra';
 import { useDaftarKategori } from '@/api/referensi';
@@ -47,6 +48,7 @@ function GambarKecil({ b }: { b: BarisBarang }) {
 
 export function HalamanBarang() {
   const navigasi = useNavigate();
+  const bolehImport = usePengguna().izin.includes('master.import.jalankan');
   const [cari, setCari] = useState('');
   const cariTertunda = useTunda(cari, 300);
   const [status, setStatus] = useState<SaringStatus>('SEMUA');
@@ -217,6 +219,13 @@ export function HalamanBarang() {
                 ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          {bolehImport && (
+            <Button variant="outline" asChild>
+              <Link to="/barang/import">
+                <FileSpreadsheet /> Import Excel
+              </Link>
+            </Button>
+          )}
           <Button asChild>
             <Link to="/barang/baru">
               <Plus /> Tambah barang
