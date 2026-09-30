@@ -103,3 +103,22 @@ memberi harga lebih murah lewat tier default pelanggan. Term dan limit adalah ke
 mencegah perubahan harga tidak sengaja saat hanya mengubah nama barang.
 **Ditolak:** menghitung ulang semua harga IKUT_TIER otomatis setiap kali dasar berubah (itu fitur `harga_otomatis`,
 Fase 9, H7).
+
+### K-061 — Import Excel barang
+**Keputusan:**
+1. Templat `.xlsx` dibuat API dari data saat itu: lembar **Barang** (baris 1 = kunci kolom yang dibaca import,
+   baris 2 = petunjuk, data mulai baris 3), **Referensi** (kategori, satuan, pemasok aktif; dipakai daftar
+   pilihan di sel), dan **Petunjuk**. Kolom harga `harga_<KODE_TIER>` dan atribut `atribut_<KODE_JENIS>`
+   mengikuti tier dan jenis atribut aktif. Kategori ditulis dengan nama; satuan dan pemasok dengan kode;
+   atribut berdimensi ditulis "angka satuan" (mis. `6 m`).
+2. **Pratinjau menjalankan proses simpan yang sama** (fungsi `buatBarang()` yang juga dipakai form) di dalam
+   transaksi yang lalu dibatalkan; tiap baris dalam savepoint. Hasil pratinjau = hasil simpan.
+3. **Simpan semua-atau-tidak-sama-sekali**: bila masih ada baris bergalat, tidak ada yang disimpan. Baris dengan
+   kode yang sudah ada berstatus DILEWATI (K-056). Maksimal 2.000 baris dan 5 MB per berkas.
+4. Log: satu `BARANG_BUAT` per barang (ditandai "import Excel") dan satu ringkasan `IMPORT_BARANG`.
+5. Izin: `master.import.jalankan` untuk rute import; membuat barang tetap memeriksa izin yang sama dengan form.
+6. `exceljs` 4.4.0 dipasang di API (import/ekspor) dan sebagai devDependency web untuk membuat berkas uji e2e.
+
+**Alasan:** Satu jalur validasi (form dan import tidak bisa berbeda aturan); import sebagian yang gagal di
+tengah menyulitkan pengguna melacak baris mana yang sudah masuk.
+**Ditolak:** menyimpan baris yang valid saja dan melewati baris bergalat; validasi import terpisah dari form.

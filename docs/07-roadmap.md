@@ -15,7 +15,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 0 | Fondasi (dokumen) | Selesai | 2026-09-19 |
 | 1 | Setup lingkungan | Selesai | 2026-09-29 |
 | 2 | Akses dasar | Selesai | 2026-09-30 |
-| 3 | Data master | Berjalan | — |
+| 3 | Data master | Selesai | 2026-09-30 |
 | 4 | Inti persediaan | Belum | — |
 | 5 | Penjualan | Belum | — |
 | 6 | Koreksi dan kontrol | Belum | — |
@@ -114,6 +114,21 @@ Deliverable:
 
 Selesai bila: 20 barang contoh bisa diinput lewat form dan lewat import; tampilan mendekati mockup Master Barang,
 Pelanggan, Pemasok.
+
+Catatan penyelesaian (2026-09-30, branch `feat/03-referensi`, `feat/03-mitra`, `feat/03-barang`, `feat/03-import`):
+- Keputusan pemilik: tanda perlu tinjau harga dipasang sejak Fase 3, No. HP wajib, import hanya menambah barang
+  baru (K-056); tier/term/limit kredit pelanggan hanya Admin/Owner lewat izin baru `master.pelanggan.atur_kredit`
+  (K-059).
+- Barang: kode otomatis/sendiri, atribut sesama dimensi, konsinyasi, gambar, persediaan awal lewat
+  `persediaan/ledger.ts`; harga modal awal & satuan dasar dikunci setelah ada mutasi (K-060).
+- Harga Jual: edit sel dan simpan massal, kelola tier (tambah/ubah/nonaktif), ekspor Excel. Mengganti tier
+  default belum disediakan.
+- Import Excel: templat mengikuti tier & atribut aktif; pratinjau = proses simpan yang dibatalkan; simpan
+  semua-atau-tidak (K-061).
+- Tes: 135 tes Vitest (termasuk Kasir tidak menerima HPP, atribut dimensi salah ditolak, 20 barang lewat import)
+  dan 20 tes Playwright lulus.
+- Usulan (di luar fase): status stok 4 tingkat di daftar barang ikut Fase 4; pemecahan bundel web (peringatan
+  ukuran chunk Vite) di Fase 8.
 
 ### Fase 4 — Inti persediaan
 Tujuan: ledger stok yang benar, sebelum ada penjualan.
@@ -225,6 +240,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-09-30 — Fase 3 diaktifkan; `feat/03-referensi` (kategori, satuan, jenis atribut) di-merge (K-056–K-058).
 - 2026-09-30 — `feat/03-mitra` (pelanggan, pemasok) di-merge (K-059).
 - 2026-09-30 — `feat/03-barang` (barang, harga jual, tier, gambar) di-merge (K-060).
+- 2026-09-30 — `feat/03-import` (import Excel barang, ekspor harga jual) di-merge (K-061). Fase 3 selesai.
 - 2026-09-30 — Fase 2 selesai: `feat/02-pengguna` dan `feat/02-pengaturan` di-merge (K-055).
 - 2026-09-30 — Fase 2 diaktifkan; branch `feat/02-akses` (login, sesi, izin, penomoran, log, menu) di-merge (K-054).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
