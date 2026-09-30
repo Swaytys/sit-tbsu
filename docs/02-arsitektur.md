@@ -298,8 +298,9 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 - Deploy (diputuskan Fase 8, K-039): opsi A mini-PC di toko (Windows/Linux, jalan via LAN, tetap hidup saat internet
   putus, backup ke drive eksternal + cloud); opsi B VPS (akses dari mana saja, butuh internet, HTTPS lewat Caddy).
   Kriteria: apakah owner perlu memantau dari luar toko, dan seberapa stabil internet toko.
-- Backup: `pg_dump` harian terjadwal (Task Scheduler / cron) ke folder lokal + salinan ke cloud drive; uji restore
-  sekali di Fase 8.
+- Backup: `pg_dump` harian terjadwal (Task Scheduler / cron) + folder `storage/` ke repositori snapshot
+  terdeduplikasi dan terenkripsi (restic) di disk lokal dan cloud (rclone → Google Drive); retensi 7 harian,
+  4 mingguan, 12 bulanan, 5 tahunan; uji pulih bulanan. Rincian di docs/07 Fase 8 (K-062).
 - Log: pino ke stdout; di produksi diarahkan ke file berputar (pm2 atau systemd).
 
 ## Riwayat

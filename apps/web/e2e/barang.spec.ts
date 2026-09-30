@@ -93,3 +93,17 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
   await page.getByRole('menuitem', { name: 'Nonaktifkan' }).click();
   await expect(page.getByRole('row').filter({ hasText: nama })).toContainText('Nonaktif');
 });
+
+test('halaman form barang tidak membuat seluruh halaman ikut bergulir melewati tata letak', async ({
+  page,
+}) => {
+  await masukCepat(page, 'ADMIN');
+  await page.goto('/barang/baru');
+  await expect(page.getByRole('heading', { name: 'Tambah barang' })).toBeVisible();
+  // Dokumen tidak boleh lebih tinggi dari layar; yang bergulir hanya area konten.
+  const tinggi = await page.evaluate(() => ({
+    dokumen: document.documentElement.scrollHeight,
+    layar: window.innerHeight,
+  }));
+  expect(tinggi.dokumen).toBeLessThanOrEqual(tinggi.layar);
+});

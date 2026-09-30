@@ -2,7 +2,8 @@
 
 Dua milestone. **M1** = ruang lingkup Laporan KP + perbaikan integritas + fitur basic yang murah. **M2** = fitur
 operasional toko yang diminta pemilik proyek. Skema database sudah memuat keduanya sejak awal (K-031), sehingga M2
-tidak membutuhkan rework M1.
+tidak membutuhkan rework M1. Versi rilis: **v1.0.0 (MVP) = akhir M1 (Fase 8)**; M2 = v1.1–v1.4; usulan v2.0.0 dan
+v3.0.0 ada di `08-backlog.md` (K-062).
 
 Satu fase = satu atau beberapa branch `feat/<nomor>-<nama>`. Fase berikutnya dimulai setelah definisi selesai fase
 sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya mengerjakan fase yang berstatus
@@ -202,6 +203,20 @@ objek, injeksi, CSRF, header, rate limit, dependensi); backup `pg_dump` terjadwa
 (mini-PC toko vs VPS) + skrip; manual pengguna singkat per peran; uji coba dengan toko (owner + 1 kasir + 1 staf)
 dan daftar temuan.
 Selesai bila: sistem dipakai untuk transaksi sungguhan minimal satu hari penuh tanpa pemilik proyek turun tangan.
+
+**Cadangan data (wajib, masukan pemilik 2026-09-30, K-062):**
+- Isi cadangan: seluruh database (data + semua pengaturan, `pg_dump -Fc` terkompresi), folder `storage/`
+  (gambar barang, logo), dan berkas konfigurasi server (terenkripsi).
+- Cara simpan seperti git: **snapshot terdeduplikasi dan terenkripsi** (restic). Tiap snapshot tampak utuh, tetapi
+  yang benar-benar ditulis hanya bagian yang berubah sejak snapshot sebelumnya, sehingga cadangan harian tidak
+  menggembungkan disk.
+- Jadwal & retensi berjenjang: harian (malam hari, dan saat server menyala bila jadwal terlewat); disimpan
+  7 harian, 4 mingguan, 12 bulanan, 5 tahunan; sisanya dibuang otomatis.
+- Tujuan: disk lokal kedua/eksternal **dan** cloud (Google Drive lewat rclone) secara otomatis.
+- Pengaturan › Cadangan (Owner): status cadangan terakhir, ukuran, riwayat, tombol "Cadangkan sekarang",
+  peringatan di topbar bila cadangan gagal atau terlewat > 1 hari.
+- Pemulihan: skrip + panduan; uji pulih otomatis bulanan ke database uji.
+- Ekspor portabel (Excel) untuk migrasi ke aplikasi lain: barang sudah ada; pelanggan, pemasok, transaksi menyusul.
 
 ---
 
