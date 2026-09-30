@@ -1,0 +1,52 @@
+import Decimal from 'decimal.js';
+
+/*
+ * Uang = integer rupiah (CLAUDE.md aturan 7, docs/05 §1). Semua hitungan yang melibatkan pecahan
+ * (persen, qty desimal) memakai Decimal lalu dibulatkan ke rupiah utuh. Tidak ada float.
+ */
+
+/** Batas aman nilai rupiah di JavaScript (≈ 9 kuadriliun). */
+export const RUPIAH_MAKS = Number.MAX_SAFE_INTEGER;
+
+export type NilaiDesimal = Decimal.Value;
+
+function keRupiah(d: Decimal): number {
+  const n = d.toNumber();
+  if (!Number.isSafeInteger(n))
+    throw new RangeError(`Nilai rupiah di luar batas aman: ${d.toString()}`);
+  return n === 0 ? 0 : n; // hindari -0
+}
+
+/** U1: pembulatan ke rupiah terdekat, setengah ke atas (ROUND_HALF_UP). */
+export function bulatkanRupiah(nilai: NilaiDesimal): number {
+  return keRupiah(new Decimal(nilai).toDecimalPlaces(0, Decimal.ROUND_HALF_UP));
+}
+
+/** U4: persen → rupiah = bulatkanRupiah(dasar × persen ÷ 100). */
+export function persenKeRupiah(dasar: number, persen: NilaiDesimal): number {
+  return bulatkanRupiah(new Decimal(dasar).times(persen).div(100));
+}
+
+/**
+ * H4: harga dibulatkan KE ATAS ke kelipatan `kelipatan` (konfigurasi.pembulatan_harga, default 100).
+ * Contoh: 12.340 dengan kelipatan 100 → 12.400.
+ */
+export function bulatkanHarga(nilai: NilaiDesimal, kelipatan: number): number {
+  if (!Number.isSafeInteger(kelipatan) || kelipatan < 1) {
+    throw new RangeError(`Kelipatan pembulatan tidak valid: ${kelipatan}`);
+  }
+  return keRupiah(new Decimal(nilai).div(kelipatan).ceil().times(kelipatan));
+}
+
+/** H4: harga hasil markup = bulatkanHarga(dasar × (1 + persen/100)). */
+export function hargaMarkup(dasar: number, persen: NilaiDesimal, kelipatan: number): number {
+  return bulatkanHarga(new Decimal(dasar).times(new Decimal(persen).div(100).plus(1)), kelipatan);
+}
+
+/** `1234567` → `Rp 1.234.567`; negatif → `-Rp 1.234`. */
+export function formatRupiah(nilai: number): string {
+  const teks = Math.abs(nilai)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${nilai < 0 ? '-' : ''}Rp ${teks}`;
+}
