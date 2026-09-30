@@ -9,6 +9,7 @@ export * from './permissions';
 export * from './qty';
 export * from './roles';
 export * from './schemas/auth';
+export * from './schemas/mitra';
 export * from './schemas/pengaturan';
 export * from './schemas/pengguna';
 export * from './schemas/referensi';
