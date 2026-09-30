@@ -183,7 +183,7 @@ Defender memindai ribuan berkas `node_modules` dan memperlambat `pnpm install` s
 Security" → Virus & threat protection → Manage settings → Exclusions → Add → Folder → `D:\sit-tbsu` dan
 `D:\dev-cache`. Hanya lakukan bila kamu yakin tidak menyalin berkas asing ke folder itu.
 
-## Langkah 10 — Mulai Fase 1 bersama Claude Code
+## Langkah 10 — Mulai Fase 1 bersama Claude Code (gue sampe disini, tinggal mulai fase 1)
 
 1. Buka VS Code → File → Open Folder → `D:\sit-tbsu`.
 2. Buka panel Claude Code (ikon di Activity Bar kiri). Pastikan status login OK dan **mode auto-accept tidak
@@ -199,7 +199,7 @@ PS> git checkout -b feat/01-setup
 > Baca `CLAUDE.md`, `docs/README.md`, `docs/02-arsitektur.md`, `docs/03-skema-database-v3.md`, dan bagian
 > **Fase 1** di `docs/07-roadmap.md`.
 >
-> Lingkungan saya: Windows 11, PowerShell. Node.js v24.x.x, pnpm 10.x.x, PostgreSQL 17.x di `localhost:5432`.
+> Lingkungan saya: Windows 11, PowerShell. Node.js v24.21.0, pnpm 12.6.0, PostgreSQL 17.11 di `localhost:5432`.
 > Pengguna database `sit` password `sit`, database `tbsu_dev` dan `tbsu_test` sudah ada dan masih kosong.
 > Repo sudah `git init` di `D:\sit-tbsu` berisi `CLAUDE.md` dan `docs/`, branch `feat/01-setup`.
 > Store pnpm di `D:\dev-cache\pnpm-store`.
