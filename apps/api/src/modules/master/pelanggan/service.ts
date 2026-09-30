@@ -1,0 +1,175 @@
+import type { DataPelanggan, Izin, MetaHalaman, Pelanggan, StatusAktif } from '@sit/shared';
+import { db, type Tx } from '../../../db/client';
+import { AppError } from '../../../lib/errors';
+import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
+import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
+import { selisih } from '../../../lib/perubahan';
+import { dalamTransaksi } from '../../../lib/transaksi';
+import { sekarang } from '../../../lib/waktu';
+import { ambilAngka } from '../../sistem/konfigurasi/service';
+import { catatLog } from '../../sistem/log-aktivitas';
+import { terbitkanKodeMaster } from '../../sistem/penomoran';
+import { tingkatHargaAktif } from '../tingkat-harga/repo';
+import * as repo from './repo';
+
+/** Pelanggan (docs/03 §3.2). Kode `PLG-00001` tetap (N5). Tidak dihapus; dinonaktifkan (K-021). */
+
+type BarisPelanggan = NonNullable<Awaited<ReturnType<typeof repo.pelangganById>>>;
+type NilaiKredit = Pick<repo.NilaiPelanggan, 'idTingkatHarga' | 'termHari' | 'limitKredit'>;
+
+function keRespons(b: BarisPelanggan): Pelanggan {
+  return { ...b, dibuatPada: b.dibuatPada.toISOString() };
+}
+
+function tidakDitemukan(): AppError {
+  return new AppError('TIDAK_DITEMUKAN', 'Pelanggan tidak ditemukan.', 404);
+}
+
+async function muat(id: number): Promise<Pelanggan> {
+  const baris = await repo.pelangganById(db, id);
+  if (!baris) throw tidakDitemukan();
+  return keRespons(baris);
+}
+
+/**
+ * Tier default, term, dan limit kredit akhir: dari input bila dikirim, selain itu dari `dasar` (bawaan toko
+ * untuk pelanggan baru, nilai lama untuk ubah data). Tanpa izin `master.pelanggan.atur_kredit` nilainya tidak
+ * boleh berbeda dari `dasar` (K-059).
+ */
+function tentukanKredit(
+  input: DataPelanggan,
+  dasar: NilaiKredit,
+  izin: ReadonlySet<Izin>,
+): NilaiKredit {
+  const hasil: NilaiKredit = {
+    idTingkatHarga:
+      input.idTingkatHarga === undefined ? dasar.idTingkatHarga : input.idTingkatHarga,
+    termHari: input.termHari ?? dasar.termHari,
+    limitKredit: input.limitKredit === undefined ? dasar.limitKredit : input.limitKredit,
+  };
+  const berubah =
+    hasil.idTingkatHarga !== dasar.idTingkatHarga ||
+    hasil.termHari !== dasar.termHari ||
+    hasil.limitKredit !== dasar.limitKredit;
+  if (berubah && !izin.has('master.pelanggan.atur_kredit')) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Tier harga, term, dan limit kredit pelanggan hanya bisa diatur Admin atau Owner.',
+      403,
+    );
+  }
+  return hasil;
+}
+
+async function pastikanTierAktif(tx: Tx, id: number | null): Promise<void> {
+  if (id === null || (await tingkatHargaAktif(tx, id))) return;
+  const pesan = 'Tier harga tidak ditemukan atau sudah nonaktif.';
+  throw new AppError('VALIDASI', pesan, 400, { kolom: { idTingkatHarga: [pesan] } });
+}
+
+function dataKontak(input: DataPelanggan) {
+  return {
+    namaPelanggan: input.namaPelanggan,
+    noHp: input.noHp,
+    email: input.email ?? null,
+    alamat: input.alamat ?? null,
+    keterangan: input.keterangan ?? null,
+  };
+}
+
+export async function daftarPelanggan(p: {
+  cari?: string | undefined;
+  status: StatusAktif | 'SEMUA';
+  halaman: number;
+  perHalaman: number;
+}): Promise<{ data: Pelanggan[]; meta: MetaHalaman }> {
+  const { baris, total } = await repo.daftarPelanggan(db, { ...p, ...batasHalaman(p) });
+  return { data: baris.map(keRespons), meta: metaHalaman(total, p) };
+}
+
+export async function tambahPelanggan(
+  input: DataPelanggan,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<Pelanggan> {
+  const id = await dalamTransaksi(async (tx) => {
+    const bawaan: NilaiKredit = {
+      idTingkatHarga: null,
+      termHari: await ambilAngka('term_hari_default', 0, tx),
+      limitKredit: null,
+    };
+    const kredit = tentukanKredit(input, bawaan, pelaku.izin);
+    await pastikanTierAktif(tx, kredit.idTingkatHarga);
+
+    const nilai = { ...dataKontak(input), ...kredit, kode: await terbitkanKodeMaster(tx, 'PLG') };
+    const idBaru = await repo.tambahPelanggan(tx, nilai);
+    await catatLog(tx, {
+      aksi: 'PELANGGAN_BUAT',
+      idPengguna: pelaku.id,
+      entitas: 'pelanggan',
+      idEntitas: idBaru,
+      ringkasan: `Menambah pelanggan ${nilai.kode} ${nilai.namaPelanggan}`,
+      dataBaru: nilai,
+      ip: asal.ip,
+    });
+    return idBaru;
+  });
+  return muat(id);
+}
+
+export async function ubahPelanggan(
+  id: number,
+  input: DataPelanggan,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<Pelanggan> {
+  await dalamTransaksi(async (tx) => {
+    const lama = await repo.kunciPelanggan(tx, id);
+    if (!lama) throw tidakDitemukan();
+    const kredit = tentukanKredit(input, lama, pelaku.izin);
+    if (kredit.idTingkatHarga !== lama.idTingkatHarga) {
+      await pastikanTierAktif(tx, kredit.idTingkatHarga);
+    }
+
+    const baru = { ...dataKontak(input), ...kredit };
+    const beda = selisih(lama, baru);
+    if (beda.kolom.length === 0) return;
+    await repo.ubahPelanggan(tx, id, baru, sekarang());
+    await catatLog(tx, {
+      aksi: 'PELANGGAN_UBAH',
+      idPengguna: pelaku.id,
+      entitas: 'pelanggan',
+      idEntitas: id,
+      ringkasan: `Mengubah pelanggan ${lama.namaPelanggan}: ${beda.kolom.join(', ')}`,
+      dataLama: beda.dataLama,
+      dataBaru: beda.dataBaru,
+      ip: asal.ip,
+    });
+  });
+  return muat(id);
+}
+
+export async function ubahStatusPelanggan(
+  id: number,
+  statusAktif: StatusAktif,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<Pelanggan> {
+  await dalamTransaksi(async (tx) => {
+    const lama = await repo.kunciPelanggan(tx, id);
+    if (!lama) throw tidakDitemukan();
+    if (lama.statusAktif === statusAktif) return;
+    await repo.ubahPelanggan(tx, id, { statusAktif }, sekarang());
+    await catatLog(tx, {
+      aksi: statusAktif === 'AKTIF' ? 'PELANGGAN_AKTIFKAN' : 'PELANGGAN_NONAKTIF',
+      idPengguna: pelaku.id,
+      entitas: 'pelanggan',
+      idEntitas: id,
+      ringkasan: `${statusAktif === 'AKTIF' ? 'Mengaktifkan' : 'Menonaktifkan'} pelanggan ${lama.namaPelanggan}`,
+      dataLama: { statusAktif: lama.statusAktif },
+      dataBaru: { statusAktif },
+      ip: asal.ip,
+    });
+  });
+  return muat(id);
+}
