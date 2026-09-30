@@ -255,3 +255,49 @@ export type HasilImportBarang = {
   ringkasan: { total: number; siap: number; dilewati: number; galat: number; disimpan: number };
   disimpan: boolean;
 };
+
+/** Jenis isian kolom import (menentukan kontrol di layar sunting baris). */
+export const JENIS_KOLOM_IMPORT = [
+  'TEKS',
+  'RUPIAH',
+  'QTY',
+  'KATEGORI',
+  'MERK',
+  'SATUAN',
+  'KEPEMILIKAN',
+  'PEMASOK',
+  'STATUS',
+] as const;
+export type JenisKolomImport = (typeof JENIS_KOLOM_IMPORT)[number];
+
+export type KolomImportBarang = {
+  /** Kunci kolom huruf kecil, mis. `nama_barang`, `harga_normal`, `atribut_panjang`. */
+  kunci: string;
+  label: string;
+  jenis: JenisKolomImport;
+  wajib: boolean;
+  petunjuk: string;
+};
+
+/** Satu baris berkas: isi sel sebagai teks per kunci kolom (kosong tidak dikirim). */
+export const skemaBarisImport = z.object({
+  nomorBaris: z.number().int().positive(),
+  nilai: z.record(z.string().max(60), z.string().max(255)),
+});
+export type BarisImportMentah = z.infer<typeof skemaBarisImport>;
+
+/** Hasil membaca berkas: kolom yang dikenali, baris, dan peringatan (kolom tak dikenal diabaikan). */
+export type BacaImportBarang = {
+  namaBerkas: string;
+  kolom: KolomImportBarang[];
+  baris: BarisImportMentah[];
+  peringatan: string[];
+};
+
+export const skemaProsesImport = z.object({
+  namaBerkas: z.string().trim().max(100).default('berkas'),
+  baris: z.array(skemaBarisImport).min(1, 'Tidak ada baris.').max(2000, 'Maksimal 2000 baris.'),
+  /** Kode di baris lain berkas (untuk cek kode ganda saat hanya sebagian baris diperiksa ulang). */
+  kodeLain: z.array(z.string().max(12)).max(2000).default([]),
+});
+export type InputProsesImport = z.input<typeof skemaProsesImport>;

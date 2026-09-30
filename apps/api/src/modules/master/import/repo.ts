@@ -1,7 +1,9 @@
-import { asc, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { Executor } from '../../../db/client';
 import {
   barang,
+  barangAtribut,
+  hargaBarang,
   jenisAtribut,
   kategori,
   merk,
@@ -26,6 +28,7 @@ export async function referensiImport(ex: Executor) {
       id: satuan.id,
       kode: satuan.kode,
       nama: satuan.nama,
+      jenisDimensi: satuan.jenisDimensi,
       statusAktif: satuan.statusAktif,
     })
     .from(satuan)
@@ -80,4 +83,53 @@ export async function kodeAda(ex: Executor, kode: string[]): Promise<Set<string>
     .from(barang)
     .where(inArray(barang.kode, kode));
   return new Set(baris.map((b) => b.kode));
+}
+
+/** Semua barang untuk ekspor: nama referensi, harga TETAP per tier, dan atribut. */
+export async function dataEksporBarang(ex: Executor) {
+  const daftar = await ex
+    .select({
+      id: barang.id,
+      kode: barang.kode,
+      namaBarang: barang.namaBarang,
+      kategori: kategori.nama,
+      merk: merk.nama,
+      satuan: satuan.kode,
+      barcode: barang.barcode,
+      stokMinimum: barang.stokMinimum,
+      hargaModalAwal: barang.hargaModalAwal,
+      kepemilikan: barang.kepemilikan,
+      kodePemasok: pemasok.kode,
+      hargaTitip: barang.hargaTitip,
+      keterangan: barang.keterangan,
+      statusAktif: barang.statusAktif,
+    })
+    .from(barang)
+    .innerJoin(kategori, eq(kategori.id, barang.idKategori))
+    .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .leftJoin(merk, eq(merk.id, barang.idMerk))
+    .leftJoin(pemasok, eq(pemasok.id, barang.idPemasokKonsinyasi))
+    .orderBy(asc(barang.kode));
+  // Hanya harga TETAP; harga IKUT_TIER dikosongkan agar saat diimpor ulang tetap mengikuti markup tier.
+  const harga = await ex
+    .select({
+      idBarang: hargaBarang.idBarang,
+      kodeTier: tingkatHarga.kode,
+      hargaTetap: hargaBarang.hargaJual,
+    })
+    .from(hargaBarang)
+    .innerJoin(tingkatHarga, eq(tingkatHarga.id, hargaBarang.idTingkatHarga))
+    .where(and(isNull(hargaBarang.idSatuanJual), eq(hargaBarang.metode, 'TETAP')));
+  const atribut = await ex
+    .select({
+      idBarang: barangAtribut.idBarang,
+      kodeJenis: jenisAtribut.kode,
+      nilaiAngka: barangAtribut.nilaiAngka,
+      nilaiTeks: barangAtribut.nilaiTeks,
+      kodeSatuan: satuan.kode,
+    })
+    .from(barangAtribut)
+    .innerJoin(jenisAtribut, eq(jenisAtribut.id, barangAtribut.idJenisAtribut))
+    .leftJoin(satuan, eq(satuan.id, barangAtribut.idSatuan));
+  return { barang: daftar, harga, atribut };
 }

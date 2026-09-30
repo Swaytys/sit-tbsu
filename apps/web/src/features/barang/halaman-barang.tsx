@@ -1,5 +1,5 @@
 import { formatRupiah, type BarisBarang, type StatusAktif } from '@sit/shared';
-import { Columns3, FileSpreadsheet, ImageOff, Plus } from 'lucide-react';
+import { Columns3, Download, FileSpreadsheet, ImageOff, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePengguna } from '@/api/auth';
@@ -223,11 +223,18 @@ export function HalamanBarang() {
             </DropdownMenuContent>
           </DropdownMenu>
           {bolehImport && (
-            <Button variant="outline" asChild>
-              <Link to="/barang/import">
-                <FileSpreadsheet /> Import Excel
-              </Link>
-            </Button>
+            <>
+              <Button variant="outline" asChild>
+                <a href="/api/import/barang/ekspor" download>
+                  <Download /> Ekspor Excel
+                </a>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/barang/import">
+                  <FileSpreadsheet /> Import Excel
+                </Link>
+              </Button>
+            </>
           )}
           <Button asChild>
             <Link to="/barang/baru">

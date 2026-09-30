@@ -1,10 +1,14 @@
+import { zValidator } from '@hono/zod-validator';
+import { skemaProsesImport } from '@sit/shared';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
+import { z } from 'zod';
 import { AppError } from '../../../lib/errors';
 import { headerUnduhan, UKURAN_XLSX_MAKS } from '../../../lib/excel';
 import type { EnvApp } from '../../../lib/konteks';
+import { kaitValidasi } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
-import { prosesImportBarang, templatImport } from './service';
+import { bacaBerkasImport, eksporBarang, prosesImportBarang, templatImport } from './service';
 
 const izin = requirePermission('master.import.jalankan');
 const batasUnggah = bodyLimit({
@@ -12,6 +16,9 @@ const batasUnggah = bodyLimit({
   onError: () => {
     throw new AppError('VALIDASI', 'Ukuran berkas Excel maksimal 5 MB.', 413);
   },
+});
+const skemaJenisTemplat = z.object({
+  jenis: z.enum(['ringkas', 'lengkap']).default('ringkas'),
 });
 
 async function berkasKiriman(c: Context<EnvApp>): Promise<{ isi: Uint8Array; nama: string }> {
@@ -23,18 +30,43 @@ async function berkasKiriman(c: Context<EnvApp>): Promise<{ isi: Uint8Array; nam
   return { isi: new Uint8Array(await berkas.arrayBuffer()), nama: berkas.name.slice(0, 100) };
 }
 
-/** Import Excel barang (docs/07 Fase 3, K-056): templat, pratinjau, simpan. */
+/**
+ * Import Excel barang (K-056, K-061, K-064): templat, ekspor data, baca berkas, pratinjau, simpan.
+ * Pratinjau dan simpan menerima baris teks (JSON) sehingga baris bergalat bisa disunting di layar.
+ */
 export const importRoutes = new Hono<EnvApp>()
-  .get('/barang/templat', izin, async (c) =>
-    c.body(await templatImport(), 200, headerUnduhan('templat-import-barang.xlsx')),
-  )
-  .post('/barang/pratinjau', izin, batasUnggah, async (c) => {
-    const { isi, nama } = await berkasKiriman(c);
-    const data = await prosesImportBarang(isi, nama, false, penggunaWajib(c), c.get('asal'));
-    return c.json({ data }, 200);
+  .get('/barang/templat', izin, zValidator('query', skemaJenisTemplat, kaitValidasi), async (c) => {
+    const { jenis } = c.req.valid('query');
+    return c.body(await templatImport(jenis), 200, headerUnduhan(`templat-barang-${jenis}.xlsx`));
   })
-  .post('/barang', izin, batasUnggah, async (c) => {
+  .get('/barang/ekspor', izin, async (c) => {
+    const { isi, namaBerkas } = await eksporBarang(penggunaWajib(c).izin);
+    return c.body(isi, 200, headerUnduhan(namaBerkas));
+  })
+  .post('/barang/baca', izin, batasUnggah, async (c) => {
     const { isi, nama } = await berkasKiriman(c);
-    const data = await prosesImportBarang(isi, nama, true, penggunaWajib(c), c.get('asal'));
+    return c.json({ data: await bacaBerkasImport(isi, nama, penggunaWajib(c)) }, 200);
+  })
+  .post(
+    '/barang/pratinjau',
+    izin,
+    zValidator('json', skemaProsesImport, kaitValidasi),
+    async (c) => {
+      const data = await prosesImportBarang(
+        c.req.valid('json'),
+        false,
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data }, 200);
+    },
+  )
+  .post('/barang', izin, zValidator('json', skemaProsesImport, kaitValidasi), async (c) => {
+    const data = await prosesImportBarang(
+      c.req.valid('json'),
+      true,
+      penggunaWajib(c),
+      c.get('asal'),
+    );
     return c.json({ data }, 200);
   });

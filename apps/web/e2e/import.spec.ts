@@ -14,7 +14,7 @@ async function berkasXlsx(baris: Record<string, string | number>[]) {
     'kategori',
     'satuan_dasar',
     'harga_modal_awal',
-    'harga_NORMAL',
+    'harga_normal',
   ];
   ws.addRow(kolom);
   for (const b of baris) ws.addRow(kolom.map((k) => b[k] ?? null));
@@ -25,7 +25,7 @@ async function berkasXlsx(baris: Record<string, string | number>[]) {
   };
 }
 
-test('Admin mengimpor barang dari Excel: pratinjau galat, perbaiki, simpan; ekspor harga jual', async ({
+test('Admin mengimpor barang: pratinjau galat, perbaiki baris di layar, simpan; ekspor data dan harga', async ({
   page,
 }) => {
   const awalan = `Import E2E ${Date.now()}`;
@@ -34,7 +34,7 @@ test('Admin mengimpor barang dari Excel: pratinjau galat, perbaiki, simpan; eksp
     kategori: 'Semen',
     satuan_dasar: 'sak',
     harga_modal_awal: 40000,
-    harga_NORMAL: 52000,
+    harga_normal: 52000,
   });
 
   await masukCepat(page, 'ADMIN');
@@ -43,8 +43,8 @@ test('Admin mengimpor barang dari Excel: pratinjau galat, perbaiki, simpan; eksp
   await expect(page.getByRole('heading', { name: 'Import barang dari Excel' })).toBeVisible();
 
   const unduh = page.waitForEvent('download');
-  await page.getByRole('link', { name: 'Unduh templat Excel' }).click();
-  expect((await unduh).suggestedFilename()).toBe('templat-import-barang.xlsx');
+  await page.getByRole('link', { name: 'Templat ringkas' }).click();
+  expect((await unduh).suggestedFilename()).toBe('templat-barang-ringkas.xlsx');
 
   // Berkas dengan satu baris bergalat: tidak bisa disimpan.
   await page
@@ -54,8 +54,12 @@ test('Admin mengimpor barang dari Excel: pratinjau galat, perbaiki, simpan; eksp
   await expect(page.getByText('Kategori "Tidak Ada" tidak ditemukan.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Simpan 1 barang' })).toBeDisabled();
 
-  // Berkas diperbaiki → simpan.
-  await page.getByLabel('Berkas Excel').setInputFiles(await berkasXlsx([baris('A'), baris('B')]));
+  // Perbaiki baris bergalat langsung di layar → diperiksa ulang → simpan.
+  await page.getByRole('button', { name: 'Ubah baris 3' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Ubah baris 3' });
+  await dialog.getByLabel('Kategori').click();
+  await page.getByRole('option', { name: 'Semen', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Simpan & periksa ulang' }).click();
   await expect(page.getByText('Siap 2')).toBeVisible();
   await page.getByRole('button', { name: 'Simpan 2 barang' }).click();
   await expect(page.getByText('2 barang ditambahkan.')).toBeVisible();
@@ -64,6 +68,11 @@ test('Admin mengimpor barang dari Excel: pratinjau galat, perbaiki, simpan; eksp
   await page.getByLabel('Cari barang').fill(awalan);
   await expect(page.getByRole('row').filter({ hasText: awalan })).toHaveCount(2);
   await expect(page.getByRole('row').filter({ hasText: `${awalan} A` })).toContainText('Rp 52.000');
+
+  // Ekspor data barang (format templat).
+  const eksporBarang = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Ekspor Excel' }).click();
+  expect((await eksporBarang).suggestedFilename()).toMatch(/^data-barang-\d{4}-\d{2}-\d{2}\.xlsx$/);
 
   // Ekspor harga jual.
   await menuUtama(page).getByRole('link', { name: 'Harga Jual' }).click();

@@ -18,6 +18,7 @@ import {
   jenisAtribut,
   kategori,
   logAktivitas,
+  merk,
   pemasok,
   persediaan,
   satuan,
@@ -28,6 +29,12 @@ type Hasil = {
   baris: { nomorBaris: number; kode: string | null; status: string; pesan: string[] }[];
   ringkasan: { total: number; siap: number; dilewati: number; galat: number; disimpan: number };
   disimpan: boolean;
+};
+type Baca = {
+  namaBerkas: string;
+  kolom: { kunci: string; jenis: string; wajib: boolean }[];
+  baris: { nomorBaris: number; nilai: Record<string, string> }[];
+  peringatan: string[];
 };
 type Sesi = Awaited<ReturnType<typeof sesiUji>>;
 
@@ -45,9 +52,11 @@ beforeEach(async () => {
     jenisAtribut,
     tingkatHarga,
     pemasok,
+    merk,
   );
   await aturKonfigurasi({ pembulatan_harga: '100', stok_minimum_default: '5' });
   await db.insert(kategori).values([{ nama: 'Semen' }, { nama: 'Pipa' }]);
+  await db.insert(merk).values([{ nama: 'Gresik' }, { nama: 'Maspion' }]);
   await db.insert(satuan).values([
     { kode: 'm', nama: 'Meter', jenisDimensi: 'PANJANG', faktorKeBasis: '1', isBasis: true },
     { kode: 'cm', nama: 'Sentimeter', jenisDimensi: 'PANJANG', faktorKeBasis: '0.01' },
@@ -68,20 +77,25 @@ beforeEach(async () => {
   admin = await sesiUji('ADMIN');
 });
 
-async function templat(): Promise<ExcelJS.Workbook> {
-  const res = await minta('/api/import/barang/templat', { cookie: admin.cookie });
+async function unduh(path: string): Promise<ExcelJS.Workbook> {
+  const res = await minta(path, { cookie: admin.cookie });
   expect(res.status).toBe(200);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(await res.arrayBuffer());
   return wb;
 }
 
-/** Templat dari API diisi baris data mulai baris 3. */
+function kunciBaris1(ws: ExcelJS.Worksheet): string[] {
+  const kunci: string[] = [];
+  ws.getRow(1).eachCell((c) => kunci.push(c.text));
+  return kunci;
+}
+
+/** Templat lengkap dari API diisi baris data mulai baris 3. */
 async function berkas(baris: Record<string, string | number>[]): Promise<File> {
-  const wb = await templat();
+  const wb = await unduh('/api/import/barang/templat?jenis=lengkap');
   const ws = wb.getWorksheet('Barang')!;
-  const kolom = new Map<string, number>();
-  ws.getRow(1).eachCell((c, i) => kolom.set(c.text, i));
+  const kolom = new Map(kunciBaris1(ws).map((k, i) => [k, i + 1]));
   baris.forEach((isi, i) => {
     const row = ws.getRow(3 + i);
     for (const [k, v] of Object.entries(isi)) {
@@ -90,68 +104,147 @@ async function berkas(baris: Record<string, string | number>[]): Promise<File> {
       row.getCell(idx).value = v;
     }
   });
-  const isi = await wb.xlsx.writeBuffer();
-  return new File([new Uint8Array(isi)], 'barang.xlsx');
+  return new File([new Uint8Array(await wb.xlsx.writeBuffer())], 'barang.xlsx');
 }
 
-async function kirim(path: string, f: File) {
+async function baca(f: File): Promise<Baca> {
   const form = new FormData();
   form.set('berkas', f);
-  return mintaForm(path, form, admin.cookie);
+  const res = await mintaForm('/api/import/barang/baca', form, admin.cookie);
+  if (res.status !== 200) throw new Error(`baca gagal (${res.status}): ${await res.text()}`);
+  return (await json<{ data: Baca }>(res)).data;
+}
+
+const proses = (path: string, body: unknown) =>
+  minta(path, { method: 'POST', cookie: admin.cookie, body });
+
+async function pratinjau(b: Baca, kodeLain: string[] = []): Promise<Hasil> {
+  const res = await proses('/api/import/barang/pratinjau', { ...b, kodeLain });
+  expect(res.status).toBe(200);
+  return (await json<{ data: Hasil }>(res)).data;
 }
 
 const SEMEN = {
   nama_barang: 'Semen Gresik 40kg',
   kategori: 'semen',
+  merk: 'Gresik',
   satuan_dasar: 'sak',
   harga_modal_awal: 41234,
-  harga_NORMAL: 55000,
+  harga_normal: 55000,
 };
 
-describe('templat import', () => {
-  it('berisi kolom tier dan atribut aktif, lembar referensi; hanya pemegang izin import', async () => {
+describe('templat dan ekspor', () => {
+  it('ringkas dan lengkap; kolom wajib ditandai; validasi sel; lembar Contoh vertikal', async () => {
     const kasir = await sesiUji('KASIR');
     expect((await minta('/api/import/barang/templat', { cookie: kasir.cookie })).status).toBe(403);
 
-    const wb = await templat();
-    expect(wb.worksheets.map((w) => w.name)).toEqual(['Barang', 'Referensi', 'Petunjuk']);
-    const kunci: string[] = [];
-    wb.getWorksheet('Barang')!
-      .getRow(1)
-      .eachCell((c) => kunci.push(c.text));
+    const ringkas = await unduh('/api/import/barang/templat');
+    expect(kunciBaris1(ringkas.getWorksheet('Barang')!)).toEqual([
+      'kode',
+      'nama_barang',
+      'kategori',
+      'merk',
+      'satuan_dasar',
+      'stok_minimum',
+      'harga_modal_awal',
+      'harga_normal',
+    ]);
+
+    const wb = await unduh('/api/import/barang/templat?jenis=lengkap');
+    expect(wb.worksheets.map((w) => w.name)).toEqual(['Barang', 'Referensi', 'Contoh', 'Petunjuk']);
+    const ws = wb.getWorksheet('Barang')!;
+    const kunci = kunciBaris1(ws);
     expect(kunci).toEqual(
-      expect.arrayContaining(['nama_barang', 'harga_NORMAL', 'harga_GROSIR', 'atribut_PANJANG']),
+      expect.arrayContaining(['harga_normal', 'harga_grosir', 'atribut_panjang', 'atribut_warna']),
     );
-    expect(wb.getWorksheet('Referensi')!.getColumn(1).values).toEqual(
-      expect.arrayContaining(['Kategori', 'Pipa', 'Semen']),
+    expect(kunci).not.toContain('status');
+    const kol = (k: string) => ws.getColumn(kunci.indexOf(k) + 1).letter;
+    expect(ws.getCell(`${kol('harga_modal_awal')}3`).dataValidation.type).toBe('whole');
+    expect(ws.getCell(`${kol('kategori')}3`).dataValidation.type).toBe('list');
+    expect(ws.getCell(`${kol('merk')}3`).dataValidation.type).toBe('list');
+
+    const contoh = wb.getWorksheet('Contoh')!;
+    expect(contoh.getRow(1).values).toEqual(expect.arrayContaining(['Kolom', 'Contoh 1']));
+    const barisContoh = contoh.getColumn(1).values.filter(Boolean);
+    expect(barisContoh).toEqual(expect.arrayContaining(['nama_barang', 'harga_normal', 'status']));
+  });
+
+  it('ekspor data barang bisa dibaca ulang; semua kode sudah ada sehingga dilewati', async () => {
+    const f = await berkas([
+      { ...SEMEN, kode: 'SMN-1', atribut_panjang: '12,5 cm', atribut_warna: 'Abu' },
+      {
+        ...SEMEN,
+        kode: 'PIPA-1',
+        nama_barang: 'Pipa',
+        kategori: 'Pipa',
+        merk: 'Maspion',
+        harga_grosir: 50000,
+      },
+    ]);
+    expect((await proses('/api/import/barang', await baca(f))).status).toBe(200);
+
+    const wb = await unduh('/api/import/barang/ekspor');
+    const ws = wb.getWorksheet('Barang')!;
+    const kunci = kunciBaris1(ws);
+    expect(kunci).toContain('status');
+    const sel = (baris: number, k: string) => ws.getRow(baris).getCell(kunci.indexOf(k) + 1).value;
+    expect(sel(3, 'kode')).toBe('PIPA-1');
+    expect(sel(3, 'harga_grosir')).toBe(50000);
+    expect(sel(4, 'atribut_panjang')).toBe('12,5 cm');
+    expect(sel(4, 'harga_grosir')).toBeNull(); // ikut tier → kosong
+    expect(sel(4, 'merk')).toBe('Gresik');
+
+    const bolakBalik = await pratinjau(
+      await baca(new File([new Uint8Array(await wb.xlsx.writeBuffer())], 'ekspor.xlsx')),
     );
+    expect(bolakBalik.ringkasan).toMatchObject({ total: 2, dilewati: 2, galat: 0 });
+
+    const kasir = await sesiUji('KASIR');
+    expect((await minta('/api/import/barang/ekspor', { cookie: kasir.cookie })).status).toBe(403);
   });
 });
 
-describe('pratinjau dan simpan import', () => {
-  it('pratinjau melaporkan siap, dilewati, galat tanpa menyimpan apa pun', async () => {
-    // Barang lama dengan kode BRG-00001.
-    const lama = await kirim(
-      '/api/import/barang',
+describe('baca, pratinjau, sunting, simpan', () => {
+  it('baca: baris petunjuk dan kosong dilewati; kolom tak dikenal diberi peringatan', async () => {
+    const wb = await unduh('/api/import/barang/templat?jenis=lengkap');
+    const ws = wb.getWorksheet('Barang')!;
+    ws.getCell('A1').value = 'kode';
+    const kosong = ws.columnCount + 1;
+    ws.getRow(1).getCell(kosong).value = 'harga_member';
+    const kunci = kunciBaris1(ws);
+    ws.getRow(3).getCell(kunci.indexOf('nama_barang') + 1).value = 'Paku';
+    ws.getRow(3).getCell(kunci.indexOf('stok_minimum') + 1).value = 2.5;
+    ws.getRow(5).getCell(kunci.indexOf('nama_barang') + 1).value = 'Kawat';
+    const hasil = await baca(new File([new Uint8Array(await wb.xlsx.writeBuffer())], 'x.xlsx'));
+    expect(hasil.baris.map((b) => b.nomorBaris)).toEqual([3, 5]);
+    expect(hasil.baris[0]?.nilai).toEqual({ nama_barang: 'Paku', stok_minimum: '2,5' });
+    expect(hasil.peringatan[0]).toContain('harga_member');
+    expect(hasil.kolom.find((k) => k.kunci === 'kategori')).toMatchObject({
+      jenis: 'KATEGORI',
+      wajib: true,
+    });
+  });
+
+  it('pratinjau melaporkan siap/dilewati/galat tanpa menyimpan; baris bergalat bisa disunting lalu diperiksa ulang', async () => {
+    const lama = await baca(
       await berkas([{ ...SEMEN, kode: 'BRG-00001', nama_barang: 'Semen lama' }]),
     );
-    expect(lama.status).toBe(200);
+    expect((await proses('/api/import/barang', lama)).status).toBe(200);
 
-    const f = await berkas([
-      { ...SEMEN, atribut_PANJANG: '12,5 cm', atribut_WARNA: 'Abu' },
-      { ...SEMEN, kode: 'BRG-00001', nama_barang: 'Semen baru' },
-      { ...SEMEN, kategori: 'Keramik' },
-      { ...SEMEN, kode: 'X-1' },
-      { ...SEMEN, kode: 'X-1', nama_barang: 'Kembar' },
-      { ...SEMEN, harga_NORMAL: '' },
-      { ...SEMEN, atribut_PANJANG: '6' },
-      { ...SEMEN, harga_modal_awal: 1000.5 },
-    ]);
-    const res = await kirim('/api/import/barang/pratinjau', f);
-    expect(res.status).toBe(200);
-    const { data } = await json<{ data: Hasil }>(res);
-    expect(data.disimpan).toBe(false);
-    expect(data.baris.map((b) => b.status)).toEqual([
+    const b = await baca(
+      await berkas([
+        { ...SEMEN, atribut_panjang: '12,5 cm', atribut_warna: 'Abu' },
+        { ...SEMEN, kode: 'BRG-00001', nama_barang: 'Semen baru' },
+        { ...SEMEN, kategori: 'Keramik', merk: 'Tanpa' },
+        { ...SEMEN, kode: 'X-1' },
+        { ...SEMEN, kode: 'X-1', nama_barang: 'Kembar' },
+        { ...SEMEN, harga_normal: '' },
+        { ...SEMEN, atribut_panjang: '6' },
+        { ...SEMEN, harga_modal_awal: '1000,5' },
+      ]),
+    );
+    const data = await pratinjau(b);
+    expect(data.baris.map((x) => x.status)).toEqual([
       'SIAP',
       'DILEWATI',
       'GALAT',
@@ -161,27 +254,35 @@ describe('pratinjau dan simpan import', () => {
       'GALAT',
       'GALAT',
     ]);
-    expect(data.baris[0]?.nomorBaris).toBe(3);
-    const pesan = data.baris.map((b) => b.pesan.join(' '));
+    const pesan = data.baris.map((x) => x.pesan.join(' '));
     expect(pesan[2]).toContain('Kategori "Keramik" tidak ditemukan');
+    expect(pesan[2]).toContain('Merk "Tanpa" tidak ditemukan');
+    expect(pesan[2]).not.toContain('wajib dipilih');
     expect(pesan[4]).toContain('Kode sama dengan baris 6');
     expect(pesan[5]).toContain('tier default');
     expect(pesan[6]).toContain('angka dan satuan');
     expect(pesan[7]).toContain('rupiah bulat');
-    expect(data.ringkasan).toMatchObject({ total: 8, siap: 2, dilewati: 1, galat: 5 });
-
-    // Tidak ada yang tersimpan; penghitung kode tidak ikut naik.
     const [jumlah] = await db.select({ n: count() }).from(barang);
     expect(jumlah?.n).toBe(1);
-    const baru = await kirim('/api/import/barang', await berkas([SEMEN]));
+
+    // Sunting baris kategori salah; periksa ulang hanya baris itu (kode baris lain dikirim untuk cek ganda).
+    const disunting = {
+      ...b.baris[2]!,
+      nilai: { ...b.baris[2]!.nilai, kategori: 'Pipa', merk: '' },
+    };
+    const ulang = await pratinjau({ ...b, baris: [disunting] }, ['X-1']);
+    expect(ulang.baris[0]).toMatchObject({ nomorBaris: 5, status: 'SIAP' });
+    const kembar = await pratinjau({ ...b, baris: [b.baris[4]!] }, ['X-1']);
+    expect(kembar.baris[0]?.pesan[0]).toContain('baris lain');
+
+    // Penghitung kode tidak ikut naik oleh pratinjau.
+    const baru = await proses('/api/import/barang', await baca(await berkas([SEMEN])));
     expect((await json<{ data: Hasil }>(baru)).data.baris[0]?.kode).toBe('BRG-00002');
   });
 
   it('simpan ditolak bila masih ada galat; tidak ada yang tersimpan', async () => {
-    const res = await kirim(
-      '/api/import/barang',
-      await berkas([SEMEN, { ...SEMEN, satuan_dasar: 'kodi' }]),
-    );
+    const b = await baca(await berkas([SEMEN, { ...SEMEN, satuan_dasar: 'kodi' }]));
+    const res = await proses('/api/import/barang', b);
     expect(res.status).toBe(400);
     const galat = await json<{ error: { pesan: string; detail: { hasil: Hasil } } }>(res);
     expect(galat.error.pesan).toContain('1 baris bergalat');
@@ -189,22 +290,26 @@ describe('pratinjau dan simpan import', () => {
     expect(await db.select().from(barang)).toHaveLength(0);
   });
 
-  it('20 barang tersimpan dalam satu transaksi dengan persediaan, harga, dan log; kode lama dilewati', async () => {
-    await kirim('/api/import/barang', await berkas([{ ...SEMEN, kode: 'LAMA-1' }]));
+  it('20 barang tersimpan dalam satu transaksi dengan persediaan, harga, log; kode lama dilewati; status nonaktif', async () => {
+    await proses('/api/import/barang', await baca(await berkas([{ ...SEMEN, kode: 'LAMA-1' }])));
     const isi = Array.from({ length: 20 }, (_, i) => ({
       ...SEMEN,
       nama_barang: `Pipa PVC ${i + 1}`,
       kategori: 'Pipa',
+      merk: 'Maspion',
       satuan_dasar: 'batang',
       harga_modal_awal: 20000 + i,
-      harga_NORMAL: 30000,
+      harga_normal: 30000,
       stok_minimum: '2,5',
-      atribut_PANJANG: '4 m',
+      atribut_panjang: '4 m',
+      ...(i === 19 ? { kode: 'PIPA-LAMA' } : {}),
     }));
-    const res = await kirim(
-      '/api/import/barang',
+    const b = await baca(
       await berkas([...isi, { ...SEMEN, kode: 'LAMA-1', nama_barang: 'Ganti?' }]),
     );
+    // Kolom status tidak ada di templat; tambahkan lewat baris JSON (seperti berkas hasil ekspor).
+    b.baris[19]!.nilai.status = 'NONAKTIF';
+    const res = await proses('/api/import/barang', b);
     expect(res.status).toBe(200);
     const { data } = await json<{ data: Hasil }>(res);
     expect(data.disimpan).toBe(true);
@@ -216,29 +321,27 @@ describe('pratinjau dan simpan import', () => {
     const [pertama] = await db.select().from(barang).where(eq(barang.kode, 'BRG-00001'));
     expect(pertama).toMatchObject({ namaBarang: 'Pipa PVC 1', stokMinimum: '2.500' });
     const harga = await db.select().from(hargaBarang).where(eq(hargaBarang.idBarang, pertama!.id));
-    expect(harga.map((h) => h.hargaJual).sort()).toEqual([24000, 30000]); // ceil100(20.000 × 1,2)
+    expect(harga.map((h) => h.hargaJual).sort()).toEqual([24000, 30000]);
+    const [nonaktif] = await db.select().from(barang).where(eq(barang.kode, 'PIPA-LAMA'));
+    expect(nonaktif?.statusAktif).toBe('NONAKTIF');
     const [lama] = await db.select().from(barang).where(eq(barang.kode, 'LAMA-1'));
     expect(lama?.namaBarang).toBe('Semen Gresik 40kg');
-
-    const [log] = await db
-      .select()
-      .from(logAktivitas)
-      .where(eq(logAktivitas.aksi, 'IMPORT_BARANG'))
-      .orderBy(logAktivitas.id);
-    expect(log?.ringkasan).toContain('1 ditambahkan'); // import pertama (LAMA-1)
     const buat = await db.select().from(logAktivitas).where(eq(logAktivitas.aksi, 'BARANG_BUAT'));
     expect(buat).toHaveLength(21);
   });
 
-  it('berkas bukan xlsx atau tanpa kolom wajib ditolak', async () => {
-    const teks = await kirim('/api/import/barang/pratinjau', new File(['kode,nama'], 'a.xlsx'));
+  it('berkas bukan xlsx atau tanpa kolom wajib ditolak saat dibaca', async () => {
+    const form = new FormData();
+    form.set('berkas', new File(['kode,nama'], 'a.xlsx'));
+    const teks = await mintaForm('/api/import/barang/baca', form, admin.cookie);
     expect(teks.status).toBe(400);
     expect((await json<{ error: { pesan: string } }>(teks)).error.pesan).toContain('.xlsx');
 
     const wb = new ExcelJS.Workbook();
     wb.addWorksheet('Barang').getRow(1).values = ['kode', 'nama'];
-    const polos = new File([new Uint8Array(await wb.xlsx.writeBuffer())], 'polos.xlsx');
-    const res = await kirim('/api/import/barang/pratinjau', polos);
+    const form2 = new FormData();
+    form2.set('berkas', new File([new Uint8Array(await wb.xlsx.writeBuffer())], 'polos.xlsx'));
+    const res = await mintaForm('/api/import/barang/baca', form2, admin.cookie);
     expect(res.status).toBe(400);
     expect((await json<{ error: { pesan: string } }>(res)).error.pesan).toContain('nama_barang');
   });
@@ -246,7 +349,7 @@ describe('pratinjau dan simpan import', () => {
 
 describe('ekspor harga jual', () => {
   it('menghasilkan Excel harga per tier untuk barang aktif', async () => {
-    await kirim('/api/import/barang', await berkas([SEMEN]));
+    await proses('/api/import/barang', await baca(await berkas([SEMEN])));
     const res = await minta('/api/harga-barang/ekspor', { cookie: admin.cookie });
     expect(res.status).toBe(200);
     expect(res.headers.get('content-disposition')).toMatch(/harga-jual-\d{4}-\d{2}-\d{2}\.xlsx/);
