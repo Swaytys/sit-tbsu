@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import type { Izin } from '@sit/shared';
+import type { ComponentType } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { Layout } from '@/components/layout/layout';
 import { WajibIzin, WajibLogin } from '@/components/penjaga-rute';
@@ -7,39 +8,70 @@ import {
   HalamanWajibGantiPassword,
 } from '@/features/auth/halaman-ganti-password';
 import { HalamanLogin } from '@/features/auth/halaman-login';
-import { HalamanBarang } from '@/features/barang/halaman-barang';
-import { HalamanFormBarang } from '@/features/barang/halaman-form-barang';
-import { HalamanImportBarang } from '@/features/barang/halaman-import-barang';
-import { HalamanBeranda } from '@/features/beranda/halaman-beranda';
-import { HalamanHargaJual } from '@/features/harga-jual/halaman-harga-jual';
-import { HalamanPelanggan } from '@/features/pelanggan/halaman-pelanggan';
-import { HalamanPemasok } from '@/features/pemasok/halaman-pemasok';
-import { HalamanPengaturan } from '@/features/pengaturan/halaman-pengaturan';
-import { HalamanPengguna } from '@/features/pengguna/halaman-pengguna';
-import { HalamanReferensi } from '@/features/referensi/halaman-referensi';
 import { HalamanSegera } from '@/features/umum/halaman-segera';
 import { HalamanTidakDitemukan } from '@/features/umum/halaman-tidak-ditemukan';
 import { SEMUA_ITEM_MENU } from '@/lib/menu';
 
-/** Halaman yang sudah dibangun, per path menu. Path lain menampilkan "sedang disiapkan". */
-const HALAMAN: Record<string, ReactNode> = {
-  '/dashboard': <HalamanBeranda />,
-  '/barang': <HalamanBarang />,
-  '/harga-jual': <HalamanHargaJual />,
-  '/kategori-satuan': <HalamanReferensi />,
-  '/pelanggan': <HalamanPelanggan />,
-  '/pemasok': <HalamanPemasok />,
-  '/pengguna': <HalamanPengguna />,
-  '/pengaturan': <HalamanPengaturan />,
+type MuatHalaman = () => Promise<ComponentType>;
+
+/**
+ * Halaman yang sudah dibangun, per path. Kode tiap halaman diunduh saat pertama dibuka (bundel awal kecil);
+ * selama itu halaman sebelumnya tetap tampil. Path menu lain menampilkan "sedang disiapkan".
+ */
+const HALAMAN: Record<string, MuatHalaman> = {
+  '/dashboard': () => import('@/features/beranda/halaman-beranda').then((m) => m.HalamanBeranda),
+  '/barang': () => import('@/features/barang/halaman-barang').then((m) => m.HalamanBarang),
+  '/harga-jual': () =>
+    import('@/features/harga-jual/halaman-harga-jual').then((m) => m.HalamanHargaJual),
+  '/kategori-satuan': () =>
+    import('@/features/referensi/halaman-referensi').then((m) => m.HalamanReferensi),
+  '/pelanggan': () =>
+    import('@/features/pelanggan/halaman-pelanggan').then((m) => m.HalamanPelanggan),
+  '/pemasok': () => import('@/features/pemasok/halaman-pemasok').then((m) => m.HalamanPemasok),
+  '/pengguna': () => import('@/features/pengguna/halaman-pengguna').then((m) => m.HalamanPengguna),
+  '/pengaturan': () =>
+    import('@/features/pengaturan/halaman-pengaturan').then((m) => m.HalamanPengaturan),
 };
 
-const ruteMenu: RouteObject[] = SEMUA_ITEM_MENU.map((item) => ({
-  path: item.path.slice(1),
-  handle: { judul: item.label },
-  element: (
-    <WajibIzin izin={item.izin}>{HALAMAN[item.path] ?? <HalamanSegera item={item} />}</WajibIzin>
-  ),
-}));
+/** Rute berhalaman lazy yang dijaga izin. */
+function ruteLazy(
+  path: string,
+  judul: string,
+  izin: Izin | readonly Izin[],
+  muat: MuatHalaman,
+): RouteObject {
+  return {
+    path,
+    handle: { judul },
+    lazy: async () => {
+      const Halaman = await muat();
+      return {
+        element: (
+          <WajibIzin izin={izin}>
+            <Halaman />
+          </WajibIzin>
+        ),
+      };
+    },
+  };
+}
+
+const ruteMenu: RouteObject[] = SEMUA_ITEM_MENU.map((item) => {
+  const muat = HALAMAN[item.path];
+  if (muat) return ruteLazy(item.path.slice(1), item.label, item.izin, muat);
+  return {
+    path: item.path.slice(1),
+    handle: { judul: item.label },
+    element: (
+      <WajibIzin izin={item.izin}>
+        <HalamanSegera item={item} />
+      </WajibIzin>
+    ),
+  };
+});
+
+const muatFormBarang: MuatHalaman = () =>
+  import('@/features/barang/halaman-form-barang').then((m) => m.HalamanFormBarang);
 
 /** Semua halaman. `handle.judul` tampil di topbar dan judul tab browser. */
 export const router = createBrowserRouter([
@@ -62,24 +94,11 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       ...ruteMenu,
-      {
-        path: 'barang/import',
-        handle: { judul: 'Data Barang' },
-        element: (
-          <WajibIzin izin="master.import.jalankan">
-            <HalamanImportBarang />
-          </WajibIzin>
-        ),
-      },
-      ...['barang/baru', 'barang/:id'].map((path) => ({
-        path,
-        handle: { judul: 'Data Barang' },
-        element: (
-          <WajibIzin izin="master.barang.kelola">
-            <HalamanFormBarang />
-          </WajibIzin>
-        ),
-      })),
+      ruteLazy('barang/import', 'Data Barang', 'master.import.jalankan', () =>
+        import('@/features/barang/halaman-import-barang').then((m) => m.HalamanImportBarang),
+      ),
+      ruteLazy('barang/baru', 'Data Barang', 'master.barang.kelola', muatFormBarang),
+      ruteLazy('barang/:id', 'Data Barang', 'master.barang.kelola', muatFormBarang),
       {
         path: 'akun/password',
         element: <HalamanGantiPasswordAkun />,

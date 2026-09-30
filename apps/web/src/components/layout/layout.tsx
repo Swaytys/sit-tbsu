@@ -54,7 +54,8 @@ export function Layout() {
       <Sidebar terbuka={sidebarTerbuka} />
       <main className="flex min-w-0 flex-1 flex-col">
         <Topbar judul={judul} onToggleSidebar={toggleSidebar} />
-        <div className="flex-1 overflow-auto">
+        {/* relative: elemen absolut (mis. input berkas sr-only) ikut wadah ini, tidak memanjangkan dokumen. */}
+        <div className="relative flex-1 overflow-auto">
           <Outlet />
         </div>
       </main>
