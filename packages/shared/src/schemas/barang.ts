@@ -85,7 +85,8 @@ export const skemaBarang = z
       .min(1, 'Nama barang wajib diisi.')
       .max(150, 'Nama barang maksimal 150 karakter.'),
     idKategori: idWajib('Kategori wajib dipilih.'),
-    merk: teksOpsional(50, 'Merk maksimal 50 karakter.'),
+    /** `null` = tanpa merk (K-063). */
+    idMerk: z.number().int().positive().nullable().optional(),
     idSatuanDasar: idWajib('Satuan dasar wajib dipilih.'),
     /** Kosong = `konfigurasi.stok_minimum_default` untuk barang baru; nilai lama untuk ubah. */
     stokMinimum: z.preprocess(kosongJadiUndefined, skemaQtyTeks('Stok minimum').optional()),
@@ -129,6 +130,7 @@ export type DataBarang = z.output<typeof skemaBarang>;
 export const skemaCariBarang = skemaHalaman.extend({
   cari: z.string().trim().max(100).optional(),
   idKategori: z.coerce.number().int().positive().optional(),
+  idMerk: z.coerce.number().int().positive().optional(),
   status: z.enum([...STATUS_AKTIF, 'SEMUA']).default('SEMUA'),
   perluTinjau: z
     .enum(['true', 'false'])
@@ -152,7 +154,8 @@ export type BarisBarang = {
   namaBarang: string;
   idKategori: number;
   namaKategori: string;
-  merk: string | null;
+  idMerk: number | null;
+  namaMerk: string | null;
   idSatuanDasar: number;
   kodeSatuan: string;
   stokMinimum: string;

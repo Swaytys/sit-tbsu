@@ -50,6 +50,20 @@ export const kategori = pgTable(
   () => [check('chk_kategori_status', dalamDaftar('status_aktif', STATUS_AKTIF))],
 );
 
+/** Merk barang (migrasi 0001, K-063): pilihan tetap agar merk tidak diketik ulang. */
+export const merk = pgTable(
+  'merk',
+  {
+    id: kolomId(),
+    nama: varchar('nama', { length: 50 }).notNull().unique('merk_nama_key'),
+    keterangan: varchar('keterangan', { length: 150 }),
+    statusAktif: statusAktif(),
+    dibuatPada: dibuatPada(),
+    diubahPada: diubahPada(),
+  },
+  () => [check('chk_merk_status', dalamDaftar('status_aktif', STATUS_AKTIF))],
+);
+
 export const satuan = pgTable(
   'satuan',
   {
@@ -181,7 +195,6 @@ export const barang = pgTable(
     barcode: varchar('barcode', { length: 64 }).unique('barang_barcode_key'),
     namaBarang: varchar('nama_barang', { length: 150 }).notNull(),
     idKategori: kolomRef('id_kategori').notNull(),
-    merk: varchar('merk', { length: 50 }),
     idSatuanDasar: kolomRef('id_satuan_dasar').notNull(),
     stokMinimum: qty('stok_minimum')
       .notNull()
@@ -199,12 +212,19 @@ export const barang = pgTable(
     statusAktif: statusAktif(),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    // Ditambahkan migrasi 0001 (K-063); di akhir agar urutan kolom sama dengan database.
+    idMerk: kolomRef('id_merk'),
   },
   (t) => [
     foreignKey({
       name: 'barang_id_kategori_fkey',
       columns: [t.idKategori],
       foreignColumns: [kategori.id],
+    }),
+    foreignKey({
+      name: 'barang_id_merk_fkey',
+      columns: [t.idMerk],
+      foreignColumns: [merk.id],
     }),
     foreignKey({
       name: 'barang_id_satuan_dasar_fkey',
@@ -227,6 +247,7 @@ export const barang = pgTable(
     check('chk_barang_modal_awal', sql`harga_modal_awal >= 0`),
     index('idx_barang_nama').on(t.namaBarang),
     index('idx_barang_kategori').on(t.idKategori),
+    index('idx_barang_merk').on(t.idMerk),
   ],
 );
 

@@ -142,3 +142,18 @@ tengah menyulitkan pengguna melacak baris mana yang sudah masuk.
 berjenjang terdeduplikasi memberi riwayat panjang tanpa memenuhi disk laptop.
 **Ditolak:** mengerjakan fitur massal/peran kustom sekarang (di luar fase aktif); cadangan penuh tanpa deduplikasi
 tiap hari (boros ruang).
+
+### K-063 — Master Merk dan halaman Referensi Barang (masukan pemilik)
+**Keputusan:**
+1. Merk menjadi data master (tabel `merk`, barang memilih lewat `id_merk`), seperti kategori/satuan/atribut,
+   agar tidak diketik ulang dan bisa disaring. Migrasi 0001 membuat tabel dan memindahkan merk teks lama (nama
+   sama beda huruf besar/kecil digabung; ejaan berhuruf kapital dipilih); migrasi 0002 menghapus kolom teks.
+2. Menu "Kategori, Satuan & Atribut" diganti **Referensi Barang** (`/referensi`), tab: Kategori, Merk, Satuan,
+   Atribut. Nama menu/halaman dibuat 1–2 kata.
+3. Izin: baca `master.barang.lihat`; kelola `master.kategori.kelola` (tanpa izin baru). Nama merk unik tanpa
+   membedakan huruf besar/kecil; merk nonaktif tidak bisa dipilih untuk barang baru/perubahan. Log `MERK_*`.
+4. Import: kolom `merk` diisi nama merk yang sudah ada (dropdown di templat); nama yang belum ada = galat baris.
+5. Daftar barang bisa disaring per merk; pencarian mencakup nama merk.
+
+**Alasan:** Data yang bervariasi tetapi berulang harus berupa pilihan (masukan pemilik 2026-09-30).
+**Ditolak:** membuat merk baru otomatis saat import (salah ketik akan menghasilkan merk ganda).

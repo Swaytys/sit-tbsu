@@ -170,7 +170,7 @@ tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembe
 | Data Master › Data Pelanggan | `master.pelanggan.lihat` | |
 | Data Master › Data Pemasok | `master.pemasok.lihat` | |
 | Data Master › Data Pengguna | `master.pengguna.kelola` | Label "Owner Only" seperti mockup |
-| Data Master › Kategori, Satuan & Atribut | `master.kategori.kelola` | Satu halaman dengan tab |
+| Data Master › Referensi Barang | `master.kategori.kelola` | Satu halaman bertab: Kategori, Merk, Satuan, Atribut |
 | Data Master › Harga Jual | `master.harga.kelola` | Tier dan harga per barang; M2 menambah tab Tinjau Harga |
 | Transaksi › Order Penjualan | `penjualan.order.buat` | Staf hanya melihat order miliknya kecuali `order.lihat_semua` |
 | Transaksi › Penjualan Langsung | `penjualan.checkout` | |
@@ -240,3 +240,5 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-09-30 — Barang dibaca semua peran (`master.barang.lihat`) dengan field sensitif disaring; menambah/mengubah
   barang juga butuh `master.barang.lihat_hpp`, menambah barang butuh `master.harga.kelola`; markup default tier
   hanya untuk `master.barang.lihat_hpp` (K-060).
+- 2026-09-30 — Menu "Kategori, Satuan & Atribut" menjadi **Referensi Barang** (`/referensi`) dengan tab Merk baru;
+  merk dibaca `master.barang.lihat`, dikelola `master.kategori.kelola` (K-063).

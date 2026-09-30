@@ -49,6 +49,27 @@ export type Kategori = {
   jumlahBarang: number;
 };
 
+// --- Merk (K-063) ---
+
+export const skemaMerk = z.object({
+  nama: z
+    .string('Nama merk wajib diisi.')
+    .trim()
+    .min(1, 'Nama merk wajib diisi.')
+    .max(50, 'Nama merk maksimal 50 karakter.'),
+  keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
+});
+export type InputMerk = z.input<typeof skemaMerk>;
+export type DataMerk = z.output<typeof skemaMerk>;
+
+export type Merk = {
+  id: number;
+  nama: string;
+  keterangan: string | null;
+  statusAktif: (typeof STATUS_AKTIF)[number];
+  jumlahBarang: number;
+};
+
 // --- Satuan ---
 
 /** Faktor desimal > 0, paling banyak 6 desimal; koma diterima sebagai pemisah desimal. */

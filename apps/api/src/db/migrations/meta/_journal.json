@@ -8,6 +8,20 @@
       "when": 1790659474080,
       "tag": "0000_skema_v3",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790780417556,
+      "tag": "0001_merk",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790780432595,
+      "tag": "0002_hapus_merk_teks",
+      "breakpoints": true
     }
   ]
 }
