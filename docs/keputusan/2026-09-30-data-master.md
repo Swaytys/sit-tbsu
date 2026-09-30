@@ -52,3 +52,16 @@ format `Rp 1.234.567`) dan `qty.ts` (aritmatika dan konversi kuantitas) memakai 
 `bandingQty()`. Komponen `InputAngka` dipindah ke `apps/web/src/components` karena dipakai lintas fitur.
 **Alasan:** Satu sumber aturan pembulatan (docs/06 U1, U4, H4) untuk API dan tampilan sementara di web.
 **Ditolak:** aritmatika `number` biasa untuk qty (melanggar CLAUDE.md aturan 8).
+
+### K-059 — Tier, term, dan limit kredit pelanggan hanya Admin/Owner (dijawab pemilik proyek)
+**Keputusan:** Izin baru `master.pelanggan.atur_kredit` (Admin, Owner) untuk mengatur tier harga default, term
+hari, dan limit kredit pelanggan. Staf dan Kasir tetap menambah/mengubah data kontak pelanggan
+(`master.pelanggan.kelola`); pelanggan baru dari mereka memakai tier default toko (`id_tingkat_harga = null`),
+term `term_hari_default`, dan tanpa limit. API menolak (403) permintaan tanpa izin yang mengubah ketiga nilai
+itu; nilai yang tidak dikirim berarti bawaan (tambah) atau nilai lama (ubah). Kode pelanggan `PLG-00001` dan
+pemasok `PMS-00001` diterbitkan penomoran dan tidak bisa diubah (N5). Tier nonaktif tidak bisa dipilih.
+Daftar tingkat harga (`GET /api/tingkat-harga`) dibaca semua peran; `markup_default_persen` hanya dikirim ke
+pemegang `master.barang.lihat_hpp`.
+**Alasan:** Staf tidak boleh mengganti tier di order (`penjualan.tier.ubah`); tanpa pembatasan ini Staf bisa
+memberi harga lebih murah lewat tier default pelanggan. Term dan limit adalah kebijakan kredit toko.
+**Ditolak:** semua pemegang `master.pelanggan.kelola` boleh mengatur (celah harga); Kasir ke atas.
