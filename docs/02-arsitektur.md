@@ -82,7 +82,7 @@ sit-tbsu/
 │   │   │   ├── middleware/       auth.ts (sesi), require-permission.ts, csrf, error-handler.ts, request-log.ts
 │   │   │   ├── modules/
 │   │   │   │   ├── auth/
-│   │   │   │   ├── sistem/       penomoran.ts, log-aktivitas.ts, konfigurasi/
+│   │   │   │   ├── sistem/       penomoran.ts, log-aktivitas.ts, konfigurasi/, pengaturan/, log/, health/
 │   │   │   │   ├── master/       barang/ kategori/ satuan/ atribut/ harga/ pelanggan/ pemasok/ pengguna/ import/
 │   │   │   │   ├── persediaan/   ledger.ts, stok/ penerimaan/ penyesuaian/ retur-pemasok/(M2)
 │   │   │   │   ├── penjualan/    order/ checkout/ pembayaran/ surat-jalan/ piutang/

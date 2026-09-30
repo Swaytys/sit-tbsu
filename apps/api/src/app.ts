@@ -10,13 +10,17 @@ import { authDevRoutes, authRoutes } from './modules/auth/routes';
 import { penggunaRoutes } from './modules/master/pengguna/routes';
 import { satuanRoutes } from './modules/master/satuan/routes';
 import { healthRoutes } from './modules/sistem/health/routes';
+import { logRoutes } from './modules/sistem/log/routes';
+import { pengaturanRoutes } from './modules/sistem/pengaturan/routes';
 
 /** Semua rute di bawah /api. Tipenya dipakai klien RPC web: `hc<AppType>('/api')`. */
 const rute = new Hono<EnvApp>()
   .route('/health', healthRoutes)
   .route('/auth', authRoutes)
   .route('/satuan', satuanRoutes)
-  .route('/pengguna', penggunaRoutes);
+  .route('/pengguna', penggunaRoutes)
+  .route('/pengaturan', pengaturanRoutes)
+  .route('/log-aktivitas', logRoutes);
 
 export const app = new Hono<EnvApp>();
 app.use(requestLog);

@@ -14,7 +14,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 |---|---|---|---|
 | 0 | Fondasi (dokumen) | Selesai | 2026-09-19 |
 | 1 | Setup lingkungan | Selesai | 2026-09-29 |
-| 2 | Akses dasar | Berjalan | — |
+| 2 | Akses dasar | Selesai | 2026-09-30 |
 | 3 | Data master | Belum | — |
 | 4 | Inti persediaan | Belum | — |
 | 5 | Penjualan | Belum | — |
@@ -85,6 +85,14 @@ Deliverable:
 
 Selesai bila: keempat peran bisa login dan melihat menu sesuai docs/04 §4; Owner bisa mengelola pengguna;
 tes lulus.
+
+Catatan penyelesaian (2026-09-30, branch `feat/02-akses`, `feat/02-pengguna`, `feat/02-pengaturan`):
+- Guard default: server menolak menyala bila ada rute tanpa deklarasi izin; rute milik sendiri memakai
+  `requireLogin()`; izin baca satuan = `master.barang.lihat` (K-054).
+- Menu docs/04 §4 tampil lengkap per izin; halaman yang belum dibangun menampilkan "sedang disiapkan — Fase N".
+- Log aktivitas tampil sebagai tab di Pengaturan (Owner); pengaturan disimpan per bagian (K-055).
+- Tes: 82 tes Vitest (login/kunci/rate limit/sesi, izin 403, 50 penomoran paralel, Owner terakhir, log ubah
+  pengguna, pengaturan) dan 17 tes Playwright (menu per peran, kelola pengguna, pengaturan) lulus.
 
 ### Fase 3 — Data master
 Tujuan: semua data induk siap dipakai transaksi.
@@ -213,6 +221,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 - 2026-09-19 — Fase 0 selesai (Batch 1–3 diserahkan); Fase 1 diaktifkan.
 - 2026-09-29 — Fase 1 selesai (catatan di bawah Fase 1; K-050–K-053). Fase 2 ditambah tugas K-051.
+- 2026-09-30 — Fase 2 selesai: `feat/02-pengguna` dan `feat/02-pengaturan` di-merge (K-055).
 - 2026-09-30 — Fase 2 diaktifkan; branch `feat/02-akses` (login, sesi, izin, penomoran, log, menu) di-merge (K-054).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).
