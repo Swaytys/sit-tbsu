@@ -1,8 +1,7 @@
 import { Save, type LucideIcon } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 
 /** Kartu satu bagian pengaturan (seperti mockup: judul berikon, isi, tombol simpan di kanan bawah). */
 export function KartuBagian({
@@ -36,23 +35,5 @@ export function KartuBagian({
         </Button>
       </div>
     </Card>
-  );
-}
-
-/**
- * Input angka untuk kolom yang divalidasi `z.coerce.number()` (nilai form bisa angka atau teks).
- * Pakai: `<InputAngka {...field} />`.
- */
-export function InputAngka({
-  value,
-  ...props
-}: Omit<ComponentProps<typeof Input>, 'value'> & { value: unknown }) {
-  return (
-    <Input
-      type="number"
-      inputMode="numeric"
-      {...props}
-      value={typeof value === 'number' || typeof value === 'string' ? value : ''}
-    />
   );
 }

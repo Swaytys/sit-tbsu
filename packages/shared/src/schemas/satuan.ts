@@ -11,6 +11,8 @@ export const skemaSatuan = z.object({
   faktorKeBasis: z.string(),
   isBasis: z.boolean(),
   statusAktif: z.enum(STATUS_AKTIF),
+  /** Jumlah pemakaian (satuan dasar barang, atribut, satuan jual). Bila > 0, dimensi/faktor dikunci. */
+  jumlahDipakai: z.number().int(),
 });
 
 export type Satuan = z.infer<typeof skemaSatuan>;

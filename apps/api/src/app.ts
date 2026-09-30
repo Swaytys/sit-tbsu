@@ -7,6 +7,8 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { requestLog } from './middleware/request-log';
 import { periksaDeklarasiIzin } from './middleware/require-permission';
 import { authDevRoutes, authRoutes } from './modules/auth/routes';
+import { jenisAtributRoutes } from './modules/master/jenis-atribut/routes';
+import { kategoriRoutes } from './modules/master/kategori/routes';
 import { penggunaRoutes } from './modules/master/pengguna/routes';
 import { satuanRoutes } from './modules/master/satuan/routes';
 import { healthRoutes } from './modules/sistem/health/routes';
@@ -18,6 +20,8 @@ const rute = new Hono<EnvApp>()
   .route('/health', healthRoutes)
   .route('/auth', authRoutes)
   .route('/satuan', satuanRoutes)
+  .route('/kategori', kategoriRoutes)
+  .route('/jenis-atribut', jenisAtributRoutes)
   .route('/pengguna', penggunaRoutes)
   .route('/pengaturan', pengaturanRoutes)
   .route('/log-aktivitas', logRoutes);
