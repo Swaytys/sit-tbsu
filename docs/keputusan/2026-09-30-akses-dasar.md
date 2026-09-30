@@ -46,3 +46,23 @@ Format: **Keputusan** · **Alasan** · **Ditolak** (alternatif yang tidak dipili
 **Ditolak:** Guard saat runtime yang memeriksa setelah handler jalan (efek samping sudah terjadi); JWT (tidak bisa
 dicabut seketika saat akun dinonaktifkan); menyembunyikan menu yang belum dibangun (peran tidak bisa diuji sesuai
 docs/04 §4 sampai Fase 7).
+
+### K-055 — Kelola pengguna, pengaturan, dan log aktivitas
+**Keputusan:**
+1. **Kelola pengguna** (Owner): kode `USR` dari penomoran; pengguna baru wajib ganti password saat login pertama;
+   Owner tidak bisa menonaktifkan akun sendiri, dan reset password akun sendiri diarahkan ke menu Ganti password.
+   Aturan "Owner terakhir" dijaga dengan mengunci baris Owner aktif (`FOR UPDATE`), sehingga dua Owner yang saling
+   menonaktifkan bersamaan tidak bisa menghabiskan semua Owner (teruji). Mengaktifkan kembali ikut membuka kunci
+   gagal login. Perubahan peran berlaku seketika pada sesi yang sedang aktif (izin dihitung tiap request).
+2. **Pengaturan** dikelompokkan per bagian (profil toko, penomoran, operasional, harga & diskon, keamanan) dan
+   disimpan lewat `PATCH /api/pengaturan` (satu atau beberapa bagian). Hanya nilai yang berubah yang ditulis dan
+   dicatat `PENGATURAN_UBAH` (kode konfigurasi: lama → baru). Batas isian: prefix 2–5 huruf dan unik antar-jenis
+   dokumen; digit nomor 3–6; batas gagal login 3–20; panjang minimal password 8–64; lebar struk 58/80 mm.
+   Idle timeout dan batas absolut sesi tetap di `.env` (bukan pengaturan layar).
+3. **Log aktivitas** tampil sebagai tab "Log aktivitas" di halaman Pengaturan, hanya bila `sistem.log.lihat`
+   (Owner), sesuai docs/04 §4: daftar terbaru dulu, cari, saring aksi, tampilkan perubahan lama → baru. Tidak ada
+   rute ubah/hapus log (teruji).
+4. `zod` ditambahkan sebagai dependency web (versi catalog yang sama) untuk tipe input/output form.
+**Alasan:** Menyelesaikan deliverable Fase 2 (roadmap) dengan aturan docs/04 §7–8 yang diuji otomatis.
+**Ditolak:** Menghapus pengguna (bertentangan dengan K-021); satu formulir raksasa untuk semua pengaturan (galat
+di tab lain tidak terlihat).
