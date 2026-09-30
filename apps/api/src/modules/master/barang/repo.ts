@@ -7,6 +7,7 @@ import {
   barangSatuanJual,
   jenisAtribut,
   kategori,
+  merk,
   pemasok,
   persediaan,
   satuan,
@@ -20,7 +21,8 @@ const kolom = {
   namaBarang: barang.namaBarang,
   idKategori: barang.idKategori,
   namaKategori: kategori.nama,
-  merk: barang.merk,
+  idMerk: barang.idMerk,
+  namaMerk: merk.nama,
   idSatuanDasar: barang.idSatuanDasar,
   kodeSatuan: satuan.kode,
   stokMinimum: barang.stokMinimum,
@@ -48,12 +50,14 @@ function dasarQuery(ex: Executor) {
     .innerJoin(kategori, eq(kategori.id, barang.idKategori))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
     .innerJoin(persediaan, eq(persediaan.idBarang, barang.id))
-    .leftJoin(pemasok, eq(pemasok.id, barang.idPemasokKonsinyasi));
+    .leftJoin(pemasok, eq(pemasok.id, barang.idPemasokKonsinyasi))
+    .leftJoin(merk, eq(merk.id, barang.idMerk));
 }
 
 export type SaringBarang = {
   cari?: string | undefined;
   idKategori?: number | undefined;
+  idMerk?: number | undefined;
   status: StatusAktif | 'SEMUA';
   perluTinjau?: boolean | undefined;
 };
@@ -63,13 +67,14 @@ function syarat(p: SaringBarang): SQL | undefined {
   return and(
     p.status === 'SEMUA' ? undefined : eq(barang.statusAktif, p.status),
     p.idKategori === undefined ? undefined : eq(barang.idKategori, p.idKategori),
+    p.idMerk === undefined ? undefined : eq(barang.idMerk, p.idMerk),
     p.perluTinjau === undefined ? undefined : eq(barang.perluTinjauHarga, p.perluTinjau),
     pola
       ? or(
           ilike(barang.kode, pola),
           ilike(barang.namaBarang, pola),
           ilike(barang.barcode, pola),
-          ilike(barang.merk, pola),
+          ilike(merk.nama, pola),
         )
       : undefined,
   );
@@ -85,7 +90,11 @@ export async function daftarBarang(
     .orderBy(asc(barang.namaBarang), asc(barang.id))
     .limit(p.limit)
     .offset(p.offset);
-  const [hitung] = await ex.select({ total: count() }).from(barang).where(where);
+  const [hitung] = await ex
+    .select({ total: count() })
+    .from(barang)
+    .leftJoin(merk, eq(merk.id, barang.idMerk))
+    .where(where);
   return { baris, total: hitung?.total ?? 0 };
 }
 
@@ -120,7 +129,7 @@ export async function kunciBarang(tx: Tx, id: number) {
       barcode: barang.barcode,
       namaBarang: barang.namaBarang,
       idKategori: barang.idKategori,
-      merk: barang.merk,
+      idMerk: barang.idMerk,
       idSatuanDasar: barang.idSatuanDasar,
       stokMinimum: barang.stokMinimum,
       hargaModalAwal: barang.hargaModalAwal,
@@ -173,7 +182,7 @@ export async function barcodeDipakai(ex: Executor, barcode: string, kecualiId?: 
 
 export async function statusReferensi(
   ex: Executor,
-  p: { idKategori: number; idSatuan: number; idPemasok: number | null },
+  p: { idKategori: number; idSatuan: number; idPemasok: number | null; idMerk: number | null },
 ) {
   const [kat] = await ex
     .select({ status: kategori.statusAktif })
@@ -190,7 +199,11 @@ export async function statusReferensi(
           .select({ status: pemasok.statusAktif })
           .from(pemasok)
           .where(eq(pemasok.id, p.idPemasok));
-  return { kategori: kat?.status, satuan: sat?.status, pemasok: pms?.status };
+  const [mrk] =
+    p.idMerk === null
+      ? [undefined]
+      : await ex.select({ status: merk.statusAktif }).from(merk).where(eq(merk.id, p.idMerk));
+  return { kategori: kat?.status, satuan: sat?.status, pemasok: pms?.status, merk: mrk?.status };
 }
 
 export async function jenisAtributDanSatuan(ex: Executor, idJenis: number[], idSatuan: number[]) {
@@ -227,7 +240,7 @@ export type NilaiBarang = {
   barcode: string | null;
   namaBarang: string;
   idKategori: number;
-  merk: string | null;
+  idMerk: number | null;
   idSatuanDasar: number;
   stokMinimum: string;
   hargaModalAwal: number;

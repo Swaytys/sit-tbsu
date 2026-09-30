@@ -17,6 +17,7 @@ import {
   jenisAtribut,
   kategori,
   logAktivitas,
+  merk,
   pemasok,
   persediaan,
   satuan,
@@ -43,6 +44,9 @@ let ref: {
   grosir: number;
   distributor: number;
   pemasok: number;
+  gresik: number;
+  maspion: number;
+  merkLama: number;
 };
 
 beforeEach(async () => {
@@ -57,6 +61,7 @@ beforeEach(async () => {
     jenisAtribut,
     tingkatHarga,
     pemasok,
+    merk,
   );
   await aturKonfigurasi({
     pembulatan_harga: '100',
@@ -88,6 +93,10 @@ beforeEach(async () => {
       { kode: 'DISTRIBUTOR', nama: 'Distributor', markupDefaultPersen: '15', urutan: 3 },
     ])
     .returning();
+  const mk = await db
+    .insert(merk)
+    .values([{ nama: 'Gresik' }, { nama: 'Maspion' }, { nama: 'Lama', statusAktif: 'NONAKTIF' }])
+    .returning();
   const [p] = await db
     .insert(pemasok)
     .values({ kode: 'PMS-00001', namaPemasok: 'CV. Titip', noHp: '081234567890' })
@@ -104,6 +113,9 @@ beforeEach(async () => {
     grosir: t[1]!.id,
     distributor: t[2]!.id,
     pemasok: p!.id,
+    gresik: mk[0]!.id,
+    maspion: mk[1]!.id,
+    merkLama: mk[2]!.id,
   };
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
@@ -418,12 +430,12 @@ describe('ubah barang', () => {
     await kirim(
       admin,
       `/api/barang/${b.id}`,
-      barangBaru({ merk: 'Gresik', hargaTier: undefined }),
+      barangBaru({ idMerk: ref.gresik, hargaTier: undefined }),
       'PATCH',
     );
     const log = await logTerakhir('BARANG_UBAH');
-    expect(log?.dataLama).toEqual({ merk: null });
-    expect(log?.dataBaru).toEqual({ merk: 'Gresik' });
+    expect(log?.dataLama).toEqual({ idMerk: null });
+    expect(log?.dataBaru).toEqual({ idMerk: ref.gresik });
 
     await kirim(admin, `/api/barang/${b.id}/status`, { statusAktif: 'NONAKTIF' }, 'PATCH');
     expect((await logTerakhir('BARANG_NONAKTIF'))?.idEntitas).toBe(b.id);
@@ -434,9 +446,9 @@ describe('ubah barang', () => {
     expect(await db.select().from(barang)).toHaveLength(1);
   });
 
-  it('cari kode/nama/barcode/merk, saring kategori dan perlu tinjau', async () => {
-    await buat(barangBaru({ merk: 'Gresik', barcode: '899111' }));
-    const b = await buat(barangBaru({ namaBarang: 'Pipa PVC 3/4', merk: 'Maspion' }));
+  it('cari kode/nama/barcode/merk, saring kategori, merk, dan perlu tinjau', async () => {
+    await buat(barangBaru({ idMerk: ref.gresik, barcode: '899111' }));
+    const b = await buat(barangBaru({ namaBarang: 'Pipa PVC 3/4', idMerk: ref.maspion }));
     await db.update(barang).set({ perluTinjauHarga: true }).where(eq(barang.id, b.id));
     const cari = async (q: string) =>
       json<{ data: Baris[]; meta: { total: number } }>(
@@ -447,6 +459,12 @@ describe('ubah barang', () => {
     expect((await cari('cari=brg-00002')).meta.total).toBe(1);
     expect((await cari(`idKategori=${ref.kategori}`)).meta.total).toBe(2);
     expect((await cari('perluTinjau=true')).data.map((x) => x.id)).toEqual([b.id]);
+    expect((await cari(`idMerk=${ref.maspion}`)).data.map((x) => x.namaMerk)).toEqual(['Maspion']);
+
+    // Merk nonaktif tidak bisa dipilih untuk barang.
+    const res = await kirim(admin, '/api/barang', barangBaru({ idMerk: ref.merkLama }));
+    expect(res.status).toBe(400);
+    expect((await galat(res)).error.detail?.kolom?.idMerk).toBeDefined();
   });
 });
 

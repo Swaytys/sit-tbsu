@@ -64,6 +64,10 @@ untuk transaksi. `id_pengguna` null hanya untuk percobaan login dengan username 
 
 **`kategori`** — pengganti teks bebas `KATEGORI_BARANG`.
 
+**`merk`** — (v3.2, migrasi 0001) nama merk unik (sistem juga menolak nama sama beda huruf besar/kecil),
+`keterangan`, `status_aktif`. Barang merujuk lewat `barang.id_merk` (nullable = tanpa merk); kolom teks
+`barang.merk` lama dipindah ke tabel ini lalu dihapus (migrasi 0002). K-063.
+
 **`satuan`** — `jenis_dimensi` + `faktor_ke_basis`. Konversi hanya antar-satuan berdimensi sama; untuk dimensi fisik
 (PANJANG, LUAS, VOLUME, BERAT, DAYA) tepat satu satuan basis (index parsial). Satuan hitung (`JUMLAH`: sak, batang,
 buah, roll, dus) tidak saling dikonversi lewat tabel ini; konversi antar-satuan hitung bersifat per barang
@@ -378,5 +382,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-09-19 — v3.1. `penjualan`: `total_potong_tagihan` → `total_void`, `total_retur`, `total_refund` agar `sisa_tagihan`
   benar untuk void sebagian dan retur refund. `penerimaan_barang` + `total_retur_potong`. `pembayaran_pemasok` + metode
   KOMPENSASI + `id_retur_pemasok`. `retur_pemasok` + PENGEMBALIAN_TITIPAN. Diuji ulang (3 CHECK baru).
+- 2026-09-30 — v3.2: tabel `merk` + `barang.id_merk` menggantikan kolom teks `barang.merk` (migrasi 0001–0002,
+  data lama dipindah otomatis; K-063). `docs/03-skema-database-v3.sql` tetap berisi v3.1 (= migrasi 0000);
+  perubahan sesudahnya hanya lewat migrasi baru.
 - 2026-09-29 — Fase 1: DDL v3.1 dipasang sebagai migrasi `0000_skema_v3.sql` di PostgreSQL 17.11 (41 tabel); skema
   Drizzle terverifikasi identik (K-052). §8 diperbarui (7 berkas skema, cara verifikasi, letak seed).

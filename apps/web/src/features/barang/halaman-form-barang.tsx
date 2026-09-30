@@ -7,6 +7,7 @@ import {
   type InputBarang,
   type JenisAtribut,
   type Kategori,
+  type Merk,
   type Pemasok,
   type Satuan,
   type TingkatHarga,
@@ -19,7 +20,12 @@ import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
 import { useDetailBarang, useHapusGambar, useSimpanBarang, useUnggahGambar } from '@/api/barang';
 import { useDaftarPemasok, useDaftarTingkatHarga } from '@/api/mitra';
-import { useDaftarJenisAtribut, useDaftarKategori, useDaftarSatuan } from '@/api/referensi';
+import {
+  useDaftarJenisAtribut,
+  useDaftarKategori,
+  useDaftarMerk,
+  useDaftarSatuan,
+} from '@/api/referensi';
 import { InputRupiah } from '@/components/input-rupiah';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +52,7 @@ import { formatDesimal } from '@/lib/format';
 
 type Referensi = {
   kategori: Kategori[];
+  merk: Merk[];
   satuan: Satuan[];
   jenisAtribut: JenisAtribut[];
   tier: TingkatHarga[];
@@ -58,18 +65,28 @@ export function HalamanFormBarang() {
   const idBarang = id === undefined || id === 'baru' ? null : Number(id);
   const detail = useDetailBarang(idBarang);
   const kategori = useDaftarKategori();
+  const merk = useDaftarMerk();
   const satuan = useDaftarSatuan();
   const jenisAtribut = useDaftarJenisAtribut();
   const tier = useDaftarTingkatHarga();
   const pemasok = useDaftarPemasok({ cari: '', status: 'AKTIF', halaman: 1, perHalaman: 100 });
 
-  const semua = [kategori, satuan, jenisAtribut, tier, pemasok, ...(idBarang ? [detail] : [])];
+  const semua = [
+    kategori,
+    merk,
+    satuan,
+    jenisAtribut,
+    tier,
+    pemasok,
+    ...(idBarang ? [detail] : []),
+  ];
   const galat = semua.find((q) => q.error)?.error;
   if (galat) {
     return <p className="p-6 text-sm text-red-600">{pesanGalat(galat)}</p>;
   }
   if (
     !kategori.data ||
+    !merk.data ||
     !satuan.data ||
     !jenisAtribut.data ||
     !tier.data ||
@@ -84,6 +101,7 @@ export function HalamanFormBarang() {
       barang={detail.data ?? null}
       referensi={{
         kategori: kategori.data,
+        merk: merk.data,
         satuan: satuan.data,
         jenisAtribut: jenisAtribut.data,
         tier: tier.data,
@@ -101,7 +119,7 @@ function nilaiAwal(b: DetailBarang | null, tierAktif: TingkatHarga[]): InputBara
     barcode: b?.barcode ?? '',
     namaBarang: b?.namaBarang ?? '',
     idKategori: b?.idKategori ?? 0,
-    merk: b?.merk ?? '',
+    idMerk: b?.idMerk ?? null,
     idSatuanDasar: b?.idSatuanDasar ?? 0,
     stokMinimum: b ? formatDesimal(b.stokMinimum).replaceAll('.', '') : '',
     hargaModalAwal: b?.hargaModalAwal ?? null,
@@ -131,6 +149,9 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
   const tierAktif = referensi.tier.filter((t) => t.statusAktif === 'AKTIF');
   const kategoriPilihan = referensi.kategori.filter(
     (k) => k.statusAktif === 'AKTIF' || k.id === barang?.idKategori,
+  );
+  const merkPilihan = referensi.merk.filter(
+    (m) => m.statusAktif === 'AKTIF' || m.id === barang?.idMerk,
   );
   const satuanPilihan = referensi.satuan.filter(
     (s) => s.statusAktif === 'AKTIF' || s.id === barang?.idSatuanDasar,
@@ -191,7 +212,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
         'barcode',
         'namaBarang',
         'idKategori',
-        'merk',
+        'idMerk',
         'idSatuanDasar',
         'stokMinimum',
         'hargaModalAwal',
@@ -333,13 +354,28 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
                 />
                 <FormField
                   control={form.control}
-                  name="merk"
+                  name="idMerk"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Merk</FormLabel>
-                      <FormControl>
-                        <Input placeholder="opsional" {...field} value={field.value ?? ''} />
-                      </FormControl>
+                      <Select
+                        value={field.value ? String(field.value) : TANPA}
+                        onValueChange={(v) => field.onChange(v === TANPA ? null : Number(v))}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={TANPA}>Tanpa merk</SelectItem>
+                          {merkPilihan.map((m) => (
+                            <SelectItem key={m.id} value={String(m.id)}>
+                              {m.nama}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

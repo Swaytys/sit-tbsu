@@ -12,6 +12,7 @@ import { hargaRoutes } from './modules/master/harga/routes';
 import { importRoutes } from './modules/master/import/routes';
 import { jenisAtributRoutes } from './modules/master/jenis-atribut/routes';
 import { kategoriRoutes } from './modules/master/kategori/routes';
+import { merkRoutes } from './modules/master/merk/routes';
 import { pelangganRoutes } from './modules/master/pelanggan/routes';
 import { pemasokRoutes } from './modules/master/pemasok/routes';
 import { penggunaRoutes } from './modules/master/pengguna/routes';
@@ -27,6 +28,7 @@ const rute = new Hono<EnvApp>()
   .route('/auth', authRoutes)
   .route('/satuan', satuanRoutes)
   .route('/kategori', kategoriRoutes)
+  .route('/merk', merkRoutes)
   .route('/jenis-atribut', jenisAtributRoutes)
   .route('/tingkat-harga', tingkatHargaRoutes)
   .route('/barang', barangRoutes)

@@ -3,11 +3,11 @@ import { masukCepat, menuUtama } from './pembantu';
 
 test('tab Satuan menampilkan satuan dari database', async ({ page }) => {
   await masukCepat(page, 'ADMIN');
-  await menuUtama(page).getByRole('link', { name: 'Kategori, Satuan & Atribut' }).click();
+  await menuUtama(page).getByRole('link', { name: 'Referensi Barang' }).click();
 
-  await expect(page).toHaveURL(/\/kategori-satuan$/);
-  await expect(page).toHaveTitle('Kategori, Satuan & Atribut · BonsaiUrip');
-  await expect(page.getByRole('heading', { name: 'Kategori, Satuan & Atribut' })).toBeVisible();
+  await expect(page).toHaveURL(/\/referensi$/);
+  await expect(page).toHaveTitle('Referensi Barang · BonsaiUrip');
+  await expect(page.getByRole('heading', { name: 'Referensi Barang' })).toBeVisible();
 
   await page.getByRole('tab', { name: 'Satuan' }).click();
   // Data seed: satuan basis panjang "m" dengan faktor 1.
@@ -18,7 +18,7 @@ test('tab Satuan menampilkan satuan dari database', async ({ page }) => {
   await expect(barisMeter).toContainText('Basis');
   await expect(page.getByRole('row').filter({ hasText: 'Sentimeter' })).toContainText('0,01 m');
 
-  const tautan = menuUtama(page).getByRole('link', { name: 'Kategori, Satuan & Atribut' });
+  const tautan = menuUtama(page).getByRole('link', { name: 'Referensi Barang' });
   await expect(tautan).toHaveAttribute('aria-current', 'page');
 });
 
@@ -28,7 +28,7 @@ test('Admin menambah kategori, nama kembar ditolak, lalu kategori dinonaktifkan'
 }) => {
   const nama = `Kategori E2E ${Date.now()}`;
   await masukCepat(page, 'ADMIN');
-  await page.goto('/kategori-satuan');
+  await page.goto('/referensi');
 
   await page.getByRole('button', { name: 'Tambah kategori' }).click();
   let dialog = page.getByRole('dialog', { name: 'Tambah kategori' });
@@ -53,9 +53,30 @@ test('Admin menambah kategori, nama kembar ditolak, lalu kategori dinonaktifkan'
   await expect(baris).toContainText('Nonaktif');
 });
 
-test('Kasir tidak melihat menu Kategori, Satuan & Atribut', async ({ page }) => {
+test('Kasir tidak melihat menu Referensi Barang', async ({ page }) => {
   await masukCepat(page, 'KASIR');
-  await expect(
-    menuUtama(page).getByRole('link', { name: 'Kategori, Satuan & Atribut' }),
-  ).toHaveCount(0);
+  await expect(menuUtama(page).getByRole('link', { name: 'Referensi Barang' })).toHaveCount(0);
+});
+
+// Tes ini menambah satu merk uji (lalu menonaktifkannya) di database pengembangan setiap kali jalan.
+test('Admin menambah merk lalu memakainya di form barang', async ({ page }) => {
+  const nama = `Merk E2E ${Date.now()}`;
+  await masukCepat(page, 'ADMIN');
+  await page.goto('/referensi');
+  await page.getByRole('tab', { name: 'Merk' }).click();
+  await page.getByRole('button', { name: 'Tambah merk' }).click();
+  await page.getByRole('dialog', { name: 'Tambah merk' }).getByLabel('Nama merk').fill(nama);
+  await page.getByRole('dialog').getByRole('button', { name: 'Simpan' }).click();
+  await expect(page.getByText(`Merk ${nama} disimpan.`)).toBeVisible();
+
+  await page.goto('/barang/baru');
+  await page.getByLabel('Merk', { exact: true }).click();
+  await expect(page.getByRole('option', { name: nama })).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await page.goto('/referensi');
+  await page.getByRole('tab', { name: 'Merk' }).click();
+  await page.getByRole('button', { name: `Aksi untuk ${nama}` }).click();
+  await page.getByRole('menuitem', { name: 'Nonaktifkan' }).click();
+  await expect(page.getByRole('row').filter({ hasText: nama })).toContainText('Nonaktif');
 });

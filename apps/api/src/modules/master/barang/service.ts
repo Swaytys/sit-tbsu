@@ -68,7 +68,8 @@ function keBaris(
     namaBarang: b.namaBarang,
     idKategori: b.idKategori,
     namaKategori: b.namaKategori,
-    merk: b.merk,
+    idMerk: b.idMerk,
+    namaMerk: b.namaMerk,
     idSatuanDasar: b.idSatuanDasar,
     kodeSatuan: b.kodeSatuan,
     stokMinimum: b.stokMinimum,
@@ -197,11 +198,15 @@ async function pastikanReferensiAktif(
     idKategori: nilai.idKategori,
     idSatuan: nilai.idSatuanDasar,
     idPemasok: nilai.idPemasokKonsinyasi,
+    idMerk: nilai.idMerk,
   });
-  const baruDipilih = (k: 'idKategori' | 'idSatuanDasar' | 'idPemasokKonsinyasi') =>
+  const baruDipilih = (k: 'idKategori' | 'idSatuanDasar' | 'idPemasokKonsinyasi' | 'idMerk') =>
     !lama || lama[k] !== nilai[k];
   if (baruDipilih('idKategori') && status.kategori !== 'AKTIF') {
     throw galatKolom('VALIDASI', 'idKategori', 'Kategori tidak ditemukan atau nonaktif.');
+  }
+  if (nilai.idMerk !== null && baruDipilih('idMerk') && status.merk !== 'AKTIF') {
+    throw galatKolom('VALIDASI', 'idMerk', 'Merk tidak ditemukan atau nonaktif.');
   }
   if (baruDipilih('idSatuanDasar') && status.satuan !== 'AKTIF') {
     throw galatKolom('VALIDASI', 'idSatuanDasar', 'Satuan tidak ditemukan atau nonaktif.');
@@ -282,7 +287,7 @@ function nilaiDari(input: DataBarang, kode: string, stokMinimum: string): repo.N
     barcode: input.barcode ?? null,
     namaBarang: input.namaBarang,
     idKategori: input.idKategori,
-    merk: input.merk ?? null,
+    idMerk: input.idMerk ?? null,
     idSatuanDasar: input.idSatuanDasar,
     stokMinimum,
     hargaModalAwal: input.hargaModalAwal,

@@ -77,8 +77,8 @@ export const MENU: EntriMenu[] = [
         izin: 'master.pengguna.kelola',
       },
       {
-        path: '/kategori-satuan',
-        label: 'Kategori, Satuan & Atribut',
+        path: '/referensi',
+        label: 'Referensi Barang',
         ikon: Ruler,
         izin: 'master.kategori.kelola',
       },

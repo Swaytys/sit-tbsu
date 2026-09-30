@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router';
 import { usePengguna } from '@/api/auth';
 import { useDaftarBarang, useStatusBarang } from '@/api/barang';
 import { useDaftarTingkatHarga } from '@/api/mitra';
-import { useDaftarKategori } from '@/api/referensi';
+import { useDaftarKategori, useDaftarMerk } from '@/api/referensi';
 import { BilahSaring, type SaringStatus } from '@/components/bilah-saring';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { MenuAksiMaster } from '@/components/menu-aksi-master';
@@ -53,15 +53,18 @@ export function HalamanBarang() {
   const cariTertunda = useTunda(cari, 300);
   const [status, setStatus] = useState<SaringStatus>('SEMUA');
   const [idKategori, setIdKategori] = useState<number | null>(null);
+  const [idMerk, setIdMerk] = useState<number | null>(null);
   const [perluTinjau, setPerluTinjau] = useState(false);
   const [halaman, setHalaman] = useState(1);
 
   const kategori = useDaftarKategori();
+  const merk = useDaftarMerk();
   const tier = useDaftarTingkatHarga();
   const tierAktif = (tier.data ?? []).filter((t) => t.statusAktif === 'AKTIF');
   const daftar = useDaftarBarang({
     cari: cariTertunda,
     idKategori,
+    idMerk,
     status,
     perluTinjau,
     halaman,
@@ -135,7 +138,7 @@ export function HalamanBarang() {
       sel: (b) => (
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge variant="secondary">{b.namaKategori}</Badge>
-          {b.merk && <span className="text-xs text-slate-500">{b.merk}</span>}
+          {b.namaMerk && <span className="text-xs text-slate-500">{b.namaMerk}</span>}
         </div>
       ),
     },
@@ -264,6 +267,25 @@ export function HalamanBarang() {
               {(kategori.data ?? []).map((k) => (
                 <SelectItem key={k.id} value={String(k.id)}>
                   {k.nama}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={idMerk === null ? SEMUA_KATEGORI : String(idMerk)}
+            onValueChange={(v) => {
+              setIdMerk(v === SEMUA_KATEGORI ? null : Number(v));
+              setHalaman(1);
+            }}
+          >
+            <SelectTrigger className="w-40" aria-label="Saring merk">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SEMUA_KATEGORI}>Semua merk</SelectItem>
+              {(merk.data ?? []).map((m) => (
+                <SelectItem key={m.id} value={String(m.id)}>
+                  {m.nama}
                 </SelectItem>
               ))}
             </SelectContent>
