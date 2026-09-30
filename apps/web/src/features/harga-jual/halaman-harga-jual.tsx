@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
+import { useBarisPerHalaman } from '@/api/pengaturan';
 import { useDaftarBarang, useSimpanHarga } from '@/api/barang';
 import { useDaftarTingkatHarga } from '@/api/mitra';
 import { useDaftarKategori } from '@/api/referensi';
@@ -81,13 +82,14 @@ export function HalamanHargaJual() {
   const kategori = useDaftarKategori();
   const tier = useDaftarTingkatHarga();
   const tierAktif = (tier.data ?? []).filter((t) => t.statusAktif === 'AKTIF');
+  const barisPerHalaman = useBarisPerHalaman();
   const daftar = useDaftarBarang({
     cari: cariTertunda,
     idKategori,
     status: 'AKTIF',
     perluTinjau,
     halaman,
-    perHalaman: 50,
+    perHalaman: barisPerHalaman,
   });
   const simpan = useSimpanHarga();
 

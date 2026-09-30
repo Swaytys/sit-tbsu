@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { skemaOperasional, type Pengaturan } from '@sit/shared';
+import { PILIHAN_BARIS_PER_HALAMAN, skemaOperasional, type Pengaturan } from '@sit/shared';
 import { Settings2 } from 'lucide-react';
 import { useForm, type Control } from 'react-hook-form';
 import type { z } from 'zod';
@@ -12,6 +12,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { InputAngka } from '@/components/input-angka';
 import { KartuBagian } from './bagian';
@@ -19,7 +26,10 @@ import { useSimpanPengaturan } from './use-simpan-pengaturan';
 
 type Masukan = z.input<typeof skemaOperasional>;
 type Keluaran = z.output<typeof skemaOperasional>;
-type KolomAngka = Exclude<keyof Masukan, 'autoBatalOrderBasi' | 'checkoutWajibShift'>;
+type KolomAngka = Exclude<
+  keyof Masukan,
+  'autoBatalOrderBasi' | 'checkoutWajibShift' | 'barisPerHalaman'
+>;
 
 const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: string }[] = [
   {
@@ -133,6 +143,34 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
                 )}
               />
             ))}
+            <FormField
+              control={form.control}
+              name="barisPerHalaman"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Baris per halaman tabel</FormLabel>
+                  <Select
+                    value={String(field.value)}
+                    onValueChange={(v) => field.onChange(Number(v))}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {PILIHAN_BARIS_PER_HALAMAN.map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n} baris
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Jumlah baris per halaman di semua tabel data.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
           <Saklar
             control={form.control}

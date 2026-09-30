@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useDaftarPemasok, useSimpanPemasok, useStatusPemasok } from '@/api/mitra';
+import { useBarisPerHalaman } from '@/api/pengaturan';
 import { BilahSaring, type SaringStatus } from '@/components/bilah-saring';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { MenuAksiMaster } from '@/components/menu-aksi-master';
@@ -176,7 +177,13 @@ export function HalamanPemasok() {
   const [halaman, setHalaman] = useState(1);
   const [dialog, setDialog] = useState<{ pemasok: Pemasok | null } | null>(null);
 
-  const daftar = useDaftarPemasok({ cari: cariTertunda, status, halaman, perHalaman: 25 });
+  const barisPerHalaman = useBarisPerHalaman();
+  const daftar = useDaftarPemasok({
+    cari: cariTertunda,
+    status,
+    halaman,
+    perHalaman: barisPerHalaman,
+  });
   const ubahStatus = useStatusPemasok();
 
   const kolom: KolomTabel<Pemasok>[] = [
