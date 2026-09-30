@@ -81,6 +81,17 @@ export function minta(path: string, opsi: OpsiMinta = {}): Promise<Response> {
   );
 }
 
+/** Mengirim form multipart (unggah berkas) seperti browser. */
+export function mintaForm(path: string, form: FormData, cookie: string): Promise<Response> {
+  return Promise.resolve(
+    app.request(path, {
+      method: 'POST',
+      headers: { origin: 'http://localhost', cookie },
+      body: form,
+    }),
+  );
+}
+
 /** Nilai `sit_sesi=<token>` dari header Set-Cookie respons login (kosong bila tidak ada). */
 export function cookieSesi(res: Response): string {
   const baris = res.headers
