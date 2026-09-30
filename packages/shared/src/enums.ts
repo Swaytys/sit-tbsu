@@ -26,6 +26,17 @@ export const JENIS_DIMENSI = [
 ] as const;
 export type JenisDimensi = (typeof JENIS_DIMENSI)[number];
 
+/** Label tampilan jenis dimensi (dipakai pesan API dan web). */
+export const LABEL_JENIS_DIMENSI: Record<JenisDimensi, string> = {
+  PANJANG: 'Panjang',
+  LUAS: 'Luas',
+  VOLUME: 'Volume',
+  BERAT: 'Berat',
+  DAYA: 'Daya',
+  JUMLAH: 'Satuan hitung',
+  LAINNYA: 'Lainnya',
+};
+
 /** Dimensi fisik: tepat satu satuan basis per dimensi dan boleh dikonversi antar-satuan. */
 export const JENIS_DIMENSI_FISIK = ['PANJANG', 'LUAS', 'VOLUME', 'BERAT', 'DAYA'] as const;
 

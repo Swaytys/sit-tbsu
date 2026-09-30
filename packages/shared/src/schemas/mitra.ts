@@ -110,6 +110,7 @@ export type TingkatHarga = {
   nama: string;
   /** Hanya untuk pemegang `master.barang.lihat_hpp` (markup membuka margin; docs/06 H12). */
   markupDefaultPersen?: string;
+  saranMinQty: string | null;
   urutan: number;
   isDefault: boolean;
   statusAktif: StatusAktif;
