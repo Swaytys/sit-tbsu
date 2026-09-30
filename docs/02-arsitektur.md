@@ -41,7 +41,8 @@ Hono 4.13 · Drizzle ORM 0.45 + drizzle-kit 0.31 · PostgreSQL 17 · Zod 4.6 · 
 React Hook Form 7 · Vitest 5 · Playwright 1.63 · ESLint 10 · pino 10 · argon2 0.45.
 
 TypeScript 7 belum dipakai karena typescript-eslint belum mendukungnya (K-050). Paket fase berikutnya
-(decimal.js, date-fns, exceljs, sonner) dipin saat pertama dipasang.
+(decimal.js, date-fns, exceljs, sonner) dipin saat pertama dipasang: decimal.js 10.6.0 dan exceljs 4.4.0 di
+Fase 3 (K-058, K-061).
 
 Aturan: semua versi dipin eksak (tanpa `^`); versi baru dipilih bila sudah berumur ≥ 7 hari. Upgrade dilakukan
 sadar, satu paket per commit, dengan tes lulus.

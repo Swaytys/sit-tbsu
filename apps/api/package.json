@@ -28,6 +28,7 @@
     "argon2": "catalog:",
     "date-fns": "catalog:",
     "drizzle-orm": "catalog:",
+    "exceljs": "catalog:",
     "hono": "catalog:",
     "pg": "catalog:",
     "pino": "catalog:",

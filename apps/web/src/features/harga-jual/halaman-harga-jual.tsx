@@ -1,5 +1,5 @@
 import { formatRupiah, type BarisBarang, type TingkatHarga } from '@sit/shared';
-import { Save, Search, Settings2, Undo2 } from 'lucide-react';
+import { Download, Save, Search, Settings2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
@@ -190,6 +190,17 @@ export function HalamanHargaJual() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <a
+              href={`/api/harga-barang/ekspor?${new URLSearchParams({
+                ...(cariTertunda ? { cari: cariTertunda } : {}),
+                ...(idKategori === null ? {} : { idKategori: String(idKategori) }),
+              }).toString()}`}
+              download
+            >
+              <Download /> Ekspor Excel
+            </a>
+          </Button>
           <Button variant="outline" onClick={() => setDialogTier(true)}>
             <Settings2 /> Kelola tier
           </Button>

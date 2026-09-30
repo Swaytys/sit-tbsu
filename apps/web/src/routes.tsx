@@ -9,6 +9,7 @@ import {
 import { HalamanLogin } from '@/features/auth/halaman-login';
 import { HalamanBarang } from '@/features/barang/halaman-barang';
 import { HalamanFormBarang } from '@/features/barang/halaman-form-barang';
+import { HalamanImportBarang } from '@/features/barang/halaman-import-barang';
 import { HalamanBeranda } from '@/features/beranda/halaman-beranda';
 import { HalamanHargaJual } from '@/features/harga-jual/halaman-harga-jual';
 import { HalamanPelanggan } from '@/features/pelanggan/halaman-pelanggan';
@@ -61,6 +62,15 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       ...ruteMenu,
+      {
+        path: 'barang/import',
+        handle: { judul: 'Data Barang' },
+        element: (
+          <WajibIzin izin="master.import.jalankan">
+            <HalamanImportBarang />
+          </WajibIzin>
+        ),
+      },
       ...['barang/baru', 'barang/:id'].map((path) => ({
         path,
         handle: { judul: 'Data Barang' },

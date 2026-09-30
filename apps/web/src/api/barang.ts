@@ -2,6 +2,7 @@ import type {
   DataBarang,
   DataTingkatHarga,
   DetailBarang,
+  HasilImportBarang,
   InputSimpanHarga,
   StatusAktif,
 } from '@sit/shared';
@@ -122,4 +123,23 @@ export function useStatusTier() {
         }),
       ),
   );
+}
+
+async function kirimBerkasImport(path: string, berkas: File): Promise<HasilImportBarang> {
+  const form = new FormData();
+  form.set('berkas', berkas);
+  const res = await fetch(path, { method: 'POST', body: form });
+  if (!res.ok) throw await galatDariRespons(res);
+  return ((await res.json()) as { data: HasilImportBarang }).data;
+}
+
+/** Pratinjau import: tidak menyimpan apa pun. */
+export function usePratinjauImport() {
+  return useMutation({
+    mutationFn: (berkas: File) => kirimBerkasImport('/api/import/barang/pratinjau', berkas),
+  });
+}
+
+export function useSimpanImport() {
+  return useMutasi(['barang'], (berkas: File) => kirimBerkasImport('/api/import/barang', berkas));
 }

@@ -232,3 +232,23 @@ export const skemaTingkatHargaInput = z.object({
 });
 export type InputTingkatHarga = z.input<typeof skemaTingkatHargaInput>;
 export type DataTingkatHarga = z.output<typeof skemaTingkatHargaInput>;
+
+// --- Import Excel barang (K-056: hanya menambah barang baru) ---
+
+export const STATUS_BARIS_IMPORT = ['SIAP', 'DILEWATI', 'GALAT', 'DISIMPAN'] as const;
+export type StatusBarisImport = (typeof STATUS_BARIS_IMPORT)[number];
+
+export type BarisImportBarang = {
+  /** Nomor baris di lembar Excel (seperti yang terlihat di Excel). */
+  nomorBaris: number;
+  kode: string | null;
+  namaBarang: string;
+  status: StatusBarisImport;
+  pesan: string[];
+};
+
+export type HasilImportBarang = {
+  baris: BarisImportBarang[];
+  ringkasan: { total: number; siap: number; dilewati: number; galat: number; disimpan: number };
+  disimpan: boolean;
+};
