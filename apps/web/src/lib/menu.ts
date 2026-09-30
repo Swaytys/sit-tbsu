@@ -75,7 +75,6 @@ export const MENU: EntriMenu[] = [
         label: 'Data Pengguna',
         ikon: Users,
         izin: 'master.pengguna.kelola',
-        fase: 2,
       },
       {
         path: '/kategori-satuan',
