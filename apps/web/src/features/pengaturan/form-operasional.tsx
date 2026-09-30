@@ -13,7 +13,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
-import { InputAngka, KartuBagian } from './bagian';
+import { InputAngka } from '@/components/input-angka';
+import { KartuBagian } from './bagian';
 import { useSimpanPengaturan } from './use-simpan-pengaturan';
 
 type Masukan = z.input<typeof skemaOperasional>;

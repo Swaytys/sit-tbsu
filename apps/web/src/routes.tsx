@@ -10,7 +10,7 @@ import { HalamanLogin } from '@/features/auth/halaman-login';
 import { HalamanBeranda } from '@/features/beranda/halaman-beranda';
 import { HalamanPengaturan } from '@/features/pengaturan/halaman-pengaturan';
 import { HalamanPengguna } from '@/features/pengguna/halaman-pengguna';
-import { HalamanSatuan } from '@/features/satuan/halaman-satuan';
+import { HalamanReferensi } from '@/features/referensi/halaman-referensi';
 import { HalamanSegera } from '@/features/umum/halaman-segera';
 import { HalamanTidakDitemukan } from '@/features/umum/halaman-tidak-ditemukan';
 import { SEMUA_ITEM_MENU } from '@/lib/menu';
@@ -18,7 +18,7 @@ import { SEMUA_ITEM_MENU } from '@/lib/menu';
 /** Halaman yang sudah dibangun, per path menu. Path lain menampilkan "sedang disiapkan". */
 const HALAMAN: Record<string, ReactNode> = {
   '/dashboard': <HalamanBeranda />,
-  '/kategori-satuan': <HalamanSatuan />,
+  '/kategori-satuan': <HalamanReferensi />,
   '/pengguna': <HalamanPengguna />,
   '/pengaturan': <HalamanPengaturan />,
 };

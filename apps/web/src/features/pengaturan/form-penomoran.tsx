@@ -15,7 +15,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { InputAngka, KartuBagian } from './bagian';
+import { InputAngka } from '@/components/input-angka';
+import { KartuBagian } from './bagian';
 import { useSimpanPengaturan } from './use-simpan-pengaturan';
 
 type Masukan = z.input<typeof skemaPenomoran>;
