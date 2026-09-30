@@ -167,7 +167,6 @@ export const MENU: EntriMenu[] = [
     label: 'Pengaturan',
     ikon: Settings,
     izin: 'sistem.pengaturan.kelola',
-    fase: 2,
   },
 ];
 

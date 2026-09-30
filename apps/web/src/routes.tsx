@@ -8,6 +8,7 @@ import {
 } from '@/features/auth/halaman-ganti-password';
 import { HalamanLogin } from '@/features/auth/halaman-login';
 import { HalamanBeranda } from '@/features/beranda/halaman-beranda';
+import { HalamanPengaturan } from '@/features/pengaturan/halaman-pengaturan';
 import { HalamanPengguna } from '@/features/pengguna/halaman-pengguna';
 import { HalamanSatuan } from '@/features/satuan/halaman-satuan';
 import { HalamanSegera } from '@/features/umum/halaman-segera';
@@ -19,6 +20,7 @@ const HALAMAN: Record<string, ReactNode> = {
   '/dashboard': <HalamanBeranda />,
   '/kategori-satuan': <HalamanSatuan />,
   '/pengguna': <HalamanPengguna />,
+  '/pengaturan': <HalamanPengaturan />,
 };
 
 const ruteMenu: RouteObject[] = SEMUA_ITEM_MENU.map((item) => ({
