@@ -2,7 +2,8 @@ import type {
   DataBarang,
   DataTingkatHarga,
   DetailBarang,
-  HasilImportBarang,
+  BacaImportBarang,
+  InputProsesImport,
   InputSimpanHarga,
   StatusAktif,
 } from '@sit/shared';
@@ -127,21 +128,29 @@ export function useStatusTier() {
   );
 }
 
-async function kirimBerkasImport(path: string, berkas: File): Promise<HasilImportBarang> {
-  const form = new FormData();
-  form.set('berkas', berkas);
-  const res = await fetch(path, { method: 'POST', body: form });
-  if (!res.ok) throw await galatDariRespons(res);
-  return ((await res.json()) as { data: HasilImportBarang }).data;
+/** Membaca berkas Excel menjadi baris teks (belum divalidasi, belum disimpan). */
+export function useBacaImport() {
+  return useMutation({
+    mutationFn: async (berkas: File): Promise<BacaImportBarang> => {
+      const form = new FormData();
+      form.set('berkas', berkas);
+      const res = await fetch('/api/import/barang/baca', { method: 'POST', body: form });
+      if (!res.ok) throw await galatDariRespons(res);
+      return ((await res.json()) as { data: BacaImportBarang }).data;
+    },
+  });
 }
 
 /** Pratinjau import: tidak menyimpan apa pun. */
 export function usePratinjauImport() {
   return useMutation({
-    mutationFn: (berkas: File) => kirimBerkasImport('/api/import/barang/pratinjau', berkas),
+    mutationFn: async (json: InputProsesImport) =>
+      ambilData(await api.import.barang.pratinjau.$post({ json })),
   });
 }
 
 export function useSimpanImport() {
-  return useMutasi(['barang'], (berkas: File) => kirimBerkasImport('/api/import/barang', berkas));
+  return useMutasi(['barang'], async (json: InputProsesImport) =>
+    ambilData(await api.import.barang.$post({ json })),
+  );
 }
