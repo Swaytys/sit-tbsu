@@ -15,7 +15,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 0 | Fondasi (dokumen) | Selesai | 2026-09-19 |
 | 1 | Setup lingkungan | Selesai | 2026-09-29 |
 | 2 | Akses dasar | Selesai | 2026-09-30 |
-| 3 | Data master | Belum | — |
+| 3 | Data master | Berjalan | — |
 | 4 | Inti persediaan | Belum | — |
 | 5 | Penjualan | Belum | — |
 | 6 | Koreksi dan kontrol | Belum | — |
@@ -104,7 +104,8 @@ Deliverable:
   pemasok + harga titip), atribut dinamis (tambah baris: jenis atribut, nilai, satuan), gambar (unggah ke folder
   `storage/`), nonaktifkan.
 - Harga jual: master tier (seed Normal/Grosir/Distributor), harga tetap per tier per barang di form barang dan di
-  halaman Harga Jual (edit massal). Markup dan tinjau harga ditunda ke Fase 9, tetapi kolom sudah ada.
+  halaman Harga Jual (edit massal). Tier non-default awalnya IKUT_TIER dari markup default (K-047); tanda
+  perlu tinjau (H5) dipasang sejak Fase 3 (K-056). Halaman Tinjau Harga dan penerapan otomatis Fase 9.
 - Pelanggan: daftar, form (tier harga default, term hari, limit kredit disimpan tanpa enforcement), nonaktifkan.
 - Pemasok: daftar, form, nonaktifkan.
 - Import Excel barang: templat unduh, unggah, pratinjau validasi baris, simpan. Import saldo awal dipindah ke Fase 4.
@@ -221,6 +222,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 - 2026-09-19 — Fase 0 selesai (Batch 1–3 diserahkan); Fase 1 diaktifkan.
 - 2026-09-29 — Fase 1 selesai (catatan di bawah Fase 1; K-050–K-053). Fase 2 ditambah tugas K-051.
+- 2026-09-30 — Fase 3 diaktifkan; `feat/03-referensi` (kategori, satuan, jenis atribut) di-merge (K-056–K-058).
 - 2026-09-30 — Fase 2 selesai: `feat/02-pengguna` dan `feat/02-pengaturan` di-merge (K-055).
 - 2026-09-30 — Fase 2 diaktifkan; branch `feat/02-akses` (login, sesi, izin, penomoran, log, menu) di-merge (K-054).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
