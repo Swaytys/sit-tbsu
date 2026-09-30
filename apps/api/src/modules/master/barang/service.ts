@@ -330,58 +330,88 @@ async function catatLogHarga(
 
 // --- Mutasi ---
 
+/** Izin menambah barang: form memuat harga modal dan harga tier default wajib diisi. */
+export function pastikanBolehTambahBarang(pelaku: PenggunaAktif): void {
+  pastikanBolehHpp(pelaku);
+  if (!pelaku.izin.has('master.harga.kelola')) {
+    throw new AppError('TIDAK_BERIZIN', 'Menambah barang membutuhkan izin mengelola harga.', 403);
+  }
+}
+
+export type BarangBaru = {
+  id: number;
+  nilai: repo.NilaiBarang;
+  atribut: repo.NilaiAtribut[];
+  harga: PerubahanHarga[];
+};
+
+/**
+ * Inti tambah barang di dalam `tx` (dipakai form dan import Excel): kode, validasi, baris persediaan
+ * (L10), atribut, dan harga semua tier (K-047). Tidak mencatat log; pemanggil yang mencatat.
+ */
+export async function buatBarang(
+  tx: Tx,
+  input: DataBarang,
+  idPengguna: number,
+): Promise<BarangBaru> {
+  if (!input.hargaTier || input.hargaTier.length === 0) {
+    throw galatKolom('VALIDASI', 'hargaTier', 'Harga jual tier default wajib diisi.');
+  }
+  const stokMinimum = keQty(input.stokMinimum ?? (await ambilAngka('stok_minimum_default', 0, tx)));
+  const kode = await tentukanKode(tx, input.kode);
+  const nilai = nilaiDari(input, kode, stokMinimum);
+  await pastikanBarcodeBebas(tx, nilai.barcode);
+  await pastikanReferensiAktif(tx, nilai);
+  const atribut = await siapkanAtribut(tx, input.atribut, {
+    idJenis: new Set(),
+    idSatuan: new Set(),
+  });
+
+  const id = await repo.tambahBarang(tx, nilai);
+  await buatPersediaan(tx, id, nilai);
+  await repo.gantiAtribut(tx, id, atribut);
+  const konteks = await muatKonteksHarga(tx);
+  const persediaanBaru = await kunciPersediaan(tx, id);
+  const harga = await terapkanHargaBarang(tx, id, input.hargaTier, {
+    dasar: dasarMarkup(dataDasarDari(nilai, persediaanBaru), konteks.modeDasar),
+    konteks,
+    idPengguna,
+  });
+  return { id, nilai, atribut, harga };
+}
+
+export async function catatLogBarangBaru(
+  tx: Tx,
+  b: BarangBaru,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+  keterangan = '',
+): Promise<void> {
+  await catatLog(tx, {
+    aksi: 'BARANG_BUAT',
+    idPengguna: pelaku.id,
+    entitas: 'barang',
+    idEntitas: b.id,
+    ringkasan: `Menambah barang ${b.nilai.kode} ${b.nilai.namaBarang}${keterangan}`,
+    dataBaru: {
+      ...b.nilai,
+      atribut: b.atribut,
+      harga: b.harga.map((p) => ({ tier: p.tier, ...p.baru })),
+    },
+    ip: asal.ip,
+  });
+}
+
 export async function tambahBarang(
   input: DataBarang,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<DetailBarang> {
-  pastikanBolehHpp(pelaku);
-  if (!pelaku.izin.has('master.harga.kelola')) {
-    throw new AppError('TIDAK_BERIZIN', 'Menambah barang membutuhkan izin mengelola harga.', 403);
-  }
-  if (!input.hargaTier || input.hargaTier.length === 0) {
-    throw galatKolom('VALIDASI', 'hargaTier', 'Harga jual tier default wajib diisi.');
-  }
-  const hargaTier = input.hargaTier;
-
+  pastikanBolehTambahBarang(pelaku);
   const id = await dalamTransaksi(async (tx) => {
-    const stokMinimum = keQty(
-      input.stokMinimum ?? (await ambilAngka('stok_minimum_default', 0, tx)),
-    );
-    const kode = await tentukanKode(tx, input.kode);
-    const nilai = nilaiDari(input, kode, stokMinimum);
-    await pastikanBarcodeBebas(tx, nilai.barcode);
-    await pastikanReferensiAktif(tx, nilai);
-    const atribut = await siapkanAtribut(tx, input.atribut, {
-      idJenis: new Set(),
-      idSatuan: new Set(),
-    });
-
-    const idBaru = await repo.tambahBarang(tx, nilai);
-    await buatPersediaan(tx, idBaru, nilai);
-    await repo.gantiAtribut(tx, idBaru, atribut);
-    const konteks = await muatKonteksHarga(tx);
-    const persediaanBaru = await kunciPersediaan(tx, idBaru);
-    const perubahanHarga = await terapkanHargaBarang(tx, idBaru, hargaTier, {
-      dasar: dasarMarkup(dataDasarDari(nilai, persediaanBaru), konteks.modeDasar),
-      konteks,
-      idPengguna: pelaku.id,
-    });
-
-    await catatLog(tx, {
-      aksi: 'BARANG_BUAT',
-      idPengguna: pelaku.id,
-      entitas: 'barang',
-      idEntitas: idBaru,
-      ringkasan: `Menambah barang ${kode} ${nilai.namaBarang}`,
-      dataBaru: {
-        ...nilai,
-        atribut,
-        harga: perubahanHarga.map((p) => ({ tier: p.tier, ...p.baru })),
-      },
-      ip: asal.ip,
-    });
-    return idBaru;
+    const baru = await buatBarang(tx, input, pelaku.id);
+    await catatLogBarangBaru(tx, baru, pelaku, asal);
+    return baru.id;
   });
   return detailBarang(id, pelaku.izin);
 }
