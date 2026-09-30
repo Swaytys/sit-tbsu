@@ -157,3 +157,25 @@ tiap hari (boros ruang).
 
 **Alasan:** Data yang bervariasi tetapi berulang harus berupa pilihan (masukan pemilik 2026-09-30).
 **Ditolak:** membuat merk baru otomatis saat import (salah ketik akan menghasilkan merk ganda).
+
+### K-064 — Import Excel v2: sunting baris di layar, templat ringkas/lengkap, ekspor data (masukan pemilik)
+**Keputusan:**
+1. Alur import: berkas **dibaca** server menjadi baris teks (`POST /api/import/barang/baca`) → **pratinjau** dan
+   **simpan** menerima baris itu sebagai JSON. Baris bergalat bisa **diubah atau dibuang langsung di tabel
+   pratinjau**; baris yang diubah diperiksa ulang sendirian (kode baris lain ikut dikirim untuk cek kode ganda).
+   Pratinjau tetap menjalankan proses simpan yang sama lalu dibatalkan (K-061).
+2. Templat **ringkas** (kolom yang paling sering dipakai) dan **lengkap** (semua kolom). Kolom wajib ditandai
+   warna biru tua. Sel berisi daftar pilihan (kategori, merk, satuan, kepemilikan, pemasok, status) dan
+   validasi angka (rupiah hanya bilangan bulat ≥ 0, stok minimum angka ≥ 0) sehingga Excel menolak huruf.
+3. Lembar **Contoh** berisi dua contoh pengisian dengan kolom ditulis menurun (vertikal).
+4. Kunci kolom huruf kecil (`harga_normal`, `atribut_panjang`). Kolom harga mengikuti kode tier: templat lama
+   tetap bisa dipakai setelah tier baru ditambahkan (tier baru otomatis "ikut markup"); kolom yang tidak dikenali
+   (tier/atribut dihapus atau nonaktif) diabaikan dengan **peringatan**, bukan galat.
+5. **Ekspor data barang** (`GET /api/import/barang/ekspor`, tombol di Data Barang) memakai format templat lengkap
+   + kolom `status`, sehingga bisa dipakai sebagai cadangan/migrasi dan diimpor ulang. Harga "ikut tier"
+   dikosongkan agar tetap mengikuti markup. Butuh izin import dan `master.barang.lihat_hpp`.
+6. Kolom `status` (AKTIF/NONAKTIF) dikenali import; barang berstatus NONAKTIF dibuat lalu langsung dinonaktifkan.
+
+**Alasan:** Memperbaiki satu sel tidak perlu bolak-balik ke Excel; kolom banyak menakutkan pengguna baru;
+validasi di Excel mencegah salah ketik sejak awal.
+**Ditolak:** memperbarui barang lama lewat import (K-056 tetap: hanya menambah).
