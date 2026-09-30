@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api, galatDariRespons } from './client';
+import { ambilData, api } from './client';
 
 export const kunciSatuan = {
   daftar: ['satuan', 'daftar'] as const,
@@ -9,11 +9,6 @@ export const kunciSatuan = {
 export function useDaftarSatuan() {
   return useQuery({
     queryKey: kunciSatuan.daftar,
-    queryFn: async () => {
-      const res = await api.satuan.$get();
-      if (!res.ok) throw await galatDariRespons(res);
-      const body = await res.json();
-      return body.data;
-    },
+    queryFn: async () => ambilData(await api.satuan.$get()),
   });
 }
