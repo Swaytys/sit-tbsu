@@ -242,3 +242,5 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
   hanya untuk `master.barang.lihat_hpp` (K-060).
 - 2026-09-30 — Menu "Kategori, Satuan & Atribut" menjadi **Referensi Barang** (`/referensi`) dengan tab Merk baru;
   merk dibaca `master.barang.lihat`, dikelola `master.kategori.kelola` (K-063).
+- 2026-10-01 — `GET /api/pengaturan/tampilan` dan `GET /api/pengaturan/logo` memakai `requireLogin()` (nama toko,
+  logo, baris per halaman dipakai semua peran); unggah/hapus logo memakai `sistem.pengaturan.kelola` (K-065).

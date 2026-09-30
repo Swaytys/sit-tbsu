@@ -296,6 +296,10 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | email_toko | (kosong) | |
 | footer_struk | Terima kasih atas kepercayaan Anda. | |
 | lebar_struk_mm | 80 | 58 atau 80 |
+| struk_tampilkan_nama | true | kop struk memakai nama toko (K-065) |
+| struk_tampilkan_logo | false | kop struk memakai logo toko (K-065) |
+| baris_per_halaman | 25 | 10, 25, 50, 100 (K-065) |
+| logo_toko | (tidak di-seed) | nama berkas logo di `storage/toko`; kosong = tanpa logo (K-065) |
 | prefix_ORD / STR / INV / SJ / BYR / RTR / VD / RCV / ADJ / RTP / KSG / PBP / SHF / CLC | sesuai nama | K-022, K-045 |
 | digit_nomor | 3 | melebar otomatis bila > 999/hari |
 | ambang_restock_persen | 20 | K-023 |
