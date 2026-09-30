@@ -122,3 +122,23 @@ Fase 9, H7).
 **Alasan:** Satu jalur validasi (form dan import tidak bisa berbeda aturan); import sebagian yang gagal di
 tengah menyulitkan pengguna melacak baris mana yang sudah masuk.
 **Ditolak:** menyimpan baris yang valid saja dan melewati baris bergalat; validasi import terpisah dari form.
+
+### K-062 — Masukan pemilik setelah Fase 3: versi, backlog, cadangan, uji skala
+**Keputusan:**
+1. **Versi**: v1.0.0 (MVP) = akhir M1 (Fase 8); M2 (Fase 9–12) = v1.1–v1.4; usulan baru dikumpulkan di
+   `docs/08-backlog.md` sebagai v2.0.0 (produktivitas data, peran kustom, keuangan ringan, sprint penemuan
+   perbaikan) dan v3.0.0 (pembukuan, cabang/gudang, valuta, tutup periode).
+2. **Cadangan data** masuk deliverable wajib Fase 8 dengan rancangan: snapshot terdeduplikasi terenkripsi
+   (restic), retensi berjenjang 7/4/12/5, tujuan lokal + cloud otomatis, tab Pengaturan › Cadangan, uji pulih
+   bulanan (docs/07 Fase 8).
+3. **Uji skala** (database uji, 5.000 barang × 3 tier): daftar/cari barang 5–28 ms, referensi 2–4 ms, ekspor
+   harga 0,9 dtk. Import 2.000 baris ±20 dtk (pratinjau) + ±20 dtk (simpan): diterima untuk sekarang, optimasi
+   batch masuk v2 Sprint D. Waktu pindah halaman yang terasa lambat berasal dari mode pengembangan (`pnpm dev`);
+   build produksi ±0,1–0,5 dtk. Kode halaman kini dimuat per rute (bundel awal 892 KB → 405 KB).
+4. Parameter pengaturan dari sistem lain ditinjau satu per satu (docs/08): logo, opsi struk, dan jumlah baris per
+   halaman dikerjakan sekarang; lainnya dijadwalkan atau ditolak dengan alasan.
+
+**Alasan:** MVP harus dipakai toko lebih dulu agar fungsi utama teruji sebelum fitur produktivitas; cadangan
+berjenjang terdeduplikasi memberi riwayat panjang tanpa memenuhi disk laptop.
+**Ditolak:** mengerjakan fitur massal/peran kustom sekarang (di luar fase aktif); cadangan penuh tanpa deduplikasi
+tiap hari (boros ruang).

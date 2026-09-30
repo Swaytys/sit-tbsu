@@ -16,6 +16,7 @@ Nama repo: `sit-tbsu`. Nama tampil di aplikasi: **BonsaiUrip** (K-044).
 | `05-aturan-bisnis-inti.md` | Ledger stok, reservasi order, HPP rata-rata, penomoran, status dokumen, satuan & konversi | Fase 4–6 |
 | `06-harga-piutang-hutang.md` | Tier harga, markup, tinjau harga, diskon, promo, piutang, hutang, retur pemasok, konsinyasi, stok rusak | Fase 3 (tier dasar), Fase 5 (piutang), M2 |
 | `07-roadmap.md` | Milestone M1/M2, 12 fase, deliverable dan definisi selesai per fase, status | Awal setiap fase; diperbarui di akhir fase |
+| `08-backlog.md` | Usulan di luar fase: v2.0.0 (produktivitas, peran kustom, keuangan ringan, perbaikan) dan v3.0.0 | Saat ada usulan baru; sebelum merencanakan versi berikut |
 | `keputusan/` | Log keputusan bernomor K-001, K-002, … beserta alasan dan alternatif yang ditolak | Saat bertanya "kenapa begini?" |
 | `panduan/` | Panduan langkah demi langkah untuk pemilik proyek (install, git, alur kerja) | Fase 1 |
 | `referensi/` | Laporan KP, diagram, skema lama, mockup Figma Make, screenshot | Saat perlu sumber asli |
@@ -76,10 +77,11 @@ Jangan pakai mode auto-accept.
 | 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059) | 2026-09-30 |
 | 05-aturan-bisnis-inti.md | Final v1 | 2026-09-19 |
 | 06-harga-piutang-hutang.md | Final v1 | 2026-09-19 |
-| 07-roadmap.md | Final v1 (Fase 3 selesai) | 2026-09-30 |
+| 07-roadmap.md | Final v1 (Fase 3 selesai; rencana cadangan Fase 8) | 2026-09-30 |
+| 08-backlog.md | Hidup (v2.0.0, v3.0.0) | 2026-09-30 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
 | keputusan/2026-09-19-keputusan-tambahan.md | Final (K-044–K-049) | 2026-09-19 |
 | keputusan/2026-09-29-setup-fase-1.md | Final (K-050–K-053) | 2026-09-29 |
 | keputusan/2026-09-30-akses-dasar.md | Final (K-054–K-055) | 2026-09-30 |
-| keputusan/2026-09-30-data-master.md | Final (K-056–K-061) | 2026-09-30 |
+| keputusan/2026-09-30-data-master.md | Final (K-056–K-062+) | 2026-09-30 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |
