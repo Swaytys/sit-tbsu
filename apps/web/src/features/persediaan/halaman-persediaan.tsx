@@ -5,13 +5,13 @@ import { TabKartu } from './tab-kartu';
 import { TabMutasi } from './tab-mutasi';
 import { TabPenyesuaian } from './tab-penyesuaian';
 import { TabPosisi } from './tab-posisi';
+import { TabTertahan } from './tab-tertahan';
 
-const TAB = ['posisi', 'mutasi', 'kartu', 'penyesuaian'] as const;
+const TAB = ['posisi', 'mutasi', 'kartu', 'tertahan', 'penyesuaian'] as const;
 type Tab = (typeof TAB)[number];
 
 /**
  * Persediaan › Stok Persediaan (docs/04 §4): posisi stok, riwayat mutasi, kartu stok, penyesuaian.
- * Tab "stok tertahan" (order basi) menyusul di Fase 5 bersama order.
  */
 export function HalamanPersediaan() {
   const [cari, setCari] = useSearchParams();
@@ -33,6 +33,7 @@ export function HalamanPersediaan() {
           <TabsTrigger value="posisi">Posisi stok</TabsTrigger>
           <TabsTrigger value="mutasi">Mutasi</TabsTrigger>
           <TabsTrigger value="kartu">Kartu stok</TabsTrigger>
+          <TabsTrigger value="tertahan">Stok tertahan</TabsTrigger>
           {bolehSesuaikan && <TabsTrigger value="penyesuaian">Penyesuaian</TabsTrigger>}
         </TabsList>
         <TabsContent value="posisi">
@@ -43,6 +44,9 @@ export function HalamanPersediaan() {
         </TabsContent>
         <TabsContent value="kartu">
           <TabKartu />
+        </TabsContent>
+        <TabsContent value="tertahan">
+          <TabTertahan />
         </TabsContent>
         {bolehSesuaikan && (
           <TabsContent value="penyesuaian">

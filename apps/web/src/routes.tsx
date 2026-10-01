@@ -33,6 +33,7 @@ const HALAMAN: Record<string, MuatHalaman> = {
     import('@/features/persediaan/halaman-persediaan').then((m) => m.HalamanPersediaan),
   '/penerimaan': () =>
     import('@/features/penerimaan/halaman-penerimaan').then((m) => m.HalamanPenerimaan),
+  '/order': () => import('@/features/order/halaman-order').then((m) => m.HalamanOrder),
   '/pengaturan': () =>
     import('@/features/pengaturan/halaman-pengaturan').then((m) => m.HalamanPengaturan),
 };
@@ -77,6 +78,9 @@ const ruteMenu: RouteObject[] = SEMUA_ITEM_MENU.map((item) => {
 const muatFormBarang: MuatHalaman = () =>
   import('@/features/barang/halaman-form-barang').then((m) => m.HalamanFormBarang);
 
+const muatFormOrder: MuatHalaman = () =>
+  import('@/features/order/halaman-form-order').then((m) => m.HalamanFormOrder);
+
 /** Semua halaman. `handle.judul` tampil di topbar dan judul tab browser. */
 export const router = createBrowserRouter([
   { path: '/login', element: <HalamanLogin /> },
@@ -120,6 +124,8 @@ export const router = createBrowserRouter([
       ruteLazy('persediaan/penyesuaian/:id', 'Stok Persediaan', 'persediaan.stok.lihat', () =>
         import('@/features/persediaan/halaman-penyesuaian').then((m) => m.HalamanPenyesuaian),
       ),
+      ruteLazy('order/baru', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
+      ruteLazy('order/:id/ubah', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
       ruteLazy('barang/baru', 'Data Barang', 'master.barang.kelola', muatFormBarang),
       ruteLazy('barang/:id', 'Data Barang', 'master.barang.kelola', muatFormBarang),
       {

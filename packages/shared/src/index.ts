@@ -14,6 +14,7 @@ export * from './schemas/mitra';
 export * from './schemas/notifikasi';
 export * from './schemas/pengaturan';
 export * from './schemas/pengguna';
+export * from './schemas/penjualan';
 export * from './schemas/persediaan';
 export * from './schemas/referensi';
 export * from './schemas/satuan';
