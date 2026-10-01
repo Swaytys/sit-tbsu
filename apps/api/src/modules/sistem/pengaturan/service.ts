@@ -194,6 +194,12 @@ export async function tampilanToko(): Promise<TampilanToko> {
     namaBadanUsaha: p.profil.namaBadanUsaha,
     logo: urlLogo(m.get('logo_toko')),
     barisPerHalaman: p.operasional.barisPerHalaman,
+    alamatToko: p.profil.alamatToko,
+    telpToko: p.profil.telpToko,
+    footerStruk: p.profil.footerStruk,
+    lebarStrukMm: p.profil.lebarStrukMm,
+    strukTampilkanNama: p.profil.strukTampilkanNama,
+    strukTampilkanLogo: p.profil.strukTampilkanLogo,
   };
 }
 

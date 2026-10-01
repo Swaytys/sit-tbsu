@@ -247,39 +247,50 @@ async function masukAntrean(
   });
 }
 
-/** Membuat order DRAFT; `kirim` langsung memasukkannya ke antrean (R3) dalam transaksi yang sama. */
+/**
+ * Membuat order DRAFT di dalam `tx`; `kirim` langsung memasukkannya ke antrean (R3). Dipakai juga checkout
+ * langsung (P1) yang membuat order lalu menyelesaikannya dalam transaksi yang sama.
+ */
+export async function buatOrderTx(
+  tx: Tx,
+  input: DataOrder,
+  opsi: { kirim: boolean },
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<{ id: number; nomor: string }> {
+  await validasiPelanggan(tx, input);
+  const harga = await hitungBarisJual(tx, input, pelaku);
+  const tanggal = tanggalOperasional();
+  const nomor = await terbitkanNomor(tx, 'ORD', tanggal);
+  const id = await repo.tambahHeader(tx, {
+    nomor,
+    tanggalOperasional: tanggal,
+    idPengguna: pelaku.id,
+    status: 'DRAFT',
+    ...nilaiHeader(input, harga),
+  });
+  await repo.gantiDetail(tx, id, nilaiDetail(harga));
+  await catatLog(tx, {
+    aksi: 'ORDER_BUAT',
+    idPengguna: pelaku.id,
+    entitas: 'order_penjualan',
+    idEntitas: id,
+    nomorDokumen: nomor,
+    ringkasan: `Order ${nomor} (${input.jenisPenjualan.toLowerCase()}): ${harga.baris.length} barang, ${formatRupiah(harga.total)}`,
+    ip: asal.ip,
+  });
+  await logHargaDiskon(tx, harga, nomor, id, pelaku, asal);
+  if (opsi.kirim) await masukAntrean(tx, id, nomor, harga.baris, pelaku, asal);
+  return { id, nomor };
+}
+
 export async function buatOrder(
   input: DataOrder,
   opsi: { kirim: boolean },
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<DetailOrder> {
-  const id = await dalamTransaksi(async (tx) => {
-    await validasiPelanggan(tx, input);
-    const harga = await hitungBarisJual(tx, input, pelaku);
-    const tanggal = tanggalOperasional();
-    const nomor = await terbitkanNomor(tx, 'ORD', tanggal);
-    const idBaru = await repo.tambahHeader(tx, {
-      nomor,
-      tanggalOperasional: tanggal,
-      idPengguna: pelaku.id,
-      status: 'DRAFT',
-      ...nilaiHeader(input, harga),
-    });
-    await repo.gantiDetail(tx, idBaru, nilaiDetail(harga));
-    await catatLog(tx, {
-      aksi: 'ORDER_BUAT',
-      idPengguna: pelaku.id,
-      entitas: 'order_penjualan',
-      idEntitas: idBaru,
-      nomorDokumen: nomor,
-      ringkasan: `Order ${nomor} (${input.jenisPenjualan.toLowerCase()}): ${harga.baris.length} barang, ${formatRupiah(harga.total)}`,
-      ip: asal.ip,
-    });
-    await logHargaDiskon(tx, harga, nomor, idBaru, pelaku, asal);
-    if (opsi.kirim) await masukAntrean(tx, idBaru, nomor, harga.baris, pelaku, asal);
-    return idBaru;
-  });
+  const { id } = await dalamTransaksi((tx) => buatOrderTx(tx, input, opsi, pelaku, asal));
   return detailOrder(id, pelaku);
 }
 

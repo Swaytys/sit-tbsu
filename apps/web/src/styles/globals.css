@@ -61,3 +61,16 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+/* Cetak dokumen tunggal (struk, invoice, surat jalan): bila ada .area-cetak, hanya itu yang dicetak. */
+.area-cetak {
+  display: none;
+}
+@media print {
+  body:has(.area-cetak) > *:not(.area-cetak) {
+    display: none !important;
+  }
+  .area-cetak {
+    display: block;
+  }
+}

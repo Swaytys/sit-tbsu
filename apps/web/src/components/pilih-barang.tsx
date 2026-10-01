@@ -17,6 +17,7 @@ export function PilihBarang({
   placeholder = 'Cari barang (kode, nama, barcode)…',
   label = 'Cari barang',
   disabled,
+  idInput,
 }: {
   onPilih: (b: BarisBarang) => void;
   /** Hanya tampilkan barang yang lolos saringan (mis. hanya barang titipan pemasok tertentu). */
@@ -24,6 +25,8 @@ export function PilihBarang({
   placeholder?: string;
   label?: string;
   disabled?: boolean;
+  /** `id` input, mis. agar layar kasir bisa memfokuskannya dengan F2. */
+  idInput?: string;
 }) {
   const [cari, setCari] = useState('');
   const [buka, setBuka] = useState(false);
@@ -57,6 +60,7 @@ export function PilihBarang({
     <div className="relative">
       <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-slate-400" />
       <Input
+        id={idInput}
         value={cari}
         disabled={disabled}
         onChange={(e) => {

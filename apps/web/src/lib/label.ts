@@ -5,6 +5,9 @@ import type {
   JenisPenyesuaian,
   StatusAktif,
   StatusHutang,
+  StatusPembayaran,
+  StatusPengambilan,
+  StatusPengiriman,
   StatusPenyesuaian,
   StatusStok,
 } from '@sit/shared';
@@ -83,4 +86,21 @@ export const LABEL_JENIS_MUTASI: Record<JenisMutasi, string> = {
   PINDAH_KONDISI: 'Pindah kondisi',
   RETUR_PEMASOK: 'Retur pemasok',
   MUSNAH: 'Pemusnahan',
+};
+
+export const LABEL_STATUS_PEMBAYARAN: Record<StatusPembayaran, string> = {
+  BELUM_BAYAR: 'Belum bayar',
+  DP: 'DP',
+  LUNAS: 'Lunas',
+};
+
+export const LABEL_STATUS_PENGAMBILAN: Record<StatusPengambilan, string> = {
+  DIAMBIL: 'Diambil',
+  BELUM_DIAMBIL: 'Belum diambil',
+};
+
+export const LABEL_STATUS_PENGIRIMAN: Record<StatusPengiriman, string> = {
+  BELUM: 'Belum dikirim',
+  SEBAGIAN: 'Dikirim sebagian',
+  SELESAI: 'Terkirim',
 };
