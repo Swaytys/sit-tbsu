@@ -1,4 +1,12 @@
-import type { DataOrder, JenisPenjualan, StatusOrder } from '@sit/shared';
+import type {
+  DataCheckout,
+  DataOrder,
+  DataPembayaran,
+  JenisPenjualan,
+  StatusOrder,
+  StatusPembayaran,
+  StatusPengambilan,
+} from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, ambilIsi, api } from './client';
 
@@ -95,5 +103,104 @@ export function useStokTertahan() {
   return useQuery({
     queryKey: ['persediaan', 'tertahan'],
     queryFn: async () => ambilData(await api.stok.tertahan.$get()),
+  });
+}
+
+// --- Checkout, pembayaran, riwayat penjualan, shift ---
+
+export function useShiftSaya(aktif = true) {
+  return useQuery({
+    queryKey: ['shift', 'saya'],
+    queryFn: async () => ambilData(await api.shift.saya.$get()),
+    enabled: aktif,
+  });
+}
+
+export function useBukaShift() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (modalAwal: number) =>
+      ambilData(await api.shift.buka.$post({ json: { modalAwal } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shift'] }),
+  });
+}
+
+/** Checkout memengaruhi order, stok, dan daftar penjualan. */
+function useMutasiPenjualan<TInput, THasil>(fn: (input: TInput) => Promise<THasil>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () =>
+      Promise.all(
+        ['penjualan', 'order', 'barang', 'persediaan'].map((k) =>
+          qc.invalidateQueries({ queryKey: [k] }),
+        ),
+      ),
+  });
+}
+
+export function useCheckout() {
+  return useMutasiPenjualan(async (json: DataCheckout) =>
+    ambilData(await api.penjualan.checkout.$post({ json })),
+  );
+}
+
+export function useBayarPenjualan() {
+  return useMutasiPenjualan(
+    async ({ id, pembayaran }: { id: number; pembayaran: DataPembayaran }) =>
+      ambilData(
+        await api.penjualan[':id'].pembayaran.$post({ param: param(id), json: { pembayaran } }),
+      ),
+  );
+}
+
+export function useTandaiDiambil() {
+  return useMutasiPenjualan(async (id: number) =>
+    ambilData(await api.penjualan[':id'].diambil.$post({ param: param(id) })),
+  );
+}
+
+export async function catatCetakUlang(id: number): Promise<void> {
+  await ambilData(await api.penjualan[':id']['cetak-ulang'].$post({ param: param(id) }));
+}
+
+export type ParamDaftarPenjualan = {
+  cari: string;
+  jenis: JenisPenjualan | null;
+  statusPembayaran: StatusPembayaran | null;
+  statusPengambilan: StatusPengambilan | null;
+  dari: string;
+  sampai: string;
+  halaman: number;
+  perHalaman: number;
+};
+
+export function useDaftarPenjualan(p: ParamDaftarPenjualan) {
+  return useQuery({
+    queryKey: ['penjualan', 'daftar', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.penjualan.$get({
+          query: {
+            cari: p.cari || undefined,
+            jenis: p.jenis ?? undefined,
+            statusPembayaran: p.statusPembayaran ?? undefined,
+            statusPengambilan: p.statusPengambilan ?? undefined,
+            dari: p.dari || undefined,
+            sampai: p.sampai || undefined,
+            halaman: String(p.halaman),
+            perHalaman: String(p.perHalaman),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useDetailPenjualan(id: number | null) {
+  return useQuery({
+    queryKey: ['penjualan', 'detail', id],
+    queryFn: async () => ambilData(await api.penjualan[':id'].$get({ param: { id: String(id) } })),
+    enabled: id !== null,
   });
 }

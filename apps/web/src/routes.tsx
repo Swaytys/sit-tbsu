@@ -34,6 +34,8 @@ const HALAMAN: Record<string, MuatHalaman> = {
   '/penerimaan': () =>
     import('@/features/penerimaan/halaman-penerimaan').then((m) => m.HalamanPenerimaan),
   '/order': () => import('@/features/order/halaman-order').then((m) => m.HalamanOrder),
+  '/penjualan-langsung': () =>
+    import('@/features/kasir/halaman-penjualan-langsung').then((m) => m.HalamanPenjualanLangsung),
   '/pengaturan': () =>
     import('@/features/pengaturan/halaman-pengaturan').then((m) => m.HalamanPengaturan),
 };
@@ -123,6 +125,9 @@ export const router = createBrowserRouter([
       ),
       ruteLazy('persediaan/penyesuaian/:id', 'Stok Persediaan', 'persediaan.stok.lihat', () =>
         import('@/features/persediaan/halaman-penyesuaian').then((m) => m.HalamanPenyesuaian),
+      ),
+      ruteLazy('penjualan/:id', 'Detail Penjualan', 'penjualan.riwayat.lihat', () =>
+        import('@/features/kasir/halaman-detail-penjualan').then((m) => m.HalamanDetailPenjualan),
       ),
       ruteLazy('order/baru', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
       ruteLazy('order/:id/ubah', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
