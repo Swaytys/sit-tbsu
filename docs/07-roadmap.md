@@ -163,6 +163,9 @@ Catatan penyelesaian (2026-10-01, branch `feat/04-ledger`, `feat/04-penerimaan`,
 - Tes: 171 tes Vitest (162 API + 9 shared) dan 28 tes Playwright lulus.
 - Ditunda ke fase lain: pembayaran TUNAI penerimaan terkait shift (Fase 6), tab stok tertahan (Fase 5),
   MUSNAH dan retur pemasok (Fase 10).
+- Revisi 2026-10-02 (`feat/04-revisi`, masukan pemilik): tombol Urungkan setelah hapus baris, konfirmasi sebelum
+  meninggalkan form yang belum disimpan, barang di lembar opname dikecualikan dengan alasan alih-alih dihapus
+  (K-069, skema v3.3). Modul opname terjadwal dan pemilih barang grafis masuk backlog v2 Sprint E.
 
 ### Fase 5 — Penjualan
 Tujuan: alur order → checkout → pembayaran → surat jalan berjalan penuh.

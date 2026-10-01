@@ -91,6 +91,10 @@ export async function detailPenyesuaian(id: number): Promise<DetailPenyesuaian> 
         qtySelisih: r.qtySelisih,
         hppSatuan: r.hppSatuan,
         keterangan: r.keterangan,
+        dikecualikan: r.dikecualikan,
+        alasanKecuali: r.alasanKecuali,
+        namaPenggunaKecuali: r.namaPenggunaKecuali,
+        waktuKecuali: r.waktuKecuali?.toISOString() ?? null,
       };
     }),
   };
@@ -102,8 +106,18 @@ function galatBaris(i: number, kolom: string, pesan: string): AppError {
   });
 }
 
-/** Baris input → baris detail tersimpan (A2, A4, A5); validasi barang ada (dan aktif untuk saldo awal). */
-async function siapkanDetail(tx: Tx, input: DataPenyesuaian) {
+type BarisLama = Awaited<ReturnType<typeof repo.barisTersimpan>>[number];
+
+/**
+ * Baris input → baris detail tersimpan (A2, A4, A5); validasi barang ada (dan aktif untuk saldo awal).
+ * K-069: pengecualian opname mencatat siapa & kapan; bila alasan tidak berubah, pencatat awal dipertahankan.
+ */
+async function siapkanDetail(
+  tx: Tx,
+  input: DataPenyesuaian,
+  pelaku: PenggunaAktif,
+  lama: Map<number, BarisLama> = new Map(),
+) {
   const perBarang = new Map(
     (
       await repo.barangUntukPenyesuaian(
@@ -118,10 +132,24 @@ async function siapkanDetail(tx: Tx, input: DataPenyesuaian) {
     if (input.jenis === 'SALDO_AWAL' && brg.statusAktif !== 'AKTIF') {
       throw galatBaris(i, 'idBarang', `${brg.namaBarang} nonaktif.`);
     }
+    const sebelum = lama.get(b.idBarang);
+    const tetap =
+      sebelum?.dikecualikan &&
+      sebelum.alasanKecuali === b.alasanKecuali &&
+      sebelum.idPenggunaKecuali !== null;
+    const kecuali = b.dikecualikan
+      ? {
+          dikecualikan: true,
+          alasanKecuali: b.alasanKecuali ?? null,
+          idPenggunaKecuali: tetap ? sebelum.idPenggunaKecuali : pelaku.id,
+          waktuKecuali: tetap ? sebelum.waktuKecuali : sekarang(),
+        }
+      : { dikecualikan: false, alasanKecuali: null, idPenggunaKecuali: null, waktuKecuali: null };
     const dasar = {
       idBarang: b.idBarang,
       kondisi: 'BAIK' as const,
       keterangan: b.keterangan ?? null,
+      ...kecuali,
     };
     switch (input.jenis) {
       case 'SALDO_AWAL': {
@@ -133,7 +161,7 @@ async function siapkanDetail(tx: Tx, input: DataPenyesuaian) {
       case 'OPNAME':
         return {
           ...dasar,
-          qtyFisik: b.qtyFisik === null ? null : keQty(b.qtyFisik),
+          qtyFisik: b.qtyFisik === null || b.dikecualikan ? null : keQty(b.qtyFisik),
           qtySelisih: '0',
         };
       case 'KOREKSI':
@@ -151,7 +179,7 @@ export async function buatPenyesuaian(
   asal: AsalRequest,
 ): Promise<DetailPenyesuaian> {
   const id = await dalamTransaksi(async (tx) => {
-    const detail = await siapkanDetail(tx, input);
+    const detail = await siapkanDetail(tx, input, pelaku);
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, 'ADJ', tanggal);
     const idBaru = await repo.tambahHeader(tx, {
@@ -206,7 +234,34 @@ export async function ubahPenyesuaian(
         400,
       );
     }
-    const detail = await siapkanDetail(tx, input);
+    const lama = new Map((await repo.barisTersimpan(tx, id)).map((b) => [b.idBarang, b]));
+    const baru = new Map(input.baris.map((b) => [b.idBarang, b]));
+    const perubahanOpname: string[] = [];
+    if (h.jenis === 'OPNAME') {
+      // K-069: barang yang sudah ada di lembar opname tidak boleh hilang tanpa jejak.
+      const hilang = [...lama.values()].filter((b) => !baru.has(b.idBarang));
+      if (hilang.length > 0) {
+        throw new AppError(
+          'VALIDASI',
+          `Barang di lembar opname tidak bisa dihapus: ${hilang
+            .slice(0, 5)
+            .map((b) => b.namaBarang)
+            .join(', ')}${hilang.length > 5 ? ', …' : ''}. Kecualikan dengan alasan.`,
+          400,
+        );
+      }
+      for (const [idBarang, b] of baru) {
+        const l = lama.get(idBarang);
+        if (b.dikecualikan && (!l?.dikecualikan || l.alasanKecuali !== b.alasanKecuali)) {
+          perubahanOpname.push(
+            `kecualikan ${l?.namaBarang ?? `#${idBarang}`} (${b.alasanKecuali})`,
+          );
+        } else if (!b.dikecualikan && l?.dikecualikan) {
+          perubahanOpname.push(`sertakan lagi ${l.namaBarang}`);
+        }
+      }
+    }
+    const detail = await siapkanDetail(tx, input, pelaku, lama);
     await repo.ubahHeader(tx, id, {
       alasan: input.alasan ?? null,
       catatan: input.catatan ?? null,
@@ -219,7 +274,9 @@ export async function ubahPenyesuaian(
       entitas: 'penyesuaian_stok',
       idEntitas: id,
       nomorDokumen: h.nomor,
-      ringkasan: `Mengubah draf ${h.nomor}: ${detail.length} barang`,
+      ringkasan: `Mengubah draf ${h.nomor}: ${detail.length} barang${
+        perubahanOpname.length > 0 ? `; ${perubahanOpname.join('; ')}` : ''
+      }`.slice(0, 1000),
       ip: asal.ip,
     });
   });
@@ -248,7 +305,9 @@ export async function selesaikanPenyesuaian(
         409,
       );
     }
-    const belumDihitung = baris.filter((b) => h.jenis === 'OPNAME' && b.qtyFisik === null);
+    const belumDihitung = baris.filter(
+      (b) => h.jenis === 'OPNAME' && !b.dikecualikan && b.qtyFisik === null,
+    );
     if (belumDihitung.length > 0) {
       throw new AppError(
         'VALIDASI',
@@ -256,7 +315,9 @@ export async function selesaikanPenyesuaian(
           `${belumDihitung
             .slice(0, 5)
             .map((b) => b.namaBarang)
-            .join(', ')}${belumDihitung.length > 5 ? ', …' : ''}. Isi atau hapus barisnya.`,
+            .join(
+              ', ',
+            )}${belumDihitung.length > 5 ? ', …' : ''}. Isi hasil hitung atau kecualikan dengan alasan.`,
         400,
       );
     }
@@ -280,6 +341,11 @@ export async function selesaikanPenyesuaian(
       const sumber = { idPenyesuaianDetail: b.id };
       // A3: stok sistem dibaca saat diselesaikan (di bawah kunci baris persediaan), bukan saat draf dibuat.
       const p = await kunciPersediaan(tx, b.idBarang);
+      if (b.dikecualikan) {
+        // K-069: tidak dihitung → tidak ada mutasi; stok sistem saat itu tetap dicatat.
+        await repo.ubahDetail(tx, b.id, { qtySistem: p.stokFisik, qtySelisih: '0' });
+        continue;
+      }
       let selisih = b.qtySelisih;
       if (h.jenis === 'OPNAME') {
         selisih = kurangQty(
@@ -334,6 +400,17 @@ export async function selesaikanPenyesuaian(
       });
     }
 
+    let ringkasOpname = '';
+    if (h.jenis === 'OPNAME') {
+      const kecuali = baris.filter((b) => b.dikecualikan);
+      const diLuar = await repo.jumlahBarangAktifDiLuar(tx, id);
+      ringkasOpname =
+        `; dihitung ${baris.length - kecuali.length}, dikecualikan ${kecuali.length}` +
+        (kecuali.length > 0
+          ? ` (${kecuali.map((b) => `${b.namaBarang}: ${b.alasanKecuali}`).join('; ')})`
+          : '') +
+        `; barang aktif di luar dokumen ${diLuar}`;
+    }
     const waktu = sekarang();
     await repo.ubahHeader(tx, id, { status: 'SELESAI', waktuSelesai: waktu, diubahPada: waktu });
     await catatLog(tx, {
@@ -342,7 +419,11 @@ export async function selesaikanPenyesuaian(
       entitas: 'penyesuaian_stok',
       idEntitas: id,
       nomorDokumen: h.nomor,
-      ringkasan: `Menyelesaikan ${h.nomor} (${h.jenis.toLowerCase()}): ${baris.length} barang`,
+      ringkasan:
+        `Menyelesaikan ${h.nomor} (${h.jenis.toLowerCase()}): ${baris.length} barang${ringkasOpname}`.slice(
+          0,
+          1000,
+        ),
       ip: asal.ip,
     });
   });
@@ -390,6 +471,8 @@ export async function buatLembarOpname(
         qtySelisih: null,
         hppSatuan: null,
         keterangan: null,
+        dikecualikan: false,
+        alasanKecuali: null,
       })),
     },
     pelaku,

@@ -174,6 +174,7 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 | A1 | Dokumen `ADJ` dibuat DRAFT; baris bisa ditambah/diubah/dihapus selama DRAFT. SELESAI menulis mutasi (A2–A5) dalam satu transaksi; BATAL tidak berefek. |
 | A2 | SALDO_AWAL: baris `qty_fisik` (jumlah awal) dan `hpp_satuan` (nilai per satuan) wajib; `qty_selisih = qty_fisik`. Mutasi SALDO_AWAL masuk dengan `hpp_satuan` input; HPP rata-rata dihitung (L4). Boleh dipakai untuk barang yang stoknya sudah > 0 (menambah). Import Excel saldo awal menghasilkan satu dokumen ini. |
 | A3 | OPNAME: saat SELESAI, per baris: `FOR UPDATE persediaan`, `qty_sistem = stok_fisik` saat itu (bukan saat draft dibuat), `qty_selisih = qty_fisik − qty_sistem − qty_belum_diambil`, di mana `qty_belum_diambil` = Σ `qty_dasar` baris penjualan LANGSUNG `status_pengambilan = BELUM_DIAMBIL` untuk barang itu (barang terjual yang masih di toko). Selisih > 0 → PENYESUAIAN masuk (hpp = hpp_rata2); < 0 → PENYESUAIAN keluar; 0 → tidak ada mutasi. Lembar hitung (cetak) menampilkan kolom "Sistem", "Belum diambil", "Fisik dihitung". |
+| A3a | Lembar opname (K-069): barang yang sudah tersimpan di dokumen OPNAME tidak bisa dihapus dari dokumen. Barang yang tidak dihitung **dikecualikan** dengan alasan wajib (≥ 3 huruf); tercatat siapa dan kapan, tercetak di lembar hitung, tampil di dokumen selesai, dan tidak menghasilkan mutasi. SELESAI ditolak bila ada baris yang belum diisi dan tidak dikecualikan. Log PENYESUAIAN_UBAH mencatat barang yang dikecualikan/disertakan lagi; log PENYESUAIAN_SELESAI mencatat jumlah dihitung, dikecualikan (beserta alasan), dan barang aktif di luar dokumen. |
 | A4 | KOREKSI: `qty_selisih` diisi langsung (± ) dengan `alasan` wajib; mutasi PENYESUAIAN. |
 | A5 | RUSAK: `qty_selisih` negatif dari bucket BAIK; dua mutasi PINDAH_KONDISI (keluar BAIK, masuk RUSAK, `hpp = hpp_rata2`). MUSNAH [M2]: keluar dari bucket RUSAK. |
 | A6 | Pengurangan `stok_fisik` di bawah `stok_dipesan` ditolak (K-048) dengan daftar order penahan. |
@@ -222,3 +223,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-09-19 — v1.
 - 2026-09-30 — §16: aksi log PENGGUNA_AKTIFKAN, PENGGUNA_GANTI_PASSWORD, PENGGUNA_CABUT_SESI (K-054).
 - 2026-10-01 — §16: aksi log PENYESUAIAN_UBAH (K-067).
+- 2026-10-02 — §12 A3a: pengecualian barang dari lembar opname dengan alasan (K-069, keputusan pemilik).

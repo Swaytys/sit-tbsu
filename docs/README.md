@@ -73,7 +73,7 @@ Jangan pakai mode auto-accept.
 | CLAUDE.md | Final v1 | 2026-09-19 |
 | 01-ikhtisar-sistem.md | Final v1 | 2026-09-19 |
 | 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs) | 2026-09-30 |
-| 03-skema-database-v3 (.md + .sql) | Final v3.1 (terpasang di PostgreSQL 17 sebagai migrasi 0000) | 2026-09-29 |
+| 03-skema-database-v3 (.md + .sql) | Final v3.3 (.sql = v3.1 migrasi 0000; v3.2–v3.3 lewat migrasi 0001–0003) | 2026-10-02 |
 | 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059) | 2026-09-30 |
 | 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH) | 2026-10-01 |
 | 06-harga-piutang-hutang.md | Final v1 | 2026-09-19 |
@@ -84,5 +84,5 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-09-29-setup-fase-1.md | Final (K-050–K-053) | 2026-09-29 |
 | keputusan/2026-09-30-akses-dasar.md | Final (K-054–K-055) | 2026-09-30 |
 | keputusan/2026-09-30-data-master.md | Final (K-056–K-065) | 2026-09-30 |
-| keputusan/2026-10-01-persediaan.md | Final (K-066–K-068) | 2026-10-01 |
+| keputusan/2026-10-01-persediaan.md | Final (K-066–K-069) | 2026-10-02 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |

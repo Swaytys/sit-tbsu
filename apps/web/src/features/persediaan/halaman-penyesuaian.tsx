@@ -12,7 +12,7 @@ import {
   type InputPenyesuaian,
   type JenisPenyesuaianM1,
 } from '@sit/shared';
-import { ArrowLeft, Printer, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, Printer, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -29,7 +29,16 @@ import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InputRupiah } from '@/components/input-rupiah';
 import { PilihBarang } from '@/components/pilih-barang';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -165,6 +174,8 @@ function FormPenyesuaian({
               : '',
         hppSatuan: jenis === 'SALDO_AWAL' ? b.hppSatuan : null,
         keterangan: b.keterangan ?? '',
+        dikecualikan: b.dikecualikan,
+        alasanKecuali: b.alasanKecuali ?? '',
       })),
     },
   });
@@ -217,8 +228,30 @@ function FormPenyesuaian({
             : (b.hppRata2 ?? 0)
           : null,
       keterangan: '',
+      dikecualikan: false,
+      alasanKecuali: '',
     });
   }
+
+  // K-069: barang yang sudah tersimpan di dokumen OPNAME tidak dihapus, tetapi dikecualikan dengan alasan.
+  const tersimpan = new Set(
+    jenis === 'OPNAME' ? (dokumen?.baris ?? []).map((b) => b.idBarang) : [],
+  );
+  const [kecualikan, setKecualikan] = useState<number | null>(null);
+
+  function terapkanKecuali(i: number, alasan: string) {
+    form.setValue(`baris.${i}.dikecualikan`, true, { shouldDirty: true });
+    form.setValue(`baris.${i}.alasanKecuali`, alasan, { shouldDirty: true });
+    form.setValue(`baris.${i}.qtyFisik`, '', { shouldDirty: true });
+  }
+
+  function sertakanLagi(i: number) {
+    form.setValue(`baris.${i}.dikecualikan`, false, { shouldDirty: true });
+    form.setValue(`baris.${i}.alasanKecuali`, '', { shouldDirty: true });
+  }
+
+  const jumlahKecuali = isi.filter((b) => b.dikecualikan).length;
+  const jumlahTerisi = isi.filter((b) => !b.dikecualikan && teksQty(b.qtyFisik)).length;
 
   async function simpanDraf(data: DataPenyesuaian): Promise<DetailPenyesuaian | null> {
     try {
@@ -326,8 +359,16 @@ function FormPenyesuaian({
                   <td className="border px-1">{b.kodeSatuan}</td>
                   <td className="border px-1 text-right">{formatDesimal(b.qtySistem)}</td>
                   <td className="border px-1 text-right">{formatDesimal(b.qtyBelumDiambil)}</td>
-                  <td className="w-24 border px-1" />
-                  <td className="w-32 border px-1" />
+                  {b.dikecualikan ? (
+                    <td colSpan={2} className="border px-1 italic">
+                      Dikecualikan: {b.alasanKecuali}
+                    </td>
+                  ) : (
+                    <>
+                      <td className="w-24 border px-1" />
+                      <td className="w-32 border px-1" />
+                    </>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -375,6 +416,13 @@ function FormPenyesuaian({
           <Card className="gap-0 py-0">
             <div className="border-b p-4">
               <PilihBarang onPilih={tambah} />
+              {jenis === 'OPNAME' && baris.fields.length > 0 && (
+                <p className="mt-2 text-xs text-slate-500" data-testid="ringkasan-opname">
+                  {baris.fields.length} barang · {jumlahTerisi} sudah diisi · {jumlahKecuali}{' '}
+                  dikecualikan · {baris.fields.length - jumlahTerisi - jumlahKecuali} belum diisi.
+                  Barang di lembar tidak bisa dihapus; kecualikan dengan alasan bila tidak dihitung.
+                </p>
+              )}
               {form.formState.errors.baris?.message && (
                 <p className="mt-2 text-sm text-red-600">{form.formState.errors.baris.message}</p>
               )}
@@ -405,11 +453,15 @@ function FormPenyesuaian({
                 )}
                 {baris.fields.map((f, i) => {
                   const inf = info[f.idBarang];
-                  const fisik = teksQty(isi[i]?.qtyFisik);
+                  const dikecualikan = isi[i]?.dikecualikan === true;
+                  const fisik = dikecualikan ? null : teksQty(isi[i]?.qtyFisik);
                   const selisih =
                     fisik && inf ? kurangQty(kurangQty(fisik, inf.sistem), inf.belum) : null;
                   return (
-                    <TableRow key={f.id}>
+                    <TableRow
+                      key={f.id}
+                      className={dikecualikan ? 'bg-slate-50 text-slate-400' : ''}
+                    >
                       <TableCell className="text-slate-500">{i + 1}</TableCell>
                       <TableCell>
                         <div className="font-medium">{inf?.nama}</div>
@@ -424,23 +476,32 @@ function FormPenyesuaian({
                         </TableCell>
                       )}
                       <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`baris.${i}.${namaQty}`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input
-                                  inputMode="decimal"
-                                  aria-label={`${kolomQty} ${inf?.nama ?? i + 1}`}
-                                  {...field}
-                                  value={typeof field.value === 'string' ? field.value : ''}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {dikecualikan ? (
+                          <div className="text-xs">
+                            <Badge variant="outline" className="border-slate-300 text-slate-600">
+                              Dikecualikan
+                            </Badge>
+                            <div className="mt-1 text-slate-600">{isi[i]?.alasanKecuali}</div>
+                          </div>
+                        ) : (
+                          <FormField
+                            control={form.control}
+                            name={`baris.${i}.${namaQty}`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    inputMode="decimal"
+                                    aria-label={`${kolomQty} ${inf?.nama ?? i + 1}`}
+                                    {...field}
+                                    value={typeof field.value === 'string' ? field.value : ''}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                       </TableCell>
                       {jenis === 'OPNAME' && (
                         <TableCell
@@ -486,15 +547,39 @@ function FormPenyesuaian({
                         />
                       </TableCell>
                       <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Hapus baris ${i + 1}`}
-                          onClick={() => hapusBaris(i)}
-                        >
-                          <Trash2 className="text-slate-500" />
-                        </Button>
+                        {!tersimpan.has(f.idBarang) ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Hapus baris ${i + 1}`}
+                            onClick={() => hapusBaris(i)}
+                          >
+                            <Trash2 className="text-slate-500" />
+                          </Button>
+                        ) : dikecualikan ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Sertakan lagi ${inf?.nama ?? i + 1}`}
+                            title="Sertakan lagi"
+                            onClick={() => sertakanLagi(i)}
+                          >
+                            <RotateCcw className="text-slate-500" />
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Kecualikan ${inf?.nama ?? i + 1}`}
+                            title="Kecualikan dari opname"
+                            onClick={() => setKecualikan(i)}
+                          >
+                            <Ban className="text-slate-500" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -539,6 +624,16 @@ function FormPenyesuaian({
         </form>
       </Form>
       {dialogKeluar}
+      {kecualikan !== null && (
+        <DialogKecualikan
+          nama={info[isi[kecualikan]?.idBarang ?? 0]?.nama ?? ''}
+          onTutup={() => setKecualikan(null)}
+          onSimpan={(alasan) => {
+            terapkanKecuali(kecualikan, alasan);
+            setKecualikan(null);
+          }}
+        />
+      )}
 
       <DialogKonfirmasi
         terbuka={konfirmasi === 'selesai'}
@@ -633,17 +728,79 @@ function TampilanDokumen({ d }: { d: DetailPenyesuaian }) {
                 <TableCell
                   className={`text-right tabular-nums ${b.qtySelisih.startsWith('-') ? 'text-red-600' : 'text-emerald-700'}`}
                 >
-                  {formatSelisih(b.qtySelisih)}
+                  {b.dikecualikan ? '—' : formatSelisih(b.qtySelisih)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {formatRupiah(b.hppSatuan)}
+                  {b.dikecualikan ? '—' : formatRupiah(b.hppSatuan)}
                 </TableCell>
-                <TableCell className="text-xs text-slate-600">{b.keterangan ?? '—'}</TableCell>
+                <TableCell className="text-xs text-slate-600">
+                  {b.dikecualikan ? (
+                    <div>
+                      <Badge variant="outline" className="border-slate-300 text-slate-600">
+                        Dikecualikan
+                      </Badge>{' '}
+                      {b.alasanKecuali}
+                      <div className="text-slate-400">
+                        oleh {b.namaPenggunaKecuali} · {formatWaktu(b.waktuKecuali)}
+                      </div>
+                    </div>
+                  ) : (
+                    (b.keterangan ?? '—')
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Card>
     </div>
+  );
+}
+
+/** K-069: alasan wajib saat mengecualikan barang dari opname. */
+function DialogKecualikan({
+  nama,
+  onTutup,
+  onSimpan,
+}: {
+  nama: string;
+  onTutup: () => void;
+  onSimpan: (alasan: string) => void;
+}) {
+  const [alasan, setAlasan] = useState('');
+  const valid = alasan.trim().length >= 3;
+  return (
+    <Dialog open onOpenChange={(b) => !b && onTutup()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Kecualikan {nama} dari opname?</DialogTitle>
+          <DialogDescription>
+            Barang tetap tercatat di dokumen sebagai &quot;dikecualikan&quot; beserta alasan, nama
+            Anda, dan waktunya. Stoknya tidak diubah oleh opname ini.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1">
+          <label htmlFor="alasan-kecuali" className="text-sm font-medium">
+            Alasan
+          </label>
+          <Input
+            id="alasan-kecuali"
+            value={alasan}
+            maxLength={150}
+            onChange={(e) => setAlasan(e.target.value)}
+            placeholder="Contoh: gudang belakang terkunci"
+            autoFocus
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onTutup}>
+            Batal
+          </Button>
+          <Button disabled={!valid} onClick={() => onSimpan(alasan.trim())}>
+            Kecualikan
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

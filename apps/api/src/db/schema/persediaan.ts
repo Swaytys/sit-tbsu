@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, numeric, pgTable, unique, varchar } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  check,
+  foreignKey,
+  index,
+  numeric,
+  pgTable,
+  unique,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import {
   JENIS_MUTASI,
   JENIS_PENERIMAAN,
@@ -217,8 +226,22 @@ export const penyesuaianStokDetail = pgTable(
       .default(sql`0`),
     hppSatuan: uang('hpp_satuan').notNull().default(0),
     keterangan: varchar('keterangan', { length: 150 }),
+    /** OPNAME (K-069): barang di lembar yang sengaja tidak dihitung; wajib alasan, tercatat siapa & kapan. */
+    dikecualikan: boolean('dikecualikan').notNull().default(false),
+    alasanKecuali: varchar('alasan_kecuali', { length: 150 }),
+    idPenggunaKecuali: kolomRef('id_pengguna_kecuali'),
+    waktuKecuali: timestamptz('waktu_kecuali'),
   },
   (t) => [
+    foreignKey({
+      name: 'penyesuaian_stok_detail_id_pengguna_kecuali_fkey',
+      columns: [t.idPenggunaKecuali],
+      foreignColumns: [pengguna.id],
+    }),
+    check(
+      'chk_penyesuaian_detail_kecuali',
+      sql`not dikecualikan or (alasan_kecuali is not null and id_pengguna_kecuali is not null and waktu_kecuali is not null)`,
+    ),
     foreignKey({
       name: 'penyesuaian_stok_detail_id_penyesuaian_fkey',
       columns: [t.idPenyesuaian],

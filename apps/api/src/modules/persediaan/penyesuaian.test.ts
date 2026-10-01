@@ -1,11 +1,17 @@
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import ExcelJS from 'exceljs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
 import { json, minta, mintaForm, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
-import { mutasiPersediaan, penjualan, penjualanDetail, persediaan } from '../../db/schema';
+import {
+  logAktivitas,
+  mutasiPersediaan,
+  penjualan,
+  penjualanDetail,
+  persediaan,
+} from '../../db/schema';
 import { tanggalOperasional } from '../../lib/waktu';
 import { hitungUlangCache } from './ledger';
 
@@ -178,6 +184,94 @@ describe('penyesuaian stok (docs/05 §12)', () => {
     expect(lembar.baris.map((b) => b.namaBarang)).not.toContain('Barang lama');
     const res = await kirim(`/${lembar.id}/selesai`);
     expect((await json<Galat>(res)).error.pesan).toContain('Qty fisik belum diisi untuk 3 barang');
+  });
+
+  it('K-069 barang di lembar opname tidak bisa dihapus; dikecualikan wajib alasan, tercatat & masuk log', async () => {
+    await saldoAwal(m.pasir, '7', 3000);
+    const lembar = await ok(kirim('/lembar-opname', { idKategori: null }));
+    const isi = (ubah: Record<number, Record<string, unknown>>) =>
+      lembar.baris.map((b) => {
+        const idBarang = b.idBarang as number;
+        return { idBarang, qtyFisik: '1', ...ubah[idBarang] };
+      });
+
+    // Menghapus baris pasir dari lembar ditolak.
+    const hapus = await kirim(
+      `/${lembar.id}`,
+      { jenis: 'OPNAME', baris: isi({}).filter((b) => b.idBarang !== m.pasir) },
+      'PUT',
+    );
+    expect(hapus.status).toBe(400);
+    expect((await json<Galat>(hapus)).error.pesan).toContain('tidak bisa dihapus: Pasir');
+
+    // Dikecualikan tanpa alasan ditolak.
+    const tanpaAlasan = await kirim(
+      `/${lembar.id}`,
+      { jenis: 'OPNAME', baris: isi({ [m.pasir]: { qtyFisik: null, dikecualikan: true } }) },
+      'PUT',
+    );
+    expect(tanpaAlasan.status).toBe(400);
+
+    const alasan = 'Gudang belakang terkunci';
+    const d = await ok(
+      kirim(
+        `/${lembar.id}`,
+        {
+          jenis: 'OPNAME',
+          baris: isi({ [m.pasir]: { qtyFisik: null, dikecualikan: true, alasanKecuali: alasan } }),
+        },
+        'PUT',
+      ),
+    );
+    const pasir = d.baris.find((b) => b.idBarang === m.pasir)!;
+    expect(pasir).toMatchObject({
+      dikecualikan: true,
+      alasanKecuali: alasan,
+      namaPenggunaKecuali: admin.pengguna.namaPengguna,
+    });
+
+    // Disimpan ulang oleh pengguna lain dengan alasan sama: pencatat awal tetap.
+    const owner = await sesiUji('OWNER');
+    const d2 = await ok(
+      kirim(
+        `/${lembar.id}`,
+        {
+          jenis: 'OPNAME',
+          baris: isi({ [m.pasir]: { qtyFisik: null, dikecualikan: true, alasanKecuali: alasan } }),
+        },
+        'PUT',
+        owner,
+      ),
+    );
+    expect(d2.baris.find((b) => b.idBarang === m.pasir)?.namaPenggunaKecuali).toBe(
+      admin.pengguna.namaPengguna,
+    );
+
+    await selesai(lembar.id);
+    expect((await stok(m.pasir)).stokFisik).toBe('7.000'); // tidak dihitung → tidak berubah
+    expect((await stok(m.semen)).stokFisik).toBe('1.000');
+    const mutasiPasir = await db
+      .select()
+      .from(mutasiPersediaan)
+      .where(eq(mutasiPersediaan.idBarang, m.pasir));
+    expect(mutasiPasir).toHaveLength(1); // hanya saldo awal
+
+    const [log] = await db
+      .select()
+      .from(logAktivitas)
+      .where(eq(logAktivitas.aksi, 'PENYESUAIAN_SELESAI'))
+      .orderBy(desc(logAktivitas.id))
+      .limit(1);
+    expect(log?.ringkasan).toContain('dikecualikan 1 (Pasir: Gudang belakang terkunci)');
+    expect(log?.ringkasan).toContain('barang aktif di luar dokumen 0');
+
+    // Pengecualian hanya untuk opname.
+    const koreksi = await kirim('', {
+      jenis: 'KOREKSI',
+      alasan: 'uji',
+      baris: [{ idBarang: m.semen, qtySelisih: '1', dikecualikan: true, alasanKecuali: 'xyz' }],
+    });
+    expect(koreksi.status).toBe(400);
   });
 
   it('A4/A5 koreksi ± dan pindah ke stok rusak (dua mutasi PINDAH_KONDISI); HPP tetap', async () => {

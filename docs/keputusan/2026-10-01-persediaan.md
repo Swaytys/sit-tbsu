@@ -62,3 +62,20 @@ menulis stok tidak bisa diperiksa dulu.
 **Alasan:** Satu definisi status mencegah angka di dashboard, notifikasi, dan daftar barang berbeda; kartu stok
 yang memeriksa dirinya terhadap ledger langsung ketahuan bila cache rusak.
 **Ditolak:** menyimpan status stok sebagai kolom (K-023: dihitung, tidak disimpan); tabel notifikasi (ST2).
+
+### K-069 — Barang di lembar opname dikecualikan, bukan dihapus (keputusan pemilik, 2 Oktober 2026)
+**Keputusan (opsi A dipilih pemilik):**
+1. Baris yang sudah tersimpan di dokumen OPNAME tidak bisa dihapus (API menolak). Barang yang tidak dihitung
+   ditandai **dikecualikan** dengan alasan wajib; dicatat siapa dan kapan (bila draf disimpan ulang dengan alasan
+   sama, pencatat awal dipertahankan). Bisa "disertakan lagi" selama DRAFT.
+2. Barang dikecualikan tidak menghasilkan mutasi; stok sistem saat selesai tetap dicatat. Tampil sebagai
+   "Dikecualikan: alasan" di lembar hitung cetak dan di dokumen selesai (dengan nama & waktu).
+3. Log: PENYESUAIAN_UBAH menyebut barang yang dikecualikan/disertakan lagi beserta alasan; PENYESUAIAN_SELESAI
+   menyebut jumlah dihitung, dikecualikan (nama: alasan), dan jumlah barang aktif di luar dokumen.
+4. Baris yang belum pernah disimpan (baru ditambah di layar) tetap bisa dihapus, dengan tombol Urungkan.
+5. Skema v3.3: kolom `dikecualikan`, `alasan_kecuali`, `id_pengguna_kecuali`, `waktu_kecuali` (migrasi 0003).
+
+**Alasan:** Opname per kategori/bergilir tetap bisa, tetapi tidak ada barang yang hilang dari lembar tanpa jejak;
+mencegah penyalahgunaan (menyembunyikan barang yang selisih).
+**Ditolak:** opsi B (lembar tidak bisa dikurangi sama sekali) karena barang yang memang tidak bisa dihitung saat
+itu akan memblokir seluruh opname. Modul opname terjadwal dan cakupan per periode: backlog v2 Sprint E.
