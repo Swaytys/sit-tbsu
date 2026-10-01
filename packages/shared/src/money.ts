@@ -55,3 +55,19 @@ export function formatRupiah(nilai: number): string {
 export function keTeksPersen(nilai: NilaiDesimal): string {
   return new Decimal(nilai).toFixed(2, Decimal.ROUND_HALF_UP);
 }
+
+/**
+ * L4: HPP rata-rata tertimbang = bulatkanRupiah((qtyLama × hppLama + qtyMasuk × hppMasuk) ÷ (qtyLama + qtyMasuk)).
+ * Qty dalam teks desimal (numeric), HPP rupiah per satuan dasar.
+ */
+export function hppRataRata(
+  qtyLama: NilaiDesimal,
+  hppLama: number,
+  qtyMasuk: NilaiDesimal,
+  hppMasuk: number,
+): number {
+  const total = new Decimal(qtyLama).plus(qtyMasuk);
+  if (total.lessThanOrEqualTo(0)) throw new RangeError('Jumlah qty untuk HPP harus > 0');
+  const nilai = new Decimal(qtyLama).times(hppLama).plus(new Decimal(qtyMasuk).times(hppMasuk));
+  return bulatkanRupiah(nilai.div(total));
+}

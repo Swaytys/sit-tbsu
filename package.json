@@ -17,6 +17,7 @@
     "db:migrate": "pnpm --filter @sit/api run db:migrate",
     "db:seed": "pnpm --filter @sit/api run db:seed",
     "db:reset": "pnpm --filter @sit/api run db:reset",
+    "db:audit": "pnpm --filter @sit/api run db:audit",
     "prepare": "husky"
   },
   "devDependencies": {
