@@ -1,4 +1,4 @@
-import type { AksiLog, StatusAktif } from '@sit/shared';
+import type { AksiLog, JenisPenerimaan, StatusAktif, StatusHutang } from '@sit/shared';
 
 /** Label tampilan untuk nilai enum (nilai enum tetap UPPER_SNAKE di data). */
 export { LABEL_JENIS_DIMENSI } from '@sit/shared';
@@ -29,3 +29,15 @@ export function labelAksi(aksi: string): string {
   const teks = aksi.toLowerCase().replaceAll('_', ' ');
   return teks.charAt(0).toUpperCase() + teks.slice(1);
 }
+
+export const LABEL_JENIS_PENERIMAAN: Record<JenisPenerimaan, string> = {
+  PEMBELIAN: 'Pembelian',
+  KONSINYASI: 'Konsinyasi',
+};
+
+export const LABEL_STATUS_HUTANG: Record<StatusHutang, string> = {
+  TIDAK_ADA: 'Tidak ada hutang',
+  BELUM_LUNAS: 'Belum lunas',
+  SEBAGIAN: 'Sebagian',
+  LUNAS: 'Lunas',
+};

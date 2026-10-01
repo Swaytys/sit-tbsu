@@ -56,7 +56,7 @@ export function Sidebar({ terbuka }: { terbuka: boolean }) {
   return (
     <aside
       className={cn(
-        'flex shrink-0 flex-col bg-slate-900 text-slate-300 transition-all duration-300',
+        'flex shrink-0 flex-col bg-slate-900 text-slate-300 transition-all duration-300 print:hidden',
         terbuka ? 'w-64' : 'w-16',
       )}
     >

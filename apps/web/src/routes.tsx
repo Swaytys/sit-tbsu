@@ -29,6 +29,8 @@ const HALAMAN: Record<string, MuatHalaman> = {
     import('@/features/pelanggan/halaman-pelanggan').then((m) => m.HalamanPelanggan),
   '/pemasok': () => import('@/features/pemasok/halaman-pemasok').then((m) => m.HalamanPemasok),
   '/pengguna': () => import('@/features/pengguna/halaman-pengguna').then((m) => m.HalamanPengguna),
+  '/penerimaan': () =>
+    import('@/features/penerimaan/halaman-penerimaan').then((m) => m.HalamanPenerimaan),
   '/pengaturan': () =>
     import('@/features/pengaturan/halaman-pengaturan').then((m) => m.HalamanPengaturan),
 };
@@ -96,6 +98,16 @@ export const router = createBrowserRouter([
       ...ruteMenu,
       ruteLazy('barang/import', 'Data Barang', 'master.import.jalankan', () =>
         import('@/features/barang/halaman-import-barang').then((m) => m.HalamanImportBarang),
+      ),
+      ruteLazy('penerimaan/baru', 'Penerimaan Barang', 'persediaan.penerimaan.kelola', () =>
+        import('@/features/penerimaan/halaman-form-penerimaan').then(
+          (m) => m.HalamanFormPenerimaan,
+        ),
+      ),
+      ruteLazy('penerimaan/:id', 'Penerimaan Barang', 'persediaan.penerimaan.kelola', () =>
+        import('@/features/penerimaan/halaman-detail-penerimaan').then(
+          (m) => m.HalamanDetailPenerimaan,
+        ),
       ),
       ruteLazy('barang/baru', 'Data Barang', 'master.barang.kelola', muatFormBarang),
       ruteLazy('barang/:id', 'Data Barang', 'master.barang.kelola', muatFormBarang),

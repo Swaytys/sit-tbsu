@@ -71,6 +71,7 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
 
   // Harga Jual: ubah Grosir menjadi harga tetap, simpan → tanda lepas.
   await menuUtama(page).getByRole('link', { name: 'Harga Jual' }).click();
+  await expect(page.getByRole('heading', { name: 'Harga Jual' })).toBeVisible();
   await page.getByLabel('Cari barang').fill(nama);
   const barisHarga = page.getByRole('row').filter({ hasText: nama });
   await expect(barisHarga).toContainText('Perlu tinjau');
@@ -88,6 +89,7 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
 
   // Bersihkan: nonaktifkan barang uji.
   await menuUtama(page).getByRole('link', { name: 'Data Barang' }).click();
+  await expect(page.getByRole('heading', { name: 'Data Barang' })).toBeVisible();
   await page.getByLabel('Cari barang').fill(nama);
   await page.getByRole('button', { name: `Aksi untuk ${nama}` }).click();
   await page.getByRole('menuitem', { name: 'Nonaktifkan' }).click();
