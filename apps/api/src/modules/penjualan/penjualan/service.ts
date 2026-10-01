@@ -30,6 +30,8 @@ import { terbitkanNomor } from '../../sistem/penomoran';
 import * as orderRepo from '../order/repo';
 import { buatOrderTx } from '../order/service';
 import { catatPembayaran, hitungTagihan } from '../pembayaran';
+import * as sjRepo from '../surat-jalan/repo';
+import { sisaKirim, suratJalanPenjualan } from '../surat-jalan/service';
 import * as repo from './repo';
 
 /*
@@ -80,9 +82,17 @@ export async function detailPenjualan(
   const h = await repo.penjualanById(db, id);
   if (!h) throw tidakDitemukan();
   const lihatHpp = izin.has('master.barang.lihat_hpp');
-  const baris = (await repo.detailPenjualan(db, id)).map(({ hppSaatTransaksi, ...b }) =>
-    lihatHpp ? { ...b, hppSaatTransaksi } : b,
-  );
+  const kirim = new Map((await sjRepo.qtyBaris(db, id)).map((b) => [b.id, b]));
+  const baris = (await repo.detailPenjualan(db, id)).map(({ hppSaatTransaksi, ...b }) => {
+    const k = kirim.get(b.id);
+    const umum = {
+      ...b,
+      qtyDikirim: k?.qtyDikirim ?? '0.000',
+      qtyTerkirim: k?.qtyTerkirim ?? '0.000',
+      qtyBelumDikirim: k ? sisaKirim(k) : '0.000',
+    };
+    return lihatHpp ? { ...umum, hppSaatTransaksi } : umum;
+  });
   const bayar = await repo.pembayaran(db, id);
   return {
     ...keRespons(h),
@@ -103,6 +113,7 @@ export async function detailPenjualan(
     totalRefund: h.totalRefund,
     baris,
     pembayaran: bayar.map((b) => ({ ...b, tanggal: b.tanggal.toISOString() })),
+    suratJalan: h.jenisPenjualan === 'PENGANTARAN' ? await suratJalanPenjualan(id) : [],
   };
 }
 

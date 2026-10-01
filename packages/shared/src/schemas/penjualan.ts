@@ -8,6 +8,7 @@ import {
   STATUS_PEMBAYARAN,
   STATUS_PENGAMBILAN,
   STATUS_PENGIRIMAN,
+  STATUS_SURAT_JALAN,
   type JenisPembayaran,
   type JenisPenjualan,
   type Kepemilikan,
@@ -18,6 +19,7 @@ import {
   type StatusPembayaran,
   type StatusPengambilan,
   type StatusPengiriman,
+  type StatusSuratJalan,
   type StatusTransaksi,
 } from '../enums';
 import { skemaQtyPositif, skemaTanggal } from './persediaan';
@@ -316,6 +318,11 @@ export type BarisDetailPenjualan = {
   diskonBaris: number;
   subtotal: number;
   statusItem: StatusItem;
+  /** PENGANTARAN: qty di surat jalan yang tidak BATAL, dan yang sudah SELESAI (S2/S4). */
+  qtyDikirim: string;
+  qtyTerkirim: string;
+  /** Qty yang masih boleh dibuatkan surat jalan (S2). */
+  qtyBelumDikirim: string;
   /** Sensitif (`master.barang.lihat_hpp`). */
   hppSaatTransaksi?: number;
 };
@@ -352,6 +359,8 @@ export type DetailPenjualan = BarisDaftarPenjualan & {
   totalRefund: number;
   baris: BarisDetailPenjualan[];
   pembayaran: PembayaranPenjualan[];
+  /** PENGANTARAN: surat jalan invoice ini (terbaru dulu). */
+  suratJalan: BarisSuratJalan[];
 };
 
 // --- Shift (K1; tutup & clerical di Fase 6) ---
@@ -366,4 +375,68 @@ export type ShiftAktif = {
   tanggalOperasional: string;
   waktuBuka: string;
   modalAwal: number;
+};
+
+// --- Surat jalan (docs/05 §7, S1–S7) ---
+
+export const skemaSuratJalan = z.object({
+  alamatKirim: teksOpsional(255, 'Alamat maksimal 255 karakter.'),
+  namaPenerima: teksOpsional(100, 'Nama penerima maksimal 100 karakter.'),
+  noHpPenerima: teksOpsional(20, 'No. HP maksimal 20 karakter.'),
+  sopir: teksOpsional(100, 'Nama sopir maksimal 100 karakter.'),
+  kendaraan: teksOpsional(50, 'Kendaraan maksimal 50 karakter.'),
+  catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+  baris: z
+    .array(
+      z.object({
+        idPenjualanDetail: z.number().int().positive(),
+        qtyKirim: skemaQtyPositif('Qty kirim'),
+      }),
+    )
+    .min(1, 'Pilih minimal satu barang yang dikirim.'),
+});
+export type InputSuratJalan = z.input<typeof skemaSuratJalan>;
+export type DataSuratJalan = z.output<typeof skemaSuratJalan>;
+
+/** Maju satu langkah (S3); sopir/kendaraan boleh diisi saat berangkat. */
+export const skemaStatusSuratJalan = z.object({
+  status: z.enum(['DIMUAT', 'DIKIRIM', 'SELESAI'] as const),
+  sopir: teksOpsional(100, 'Nama sopir maksimal 100 karakter.'),
+  kendaraan: teksOpsional(50, 'Kendaraan maksimal 50 karakter.'),
+});
+
+export const skemaBatalSuratJalan = skemaBatalOrder;
+
+export const skemaCariSuratJalan = skemaHalaman.extend({
+  cari: z.string().trim().max(100).optional(),
+  /** AKTIF = DIPROSES + DIMUAT + DIKIRIM. */
+  status: z.enum([...STATUS_SURAT_JALAN, 'AKTIF'] as const).optional(),
+});
+
+export type BarisSuratJalan = {
+  id: number;
+  nomor: string;
+  tanggal: string;
+  idPenjualan: number;
+  nomorPenjualan: string;
+  namaPelanggan: string | null;
+  alamatKirim: string;
+  namaPenerima: string | null;
+  noHpPenerima: string | null;
+  sopir: string | null;
+  kendaraan: string | null;
+  status: StatusSuratJalan;
+  waktuDimuat: string | null;
+  waktuDikirim: string | null;
+  waktuSelesai: string | null;
+  alasanBatal: string | null;
+  catatan: string | null;
+  namaPengguna: string;
+  baris: {
+    idPenjualanDetail: number;
+    namaBarang: string;
+    kodeBarang: string;
+    kodeSatuan: string;
+    qtyKirim: string;
+  }[];
 };

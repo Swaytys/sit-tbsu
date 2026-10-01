@@ -1,6 +1,11 @@
-import { formatRupiah, type DataPembayaran, type DetailPenjualan } from '@sit/shared';
+import {
+  formatRupiah,
+  type BarisSuratJalan,
+  type DataPembayaran,
+  type DetailPenjualan,
+} from '@sit/shared';
 import { ArrowLeft, PackageCheck, Printer, Wallet } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
@@ -13,6 +18,7 @@ import {
   useTandaiDiambil,
 } from '@/api/penjualan';
 import { AreaCetak } from '@/components/area-cetak';
+import { InvoiceA4, SuratJalanA4 } from '@/components/dokumen-a4';
 import { BadgeStatusBayar } from '@/components/status-badge';
 import { Struk } from '@/components/struk';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +42,7 @@ import {
 } from '@/components/ui/table';
 import { formatDesimal, formatTanggal, formatWaktu } from '@/lib/format';
 import { LABEL_STATUS_PENGAMBILAN, LABEL_STATUS_PENGIRIMAN } from '@/lib/label';
+import { PanelSuratJalan } from '../pengantaran/panel-surat-jalan';
 import { PanelPembayaran } from './panel-pembayaran';
 
 function Info({ judul, children }: { judul: string; children: ReactNode }) {
@@ -98,6 +105,16 @@ export function HalamanDetailPenjualan() {
   const saya = usePengguna();
   const diambil = useTandaiDiambil();
   const [dialogBayar, setDialogBayar] = useState(false);
+  // Dokumen yang sedang dicetak: hanya satu AreaCetak dirender agar tidak tercetak bersamaan.
+  const [cetak, setCetak] = useState<'struk' | 'invoice' | BarisSuratJalan | null>(null);
+  useEffect(() => {
+    if (cetak === null) return;
+    const t = setTimeout(() => {
+      window.print();
+      setCetak(null);
+    }, 150);
+    return () => clearTimeout(t);
+  }, [cetak]);
   const p = detail.data;
   if (!p) {
     return (
@@ -113,7 +130,7 @@ export function HalamanDetailPenjualan() {
   function cetakUlang() {
     if (!p) return;
     void catatCetakUlang(p.id)
-      .then(() => window.print())
+      .then(() => setCetak(langsung ? 'struk' : 'invoice'))
       .catch((err: unknown) => toast.error(pesanGalat(err)));
   }
 
@@ -167,11 +184,9 @@ export function HalamanDetailPenjualan() {
                 <Wallet /> Terima pembayaran
               </Button>
             )}
-          {langsung && (
-            <Button variant="outline" onClick={cetakUlang}>
-              <Printer /> Cetak ulang struk
-            </Button>
-          )}
+          <Button variant="outline" onClick={cetakUlang}>
+            <Printer /> {langsung ? 'Cetak ulang struk' : 'Cetak invoice'}
+          </Button>
         </div>
       </div>
 
@@ -285,10 +300,28 @@ export function HalamanDetailPenjualan() {
         )}
       </Card>
 
+      {!langsung && (
+        <PanelSuratJalan
+          p={p}
+          bolehKelola={saya.izin.includes('penjualan.surat_jalan.kelola')}
+          onCetak={setCetak}
+        />
+      )}
+
       {dialogBayar && <DialogTerimaPembayaran p={p} onTutup={() => setDialogBayar(false)} />}
-      {langsung && toko && (
+      {toko && cetak === 'struk' && (
         <AreaCetak ukuranKertas={`${toko.lebarStrukMm}mm auto`}>
           <Struk p={p} toko={toko} />
+        </AreaCetak>
+      )}
+      {toko && cetak === 'invoice' && (
+        <AreaCetak ukuranKertas="A4">
+          <InvoiceA4 p={p} toko={toko} />
+        </AreaCetak>
+      )}
+      {toko && cetak !== null && typeof cetak === 'object' && (
+        <AreaCetak ukuranKertas="A4">
+          <SuratJalanA4 sj={cetak} toko={toko} />
         </AreaCetak>
       )}
     </div>

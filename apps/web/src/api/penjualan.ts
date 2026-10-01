@@ -2,10 +2,12 @@ import type {
   DataCheckout,
   DataOrder,
   DataPembayaran,
+  DataSuratJalan,
   JenisPenjualan,
   StatusOrder,
   StatusPembayaran,
   StatusPengambilan,
+  StatusSuratJalan,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, ambilIsi, api } from './client';
@@ -203,4 +205,60 @@ export function useDetailPenjualan(id: number | null) {
     queryFn: async () => ambilData(await api.penjualan[':id'].$get({ param: { id: String(id) } })),
     enabled: id !== null,
   });
+}
+
+// --- Surat jalan ---
+
+export function useDaftarSuratJalan(p: {
+  status: StatusSuratJalan | 'AKTIF' | null;
+  cari: string;
+}) {
+  return useQuery({
+    queryKey: ['penjualan', 'surat-jalan', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api['surat-jalan'].$get({
+          query: {
+            status: p.status ?? undefined,
+            cari: p.cari || undefined,
+            perHalaman: '100',
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useBuatSuratJalan() {
+  return useMutasiPenjualan(async ({ id, json }: { id: number; json: DataSuratJalan }) =>
+    ambilData(await api.penjualan[':id']['surat-jalan'].$post({ param: param(id), json })),
+  );
+}
+
+export function useStatusSuratJalan() {
+  return useMutasiPenjualan(
+    async ({
+      id,
+      status,
+      sopir,
+      kendaraan,
+    }: {
+      id: number;
+      status: 'DIMUAT' | 'DIKIRIM' | 'SELESAI';
+      sopir?: string | null;
+      kendaraan?: string | null;
+    }) =>
+      ambilData(
+        await api['surat-jalan'][':id'].status.$post({
+          param: param(id),
+          json: { status, sopir, kendaraan },
+        }),
+      ),
+  );
+}
+
+export function useBatalSuratJalan() {
+  return useMutasiPenjualan(async ({ id, alasan }: { id: number; alasan: string }) =>
+    ambilData(await api['surat-jalan'][':id'].batal.$post({ param: param(id), json: { alasan } })),
+  );
 }

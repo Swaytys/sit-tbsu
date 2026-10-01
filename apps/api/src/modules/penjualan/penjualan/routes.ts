@@ -1,9 +1,16 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaBayarPenjualan, skemaCariPenjualan, skemaCheckout, skemaIdParam } from '@sit/shared';
+import {
+  skemaBayarPenjualan,
+  skemaCariPenjualan,
+  skemaCheckout,
+  skemaIdParam,
+  skemaSuratJalan,
+} from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
 import { kaitValidasi } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
+import { buatSuratJalan } from '../surat-jalan/service';
 import {
   bayarPenjualan,
   catatCetakUlang,
@@ -42,6 +49,21 @@ export const penjualanRoutes = new Hono<EnvApp>()
         c.get('asal'),
       );
       return c.json({ data }, 200);
+    },
+  )
+  .post(
+    '/:id/surat-jalan',
+    requirePermission('penjualan.surat_jalan.kelola'),
+    param,
+    zValidator('json', skemaSuratJalan, kaitValidasi),
+    async (c) => {
+      const data = await buatSuratJalan(
+        c.req.valid('param').id,
+        c.req.valid('json'),
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data }, 201);
     },
   )
   .post('/:id/diambil', kasir, param, async (c) =>
