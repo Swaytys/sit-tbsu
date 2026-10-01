@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
 import { kaitValidasi } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
+import { stokTertahan } from '../../penjualan/order/service';
 import { daftarMutasi, daftarStok, eksporStok, kartuStok } from './service';
 
 const lihat = requirePermission('persediaan.stok.lihat');
@@ -17,6 +18,7 @@ export const stokRoutes = new Hono<EnvApp>()
     const { isi, header } = await eksporStok(c.req.valid('query'), penggunaWajib(c).izin);
     return c.body(isi, 200, header);
   })
+  .get('/tertahan', lihat, async (c) => c.json({ data: await stokTertahan() }, 200))
   .get('/mutasi', lihat, zValidator('query', skemaCariMutasi, kaitValidasi), async (c) =>
     c.json(await daftarMutasi(c.req.valid('query'), penggunaWajib(c).izin), 200),
   )

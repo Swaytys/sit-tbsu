@@ -19,6 +19,7 @@ import { pemasokRoutes } from './modules/master/pemasok/routes';
 import { penggunaRoutes } from './modules/master/pengguna/routes';
 import { satuanRoutes } from './modules/master/satuan/routes';
 import { tingkatHargaRoutes } from './modules/master/tingkat-harga/routes';
+import { orderRoutes } from './modules/penjualan/order/routes';
 import { penerimaanRoutes } from './modules/persediaan/penerimaan/routes';
 import { penyesuaianRoutes } from './modules/persediaan/penyesuaian/routes';
 import { stokRoutes } from './modules/persediaan/stok/routes';
@@ -42,6 +43,7 @@ const rute = new Hono<EnvApp>()
   .route('/penerimaan', penerimaanRoutes)
   .route('/penyesuaian', penyesuaianRoutes)
   .route('/stok', stokRoutes)
+  .route('/order', orderRoutes)
   .route('/pelanggan', pelangganRoutes)
   .route('/pemasok', pemasokRoutes)
   .route('/pengguna', penggunaRoutes)

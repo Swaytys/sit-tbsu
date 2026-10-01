@@ -44,6 +44,7 @@ memakai kode di luar daftar gagal typecheck.
 | `penjualan.order.batal_sendiri` | Batalkan order buatannya sendiri yang masih MENUNGGU |
 | `penjualan.order.batal` | Batalkan order siapa pun yang belum SELESAI |
 | `penjualan.order.lihat_semua` | Lihat antrean dan riwayat order semua pengguna |
+| `penjualan.order.lepas_paksa` | Melepas kunci order DIPROSES milik kasir lain (R8; K-070) |
 | `penjualan.checkout` | Proses order menjadi penjualan (langsung dan pengantaran) |
 | `penjualan.tier.ubah` | Mengganti tier harga pada baris saat order/checkout |
 | `penjualan.harga_manual` | Mengisi harga di luar tier |
@@ -127,6 +128,7 @@ memakai kode di luar daftar gagal typecheck.
 | penjualan.order.batal_sendiri | ✓ | ✓ | ✓ | ✓ |
 | penjualan.order.batal | | ✓ | ✓ | ✓ |
 | penjualan.order.lihat_semua | | ✓ | ✓ | ✓ |
+| penjualan.order.lepas_paksa | | | ✓ | ✓ |
 | penjualan.checkout | | ✓ | ✓ | ✓ |
 | penjualan.tier.ubah | | ✓ | ✓ | ✓ |
 | penjualan.harga_manual | | | ✓ | ✓ |

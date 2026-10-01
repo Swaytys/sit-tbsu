@@ -4,7 +4,7 @@ import { logAktivitas } from '../../db/schema';
 
 export type EntriLog = {
   aksi: AksiLog;
-  /** null hanya untuk percobaan login dengan username tak dikenal. */
+  /** null hanya untuk percobaan login dengan username tak dikenal dan aksi otomatis sistem (job). */
   idPengguna: number | null;
   usernamePercobaan?: string;
   entitas?: string;

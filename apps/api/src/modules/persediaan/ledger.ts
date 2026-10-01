@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import {
   bandingQty,
   hppRataRata,
@@ -248,13 +248,69 @@ export async function catatMutasi(tx: Tx, m: InputMutasi): Promise<HasilMutasi> 
   return { idMutasi: baris.id, saldoSetelah: saldoBaru, hppSetelah: hppBaru, hppSatuan };
 }
 
+// --- Reservasi order (R2–R6, K-006) ---
+
+export type PerubahanReservasi = { idBarang: number; delta: string };
+
+/**
+ * SATU-SATUNYA jalan mengubah `stok_dipesan` (CLAUDE.md aturan 2). Di dalam `tx`: mengunci baris persediaan
+ * berurutan id barang (mencegah deadlock antar-transaksi), memeriksa semua penambahan terhadap stok tersedia,
+ * lalu menerapkan. Bila ada barang yang kurang, tidak ada yang diubah dan pesan menyebut SEMUA barang itu (R3).
+ * Delta negatif = melepas reservasi (batal, checkout, baris dikurangi).
+ */
+export async function ubahReservasi(tx: Tx, perubahan: PerubahanReservasi[]): Promise<void> {
+  const gabung = new Map<number, string>();
+  for (const p of perubahan)
+    gabung.set(p.idBarang, tambahQty(gabung.get(p.idBarang) ?? '0', p.delta));
+  const urut = [...gabung.entries()]
+    .filter(([, d]) => bandingQty(d, 0) !== 0)
+    .sort(([a], [b]) => a - b);
+  const kurang: { idBarang: number; nama: string; tersedia: string; diminta: string }[] = [];
+  const baru: { idBarang: number; dipesan: string }[] = [];
+  for (const [idBarang, delta] of urut) {
+    const p = await kunciPersediaan(tx, idBarang);
+    const dipesan = tambahQty(p.stokDipesan, delta);
+    if (bandingQty(dipesan, 0) < 0) {
+      throw new Error(`ubahReservasi: stok_dipesan barang ${idBarang} menjadi negatif`);
+    }
+    if (bandingQty(delta, 0) > 0) {
+      const tersedia = kurangQty(p.stokFisik, p.stokDipesan);
+      if (bandingQty(delta, tersedia) > 0) {
+        const [b] = await tx
+          .select({ nama: barang.namaBarang })
+          .from(barang)
+          .where(eq(barang.id, idBarang));
+        kurang.push({ idBarang, nama: b?.nama ?? `#${idBarang}`, tersedia, diminta: keQty(delta) });
+      }
+    }
+    baru.push({ idBarang, dipesan });
+  }
+  if (kurang.length > 0) {
+    throw new AppError(
+      'STOK_TIDAK_CUKUP',
+      `Stok tersedia tidak cukup: ${kurang
+        .map((k) => `${k.nama} (tersedia ${k.tersedia}, diminta ${k.diminta})`)
+        .join('; ')}.`,
+      409,
+      { barang: kurang },
+    );
+  }
+  const waktu = sekarang();
+  for (const b of baru) {
+    await tx
+      .update(persediaan)
+      .set({ stokDipesan: b.dipesan, diubahPada: waktu })
+      .where(eq(persediaan.idBarang, b.idBarang));
+  }
+}
+
 // --- L9: hitung ulang cache dari ledger ---
 
 export type HasilAudit = {
   idBarang: number;
   cocok: boolean;
-  cache: { stokFisik: string; stokRusak: string; hppRata2: number };
-  ledger: { stokFisik: string; stokRusak: string; hppRata2: number };
+  cache: { stokFisik: string; stokRusak: string; stokDipesan: string; hppRata2: number };
+  ledger: { stokFisik: string; stokRusak: string; stokDipesan: string; hppRata2: number };
   masalah: string[];
 };
 
@@ -267,6 +323,7 @@ export async function hitungUlangCache(ex: Executor, idBarang: number): Promise<
     .select({
       stokFisik: persediaan.stokFisik,
       stokRusak: persediaan.stokRusak,
+      stokDipesan: persediaan.stokDipesan,
       hppRata2: persediaan.hppRata2,
       kepemilikan: barang.kepemilikan,
       hargaModalAwal: barang.hargaModalAwal,
@@ -303,12 +360,34 @@ export async function hitungUlangCache(ex: Executor, idBarang: number): Promise<
       hpp = r.hppSetelah;
     }
   }
+  // R2: stok dipesan = Σ qty_dasar baris order MENUNGGU/DIPROSES.
+  const [tahan] = await ex
+    .select({
+      qty: sql<string>`coalesce(sum(${orderPenjualanDetail.qtyDasar}), 0)::text`,
+    })
+    .from(orderPenjualanDetail)
+    .innerJoin(orderPenjualan, eq(orderPenjualan.id, orderPenjualanDetail.idOrder))
+    .where(
+      and(
+        eq(orderPenjualanDetail.idBarang, idBarang),
+        inArray(orderPenjualan.status, ['MENUNGGU', 'DIPROSES']),
+      ),
+    );
   const ledger = {
     stokFisik: saldo.BAIK,
     stokRusak: saldo.RUSAK,
+    stokDipesan: keQty(tahan?.qty ?? '0'),
     hppRata2: p.kepemilikan === 'KONSINYASI' || daftar.length === 0 ? p.hppRata2 : hpp,
   };
-  const cache = { stokFisik: p.stokFisik, stokRusak: p.stokRusak, hppRata2: p.hppRata2 };
+  const cache = {
+    stokFisik: p.stokFisik,
+    stokRusak: p.stokRusak,
+    stokDipesan: p.stokDipesan,
+    hppRata2: p.hppRata2,
+  };
+  if (bandingQty(cache.stokDipesan, ledger.stokDipesan) !== 0) {
+    masalah.push(`stok_dipesan ${cache.stokDipesan}, order ${ledger.stokDipesan}.`);
+  }
   if (bandingQty(cache.stokFisik, ledger.stokFisik) !== 0) {
     masalah.push(`stok_fisik ${cache.stokFisik}, ledger ${ledger.stokFisik}.`);
   }
