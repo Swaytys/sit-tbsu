@@ -2,14 +2,25 @@ import { z } from 'zod';
 import type { MetaHalaman } from '../api';
 import {
   JENIS_PENJUALAN,
+  METODE_PEMBAYARAN,
   PRIORITAS_ORDER,
   STATUS_ORDER,
+  STATUS_PEMBAYARAN,
+  STATUS_PENGAMBILAN,
+  STATUS_PENGIRIMAN,
+  type JenisPembayaran,
   type JenisPenjualan,
   type Kepemilikan,
+  type MetodePembayaran,
   type PrioritasOrder,
+  type StatusItem,
   type StatusOrder,
+  type StatusPembayaran,
+  type StatusPengambilan,
+  type StatusPengiriman,
+  type StatusTransaksi,
 } from '../enums';
-import { skemaQtyPositif } from './persediaan';
+import { skemaQtyPositif, skemaTanggal } from './persediaan';
 import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
 
 /*
@@ -200,4 +211,159 @@ export type BarisStokTertahan = {
     waktuMasukAntrean: string | null;
     basi: boolean;
   }[];
+};
+
+// --- Checkout & pembayaran (docs/05 P1–P13) ---
+
+export const skemaPembayaran = z
+  .object({
+    metode: z.enum(METODE_PEMBAYARAN, 'Metode bayar tidak valid.'),
+    nominal: z
+      .preprocess((v) => (v === '' ? null : v), skemaRupiah)
+      .refine((v) => v > 0, {
+        message: 'Nominal harus lebih dari 0.',
+      }),
+    /** TUNAI: uang yang diserahkan pembeli (kembalian dihitung server). */
+    uangDiterima: z.preprocess(kosongJadiNull, skemaRupiah.nullable()).default(null),
+    rekening: teksOpsional(60, 'Rekening maksimal 60 karakter.'),
+    referensi: teksOpsional(60, 'Referensi maksimal 60 karakter.'),
+    catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+  })
+  .superRefine((p, ctx) => {
+    if (p.metode === 'TUNAI' && p.uangDiterima !== null && p.uangDiterima < p.nominal) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['uangDiterima'],
+        message: 'Uang diterima kurang dari nominal.',
+      });
+    }
+    if (p.metode !== 'TUNAI' && !p.rekening) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['rekening'],
+        message: 'Rekening tujuan wajib diisi untuk transfer/EDC.',
+      });
+    }
+  });
+export type InputPembayaran = z.input<typeof skemaPembayaran>;
+export type DataPembayaran = z.output<typeof skemaPembayaran>;
+
+export const skemaCheckout = z
+  .object({
+    /** Checkout dari order DIPROSES milik kasir ini … */
+    idOrder: z.number().int().positive().nullable().default(null),
+    /** … atau checkout langsung: order dibuat dan diselesaikan dalam satu transaksi (P1). */
+    order: skemaOrder.nullable().default(null),
+    pembayaran: z.array(skemaPembayaran).max(5, 'Maksimal 5 pembayaran.').default([]),
+    statusPengambilan: z.enum(STATUS_PENGAMBILAN).default('DIAMBIL'),
+    /** Wajib bila belum lunas; kosong = default P7. */
+    tanggalJatuhTempo: skemaTanggal('Tanggal jatuh tempo').nullable().default(null),
+    bayarSaatTerima: z.boolean().default(false),
+    catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+    /** P2: barang yang harganya diperbarui ke harga tier saat ini (dicatat log). */
+    perbaruiHarga: z.array(z.number().int().positive()).default([]),
+  })
+  .refine((d) => (d.idOrder === null) !== (d.order === null), {
+    message: 'Pilih order dari antrean atau isi keranjang.',
+    path: ['idOrder'],
+  });
+export type InputCheckout = z.input<typeof skemaCheckout>;
+export type DataCheckout = z.output<typeof skemaCheckout>;
+
+export const skemaBayarPenjualan = z.object({ pembayaran: skemaPembayaran });
+
+export const skemaCariPenjualan = skemaHalaman.extend({
+  cari: z.string().trim().max(100).optional(),
+  jenis: z.enum(JENIS_PENJUALAN).optional(),
+  statusPembayaran: z.enum(STATUS_PEMBAYARAN).optional(),
+  statusPengambilan: z.enum(STATUS_PENGAMBILAN).optional(),
+  statusPengiriman: z.enum(STATUS_PENGIRIMAN).optional(),
+  dari: skemaTanggal('Tanggal awal').optional(),
+  sampai: skemaTanggal('Tanggal akhir').optional(),
+});
+export type ParamCariPenjualan = z.input<typeof skemaCariPenjualan>;
+
+export type BarisDaftarPenjualan = {
+  id: number;
+  nomor: string;
+  tanggal: string;
+  tanggalOperasional: string;
+  jenisPenjualan: JenisPenjualan;
+  idPelanggan: number | null;
+  namaPelanggan: string | null;
+  namaPembeli: string | null;
+  namaKasir: string;
+  totalNeto: number;
+  totalDibayar: number;
+  sisaTagihan: number;
+  statusPembayaran: StatusPembayaran;
+  statusTransaksi: StatusTransaksi;
+  statusPengambilan: StatusPengambilan | null;
+  statusPengiriman: StatusPengiriman | null;
+  tanggalJatuhTempo: string | null;
+};
+
+export type BarisDetailPenjualan = {
+  id: number;
+  idBarang: number;
+  kodeBarang: string;
+  namaBarang: string;
+  kodeSatuan: string;
+  qty: string;
+  namaTier: string | null;
+  hargaSatuan: number;
+  hargaManual: boolean;
+  diskonBaris: number;
+  subtotal: number;
+  statusItem: StatusItem;
+  /** Sensitif (`master.barang.lihat_hpp`). */
+  hppSaatTransaksi?: number;
+};
+
+export type PembayaranPenjualan = {
+  id: number;
+  nomor: string;
+  tanggal: string;
+  jenis: JenisPembayaran;
+  metode: MetodePembayaran;
+  nominal: number;
+  uangDiterima: number | null;
+  kembalian: number;
+  rekening: string | null;
+  referensi: string | null;
+  namaPengguna: string;
+};
+
+export type DetailPenjualan = BarisDaftarPenjualan & {
+  nomorOrder: string | null;
+  idOrder: number | null;
+  nomorShift: string | null;
+  alamatKirim: string | null;
+  catatanKirim: string | null;
+  catatan: string | null;
+  bayarSaatTerima: boolean;
+  noHpPelanggan: string | null;
+  totalBruto: number;
+  totalDiskon: number;
+  diskonTransaksi: number;
+  ongkir: number;
+  totalVoid: number;
+  totalRetur: number;
+  totalRefund: number;
+  baris: BarisDetailPenjualan[];
+  pembayaran: PembayaranPenjualan[];
+};
+
+// --- Shift (K1; tutup & clerical di Fase 6) ---
+
+export const skemaBukaShift = z.object({
+  modalAwal: z.preprocess((v) => (v === '' || v == null ? 0 : v), skemaRupiah),
+});
+
+export type ShiftAktif = {
+  id: number;
+  nomor: string;
+  tanggalOperasional: string;
+  waktuBuka: string;
+  modalAwal: number;
 };

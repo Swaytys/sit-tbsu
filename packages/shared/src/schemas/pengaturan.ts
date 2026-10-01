@@ -130,6 +130,13 @@ export type TampilanToko = {
   /** URL logo (dilayani API), `null` bila belum ada. */
   logo: string | null;
   barisPerHalaman: number;
+  /** Kop & kaki struk/invoice (P14). */
+  alamatToko: string;
+  telpToko: string;
+  footerStruk: string;
+  lebarStrukMm: 58 | 80;
+  strukTampilkanNama: boolean;
+  strukTampilkanLogo: boolean;
 };
 
 // --- Log aktivitas (Pengaturan › tab Log Aktivitas, izin sistem.log.lihat; docs/04 §8) ---
