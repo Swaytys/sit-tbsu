@@ -87,3 +87,92 @@ test('Admin: saldo awal, koreksi, lalu stok opname mengubah stok sesuai dokumen'
 
   await api(page, `/barang/${barang.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
 });
+
+test('Admin: hapus baris bisa diurungkan; pindah halaman dengan isian belum disimpan diminta konfirmasi', async ({
+  page,
+}) => {
+  const nama = `Kawat Urungkan E2E ${Date.now()}`;
+  await masukCepat(page, 'ADMIN');
+  const kategori = await api<{ id: number }[]>(page, '/kategori?status=AKTIF');
+  const satuan = await api<{ id: number; kode: string }[]>(page, '/satuan?status=AKTIF');
+  const tier = await api<{ id: number; isDefault: boolean }[]>(page, '/tingkat-harga');
+  const barang = await api<{ id: number }>(page, '/barang', 'POST', {
+    namaBarang: nama,
+    idKategori: kategori[0]!.id,
+    idSatuanDasar: satuan.find((s) => s.kode === 'sak')!.id,
+    hargaModalAwal: 500,
+    hargaTier: [{ idTingkatHarga: tier.find((t) => t.isDefault)!.id, hargaTetap: 700 }],
+  });
+  try {
+    await page.goto('/persediaan/penyesuaian/baru?jenis=KOREKSI');
+    await tambahBarang(page, nama);
+    await page.getByLabel(`Selisih (+/−) ${nama}`).fill('4');
+
+    await page.getByRole('button', { name: 'Hapus baris 1' }).click();
+    await expect(page.getByLabel(`Selisih (+/−) ${nama}`)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Urungkan' }).click();
+    await expect(page.getByLabel(`Selisih (+/−) ${nama}`)).toHaveValue('4');
+
+    await menuUtama(page).getByRole('link', { name: 'Data Barang' }).click();
+    const dialog = page.getByRole('alertdialog', { name: 'Tinggalkan halaman ini?' });
+    await dialog.getByRole('button', { name: 'Tetap di sini' }).click();
+    await expect(page.getByLabel(`Selisih (+/−) ${nama}`)).toHaveValue('4');
+
+    await menuUtama(page).getByRole('link', { name: 'Data Barang' }).click();
+    await dialog.getByRole('button', { name: 'Tinggalkan' }).click();
+    await expect(page.getByRole('heading', { name: 'Data Barang' })).toBeVisible();
+  } finally {
+    await api(page, `/barang/${barang.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+  }
+});
+
+test('Admin: barang di lembar opname dikecualikan dengan alasan, tetap tercatat di dokumen', async ({
+  page,
+}) => {
+  const kode = Date.now();
+  await masukCepat(page, 'ADMIN');
+  const kat = await api<{ id: number }>(page, '/kategori', 'POST', { nama: `Opname E2E ${kode}` });
+  const satuan = await api<{ id: number; kode: string }[]>(page, '/satuan?status=AKTIF');
+  const tier = await api<{ id: number; isDefault: boolean }[]>(page, '/tingkat-harga');
+  const buat = (nama: string) =>
+    api<{ id: number }>(page, '/barang', 'POST', {
+      namaBarang: nama,
+      idKategori: kat.id,
+      idSatuanDasar: satuan.find((s) => s.kode === 'sak')!.id,
+      hargaModalAwal: 500,
+      hargaTier: [{ idTingkatHarga: tier.find((t) => t.isDefault)!.id, hargaTetap: 700 }],
+    });
+  const a = await buat(`Opname A ${kode}`);
+  const b = await buat(`Opname B ${kode}`);
+  try {
+    await page.goto('/persediaan?tab=penyesuaian');
+    await page.getByRole('button', { name: 'Stok opname' }).click();
+    await page.getByLabel('Barang yang dihitung').click();
+    await page.getByRole('option', { name: `Kategori Opname E2E ${kode}` }).click();
+    await page.getByRole('button', { name: 'Buat lembar opname' }).click();
+    await expect(page.getByTestId('ringkasan-opname')).toContainText('2 barang');
+
+    // Barang di lembar tidak bisa dihapus, hanya dikecualikan dengan alasan.
+    await expect(page.getByRole('button', { name: /^Hapus baris/ })).toHaveCount(0);
+    await page.getByLabel(`Fisik dihitung Opname A ${kode}`).fill('5');
+    await page.getByRole('button', { name: `Kecualikan Opname B ${kode}` }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('button', { name: 'Kecualikan' })).toBeDisabled();
+    await dialog.getByLabel('Alasan').fill('Rak atas belum bisa dijangkau');
+    await dialog.getByRole('button', { name: 'Kecualikan' }).click();
+    await expect(page.getByTestId('ringkasan-opname')).toContainText('1 dikecualikan');
+
+    await selesaikan(page);
+    const barisB = page.getByRole('row').filter({ hasText: `Opname B ${kode}` });
+    await expect(barisB).toContainText('Dikecualikan');
+    await expect(barisB).toContainText('Rak atas belum bisa dijangkau');
+    await expect(barisB).toContainText('oleh');
+    expect(await stokBarang(page, a.id)).toBe('5.000');
+    expect(await stokBarang(page, b.id)).toBe('0.000');
+  } finally {
+    for (const id of [a.id, b.id]) {
+      await api(page, `/barang/${id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+    }
+    await api(page, `/kategori/${kat.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+  }
+});

@@ -176,6 +176,9 @@ export const skemaBarisPenyesuaian = z.object({
   /** SALDO_AWAL: nilai per satuan dasar. Lainnya diisi server (hpp_rata2 saat selesai). */
   hppSatuan: z.preprocess(kosongJadiNull, skemaRupiah.nullable()),
   keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
+  /** OPNAME (K-069): barang di lembar yang sengaja tidak dihitung; alasan wajib. */
+  dikecualikan: z.boolean().default(false),
+  alasanKecuali: teksOpsional(150, 'Alasan maksimal 150 karakter.'),
 });
 export type InputBarisPenyesuaian = z.input<typeof skemaBarisPenyesuaian>;
 
@@ -201,6 +204,13 @@ export const skemaPenyesuaian = z
       if (d.jenis === 'SALDO_AWAL') {
         if (nol(b.qtyFisik)) salah(['baris', i, 'qtyFisik'], 'Jumlah awal harus lebih dari 0.');
         if (b.hppSatuan === null) salah(['baris', i, 'hppSatuan'], 'Nilai per satuan wajib diisi.');
+      }
+      if (b.dikecualikan) {
+        if (d.jenis !== 'OPNAME') {
+          salah(['baris', i, 'dikecualikan'], 'Pengecualian hanya untuk stok opname.');
+        } else if (!b.alasanKecuali || b.alasanKecuali.length < 3) {
+          salah(['baris', i, 'alasanKecuali'], 'Alasan pengecualian wajib diisi (min. 3 huruf).');
+        }
       }
       if (d.jenis === 'KOREKSI' && nol(b.qtySelisih)) {
         salah(['baris', i, 'qtySelisih'], 'Selisih koreksi tidak boleh 0.');
@@ -255,6 +265,11 @@ export type BarisDetailPenyesuaian = {
   qtySelisih: string;
   hppSatuan: number;
   keterangan: string | null;
+  /** OPNAME: tidak dihitung, dengan alasan, siapa, dan kapan (K-069). */
+  dikecualikan: boolean;
+  alasanKecuali: string | null;
+  namaPenggunaKecuali: string | null;
+  waktuKecuali: string | null;
 };
 
 export type DetailPenyesuaian = BarisDaftarPenyesuaian & {

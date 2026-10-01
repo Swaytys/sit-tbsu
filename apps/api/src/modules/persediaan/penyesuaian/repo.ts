@@ -1,4 +1,17 @@
-import { and, asc, count, desc, eq, ilike, inArray, ne, sql, type SQL } from 'drizzle-orm';
+import {
+  aliasedTable,
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  ne,
+  notExists,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import type { JenisPenyesuaian, StatusPenyesuaian } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
@@ -13,6 +26,8 @@ import {
   satuan,
 } from '../../../db/schema';
 import { polaCari } from '../../../lib/paginasi';
+
+const penggunaKecuali = aliasedTable(pengguna, 'pengguna_kecuali');
 
 const jumlahBaris = sql<number>`(select count(*)::int from ${penyesuaianStokDetail}
   where ${penyesuaianStokDetail.idPenyesuaian} = ${penyesuaianStok.id})`;
@@ -104,6 +119,10 @@ export function detailPenyesuaian(ex: Executor, idPenyesuaian: number) {
       qtySelisih: penyesuaianStokDetail.qtySelisih,
       hppSatuan: penyesuaianStokDetail.hppSatuan,
       keterangan: penyesuaianStokDetail.keterangan,
+      dikecualikan: penyesuaianStokDetail.dikecualikan,
+      alasanKecuali: penyesuaianStokDetail.alasanKecuali,
+      namaPenggunaKecuali: penggunaKecuali.namaPengguna,
+      waktuKecuali: penyesuaianStokDetail.waktuKecuali,
       stokFisikKini: persediaan.stokFisik,
       stokRusakKini: persediaan.stokRusak,
     })
@@ -112,6 +131,7 @@ export function detailPenyesuaian(ex: Executor, idPenyesuaian: number) {
     .innerJoin(kategori, eq(kategori.id, barang.idKategori))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
     .innerJoin(persediaan, eq(persediaan.idBarang, penyesuaianStokDetail.idBarang))
+    .leftJoin(penggunaKecuali, eq(penggunaKecuali.id, penyesuaianStokDetail.idPenggunaKecuali))
     .where(eq(penyesuaianStokDetail.idPenyesuaian, idPenyesuaian))
     .orderBy(asc(kategori.nama), asc(barang.namaBarang));
 }
@@ -217,6 +237,8 @@ export function detailUntukSelesai(tx: Tx, idPenyesuaian: number) {
       qtyFisik: penyesuaianStokDetail.qtyFisik,
       qtySelisih: penyesuaianStokDetail.qtySelisih,
       hppSatuan: penyesuaianStokDetail.hppSatuan,
+      dikecualikan: penyesuaianStokDetail.dikecualikan,
+      alasanKecuali: penyesuaianStokDetail.alasanKecuali,
       namaBarang: barang.namaBarang,
       statusAktif: barang.statusAktif,
     })
@@ -224,4 +246,44 @@ export function detailUntukSelesai(tx: Tx, idPenyesuaian: number) {
     .innerJoin(barang, eq(barang.id, penyesuaianStokDetail.idBarang))
     .where(eq(penyesuaianStokDetail.idPenyesuaian, idPenyesuaian))
     .orderBy(asc(penyesuaianStokDetail.idBarang));
+}
+
+/** Baris tersimpan sebuah draf: dasar aturan K-069 (baris opname tidak boleh hilang diam-diam). */
+export function barisTersimpan(tx: Tx, idPenyesuaian: number) {
+  return tx
+    .select({
+      idBarang: penyesuaianStokDetail.idBarang,
+      namaBarang: barang.namaBarang,
+      dikecualikan: penyesuaianStokDetail.dikecualikan,
+      alasanKecuali: penyesuaianStokDetail.alasanKecuali,
+      idPenggunaKecuali: penyesuaianStokDetail.idPenggunaKecuali,
+      waktuKecuali: penyesuaianStokDetail.waktuKecuali,
+    })
+    .from(penyesuaianStokDetail)
+    .innerJoin(barang, eq(barang.id, penyesuaianStokDetail.idBarang))
+    .where(eq(penyesuaianStokDetail.idPenyesuaian, idPenyesuaian));
+}
+
+/** Jumlah barang aktif yang tidak ada di dokumen (dicatat di log saat opname selesai). */
+export async function jumlahBarangAktifDiLuar(tx: Tx, idPenyesuaian: number): Promise<number> {
+  const [h] = await tx
+    .select({ total: count() })
+    .from(barang)
+    .where(
+      and(
+        eq(barang.statusAktif, 'AKTIF'),
+        notExists(
+          tx
+            .select({ satu: sql`1` })
+            .from(penyesuaianStokDetail)
+            .where(
+              and(
+                eq(penyesuaianStokDetail.idPenyesuaian, idPenyesuaian),
+                eq(penyesuaianStokDetail.idBarang, barang.id),
+              ),
+            ),
+        ),
+      ),
+    );
+  return h?.total ?? 0;
 }

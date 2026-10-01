@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/table';
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
+import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 
 /** Subtotal tampilan sementara (nilai final dihitung server, CLAUDE.md aturan 1). */
 function subtotalTampil(qty: unknown, harga: unknown): number {
@@ -81,6 +82,25 @@ export function HalamanFormPenerimaan() {
     name: ['jenis', 'syaratBayar', 'idPemasok', 'baris'],
   });
   const konsinyasi = jenis === 'KONSINYASI';
+  const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
+
+  /** Hapus baris dengan kesempatan mengurungkan (salah pencet tidak menghilangkan isian). */
+  function hapusBaris(i: number) {
+    const nilai = form.getValues(`baris.${i}`);
+    const nama = infoBarang[nilai.idBarang]?.namaBarang ?? `baris ${i + 1}`;
+    baris.remove(i);
+    toast(`${nama} dihapus dari daftar.`, {
+      duration: 8000,
+      action: {
+        label: 'Urungkan',
+        onClick: () => {
+          const kini = form.getValues('baris');
+          if (kini.some((b) => b.idBarang === nilai.idBarang)) return;
+          baris.insert(Math.min(i, kini.length), nilai);
+        },
+      },
+    });
+  }
   const total = (isiBaris ?? []).reduce(
     (t, b) => t + subtotalTampil(b.qtyMasuk, b.hargaModalMasuk),
     0,
@@ -100,11 +120,26 @@ export function HalamanFormPenerimaan() {
   }
 
   function gantiJenis(v: string) {
-    form.setValue('jenis', v as DataPenerimaan['jenis']);
+    const lama = {
+      jenis: form.getValues('jenis'),
+      syaratBayar: form.getValues('syaratBayar'),
+      baris: form.getValues('baris'),
+    };
+    form.setValue('jenis', v as DataPenerimaan['jenis'], { shouldDirty: true });
     form.setValue('syaratBayar', v === 'KONSINYASI' ? null : 'TUNAI');
-    if ((isiBaris ?? []).length > 0) {
+    if (lama.baris.length > 0) {
       baris.replace([]);
-      toast.info('Daftar barang dikosongkan karena jenis penerimaan berubah.');
+      toast('Daftar barang dikosongkan karena jenis penerimaan berubah.', {
+        duration: 8000,
+        action: {
+          label: 'Urungkan',
+          onClick: () => {
+            form.setValue('jenis', lama.jenis);
+            form.setValue('syaratBayar', lama.syaratBayar);
+            baris.replace(lama.baris);
+          },
+        },
+      });
     }
   }
 
@@ -112,6 +147,7 @@ export function HalamanFormPenerimaan() {
     try {
       const hasil = await simpan.mutateAsync(data);
       toast.success(`Penerimaan ${hasil.nomor} disimpan; stok bertambah.`);
+      lewati();
       void navigasi(`/penerimaan/${hasil.id}`);
     } catch (err) {
       tampilkanGalatForm(err, form.setError, [
@@ -428,7 +464,7 @@ export function HalamanFormPenerimaan() {
                           variant="ghost"
                           size="icon-sm"
                           aria-label={`Hapus baris ${i + 1}`}
-                          onClick={() => baris.remove(i)}
+                          onClick={() => hapusBaris(i)}
                         >
                           <Trash2 className="text-slate-500" />
                         </Button>
@@ -469,6 +505,7 @@ export function HalamanFormPenerimaan() {
           </div>
         </form>
       </Form>
+      {dialogKeluar}
     </div>
   );
 }

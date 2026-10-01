@@ -145,7 +145,9 @@ retur potong), `status_hutang`. KONSINYASI: `total_faktur = 0`, `status_hutang =
 **`penyesuaian_stok`** + **`penyesuaian_stok_detail`** — dokumen `ADJ`. `jenis`: SALDO_AWAL (import/awal go-live,
 `hpp_satuan` diinput), OPNAME (lembar hitung: `qty_sistem` vs `qty_fisik`, selisih otomatis), KOREKSI (selisih
 langsung), RUSAK (pindah BAIK → RUSAK), MUSNAH (hapus dari RUSAK). `status` DRAFT → SELESAI (mutasi ditulis saat
-SELESAI) atau BATAL. Detail boleh diubah selama DRAFT.
+SELESAI) atau BATAL. Detail boleh diubah selama DRAFT. (v3.3) Baris OPNAME yang sengaja tidak dihitung ditandai
+`dikecualikan` dengan `alasan_kecuali`, `id_pengguna_kecuali`, `waktu_kecuali` (CHECK: ketiganya wajib bila
+dikecualikan); baris lembar opname tidak dihapus (K-069).
 
 ### 3.4 Penjualan
 
@@ -389,5 +391,7 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-09-30 — v3.2: tabel `merk` + `barang.id_merk` menggantikan kolom teks `barang.merk` (migrasi 0001–0002,
   data lama dipindah otomatis; K-063). `docs/03-skema-database-v3.sql` tetap berisi v3.1 (= migrasi 0000);
   perubahan sesudahnya hanya lewat migrasi baru.
+- 2026-10-02 — v3.3: `penyesuaian_stok_detail` + `dikecualikan`, `alasan_kecuali`, `id_pengguna_kecuali` (FK pengguna),
+  `waktu_kecuali`, CHECK `chk_penyesuaian_detail_kecuali` (migrasi 0003; K-069).
 - 2026-09-29 — Fase 1: DDL v3.1 dipasang sebagai migrasi `0000_skema_v3.sql` di PostgreSQL 17.11 (41 tabel); skema
   Drizzle terverifikasi identik (K-052). §8 diperbarui (7 berkas skema, cara verifikasi, letak seed).
