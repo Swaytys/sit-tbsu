@@ -50,6 +50,7 @@ import {
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { LABEL_JENIS_PENYESUAIAN } from '@/lib/label';
+import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { BadgeStatusPenyesuaian } from './tab-penyesuaian';
 
 type Info = { kode: string; nama: string; satuan: string; sistem: string; belum: string };
@@ -169,6 +170,25 @@ function FormPenyesuaian({
   });
   const baris = useFieldArray({ control: form.control, name: 'baris' });
   const isi = useWatch({ control: form.control, name: 'baris' }) ?? [];
+  const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
+
+  /** Hapus baris dengan kesempatan mengurungkan (salah pencet tidak menghilangkan isian). */
+  function hapusBaris(i: number) {
+    const nilai = form.getValues(`baris.${i}`);
+    const nama = info[nilai.idBarang]?.nama ?? `baris ${i + 1}`;
+    baris.remove(i);
+    toast(`${nama} dihapus dari daftar.`, {
+      duration: 8000,
+      action: {
+        label: 'Urungkan',
+        onClick: () => {
+          const kini = form.getValues('baris');
+          if (kini.some((b) => b.idBarang === nilai.idBarang)) return;
+          baris.insert(Math.min(i, kini.length), nilai);
+        },
+      },
+    });
+  }
 
   function tambah(b: BarisBarang) {
     const ada = isi.findIndex((x) => x.idBarang === b.id);
@@ -221,8 +241,10 @@ function FormPenyesuaian({
     const hasil = await simpanDraf(data);
     if (!hasil) return;
     toast.success(`Draf ${hasil.nomor} disimpan.`);
-    if (!dokumen) void navigasi(`/persediaan/penyesuaian/${hasil.id}`, { replace: true });
-    else form.reset(form.getValues());
+    if (!dokumen) {
+      lewati();
+      void navigasi(`/persediaan/penyesuaian/${hasil.id}`, { replace: true });
+    } else form.reset(form.getValues());
   }
 
   async function kirimSelesai() {
@@ -234,10 +256,14 @@ function FormPenyesuaian({
     try {
       const akhir = await selesaikan.mutateAsync(hasil.id);
       toast.success(`${akhir.nomor} selesai; stok diperbarui.`);
+      lewati();
       void navigasi(`/persediaan/penyesuaian/${akhir.id}`, { replace: true });
     } catch (err) {
       toast.error(pesanGalat(err));
-      if (!dokumen) void navigasi(`/persediaan/penyesuaian/${hasil.id}`, { replace: true });
+      if (!dokumen) {
+        lewati();
+        void navigasi(`/persediaan/penyesuaian/${hasil.id}`, { replace: true });
+      }
     }
   }
 
@@ -465,7 +491,7 @@ function FormPenyesuaian({
                           variant="ghost"
                           size="icon-sm"
                           aria-label={`Hapus baris ${i + 1}`}
-                          onClick={() => baris.remove(i)}
+                          onClick={() => hapusBaris(i)}
                         >
                           <Trash2 className="text-slate-500" />
                         </Button>
@@ -512,6 +538,7 @@ function FormPenyesuaian({
           </div>
         </form>
       </Form>
+      {dialogKeluar}
 
       <DialogKonfirmasi
         terbuka={konfirmasi === 'selesai'}

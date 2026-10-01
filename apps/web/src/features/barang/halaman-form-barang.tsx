@@ -49,6 +49,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
+import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 
 type Referensi = {
   kategori: Kategori[];
@@ -181,6 +182,9 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
     name: ['kepemilikan', 'atribut'],
   });
   const barisAtribut = atributDiisi ?? [];
+  const { lewati, dialog: dialogKeluar } = useCegahKeluar(
+    form.formState.isDirty || berkasBaru !== null,
+  );
 
   async function kirim(data: DataBarang) {
     // Saat ubah, harga hanya dikirim bila bagian harga disentuh (menyimpan harga melepas tanda tinjau).
@@ -200,6 +204,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
           ? `Barang ${hasil.namaBarang} disimpan.`
           : `Barang ${hasil.namaBarang} ditambahkan (${hasil.kode}).`,
       );
+      lewati();
       void navigasi('/barang');
     } catch (err) {
       const kolomAtribut = barisAtribut.flatMap((_, i) =>
@@ -802,6 +807,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
           </div>
         </form>
       </Form>
+      {dialogKeluar}
     </div>
   );
 }

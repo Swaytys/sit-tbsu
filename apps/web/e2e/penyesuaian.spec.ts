@@ -87,3 +87,41 @@ test('Admin: saldo awal, koreksi, lalu stok opname mengubah stok sesuai dokumen'
 
   await api(page, `/barang/${barang.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
 });
+
+test('Admin: hapus baris bisa diurungkan; pindah halaman dengan isian belum disimpan diminta konfirmasi', async ({
+  page,
+}) => {
+  const nama = `Kawat Urungkan E2E ${Date.now()}`;
+  await masukCepat(page, 'ADMIN');
+  const kategori = await api<{ id: number }[]>(page, '/kategori?status=AKTIF');
+  const satuan = await api<{ id: number; kode: string }[]>(page, '/satuan?status=AKTIF');
+  const tier = await api<{ id: number; isDefault: boolean }[]>(page, '/tingkat-harga');
+  const barang = await api<{ id: number }>(page, '/barang', 'POST', {
+    namaBarang: nama,
+    idKategori: kategori[0]!.id,
+    idSatuanDasar: satuan.find((s) => s.kode === 'sak')!.id,
+    hargaModalAwal: 500,
+    hargaTier: [{ idTingkatHarga: tier.find((t) => t.isDefault)!.id, hargaTetap: 700 }],
+  });
+  try {
+    await page.goto('/persediaan/penyesuaian/baru?jenis=KOREKSI');
+    await tambahBarang(page, nama);
+    await page.getByLabel(`Selisih (+/−) ${nama}`).fill('4');
+
+    await page.getByRole('button', { name: 'Hapus baris 1' }).click();
+    await expect(page.getByLabel(`Selisih (+/−) ${nama}`)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Urungkan' }).click();
+    await expect(page.getByLabel(`Selisih (+/−) ${nama}`)).toHaveValue('4');
+
+    await menuUtama(page).getByRole('link', { name: 'Data Barang' }).click();
+    const dialog = page.getByRole('alertdialog', { name: 'Tinggalkan halaman ini?' });
+    await dialog.getByRole('button', { name: 'Tetap di sini' }).click();
+    await expect(page.getByLabel(`Selisih (+/−) ${nama}`)).toHaveValue('4');
+
+    await menuUtama(page).getByRole('link', { name: 'Data Barang' }).click();
+    await dialog.getByRole('button', { name: 'Tinggalkan' }).click();
+    await expect(page.getByRole('heading', { name: 'Data Barang' })).toBeVisible();
+  } finally {
+    await api(page, `/barang/${barang.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+  }
+});

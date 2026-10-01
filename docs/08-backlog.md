@@ -10,7 +10,7 @@ awal; diputuskan ulang sebelum sprint dimulai.
 |---|---|---|
 | **v1.0.0 (MVP)** | M1: Fase 1–8. Dipakai toko untuk transaksi sungguhan. | docs/07 |
 | v1.1–v1.4 | M2: Fase 9–12 (harga & promo, hutang pemasok, konsinyasi, multi-satuan). Skema sudah siap. | docs/07 |
-| **v2.0.0** | Sprint A–D di bawah: produktivitas data, peran kustom, keuangan ringan, perbaikan. | dokumen ini |
+| **v2.0.0** | Sprint A–E di bawah: produktivitas data, peran kustom, keuangan ringan, perbaikan, stok opname & pemilihan barang. | dokumen ini |
 | **v3.0.0** | Pembukuan (akuntansi dagang) dan fitur skala (cabang, gudang). | dokumen ini |
 
 ---
@@ -67,6 +67,15 @@ Sprint pertama v2 dibuka dengan audit terarah; hasilnya daftar temuan berpriorit
 | Ketahanan | Perilaku saat koneksi ke server putus (mini-PC toko), antrean ulang, pesan yang jelas. |
 
 ---
+
+## v2.0.0 — Sprint E: Stok opname dan pemilihan barang (masukan pemilik 2026-10-02)
+
+| # | Fitur | Catatan |
+|---|---|---|
+| E1 | **Modul Stok Opname tersendiri**: jadwal opname per periode (semua barang atau bergilir per kategori), pengingat di lonceng notifikasi dan dashboard saat jadwal tiba. | Dokumen tetap `ADJ` jenis OPNAME (ledger tidak berubah); modul menambah jadwal & pemantauan. |
+| E2 | **Cakupan opname**: daftar barang aktif yang belum teropname dalam periode berjalan, persentase cakupan, barang yang dikecualikan beserta alasan dan siapa yang mengecualikan. | Transparansi: tidak ada barang yang diam-diam terlewat. |
+| E3 | **Grafik & riwayat selisih**: selisih per periode (qty dan rupiah), barang yang sering selisih, akurasi stok per kategori. | Data dari dokumen OPNAME yang sudah selesai. |
+| E4 | **Pemilih barang grafis**: jelajah barang per kategori/merk dalam kartu bergambar, saring atribut (ukuran, warna), untuk saat nama barang lupa. Dipakai di penerimaan, penyesuaian, order, kasir. | Pelengkap kotak cari (`PilihBarang`), bukan pengganti; keyboard tetap utama di kasir. |
 
 ## v3.0.0 — Pembukuan dan skala
 
