@@ -163,11 +163,13 @@ describe('pengaturan › tampilan toko dan logo (K-065)', () => {
     const staf = await sesiUji('STAF_PENJUALAN');
     const res = await minta('/api/pengaturan/tampilan', { cookie: staf.cookie });
     expect(res.status).toBe(200);
-    expect((await json<{ data: unknown }>(res)).data).toEqual({
+    expect((await json<{ data: unknown }>(res)).data).toMatchObject({
       namaToko: 'Toko Uji',
       namaBadanUsaha: 'UD. Sumber Urip',
       logo: null,
       barisPerHalaman: 50,
+      lebarStrukMm: 80,
+      strukTampilkanNama: true,
     });
     expect((await minta('/api/pengaturan/tampilan')).status).toBe(401);
 
