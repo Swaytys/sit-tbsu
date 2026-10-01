@@ -29,6 +29,8 @@ const HALAMAN: Record<string, MuatHalaman> = {
     import('@/features/pelanggan/halaman-pelanggan').then((m) => m.HalamanPelanggan),
   '/pemasok': () => import('@/features/pemasok/halaman-pemasok').then((m) => m.HalamanPemasok),
   '/pengguna': () => import('@/features/pengguna/halaman-pengguna').then((m) => m.HalamanPengguna),
+  '/persediaan': () =>
+    import('@/features/persediaan/halaman-persediaan').then((m) => m.HalamanPersediaan),
   '/penerimaan': () =>
     import('@/features/penerimaan/halaman-penerimaan').then((m) => m.HalamanPenerimaan),
   '/pengaturan': () =>
@@ -108,6 +110,15 @@ export const router = createBrowserRouter([
         import('@/features/penerimaan/halaman-detail-penerimaan').then(
           (m) => m.HalamanDetailPenerimaan,
         ),
+      ),
+      ruteLazy(
+        'persediaan/penyesuaian/baru',
+        'Stok Persediaan',
+        'persediaan.penyesuaian.kelola',
+        () => import('@/features/persediaan/halaman-penyesuaian').then((m) => m.HalamanPenyesuaian),
+      ),
+      ruteLazy('persediaan/penyesuaian/:id', 'Stok Persediaan', 'persediaan.stok.lihat', () =>
+        import('@/features/persediaan/halaman-penyesuaian').then((m) => m.HalamanPenyesuaian),
       ),
       ruteLazy('barang/baru', 'Data Barang', 'master.barang.kelola', muatFormBarang),
       ruteLazy('barang/:id', 'Data Barang', 'master.barang.kelola', muatFormBarang),

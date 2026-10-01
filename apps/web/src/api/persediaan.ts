@@ -1,6 +1,13 @@
-import type { DataPenerimaan, JenisPenerimaan } from '@sit/shared';
+import type {
+  DataPenerimaan,
+  DataPenyesuaian,
+  DetailPenyesuaian,
+  JenisPenerimaan,
+  JenisPenyesuaian,
+  StatusPenyesuaian,
+} from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ambilData, ambilIsi, api } from './client';
+import { ambilData, ambilIsi, api, galatDariRespons } from './client';
 
 /** Persediaan (Fase 4): penerimaan barang, penyesuaian, posisi dan kartu stok. */
 
@@ -49,5 +56,95 @@ export function useSimpanPenerimaan() {
       Promise.all(
         ['penerimaan', 'barang', 'persediaan'].map((k) => qc.invalidateQueries({ queryKey: [k] })),
       ),
+  });
+}
+
+// --- Penyesuaian stok ---
+
+export type ParamDaftarPenyesuaian = {
+  cari: string;
+  jenis: JenisPenyesuaian | null;
+  status: StatusPenyesuaian | null;
+  halaman: number;
+  perHalaman: number;
+};
+
+export function useDaftarPenyesuaian(p: ParamDaftarPenyesuaian) {
+  return useQuery({
+    queryKey: ['penyesuaian', 'daftar', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.penyesuaian.$get({
+          query: {
+            cari: p.cari || undefined,
+            jenis: p.jenis ?? undefined,
+            status: p.status ?? undefined,
+            halaman: String(p.halaman),
+            perHalaman: String(p.perHalaman),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useDetailPenyesuaian(id: number | null) {
+  return useQuery({
+    queryKey: ['penyesuaian', 'detail', id],
+    queryFn: async () =>
+      ambilData(await api.penyesuaian[':id'].$get({ param: { id: String(id) } })),
+    enabled: id !== null,
+  });
+}
+
+/** Mutasi penyesuaian memuat ulang daftar penyesuaian, barang (stok), dan persediaan. */
+function useMutasiPersediaan<TInput, THasil>(fn: (input: TInput) => Promise<THasil>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () =>
+      Promise.all(
+        ['penyesuaian', 'barang', 'persediaan'].map((k) => qc.invalidateQueries({ queryKey: [k] })),
+      ),
+  });
+}
+
+const param = (id: number) => ({ id: String(id) });
+
+export function useSimpanPenyesuaian() {
+  return useMutasiPersediaan(async ({ id, json }: { id?: number; json: DataPenyesuaian }) =>
+    ambilData(
+      id === undefined
+        ? await api.penyesuaian.$post({ json })
+        : await api.penyesuaian[':id'].$put({ param: param(id), json }),
+    ),
+  );
+}
+
+export function useSelesaikanPenyesuaian() {
+  return useMutasiPersediaan(async (id: number) =>
+    ambilData(await api.penyesuaian[':id'].selesai.$post({ param: param(id) })),
+  );
+}
+
+export function useBatalkanPenyesuaian() {
+  return useMutasiPersediaan(async (id: number) =>
+    ambilData(await api.penyesuaian[':id'].batal.$post({ param: param(id) })),
+  );
+}
+
+export function useBuatLembarOpname() {
+  return useMutasiPersediaan(async (json: { idKategori: number | null }) =>
+    ambilData(await api.penyesuaian['lembar-opname'].$post({ json })),
+  );
+}
+
+export function useImporSaldoAwal() {
+  return useMutasiPersediaan(async (berkas: File): Promise<DetailPenyesuaian> => {
+    const form = new FormData();
+    form.set('berkas', berkas);
+    const res = await fetch('/api/penyesuaian/saldo-awal/impor', { method: 'POST', body: form });
+    if (!res.ok) throw await galatDariRespons(res);
+    return ((await res.json()) as { data: DetailPenyesuaian }).data;
   });
 }
