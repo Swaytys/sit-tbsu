@@ -10,7 +10,7 @@ import { useDaftarKategori, useDaftarMerk } from '@/api/referensi';
 import { BilahSaring, type SaringStatus } from '@/components/bilah-saring';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { MenuAksiMaster } from '@/components/menu-aksi-master';
-import { BadgeStatusAktif } from '@/components/status-badge';
+import { BadgeStatusAktif, BadgeStatusStok } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -157,6 +157,12 @@ export function HalamanBarang() {
           <span className="text-xs text-slate-400">({formatDesimal(b.stokMinimum)})</span>
         </span>
       ),
+    },
+    {
+      kunci: 'statusStok',
+      label: 'Status stok',
+      judul: 'Status stok',
+      sel: (b) => <BadgeStatusStok status={b.statusStok} />,
     },
     {
       kunci: 'status',

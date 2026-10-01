@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { requestLog } from './middleware/request-log';
 import { periksaDeklarasiIzin } from './middleware/require-permission';
 import { authDevRoutes, authRoutes } from './modules/auth/routes';
+import { dashboardRoutes } from './modules/dashboard/routes';
 import { barangRoutes } from './modules/master/barang/routes';
 import { hargaRoutes } from './modules/master/harga/routes';
 import { importRoutes } from './modules/master/import/routes';
@@ -20,8 +21,10 @@ import { satuanRoutes } from './modules/master/satuan/routes';
 import { tingkatHargaRoutes } from './modules/master/tingkat-harga/routes';
 import { penerimaanRoutes } from './modules/persediaan/penerimaan/routes';
 import { penyesuaianRoutes } from './modules/persediaan/penyesuaian/routes';
+import { stokRoutes } from './modules/persediaan/stok/routes';
 import { healthRoutes } from './modules/sistem/health/routes';
 import { logRoutes } from './modules/sistem/log/routes';
+import { notifikasiRoutes } from './modules/sistem/notifikasi/routes';
 import { pengaturanRoutes } from './modules/sistem/pengaturan/routes';
 
 /** Semua rute di bawah /api. Tipenya dipakai klien RPC web: `hc<AppType>('/api')`. */
@@ -38,11 +41,14 @@ const rute = new Hono<EnvApp>()
   .route('/import', importRoutes)
   .route('/penerimaan', penerimaanRoutes)
   .route('/penyesuaian', penyesuaianRoutes)
+  .route('/stok', stokRoutes)
   .route('/pelanggan', pelangganRoutes)
   .route('/pemasok', pemasokRoutes)
   .route('/pengguna', penggunaRoutes)
   .route('/pengaturan', pengaturanRoutes)
-  .route('/log-aktivitas', logRoutes);
+  .route('/log-aktivitas', logRoutes)
+  .route('/notifikasi', notifikasiRoutes)
+  .route('/dashboard', dashboardRoutes);
 
 export const app = new Hono<EnvApp>();
 app.use(requestLog);

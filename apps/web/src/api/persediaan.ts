@@ -2,9 +2,13 @@ import type {
   DataPenerimaan,
   DataPenyesuaian,
   DetailPenyesuaian,
+  JenisMutasi,
   JenisPenerimaan,
   JenisPenyesuaian,
+  Kepemilikan,
+  KondisiStok,
   StatusPenyesuaian,
+  StatusStok,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, ambilIsi, api, galatDariRespons } from './client';
@@ -146,5 +150,105 @@ export function useImporSaldoAwal() {
     const res = await fetch('/api/penyesuaian/saldo-awal/impor', { method: 'POST', body: form });
     if (!res.ok) throw await galatDariRespons(res);
     return ((await res.json()) as { data: DetailPenyesuaian }).data;
+  });
+}
+
+// --- Posisi stok, mutasi, kartu stok ---
+
+export type ParamDaftarStok = {
+  cari: string;
+  idKategori: number | null;
+  statusStok: StatusStok | null;
+  kepemilikan: Kepemilikan | null;
+  halaman: number;
+  perHalaman: number;
+};
+
+/** Query string yang sama untuk daftar dan ekspor posisi stok. */
+export function queryStok(p: Omit<ParamDaftarStok, 'halaman' | 'perHalaman'>) {
+  return {
+    cari: p.cari || undefined,
+    idKategori: p.idKategori === null ? undefined : String(p.idKategori),
+    statusStok: p.statusStok ?? undefined,
+    kepemilikan: p.kepemilikan ?? undefined,
+  };
+}
+
+export function useDaftarStok(p: ParamDaftarStok) {
+  return useQuery({
+    queryKey: ['persediaan', 'stok', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.stok.$get({
+          query: {
+            ...queryStok(p),
+            halaman: String(p.halaman),
+            perHalaman: String(p.perHalaman),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export type ParamDaftarMutasi = {
+  cari: string;
+  idBarang: number | null;
+  jenis: JenisMutasi | null;
+  dari: string;
+  sampai: string;
+  halaman: number;
+  perHalaman: number;
+};
+
+export function useDaftarMutasi(p: ParamDaftarMutasi) {
+  return useQuery({
+    queryKey: ['persediaan', 'mutasi', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.stok.mutasi.$get({
+          query: {
+            cari: p.cari || undefined,
+            idBarang: p.idBarang === null ? undefined : String(p.idBarang),
+            jenis: p.jenis ?? undefined,
+            dari: p.dari || undefined,
+            sampai: p.sampai || undefined,
+            halaman: String(p.halaman),
+            perHalaman: String(p.perHalaman),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useKartuStok(
+  idBarang: number | null,
+  p: { kondisi: KondisiStok; dari: string; sampai: string },
+) {
+  return useQuery({
+    queryKey: ['persediaan', 'kartu', idBarang, p],
+    queryFn: async () =>
+      ambilData(await api.stok.kartu[':id'].$get({ param: { id: String(idBarang) }, query: p })),
+    enabled: idBarang !== null && p.dari !== '' && p.sampai !== '' && p.dari <= p.sampai,
+  });
+}
+
+// --- Peringatan stok (ST2/ST3) ---
+
+/** Notifikasi topbar; dihitung ulang tiap menit dan saat jendela kembali aktif. */
+export function useNotifikasi() {
+  return useQuery({
+    queryKey: ['persediaan', 'notifikasi'],
+    queryFn: async () => ambilData(await api.notifikasi.$get()),
+    refetchInterval: 60_000,
+  });
+}
+
+export function usePeringatanStok(aktif: boolean) {
+  return useQuery({
+    queryKey: ['persediaan', 'peringatan'],
+    queryFn: async () => ambilData(await api.dashboard['peringatan-stok'].$get()),
+    enabled: aktif,
   });
 }
