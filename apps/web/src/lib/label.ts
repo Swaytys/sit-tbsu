@@ -1,10 +1,12 @@
 import type {
   AksiLog,
+  JenisMutasi,
   JenisPenerimaan,
   JenisPenyesuaian,
   StatusAktif,
   StatusHutang,
   StatusPenyesuaian,
+  StatusStok,
 } from '@sit/shared';
 
 /** Label tampilan untuk nilai enum (nilai enum tetap UPPER_SNAKE di data). */
@@ -61,4 +63,24 @@ export const LABEL_STATUS_PENYESUAIAN: Record<StatusPenyesuaian, string> = {
   DRAFT: 'Draf',
   SELESAI: 'Selesai',
   BATAL: 'Batal',
+};
+
+export const LABEL_STATUS_STOK: Record<StatusStok, string> = {
+  HABIS: 'Habis',
+  KRITIS: 'Kritis',
+  PERLU_RESTOCK: 'Perlu restock',
+  AMAN: 'Aman',
+};
+
+export const LABEL_JENIS_MUTASI: Record<JenisMutasi, string> = {
+  SALDO_AWAL: 'Saldo awal',
+  PENERIMAAN: 'Penerimaan',
+  PENJUALAN: 'Penjualan',
+  RETUR_JUAL: 'Retur jual',
+  TUKAR_RETUR: 'Tukar retur',
+  VOID: 'Void',
+  PENYESUAIAN: 'Penyesuaian',
+  PINDAH_KONDISI: 'Pindah kondisi',
+  RETUR_PEMASOK: 'Retur pemasok',
+  MUSNAH: 'Pemusnahan',
 };

@@ -5,6 +5,7 @@ import {
   type Kepemilikan,
   type MetodeHarga,
   type StatusAktif,
+  type StatusStok,
   type TipeNilai,
 } from '../enums';
 import { POLA_QTY } from '../qty';
@@ -161,6 +162,8 @@ export type BarisBarang = {
   stokMinimum: string;
   stokFisik: string;
   stokTersedia: string;
+  /** ST1, dihitung API dari stok fisik dan minimum. */
+  statusStok: StatusStok;
   kepemilikan: Kepemilikan;
   idPemasokKonsinyasi: number | null;
   namaPemasokKonsinyasi: string | null;

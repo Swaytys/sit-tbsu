@@ -17,7 +17,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 1 | Setup lingkungan | Selesai | 2026-09-29 |
 | 2 | Akses dasar | Selesai | 2026-09-30 |
 | 3 | Data master | Selesai | 2026-09-30 |
-| 4 | Inti persediaan | Belum | — |
+| 4 | Inti persediaan | Selesai | 2026-10-01 |
 | 5 | Penjualan | Belum | — |
 | 6 | Koreksi dan kontrol | Belum | — |
 | 7 | Laporan dan dashboard | Belum | — |
@@ -151,6 +151,18 @@ Deliverable:
   pada barang yang sama tidak menghasilkan saldo salah; `hpp_setelah` konsisten dengan `persediaan.hpp_rata2`.
 
 Selesai bila: kartu stok sebuah barang setelah saldo awal + 2 penerimaan + 1 opname sama dengan hitungan manual.
+
+Catatan penyelesaian (2026-10-01, branch `feat/04-ledger`, `feat/04-penerimaan`, `feat/04-penyesuaian`,
+`feat/04-stok`):
+- Ledger `catatMutasi()` + audit cache `pnpm db:audit` (L1–L11); penerimaan RCV dengan bukti terima (K-066);
+  penyesuaian ADJ empat jenis, lembar opname, import saldo awal sebagai draf (K-067); posisi stok, mutasi,
+  kartu stok (cetak), ekspor Excel, status stok di Data Barang, notifikasi topbar, kartu peringatan stok di
+  beranda (K-068).
+- Kriteria selesai dibuktikan tes `stok.test.ts`: saldo awal 10 @10.000 + terima 5 @12.000 + terima 10 @11.000 +
+  opname fisik 22 → HPP 10.000 → 10.667 → 10.800, saldo 22, nilai Rp 237.600, sama dengan hitungan manual.
+- Tes: 171 tes Vitest (162 API + 9 shared) dan 28 tes Playwright lulus.
+- Ditunda ke fase lain: pembayaran TUNAI penerimaan terkait shift (Fase 6), tab stok tertahan (Fase 5),
+  MUSNAH dan retur pemasok (Fase 10).
 
 ### Fase 5 — Penjualan
 Tujuan: alur order → checkout → pembayaran → surat jalan berjalan penuh.

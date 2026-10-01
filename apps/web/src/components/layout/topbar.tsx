@@ -1,7 +1,8 @@
 import { LABEL_PERAN } from '@sit/shared';
-import { ChevronDown, KeyRound, LogOut, Menu } from 'lucide-react';
+import { Bell, ChevronDown, KeyRound, LogOut, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
+import { useNotifikasi } from '@/api/persediaan';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +14,49 @@ import {
 
 type Props = { judul: string; onToggleSidebar: () => void };
 
-// Pencarian global dan notifikasi ditambahkan pada fase yang memerlukannya (Fase 4 dan 7).
+/** Lonceng notifikasi (docs/05 ST2): isi dihitung API sesuai izin pengguna. */
+function LoncengNotifikasi() {
+  const notifikasi = useNotifikasi();
+  const navigate = useNavigate();
+  const daftar = notifikasi.data ?? [];
+  const total = daftar.reduce((a, n) => a + n.jumlah, 0);
+
+  return (
+    <DropdownMenu onOpenChange={(buka) => buka && void notifikasi.refetch()}>
+      <DropdownMenuTrigger
+        className="relative rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
+        aria-label={total > 0 ? `Notifikasi (${total})` : 'Notifikasi'}
+      >
+        <Bell className="size-5" />
+        {total > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] leading-none font-bold text-white">
+            {total > 99 ? '99+' : total}
+          </span>
+        )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuLabel>Notifikasi</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {daftar.length === 0 ? (
+          <div className="px-2 py-3 text-sm text-slate-500">Tidak ada notifikasi.</div>
+        ) : (
+          daftar.map((n) => (
+            <DropdownMenuItem
+              key={n.jenis}
+              onSelect={() => void navigate(n.tautan)}
+              className="flex-col items-start gap-0.5"
+            >
+              <span className="text-sm font-medium">{n.judul}</span>
+              <span className="text-xs text-slate-500">{n.keterangan}</span>
+            </DropdownMenuItem>
+          ))
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Pencarian global ditambahkan pada fase yang memerlukannya (Fase 7).
 export function Topbar({ judul, onToggleSidebar }: Props) {
   const pengguna = usePengguna();
   const logout = useLogout();
@@ -30,6 +73,7 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
         <Menu className="size-5" />
       </button>
       <span className="flex-1 text-sm font-semibold text-slate-800">{judul}</span>
+      <LoncengNotifikasi />
 
       <DropdownMenu>
         <DropdownMenuTrigger

@@ -10,6 +10,7 @@ import {
   type Izin,
   type MetaHalaman,
   type StatusAktif,
+  type StatusStok,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
 import { AppError } from '../../../lib/errors';
@@ -20,6 +21,7 @@ import { selisih } from '../../../lib/perubahan';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang } from '../../../lib/waktu';
 import { buatPersediaan, kunciPersediaan, selaraskanHppMaster } from '../../persediaan/ledger';
+import { statusStokBarang } from '../../persediaan/stok/service';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { sinkronkanKodeMaster, terbitkanKodeMaster } from '../../sistem/penomoran';
@@ -60,6 +62,7 @@ function keBaris(
   harga: HargaTierBarang[],
   izin: ReadonlySet<Izin>,
   konteks: KonteksHarga,
+  statusStok: StatusStok,
 ): BarisBarang {
   const umum: BarisBarang = {
     id: b.id,
@@ -75,6 +78,7 @@ function keBaris(
     stokMinimum: b.stokMinimum,
     stokFisik: b.stokFisik,
     stokTersedia: keQty(b.stokTersedia),
+    statusStok,
     kepemilikan: b.kepemilikan,
     idPemasokKonsinyasi: b.idPemasokKonsinyasi,
     namaPemasokKonsinyasi: b.namaPemasokKonsinyasi,
@@ -116,8 +120,11 @@ export async function daftarBarang(
   const { baris, total } = await repo.daftarBarang(db, { ...p, ...batasHalaman(p) });
   const harga = await hargaPerBarang(baris.map((b) => b.id));
   const konteks = await muatKonteksHarga(db);
+  const status = await statusStokBarang(baris.map((b) => b.id));
   return {
-    data: baris.map((b) => keBaris(b, harga.get(b.id) ?? [], izin, konteks)),
+    data: baris.map((b) =>
+      keBaris(b, harga.get(b.id) ?? [], izin, konteks, status.get(b.id) ?? 'HABIS'),
+    ),
     meta: metaHalaman(total, p),
   };
 }
@@ -140,7 +147,13 @@ export async function detailBarang(id: number, izin: ReadonlySet<Izin>): Promise
     kodeSatuan: a.kodeSatuan,
   }));
   return {
-    ...keBaris(b, harga.get(id) ?? [], izin, await muatKonteksHarga(db)),
+    ...keBaris(
+      b,
+      harga.get(id) ?? [],
+      izin,
+      await muatKonteksHarga(db),
+      (await statusStokBarang([id])).get(id) ?? 'HABIS',
+    ),
     keterangan: b.keterangan,
     atribut,
     sudahAdaMutasi: b.terakhirMutasi !== null,

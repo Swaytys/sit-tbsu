@@ -27,3 +27,13 @@ export function formatTanggal(tanggal: string | null | undefined): string {
   const [t, b, h] = tanggal.slice(0, 10).split('-');
   return `${h}/${b}/${t}`;
 }
+
+/** Tanggal hari ini di zona toko, `YYYY-MM-DD` (nilai awal saringan tanggal). */
+export function tanggalHariIni(): string {
+  return format(new TZDate(new Date(), ZONA_TOKO), 'yyyy-MM-dd');
+}
+
+/** Tanggal 1 bulan berjalan di zona toko, `YYYY-MM-DD`. */
+export function awalBulanIni(): string {
+  return format(new TZDate(new Date(), ZONA_TOKO), 'yyyy-MM-01');
+}

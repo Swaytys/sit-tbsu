@@ -50,6 +50,7 @@ test('Admin: saldo awal, koreksi, lalu stok opname mengubah stok sesuai dokumen'
   // 1. Saldo awal 20 @ 10.000.
   await menuUtama(page).getByRole('link', { name: 'Stok Persediaan' }).click();
   await expect(page.getByRole('heading', { name: 'Stok Persediaan' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Penyesuaian' }).click();
   await page.getByRole('link', { name: 'Saldo awal' }).click();
   await expect(page.getByRole('heading', { name: /Saldo awal \(baru\)/ })).toBeVisible();
   await tambahBarang(page, nama);

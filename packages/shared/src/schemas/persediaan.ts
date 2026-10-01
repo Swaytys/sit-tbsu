@@ -1,16 +1,24 @@
 import { z } from 'zod';
 import {
+  JENIS_MUTASI,
   JENIS_PENERIMAAN,
   JENIS_PENYESUAIAN,
+  KEPEMILIKAN,
+  KONDISI_STOK,
   STATUS_PENYESUAIAN,
+  STATUS_STOK,
   SYARAT_BAYAR,
+  type JenisMutasi,
   type JenisPenerimaan,
   type JenisPenyesuaian,
+  type Kepemilikan,
   type KondisiStok,
+  type StatusStok,
   type StatusHutang,
   type StatusPenyesuaian,
   type SyaratBayar,
 } from '../enums';
+import type { MetaHalaman } from '../api';
 import { POLA_QTY } from '../qty';
 import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
 
@@ -252,4 +260,132 @@ export type BarisDetailPenyesuaian = {
 export type DetailPenyesuaian = BarisDaftarPenyesuaian & {
   catatan: string | null;
   baris: BarisDetailPenyesuaian[];
+};
+
+// --- Posisi stok, mutasi, kartu stok (docs/05 ST1, docs/01 §6) ---
+
+export const skemaCariStok = skemaHalaman.extend({
+  cari: z.string().trim().max(100).optional(),
+  idKategori: z.coerce.number().int().positive().optional(),
+  statusStok: z.enum(STATUS_STOK).optional(),
+  kepemilikan: z.enum(KEPEMILIKAN).optional(),
+});
+export type ParamCariStok = z.input<typeof skemaCariStok>;
+
+export type BarisPosisiStok = {
+  idBarang: number;
+  kode: string;
+  namaBarang: string;
+  namaKategori: string;
+  kodeSatuan: string;
+  kepemilikan: Kepemilikan;
+  stokFisik: string;
+  stokDipesan: string;
+  stokTersedia: string;
+  stokRusak: string;
+  stokMinimum: string;
+  statusStok: StatusStok;
+  terakhirMutasi: string | null;
+  /** Sensitif (`master.barang.lihat_hpp`). */
+  hppRata2?: number;
+  /** Fisik × HPP; 0 untuk konsinyasi (L7: bukan milik toko). Sensitif. */
+  nilaiPersediaan?: number;
+};
+
+export type RingkasanStok = {
+  jumlahBarang: number;
+  perStatus: Record<StatusStok, number>;
+  /** Σ nilai persediaan milik sendiri (barang aktif). Sensitif. */
+  nilaiPersediaan?: number;
+};
+
+export type DaftarPosisiStok = {
+  data: BarisPosisiStok[];
+  meta: MetaHalaman;
+  ringkasan: RingkasanStok;
+};
+
+export const skemaCariMutasi = skemaHalaman.extend({
+  cari: z.string().trim().max(100).optional(),
+  idBarang: z.coerce.number().int().positive().optional(),
+  jenis: z.enum(JENIS_MUTASI).optional(),
+  dari: skemaTanggal('Tanggal awal').optional(),
+  sampai: skemaTanggal('Tanggal akhir').optional(),
+});
+export type ParamCariMutasi = z.input<typeof skemaCariMutasi>;
+
+export type BarisMutasi = {
+  id: number;
+  waktu: string;
+  tanggalOperasional: string;
+  idBarang: number;
+  kodeBarang: string;
+  namaBarang: string;
+  kodeSatuan: string;
+  jenis: JenisMutasi;
+  kondisi: KondisiStok;
+  qtyMasuk: string;
+  qtyKeluar: string;
+  saldoSetelah: string;
+  /** Nomor dokumen sumber (RCV/ADJ/…) bila ada. */
+  nomorDokumen: string | null;
+  /** Tautan halaman dokumen sumber di web, bila halamannya ada. */
+  jenisDokumen:
+    'PENERIMAAN' | 'PENYESUAIAN' | 'PENJUALAN' | 'RETUR' | 'VOID' | 'RETUR_PEMASOK' | null;
+  idDokumen: number | null;
+  namaPengguna: string;
+  keterangan: string | null;
+  /** Sensitif. */
+  hppSatuan?: number;
+  hppSetelah?: number;
+};
+
+export const skemaKartuStok = z.object({
+  kondisi: z.enum(KONDISI_STOK).default('BAIK'),
+  dari: skemaTanggal('Tanggal awal'),
+  sampai: skemaTanggal('Tanggal akhir'),
+});
+export type ParamKartuStok = z.input<typeof skemaKartuStok>;
+
+export type KartuStok = {
+  barang: {
+    id: number;
+    kode: string;
+    namaBarang: string;
+    kodeSatuan: string;
+    kepemilikan: Kepemilikan;
+    stokMinimum: string;
+  };
+  kondisi: KondisiStok;
+  dari: string;
+  sampai: string;
+  /** Saldo pada akhir hari sebelum `dari`. */
+  saldoAwal: string;
+  totalMasuk: string;
+  totalKeluar: string;
+  saldoAkhir: string;
+  baris: BarisMutasi[];
+  /** Sensitif: HPP rata-rata sebelum periode dan sesudah baris terakhir. */
+  hppAwal?: number | null;
+  hppAkhir?: number | null;
+};
+
+// --- Peringatan stok (ST2/ST3) ---
+
+export type BarangPeringatanStok = {
+  idBarang: number;
+  kode: string;
+  namaBarang: string;
+  kodeSatuan: string;
+  stokFisik: string;
+  stokMinimum: string;
+  statusStok: StatusStok;
+};
+
+export type PeringatanStok = {
+  habis: number;
+  kritis: number;
+  perluRestock: number;
+  /** KRITIS/HABIS lebih dulu, dibatasi beberapa baris teratas. */
+  barang: BarangPeringatanStok[];
 };
