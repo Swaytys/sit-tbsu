@@ -161,8 +161,10 @@ export type BarisDetailOrder = {
   diskonBaris: number;
   subtotal: number;
   catatanItem: string | null;
-  /** Stok tersedia saat ini (di luar reservasi order ini bila MENUNGGU/DIPROSES). */
+  /** Stok tersedia untuk order ini (stok tersedia + yang sudah ditahan order ini). */
   stokTersedia: string;
+  /** Harga jual barang per tier saat ini (pilihan tier di form). */
+  hargaTier: { idTingkatHarga: number; hargaJual: number }[];
 };
 
 export type DetailOrder = BarisDaftarOrder & {

@@ -16,6 +16,7 @@ import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahJam, tambahMenit, tanggalOperasional } from '../../../lib/waktu';
 import { ubahReservasi, type PerubahanReservasi } from '../../persediaan/ledger';
 import { ambilAngka, ambilTeks } from '../../sistem/konfigurasi/service';
+import { hargaBarangDasar } from '../../master/harga/repo';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import { hitungBarisJual, type HargaLama, type HasilHarga } from '../harga-baris';
@@ -82,6 +83,15 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
   const h = await repo.orderById(db, id);
   if (!h || !bolehLihat(h, pelaku)) throw tidakDitemukan();
   const rows = await repo.detailOrder(db, id);
+  const hargaTier = new Map<number, { idTingkatHarga: number; hargaJual: number }[]>();
+  for (const x of await hargaBarangDasar(
+    db,
+    rows.map((r) => r.idBarang),
+  )) {
+    const daftar = hargaTier.get(x.idBarang) ?? [];
+    daftar.push({ idTingkatHarga: x.idTingkatHarga, hargaJual: x.hargaJual });
+    hargaTier.set(x.idBarang, daftar);
+  }
   const menahan = h.status === 'MENUNGGU' || h.status === 'DIPROSES';
   return {
     ...keRespons(h, await batasBasi()),
@@ -98,6 +108,7 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
       ...r,
       // Stok tersedia "untuk order ini" = tersedia + yang sudah ditahan order ini sendiri.
       stokTersedia: keQty(menahan ? tambahQty(r.stokTersedia, r.qtyDasar) : r.stokTersedia),
+      hargaTier: hargaTier.get(r.idBarang) ?? [],
     })),
   };
 }
