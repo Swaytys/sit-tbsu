@@ -1,5 +1,6 @@
 import type { Izin, Notifikasi } from '@sit/shared';
 import { jumlahOrderBasi } from '../../penjualan/order/service';
+import { piutangJatuhTempo } from '../../penjualan/piutang/service';
 import { peringatanStok } from '../../persediaan/stok/service';
 
 /** Notifikasi topbar per pengguna (docs/05 ST2), disaring menurut izin. */
@@ -14,6 +15,27 @@ export async function notifikasiPengguna(izin: ReadonlySet<Izin>): Promise<Notif
         keterangan: `${basi} order menunggu terlalu lama dan masih menahan stok.`,
         jumlah: basi,
         tautan: '/order?status=MENUNGGU',
+      });
+    }
+  }
+  if (izin.has('penjualan.piutang.lihat')) {
+    const p = await piutangJatuhTempo();
+    if (p.terlambat > 0) {
+      hasil.push({
+        jenis: 'PIUTANG_TERLAMBAT',
+        judul: 'Piutang terlambat',
+        keterangan: `${p.terlambat} piutang melewati jatuh tempo.`,
+        jumlah: p.terlambat,
+        tautan: '/piutang?terlambat=true',
+      });
+    }
+    if (p.segera > 0) {
+      hasil.push({
+        jenis: 'PIUTANG_JATUH_TEMPO',
+        judul: 'Piutang segera jatuh tempo',
+        keterangan: `${p.segera} piutang jatuh tempo dalam 3 hari.`,
+        jumlah: p.segera,
+        tautan: '/piutang',
       });
     }
   }

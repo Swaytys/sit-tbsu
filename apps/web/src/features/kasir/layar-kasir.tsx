@@ -30,6 +30,7 @@ import { AreaCetak } from '@/components/area-cetak';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InputRupiah } from '@/components/input-rupiah';
 import { PilihBarang } from '@/components/pilih-barang';
+import { PeringatanPiutang } from '@/components/peringatan-piutang';
 import { PilihPelanggan } from '@/components/pilih-pelanggan';
 import { Struk } from '@/components/struk';
 import { Button } from '@/components/ui/button';
@@ -398,6 +399,10 @@ export function LayarKasir({ idOrder }: { idOrder: number | null }) {
           )}
         </div>
       </div>
+
+      <PeringatanPiutang
+        idPelanggan={modeOrder ? (o?.idPelanggan ?? null) : (pelanggan?.id ?? null)}
+      />
 
       <div className="flex min-h-[520px] flex-1 gap-3">
         <div className="flex flex-1 flex-col overflow-hidden rounded-xl border bg-white">

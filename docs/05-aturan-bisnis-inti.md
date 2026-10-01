@@ -224,3 +224,5 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-09-30 — §16: aksi log PENGGUNA_AKTIFKAN, PENGGUNA_GANTI_PASSWORD, PENGGUNA_CABUT_SESI (K-054).
 - 2026-10-01 — §16: aksi log PENYESUAIAN_UBAH (K-067).
 - 2026-10-02 — §12 A3a: pengecualian barang dari lembar opname dengan alasan (K-069, keputusan pemilik).
+- 2026-10-02 — Fase 5: tafsiran R8 (izin `penjualan.order.lepas_paksa`), P8 (jenis pembayaran campuran), P12
+  (non-tunai tanpa shift hanya Admin/Owner) dicatat di K-070–K-072; aturan tidak berubah.

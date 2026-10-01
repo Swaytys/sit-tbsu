@@ -58,7 +58,8 @@ dokumennya. Tidak ada nomor ganda; nomor bisa berlubang bila transaksi dibatalka
 `kadaluarsa_absolut` dan `terakhir_aktif` untuk batas absolut dan idle. Logout = isi `dicabut_pada`.
 
 **`log_aktivitas`** [APPEND] — jejak audit. `data_lama`/`data_baru` jsonb untuk perubahan master; `nomor_dokumen`
-untuk transaksi. `id_pengguna` null hanya untuk percobaan login dengan username tak dikenal.
+untuk transaksi. `id_pengguna` null hanya untuk percobaan login dengan username tak dikenal dan aksi otomatis
+sistem (job order basi/kunci kadaluarsa, K-070).
 
 ### 3.2 Master
 
