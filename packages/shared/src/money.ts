@@ -71,3 +71,8 @@ export function hppRataRata(
   const nilai = new Decimal(qtyLama).times(hppLama).plus(new Decimal(qtyMasuk).times(hppMasuk));
   return bulatkanRupiah(nilai.div(total));
 }
+
+/** U1/E1: subtotal = bulatkanRupiah(qty × harga satuan); qty teks desimal, harga rupiah. */
+export function subtotalRupiah(qty: NilaiDesimal, hargaSatuan: number): number {
+  return bulatkanRupiah(new Decimal(qty).times(hargaSatuan));
+}

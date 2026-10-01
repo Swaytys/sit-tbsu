@@ -76,12 +76,14 @@ test('Admin mengimpor barang: pratinjau galat, perbaiki baris di layar, simpan; 
 
   // Ekspor harga jual.
   await menuUtama(page).getByRole('link', { name: 'Harga Jual' }).click();
+  await expect(page.getByRole('heading', { name: 'Harga Jual' })).toBeVisible();
   const ekspor = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Ekspor Excel' }).click();
   expect((await ekspor).suggestedFilename()).toMatch(/^harga-jual-\d{4}-\d{2}-\d{2}\.xlsx$/);
 
   // Bersihkan: nonaktifkan barang hasil import.
   await menuUtama(page).getByRole('link', { name: 'Data Barang' }).click();
+  await expect(page.getByRole('heading', { name: 'Data Barang' })).toBeVisible();
   await page.getByLabel('Cari barang').fill(awalan);
   for (const akhir of ['A', 'B']) {
     const nama = `${awalan} ${akhir}`;

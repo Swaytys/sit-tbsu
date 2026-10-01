@@ -13,6 +13,7 @@ export * from './schemas/barang';
 export * from './schemas/mitra';
 export * from './schemas/pengaturan';
 export * from './schemas/pengguna';
+export * from './schemas/persediaan';
 export * from './schemas/referensi';
 export * from './schemas/satuan';
 export * from './schemas/umum';

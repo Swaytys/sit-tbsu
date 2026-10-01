@@ -50,12 +50,14 @@ export function Layout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900">
+    <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 print:block print:h-auto print:overflow-visible print:bg-white">
       <Sidebar terbuka={sidebarTerbuka} />
       <main className="flex min-w-0 flex-1 flex-col">
-        <Topbar judul={judul} onToggleSidebar={toggleSidebar} />
+        <div className="print:hidden">
+          <Topbar judul={judul} onToggleSidebar={toggleSidebar} />
+        </div>
         {/* relative: elemen absolut (mis. input berkas sr-only) ikut wadah ini, tidak memanjangkan dokumen. */}
-        <div className="relative flex-1 overflow-auto">
+        <div className="relative flex-1 overflow-auto print:overflow-visible">
           <Outlet />
         </div>
       </main>

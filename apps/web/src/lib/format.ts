@@ -20,3 +20,10 @@ export function formatWaktu(iso: string | null | undefined): string {
   if (!iso) return '—';
   return format(new TZDate(new Date(iso), ZONA_TOKO), 'dd/MM/yyyy HH:mm');
 }
+
+/** Tanggal kalender `2026-10-01` → `01/10/2026`. Kosong → `—`. */
+export function formatTanggal(tanggal: string | null | undefined): string {
+  if (!tanggal) return '—';
+  const [t, b, h] = tanggal.slice(0, 10).split('-');
+  return `${h}/${b}/${t}`;
+}

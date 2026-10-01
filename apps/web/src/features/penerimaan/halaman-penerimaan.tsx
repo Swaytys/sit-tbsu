@@ -1,0 +1,198 @@
+import { formatRupiah, type BarisDaftarPenerimaan, type JenisPenerimaan } from '@sit/shared';
+import { Plus, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router';
+import { useBarisPerHalaman } from '@/api/pengaturan';
+import { useDaftarPenerimaan } from '@/api/persediaan';
+import { DataTable, type KolomTabel } from '@/components/data-table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { formatTanggal, formatWaktu } from '@/lib/format';
+import { LABEL_JENIS_PENERIMAAN, LABEL_STATUS_HUTANG } from '@/lib/label';
+import { useTunda } from '@/lib/use-tunda';
+
+const SEMUA = 'SEMUA';
+
+export function BadgeHutang({ p }: { p: Pick<BarisDaftarPenerimaan, 'statusHutang'> }) {
+  const kelas: Record<string, string> = {
+    LUNAS: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    BELUM_LUNAS: 'border-amber-200 bg-amber-50 text-amber-700',
+    SEBAGIAN: 'border-amber-200 bg-amber-50 text-amber-700',
+    TIDAK_ADA: 'border-slate-200 bg-slate-50 text-slate-600',
+  };
+  return (
+    <Badge variant="outline" className={kelas[p.statusHutang]}>
+      {LABEL_STATUS_HUTANG[p.statusHutang]}
+    </Badge>
+  );
+}
+
+/** Riwayat penerimaan barang (docs/05 E6). */
+export function HalamanPenerimaan() {
+  const [cari, setCari] = useState('');
+  const cariTertunda = useTunda(cari, 300);
+  const [jenis, setJenis] = useState<JenisPenerimaan | null>(null);
+  const [dari, setDari] = useState('');
+  const [sampai, setSampai] = useState('');
+  const [halaman, setHalaman] = useState(1);
+  const barisPerHalaman = useBarisPerHalaman();
+  const daftar = useDaftarPenerimaan({
+    cari: cariTertunda,
+    jenis,
+    dari,
+    sampai,
+    halaman,
+    perHalaman: barisPerHalaman,
+  });
+
+  const kolom: KolomTabel<BarisDaftarPenerimaan>[] = [
+    {
+      kunci: 'nomor',
+      judul: 'Nomor',
+      sel: (p) => (
+        <Link to={`/penerimaan/${p.id}`} className="font-mono text-xs font-medium text-blue-700">
+          {p.nomor}
+        </Link>
+      ),
+    },
+    { kunci: 'tanggal', judul: 'Waktu', sel: (p) => formatWaktu(p.tanggal) },
+    {
+      kunci: 'pemasok',
+      judul: 'Pemasok',
+      sel: (p) => (
+        <div>
+          <div className="font-medium">{p.namaPemasok}</div>
+          {p.noFakturPemasok && (
+            <div className="text-xs text-slate-500">Faktur {p.noFakturPemasok}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      kunci: 'jenis',
+      judul: 'Jenis',
+      sel: (p) =>
+        `${LABEL_JENIS_PENERIMAAN[p.jenis]}${p.syaratBayar ? ` · ${p.syaratBayar === 'TUNAI' ? 'Tunai' : 'Tempo'}` : ''}`,
+    },
+    { kunci: 'baris', judul: 'Barang', className: 'text-right', sel: (p) => p.jumlahBaris },
+    {
+      kunci: 'total',
+      judul: 'Total faktur',
+      className: 'text-right tabular-nums',
+      sel: (p) => (p.jenis === 'KONSINYASI' ? '—' : formatRupiah(p.totalFaktur)),
+    },
+    {
+      kunci: 'hutang',
+      judul: 'Hutang',
+      sel: (p) => (
+        <div className="space-y-0.5">
+          <BadgeHutang p={p} />
+          {p.tanggalJatuhTempo && p.sisaHutang > 0 && (
+            <div className="text-xs text-slate-500">
+              {formatRupiah(p.sisaHutang)} · jatuh tempo {formatTanggal(p.tanggalJatuhTempo)}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    { kunci: 'oleh', judul: 'Dicatat oleh', sel: (p) => p.namaPengguna },
+  ];
+
+  return (
+    <div className="space-y-4 p-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">Penerimaan Barang</h1>
+          <p className="text-sm text-slate-500">
+            Barang masuk dari pemasok menambah stok dan memperbarui HPP.
+          </p>
+        </div>
+        <Button asChild>
+          <Link to="/penerimaan/baru">
+            <Plus /> Catat penerimaan
+          </Link>
+        </Button>
+      </div>
+
+      <Card className="gap-0 overflow-hidden py-0">
+        <div className="flex flex-wrap items-center gap-3 border-b p-3">
+          <div className="relative max-w-sm flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={cari}
+              onChange={(e) => {
+                setCari(e.target.value);
+                setHalaman(1);
+              }}
+              placeholder="Cari nomor, faktur, surat jalan, atau pemasok…"
+              className="pl-8"
+              aria-label="Cari penerimaan"
+            />
+          </div>
+          <Select
+            value={jenis ?? SEMUA}
+            onValueChange={(v) => {
+              setJenis(v === SEMUA ? null : (v as JenisPenerimaan));
+              setHalaman(1);
+            }}
+          >
+            <SelectTrigger className="w-40" aria-label="Saring jenis">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SEMUA}>Semua jenis</SelectItem>
+              <SelectItem value="PEMBELIAN">Pembelian</SelectItem>
+              <SelectItem value="KONSINYASI">Konsinyasi</SelectItem>
+            </SelectContent>
+          </Select>
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            Dari
+            <Input
+              type="date"
+              className="w-40"
+              value={dari}
+              onChange={(e) => {
+                setDari(e.target.value);
+                setHalaman(1);
+              }}
+              aria-label="Dari tanggal"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            s.d.
+            <Input
+              type="date"
+              className="w-40"
+              value={sampai}
+              onChange={(e) => {
+                setSampai(e.target.value);
+                setHalaman(1);
+              }}
+              aria-label="Sampai tanggal"
+            />
+          </label>
+        </div>
+        <DataTable
+          kolom={kolom}
+          data={daftar.data?.data}
+          meta={daftar.data?.meta}
+          onHalaman={setHalaman}
+          kunciBaris={(p) => p.id}
+          memuat={daftar.isFetching}
+          galat={daftar.error}
+          onUlang={() => void daftar.refetch()}
+          kosong="Belum ada penerimaan barang."
+        />
+      </Card>
+    </div>
+  );
+}
