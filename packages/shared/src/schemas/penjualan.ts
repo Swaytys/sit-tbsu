@@ -440,3 +440,52 @@ export type BarisSuratJalan = {
     qtyKirim: string;
   }[];
 };
+
+// --- Piutang (docs/06 PT1–PT4) ---
+
+export const skemaCariPiutang = skemaHalaman.extend({
+  cari: z.string().trim().max(100).optional(),
+  idPelanggan: z.coerce.number().int().positive().optional(),
+  terlambat: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
+});
+export type ParamCariPiutang = z.input<typeof skemaCariPiutang>;
+
+export type BarisPiutang = {
+  id: number;
+  nomor: string;
+  tanggal: string;
+  jenisPenjualan: JenisPenjualan;
+  idPelanggan: number;
+  namaPelanggan: string;
+  totalNeto: number;
+  totalDibayar: number;
+  sisaTagihan: number;
+  statusPembayaran: StatusPembayaran;
+  tanggalJatuhTempo: string | null;
+  /** Hari lewat jatuh tempo (negatif = masih sekian hari lagi). */
+  hariTerlambat: number | null;
+  terlambat: boolean;
+};
+
+export type RingkasanPiutangPelanggan = {
+  idPelanggan: number;
+  namaPelanggan: string;
+  jumlahInvoice: number;
+  totalSisa: number;
+  jatuhTempoTerlama: string | null;
+};
+
+export type DaftarPiutang = {
+  data: BarisPiutang[];
+  meta: MetaHalaman;
+  ringkasan: {
+    totalSisa: number;
+    jumlah: number;
+    jumlahTerlambat: number;
+    totalTerlambat: number;
+    perPelanggan: RingkasanPiutangPelanggan[];
+  };
+};

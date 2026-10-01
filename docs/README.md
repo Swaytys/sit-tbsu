@@ -77,7 +77,7 @@ Jangan pakai mode auto-accept.
 | 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059) | 2026-09-30 |
 | 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH) | 2026-10-01 |
 | 06-harga-piutang-hutang.md | Final v1 | 2026-09-19 |
-| 07-roadmap.md | Final v1 (Fase 4 selesai; rencana cadangan Fase 8) | 2026-10-01 |
+| 07-roadmap.md | Final v1 (Fase 5 selesai; rencana cadangan Fase 8) | 2026-10-02 |
 | 08-backlog.md | Hidup (v2.0.0, v3.0.0) | 2026-09-30 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
 | keputusan/2026-09-19-keputusan-tambahan.md | Final (K-044–K-049) | 2026-09-19 |
@@ -85,4 +85,5 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-09-30-akses-dasar.md | Final (K-054–K-055) | 2026-09-30 |
 | keputusan/2026-09-30-data-master.md | Final (K-056–K-065) | 2026-09-30 |
 | keputusan/2026-10-01-persediaan.md | Final (K-066–K-069) | 2026-10-02 |
+| keputusan/2026-10-02-penjualan.md | Final (K-070–K-072) | 2026-10-02 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |

@@ -21,6 +21,7 @@ import { useDetailOrder, useKirimOrder, useSimpanOrder } from '@/api/penjualan';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InputRupiah } from '@/components/input-rupiah';
 import { PilihBarang } from '@/components/pilih-barang';
+import { PeringatanPiutang } from '@/components/peringatan-piutang';
 import { PilihPelanggan } from '@/components/pilih-pelanggan';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -353,6 +354,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                       onPilih={pilihPelanggan}
                       label="Cari pelanggan"
                     />
+                    <PeringatanPiutang idPelanggan={pelanggan?.id ?? null} />
                     <FormMessage />
                   </FormItem>
                 )}

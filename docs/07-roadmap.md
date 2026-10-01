@@ -18,7 +18,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 2 | Akses dasar | Selesai | 2026-09-30 |
 | 3 | Data master | Selesai | 2026-09-30 |
 | 4 | Inti persediaan | Selesai | 2026-10-01 |
-| 5 | Penjualan | Belum | — |
+| 5 | Penjualan | Selesai | 2026-10-02 |
 | 6 | Koreksi dan kontrol | Belum | — |
 | 7 | Laporan dan dashboard | Belum | — |
 | 8 | Pengerasan dan deploy (akhir M1) | Belum | — |
@@ -187,6 +187,18 @@ Deliverable:
 
 Selesai bila: skenario e2e "Staf membuat order → Kasir checkout → struk" dan "pengantaran DP → dua surat jalan →
 pelunasan → lunas" berjalan di browser.
+
+Catatan penyelesaian (2026-10-02, branch `feat/05-order`, `feat/05-kasir`, `feat/05-pengantaran`,
+`feat/05-piutang`):
+- Order & antrean dua panel seperti mockup, reservasi lewat `ubahReservasi()` di ledger, kunci kasir, order basi,
+  job 15 menit, tab Stok tertahan (K-070). Izin baru `penjualan.order.lepas_paksa`.
+- Layar kasir (F2/Enter/F9), checkout dari antrean atau keranjang, pembayaran campuran, struk thermal, belum
+  diambil, buka shift (K1 dimajukan dari Fase 6, K-071).
+- Invoice pengantaran, surat jalan bertahap dengan linimasa, cetak invoice & surat jalan A4, halaman Piutang,
+  notifikasi order basi & piutang, peringatan piutang terlambat (K-072).
+- Tes: 190 tes Vitest (181 API + 9 shared; termasuk 8 checkout paralel atas stok 5 → tepat 5 berhasil) dan
+  35 tes Playwright lulus, termasuk dua skenario "Selesai bila".
+- Ditunda: tutup shift, kas shift, clerical (Fase 6); limit kredit & umur piutang (Fase 10); satuan jual (Fase 12).
 
 ### Fase 6 — Koreksi dan kontrol
 Deliverable:

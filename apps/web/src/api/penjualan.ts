@@ -262,3 +262,34 @@ export function useBatalSuratJalan() {
     ambilData(await api['surat-jalan'][':id'].batal.$post({ param: param(id), json: { alasan } })),
   );
 }
+
+// --- Piutang ---
+
+export function useDaftarPiutang(
+  p: {
+    cari: string;
+    idPelanggan: number | null;
+    terlambat: boolean;
+    halaman: number;
+    perHalaman: number;
+  },
+  aktif = true,
+) {
+  return useQuery({
+    queryKey: ['penjualan', 'piutang', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.piutang.$get({
+          query: {
+            cari: p.cari || undefined,
+            idPelanggan: p.idPelanggan === null ? undefined : String(p.idPelanggan),
+            terlambat: p.terlambat ? 'true' : undefined,
+            halaman: String(p.halaman),
+            perHalaman: String(p.perHalaman),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+    enabled: aktif,
+  });
+}
