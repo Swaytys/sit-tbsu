@@ -1,9 +1,14 @@
 import { z } from 'zod';
 import {
   JENIS_PENERIMAAN,
+  JENIS_PENYESUAIAN,
+  STATUS_PENYESUAIAN,
   SYARAT_BAYAR,
   type JenisPenerimaan,
+  type JenisPenyesuaian,
+  type KondisiStok,
   type StatusHutang,
+  type StatusPenyesuaian,
   type SyaratBayar,
 } from '../enums';
 import { POLA_QTY } from '../qty';
@@ -134,4 +139,117 @@ export type DetailPenerimaan = BarisDaftarPenerimaan & {
     keterangan: string | null;
   }[];
   pembayaran: { nomor: string; tanggal: string; nominal: number; metode: string }[];
+};
+
+// --- Penyesuaian stok (docs/05 §12, A1–A7) ---
+
+/** Jenis yang bisa dibuat di M1 (MUSNAH = M2, Fase 10). */
+export const JENIS_PENYESUAIAN_M1 = ['SALDO_AWAL', 'OPNAME', 'KOREKSI', 'RUSAK'] as const;
+export type JenisPenyesuaianM1 = (typeof JENIS_PENYESUAIAN_M1)[number];
+
+const POLA_QTY_BERTANDA = /^-?\d{1,11}(\.\d{1,3})?$/;
+const kosongJadiNull = (v: unknown) => (v === '' || v === undefined ? null : v);
+
+export const skemaBarisPenyesuaian = z.object({
+  idBarang: z.number('Barang wajib dipilih.').int().positive('Barang wajib dipilih.'),
+  /** SALDO_AWAL: jumlah awal (> 0). OPNAME: hasil hitung (≥ 0; kosong = belum dihitung). */
+  qtyFisik: z.preprocess(
+    (v) => kosongJadiNull(angkaKeTeks(v)),
+    z.string().regex(POLA_QTY, 'Qty fisik harus angka ≥ 0, maksimal 3 desimal.').nullable(),
+  ),
+  /** KOREKSI: selisih bertanda (+ masuk, − keluar). RUSAK: jumlah yang rusak (positif). */
+  qtySelisih: z.preprocess(
+    (v) => kosongJadiNull(angkaKeTeks(v)),
+    z
+      .string()
+      .regex(POLA_QTY_BERTANDA, 'Selisih harus angka (boleh negatif), maksimal 3 desimal.')
+      .nullable(),
+  ),
+  /** SALDO_AWAL: nilai per satuan dasar. Lainnya diisi server (hpp_rata2 saat selesai). */
+  hppSatuan: z.preprocess(kosongJadiNull, skemaRupiah.nullable()),
+  keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
+});
+export type InputBarisPenyesuaian = z.input<typeof skemaBarisPenyesuaian>;
+
+export const skemaPenyesuaian = z
+  .object({
+    jenis: z.enum(JENIS_PENYESUAIAN_M1, 'Jenis penyesuaian tidak valid.'),
+    alasan: teksOpsional(255, 'Alasan maksimal 255 karakter.'),
+    catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+    baris: z.array(skemaBarisPenyesuaian).max(5000, 'Maksimal 5000 baris.'),
+  })
+  .superRefine((d, ctx) => {
+    const salah = (path: (string | number)[], message: string) =>
+      ctx.addIssue({ code: 'custom', path, message });
+    if (d.jenis === 'KOREKSI' && !d.alasan) salah(['alasan'], 'Alasan koreksi wajib diisi.');
+    const terlihat = new Map<number, number>();
+    d.baris.forEach((b, i) => {
+      const lain = terlihat.get(b.idBarang);
+      if (lain !== undefined) {
+        salah(['baris', i, 'idBarang'], `Barang sama dengan baris ${lain + 1}.`);
+      }
+      terlihat.set(b.idBarang, i);
+      const nol = (v: string | null) => v === null || !/[1-9]/.test(v);
+      if (d.jenis === 'SALDO_AWAL') {
+        if (nol(b.qtyFisik)) salah(['baris', i, 'qtyFisik'], 'Jumlah awal harus lebih dari 0.');
+        if (b.hppSatuan === null) salah(['baris', i, 'hppSatuan'], 'Nilai per satuan wajib diisi.');
+      }
+      if (d.jenis === 'KOREKSI' && nol(b.qtySelisih)) {
+        salah(['baris', i, 'qtySelisih'], 'Selisih koreksi tidak boleh 0.');
+      }
+      if (d.jenis === 'RUSAK') {
+        if (nol(b.qtySelisih) || b.qtySelisih?.startsWith('-')) {
+          salah(['baris', i, 'qtySelisih'], 'Jumlah rusak harus lebih dari 0.');
+        }
+      }
+    });
+  });
+export type InputPenyesuaian = z.input<typeof skemaPenyesuaian>;
+export type DataPenyesuaian = z.output<typeof skemaPenyesuaian>;
+
+export const skemaCariPenyesuaian = skemaHalaman.extend({
+  cari: z.string().trim().max(100).optional(),
+  jenis: z.enum(JENIS_PENYESUAIAN).optional(),
+  status: z.enum(STATUS_PENYESUAIAN).optional(),
+});
+
+/** Membuat draf OPNAME berisi barang aktif (semua atau satu kategori) untuk lembar hitung. */
+export const skemaBuatLembarOpname = z.object({
+  idKategori: z.number().int().positive().nullable().default(null),
+  catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+});
+
+export type BarisDaftarPenyesuaian = {
+  id: number;
+  nomor: string;
+  tanggal: string;
+  jenis: JenisPenyesuaian;
+  status: StatusPenyesuaian;
+  alasan: string | null;
+  jumlahBaris: number;
+  namaPengguna: string;
+  waktuSelesai: string | null;
+};
+
+export type BarisDetailPenyesuaian = {
+  id: number;
+  idBarang: number;
+  kodeBarang: string;
+  namaBarang: string;
+  namaKategori: string;
+  kodeSatuan: string;
+  kondisi: KondisiStok;
+  /** DRAFT: stok sistem saat ini; SELESAI: stok sistem saat diselesaikan. */
+  qtySistem: string;
+  /** A3: barang terjual yang belum diambil (hanya OPNAME). */
+  qtyBelumDiambil: string;
+  qtyFisik: string | null;
+  qtySelisih: string;
+  hppSatuan: number;
+  keterangan: string | null;
+};
+
+export type DetailPenyesuaian = BarisDaftarPenyesuaian & {
+  catatan: string | null;
+  baris: BarisDetailPenyesuaian[];
 };

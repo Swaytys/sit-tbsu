@@ -1,4 +1,11 @@
-import type { AksiLog, JenisPenerimaan, StatusAktif, StatusHutang } from '@sit/shared';
+import type {
+  AksiLog,
+  JenisPenerimaan,
+  JenisPenyesuaian,
+  StatusAktif,
+  StatusHutang,
+  StatusPenyesuaian,
+} from '@sit/shared';
 
 /** Label tampilan untuk nilai enum (nilai enum tetap UPPER_SNAKE di data). */
 export { LABEL_JENIS_DIMENSI } from '@sit/shared';
@@ -40,4 +47,18 @@ export const LABEL_STATUS_HUTANG: Record<StatusHutang, string> = {
   BELUM_LUNAS: 'Belum lunas',
   SEBAGIAN: 'Sebagian',
   LUNAS: 'Lunas',
+};
+
+export const LABEL_JENIS_PENYESUAIAN: Record<JenisPenyesuaian, string> = {
+  SALDO_AWAL: 'Saldo awal',
+  OPNAME: 'Stok opname',
+  KOREKSI: 'Koreksi',
+  RUSAK: 'Stok rusak',
+  MUSNAH: 'Pemusnahan',
+};
+
+export const LABEL_STATUS_PENYESUAIAN: Record<StatusPenyesuaian, string> = {
+  DRAFT: 'Draf',
+  SELESAI: 'Selesai',
+  BATAL: 'Batal',
 };
