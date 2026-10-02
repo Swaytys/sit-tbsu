@@ -67,14 +67,14 @@ test('Kasir: buka shift, kasbon, jual tunai, tutup shift blind count dengan seli
     await kasir.getByLabel('Hitung total uang tunai di laci kasir').fill('108000');
     await kasir.getByRole('button', { name: 'Tutup shift' }).click();
     await expect(kasir.getByLabel('Keterangan selisih wajib diisi')).toBeFocused();
-    await kasir.getByLabel('Keterangan selisih wajib diisi').fill('Kurang seribu, receh');
+    await kasir.getByLabel('Keterangan selisih wajib diisi').fill(`Kurang seribu ${kode}`);
     await kasir.getByRole('button', { name: 'Tutup shift' }).click();
     await expect(kasir.getByText('Total saldo sistem')).toBeVisible();
     await expect(kasir.getByTestId('selisih-clerical')).toContainText('Rp 1.000');
     await expect(kasir.getByTestId('selisih-clerical')).toContainText('Kurang');
 
     await kasir.getByRole('tab', { name: 'Riwayat' }).click();
-    await expect(kasir.getByRole('row').filter({ hasText: 'Kurang seribu, receh' })).toBeVisible();
+    await expect(kasir.getByRole('row').filter({ hasText: `Kurang seribu ${kode}` })).toBeVisible();
   } finally {
     await api(admin, `/barang/${barang.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
   }

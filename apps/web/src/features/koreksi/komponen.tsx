@@ -40,9 +40,12 @@ export function BadgePersetujuan({ status }: { status: StatusPersetujuan }) {
 export function IsianRefund({
   nilai,
   onUbah,
+  labelTunai = 'Tunai (laci shift saya)',
 }: {
   nilai: DataSetujui;
   onUbah: (v: DataSetujui) => void;
+  /** Refund tunai selalu keluar dari laci shift penyetuju. */
+  labelTunai?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -60,7 +63,7 @@ export function IsianRefund({
                 : 'border-slate-200',
             )}
           >
-            {m === 'TUNAI' ? 'Tunai (laci shift saya)' : 'Transfer'}
+            {m === 'TUNAI' ? labelTunai : 'Transfer'}
           </button>
         ))}
       </div>

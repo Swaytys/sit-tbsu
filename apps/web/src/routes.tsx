@@ -34,6 +34,7 @@ const HALAMAN: Record<string, MuatHalaman> = {
   '/penerimaan': () =>
     import('@/features/penerimaan/halaman-penerimaan').then((m) => m.HalamanPenerimaan),
   '/order': () => import('@/features/order/halaman-order').then((m) => m.HalamanOrder),
+  '/retur': () => import('@/features/koreksi/halaman-retur').then((m) => m.HalamanRetur),
   '/void': () => import('@/features/koreksi/halaman-void').then((m) => m.HalamanVoid),
   '/shift': () => import('@/features/shift/halaman-shift').then((m) => m.HalamanShift),
   '/piutang': () => import('@/features/piutang/halaman-piutang').then((m) => m.HalamanPiutang),

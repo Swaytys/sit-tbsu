@@ -19,7 +19,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 3 | Data master | Selesai | 2026-09-30 |
 | 4 | Inti persediaan | Selesai | 2026-10-01 |
 | 5 | Penjualan | Selesai | 2026-10-02 |
-| 6 | Koreksi dan kontrol | Belum | — |
+| 6 | Koreksi dan kontrol | Selesai | 2026-10-03 |
 | 7 | Laporan dan dashboard | Belum | — |
 | 8 | Pengerasan dan deploy (akhir M1) | Belum | — |
 | 9 | Harga dan promo | Belum | — |
@@ -222,6 +222,16 @@ Deliverable:
 
 Selesai bila: satu hari operasional simulasi (buka shift, 5 penjualan, 1 retur, 1 void, tutup shift) menghasilkan
 clerical yang cocok dengan hitungan manual.
+
+Catatan penyelesaian (2026-10-03, branch `feat/06-shift`, `feat/06-void`, `feat/06-retur`):
+- Shift: kas masuk/keluar (kasbon, setor/tarik owner, lain-lain), tutup shift blind count dengan keterangan selisih
+  wajib, clerical check, riwayat; Admin/Owner bisa menutup shift kasir lain; bayar pemasok tunai keluar dari laci
+  (K-075).
+- Void per item/transaksi dengan persetujuan, stok kembali, refund dari laci penyetuju, surat jalan belum berangkat
+  dibatalkan (K-076). Retur REFUND/TUKAR_BARANG/POTONG_TAGIHAN dengan kondisi barang, batas nilai, dan persetujuan
+  (K-077). Notifikasi VOID_MENUNGGU dan RETUR_MENUNGGU.
+- Skenario "Selesai bila" diuji otomatis di `apps/api/src/modules/koreksi/retur.test.ts` (modal 100.000, 5 penjualan,
+  1 retur, 1 void, tutup shift → selisih 0). Playwright: shift, void, retur.
 
 ### Fase 7 — Laporan dan dashboard
 Deliverable: 9 laporan KP + Piutang (layout sesuai `referensi/laporan-kp/`), filter periode, total seluruh

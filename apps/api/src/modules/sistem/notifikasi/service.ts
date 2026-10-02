@@ -1,4 +1,6 @@
 import type { Izin, Notifikasi } from '@sit/shared';
+import { jumlahReturMenunggu } from '../../koreksi/retur/service';
+import { jumlahVoidMenunggu } from '../../koreksi/void/service';
 import { jumlahOrderBasi } from '../../penjualan/order/service';
 import { piutangJatuhTempo } from '../../penjualan/piutang/service';
 import { peringatanStok } from '../../persediaan/stok/service';
@@ -15,6 +17,30 @@ export async function notifikasiPengguna(izin: ReadonlySet<Izin>): Promise<Notif
         keterangan: `${basi} order menunggu terlalu lama dan masih menahan stok.`,
         jumlah: basi,
         tautan: '/order?status=MENUNGGU',
+      });
+    }
+  }
+  if (izin.has('void.setujui')) {
+    const n = await jumlahVoidMenunggu();
+    if (n > 0) {
+      hasil.push({
+        jenis: 'VOID_MENUNGGU',
+        judul: 'Void menunggu persetujuan',
+        keterangan: `${n} pengajuan void perlu diputuskan.`,
+        jumlah: n,
+        tautan: '/void?tab=persetujuan',
+      });
+    }
+  }
+  if (izin.has('retur.setujui')) {
+    const n = await jumlahReturMenunggu();
+    if (n > 0) {
+      hasil.push({
+        jenis: 'RETUR_MENUNGGU',
+        judul: 'Retur menunggu persetujuan',
+        keterangan: `${n} pengajuan retur perlu diputuskan.`,
+        jumlah: n,
+        tautan: '/retur?tab=persetujuan',
       });
     }
   }

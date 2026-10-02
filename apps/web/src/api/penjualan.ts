@@ -3,6 +3,7 @@ import type {
   DataKasShift,
   DataOrder,
   DataPembayaran,
+  DataRetur,
   DataSetujui,
   DataSuratJalan,
   DataTutupShift,
@@ -439,5 +440,50 @@ export function useSetujuiVoid() {
 export function useTolakVoid() {
   return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
     ambilData(await api.void[':id'].tolak.$post({ param: param(id), json: { alasan } })),
+  );
+}
+
+export function useKandidatRetur(cari: string) {
+  return useQuery({
+    queryKey: ['koreksi', 'retur', 'kandidat', cari],
+    queryFn: async () => ambilData(await api.retur.kandidat.$get({ query: { cari } })),
+    enabled: cari.trim().length > 0,
+  });
+}
+
+export function useDaftarRetur(p: {
+  status: StatusPersetujuan | null;
+  halaman: number;
+  perHalaman: number;
+}) {
+  return useQuery({
+    queryKey: ['koreksi', 'retur', 'daftar', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.retur.$get({
+          query: {
+            status: p.status ?? undefined,
+            halaman: String(p.halaman),
+            perHalaman: String(p.perHalaman),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAjukanRetur() {
+  return useMutasiKoreksi(async (json: DataRetur) => ambilData(await api.retur.$post({ json })));
+}
+
+export function useSetujuiRetur() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujui }) =>
+    ambilData(await api.retur[':id'].setujui.$post({ param: param(id), json })),
+  );
+}
+
+export function useTolakRetur() {
+  return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
+    ambilData(await api.retur[':id'].tolak.$post({ param: param(id), json: { alasan } })),
   );
 }
