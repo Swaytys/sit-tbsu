@@ -243,6 +243,12 @@ test('Pengantaran: order → invoice DP transfer → surat jalan semua barang, h
     });
 
     const kasir = await browser.newPage();
+    await kasir.addInitScript(() => {
+      window.print = () => {
+        document.body.dataset.terakhirDicetak =
+          document.querySelector('.area-cetak')?.textContent ?? '';
+      };
+    });
     await masukCepat(kasir, 'KASIR');
     await bukaShift(kasir);
     await kasir.goto('/penjualan-pengantaran');
@@ -263,6 +269,11 @@ test('Pengantaran: order → invoice DP transfer → surat jalan semua barang, h
     await expect(hasil).toContainText(/Invoice INV-\d{6}-\d{3,} dibuat/);
     await expect(hasil).toContainText('sisa Rp 300.000');
     await expect(hasil).toBeFocused();
+    // K-074: invoice tidak dicetak otomatis; P mencetaknya.
+    const dicetak = () => kasir.evaluate(() => document.body.dataset.terakhirDicetak ?? '');
+    expect(await dicetak()).toBe('');
+    await kasir.keyboard.press('p');
+    await expect.poll(dicetak).toContain('INVOICE');
     await kasir.keyboard.press('s');
     await expect(kasir.getByText(/Surat jalan SJ-\d{6}-\d{3,} dibuat/)).toBeVisible();
 

@@ -85,5 +85,5 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-09-30-akses-dasar.md | Final (K-054–K-055) | 2026-09-30 |
 | keputusan/2026-09-30-data-master.md | Final (K-056–K-065) | 2026-09-30 |
 | keputusan/2026-10-01-persediaan.md | Final (K-066–K-069) | 2026-10-02 |
-| keputusan/2026-10-02-penjualan.md | Final (K-070–K-073) | 2026-10-02 |
+| keputusan/2026-10-02-penjualan.md | Final (K-070–K-074) | 2026-10-03 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |

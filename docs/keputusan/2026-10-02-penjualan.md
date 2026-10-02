@@ -109,3 +109,19 @@ informatif, dan boleh berbeda dari halaman lain demi efisiensi.
 sedangkan satu tombol ≈ 0,2–0,3 detik. Transaksi order dari antrean kini minimal: Enter → ketik uang → Enter. Papan
 tiket FIFO mengikuti praktik layar dapur (KDS) restoran: pesanan terbaca sekilas, umur terlihat, adil.
 **Ditolak:** wajib nama pembeli; urutan prioritas-dulu; polling tiap detik; dialog pratinjau struk; pintasan F7/F1.
+
+### K-074 — Cetak struk otomatis tanpa jendela print (masukan pemilik, 3 Oktober 2026)
+**Konteks:** Setelah checkout penjualan langsung muncul jendela pilihan print peramban; pemilik ingin struk
+langsung tercetak seperti mesin POS pada umumnya.
+**Keputusan:**
+1. Jendela itu milik peramban dan tidak bisa dimatikan dari halaman web. Komputer kasir dibuka lewat
+   `scripts/kasir/buka-kasir.cmd`: Chrome/Edge dengan `--kiosk-printing` (cetak langsung ke printer bawaan Windows),
+   profil peramban terpisah, mode aplikasi (tanpa bilah alamat). Dimajukan dari Fase 8 ke sekarang.
+2. Penjualan langsung: struk **selalu** dicetak otomatis setelah checkout.
+3. Pengantaran: invoice **tidak** dicetak otomatis; P = cetak invoice, S = buat surat jalan semua barang & cetak.
+4. Pengaturan printer di aplikasi (aktif/nonaktif, pilih printer), halaman pintasan yang bisa diganti, pintasan
+   umum (urungkan/ulangi/dll.), dan panduan buka-tutup dijadwalkan v2.0.0 Sprint F (docs/08-backlog.md).
+
+**Alasan:** Satu-satunya cara resmi tanpa memasang program tambahan; profil terpisah mencegah browsing biasa
+ikut mencetak otomatis.
+**Ditolak:** agen cetak lokal / Web Serial sekarang (menambah komponen yang harus dipasang & dirawat; dinilai di v2).

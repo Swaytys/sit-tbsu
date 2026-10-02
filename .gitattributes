@@ -3,3 +3,6 @@
 
 # Salinan referensi asli (laporan KP, diagram, mockup) dibiarkan apa adanya.
 docs/referensi/** -text
+
+# Skrip Windows wajib CRLF agar cmd.exe membacanya dengan benar.
+*.cmd text eol=crlf
