@@ -29,7 +29,6 @@ import {
   useDetailOrder,
   useKirimOrder,
   useLepasOrder,
-  useProsesOrder,
 } from '@/api/penjualan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -47,6 +46,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useTunda } from '@/lib/use-tunda';
+import { InputOrderCepat } from './input-order-cepat';
 
 type Saring = 'AKTIF' | 'DRAFT' | 'SELESAI' | 'BATAL';
 const SARING: Saring[] = ['AKTIF', 'DRAFT', 'SELESAI', 'BATAL'];
@@ -113,7 +113,10 @@ function KartuOrder({
         </span>
       )}
       <div className="mb-1.5 flex items-start justify-between">
-        <span className="font-mono text-xs font-bold text-slate-800">{o.nomor}</span>
+        <span className="flex items-baseline gap-2">
+          <span className="text-xl leading-none font-black tabular-nums">{o.noAntrean}</span>
+          <span className="font-mono text-xs text-slate-500">{o.nomor}</span>
+        </span>
         <span className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
           <Clock className="size-3" /> {formatWaktu(o.waktuMasukAntrean ?? o.tanggal).slice(11)}
         </span>
@@ -137,6 +140,19 @@ function KartuOrder({
           <Package className="size-3" /> {o.jumlahItem} barang
         </span>
       </div>
+      <ul className="mt-1.5 space-y-0.5 text-sm leading-tight">
+        {o.ringkasan.slice(0, 3).map((r, i) => (
+          <li key={i} className="flex justify-between gap-2">
+            <span className="truncate">{r.namaBarang}</span>
+            <span className="shrink-0 font-semibold tabular-nums">
+              {formatDesimal(r.qty)} {r.kodeSatuan}
+            </span>
+          </li>
+        ))}
+        {o.ringkasan.length > 3 && (
+          <li className="text-xs text-slate-500">+{o.ringkasan.length - 3} barang lagi</li>
+        )}
+      </ul>
       <div className="mt-2 flex items-center justify-between border-t pt-2">
         <span className="flex items-center gap-1">
           <BadgeStatusOrder status={o.status} />
@@ -207,7 +223,6 @@ function PanelDetail({ id }: { id: number }) {
   const saya = usePengguna();
   const detail = useDetailOrder(id);
   const kirim = useKirimOrder();
-  const proses = useProsesOrder();
   const lepas = useLepasOrder();
   const [dialogBatal, setDialogBatal] = useState(false);
   const d = detail.data;
@@ -235,19 +250,14 @@ function PanelDetail({ id }: { id: number }) {
   const jalankan = (p: Promise<unknown>, pesan: string) =>
     void p.then(() => toast.success(pesan)).catch((err: unknown) => toast.error(pesanGalat(err)));
 
+  /** Layar POS memproses (mengunci) order ini sendiri saat dibuka (K-073). */
   function prosesKePembayaran() {
     if (!d) return;
-    proses
-      .mutateAsync(d.id)
-      .then(
-        () =>
-          void navigasi(
-            d.jenisPenjualan === 'PENGANTARAN'
-              ? `/penjualan-pengantaran/checkout?order=${d.id}`
-              : `/penjualan-langsung?order=${d.id}`,
-          ),
-      )
-      .catch((err: unknown) => toast.error(pesanGalat(err)));
+    void navigasi(
+      d.jenisPenjualan === 'PENGANTARAN'
+        ? `/penjualan-pengantaran?order=${d.id}`
+        : `/penjualan-langsung?order=${d.id}`,
+    );
   }
 
   return (
@@ -311,7 +321,7 @@ function PanelDetail({ id }: { id: number }) {
           )}
           {izin('penjualan.checkout') &&
             (d.status === 'MENUNGGU' || (d.status === 'DIPROSES' && pemegang)) && (
-              <Button disabled={proses.isPending} onClick={prosesKePembayaran}>
+              <Button onClick={prosesKePembayaran}>
                 Proses ke pembayaran <ChevronRight />
               </Button>
             )}
@@ -410,8 +420,8 @@ function PanelDetail({ id }: { id: number }) {
   );
 }
 
-/** Transaksi › Order Penjualan: antrean (kiri) dan detail order terpilih (kanan), seperti mockup. */
-export function HalamanOrder() {
+/** Daftar order: antrean (kiri) dan detail order terpilih (kanan), seperti mockup. */
+function DaftarOrder() {
   const [url, setUrl] = useSearchParams();
   const saya = usePengguna();
   const semua = saya.izin.includes('penjualan.order.lihat_semua');
@@ -445,19 +455,14 @@ export function HalamanOrder() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-6">
+    <div className="flex h-full flex-col gap-3">
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900">Order Penjualan</h1>
-          <p className="text-sm text-slate-500">
-            {semua
-              ? 'Antrean order dari sales yang menunggu diproses kasir.'
-              : 'Order yang Anda buat. Kirim ke antrean agar diproses kasir.'}
-          </p>
-        </div>
-        <Button asChild>
+        <p className="text-sm text-slate-500">
+          {semua ? 'Semua order; antrean urut yang paling lama menunggu.' : 'Order yang Anda buat.'}
+        </p>
+        <Button asChild variant="outline">
           <Link to="/order/baru">
-            <Plus /> Buat order baru
+            <Plus /> Form order lengkap
           </Link>
         </Button>
       </div>
@@ -514,6 +519,29 @@ export function HalamanOrder() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Transaksi › Order Penjualan: "Input cepat" (bawaan, untuk Staf di lantai toko; K-073) dan "Daftar order"
+ * (riwayat, detail, ubah, batal).
+ */
+export function HalamanOrder() {
+  const [url, setUrl] = useSearchParams();
+  const daftar = url.get('tampil') === 'daftar' || url.has('id') || url.has('status');
+  return (
+    <div className="flex h-full flex-col gap-2 p-3">
+      <Tabs
+        value={daftar ? 'daftar' : 'cepat'}
+        onValueChange={(v) => setUrl(v === 'daftar' ? { tampil: 'daftar' } : {}, { replace: true })}
+      >
+        <TabsList className="h-8">
+          <TabsTrigger value="cepat">Input cepat</TabsTrigger>
+          <TabsTrigger value="daftar">Daftar order</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {daftar ? <DaftarOrder /> : <InputOrderCepat />}
     </div>
   );
 }

@@ -1,8 +1,16 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaBatalOrder, skemaCariOrder, skemaIdParam, skemaOrder } from '@sit/shared';
+import {
+  skemaBatalOrder,
+  skemaCariAntrean,
+  skemaCariOrder,
+  skemaIdParam,
+  skemaOrder,
+} from '@sit/shared';
 import { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 import type { EnvApp } from '../../../lib/konteks';
+import { dengarkan } from '../../../lib/siaran';
 import { kaitValidasi } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import {
@@ -12,6 +20,7 @@ import {
   detailOrder,
   kirimOrder,
   lepasOrder,
+  papanAntrean,
   prosesOrder,
   ubahOrder,
 } from './service';
@@ -25,8 +34,42 @@ const opsiKirim = zValidator(
   kaitValidasi,
 );
 
+/** Lama satu koneksi siaran; peramban menyambung ulang otomatis (izin diperiksa lagi saat itu). */
+const UMUR_SIARAN_MS = 15 * 60 * 1000;
+const DETAK_MS = 20 * 1000;
+
 /** Order penjualan & antrean (docs/05 §3). Pemeriksaan pemilik/kunci ada di service. */
 export const orderRoutes = new Hono<EnvApp>()
+  .get('/antrean', checkout, zValidator('query', skemaCariAntrean, kaitValidasi), async (c) =>
+    c.json({ data: await papanAntrean(c.req.valid('query').jenis) }, 200),
+  )
+  /**
+   * Siaran perubahan antrean (Server-Sent Events, K-073): hanya tanda "berubah", tanpa data; layar memuat
+   * ulang papan antrean sendiri. Header X-Accel-Buffering agar proxy tidak menahan aliran.
+   */
+  .get('/antrean/siaran', buat, (c) => {
+    c.header('X-Accel-Buffering', 'no');
+    return streamSSE(c, async (aliran) => {
+      let terbuka = true;
+      const kirim = (event: string, data: string) =>
+        aliran.writeSSE({ event, data }).catch(() => {
+          terbuka = false; // koneksi sudah putus
+        });
+      const berhenti = dengarkan('antrean', () => {
+        if (terbuka) void kirim('antrean', String(Date.now()));
+      });
+      aliran.onAbort(() => {
+        terbuka = false;
+        berhenti();
+      });
+      const mulai = Date.now();
+      while (terbuka && Date.now() - mulai < UMUR_SIARAN_MS) {
+        await kirim('detak', '');
+        await aliran.sleep(DETAK_MS);
+      }
+      berhenti();
+    });
+  })
   .get('/', buat, zValidator('query', skemaCariOrder, kaitValidasi), async (c) =>
     c.json(await daftarOrder(c.req.valid('query'), penggunaWajib(c)), 200),
   )

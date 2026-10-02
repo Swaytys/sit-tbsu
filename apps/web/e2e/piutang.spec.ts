@@ -65,8 +65,8 @@ test('Kasir: piutang pelanggan tampil dengan peringatan, dilunasi dari halaman P
     });
     await baris.getByRole('button', { name: 'Terima pembayaran' }).click();
     const dialog = kasir.getByRole('dialog');
-    await dialog.getByRole('button', { name: 'Uang pas' }).click();
-    await dialog.getByRole('button', { name: /Simpan pembayaran/ }).click();
+    await expect(dialog.getByLabel('Bayar')).toBeFocused();
+    await kasir.keyboard.press('Enter'); // kosong = uang pas (lunasi)
     await expect(kasir.getByText(`${pj.nomor} lunas.`)).toBeVisible();
     await expect(kasir.getByRole('row').filter({ hasText: pj.nomor })).toHaveCount(0);
   } finally {

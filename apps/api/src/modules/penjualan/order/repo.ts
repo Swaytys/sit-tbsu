@@ -84,7 +84,10 @@ function syarat(p: SaringOrder): SQL | undefined {
   );
 }
 
-/** Antrean: prioritas TINGGI dulu, lalu yang paling lama menunggu; selain antrean: terbaru dulu. */
+/**
+ * Antrean: murni FIFO — yang paling lama masuk antrean di depan (K-073: adil; prioritas hanya penanda).
+ * Selain antrean: terbaru dulu.
+ */
 export async function daftarOrder(
   ex: Executor,
   p: SaringOrder & { limit: number; offset: number },
@@ -92,11 +95,7 @@ export async function daftarOrder(
   const where = syarat(p);
   const urutan =
     p.status === 'AKTIF' || p.status === 'MENUNGGU'
-      ? [
-          desc(sql`${orderPenjualan.prioritas} = 'TINGGI'`),
-          asc(orderPenjualan.waktuMasukAntrean),
-          asc(orderPenjualan.id),
-        ]
+      ? [asc(orderPenjualan.waktuMasukAntrean), asc(orderPenjualan.id)]
       : [desc(orderPenjualan.tanggal), desc(orderPenjualan.id)];
   const baris = await dasar(ex)
     .where(where)
@@ -260,4 +259,21 @@ export async function pelangganUntukOrder(ex: Executor, id: number) {
     .from(pelanggan)
     .where(eq(pelanggan.id, id));
   return p;
+}
+
+/** Isi singkat beberapa order (nama barang, qty, satuan) untuk kartu/tiket antrean (K-073). */
+export function ringkasBaris(ex: Executor, idOrder: number[]) {
+  if (idOrder.length === 0) return Promise.resolve([]);
+  return ex
+    .select({
+      idOrder: orderPenjualanDetail.idOrder,
+      namaBarang: barang.namaBarang,
+      qty: orderPenjualanDetail.qty,
+      kodeSatuan: satuan.kode,
+    })
+    .from(orderPenjualanDetail)
+    .innerJoin(barang, eq(barang.id, orderPenjualanDetail.idBarang))
+    .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .where(inArray(orderPenjualanDetail.idOrder, idOrder))
+    .orderBy(asc(orderPenjualanDetail.id));
 }

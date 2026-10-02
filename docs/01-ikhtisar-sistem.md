@@ -93,16 +93,26 @@ Pengantaran" adalah satu tabel `penjualan` dengan kolom `jenis_penjualan` (sesua
 ## 5. Alur bisnis (ringkas, sudah memuat keputusan fondasi)
 
 ### 5.1 Order → Checkout
-1. Staf/Kasir membuat order: pilih barang (lihat stok **tersedia**), qty, tier harga per baris, jenis LANGSUNG atau
-   PENGANTARAN. Pengantaran wajib pelanggan, alamat kirim, boleh ongkir dan catatan kirim. Order DRAFT belum menahan
-   stok.
+Alur cepat di lantai toko (K-073, masukan pemilik 2026-10-02): kebanyakan pembeli langsung membeli sedikit barang
+(mis. paku Rp 4.000) dan tidak perlu didata. Staf cukup memasukkan **barang dan qty** lalu mengirim order; pembeli
+menunggu di kasir sementara staf membawa barangnya ke meja kasir. Barang dan uang hanya berpindah di satu titik
+(kasir). Kasir mengenali pembeli dari **isi belanjaan + total + nomor antrean** ("semen 2 sak, 200 ribu?" —
+"ini, Mbak"), bukan dari nama.
+1. Staf/Kasir membuat order lewat **Input cepat** (keyboard penuh): pilih barang (lihat stok **tersedia**), qty;
+   nama/ciri pembeli opsional. Jenis LANGSUNG atau PENGANTARAN; pengantaran wajib pelanggan & alamat kirim, boleh
+   ongkir dan catatan kirim. Setelah dikirim, **nomor antrean** (nomor urut order hari itu) tampil besar untuk
+   disebutkan ke pembeli. Tier/diskon/harga manual tersedia di form order lengkap.
 2. Order dikirim ke antrean (status MENUNGGU): stok **dipesan** bertambah, stok tersedia berkurang. Stok fisik tetap.
-3. Kasir memilih order dari antrean (boleh tidak berurutan; prioritas ditandai). Saat dibuka, status DIPROSES
-   (dikunci untuk kasir itu). Kasir memverifikasi barang dan total.
+   Tiket order langsung muncul di layar kasir tanpa perlu dimuat ulang.
+3. Kasir melihat **papan antrean** di layar Penjualan Langsung / Pengantaran: tiap tiket menampilkan nomor, isi
+   barang, total, dan lama menunggu, urut **FIFO** (yang paling lama di depan dan otomatis tersorot). Kasir boleh
+   memilih tiket lain (mis. barangnya belum sampai di kasir, atau pembelinya datang lebih dulu) — cukup ketik
+   nomornya. Saat dibuka, status DIPROSES (dikunci untuk kasir itu). Kasir boleh menambah/mengurangi isi order saat
+   itu juga.
 4. Checkout: sistem membuat `penjualan` (+ detail dengan snapshot harga jual dan HPP), memotong stok **fisik** lewat
    ledger, melepas stok dipesan, mencatat pembayaran, memberi nomor STR (langsung) atau INV (pengantaran).
    Order menjadi SELESAI.
-5. Kasir juga boleh membuat order dan checkout sekaligus dari layar kasir (saat ramai).
+5. Kasir juga boleh menjual langsung tanpa order dari layar kasir (F2 → barang → Enter → bayar).
 6. Order MENUNGGU lebih lama dari batas (default 24 jam) ditandai **basi**; muncul di notifikasi dan daftar
    "stok tertahan" per barang. Auto-batal opsional (default mati). Order bisa dibatalkan → stok dipesan dilepas.
 
@@ -209,3 +219,5 @@ Rancangan visual tiap laporan ada di `referensi/laporan-kp/` (berkas 1–9).
 ## Riwayat
 
 - 2026-09-19 — v1, dibuat dari Laporan KP (BAB 5), dokumen observasi, mockup, dan keputusan K-001 s.d. K-043.
+- 2026-10-02 — §5.1 alur cepat order → kasir: tanpa nama pembeli, nomor antrean, papan antrean FIFO, keyboard
+  penuh (K-073, masukan pemilik).

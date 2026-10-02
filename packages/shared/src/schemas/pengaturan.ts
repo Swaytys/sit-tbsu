@@ -80,6 +80,9 @@ export const skemaOperasional = z.object({
   termHariDefault: bulat('Term piutang bawaan', 0, 365),
   jatuhTempoDefaultHari: bulat('Jatuh tempo bawaan', 0, 365),
   checkoutWajibShift: z.boolean(),
+  /** Rekening bawaan saat kasir memilih transfer/EDC (K-073); boleh kosong. */
+  rekeningTransfer: z.string().trim().max(60, 'Rekening maksimal 60 karakter.'),
+  rekeningEdc: z.string().trim().max(60, 'Nama mesin EDC maksimal 60 karakter.'),
   barisPerHalaman: z.coerce
     .number('Jumlah baris harus berupa angka.')
     .refine(
@@ -137,6 +140,9 @@ export type TampilanToko = {
   lebarStrukMm: 58 | 80;
   strukTampilkanNama: boolean;
   strukTampilkanLogo: boolean;
+  /** Rekening bawaan pembayaran transfer/EDC di layar kasir (K-073). */
+  rekeningTransfer: string;
+  rekeningEdc: string;
 };
 
 // --- Log aktivitas (Pengaturan › tab Log Aktivitas, izin sistem.log.lihat; docs/04 §8) ---

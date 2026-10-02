@@ -71,8 +71,8 @@ Jangan pakai mode auto-accept.
 | Dokumen | Status | Terakhir |
 |---|---|---|
 | CLAUDE.md | Final v1 | 2026-09-19 |
-| 01-ikhtisar-sistem.md | Final v1 | 2026-09-19 |
-| 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs) | 2026-09-30 |
+| 01-ikhtisar-sistem.md | Final v1 (§5.1 alur cepat order → kasir, K-073) | 2026-10-02 |
+| 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073) | 2026-10-02 |
 | 03-skema-database-v3 (.md + .sql) | Final v3.3 (.sql = v3.1 migrasi 0000; v3.2–v3.3 lewat migrasi 0001–0003) | 2026-10-02 |
 | 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059) | 2026-09-30 |
 | 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH) | 2026-10-01 |
@@ -85,5 +85,5 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-09-30-akses-dasar.md | Final (K-054–K-055) | 2026-09-30 |
 | keputusan/2026-09-30-data-master.md | Final (K-056–K-065) | 2026-09-30 |
 | keputusan/2026-10-01-persediaan.md | Final (K-066–K-069) | 2026-10-02 |
-| keputusan/2026-10-02-penjualan.md | Final (K-070–K-072) | 2026-10-02 |
+| keputusan/2026-10-02-penjualan.md | Final (K-070–K-073) | 2026-10-02 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |

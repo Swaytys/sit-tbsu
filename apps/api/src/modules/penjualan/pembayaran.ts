@@ -63,16 +63,21 @@ export async function catatPembayaran(
   const tanggal = tanggalOperasional();
   for (const [i, p] of daftar.entries()) {
     const { sisa, dibayarBersih } = hitungTagihan(nilai);
-    if (p.nominal > sisa) {
+    // K-073: nominal kosong = lunasi sisa; tunai sebesar uang diterima bila kurang dari sisa.
+    const nominal =
+      p.nominal ??
+      (p.metode === 'TUNAI' && p.uangDiterima !== null ? Math.min(p.uangDiterima, sisa) : sisa);
+    if (p.nominal === null && nominal <= 0) continue; // tidak ada yang perlu dibayar
+    if (nominal > sisa) {
       throw new AppError(
         'LIMIT_TERLAMPAUI',
-        `Pembayaran ${formatRupiah(p.nominal)} melebihi sisa tagihan ${formatRupiah(sisa)}.`,
+        `Pembayaran ${formatRupiah(nominal)} melebihi sisa tagihan ${formatRupiah(sisa)}.`,
         400,
         { kolom: { [`pembayaran.${i}.nominal`]: ['Melebihi sisa tagihan.'] } },
       );
     }
     // P8/P12: tunai selalu terikat shift BUKA milik pencatat (juga CHECK DB). Non-tunai tanpa shift hanya
-    // untuk Admin/Owner bila checkout wajib shift (K-070).
+    // untuk Admin/Owner bila checkout wajib shift (K-071).
     if (
       !shift &&
       (p.metode === 'TUNAI' || (wajibShift && !pelaku.izin.has('kas.shift.lihat_semua')))
@@ -84,8 +89,13 @@ export async function catatPembayaran(
       );
     }
     const jenis: JenisPembayaran =
-      dibayarBersih > 0 || i > 0 ? 'PELUNASAN' : p.nominal === sisa ? 'PENUH' : 'DP';
-    const uangDiterima = p.metode === 'TUNAI' ? (p.uangDiterima ?? p.nominal) : null;
+      dibayarBersih > 0 || i > 0 ? 'PELUNASAN' : nominal === sisa ? 'PENUH' : 'DP';
+    const uangDiterima = p.metode === 'TUNAI' ? (p.uangDiterima ?? nominal) : null;
+    if (uangDiterima !== null && uangDiterima < nominal) {
+      throw new AppError('VALIDASI', 'Uang diterima kurang dari nominal.', 400, {
+        kolom: { [`pembayaran.${i}.uangDiterima`]: ['Uang diterima kurang dari nominal.'] },
+      });
+    }
     const nomor = await terbitkanNomor(tx, 'BYR', tanggal);
     await tx.insert(pembayaranPenjualan).values({
       nomor,
@@ -95,9 +105,9 @@ export async function catatPembayaran(
       tanggalOperasional: tanggal,
       jenis,
       metode: p.metode,
-      nominal: p.nominal,
+      nominal,
       uangDiterima,
-      kembalian: uangDiterima === null ? 0 : uangDiterima - p.nominal,
+      kembalian: uangDiterima === null ? 0 : uangDiterima - nominal,
       rekening: p.metode === 'TUNAI' ? null : (p.rekening ?? null),
       referensi: p.metode === 'TUNAI' ? null : (p.referensi ?? null),
       catatan: p.catatan ?? null,
@@ -108,10 +118,10 @@ export async function catatPembayaran(
       entitas: 'penjualan',
       idEntitas: pj.id,
       nomorDokumen: pj.nomor,
-      ringkasan: `${nomor}: ${jenis.toLowerCase()} ${p.metode.toLowerCase()} ${formatRupiah(p.nominal)} untuk ${pj.nomor}`,
+      ringkasan: `${nomor}: ${jenis.toLowerCase()} ${p.metode.toLowerCase()} ${formatRupiah(nominal)} untuk ${pj.nomor}`,
       ip: asal.ip,
     });
-    nilai = { ...nilai, totalDibayar: nilai.totalDibayar + p.nominal };
+    nilai = { ...nilai, totalDibayar: nilai.totalDibayar + nominal };
   }
   const status = statusPembayaran(nilai);
   await tx

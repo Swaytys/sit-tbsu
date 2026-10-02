@@ -76,6 +76,8 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       termHariDefault: angka(m, 'term_hari_default', 0),
       jatuhTempoDefaultHari: angka(m, 'jatuh_tempo_default_hari', 7),
       checkoutWajibShift: bool(m, 'checkout_wajib_shift', true),
+      rekeningTransfer: teks(m, 'rekening_transfer_default', ''),
+      rekeningEdc: teks(m, 'rekening_edc_default', ''),
       barisPerHalaman: barisPerHalaman(m),
     },
     harga: {
@@ -128,6 +130,8 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     a('term_hari_default', o.termHariDefault);
     a('jatuh_tempo_default_hari', o.jatuhTempoDefaultHari);
     b('checkout_wajib_shift', o.checkoutWajibShift);
+    t('rekening_transfer_default', o.rekeningTransfer);
+    t('rekening_edc_default', o.rekeningEdc);
     a('baris_per_halaman', o.barisPerHalaman);
   }
   if (p.harga) {
@@ -200,6 +204,8 @@ export async function tampilanToko(): Promise<TampilanToko> {
     lebarStrukMm: p.profil.lebarStrukMm,
     strukTampilkanNama: p.profil.strukTampilkanNama,
     strukTampilkanLogo: p.profil.strukTampilkanLogo,
+    rekeningTransfer: p.operasional.rekeningTransfer,
+    rekeningEdc: p.operasional.rekeningEdc,
   };
 }
 
