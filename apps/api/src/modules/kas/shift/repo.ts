@@ -1,0 +1,181 @@
+import { and, asc, count, desc, eq, gte, lte, ne, sql, type SQL } from 'drizzle-orm';
+import type { StatusShift } from '@sit/shared';
+import type { Executor, Tx } from '../../../db/client';
+import {
+  clericalCheck,
+  kasShift,
+  orderPenjualan,
+  pembayaranPemasok,
+  pembayaranPenjualan,
+  pengguna,
+  returPenjualan,
+  shiftKasir,
+  voidTransaksi,
+} from '../../../db/schema';
+
+const namaPemeriksa = sql<string | null>`(select p.nama_pengguna from ${pengguna} p
+  where p.id = ${clericalCheck.idPengguna})`;
+
+const kolom = {
+  id: shiftKasir.id,
+  nomor: shiftKasir.nomor,
+  idKasir: shiftKasir.idKasir,
+  namaKasir: pengguna.namaPengguna,
+  tanggalOperasional: shiftKasir.tanggalOperasional,
+  waktuBuka: shiftKasir.waktuBuka,
+  waktuTutup: shiftKasir.waktuTutup,
+  modalAwal: shiftKasir.modalAwal,
+  status: shiftKasir.status,
+  clcNomor: clericalCheck.nomor,
+  clcTanggal: clericalCheck.tanggal,
+  clcModalAwal: clericalCheck.modalAwal,
+  clcTunaiPenjualan: clericalCheck.tunaiPenjualan,
+  clcKasMasukLain: clericalCheck.kasMasukLain,
+  clcKasKeluar: clericalCheck.kasKeluar,
+  clcSaldoSistem: clericalCheck.saldoSistem,
+  clcUangFisik: clericalCheck.uangFisik,
+  clcSelisih: clericalCheck.selisih,
+  clcKeterangan: clericalCheck.keterangan,
+  clcNamaPemeriksa: namaPemeriksa,
+};
+
+function dasar(ex: Executor) {
+  return ex
+    .select(kolom)
+    .from(shiftKasir)
+    .innerJoin(pengguna, eq(pengguna.id, shiftKasir.idKasir))
+    .leftJoin(clericalCheck, eq(clericalCheck.idShift, shiftKasir.id));
+}
+
+export type SaringShift = {
+  status?: StatusShift | undefined;
+  idKasir?: number | undefined;
+  dari?: string | undefined;
+  sampai?: string | undefined;
+  adaSelisih?: boolean | undefined;
+};
+
+function syarat(p: SaringShift): SQL | undefined {
+  return and(
+    p.status ? eq(shiftKasir.status, p.status) : undefined,
+    p.idKasir === undefined ? undefined : eq(shiftKasir.idKasir, p.idKasir),
+    p.dari ? gte(shiftKasir.tanggalOperasional, p.dari) : undefined,
+    p.sampai ? lte(shiftKasir.tanggalOperasional, p.sampai) : undefined,
+    p.adaSelisih ? ne(clericalCheck.selisih, 0) : undefined,
+  );
+}
+
+export async function daftar(ex: Executor, p: SaringShift & { limit: number; offset: number }) {
+  const where = syarat(p);
+  const baris = await dasar(ex)
+    .where(where)
+    .orderBy(desc(shiftKasir.waktuBuka), desc(shiftKasir.id))
+    .limit(p.limit)
+    .offset(p.offset);
+  const [h] = await ex
+    .select({ total: count() })
+    .from(shiftKasir)
+    .leftJoin(clericalCheck, eq(clericalCheck.idShift, shiftKasir.id))
+    .where(where);
+  return { baris, total: h?.total ?? 0 };
+}
+
+export async function byId(ex: Executor, id: number) {
+  const [b] = await dasar(ex).where(eq(shiftKasir.id, id)).limit(1);
+  return b;
+}
+
+export async function kunci(tx: Tx, id: number) {
+  const [b] = await tx
+    .select({
+      id: shiftKasir.id,
+      nomor: shiftKasir.nomor,
+      idKasir: shiftKasir.idKasir,
+      status: shiftKasir.status,
+      modalAwal: shiftKasir.modalAwal,
+    })
+    .from(shiftKasir)
+    .where(eq(shiftKasir.id, id))
+    .limit(1)
+    .for('update');
+  return b;
+}
+
+/** K5: komponen saldo sistem shift (hanya nominal pembayaran tunai; kembalian sudah keluar dari laci). */
+export async function komponenKas(ex: Executor, idShift: number) {
+  const [tunai] = await ex
+    .select({
+      total: sql<number>`coalesce(sum(${pembayaranPenjualan.nominal}), 0)::bigint`.mapWith(Number),
+      jumlah: count(),
+    })
+    .from(pembayaranPenjualan)
+    .where(and(eq(pembayaranPenjualan.idShift, idShift), eq(pembayaranPenjualan.metode, 'TUNAI')));
+  const [kas] = await ex
+    .select({
+      masuk:
+        sql<number>`coalesce(sum(${kasShift.nominal}) filter (where ${kasShift.arah} = 'MASUK'), 0)::bigint`.mapWith(
+          Number,
+        ),
+      keluar:
+        sql<number>`coalesce(sum(${kasShift.nominal}) filter (where ${kasShift.arah} = 'KELUAR'), 0)::bigint`.mapWith(
+          Number,
+        ),
+    })
+    .from(kasShift)
+    .where(eq(kasShift.idShift, idShift));
+  return {
+    tunaiPenjualan: tunai?.total ?? 0,
+    jumlahTransaksi: tunai?.jumlah ?? 0,
+    kasMasukLain: kas?.masuk ?? 0,
+    kasKeluar: kas?.keluar ?? 0,
+  };
+}
+
+const nomorSumber = sql<string | null>`coalesce(
+  (select r.nomor from ${returPenjualan} r where r.id = ${kasShift.idRetur}),
+  (select v.nomor from ${voidTransaksi} v where v.id = ${kasShift.idVoid}),
+  (select b.nomor from ${pembayaranPemasok} b where b.id = ${kasShift.idPembayaranPemasok}))`;
+
+export function daftarKas(ex: Executor, idShift: number) {
+  return ex
+    .select({
+      id: kasShift.id,
+      waktu: kasShift.waktu,
+      jenis: kasShift.jenis,
+      arah: kasShift.arah,
+      nominal: kasShift.nominal,
+      keterangan: kasShift.keterangan,
+      namaPengguna: pengguna.namaPengguna,
+      nomorDokumen: nomorSumber,
+    })
+    .from(kasShift)
+    .innerJoin(pengguna, eq(pengguna.id, kasShift.idPengguna))
+    .where(eq(kasShift.idShift, idShift))
+    .orderBy(asc(kasShift.id));
+}
+
+export async function tambahKas(tx: Tx, nilai: typeof kasShift.$inferInsert) {
+  const [b] = await tx.insert(kasShift).values(nilai).returning({ id: kasShift.id });
+  if (!b) throw new Error('insert kas_shift tidak mengembalikan id');
+  return b.id;
+}
+
+export async function tambahClerical(tx: Tx, nilai: typeof clericalCheck.$inferInsert) {
+  await tx.insert(clericalCheck).values(nilai);
+}
+
+export async function tutup(tx: Tx, id: number, waktu: Date) {
+  await tx
+    .update(shiftKasir)
+    .set({ status: 'TUTUP', waktuTutup: waktu, diubahPada: waktu })
+    .where(eq(shiftKasir.id, id));
+}
+
+/** K6: order yang masih DIPROSES kasir ini kembali ke antrean saat shift ditutup. */
+export async function lepasOrderKasir(tx: Tx, idKasir: number, waktu: Date) {
+  return tx
+    .update(orderPenjualan)
+    .set({ status: 'MENUNGGU', idKasirProses: null, diubahPada: waktu })
+    .where(and(eq(orderPenjualan.status, 'DIPROSES'), eq(orderPenjualan.idKasirProses, idKasir)))
+    .returning({ nomor: orderPenjualan.nomor });
+}
