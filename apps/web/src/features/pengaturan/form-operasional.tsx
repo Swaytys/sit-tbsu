@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { InputAngka } from '@/components/input-angka';
+import { Input } from '@/components/ui/input';
 import { KartuBagian } from './bagian';
 import { useSimpanPengaturan } from './use-simpan-pengaturan';
 
@@ -28,7 +29,11 @@ type Masukan = z.input<typeof skemaOperasional>;
 type Keluaran = z.output<typeof skemaOperasional>;
 type KolomAngka = Exclude<
   keyof Masukan,
-  'autoBatalOrderBasi' | 'checkoutWajibShift' | 'barisPerHalaman'
+  | 'autoBatalOrderBasi'
+  | 'checkoutWajibShift'
+  | 'barisPerHalaman'
+  | 'rekeningTransfer'
+  | 'rekeningEdc'
 >;
 
 const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: string }[] = [
@@ -171,6 +176,36 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
                 </FormItem>
               )}
             />
+            {(
+              [
+                {
+                  nama: 'rekeningTransfer',
+                  label: 'Rekening bawaan transfer',
+                  ket: 'Terisi otomatis saat kasir memilih Transfer (mis. BCA 1234567890).',
+                },
+                {
+                  nama: 'rekeningEdc',
+                  label: 'Mesin EDC bawaan',
+                  ket: 'Terisi otomatis saat kasir memilih EDC (mis. EDC BRI).',
+                },
+              ] as const
+            ).map((k) => (
+              <FormField
+                key={k.nama}
+                control={form.control}
+                name={k.nama}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{k.label}</FormLabel>
+                    <FormControl>
+                      <Input {...field} maxLength={60} />
+                    </FormControl>
+                    <FormDescription>{k.ket}</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
           </div>
           <Saklar
             control={form.control}
