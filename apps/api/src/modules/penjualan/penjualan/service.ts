@@ -240,7 +240,7 @@ export async function checkout(
 
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, jenis === 'LANGSUNG' ? 'STR' : 'INV', tanggal);
-    const shift = await shiftBuka(tx, pelaku.id);
+    const shift = await shiftBuka(tx, pelaku.id, true);
     const [pj] = await tx
       .insert(penjualan)
       .values({

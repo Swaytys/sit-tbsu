@@ -14,6 +14,7 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { tanggalOperasional } from '../../../lib/waktu';
+import { catatKas, shiftBuka } from '../../kas/shift/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import { catatMutasi } from '../ledger';
@@ -178,18 +179,38 @@ export async function simpanPenerimaan(
       });
     }
 
-    // E4: pembelian tunai langsung lunas. Pembayaran dari laci shift menyusul di Fase 6 (K-066).
+    // E4: pembelian tunai langsung lunas. Uang TUNAI keluar dari laci shift BUKA pencatat (K2, K-075).
     if (tunai && totalFaktur > 0) {
-      await repo.tambahPembayaran(tx, {
-        nomor: await terbitkanNomor(tx, 'PBP', tanggal),
+      const shift = input.metodeBayar === 'TUNAI' ? await shiftBuka(tx, pelaku.id, true) : null;
+      if (input.metodeBayar === 'TUNAI' && !shift) {
+        throw new AppError(
+          'KONFLIK',
+          'Bayar tunai dari laci butuh shift kasir terbuka. Buka shift dulu, atau pilih transfer.',
+          409,
+          { kolom: { metodeBayar: ['Butuh shift terbuka.'] } },
+        );
+      }
+      const nomorBayar = await terbitkanNomor(tx, 'PBP', tanggal);
+      const idBayar = await repo.tambahPembayaran(tx, {
+        nomor: nomorBayar,
         tanggalOperasional: tanggal,
         idPemasok: pms.id,
         idPenerimaan: idBaru,
         idPengguna: pelaku.id,
+        idShift: shift?.id ?? null,
         nominal: totalFaktur,
         metode: input.metodeBayar,
         catatan: `Pelunasan tunai penerimaan ${nomor}`,
       });
+      if (shift) {
+        await catatKas(tx, {
+          jenis: 'BAYAR_PEMASOK',
+          nominal: totalFaktur,
+          pelaku,
+          keterangan: `${nomorBayar}: bayar ${pms.nama} (${nomor})`,
+          idPembayaranPemasok: idBayar,
+        });
+      }
     }
 
     await catatLog(tx, {

@@ -58,7 +58,7 @@ export async function catatPembayaran(
   let nilai: NilaiTagihan = { ...pj };
   if (daftar.length === 0) return { ...nilai, statusPembayaran: statusPembayaran(nilai) };
 
-  const shift = await shiftBuka(tx, pelaku.id);
+  const shift = await shiftBuka(tx, pelaku.id, true);
   const wajibShift = (await ambilTeks('checkout_wajib_shift', 'true', tx)) === 'true';
   const tanggal = tanggalOperasional();
   for (const [i, p] of daftar.entries()) {

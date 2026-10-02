@@ -181,6 +181,14 @@ export async function tambahDetail(tx: Tx, nilai: typeof penerimaanBarangDetail.
   return b.id;
 }
 
-export async function tambahPembayaran(tx: Tx, nilai: typeof pembayaranPemasok.$inferInsert) {
-  await tx.insert(pembayaranPemasok).values(nilai);
+export async function tambahPembayaran(
+  tx: Tx,
+  nilai: typeof pembayaranPemasok.$inferInsert,
+): Promise<number> {
+  const [b] = await tx
+    .insert(pembayaranPemasok)
+    .values(nilai)
+    .returning({ id: pembayaranPemasok.id });
+  if (!b) throw new Error('insert pembayaran pemasok tidak mengembalikan id');
+  return b.id;
 }

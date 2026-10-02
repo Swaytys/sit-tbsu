@@ -1,12 +1,15 @@
 import type {
   DataCheckout,
+  DataKasShift,
   DataOrder,
   DataPembayaran,
   DataSuratJalan,
+  DataTutupShift,
   JenisPenjualan,
   StatusOrder,
   StatusPembayaran,
   StatusPengambilan,
+  StatusShift,
   StatusSuratJalan,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -319,4 +322,58 @@ export function useSiaranAntrean() {
     sumber.addEventListener('antrean', muatUlang);
     return () => sumber.close();
   }, [qc]);
+}
+
+// --- Shift & clerical (Fase 6) ---
+
+export function useDaftarShift(p: {
+  status: StatusShift | null;
+  adaSelisih: boolean;
+  halaman: number;
+  perHalaman: number;
+}) {
+  return useQuery({
+    queryKey: ['shift', 'daftar', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.shift.$get({
+          query: {
+            status: p.status ?? undefined,
+            adaSelisih: p.adaSelisih ? 'true' : undefined,
+            halaman: String(p.halaman),
+            perHalaman: String(p.perHalaman),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useDetailShift(id: number | null) {
+  return useQuery({
+    queryKey: ['shift', 'detail', id],
+    queryFn: async () => ambilData(await api.shift[':id'].$get({ param: { id: String(id) } })),
+    enabled: id !== null,
+  });
+}
+
+function useMutasiShift<TInput, THasil>(fn: (input: TInput) => Promise<THasil>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () =>
+      Promise.all(['shift', 'order'].map((k) => qc.invalidateQueries({ queryKey: [k] }))),
+  });
+}
+
+export function useCatatKas() {
+  return useMutasiShift(async (json: DataKasShift) =>
+    ambilData(await api.shift.kas.$post({ json })),
+  );
+}
+
+export function useTutupShift() {
+  return useMutasiShift(async ({ id, json }: { id: number; json: DataTutupShift }) =>
+    ambilData(await api.shift[':id'].tutup.$post({ param: param(id), json })),
+  );
 }

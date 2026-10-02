@@ -1,5 +1,6 @@
 import type {
   AksiLog,
+  JenisKasShift,
   JenisMutasi,
   JenisPenerimaan,
   JenisPenyesuaian,
@@ -103,4 +104,15 @@ export const LABEL_STATUS_PENGIRIMAN: Record<StatusPengiriman, string> = {
   BELUM: 'Belum dikirim',
   SEBAGIAN: 'Dikirim sebagian',
   SELESAI: 'Terkirim',
+};
+
+export const LABEL_JENIS_KAS: Record<JenisKasShift, string> = {
+  KASBON: 'Kasbon',
+  SETOR_OWNER: 'Setor ke owner',
+  TARIK_OWNER: 'Tambahan dari owner',
+  REFUND_RETUR: 'Refund retur',
+  REFUND_VOID: 'Refund void',
+  BAYAR_PEMASOK: 'Bayar pemasok',
+  MASUK_LAIN: 'Kas masuk lain',
+  KELUAR_LAIN: 'Kas keluar lain',
 };
