@@ -10,7 +10,7 @@ awal; diputuskan ulang sebelum sprint dimulai.
 |---|---|---|
 | **v1.0.0 (MVP)** | M1: Fase 1–8. Dipakai toko untuk transaksi sungguhan. | docs/07 |
 | v1.1–v1.4 | M2: Fase 9–12 (harga & promo, hutang pemasok, konsinyasi, multi-satuan). Skema sudah siap. | docs/07 |
-| **v2.0.0** | Sprint A–E di bawah: produktivitas data, peran kustom, keuangan ringan, perbaikan, stok opname & pemilihan barang. | dokumen ini |
+| **v2.0.0** | Sprint A–F di bawah: produktivitas data, peran kustom, keuangan ringan, perbaikan, stok opname & pemilihan barang, POS & pintasan. | dokumen ini |
 | **v3.0.0** | Pembukuan (akuntansi dagang) dan fitur skala (cabang, gudang). | dokumen ini |
 
 ---
@@ -76,6 +76,16 @@ Sprint pertama v2 dibuka dengan audit terarah; hasilnya daftar temuan berpriorit
 | E2 | **Cakupan opname**: daftar barang aktif yang belum teropname dalam periode berjalan, persentase cakupan, barang yang dikecualikan beserta alasan dan siapa yang mengecualikan. | Transparansi: tidak ada barang yang diam-diam terlewat. |
 | E3 | **Grafik & riwayat selisih**: selisih per periode (qty dan rupiah), barang yang sering selisih, akurasi stok per kategori. | Data dari dokumen OPNAME yang sudah selesai. |
 | E4 | **Pemilih barang grafis**: jelajah barang per kategori/merk dalam kartu bergambar, saring atribut (ukuran, warna), untuk saat nama barang lupa. Dipakai di penerimaan, penyesuaian, order, kasir. | Pelengkap kotak cari (`PilihBarang`), bukan pengganti; keyboard tetap utama di kasir. |
+
+## v2.0.0 — Sprint F: POS, pintasan keyboard, dan printer (masukan pemilik 2026-10-03)
+
+| # | Fitur | Catatan |
+|---|---|---|
+| F1 | **Halaman Pengaturan › Pintasan keyboard**: daftar semua tombol (layar kasir, pengantaran, input order cepat, umum) dan **bisa diganti** per aksi; deteksi bentrok antar-tombol; tombol "kembalikan bawaan". | Disimpan di konfigurasi toko (berlaku semua komputer) atau per pengguna; F1/F6/F7/F10–F12 tidak bisa dipakai (dicadangkan peramban, K-073). |
+| F2 | **Pintasan umum di semua halaman**: urungkan (Ctrl+Z), ulangi (Ctrl+Y / Ctrl+Shift+Z), simpan (Ctrl+S), cari (Ctrl+K), hapus ke "keranjang sampah"/pulihkan, pindah tab halaman, tutup dialog — juga bisa diganti di F1. | Urungkan/ulangi berlaku untuk perubahan yang belum disimpan; dokumen yang sudah tersimpan tetap dikoreksi lewat dokumen baru (CLAUDE.md aturan 3). |
+| F3 | **Panduan tombol yang bisa dibuka/ditutup** kapan saja (mis. tombol `?`) di Order Penjualan, layar kasir, dan pengantaran: ringkasan alur + daftar tombol; pilihan "jangan tampilkan lagi" per pengguna. | Bilah tombol bawah (K-073) tetap ada dan bisa disembunyikan. |
+| F4 | **Pengaturan › Printer**: aktif/nonaktif cetak struk otomatis per komputer kasir, pilih printer struk & printer A4, jumlah salinan, uji cetak. | Peramban tidak bisa memilih printer sendiri; butuh agen cetak lokal kecil (atau ESC/POS lewat Web Serial) — dinilai saat Sprint F. Sampai itu: `scripts/kasir/buka-kasir.cmd` (K-074). |
+| F5 | Laci uang terbuka otomatis saat struk tunai dicetak (perintah ESC/POS lewat printer struk). | Bergantung F4. |
 
 ## v3.0.0 — Pembukuan dan skala
 

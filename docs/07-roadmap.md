@@ -203,6 +203,9 @@ Catatan penyelesaian (2026-10-02, branch `feat/05-order`, `feat/05-kasir`, `feat
   nomor antrean, papan antrean FIFO berisi barang di layar Penjualan Langsung & Pengantaran (diperbarui langsung
   lewat siaran), seluruh alur kasir/pengantaran/staf dengan keyboard, kasir boleh mengubah isi order saat bayar,
   struk/invoice tercetak otomatis, rekening bawaan transfer/EDC.
+- Revisi 2026-10-03 (`feat/05-pos-cetak`, K-074): struk langsung tercetak tanpa jendela print lewat
+  `scripts/kasir/buka-kasir.cmd` (Chrome `--kiosk-printing`); invoice pengantaran dicetak bila diminta (P).
+  Halaman pintasan, pintasan umum, panduan, dan pengaturan printer → v2.0.0 Sprint F.
 
 ### Fase 6 — Koreksi dan kontrol
 Deliverable:
@@ -232,9 +235,8 @@ Selesai bila: 10 laporan cocok dengan data uji yang dihitung manual.
 Deliverable: Playwright untuk 5 alur kritis; review keamanan dengan checklist (OWASP dasar: auth, otorisasi per
 objek, injeksi, CSRF, header, rate limit, dependensi); backup `pg_dump` terjadwal + uji restore; keputusan deploy
 (mini-PC toko vs VPS) + skrip; manual pengguna singkat per peran; uji coba dengan toko (owner + 1 kasir + 1 staf)
-dan daftar temuan. Komputer kasir menjalankan Chrome mode kios dengan cetak senyap (`--kiosk --kiosk-printing`,
-printer bawaan = printer struk; stasiun pengantaran printer bawaan A4) agar struk tercetak tanpa jendela dialog
-(K-073).
+dan daftar temuan. Komputer kasir dibuka lewat `scripts/kasir/buka-kasir.cmd` (cetak senyap `--kiosk-printing`,
+printer bawaan = printer struk; K-073, K-074).
 Selesai bila: sistem dipakai untuk transaksi sungguhan minimal satu hari penuh tanpa pemilik proyek turun tangan.
 
 **Cadangan data (wajib, masukan pemilik 2026-09-30, K-062):**

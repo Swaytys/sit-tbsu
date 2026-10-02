@@ -93,6 +93,7 @@ const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
     { kunci: 'Esc', label: 'Batal' },
   ],
   hasil: [
+    { kunci: 'P', label: 'Cetak invoice' },
     { kunci: 'S', label: 'Surat jalan & cetak' },
     { kunci: 'Enter', label: 'Lanjut' },
   ],
@@ -333,7 +334,8 @@ export function LayarPos({
       .mutateAsync(data.data)
       .then((p) => {
         setHasil(p);
-        setCetak({ jenis: pengantaran ? 'invoice' : 'struk', p });
+        // K-074: struk penjualan langsung selalu dicetak otomatis; invoice pengantaran hanya bila diminta (P).
+        if (!pengantaran) setCetak({ jenis: 'struk', p });
         tr.kosongkan();
         mulaiBaru();
         setZona(pengantaran ? 'hasil' : tiket.length > 1 ? 'antrean' : 'cari');
@@ -567,6 +569,9 @@ export function LayarPos({
                 if (e.key === 's' || e.key === 'S') {
                   e.preventDefault();
                   suratJalanSemua();
+                } else if (e.key === 'p' || e.key === 'P') {
+                  e.preventDefault();
+                  setCetak({ jenis: 'invoice', p: hasil });
                 } else if (e.key === 'Enter' || e.key === 'Escape') {
                   e.preventDefault();
                   setHasil(null);
@@ -584,11 +589,12 @@ export function LayarPos({
                 {hasil.statusPembayaran === 'LUNAS'
                   ? 'lunas'
                   : `sisa ${formatRupiah(hasil.sisaTagihan)}`}
-                ) — dikirim ke printer.
+                ).
               </div>
               <div className="mt-1 text-slate-700">
-                <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">S</kbd> buat surat
-                jalan semua barang &amp; cetak ·{' '}
+                <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">P</kbd> cetak
+                invoice · <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">S</kbd>{' '}
+                buat surat jalan semua barang &amp; cetak ·{' '}
                 <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">Enter</kbd> lanjut
               </div>
             </div>
