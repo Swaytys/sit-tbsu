@@ -64,3 +64,48 @@ order mengikuti alur kerja Staf → Kasir di laporan KP.
 **Alasan:** Pengiriman bertahap umum untuk pesanan proyek (K-024); piutang perlu terlihat sebelum memberi
 kredit lagi.
 **Ditolak:** blokir otomatis pelanggan terlambat (PT7: hanya peringatan); limit kredit (Fase 10).
+
+### K-073 — Alur POS cepat: antrean tiket FIFO, input order cepat, keyboard penuh (masukan pemilik)
+**Konteks:** Di jam ramai banyak order masuk tanpa nama pembeli; kasir harus mengenali order dari isi barangnya,
+pembeli tidak datang ke kasir sesuai urutan order, dan layanan tidak boleh tersendat oleh sistem. Pemilik meminta
+alur seefisien mungkin (Six Sigma/TQM), bisa dijalankan sepenuhnya dengan keyboard, tampilan minim tetapi
+informatif, dan boleh berbeda dari halaman lain demi efisiensi.
+**Keputusan:**
+1. **Identitas order tanpa nama**: isi barang + total + **nomor antrean** (angka terakhir nomor ORD hari itu,
+   mis. ORD-261002-057 → 57). Nama/ciri pembeli opsional.
+2. **Papan antrean** di Penjualan Langsung dan Penjualan Pengantaran (tidak hanya di Order Penjualan). Tiket
+   menampilkan nomor besar, lama menunggu (kuning ≥ 5 menit, merah ≥ 10), sampai 4 baris barang, total, pembuat;
+   tiket yang dipegang kasir lain diredupkan. Kartu di Order Penjualan juga menampilkan isi barang.
+3. **FIFO murni**: urut waktu masuk antrean, tiket terlama tersorot otomatis; kasir bebas memilih tiket lain.
+   Prioritas TINGGI hanya penanda (mengganti urutan "prioritas dulu" pada K-070).
+4. **Siaran langsung** (Server-Sent Events, `lib/siaran.ts`): setelah order berubah (commit), layar terbuka diberi
+   tanda dan memuat ulang papan; tanpa polling per detik (cadangan muat ulang 60 detik). Tidak ada data bisnis di
+   kanal siaran.
+5. **Input order cepat** (tab bawaan Order Penjualan): kursor langsung di kotak cari; `3*semen` = qty 3; Enter
+   menambah walau hasil belum tampil (mengetik cepat/scanner menunggu jawaban server); Enter di kotak kosong lalu
+   Enter = kirim (dua langkah agar tidak salah kirim); F8 = kirim. Setelah kirim, nomor antrean tampil besar dan form
+   kosong lagi. Daftar "Order saya" menunjukkan status order (live). Form lengkap tetap ada untuk tier/diskon/harga
+   manual/prioritas.
+6. **Keyboard penuh** — layar kasir & pengantaran: F2 cari barang, F3 antrean (ketik nomor + Enter = panggil nomor),
+   F4 pelanggan, F8 bayar, F9 batal/kembalikan order ke antrean, Esc kembali, Ctrl+Z urungkan hapus. Daftar barang:
+   + / − qty, angka = qty baru, % diskon, T tier, Del hapus. Kotak bayar: angka = uang diterima/nominal, Enter kosong =
+   uang pas (pengantaran: tanpa pembayaran), T/B/E metode, C bayar campuran, D barang ditinggal, L isi lunas dan
+   S bayar saat terima (pengantaran). Input order cepat: F2, F3 jenis, F4 pelanggan, F8 kirim, F9 kosongkan.
+   Bilah tombol yang berlaku selalu tampil di bawah. F1, F6, F7, F10, F11, F12 tidak dipakai karena dicadangkan
+   peramban (tidak bisa diambil alih halaman web).
+7. Kasir boleh mengubah isi order antrean saat bayar; API checkout menerima `idOrder` + isi baru dan menjalankan
+   ubah order (R4, reservasi disesuaikan) dan checkout dalam satu transaksi.
+8. **Nominal kosong = lunasi sisa** (dihitung server): tunai memakai min(uang diterima, sisa). Kasir cukup mengetik
+   uang yang diterima; tidak ada selisih bila harga final berbeda dari perkiraan layar. P6 (pembeli umum wajib lunas)
+   diperiksa setelah pembayaran dihitung, dalam transaksi yang sama.
+9. Struk dicetak otomatis tanpa jendela pratinjau, kembalian tampil besar sampai transaksi berikutnya. Pengantaran:
+   invoice dicetak otomatis, S = buat surat jalan semua barang & cetak. Deploy: Chrome `--kiosk --kiosk-printing`
+   (roadmap Fase 8).
+10. Dialog buka shift muncul sendiri saat layar kasir dibuka tanpa shift (sekali sehari). Order yang sedang dibuka
+    dikembalikan ke antrean bila kasir pindah halaman (selain itu job R8).
+11. Rekening bawaan transfer/EDC di Pengaturan › Operasional (`rekening_transfer_default`, `rekening_edc_default`).
+
+**Alasan:** Model keystroke (Card–Moran–Newell): satu aksi mouse ≈ 1,1 detik menunjuk + 0,4 detik memindah tangan,
+sedangkan satu tombol ≈ 0,2–0,3 detik. Transaksi order dari antrean kini minimal: Enter → ketik uang → Enter. Papan
+tiket FIFO mengikuti praktik layar dapur (KDS) restoran: pesanan terbaca sekilas, umur terlihat, adil.
+**Ditolak:** wajib nama pembeli; urutan prioritas-dulu; polling tiap detik; dialog pratinjau struk; pintasan F7/F1.

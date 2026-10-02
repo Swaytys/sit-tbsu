@@ -43,7 +43,7 @@ import {
 import { formatDesimal, formatTanggal, formatWaktu } from '@/lib/format';
 import { LABEL_STATUS_PENGAMBILAN, LABEL_STATUS_PENGIRIMAN } from '@/lib/label';
 import { PanelSuratJalan } from '../pengantaran/panel-surat-jalan';
-import { PanelPembayaran } from './panel-pembayaran';
+import { PanelBayarPos } from '../pos/panel-bayar-pos';
 
 function Info({ judul, children }: { judul: string; children: ReactNode }) {
   return (
@@ -63,20 +63,23 @@ export function DialogTerimaPembayaran({
   onTutup: () => void;
 }) {
   const bayar = useBayarPenjualan();
-  function kirim(daftar: DataPembayaran[]) {
-    const [pembayaran] = daftar;
-    if (!pembayaran) return;
-    bayar
-      .mutateAsync({ id: p.id, pembayaran })
-      .then((h) => {
-        toast.success(
-          h.statusPembayaran === 'LUNAS'
-            ? `${p.nomor} lunas.`
-            : `Pembayaran dicatat; sisa ${formatRupiah(h.sisaTagihan)}.`,
-        );
-        onTutup();
-      })
-      .catch((err: unknown) => toast.error(pesanGalat(err)));
+  const toko = useTampilanToko().data;
+  async function kirim(daftar: DataPembayaran[]) {
+    if (daftar.length === 0) return;
+    try {
+      // Bayar campuran = beberapa pembayaran berurutan atas penjualan yang sama.
+      let h: DetailPenjualan | null = null;
+      for (const pembayaran of daftar) h = await bayar.mutateAsync({ id: p.id, pembayaran });
+      if (!h) return;
+      toast.success(
+        h.statusPembayaran === 'LUNAS'
+          ? `${p.nomor} lunas.`
+          : `Pembayaran dicatat; sisa ${formatRupiah(h.sisaTagihan)}.`,
+      );
+      onTutup();
+    } catch (err) {
+      toast.error(pesanGalat(err));
+    }
   }
   return (
     <Dialog open onOpenChange={(b) => !b && onTutup()}>
@@ -85,12 +88,19 @@ export function DialogTerimaPembayaran({
           <DialogTitle>Terima pembayaran {p.nomor}</DialogTitle>
           <DialogDescription>Sisa tagihan {formatRupiah(p.sisaTagihan)}.</DialogDescription>
         </DialogHeader>
-        <PanelPembayaran
+        <PanelBayarPos
+          id="bayar-pelunasan"
+          aktif
           total={p.sisaTagihan}
+          mode="pelunasan"
           bolehKurang
+          rekeningTransfer={toko?.rekeningTransfer ?? ''}
+          rekeningEdc={toko?.rekeningEdc ?? ''}
           memproses={bayar.isPending}
           labelBayar="Simpan pembayaran"
-          onBayar={kirim}
+          onBayar={(d) => void kirim(d)}
+          onFokus={() => undefined}
+          onEsc={onTutup}
         />
       </DialogContent>
     </Dialog>

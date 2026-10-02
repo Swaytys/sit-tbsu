@@ -131,15 +131,6 @@ export const router = createBrowserRouter([
       ruteLazy('persediaan/penyesuaian/:id', 'Stok Persediaan', 'persediaan.stok.lihat', () =>
         import('@/features/persediaan/halaman-penyesuaian').then((m) => m.HalamanPenyesuaian),
       ),
-      ruteLazy(
-        'penjualan-pengantaran/checkout',
-        'Penjualan Pengantaran',
-        'penjualan.checkout',
-        () =>
-          import('@/features/pengantaran/halaman-checkout-pengantaran').then(
-            (m) => m.HalamanCheckoutPengantaran,
-          ),
-      ),
       ruteLazy('penjualan/:id', 'Detail Penjualan', 'penjualan.riwayat.lihat', () =>
         import('@/features/kasir/halaman-detail-penjualan').then((m) => m.HalamanDetailPenjualan),
       ),

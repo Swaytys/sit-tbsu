@@ -317,6 +317,8 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | login_kunci_menit | 15 | |
 | password_min | 8 | |
 | checkout_wajib_shift | true | pembayaran TUNAI wajib shift terbuka |
+| rekening_transfer_default | (kosong) | rekening bawaan saat kasir memilih transfer (K-073) |
+| rekening_edc_default | (kosong) | mesin EDC bawaan saat kasir memilih EDC (K-073) |
 
 **`satuan`** awal: m (basis PANJANG), cm 0.01, mm 0.001, dm 0.1; m² (basis LUAS); m³ (basis VOLUME), L 0.001;
 kg (basis BERAT), g 0.001; W (basis DAYA); JUMLAH: buah, sak, batang, roll, dus, lembar, kaleng, pail, pasang,

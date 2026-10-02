@@ -1,4 +1,10 @@
-import type { DaftarOrder, DetailOrder, Notifikasi } from '@sit/shared';
+import {
+  nomorAntrean,
+  type DaftarOrder,
+  type DetailOrder,
+  type Notifikasi,
+  type TiketAntrean,
+} from '@sit/shared';
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
@@ -19,6 +25,7 @@ import {
   persediaan,
   tingkatHarga,
 } from '../../db/schema';
+import { dengarkan } from '../../lib/siaran';
 import { sekarang, tambahJam, tambahMenit } from '../../lib/waktu';
 import { hitungUlangCache } from '../persediaan/ledger';
 import { jalankanJobOrder } from './order/service';
@@ -316,7 +323,7 @@ describe('order penjualan (docs/05 §3, §6)', () => {
     expect((await hitungUlangCache(db, m.semen)).cocok).toBe(true);
   });
 
-  it('daftar: Staf hanya order sendiri; antrean mengurutkan prioritas TINGGI lalu yang terlama', async () => {
+  it('daftar: Staf hanya order sendiri; antrean murni FIFO, prioritas hanya penanda (K-073)', async () => {
     const a = await kirim(staf, '/api/order?kirim=true', order([{ idBarang: m.semen, qty: '1' }]));
     const b = await kirim(kasir, '/api/order?kirim=true', order([{ idBarang: m.semen, qty: '1' }]));
     const c = await kirim(
@@ -328,7 +335,68 @@ describe('order penjualan (docs/05 §3, §6)', () => {
     expect(punyaStaf.data.map((o) => o.id)).toEqual([a.id]);
     expect((await galat(minta(`/api/order/${b.id}`, { cookie: staf.cookie }))).status).toBe(404);
     const antrean = await ambil<DaftarOrder>(kasir, '/api/order?status=AKTIF');
-    expect(antrean.data.map((o) => o.id)).toEqual([c.id, a.id, b.id]);
+    expect(antrean.data.map((o) => o.id)).toEqual([a.id, b.id, c.id]);
+    expect(antrean.data[2]).toMatchObject({ prioritas: 'TINGGI', noAntrean: 3 });
+    expect(antrean.data[0]?.ringkasan).toEqual([
+      { namaBarang: 'Semen Gresik 40 kg', qty: '1.000', kodeSatuan: 'sak' },
+    ]);
+  });
+
+  it('K-073 papan antrean: per jenis, FIFO, isi barang terbaca, DIPROSES menyebut kasir; siaran tiap perubahan', async () => {
+    let siaran = 0;
+    const berhenti = dengarkan('antrean', () => {
+      siaran += 1;
+    });
+    try {
+      const draf = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '1' }]));
+      expect(siaran).toBe(0); // draf belum masuk antrean
+      const a = await kirim(
+        staf,
+        '/api/order?kirim=true',
+        order([
+          { idBarang: m.semen, qty: '2' },
+          { idBarang: m.pasir, qty: '0.5' },
+        ]),
+      );
+      const antar = await kirim(
+        staf,
+        '/api/order?kirim=true',
+        order([{ idBarang: m.pasir, qty: '1' }], {
+          jenisPenjualan: 'PENGANTARAN',
+          idPelanggan: plgGrosir,
+          alamatKirim: 'Jl. Raya 1',
+        }),
+      );
+      await kirim(kasir, `/api/order/${a.id}/proses`);
+      expect(siaran).toBe(3);
+
+      const papan = await ambil<{ data: TiketAntrean[] }>(
+        kasir,
+        '/api/order/antrean?jenis=LANGSUNG',
+      );
+      expect(papan.data.map((t) => t.id)).toEqual([a.id]);
+      expect(papan.data[0]).toMatchObject({
+        noAntrean: nomorAntrean(a.nomor),
+        status: 'DIPROSES',
+        namaKasirProses: kasir.pengguna.namaPengguna,
+        total: 26000,
+        ringkasan: [
+          { namaBarang: 'Semen Gresik 40 kg', qty: '2.000', kodeSatuan: 'sak' },
+          { namaBarang: 'Pasir', qty: '0.500', kodeSatuan: 'sak' },
+        ],
+      });
+      const papanAntar = await ambil<{ data: TiketAntrean[] }>(
+        kasir,
+        '/api/order/antrean?jenis=PENGANTARAN',
+      );
+      expect(papanAntar.data.map((t) => [t.id, t.alamatKirim])).toEqual([[antar.id, 'Jl. Raya 1']]);
+      expect(papanAntar.data.some((t) => t.id === draf.id)).toBe(false);
+      expect(
+        (await galat(minta('/api/order/antrean?jenis=LANGSUNG', { cookie: staf.cookie }))).status,
+      ).toBe(403);
+    } finally {
+      berhenti();
+    }
   });
 
   it('R7/R8 order basi ditandai, notifikasi, stok tertahan, auto-batal opsional; kunci kadaluarsa dilepas', async () => {

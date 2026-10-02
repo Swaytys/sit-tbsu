@@ -204,10 +204,16 @@ export class AppError extends Error {
   `Rp 1.234.567`, menyimpan integer) dan `QtyInput` (3 desimal, satuan di sampingnya).
 - Tampilan mengikuti mockup: `Layout` (sidebar grup yang bisa di-collapse, topbar cari/notifikasi/pengguna),
   `DataTable` (cari, filter, paginasi server), dialog/drawer untuk form master, `StatusBadge` warna per status.
-- Cetak: route `/cetak/struk/:id`, `/cetak/invoice/:id`, `/cetak/surat-jalan/:id`, `/cetak/laporan/...` merender
-  layout khusus cetak tanpa sidebar, lalu `window.print()`. `@page { size: 80mm auto }` untuk thermal,
-  `A4` untuk invoice/surat jalan/laporan. Lebar struk dipilih dari konfigurasi (58/80 mm).
-- Hotkey kasir: `F2` fokus cari barang, `Enter` di kolom bayar = proses, `F9` batal, `Esc` tutup dialog.
+- Cetak: komponen `AreaCetak` (`components/area-cetak.tsx`) merender struk/invoice/surat jalan ke `body`;
+  CSS `.area-cetak` membuat hanya dokumen itu yang tercetak saat `window.print()`. `@page { size: 80mm auto }`
+  untuk thermal (lebar 58/80 mm dari konfigurasi), `A4` untuk invoice/surat jalan. Layar POS mencetak otomatis
+  tanpa pratinjau; di toko Chrome dijalankan dengan `--kiosk --kiosk-printing` (K-073).
+- Layar POS (`features/pos/`, K-073): keyboard penuh — F2 cari barang, F3 antrean, F4 pelanggan, F8 bayar,
+  F9 batal, Esc kembali, Ctrl+Z urungkan; huruf perintah di kotak bayar (T/B/E/C/D/L/S). F1, F6, F7, F10–F12
+  tidak dipakai (dicadangkan peramban). Komponen POS memakai elemen HTML biasa agar ringan dirender.
+- Siaran perubahan: `useSiaranAntrean()` membuka `EventSource` ke `GET /api/order/antrean/siaran`; backend
+  (`lib/siaran.ts`) mengirim tanda "berubah" setelah transaksi order/checkout di-commit, lalu layar memuat ulang
+  datanya sendiri (tanpa data bisnis di kanal siaran).
 - Pengaturan tampilan (sidebar terbuka, lebar struk terakhir) boleh di `localStorage`; data bisnis tidak.
 
 ## 6. Paket `shared`
@@ -306,6 +312,7 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 ## Riwayat
 
 - 2026-09-19 — v1.
+- 2026-10-02 — §5: cetak lewat `AreaCetak`, layar POS keyboard penuh, siaran perubahan antrean (K-073).
 - 2026-09-30 — Fase 2: kode error `WAJIB_GANTI_PASSWORD`, `TERLALU_BANYAK_PERCOBAAN` (§4); guard default dan
   `requireLogin` (§8) — K-054.
 - 2026-09-29 — Fase 1: versi paket dikunci (§2, K-050); struktur `db/` dan letak seed disesuaikan (§3, K-053);

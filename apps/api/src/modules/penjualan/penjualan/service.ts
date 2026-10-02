@@ -19,6 +19,7 @@ import {
 import { AppError } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
+import { siarkan } from '../../../lib/siaran';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahHari, tanggalOperasional } from '../../../lib/waktu';
 import { shiftBuka } from '../../kas/shift/service';
@@ -28,7 +29,7 @@ import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import * as orderRepo from '../order/repo';
-import { buatOrderTx } from '../order/service';
+import { buatOrderTx, ubahOrderTx } from '../order/service';
 import { catatPembayaran, hitungTagihan } from '../pembayaran';
 import * as sjRepo from '../surat-jalan/repo';
 import { sisaKirim, suratJalanPenjualan } from '../surat-jalan/service';
@@ -120,10 +121,12 @@ export async function detailPenjualan(
 /** Order yang akan di-checkout: dikunci, milik kasir ini (MENUNGGU otomatis dikunci untuknya, R8). */
 async function siapkanOrder(tx: Tx, input: DataCheckout, pelaku: PenggunaAktif, asal: AsalRequest) {
   let idOrder: number;
-  if (input.order) {
-    idOrder = (await buatOrderTx(tx, input.order, { kirim: true }, pelaku, asal)).id;
-  } else if (input.idOrder !== null) {
+  if (input.idOrder !== null) {
     idOrder = input.idOrder;
+    // K-073: kasir mengubah isi order saat checkout (R4) dalam transaksi yang sama.
+    if (input.order) await ubahOrderTx(tx, idOrder, input.order, pelaku, asal);
+  } else if (input.order) {
+    idOrder = (await buatOrderTx(tx, input.order, { kirim: true }, pelaku, asal)).id;
   } else {
     throw new AppError('VALIDASI', 'Pilih order dari antrean atau isi keranjang.', 400);
   }
@@ -231,15 +234,6 @@ export async function checkout(
     const totalBruto = rows.reduce((t, r) => t + subtotalRupiah(r.qty, r.hargaSatuan), 0);
     const diskonBaris = rows.reduce((t, r) => t + r.diskonBaris, 0);
     const totalNeto = totalBruto - diskonBaris - h.diskonTransaksi + h.ongkir;
-    const dibayar = input.pembayaran.reduce((t, p) => t + p.nominal, 0);
-    // P6: pembeli umum wajib lunas saat checkout.
-    if (h.idPelanggan === null && dibayar < totalNeto) {
-      throw new AppError(
-        'VALIDASI',
-        `Pembeli umum wajib lunas: kurang ${formatRupiah(totalNeto - dibayar)}. Pilih pelanggan terdata untuk piutang.`,
-        400,
-      );
-    }
     if (input.bayarSaatTerima && jenis !== 'PENGANTARAN') {
       throw new AppError('VALIDASI', 'Bayar saat terima hanya untuk pengantaran.', 400);
     }
@@ -321,8 +315,16 @@ export async function checkout(
       pelaku,
       asal,
     );
+    if (hasil.statusPembayaran !== 'LUNAS' && h.idPelanggan === null) {
+      // P6: pembeli umum wajib lunas saat checkout (seluruh transaksi dibatalkan).
+      throw new AppError(
+        'VALIDASI',
+        `Pembeli umum wajib lunas: kurang ${formatRupiah(hitungTagihan(hasil).sisa)}. Pilih pelanggan terdata untuk piutang.`,
+        400,
+      );
+    }
     if (hasil.statusPembayaran !== 'LUNAS') {
-      // PT2: jatuh tempo wajib bila belum lunas (default P7). Hanya pelanggan terdata (cek P6 di atas).
+      // PT2: jatuh tempo wajib bila belum lunas (default P7).
       const jatuhTempo =
         input.tanggalJatuhTempo ?? (await jatuhTempoBawaan(tx, h.idPelanggan ?? 0, tanggal));
       await tx
@@ -343,6 +345,7 @@ export async function checkout(
     });
     return pj.id;
   });
+  siarkan('antrean');
   return detailPenjualan(id, pelaku.izin);
 }
 

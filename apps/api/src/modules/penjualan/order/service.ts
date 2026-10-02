@@ -2,21 +2,26 @@ import {
   formatRupiah,
   keQty,
   tambahQty,
+  nomorAntrean,
   type BarisDaftarOrder,
   type BarisStokTertahan,
   type DataOrder,
   type DetailOrder,
+  type JenisPenjualan,
   type MetaHalaman,
+  type RingkasBarisOrder,
+  type TiketAntrean,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
 import { AppError } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
+import { siarkan } from '../../../lib/siaran';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahJam, tambahMenit, tanggalOperasional } from '../../../lib/waktu';
 import { ubahReservasi, type PerubahanReservasi } from '../../persediaan/ledger';
-import { ambilAngka, ambilTeks } from '../../sistem/konfigurasi/service';
 import { hargaBarangDasar } from '../../master/harga/repo';
+import { ambilAngka, ambilTeks } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import { hitungBarisJual, type HargaLama, type HasilHarga } from '../harga-baris';
@@ -33,7 +38,7 @@ async function batasBasi(): Promise<Date> {
   return tambahJam(sekarang(), -(await ambilAngka('batas_umur_order_jam', 24)));
 }
 
-function keRespons(h: Header, basiSebelum: Date): BarisDaftarOrder {
+function keRespons(h: Header, basiSebelum: Date, ringkasan: RingkasBarisOrder[]): BarisDaftarOrder {
   return {
     id: h.id,
     nomor: h.nomor,
@@ -53,7 +58,20 @@ function keRespons(h: Header, basiSebelum: Date): BarisDaftarOrder {
     waktuMasukAntrean: h.waktuMasukAntrean?.toISOString() ?? null,
     basi:
       h.status === 'MENUNGGU' && h.waktuMasukAntrean !== null && h.waktuMasukAntrean < basiSebelum,
+    noAntrean: nomorAntrean(h.nomor),
+    ringkasan,
   };
+}
+
+/** Isi (nama barang & qty) beberapa order sekaligus, untuk kartu/tiket antrean (K-073). */
+async function ringkasanOrder(idOrder: number[]): Promise<Map<number, RingkasBarisOrder[]>> {
+  const peta = new Map<number, RingkasBarisOrder[]>();
+  for (const r of await repo.ringkasBaris(db, idOrder)) {
+    const daftar = peta.get(r.idOrder) ?? [];
+    daftar.push({ namaBarang: r.namaBarang, qty: r.qty, kodeSatuan: r.kodeSatuan });
+    peta.set(r.idOrder, daftar);
+  }
+  return peta;
 }
 
 function tidakDitemukan(): AppError {
@@ -76,7 +94,25 @@ export async function daftarOrder(
     ...batasHalaman(p),
   });
   const basi = await batasBasi();
-  return { data: baris.map((b) => keRespons(b, basi)), meta: metaHalaman(total, p) };
+  const isi = await ringkasanOrder(baris.map((b) => b.id));
+  return {
+    data: baris.map((b) => keRespons(b, basi, isi.get(b.id) ?? [])),
+    meta: metaHalaman(total, p),
+  };
+}
+
+/**
+ * Papan antrean kasir/pengantaran (K-073): order MENUNGGU & DIPROSES satu jenis, urut FIFO (yang paling
+ * lama masuk antrean di depan), lengkap dengan isi barang agar langsung terbaca tanpa membuka detail.
+ */
+export async function papanAntrean(jenis: JenisPenjualan): Promise<TiketAntrean[]> {
+  const { baris } = await repo.daftarOrder(db, { status: 'AKTIF', jenis, limit: 200, offset: 0 });
+  const basi = await batasBasi();
+  const isi = await ringkasanOrder(baris.map((b) => b.id));
+  return baris.map((b) => ({
+    ...keRespons(b, basi, isi.get(b.id) ?? []),
+    alamatKirim: b.alamatKirim,
+  }));
 }
 
 export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<DetailOrder> {
@@ -94,7 +130,11 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
   }
   const menahan = h.status === 'MENUNGGU' || h.status === 'DIPROSES';
   return {
-    ...keRespons(h, await batasBasi()),
+    ...keRespons(
+      h,
+      await batasBasi(),
+      rows.map((r) => ({ namaBarang: r.namaBarang, qty: r.qty, kodeSatuan: r.kodeSatuan })),
+    ),
     alamatKirim: h.alamatKirim,
     catatanKirim: h.catatanKirim,
     catatan: h.catatan,
@@ -291,6 +331,7 @@ export async function buatOrder(
   asal: AsalRequest,
 ): Promise<DetailOrder> {
   const { id } = await dalamTransaksi((tx) => buatOrderTx(tx, input, opsi, pelaku, asal));
+  if (opsi.kirim) siarkan('antrean');
   return detailOrder(id, pelaku);
 }
 
@@ -309,54 +350,64 @@ function statusTidakValid(nomor: string, status: string, aksi: string): AppError
 }
 
 /**
- * R4: mengubah order. DRAFT: hanya pembuatnya. MENUNGGU: pembuat atau pemegang `penjualan.checkout`, reservasi
- * disesuaikan dengan selisih qty. DIPROSES: hanya kasir pemegang kunci.
+ * R4: mengubah order di dalam `tx`. DRAFT: hanya pembuatnya. MENUNGGU: pembuat atau pemegang
+ * `penjualan.checkout`, reservasi disesuaikan dengan selisih qty. DIPROSES: hanya kasir pemegang kunci.
+ * Dipakai juga checkout yang sekaligus mengubah isi order (K-073).
  */
+export async function ubahOrderTx(
+  tx: Tx,
+  id: number,
+  input: DataOrder,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<void> {
+  const h = await kunci(tx, id, pelaku);
+  const pembuat = h.idPengguna === pelaku.id;
+  if (h.status === 'DRAFT' && !pembuat) {
+    throw new AppError('TIDAK_BERIZIN', 'Hanya pembuat order yang bisa mengubah draf.', 403);
+  }
+  if (h.status === 'MENUNGGU' && !pembuat && !pelaku.izin.has('penjualan.checkout')) {
+    throw new AppError('TIDAK_BERIZIN', 'Anda tidak bisa mengubah order orang lain.', 403);
+  }
+  if (h.status === 'DIPROSES' && h.idKasirProses !== pelaku.id) {
+    throw new AppError(
+      'KONFLIK',
+      `Order ${h.nomor} sedang diproses kasir lain; hanya kasir itu yang bisa mengubahnya.`,
+      409,
+    );
+  }
+  if (h.status === 'SELESAI' || h.status === 'BATAL') {
+    throw statusTidakValid(h.nomor, h.status, 'diubah');
+  }
+  await validasiPelanggan(tx, input);
+  const lama = await repo.barisReservasi(tx, id);
+  const hargaLama: HargaLama = new Map(lama.map((b) => [b.idBarang, b]));
+  const harga = await hitungBarisJual(tx, input, pelaku, hargaLama);
+  if (h.status !== 'DRAFT') {
+    await ubahReservasi(tx, selisihReservasi(lama, harga.baris));
+  }
+  await repo.ubahHeader(tx, id, { ...nilaiHeader(input, harga), diubahPada: sekarang() });
+  await repo.gantiDetail(tx, id, nilaiDetail(harga));
+  await catatLog(tx, {
+    aksi: 'ORDER_UBAH',
+    idPengguna: pelaku.id,
+    entitas: 'order_penjualan',
+    idEntitas: id,
+    nomorDokumen: h.nomor,
+    ringkasan: `Mengubah order ${h.nomor}: ${harga.baris.length} barang, ${formatRupiah(harga.total)}`,
+    ip: asal.ip,
+  });
+  await logHargaDiskon(tx, harga, h.nomor, id, pelaku, asal);
+}
+
 export async function ubahOrder(
   id: number,
   input: DataOrder,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<DetailOrder> {
-  await dalamTransaksi(async (tx) => {
-    const h = await kunci(tx, id, pelaku);
-    const pembuat = h.idPengguna === pelaku.id;
-    if (h.status === 'DRAFT' && !pembuat) {
-      throw new AppError('TIDAK_BERIZIN', 'Hanya pembuat order yang bisa mengubah draf.', 403);
-    }
-    if (h.status === 'MENUNGGU' && !pembuat && !pelaku.izin.has('penjualan.checkout')) {
-      throw new AppError('TIDAK_BERIZIN', 'Anda tidak bisa mengubah order orang lain.', 403);
-    }
-    if (h.status === 'DIPROSES' && h.idKasirProses !== pelaku.id) {
-      throw new AppError(
-        'KONFLIK',
-        `Order ${h.nomor} sedang diproses kasir lain; hanya kasir itu yang bisa mengubahnya.`,
-        409,
-      );
-    }
-    if (h.status === 'SELESAI' || h.status === 'BATAL') {
-      throw statusTidakValid(h.nomor, h.status, 'diubah');
-    }
-    await validasiPelanggan(tx, input);
-    const lama = await repo.barisReservasi(tx, id);
-    const hargaLama: HargaLama = new Map(lama.map((b) => [b.idBarang, b]));
-    const harga = await hitungBarisJual(tx, input, pelaku, hargaLama);
-    if (h.status !== 'DRAFT') {
-      await ubahReservasi(tx, selisihReservasi(lama, harga.baris));
-    }
-    await repo.ubahHeader(tx, id, { ...nilaiHeader(input, harga), diubahPada: sekarang() });
-    await repo.gantiDetail(tx, id, nilaiDetail(harga));
-    await catatLog(tx, {
-      aksi: 'ORDER_UBAH',
-      idPengguna: pelaku.id,
-      entitas: 'order_penjualan',
-      idEntitas: id,
-      nomorDokumen: h.nomor,
-      ringkasan: `Mengubah order ${h.nomor}: ${harga.baris.length} barang, ${formatRupiah(harga.total)}`,
-      ip: asal.ip,
-    });
-    await logHargaDiskon(tx, harga, h.nomor, id, pelaku, asal);
-  });
+  await dalamTransaksi((tx) => ubahOrderTx(tx, id, input, pelaku, asal));
+  siarkan('antrean');
   return detailOrder(id, pelaku);
 }
 
@@ -374,6 +425,7 @@ export async function kirimOrder(
     }
     await masukAntrean(tx, id, h.nomor, await repo.barisReservasi(tx, id), pelaku, asal);
   });
+  siarkan('antrean');
   return detailOrder(id, pelaku);
 }
 
@@ -410,6 +462,7 @@ export async function prosesOrder(
       ip: asal.ip,
     });
   });
+  siarkan('antrean');
   return detailOrder(id, pelaku);
 }
 
@@ -445,6 +498,7 @@ export async function lepasOrder(
       ip: asal.ip,
     });
   });
+  siarkan('antrean');
   return detailOrder(id, pelaku);
 }
 
@@ -503,6 +557,7 @@ export async function batalOrder(
       ip: asal.ip,
     });
   });
+  siarkan('antrean');
   return detailOrder(id, pelaku);
 }
 
@@ -555,6 +610,7 @@ export async function jalankanJobOrder(): Promise<{ dibatalkan: string[]; dilepa
       dilepas.push(o.nomor);
     });
   }
+  if (dibatalkan.length + dilepas.length > 0) siarkan('antrean');
   return { dibatalkan, dilepas };
 }
 

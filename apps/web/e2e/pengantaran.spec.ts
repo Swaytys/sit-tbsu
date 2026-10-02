@@ -42,7 +42,7 @@ test('Pengantaran: DP → dua surat jalan → pelunasan → lunas & terkirim', a
   try {
     const staf = await browser.newPage();
     await masukCepat(staf, 'STAF_PENJUALAN');
-    const o = await api<{ id: number; nomor: string }>(staf, '/order?kirim=true', 'POST', {
+    const o = await api<{ id: number; noAntrean: number }>(staf, '/order?kirim=true', 'POST', {
       jenisPenjualan: 'PENGANTARAN',
       idPelanggan: plg.id,
       alamatKirim: 'Jl. Proyek No. 7',
@@ -57,21 +57,26 @@ test('Pengantaran: DP → dua surat jalan → pelunasan → lunas & terkirim', a
       headers: { origin: new URL(kasir.url()).origin },
     }); // 409 bila shift sudah terbuka: diabaikan
 
-    // 1. Invoice dengan DP transfer Rp 200.000.
+    // 1. Invoice dengan DP transfer Rp 200.000 lewat layar POS (keyboard).
     await menuUtama(kasir).getByRole('link', { name: 'Penjualan Pengantaran' }).click();
-    await kasir.getByRole('tab', { name: 'Siap dibuatkan invoice' }).click();
-    await kasir
-      .getByText(o.nomor)
-      .locator('xpath=ancestor::div[contains(@class,"rounded")][1]')
-      .getByRole('link', { name: 'Buat invoice' })
-      .click();
-    await expect(kasir.getByTestId('total-invoice')).toHaveText('Rp 500.000');
-    await kasir.getByRole('button', { name: 'Transfer' }).click();
-    await kasir.getByLabel('Nominal non tunai').fill('200000');
-    await kasir.getByLabel('Rekening tujuan').fill('BCA 123456');
-    await kasir.getByRole('button', { name: /Buat invoice \(Enter\)/ }).click();
-    await expect(kasir.getByRole('heading', { name: /^INV-\d{6}-\d{3,}/ })).toBeVisible();
-    await expect(kasir.getByRole('heading', { name: /^INV-/ })).toContainText('DP');
+    const tiket = kasir.getByRole('option', { name: `Antrean ${o.noAntrean}` });
+    await expect(tiket).toContainText(`CV Proyek E2E ${kode}`);
+    await kasir.keyboard.press('F3');
+    await kasir.keyboard.type(String(o.noAntrean));
+    await kasir.keyboard.press('Enter');
+    await expect(kasir.getByTestId('total-pos')).toHaveText('Rp 500.000');
+    await kasir.keyboard.press('b');
+    await kasir.keyboard.type('200000');
+    await kasir.keyboard.press('Tab');
+    await kasir.keyboard.type('BCA 123456');
+    await kasir.keyboard.press('Enter');
+    await expect(kasir.getByTestId('hasil-transaksi')).toContainText('sisa Rp 300.000');
+    const [inv] = await api<{ id: number }[]>(
+      admin,
+      `/penjualan?jenis=PENGANTARAN&cari=${encodeURIComponent(`CV Proyek E2E ${kode}`)}`,
+    );
+    await kasir.goto(`/penjualan/${inv!.id}`);
+    await expect(kasir.getByRole('heading', { name: /^INV-\d{6}-\d{3,}/ })).toContainText('DP');
 
     // 2. Surat jalan pertama: 2 dari 5.
     await kasir.getByRole('button', { name: 'Buat surat jalan' }).click();
@@ -103,10 +108,11 @@ test('Pengantaran: DP → dua surat jalan → pelunasan → lunas & terkirim', a
     // 4. Pelunasan sisa Rp 300.000 lewat EDC.
     await kasir.getByRole('button', { name: 'Terima pembayaran' }).click();
     const dialog = kasir.getByRole('dialog');
-    await dialog.getByRole('button', { name: 'EDC' }).click();
-    await expect(dialog.getByLabel('Nominal non tunai')).toHaveValue('300.000');
-    await dialog.getByLabel('Rekening tujuan').fill('EDC BRI');
-    await dialog.getByRole('button', { name: /Simpan pembayaran/ }).click();
+    await expect(dialog.getByLabel('Bayar')).toBeFocused();
+    await kasir.keyboard.press('e'); // EDC; kotak kosong = lunasi sisa
+    await kasir.keyboard.press('Tab');
+    await kasir.keyboard.type('EDC BRI');
+    await kasir.keyboard.press('Enter');
     await expect(kasir.getByText(/INV-\d{6}-\d{3,} lunas\./)).toBeVisible();
     await expect(kasir.getByRole('heading', { name: /^INV-/ })).toContainText('Lunas');
     await expect(kasir.getByRole('button', { name: 'Terima pembayaran' })).toHaveCount(0);

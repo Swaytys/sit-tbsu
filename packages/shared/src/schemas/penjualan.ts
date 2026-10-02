@@ -156,7 +156,24 @@ export type BarisDaftarOrder = {
   waktuMasukAntrean: string | null;
   /** R7: MENUNGGU lebih lama dari batas umur order. */
   basi: boolean;
+  /** Nomor antrean harian = nomor urut ORD hari itu (mis. ORD-261002-057 → 57), untuk dipanggil (K-073). */
+  noAntrean: number;
+  /** Isi order (nama barang & qty) agar order tanpa nama pembeli tetap bisa dikenali (K-073). */
+  ringkasan: RingkasBarisOrder[];
 };
+
+export type RingkasBarisOrder = { namaBarang: string; qty: string; kodeSatuan: string };
+
+/** Tiket di papan antrean kasir/pengantaran (MENUNGGU & DIPROSES, FIFO). */
+export type TiketAntrean = BarisDaftarOrder & { alamatKirim: string | null };
+
+export const skemaCariAntrean = z.object({ jenis: z.enum(JENIS_PENJUALAN) });
+
+/** Nomor antrean dari nomor dokumen ORD (bagian angka terakhir). */
+export function nomorAntrean(nomor: string): number {
+  const bagian = nomor.split('-');
+  return Number.parseInt(bagian[bagian.length - 1] ?? '0', 10) || 0;
+}
 
 export type BarisDetailOrder = {
   id: number;
@@ -220,11 +237,16 @@ export type BarisStokTertahan = {
 export const skemaPembayaran = z
   .object({
     metode: z.enum(METODE_PEMBAYARAN, 'Metode bayar tidak valid.'),
+    /**
+     * Nominal yang diakui. `null` = lunasi sisa tagihan (dihitung server, K-073): TUNAI memakai
+     * min(uang diterima, sisa); non-tunai memakai sisa. Mencegah selisih bila harga final berbeda dari layar.
+     */
     nominal: z
-      .preprocess((v) => (v === '' ? null : v), skemaRupiah)
-      .refine((v) => v > 0, {
-        message: 'Nominal harus lebih dari 0.',
-      }),
+      .preprocess(
+        (v) => (v === '' || v === undefined ? null : v),
+        skemaRupiah.refine((v) => v > 0, { message: 'Nominal harus lebih dari 0.' }).nullable(),
+      )
+      .default(null),
     /** TUNAI: uang yang diserahkan pembeli (kembalian dihitung server). */
     uangDiterima: z.preprocess(kosongJadiNull, skemaRupiah.nullable()).default(null),
     rekening: teksOpsional(60, 'Rekening maksimal 60 karakter.'),
@@ -232,7 +254,12 @@ export const skemaPembayaran = z
     catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
   })
   .superRefine((p, ctx) => {
-    if (p.metode === 'TUNAI' && p.uangDiterima !== null && p.uangDiterima < p.nominal) {
+    if (
+      p.metode === 'TUNAI' &&
+      p.uangDiterima !== null &&
+      p.nominal !== null &&
+      p.uangDiterima < p.nominal
+    ) {
       ctx.addIssue({
         code: 'custom',
         path: ['uangDiterima'],
@@ -252,9 +279,13 @@ export type DataPembayaran = z.output<typeof skemaPembayaran>;
 
 export const skemaCheckout = z
   .object({
-    /** Checkout dari order DIPROSES milik kasir ini … */
+    /** Checkout dari order antrean (MENUNGGU, atau DIPROSES milik kasir ini) … */
     idOrder: z.number().int().positive().nullable().default(null),
-    /** … atau checkout langsung: order dibuat dan diselesaikan dalam satu transaksi (P1). */
+    /**
+     * … atau checkout langsung: order dibuat dan diselesaikan dalam satu transaksi (P1). Bila diisi BERSAMA
+     * `idOrder`, isinya menggantikan isi order itu (kasir mengubah order saat checkout, R4) dalam transaksi
+     * yang sama (K-073).
+     */
     order: skemaOrder.nullable().default(null),
     pembayaran: z.array(skemaPembayaran).max(5, 'Maksimal 5 pembayaran.').default([]),
     statusPengambilan: z.enum(STATUS_PENGAMBILAN).default('DIAMBIL'),
@@ -265,7 +296,7 @@ export const skemaCheckout = z
     /** P2: barang yang harganya diperbarui ke harga tier saat ini (dicatat log). */
     perbaruiHarga: z.array(z.number().int().positive()).default([]),
   })
-  .refine((d) => (d.idOrder === null) !== (d.order === null), {
+  .refine((d) => d.idOrder !== null || d.order !== null, {
     message: 'Pilih order dari antrean atau isi keranjang.',
     path: ['idOrder'],
   });

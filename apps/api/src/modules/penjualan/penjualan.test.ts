@@ -311,6 +311,78 @@ describe('checkout dan pembayaran (docs/05 §6)', () => {
     });
   });
 
+  it('K-073 nominal kosong = lunasi: tunai pakai uang diterima (kembalian), non-tunai pakai sisa', async () => {
+    await kirim(kasir, '/api/shift/buka', { modalAwal: 0 });
+    const tunaiLebih = await kirim(kasir, '/api/penjualan/checkout', {
+      order: keranjang([{ idBarang: m.semen, qty: '2' }]),
+      pembayaran: [{ metode: 'TUNAI', uangDiterima: 50000 }],
+    });
+    expect(tunaiLebih.pembayaran[0]).toMatchObject({
+      jenis: 'PENUH',
+      nominal: 24000,
+      uangDiterima: 50000,
+      kembalian: 26000,
+    });
+    const pas = await kirim(kasir, '/api/penjualan/checkout', {
+      order: keranjang([{ idBarang: m.pasir, qty: '1' }]),
+      pembayaran: [{ metode: 'TUNAI' }],
+    });
+    expect(pas.pembayaran[0]).toMatchObject({ nominal: 4000, uangDiterima: 4000, kembalian: 0 });
+    const transfer = await kirim(kasir, '/api/penjualan/checkout', {
+      order: keranjang([{ idBarang: m.pasir, qty: '1' }]),
+      pembayaran: [{ metode: 'TRANSFER', rekening: 'BCA 1' }],
+    });
+    expect(transfer).toMatchObject({ statusPembayaran: 'LUNAS', totalDibayar: 4000 });
+
+    // Pelanggan terdata: tunai kurang dari total = DP, sisanya piutang.
+    const dp = await kirim(kasir, '/api/penjualan/checkout', {
+      order: keranjang([{ idBarang: m.semen, qty: '1' }], { idPelanggan: plg }),
+      pembayaran: [{ metode: 'TUNAI', uangDiterima: 5000 }],
+    });
+    expect(dp).toMatchObject({ statusPembayaran: 'DP', sisaTagihan: 7000 });
+    // Pembeli umum: kurang bayar ditolak seluruhnya (P6).
+    const kurang = await galat(
+      minta2(kasir, '/api/penjualan/checkout', {
+        order: keranjang([{ idBarang: m.semen, qty: '1' }]),
+        pembayaran: [{ metode: 'TUNAI', uangDiterima: 5000 }],
+      }),
+    );
+    expect(kurang.status).toBe(400);
+    expect(kurang.pesan).toContain('kurang Rp 7.000');
+    expect(await stok(m.semen)).toEqual({ fisik: '7.000', dipesan: '0.000' });
+  });
+
+  it('K-073 kasir mengubah isi order antrean saat checkout dalam satu transaksi', async () => {
+    await kirim(kasir, '/api/shift/buka', { modalAwal: 0 });
+    const o = await kirim<DetailOrder>(staf, '/api/order?kirim=true', {
+      jenisPenjualan: 'LANGSUNG',
+      baris: [
+        { idBarang: m.semen, qty: '2' },
+        { idBarang: m.pasir, qty: '1' },
+      ],
+    });
+    expect(await stok(m.semen)).toEqual({ fisik: '10.000', dipesan: '2.000' });
+    // Pembeli batal ambil pasir dan menambah semen jadi 3.
+    const pj = await kirim(kasir, '/api/penjualan/checkout', {
+      idOrder: o.id,
+      order: keranjang([{ idBarang: m.semen, qty: '3' }]),
+      pembayaran: [{ metode: 'TUNAI' }],
+    });
+    expect(pj.idOrder).toBe(o.id);
+    expect(pj.baris.map((b) => [b.namaBarang, b.qty])).toEqual([['Semen Gresik 40 kg', '3.000']]);
+    expect(pj.totalNeto).toBe(36000);
+    expect(await stok(m.semen)).toEqual({ fisik: '7.000', dipesan: '0.000' });
+    expect(await stok(m.pasir)).toEqual({ fisik: '5.000', dipesan: '0.000' });
+    for (const id of [m.semen, m.pasir]) expect((await hitungUlangCache(db, id)).cocok).toBe(true);
+    const [log] = await db
+      .select()
+      .from(logAktivitas)
+      .where(eq(logAktivitas.aksi, 'ORDER_UBAH'))
+      .orderBy(desc(logAktivitas.id))
+      .limit(1);
+    expect(log?.nomorDokumen).toBe(o.nomor);
+  });
+
   it('L11/R6 checkout paralel pada barang yang sama tidak menjual melebihi stok', async () => {
     await kirim(kasir, '/api/shift/buka', { modalAwal: 0 });
     const hasil = await Promise.all(

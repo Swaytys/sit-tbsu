@@ -10,6 +10,7 @@ import type {
   StatusSuratJalan,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { ambilData, ambilIsi, api } from './client';
 
 /** Penjualan (Fase 5): order & antrean. */
@@ -292,4 +293,30 @@ export function useDaftarPiutang(
     placeholderData: keepPreviousData,
     enabled: aktif,
   });
+}
+
+// --- Papan antrean POS (K-073) ---
+
+/** Tiket antrean satu jenis (MENUNGGU & DIPROSES, FIFO) dengan isi barang. */
+export function usePapanAntrean(jenis: JenisPenjualan) {
+  return useQuery({
+    queryKey: ['order', 'antrean', jenis],
+    queryFn: async () => ambilData(await api.order.antrean.$get({ query: { jenis } })),
+    // Cadangan bila siaran terputus; perubahan normal datang lewat useSiaranAntrean.
+    refetchInterval: 60_000,
+  });
+}
+
+/**
+ * Berlangganan siaran perubahan antrean (Server-Sent Events). Setiap tanda "berubah" memuat ulang semua data
+ * order yang sedang tampil. EventSource menyambung ulang sendiri bila koneksi putus.
+ */
+export function useSiaranAntrean() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const sumber = new EventSource('/api/order/antrean/siaran');
+    const muatUlang = () => void qc.invalidateQueries({ queryKey: ['order'] });
+    sumber.addEventListener('antrean', muatUlang);
+    return () => sumber.close();
+  }, [qc]);
 }
