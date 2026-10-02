@@ -11,6 +11,7 @@ export * from './roles';
 export * from './schemas/auth';
 export * from './schemas/barang';
 export * from './schemas/kas';
+export * from './schemas/koreksi';
 export * from './schemas/mitra';
 export * from './schemas/notifikasi';
 export * from './schemas/pengaturan';

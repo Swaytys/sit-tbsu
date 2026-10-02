@@ -172,6 +172,8 @@ export async function kunciPenjualan(tx: Tx, id: number) {
       idPelanggan: penjualan.idPelanggan,
       statusTransaksi: penjualan.statusTransaksi,
       statusPengambilan: penjualan.statusPengambilan,
+      idShift: penjualan.idShift,
+      tanggalOperasional: penjualan.tanggalOperasional,
       totalNeto: penjualan.totalNeto,
       totalVoid: penjualan.totalVoid,
       totalRetur: penjualan.totalRetur,
