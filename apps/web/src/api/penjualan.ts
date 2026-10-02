@@ -3,12 +3,15 @@ import type {
   DataKasShift,
   DataOrder,
   DataPembayaran,
+  DataSetujui,
   DataSuratJalan,
   DataTutupShift,
+  DataVoid,
   JenisPenjualan,
   StatusOrder,
   StatusPembayaran,
   StatusPengambilan,
+  StatusPersetujuan,
   StatusShift,
   StatusSuratJalan,
 } from '@sit/shared';
@@ -375,5 +378,66 @@ export function useCatatKas() {
 export function useTutupShift() {
   return useMutasiShift(async ({ id, json }: { id: number; json: DataTutupShift }) =>
     ambilData(await api.shift[':id'].tutup.$post({ param: param(id), json })),
+  );
+}
+
+// --- Void & retur (Fase 6) ---
+
+function useMutasiKoreksi<TInput, THasil>(fn: (input: TInput) => Promise<THasil>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () =>
+      Promise.all(
+        ['koreksi', 'penjualan', 'barang', 'persediaan', 'shift'].map((k) =>
+          qc.invalidateQueries({ queryKey: [k] }),
+        ),
+      ),
+  });
+}
+
+export function useKandidatVoid(cari: string) {
+  return useQuery({
+    queryKey: ['koreksi', 'void', 'kandidat', cari],
+    queryFn: async () =>
+      ambilData(await api.void.kandidat.$get({ query: { cari: cari || undefined } })),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useDaftarVoid(p: {
+  status: StatusPersetujuan | null;
+  halaman: number;
+  perHalaman: number;
+}) {
+  return useQuery({
+    queryKey: ['koreksi', 'void', 'daftar', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.void.$get({
+          query: {
+            status: p.status ?? undefined,
+            halaman: String(p.halaman),
+            perHalaman: String(p.perHalaman),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAjukanVoid() {
+  return useMutasiKoreksi(async (json: DataVoid) => ambilData(await api.void.$post({ json })));
+}
+
+export function useSetujuiVoid() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujui }) =>
+    ambilData(await api.void[':id'].setujui.$post({ param: param(id), json })),
+  );
+}
+
+export function useTolakVoid() {
+  return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
+    ambilData(await api.void[':id'].tolak.$post({ param: param(id), json: { alasan } })),
   );
 }
