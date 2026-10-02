@@ -182,6 +182,25 @@ describe('pengaturan › tampilan toko dan logo (K-065)', () => {
     expect(salah.status).toBe(400);
   });
 
+  it('K-073 rekening bawaan transfer/EDC disimpan Admin dan dibaca layar kasir', async () => {
+    const sekarang = await json<{ data: { operasional: Record<string, unknown> } }>(
+      await minta('/api/pengaturan', { cookie: admin.cookie }),
+    );
+    const res = await ubah({
+      operasional: {
+        ...sekarang.data.operasional,
+        rekeningTransfer: 'BCA 1234567890',
+        rekeningEdc: 'EDC BRI',
+      },
+    });
+    expect(res.status).toBe(200);
+    const kasir = await sesiUji('KASIR');
+    const t = await json<{ data: { rekeningTransfer: string; rekeningEdc: string } }>(
+      await minta('/api/pengaturan/tampilan', { cookie: kasir.cookie }),
+    );
+    expect(t.data).toMatchObject({ rekeningTransfer: 'BCA 1234567890', rekeningEdc: 'EDC BRI' });
+  });
+
   it('Admin mengunggah logo; semua peran bisa melihat; Kasir tidak bisa mengganti; hapus logo', async () => {
     const form = new FormData();
     form.set('berkas', new File([PNG], 'logo.png'));
