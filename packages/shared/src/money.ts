@@ -76,3 +76,10 @@ export function hppRataRata(
 export function subtotalRupiah(qty: NilaiDesimal, hargaSatuan: number): number {
   return bulatkanRupiah(new Decimal(qty).times(hargaSatuan));
 }
+
+/** T2: harga satuan efektif = bulatkanRupiah(subtotal baris ÷ qty) (sudah bersih diskon baris). */
+export function hargaSatuanEfektif(subtotal: number, qty: NilaiDesimal): number {
+  const q = new Decimal(qty);
+  if (q.lessThanOrEqualTo(0)) throw new RangeError('Qty untuk harga efektif harus > 0');
+  return bulatkanRupiah(new Decimal(subtotal).div(q));
+}

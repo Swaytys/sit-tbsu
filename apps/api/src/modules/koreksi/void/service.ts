@@ -241,6 +241,8 @@ export async function ajukanVoid(
   const id = await dalamTransaksi(async (tx) => {
     const pj = await pjRepo.kunciPenjualan(tx, input.idPenjualan);
     if (!pj) throw new AppError('TIDAK_DITEMUKAN', 'Penjualan tidak ditemukan.', 404);
+    // V1 lebih dulu agar pesan menyebut alasannya (shift tutup, sudah diretur, sudah dikirim).
+    await periksaSyarat(tx, pj, input.idDetail, null);
     const baris = await repo.barisPenjualan(tx, pj.id);
     const normal = baris.filter((b) => b.statusItem === 'NORMAL');
     const dipilih =

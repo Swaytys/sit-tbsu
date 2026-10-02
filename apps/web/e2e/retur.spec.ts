@@ -1,0 +1,81 @@
+import { expect, test, type Page } from '@playwright/test';
+import { masukCepat, menuUtama } from './pembantu';
+
+// Menambah satu barang uji (dinonaktifkan di akhir) dan satu penjualan + retur di database pengembangan.
+
+async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
+  const res = await page.request.fetch(`/api${path}`, {
+    method,
+    data: data ?? (method === 'GET' ? undefined : {}),
+    headers: { origin: new URL(page.url()).origin },
+  });
+  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
+  return ((await res.json()) as { data: T }).data;
+}
+
+async function pastikanShift(page: Page) {
+  await page.request.fetch('/api/shift/buka', {
+    method: 'POST',
+    data: { modalAwal: 0 },
+    headers: { origin: new URL(page.url()).origin },
+  }); // 409 bila sudah terbuka: diabaikan
+}
+
+test('Kasir mengajukan retur refund tunai → Admin menyetujui → stok barang kembali', async ({
+  browser,
+}) => {
+  const kode = Date.now();
+  const nama = `Engsel Retur E2E ${kode}`;
+  const admin = await browser.newPage();
+  await masukCepat(admin, 'ADMIN');
+  const kategori = await api<{ id: number }[]>(admin, '/kategori?status=AKTIF');
+  const satuan = await api<{ id: number; kode: string }[]>(admin, '/satuan?status=AKTIF');
+  const tier = await api<{ id: number; isDefault: boolean }[]>(admin, '/tingkat-harga');
+  const barang = await api<{ id: number }>(admin, '/barang', 'POST', {
+    namaBarang: nama,
+    idKategori: kategori[0]!.id,
+    idSatuanDasar: satuan.find((s) => s.kode === 'sak')!.id,
+    hargaModalAwal: 7000,
+    hargaTier: [{ idTingkatHarga: tier.find((t) => t.isDefault)!.id, hargaTetap: 9000 }],
+  });
+  const adj = await api<{ id: number }>(admin, '/penyesuaian', 'POST', {
+    jenis: 'SALDO_AWAL',
+    baris: [{ idBarang: barang.id, qtyFisik: '10', hppSatuan: 7000 }],
+  });
+  await api(admin, `/penyesuaian/${adj.id}/selesai`, 'POST');
+  await pastikanShift(admin);
+  try {
+    const kasir = await browser.newPage();
+    await masukCepat(kasir, 'KASIR');
+    await pastikanShift(kasir);
+    const pj = await api<{ id: number; nomor: string }>(kasir, '/penjualan/checkout', 'POST', {
+      order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: barang.id, qty: '3' }] },
+      pembayaran: [{ metode: 'TUNAI' }],
+    });
+
+    await menuUtama(kasir).getByRole('link', { name: 'Retur Penjualan' }).click();
+    await expect(kasir.getByRole('heading', { name: 'Retur Penjualan' })).toBeVisible();
+    await kasir.getByLabel('Nomor invoice / struk').fill(pj.nomor);
+    await kasir.getByRole('button', { name: new RegExp(pj.nomor) }).click();
+    await kasir.getByLabel(`Qty retur ${nama}`).fill('2');
+    await kasir.getByRole('button', { name: 'Kelebihan beli / sisa proyek' }).click();
+    await kasir.getByRole('button', { name: 'Tunai (dari laci penyetuju)' }).click();
+    await expect(kasir.getByTestId('nilai-retur')).toHaveText('Rp 18.000');
+    await kasir.getByRole('button', { name: 'Ajukan retur' }).click();
+    await expect(kasir.getByText(/Retur \S+ diajukan/)).toBeVisible();
+    expect((await api<{ stokFisik: string }>(admin, `/barang/${barang.id}`)).stokFisik).toBe(
+      '7.000',
+    );
+
+    await admin.goto('/retur?tab=persetujuan');
+    const baris = admin.getByRole('row').filter({ hasText: pj.nomor });
+    await baris.getByRole('button', { name: 'Putuskan' }).click();
+    await admin.getByRole('dialog').getByRole('button', { name: 'Setujui' }).click();
+    await expect(admin.getByText(/Retur \S+ disetujui/)).toBeVisible();
+    expect((await api<{ stokFisik: string }>(admin, `/barang/${barang.id}`)).stokFisik).toBe(
+      '9.000',
+    );
+  } finally {
+    await api(admin, `/barang/${barang.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+  }
+});

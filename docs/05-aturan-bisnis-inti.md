@@ -226,3 +226,5 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-02 — §12 A3a: pengecualian barang dari lembar opname dengan alasan (K-069, keputusan pemilik).
 - 2026-10-02 — Fase 5: tafsiran R8 (izin `penjualan.order.lepas_paksa`), P8 (jenis pembayaran campuran), P12
   (non-tunai tanpa shift hanya Admin/Owner) dicatat di K-070–K-072; aturan tidak berubah.
+- 2026-10-03 — Fase 6: tafsiran shift/kas (K-075), nominal void & refund (K-076), nilai & penyelesaian retur
+  (K-077); aturan tidak berubah.
