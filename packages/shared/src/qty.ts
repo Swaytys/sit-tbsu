@@ -65,3 +65,15 @@ export function konversiQty(qty: Decimal.Value, dari: SatuanKonversi, ke: Satuan
   }
   return keQty(new Decimal(qty).times(dari.faktorKeBasis).div(ke.faktorKeBasis));
 }
+
+/**
+ * Qty (teks numeric) untuk dibaca orang: `"1250.500"` → `"1.250,5"`, `"10.000"` → `"10"`.
+ * Diolah sebagai teks, tanpa float.
+ */
+export function teksQty(nilai: string): string {
+  const negatif = nilai.startsWith('-');
+  const [bulat = '0', pecahan = ''] = (negatif ? nilai.slice(1) : nilai).split('.');
+  const ringkas = pecahan.replace(/0+$/, '');
+  const bertitik = bulat.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${negatif ? '-' : ''}${ringkas ? `${bertitik},${ringkas}` : bertitik}`;
+}

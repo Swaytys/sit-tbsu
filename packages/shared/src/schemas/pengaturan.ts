@@ -136,6 +136,8 @@ export type TampilanToko = {
   /** Kop & kaki struk/invoice (P14). */
   alamatToko: string;
   telpToko: string;
+  /** Kop laporan (Fase 7); boleh kosong. */
+  emailToko: string;
   footerStruk: string;
   lebarStrukMm: 58 | 80;
   strukTampilkanNama: boolean;
