@@ -59,7 +59,14 @@ dokumennya. Tidak ada nomor ganda; nomor bisa berlubang bila transaksi dibatalka
 
 **`log_aktivitas`** [APPEND] — jejak audit. `data_lama`/`data_baru` jsonb untuk perubahan master; `nomor_dokumen`
 untuk transaksi. `id_pengguna` null hanya untuk percobaan login dengan username tak dikenal dan aksi otomatis
-sistem (job order basi/kunci kadaluarsa, K-070).
+sistem (job order basi/kunci kadaluarsa, K-070; cadangan terjadwal, K-084).
+
+**`cadangan`** (v3.4) — riwayat cadangan data dan uji pulih (K-084): `jenis` CADANGAN/UJI_PULIH, `status`
+BERJALAN/BERHASIL/GAGAL, `pemicu` JADWAL/MANUAL/SEBELUM_PEMBARUAN, `id_pengguna` (null bila terjadwal),
+`waktu_mulai`/`waktu_selesai`, `ukuran_dump`, `snapshot_lokal`/`status_lokal`, `snapshot_cloud`/`status_cloud`
+(BERHASIL/GAGAL/NONAKTIF), `pesan`. Baris dibuat saat proses mulai; kolom hasil diisi oleh proses yang sama saat
+selesai (proses yang terhenti > 3 jam ditandai GAGAL). Isi cadangan sendiri ada di repositori restic, bukan di
+database.
 
 ### 3.2 Master
 
@@ -249,6 +256,10 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 |---|---|
 | peran | STAF_PENJUALAN, KASIR, ADMIN, OWNER |
 | status_aktif | AKTIF, NONAKTIF |
+| jenis_cadangan | CADANGAN, UJI_PULIH |
+| status_cadangan | BERJALAN, BERHASIL, GAGAL |
+| pemicu_cadangan | JADWAL, MANUAL, SEBELUM_PEMBARUAN |
+| status_tujuan_cadangan | BERHASIL, GAGAL, NONAKTIF |
 | jenis_dimensi | PANJANG, LUAS, VOLUME, BERAT, DAYA, JUMLAH, LAINNYA |
 | tipe_nilai (atribut) | ANGKA, TEKS |
 | kepemilikan | MILIK_SENDIRI, KONSINYASI |
@@ -398,3 +409,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
   `waktu_kecuali`, CHECK `chk_penyesuaian_detail_kecuali` (migrasi 0003; K-069).
 - 2026-09-29 — Fase 1: DDL v3.1 dipasang sebagai migrasi `0000_skema_v3.sql` di PostgreSQL 17.11 (41 tabel); skema
   Drizzle terverifikasi identik (K-052). §8 diperbarui (7 berkas skema, cara verifikasi, letak seed).
+- 2026-10-04 — v3.4: tabel `cadangan` (riwayat cadangan & uji pulih, migrasi 0004; K-084).

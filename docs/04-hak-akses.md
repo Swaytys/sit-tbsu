@@ -21,6 +21,7 @@ memakai kode di luar daftar gagal typecheck.
 |---|---|
 | `sistem.pengaturan.kelola` | Ubah profil toko, prefix nomor, ambang, batas diskon, dsb. |
 | `sistem.log.lihat` | Lihat log aktivitas semua pengguna |
+| `sistem.cadangan.kelola` | Lihat status cadangan data, cadangkan sekarang, uji pulih (K-084) |
 | `master.pengguna.kelola` | Tambah/ubah/nonaktifkan pengguna, reset password, cabut sesi |
 | `master.barang.lihat` | Lihat daftar dan detail barang tanpa harga modal |
 | `master.barang.lihat_hpp` | Lihat harga modal, HPP, harga beli terakhir, harga titip |
@@ -110,6 +111,7 @@ memakai kode di luar daftar gagal typecheck.
 |---|:-:|:-:|:-:|:-:|
 | sistem.pengaturan.kelola | | | ✓ | ✓ |
 | sistem.log.lihat | | | | ✓ |
+| sistem.cadangan.kelola | | | | ✓ |
 | master.pengguna.kelola | | | | ✓ |
 | master.barang.lihat | ✓ | ✓ | ✓ | ✓ |
 | master.barang.lihat_hpp | | | ✓ | ✓ |
@@ -187,7 +189,7 @@ tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembe
 | Kas › Shift & Clerical Check | `kas.shift.kelola_sendiri` | Tab "Semua Shift" bila `kas.shift.lihat_semua` |
 | Laporan | `laporan.penjualan` atau `laporan.persediaan` | Daftar laporan disaring per izin |
 | Promo (M2) | `promo.kelola` | |
-| Pengaturan | `sistem.pengaturan.kelola` | Tab "Log Aktivitas" bila `sistem.log.lihat` |
+| Pengaturan | `sistem.pengaturan.kelola` | Tab "Log Aktivitas" bila `sistem.log.lihat`; tab "Cadangan" bila `sistem.cadangan.kelola` |
 
 ## 5. Data sensitif
 
@@ -248,3 +250,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
   logo, baris per halaman dipakai semua peran); unggah/hapus logo memakai `sistem.pengaturan.kelola` (K-065).
 - 2026-10-02 — Izin baru `penjualan.order.lepas_paksa` (Admin, Owner) untuk melepas kunci order kasir lain (K-070).
 - 2026-10-04 — §2: Laporan Nilai Persediaan memerlukan `laporan.persediaan` dan `laporan.laba` (K-081).
+- 2026-10-04 — Izin `sistem.cadangan.kelola` (Owner) untuk Pengaturan › Cadangan (K-084).

@@ -301,16 +301,20 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 - Dev: `pnpm dev` → API `http://localhost:3000`, web `http://localhost:5173` (Vite proxy `/api`). Hot reload keduanya.
 - Build: `pnpm build` → `apps/web/dist` + `apps/api/dist`. Produksi: `node apps/api/dist/index.js` menyajikan
   API dan file statis web di satu port.
-- Deploy (diputuskan Fase 8, K-039): opsi A mini-PC di toko (Windows/Linux, jalan via LAN, tetap hidup saat internet
-  putus, backup ke drive eksternal + cloud); opsi B VPS (akses dari mana saja, butuh internet, HTTPS lewat Caddy).
-  Kriteria: apakah owner perlu memantau dari luar toko, dan seberapa stabil internet toko.
-- Backup: `pg_dump` harian terjadwal (Task Scheduler / cron) + folder `storage/` ke repositori snapshot
-  terdeduplikasi dan terenkripsi (restic) di disk lokal dan cloud (rclone → Google Drive); retensi 7 harian,
-  4 mingguan, 12 bulanan, 5 tahunan; uji pulih bulanan. Rincian di docs/07 Fase 8 (K-062).
-- Log: pino ke stdout; di produksi diarahkan ke file berputar (pm2 atau systemd).
+- Deploy (diputuskan Fase 8, K-082): **komputer Windows di toko** (tetap hidup saat internet putus) + akses luar
+  lewat **Tailscale** (`tailscale serve`). HTTPS di LAN dengan CA lokal toko (`scripts/server/buat-sertifikat.ps1`;
+  `ca-toko.cer` dipasang di komputer kasir). Server dijalankan Task Scheduler "BonsaiUrip Server" (akun SYSTEM,
+  menyala saat komputer menyala) lewat penjaga `jalankan-server.ps1`. Pasang: `pasang-server.ps1`; perbarui:
+  `perbarui-server.ps1`; panduan `docs/panduan/fase-8-pasang-server.md`.
+- Backup (K-084): dijadwalkan server sendiri (cek tiap 10 menit): `pg_dump` format custom tanpa kompresi +
+  folder `storage/` → snapshot restic terenkripsi di disk lokal dan cloud (rclone → Google Drive); retensi 7/4/12/5;
+  uji pulih otomatis tiap tanggal 1; status di Pengaturan › Cadangan; pemulihan `scripts/server/pulihkan.ps1`.
+- Log: pino ke stdout di dev; produksi ke `LOG_FILE` (diputar saat menyala bila > 10 MB, 5 berkas lama).
 
 ## Riwayat
 
+- 2026-10-04 — §12: deploy diputuskan (komputer toko + Tailscale, HTTPS CA lokal), cadangan restic, log
+  berkas (K-082, K-084); header keamanan & batas body (K-083).
 - 2026-09-19 — v1.
 - 2026-10-04 — Fase 7: laporan = `DokumenLaporan` disusun API (satu berkas per laporan di `modules/laporan/`),
   dirender sama untuk layar, cetak, dan Excel (K-078); label enum bersama di `packages/shared/src/label.ts`,
