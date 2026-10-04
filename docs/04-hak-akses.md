@@ -89,7 +89,7 @@ memakai kode di luar daftar gagal typecheck.
 | `dashboard.dasar` | Kartu antrean order, pengiriman aktif, peringatan stok, aksi cepat |
 | `dashboard.omzet` | Kartu penjualan hari ini, grafik penjualan |
 | `laporan.penjualan` | Penjualan per periode, produk terlaris, detail invoice, retur (tanpa HPP/laba jika tidak punya `lihat_hpp`) |
-| `laporan.persediaan` | Stok rekap, kartu stok, stok minimum, nilai persediaan |
+| `laporan.persediaan` | Stok rekap, kartu stok, stok minimum, nilai persediaan (nilai persediaan juga butuh `laporan.laba`, K-081) |
 | `laporan.laba` | Gross profit |
 | `laporan.piutang` | Laporan piutang |
 | `laporan.hutang` | (M2) Laporan hutang, konsinyasi |
@@ -247,3 +247,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-01 — `GET /api/pengaturan/tampilan` dan `GET /api/pengaturan/logo` memakai `requireLogin()` (nama toko,
   logo, baris per halaman dipakai semua peran); unggah/hapus logo memakai `sistem.pengaturan.kelola` (K-065).
 - 2026-10-02 — Izin baru `penjualan.order.lepas_paksa` (Admin, Owner) untuk melepas kunci order kasir lain (K-070).
+- 2026-10-04 — §2: Laporan Nilai Persediaan memerlukan `laporan.persediaan` dan `laporan.laba` (K-081).

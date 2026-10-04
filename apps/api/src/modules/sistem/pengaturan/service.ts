@@ -200,6 +200,7 @@ export async function tampilanToko(): Promise<TampilanToko> {
     barisPerHalaman: p.operasional.barisPerHalaman,
     alamatToko: p.profil.alamatToko,
     telpToko: p.profil.telpToko,
+    emailToko: p.profil.emailToko,
     footerStruk: p.profil.footerStruk,
     lebarStrukMm: p.profil.lebarStrukMm,
     strukTampilkanNama: p.profil.strukTampilkanNama,

@@ -21,6 +21,7 @@ import { satuanRoutes } from './modules/master/satuan/routes';
 import { tingkatHargaRoutes } from './modules/master/tingkat-harga/routes';
 import { shiftRoutes } from './modules/kas/shift/routes';
 import { returRoutes } from './modules/koreksi/retur/routes';
+import { laporanRoutes } from './modules/laporan/routes';
 import { voidRoutes } from './modules/koreksi/void/routes';
 import { orderRoutes } from './modules/penjualan/order/routes';
 import { penjualanRoutes } from './modules/penjualan/penjualan/routes';
@@ -62,7 +63,8 @@ const rute = new Hono<EnvApp>()
   .route('/pengaturan', pengaturanRoutes)
   .route('/log-aktivitas', logRoutes)
   .route('/notifikasi', notifikasiRoutes)
-  .route('/dashboard', dashboardRoutes);
+  .route('/dashboard', dashboardRoutes)
+  .route('/laporan', laporanRoutes);
 
 export const app = new Hono<EnvApp>();
 app.use(requestLog);

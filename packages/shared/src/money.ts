@@ -83,3 +83,13 @@ export function hargaSatuanEfektif(subtotal: number, qty: NilaiDesimal): number 
   if (q.lessThanOrEqualTo(0)) throw new RangeError('Qty untuk harga efektif harus > 0');
   return bulatkanRupiah(new Decimal(subtotal).div(q));
 }
+
+/** Persentase `bagian ÷ total × 100`, dua desimal (tampilan laporan); `null` bila total 0. */
+export function persenDari(bagian: number, total: number): number | null {
+  if (total === 0) return null;
+  return new Decimal(bagian)
+    .times(100)
+    .div(total)
+    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+    .toNumber();
+}

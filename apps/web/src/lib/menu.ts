@@ -47,7 +47,6 @@ export const MENU: EntriMenu[] = [
     label: 'Dashboard',
     ikon: LayoutDashboard,
     izin: 'dashboard.dasar',
-    fase: 7,
   },
   {
     jenis: 'grup',
@@ -159,7 +158,6 @@ export const MENU: EntriMenu[] = [
     label: 'Laporan',
     ikon: FileText,
     izin: ['laporan.penjualan', 'laporan.persediaan'],
-    fase: 7,
   },
   {
     jenis: 'item',

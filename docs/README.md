@@ -72,13 +72,13 @@ Jangan pakai mode auto-accept.
 |---|---|---|
 | CLAUDE.md | Final v1 | 2026-09-19 |
 | 01-ikhtisar-sistem.md | Final v1 (§5.1 alur cepat order → kasir, K-073) | 2026-10-02 |
-| 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073) | 2026-10-02 |
+| 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073; dokumen laporan, K-078) | 2026-10-04 |
 | 03-skema-database-v3 (.md + .sql) | Final v3.3 (.sql = v3.1 migrasi 0000; v3.2–v3.3 lewat migrasi 0001–0003) | 2026-10-02 |
-| 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059) | 2026-09-30 |
-| 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH) | 2026-10-01 |
+| 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081) | 2026-10-04 |
+| 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH; §14 tukar retur netral, K-079) | 2026-10-04 |
 | 06-harga-piutang-hutang.md | Final v1 | 2026-09-19 |
-| 07-roadmap.md | Final v1 (Fase 6 selesai; rencana cadangan Fase 8) | 2026-10-03 |
-| 08-backlog.md | Hidup (v2.0.0, v3.0.0) | 2026-09-30 |
+| 07-roadmap.md | Final v1 (Fase 7 selesai; rencana cadangan Fase 8) | 2026-10-04 |
+| 08-backlog.md | Hidup (v2.0.0, v3.0.0) | 2026-10-04 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
 | keputusan/2026-09-19-keputusan-tambahan.md | Final (K-044–K-049) | 2026-09-19 |
 | keputusan/2026-09-29-setup-fase-1.md | Final (K-050–K-053) | 2026-09-29 |
@@ -87,4 +87,5 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-10-01-persediaan.md | Final (K-066–K-069) | 2026-10-02 |
 | keputusan/2026-10-02-penjualan.md | Final (K-070–K-074) | 2026-10-03 |
 | keputusan/2026-10-03-koreksi.md | Final (K-075–K-077) | 2026-10-03 |
+| keputusan/2026-10-04-laporan.md | Final (K-078–K-081) | 2026-10-04 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |

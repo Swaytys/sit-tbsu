@@ -1,20 +1,22 @@
 import type {
   AksiLog,
   JenisKasShift,
-  JenisMutasi,
   JenisPenerimaan,
-  JenisPenyesuaian,
   StatusAktif,
   StatusHutang,
-  StatusPembayaran,
   StatusPengambilan,
   StatusPengiriman,
   StatusPenyesuaian,
-  StatusStok,
 } from '@sit/shared';
 
 /** Label tampilan untuk nilai enum (nilai enum tetap UPPER_SNAKE di data). */
-export { LABEL_JENIS_DIMENSI } from '@sit/shared';
+export {
+  LABEL_JENIS_DIMENSI,
+  LABEL_JENIS_MUTASI,
+  LABEL_JENIS_PENYESUAIAN,
+  LABEL_STATUS_PEMBAYARAN,
+  LABEL_STATUS_STOK,
+} from '@sit/shared';
 
 export const LABEL_STATUS_AKTIF: Record<StatusAktif, string> = {
   AKTIF: 'Aktif',
@@ -55,44 +57,10 @@ export const LABEL_STATUS_HUTANG: Record<StatusHutang, string> = {
   LUNAS: 'Lunas',
 };
 
-export const LABEL_JENIS_PENYESUAIAN: Record<JenisPenyesuaian, string> = {
-  SALDO_AWAL: 'Saldo awal',
-  OPNAME: 'Stok opname',
-  KOREKSI: 'Koreksi',
-  RUSAK: 'Stok rusak',
-  MUSNAH: 'Pemusnahan',
-};
-
 export const LABEL_STATUS_PENYESUAIAN: Record<StatusPenyesuaian, string> = {
   DRAFT: 'Draf',
   SELESAI: 'Selesai',
   BATAL: 'Batal',
-};
-
-export const LABEL_STATUS_STOK: Record<StatusStok, string> = {
-  HABIS: 'Habis',
-  KRITIS: 'Kritis',
-  PERLU_RESTOCK: 'Perlu restock',
-  AMAN: 'Aman',
-};
-
-export const LABEL_JENIS_MUTASI: Record<JenisMutasi, string> = {
-  SALDO_AWAL: 'Saldo awal',
-  PENERIMAAN: 'Penerimaan',
-  PENJUALAN: 'Penjualan',
-  RETUR_JUAL: 'Retur jual',
-  TUKAR_RETUR: 'Tukar retur',
-  VOID: 'Void',
-  PENYESUAIAN: 'Penyesuaian',
-  PINDAH_KONDISI: 'Pindah kondisi',
-  RETUR_PEMASOK: 'Retur pemasok',
-  MUSNAH: 'Pemusnahan',
-};
-
-export const LABEL_STATUS_PEMBAYARAN: Record<StatusPembayaran, string> = {
-  BELUM_BAYAR: 'Belum bayar',
-  DP: 'DP',
-  LUNAS: 'Lunas',
 };
 
 export const LABEL_STATUS_PENGAMBILAN: Record<StatusPengambilan, string> = {

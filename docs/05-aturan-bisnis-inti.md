@@ -193,9 +193,9 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 | Angka | Definisi |
 |---|---|
 | Omzet (penjualan kotor) periode | Σ `total_neto` penjualan dengan `status_transaksi ≠ VOID`, dikurangi `total_void` (untuk VOID_SEBAGIAN), berdasarkan `tanggal_operasional` penjualan. |
-| Retur periode | Σ `total_retur` dokumen retur DISETUJUI (REFUND + POTONG_TAGIHAN) berdasarkan `tanggal_operasional` retur. |
+| Retur periode | Σ `total_retur` dokumen retur DISETUJUI (REFUND + POTONG_TAGIHAN) berdasarkan `tanggal_operasional` retur. TUKAR_BARANG bernilai netral: ditampilkan terpisah, tidak dihitung (K-079). |
 | Penjualan bersih | Omzet − Retur. |
-| HPP periode | Σ (`hpp_saat_transaksi` × `qty_dasar`) baris penjualan dengan `status_item ≠ VOID` − Σ (`hpp_saat_transaksi` × `qty_retur_dasar`) untuk retur DISETUJUI kondisi BAIK. Retur RUSAK/CACAT tidak mengurangi HPP (barang hilang nilainya). |
+| HPP periode | Σ (`hpp_saat_transaksi` × `qty_dasar`) baris penjualan dengan `status_item ≠ VOID` − Σ (`hpp_saat_transaksi` × `qty_retur_dasar`) untuk retur DISETUJUI kondisi BAIK selain TUKAR_BARANG (K-079). Retur RUSAK/CACAT tidak mengurangi HPP (barang hilang nilainya). |
 | Gross profit | Penjualan bersih − HPP periode. Margin % = gross profit ÷ penjualan bersih. Baris laporan gross profit per transaksi/barang mengikuti definisi yang sama pada tingkat baris. |
 | Nilai persediaan (per tanggal) | Σ `saldo_setelah × hpp_setelah` dari mutasi terakhir tiap barang ≤ tanggal (bucket BAIK), dipisah MILIK_SENDIRI dan KONSINYASI (titipan bukan aset toko; ditampilkan sebagai informasi). Untuk "hari ini" = Σ `stok_fisik × hpp_rata2`. |
 | Stok rekap periode | Per barang: stok awal = saldo sebelum periode; masuk = Σ `qty_masuk`; keluar = Σ `qty_keluar`; stok akhir = awal + masuk − keluar (bucket BAIK). Harus sama dengan `saldo_setelah` mutasi terakhir periode. |
@@ -228,3 +228,5 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
   (non-tunai tanpa shift hanya Admin/Owner) dicatat di K-070–K-072; aturan tidak berubah.
 - 2026-10-03 — Fase 6: tafsiran shift/kas (K-075), nominal void & refund (K-076), nilai & penyelesaian retur
   (K-077); aturan tidak berubah.
+- 2026-10-04 — §14: retur periode dan HPP retur tidak mencakup tukar barang (netral); tafsiran angka laporan
+  lain dan format dokumen laporan di K-078–K-079.
