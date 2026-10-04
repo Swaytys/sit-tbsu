@@ -32,6 +32,7 @@ const kolom = {
   idPemasokKonsinyasi: barang.idPemasokKonsinyasi,
   namaPemasokKonsinyasi: pemasok.namaPemasok,
   perluTinjauHarga: barang.perluTinjauHarga,
+  hargaOtomatis: barang.hargaOtomatis,
   gambar: barang.gambar,
   keterangan: barang.keterangan,
   statusAktif: barang.statusAktif,
@@ -136,6 +137,7 @@ export async function kunciBarang(tx: Tx, id: number) {
       kepemilikan: barang.kepemilikan,
       idPemasokKonsinyasi: barang.idPemasokKonsinyasi,
       hargaTitip: barang.hargaTitip,
+      hargaOtomatis: barang.hargaOtomatis,
       perluTinjauHarga: barang.perluTinjauHarga,
       gambar: barang.gambar,
       keterangan: barang.keterangan,
@@ -248,6 +250,7 @@ export type NilaiBarang = {
   idPemasokKonsinyasi: number | null;
   hargaTitip: number | null;
   keterangan: string | null;
+  hargaOtomatis: boolean;
 };
 
 export async function tambahBarang(tx: Tx, nilai: NilaiBarang): Promise<number> {

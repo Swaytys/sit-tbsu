@@ -2,6 +2,7 @@ import {
   bandingQty,
   keQty,
   LABEL_JENIS_DIMENSI,
+  marginPersen,
   type AtributBarang,
   type BarisBarang,
   type DataBarang,
@@ -25,11 +26,12 @@ import { statusStokBarang } from '../../persediaan/stok/service';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { sinkronkanKodeMaster, terbitkanKodeMaster } from '../../sistem/penomoran';
-import { hargaBarangDasar } from '../harga/repo';
+import { hargaBarangDasar, type BarisHarga } from '../harga/repo';
 import {
   dasarMarkup,
   muatKonteksHarga,
   ringkasPerubahanHarga,
+  tanggapiPemicuHarga,
   terapkanHargaBarang,
   type KonteksHarga,
   type PerubahanHarga,
@@ -59,11 +61,21 @@ function rapikanAngka(nilai: string): string {
 
 function keBaris(
   b: Baris,
-  harga: HargaTierBarang[],
+  hargaMentah: BarisHarga[],
   izin: ReadonlySet<Izin>,
   konteks: KonteksHarga,
   statusStok: StatusStok,
 ): BarisBarang {
+  const lihatHpp = izin.has('master.barang.lihat_hpp');
+  const dasar = dasarMarkup(b, konteks.modeDasar);
+  // Markup barang dan margin membuka harga modal (H12, K-059): hanya untuk pemegang lihat_hpp.
+  const harga: HargaTierBarang[] = hargaMentah.map((h) => ({
+    idTingkatHarga: h.idTingkatHarga,
+    metode: h.metode,
+    hargaTetap: h.hargaTetap,
+    hargaJual: h.hargaJual,
+    ...(lihatHpp ? { markupPersen: h.markupPersen, margin: marginPersen(h.hargaJual, dasar) } : {}),
+  }));
   const umum: BarisBarang = {
     id: b.id,
     kode: b.kode,
@@ -83,31 +95,27 @@ function keBaris(
     idPemasokKonsinyasi: b.idPemasokKonsinyasi,
     namaPemasokKonsinyasi: b.namaPemasokKonsinyasi,
     perluTinjauHarga: b.perluTinjauHarga,
+    hargaOtomatis: b.hargaOtomatis,
     gambar: urlGambar(b.id, b.gambar),
     statusAktif: b.statusAktif,
     harga,
   };
-  if (!izin.has('master.barang.lihat_hpp')) return umum;
+  if (!lihatHpp) return umum;
   return {
     ...umum,
     hargaModalAwal: b.hargaModalAwal,
     hargaTitip: b.hargaTitip,
     hppRata2: b.hppRata2,
     hargaBeliTerakhir: b.hargaBeliTerakhir,
-    dasarMarkup: dasarMarkup(b, konteks.modeDasar),
+    dasarMarkup: dasar,
   };
 }
 
-async function hargaPerBarang(idBarang: number[]): Promise<Map<number, HargaTierBarang[]>> {
-  const peta = new Map<number, HargaTierBarang[]>();
+async function hargaPerBarang(idBarang: number[]): Promise<Map<number, BarisHarga[]>> {
+  const peta = new Map<number, BarisHarga[]>();
   for (const h of await hargaBarangDasar(db, idBarang)) {
     const daftar = peta.get(h.idBarang) ?? [];
-    daftar.push({
-      idTingkatHarga: h.idTingkatHarga,
-      metode: h.metode,
-      hargaTetap: h.hargaTetap,
-      hargaJual: h.hargaJual,
-    });
+    daftar.push(h);
     peta.set(h.idBarang, daftar);
   }
   return peta;
@@ -293,7 +301,12 @@ async function siapkanAtribut(
   });
 }
 
-function nilaiDari(input: DataBarang, kode: string, stokMinimum: string): repo.NilaiBarang {
+function nilaiDari(
+  input: DataBarang,
+  kode: string,
+  stokMinimum: string,
+  hargaOtomatisLama = false,
+): repo.NilaiBarang {
   const konsinyasi = input.kepemilikan === 'KONSINYASI';
   return {
     kode,
@@ -308,6 +321,8 @@ function nilaiDari(input: DataBarang, kode: string, stokMinimum: string): repo.N
     idPemasokKonsinyasi: konsinyasi ? (input.idPemasokKonsinyasi ?? null) : null,
     hargaTitip: konsinyasi ? (input.hargaTitip ?? null) : null,
     keterangan: input.keterangan ?? null,
+    // Barang baru: tidak otomatis ("ditinjau dulu", K-086).
+    hargaOtomatis: input.hargaOtomatis ?? hargaOtomatisLama,
   };
 }
 
@@ -461,7 +476,17 @@ export async function ubahBarang(
       input,
       kode,
       input.stokMinimum ? keQty(input.stokMinimum) : lama.stokMinimum,
+      lama.hargaOtomatis,
     );
+    if (nilai.hargaOtomatis !== lama.hargaOtomatis && !pelaku.izin.has('master.harga.kelola')) {
+      throw new AppError(
+        'TIDAK_BERIZIN',
+        'Mengubah pilihan harga otomatis membutuhkan izin mengelola harga.',
+        403,
+      );
+    }
+    const konteks = await muatKonteksHarga(tx);
+    const dasarSebelum = dasarMarkup(dataDasarDari(lama, stok), konteks.modeDasar);
     const beda = selisih(lama, nilai);
 
     if (beda.kolom.includes('barcode')) await pastikanBarcodeBebas(tx, nilai.barcode, id);
@@ -511,7 +536,6 @@ export async function ubahBarang(
     const atributBerubah =
       ringkasAtribut(atributLamaRingkas) !== ringkasAtribut(atributBaruRingkas);
 
-    // H5: dasar markup berubah → tandai perlu tinjau, kecuali harga ikut disimpan sekarang.
     const dasarBerubah = ['hargaModalAwal', 'hargaTitip', 'kepemilikan'].some((k) =>
       beda.kolom.includes(k),
     );
@@ -519,19 +543,28 @@ export async function ubahBarang(
     if (beda.kolom.length > 0) await repo.ubahBarang(tx, id, nilai, waktu);
     if (atributBerubah) await repo.gantiAtribut(tx, id, atribut);
     const hpp = dasarBerubah ? await selaraskanHppMaster(tx, id, nilai) : null;
+    const dasarSesudah = dasarMarkup(
+      dataDasarDari(nilai, await kunciPersediaan(tx, id)),
+      konteks.modeDasar,
+    );
+    const otomatisDinyalakan = nilai.hargaOtomatis && !lama.hargaOtomatis;
 
     let perubahanHarga: PerubahanHarga[] = [];
     if (input.hargaTier !== undefined) {
-      const konteks = await muatKonteksHarga(tx);
-      const persediaanKini = await kunciPersediaan(tx, id);
+      // Harga ikut disimpan: dihitung dengan D terkini dan tanda tinjau lepas (H5, K-060 #4).
       perubahanHarga = await terapkanHargaBarang(tx, id, input.hargaTier, {
-        dasar: dasarMarkup(dataDasarDari(nilai, persediaanKini), konteks.modeDasar),
+        dasar: dasarSesudah,
         konteks,
         idPengguna: pelaku.id,
       });
       if (lama.perluTinjauHarga) await repo.ubahBarang(tx, id, { perluTinjauHarga: false }, waktu);
-    } else if (dasarBerubah && !lama.perluTinjauHarga) {
-      await repo.ubahBarang(tx, id, { perluTinjauHarga: true }, waktu);
+    } else if (dasarSesudah !== dasarSebelum || otomatisDinyalakan) {
+      // H5/H7: tandai perlu tinjau, atau terapkan harga otomatis (K-086).
+      await tanggapiPemicuHarga(tx, [id], {
+        sebab: otomatisDinyalakan ? 'harga otomatis dinyalakan' : 'dasar harga berubah',
+        idPengguna: pelaku.id,
+        ip: asal.ip,
+      });
     }
 
     if (beda.kolom.length > 0 || atributBerubah || hpp) {

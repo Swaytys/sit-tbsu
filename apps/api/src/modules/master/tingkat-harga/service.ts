@@ -2,6 +2,7 @@ import {
   bandingQty,
   keQty,
   keTeksPersen,
+  teksQty,
   type DataTingkatHarga,
   type Izin,
   type StatusAktif,
@@ -14,8 +15,8 @@ import { selisih } from '../../../lib/perubahan';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang } from '../../../lib/waktu';
 import { catatLog } from '../../sistem/log-aktivitas';
-import { tandaiTinjauUntukTier } from '../harga/repo';
-import { lengkapiHargaTier } from '../harga/service';
+import { barangIkutTier } from '../harga/repo';
+import { hitungUlangTier, lengkapiHargaTier, tanggapiPemicuHarga } from '../harga/service';
 import * as repo from './repo';
 
 /**
@@ -87,7 +88,10 @@ export async function tambahTingkatHarga(
   return muat(id, pelaku.izin);
 }
 
-/** Mengubah markup default menandai barang IKUT_TIER di tier ini untuk ditinjau (H5); harga tidak berubah. */
+/**
+ * Mengubah markup default memicu H5/H7 untuk barang IKUT_TIER di tier ini: barang biasa ditandai perlu
+ * tinjau (harga tidak berubah); barang berharga otomatis langsung naik, atau ditandai bila turun (K-086).
+ */
 export async function ubahTingkatHarga(
   id: number,
   input: DataTingkatHarga,
@@ -112,9 +116,14 @@ export async function ubahTingkatHarga(
     if (beda.kolom.includes('kode')) await pastikanKodeBebas(tx, baru.kode, id);
     await repo.ubahTingkatHarga(tx, id, baru, sekarang());
 
-    let ditandai = 0;
+    let hasil = { ditandai: 0, diterapkan: 0 };
     if (bandingQty(lama.markupDefaultPersen, baru.markupDefaultPersen) !== 0) {
-      ditandai = await tandaiTinjauUntukTier(tx, id);
+      hasil = await tanggapiPemicuHarga(tx, await barangIkutTier(tx, id), {
+        sebab: `markup tier ${baru.nama} ${teksQty(lama.markupDefaultPersen)}% → ${teksQty(baru.markupDefaultPersen)}%`,
+        idPengguna: pelaku.id,
+        ip: asal.ip,
+        idTier: id,
+      });
     }
     await catatLog(tx, {
       aksi: 'TIER_UBAH',
@@ -123,7 +132,8 @@ export async function ubahTingkatHarga(
       idEntitas: id,
       ringkasan:
         `Mengubah tier ${lama.nama}: ${beda.kolom.join(', ')}` +
-        (ditandai > 0 ? `; ${ditandai} barang ditandai perlu tinjau harga` : ''),
+        (hasil.ditandai > 0 ? `; ${hasil.ditandai} barang ditandai perlu tinjau harga` : '') +
+        (hasil.diterapkan > 0 ? `; harga otomatis ${hasil.diterapkan} barang naik` : ''),
       dataLama: beda.dataLama,
       dataBaru: beda.dataBaru,
       ip: asal.ip,
@@ -132,7 +142,10 @@ export async function ubahTingkatHarga(
   return muat(id, pelaku.izin);
 }
 
-/** H1: tier default tidak bisa dinonaktifkan. Mengaktifkan kembali melengkapi harga barang baru (H2). */
+/**
+ * H1: tier default tidak bisa dinonaktifkan. Mengaktifkan kembali melengkapi harga barang baru (H2) dan
+ * menghitung ulang baris IKUT_TIER/MARKUP lama di tier itu dengan D terkini (K-086).
+ */
 export async function ubahStatusTingkatHarga(
   id: number,
   statusAktif: StatusAktif,
@@ -151,18 +164,25 @@ export async function ubahStatusTingkatHarga(
       );
     }
     await repo.ubahTingkatHarga(tx, id, { statusAktif }, sekarang());
-    const dilengkapi =
-      statusAktif === 'AKTIF'
-        ? await lengkapiHargaTier(tx, id, lama.markupDefaultPersen, pelaku.id)
-        : 0;
+    const aktif = statusAktif === 'AKTIF';
+    const dilengkapi = aktif
+      ? await lengkapiHargaTier(tx, id, lama.markupDefaultPersen, pelaku.id)
+      : 0;
+    const dihitungUlang = aktif ? await hitungUlangTier(tx, id, pelaku.id) : 0;
     await catatLog(tx, {
-      aksi: statusAktif === 'AKTIF' ? 'TIER_AKTIFKAN' : 'TIER_NONAKTIF',
+      aksi: aktif ? 'TIER_AKTIFKAN' : 'TIER_NONAKTIF',
       idPengguna: pelaku.id,
       entitas: 'tingkat_harga',
       idEntitas: id,
-      ringkasan: `${statusAktif === 'AKTIF' ? 'Mengaktifkan' : 'Menonaktifkan'} tier ${lama.nama}`,
+      ringkasan:
+        `${aktif ? 'Mengaktifkan' : 'Menonaktifkan'} tier ${lama.nama}` +
+        (dihitungUlang > 0 ? `; ${dihitungUlang} harga dihitung ulang dengan dasar terkini` : ''),
       dataLama: { statusAktif: lama.statusAktif },
-      dataBaru: { statusAktif, ...(dilengkapi > 0 ? { barangDiperiksa: dilengkapi } : {}) },
+      dataBaru: {
+        statusAktif,
+        ...(dilengkapi > 0 ? { barangDiperiksa: dilengkapi } : {}),
+        ...(dihitungUlang > 0 ? { hargaDihitungUlang: dihitungUlang } : {}),
+      },
       ip: asal.ip,
     });
   });

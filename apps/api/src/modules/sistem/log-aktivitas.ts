@@ -22,7 +22,18 @@ export type EntriLog = {
  * sehingga log dan perubahan data selalu tersimpan bersama atau tidak sama sekali.
  */
 export async function catatLog(ex: Executor, entri: EntriLog): Promise<void> {
-  await ex.insert(logAktivitas).values({
+  await ex.insert(logAktivitas).values(keBaris(entri));
+}
+
+/** Banyak baris log sekaligus (mis. harga otomatis ribuan barang), per 500 baris; aturan sama dengan catatLog. */
+export async function catatLogBanyak(ex: Executor, entri: EntriLog[]): Promise<void> {
+  for (let i = 0; i < entri.length; i += 500) {
+    await ex.insert(logAktivitas).values(entri.slice(i, i + 500).map(keBaris));
+  }
+}
+
+function keBaris(entri: EntriLog): typeof logAktivitas.$inferInsert {
+  return {
     aksi: entri.aksi,
     idPengguna: entri.idPengguna,
     usernamePercobaan: entri.usernamePercobaan?.slice(0, 50),
@@ -33,5 +44,5 @@ export async function catatLog(ex: Executor, entri: EntriLog): Promise<void> {
     dataLama: entri.dataLama,
     dataBaru: entri.dataBaru,
     ip: entri.ip?.slice(0, 45),
-  });
+  };
 }

@@ -1,10 +1,18 @@
-import type { Izin } from '@sit/shared';
+import { teksQty, type HargaTierBarang, type Izin } from '@sit/shared';
 import { keBytes, workbookBaru } from '../../../lib/excel';
 import { tanggalOperasional } from '../../../lib/waktu';
 import { daftarBarang } from '../barang/service';
 import { daftarTingkatHarga } from '../tingkat-harga/service';
 
 const FORMAT_RUPIAH = '"Rp" #,##0';
+const FORMAT_PERSEN = '0.00"%"';
+
+function labelMetode(h: HargaTierBarang): string {
+  if (h.metode === 'TETAP') return 'Tetap';
+  if (h.metode === 'IKUT_TIER') return 'Ikut tier';
+  // markupPersen hanya ada untuk pemegang lihat_hpp (disaring daftarBarang).
+  return h.markupPersen ? `Markup ${teksQty(h.markupPersen)}%` : 'Markup';
+}
 
 /** H13: ekspor harga jual barang aktif per tier ke Excel (mengikuti saringan halaman Harga Jual). */
 export async function eksporHargaJual(
@@ -30,7 +38,18 @@ export async function eksporHargaJual(
       : []),
     ...tier.flatMap((t) => [
       { header: `Harga ${t.nama}`, key: `h${t.id}`, width: 16, style: { numFmt: FORMAT_RUPIAH } },
-      { header: `Metode ${t.nama}`, key: `m${t.id}`, width: 12 },
+      { header: `Metode ${t.nama}`, key: `m${t.id}`, width: 14 },
+      // H12: margin hanya untuk pemegang lihat_hpp.
+      ...(lihatDasar
+        ? [
+            {
+              header: `Margin ${t.nama}`,
+              key: `g${t.id}`,
+              width: 12,
+              style: { numFmt: FORMAT_PERSEN },
+            },
+          ]
+        : []),
     ]),
   ];
   ws.getRow(1).font = { bold: true };
@@ -45,7 +64,8 @@ export async function eksporHargaJual(
     for (const t of tier) {
       const h = b.harga.find((x) => x.idTingkatHarga === t.id);
       baris[`h${t.id}`] = h?.hargaJual ?? null;
-      baris[`m${t.id}`] = h ? (h.metode === 'TETAP' ? 'Tetap' : 'Ikut tier') : null;
+      baris[`m${t.id}`] = h ? labelMetode(h) : null;
+      baris[`g${t.id}`] = h?.margin ?? null;
     }
     ws.addRow(baris);
   }
