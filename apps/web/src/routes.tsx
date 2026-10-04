@@ -38,6 +38,7 @@ const HALAMAN: Record<string, MuatHalaman> = {
   '/void': () => import('@/features/koreksi/halaman-void').then((m) => m.HalamanVoid),
   '/shift': () => import('@/features/shift/halaman-shift').then((m) => m.HalamanShift),
   '/laporan': () => import('@/features/laporan/halaman-laporan').then((m) => m.HalamanLaporan),
+  '/promo': () => import('@/features/promo/halaman-promo').then((m) => m.HalamanPromo),
   '/piutang': () => import('@/features/piutang/halaman-piutang').then((m) => m.HalamanPiutang),
   '/penjualan-pengantaran': () =>
     import('@/features/pengantaran/halaman-penjualan-pengantaran').then(

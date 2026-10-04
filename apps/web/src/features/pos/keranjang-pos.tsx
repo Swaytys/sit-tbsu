@@ -1,6 +1,7 @@
-import { formatRupiah, kurangQty, tambahQty, bandingQty } from '@sit/shared';
+import { bandingQty, formatRupiah, kurangQty, tambahQty, type BarisPratinjau } from '@sit/shared';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { toast } from 'sonner';
+import { InfoPromo } from '@/components/info-promo';
 import { formatDesimal } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
@@ -17,8 +18,9 @@ type Sunting = { jenis: 'qty' | 'diskon'; nilai: string } | null;
 
 /**
  * Daftar barang transaksi POS (K-073). Keyboard: ↑/↓ pilih baris, + / − ubah qty 1, ketik angka = qty baru
- * (Enter simpan), % = diskon rupiah (berizin), T = ganti tier (berizin), Delete = hapus, Enter = lanjut bayar,
- * Esc/↑ di baris pertama = kembali ke kotak cari.
+ * (Enter simpan), % = diskon rupiah (berizin), T = ganti tier (berizin), P = lepas/pasang promo (berizin),
+ * Delete = hapus, Enter = lanjut bayar, Esc/↑ di baris pertama = kembali ke kotak cari. Harga, promo, dan
+ * subtotal diambil dari pratinjau API bila sudah tersedia.
  */
 export function KeranjangPos({
   id,
@@ -36,6 +38,8 @@ export function KeranjangPos({
   onFokus,
   bolehTier,
   bolehDiskon,
+  bolehLepasPromo,
+  pratinjau,
 }: {
   id: string;
   baris: BarisPos[];
@@ -53,6 +57,9 @@ export function KeranjangPos({
   onFokus: () => void;
   bolehTier: boolean;
   bolehDiskon: boolean;
+  bolehLepasPromo: boolean;
+  /** Hasil pratinjau API per barang (promo, subtotal, saran tier). */
+  pratinjau: ReadonlyMap<number, BarisPratinjau>;
 }) {
   const [sunting, setSunting] = useState<Sunting>(null);
   const wadah = useRef<HTMLDivElement>(null);
@@ -113,6 +120,10 @@ export function KeranjangPos({
     } else if (e.key === '%' && bolehDiskon) {
       e.preventDefault();
       setSunting({ jenis: 'diskon', nilai: b.diskonBaris ? String(b.diskonBaris) : '' });
+    } else if ((e.key === 'p' || e.key === 'P') && bolehLepasPromo) {
+      e.preventDefault();
+      const pr = pratinjau.get(b.idBarang);
+      if (b.tanpaPromo || pr?.idPromo != null) onUbah(indeks, { tanpaPromo: !b.tanpaPromo });
     } else if ((e.key === 't' || e.key === 'T') && bolehTier && !b.hargaManual) {
       e.preventDefault();
       // Urutan: bawaan → tier lain → kembali ke bawaan.
@@ -145,7 +156,8 @@ export function KeranjangPos({
         <table className="w-full text-sm">
           <tbody>
             {baris.map((r, i) => {
-              const harga = hargaBaris(r, tierBawaan);
+              const pr = pratinjau.get(r.idBarang);
+              const harga = pr?.hargaSatuan ?? hargaBaris(r, tierBawaan);
               const tierLain =
                 !r.hargaManual && r.idTingkatHarga !== null && r.idTingkatHarga !== tierBawaan;
               const dipilih = aktif && i === indeks;
@@ -169,7 +181,23 @@ export function KeranjangPos({
                       {tierLain && r.idTingkatHarga !== null && ` · ${namaTier(r.idTingkatHarga)}`}
                       {r.hargaManual && ' · harga manual'}
                       {r.diskonBaris > 0 && ` · diskon ${formatRupiah(r.diskonBaris)}`}
+                      {pr?.idTingkatHargaSaran != null && (
+                        <span className="text-blue-700">
+                          {' '}
+                          · saran {namaTier(pr.idTingkatHargaSaran)}
+                          {bolehTier && ' (T)'}
+                        </span>
+                      )}
                     </div>
+                    <InfoPromo
+                      p={pr}
+                      className="truncate"
+                      aksi={
+                        bolehLepasPromo && (pr?.idPromo != null || r.tanpaPromo) ? (
+                          <kbd className="font-mono text-[10px] text-slate-400">P</kbd>
+                        ) : null
+                      }
+                    />
                   </td>
                   <td className="w-28 py-1.5 text-right font-bold tabular-nums">
                     {dipilih && sunting?.jenis === 'qty' ? (
@@ -220,7 +248,7 @@ export function KeranjangPos({
                         className="h-7 w-24 rounded border border-blue-500 px-1 text-right"
                       />
                     ) : (
-                      formatRupiah(subtotalBaris(r, tierBawaan))
+                      formatRupiah(pr?.subtotal ?? subtotalBaris(r, tierBawaan))
                     )}
                   </td>
                 </tr>

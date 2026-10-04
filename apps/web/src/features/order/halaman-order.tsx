@@ -379,6 +379,12 @@ function PanelDetail({ id }: { id: number }) {
                     {b.diskonBaris > 0 && (
                       <div className="text-xs text-red-600">− {formatRupiah(b.diskonBaris)}</div>
                     )}
+                    {b.diskonPromo > 0 && (
+                      <div className="text-xs text-emerald-700">
+                        Promo {b.namaPromo} − {formatRupiah(b.diskonPromo)}
+                      </div>
+                    )}
+                    {b.promoNonaktif && <div className="text-xs text-slate-400">promo dilepas</div>}
                   </td>
                   <td className="px-3 py-2 text-right font-semibold tabular-nums">
                     {formatRupiah(b.subtotal)}

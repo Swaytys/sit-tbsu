@@ -8,6 +8,7 @@ import {
   type DataOrder,
   type DetailOrder,
   type InputOrder,
+  type InputPratinjauOrder,
 } from '@sit/shared';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -17,8 +18,9 @@ import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
 import { GalatApi } from '@/api/client';
 import { useDaftarTingkatHarga } from '@/api/mitra';
-import { useDetailOrder, useKirimOrder, useSimpanOrder } from '@/api/penjualan';
+import { useDetailOrder, useKirimOrder, usePratinjauOrder, useSimpanOrder } from '@/api/penjualan';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
+import { InfoPromo } from '@/components/info-promo';
 import { InputRupiah } from '@/components/input-rupiah';
 import { PilihBarang } from '@/components/pilih-barang';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
@@ -93,6 +95,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
   const bolehTier = pengguna.izin.includes('penjualan.tier.ubah');
   const bolehManual = pengguna.izin.includes('penjualan.harga_manual');
   const bolehDiskon = pengguna.izin.includes('penjualan.diskon');
+  const bolehLepasPromo = pengguna.izin.includes('penjualan.checkout');
   const simpan = useSimpanOrder();
   const kirimAntrean = useKirimOrder();
   const tierAktif = (useDaftarTingkatHarga().data ?? []).filter((t) => t.statusAktif === 'AKTIF');
@@ -155,13 +158,21 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
         diskonBaris: b.diskonBaris,
         diskonBarisPersen: null,
         catatanItem: b.catatanItem ?? '',
+        tanpaPromo: b.promoNonaktif,
       })),
     },
   });
   const baris = useFieldArray({ control: form.control, name: 'baris' });
-  const [jenis, isi, ongkir, diskonTransaksi, diskonPersen] = useWatch({
+  const [jenis, isi, ongkir, diskonTransaksi, diskonPersen, idPelanggan] = useWatch({
     control: form.control,
-    name: ['jenisPenjualan', 'baris', 'ongkir', 'diskonTransaksi', 'diskonTransaksiPersen'],
+    name: [
+      'jenisPenjualan',
+      'baris',
+      'ongkir',
+      'diskonTransaksi',
+      'diskonTransaksiPersen',
+      'idPelanggan',
+    ],
   });
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
   const antar = jenis === 'PENGANTARAN';
@@ -194,6 +205,38 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
       : 0;
   const totalPerkiraan = subtotal - diskonT + (typeof ongkir === 'number' ? ongkir : 0);
 
+  // PR5: harga, promo, diskon, saran tier, dan total dari API setiap isi berubah (bila qty sudah sah).
+  const semuaQtySah = (isi ?? []).length > 0 && (isi ?? []).every((b) => teksQty(b.qty) !== null);
+  const isianPratinjau: InputPratinjauOrder | null = semuaQtySah
+    ? {
+        idOrder: dokumen?.id ?? null,
+        order: {
+          jenisPenjualan: jenis ?? 'LANGSUNG',
+          idPelanggan: typeof idPelanggan === 'number' ? idPelanggan : null,
+          ongkir: typeof ongkir === 'number' ? ongkir : 0,
+          diskonTransaksi: persenTransaksi
+            ? 0
+            : typeof diskonTransaksi === 'number'
+              ? diskonTransaksi
+              : 0,
+          diskonTransaksiPersen: persenTransaksi ? (diskonPersen ?? null) : null,
+          baris: (isi ?? []).map((b) => ({
+            idBarang: b.idBarang,
+            qty: teksQty(b.qty) ?? '0',
+            idTingkatHarga: b.hargaManual ? null : (b.idTingkatHarga ?? null),
+            hargaManual: b.hargaManual === true,
+            hargaSatuan: b.hargaManual && typeof b.hargaSatuan === 'number' ? b.hargaSatuan : null,
+            diskonBaris: typeof b.diskonBaris === 'number' ? b.diskonBaris : 0,
+            tanpaPromo: b.tanpaPromo === true,
+          })),
+        },
+      }
+    : null;
+  const pratinjau = usePratinjauOrder(isianPratinjau);
+  const pratinjauBaris = new Map((pratinjau.data?.baris ?? []).map((b) => [b.idBarang, b]));
+  const hasil = pratinjau.segar ? pratinjau.data : undefined;
+  const namaTier = (id: number) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain';
+
   function tambah(b: BarisBarang) {
     const ada = (isi ?? []).findIndex((x) => x.idBarang === b.id);
     if (ada >= 0) {
@@ -223,6 +266,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
       diskonBaris: 0,
       diskonBarisPersen: null,
       catatanItem: '',
+      tanpaPromo: false,
     });
     setTimeout(() => form.setFocus(`baris.${baris.fields.length}.qty`), 0);
   }
@@ -487,12 +531,33 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                   const inf = info[f.idBarang];
                   const manual = isi?.[i]?.hargaManual === true;
                   const harga = hargaBaris(i);
+                  const pr = pratinjauBaris.get(f.idBarang);
+                  const tanpaPromo = isi?.[i]?.tanpaPromo === true;
                   return (
                     <TableRow key={f.id}>
                       <TableCell className="text-slate-500">{i + 1}</TableCell>
                       <TableCell>
                         <div className="font-medium">{inf?.nama}</div>
                         <div className="font-mono text-xs text-slate-500">{inf?.kode}</div>
+                        <InfoPromo
+                          p={pr}
+                          className="mt-0.5"
+                          aksi={
+                            bolehLepasPromo && (pr?.idPromo != null || tanpaPromo) ? (
+                              <button
+                                type="button"
+                                className="text-blue-700 underline"
+                                onClick={() =>
+                                  form.setValue(`baris.${i}.tanpaPromo`, !tanpaPromo, {
+                                    shouldDirty: true,
+                                  })
+                                }
+                              >
+                                {tanpaPromo ? 'Pasang lagi' : 'Lepas promo'}
+                              </button>
+                            ) : null
+                          }
+                        />
                       </TableCell>
                       <TableCell className="text-right text-sm tabular-nums">
                         {inf ? formatDesimal(inf.stokTersedia) : '—'} {inf?.satuan}
@@ -580,6 +645,11 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                                 </Select>
                                 <div className="text-xs text-slate-500 tabular-nums">
                                   {harga === null ? 'Harga belum ada' : formatRupiah(harga)}
+                                  {pr?.idTingkatHargaSaran != null && (
+                                    <span className="ml-1 text-blue-700">
+                                      · saran {namaTier(pr.idTingkatHargaSaran)}
+                                    </span>
+                                  )}
                                 </div>
                                 <FormMessage />
                               </FormItem>
@@ -622,7 +692,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                         </TableCell>
                       )}
                       <TableCell className="text-right font-medium tabular-nums">
-                        {formatRupiah(subtotalBaris(i))}
+                        {formatRupiah(pr?.subtotal ?? subtotalBaris(i))}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -641,9 +711,15 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
               </TableBody>
             </Table>
             <div className="ml-auto w-96 space-y-1.5 border-t p-4 text-sm">
+              {hasil && hasil.totalDiskonPromo > 0 && (
+                <div className="flex justify-between text-emerald-700">
+                  <span>Potongan promo</span>
+                  <span className="tabular-nums">−{formatRupiah(hasil.totalDiskonPromo)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-500">Subtotal</span>
-                <span className="tabular-nums">{formatRupiah(subtotal)}</span>
+                <span className="tabular-nums">{formatRupiah(hasil?.subtotal ?? subtotal)}</span>
               </div>
               {bolehDiskon && (
                 <div className="flex items-center justify-between gap-2">
@@ -707,12 +783,16 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                 </div>
               )}
               <div className="flex justify-between border-t pt-2 text-base font-semibold">
-                <span>Total (perkiraan)</span>
+                <span>Total{hasil ? '' : ' (perkiraan)'}</span>
                 <span className="text-blue-700 tabular-nums" data-testid="total-order">
-                  {formatRupiah(totalPerkiraan)}
+                  {formatRupiah(hasil?.total ?? totalPerkiraan)}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Total final dihitung server saat disimpan.</p>
+              <p className="text-xs text-slate-400">
+                {pratinjau.galat && !hasil
+                  ? 'Total belum bisa dihitung; periksa isian.'
+                  : 'Promo dihitung ulang saat dibayar di kasir.'}
+              </p>
             </div>
           </Card>
 

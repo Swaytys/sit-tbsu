@@ -23,6 +23,7 @@ import {
   useCheckout,
   useLepasOrder,
   usePapanAntrean,
+  usePratinjauOrder,
   useProsesOrder,
   useShiftSaya,
   useSiaranAntrean,
@@ -79,6 +80,7 @@ const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
     { kunci: 'Angka', label: 'Ubah qty' },
     { kunci: '%', label: 'Diskon' },
     { kunci: 'T', label: 'Tier' },
+    { kunci: 'P', label: 'Lepas promo' },
     { kunci: 'Del', label: 'Hapus' },
     { kunci: 'Ctrl+Z', label: 'Urungkan' },
   ],
@@ -189,6 +191,12 @@ export function LayarPos({
 
   const order = tr.t.order;
   const adaTransaksi = order !== null || tr.t.baris.length > 0;
+  // PR5: harga, promo, dan total dari API setiap isi berubah; angka lokal hanya cadangan sementara.
+  const pratinjau = usePratinjauOrder(
+    tr.t.baris.length > 0 ? { idOrder: order?.id ?? null, order: tr.isianOrder(jenis) } : null,
+  );
+  const pratinjauBaris = new Map((pratinjau.data?.baris ?? []).map((b) => [b.idBarang, b]));
+  const totalTampil = pratinjau.segar && pratinjau.data ? pratinjau.data.total : tr.total;
   const indeksAman = Math.min(indeksTiket, Math.max(0, tiket.length - 1));
   const tanpaShift = bolehShift && shift.isSuccess && shift.data === null;
 
@@ -557,6 +565,8 @@ export function LayarPos({
               onFokus={() => setZona('keranjang')}
               bolehTier={saya.izin.includes('penjualan.tier.ubah')}
               bolehDiskon={saya.izin.includes('penjualan.diskon')}
+              bolehLepasPromo={saya.izin.includes('penjualan.checkout')}
+              pratinjau={pratinjauBaris}
             />
           )}
 
@@ -602,13 +612,19 @@ export function LayarPos({
 
           <div className="flex items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
             <span className="text-xs tracking-widest text-slate-300 uppercase">
-              Total{order && !tr.t.diubah ? '' : ' (perkiraan)'}
+              Total
+              {pratinjau.segar ? '' : ' (menghitung…)'}
+              {pratinjau.segar && pratinjau.data && pratinjau.data.totalDiskonPromo > 0 && (
+                <span className="ml-2 tracking-normal text-emerald-300 normal-case">
+                  hemat promo {formatRupiah(pratinjau.data.totalDiskonPromo)}
+                </span>
+              )}
             </span>
             <span
               className="text-3xl font-black text-emerald-400 tabular-nums"
               data-testid="total-pos"
             >
-              {formatRupiah(adaTransaksi ? tr.total : 0)}
+              {formatRupiah(adaTransaksi ? totalTampil : 0)}
             </span>
           </div>
 
@@ -629,7 +645,7 @@ export function LayarPos({
             key={kunciPanel}
             id={ID.bayar}
             aktif={zona === 'bayar'}
-            total={adaTransaksi ? tr.total : 0}
+            total={adaTransaksi ? totalTampil : 0}
             mode={pengantaran ? 'pengantaran' : 'langsung'}
             bolehKurang={pengantaran || tr.t.pelanggan !== null}
             rekeningTransfer={toko?.rekeningTransfer ?? ''}

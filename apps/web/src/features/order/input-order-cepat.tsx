@@ -12,7 +12,12 @@ import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
 import { useDaftarTingkatHarga } from '@/api/mitra';
-import { useDaftarOrder, useSimpanOrder, useSiaranAntrean } from '@/api/penjualan';
+import {
+  useDaftarOrder,
+  usePratinjauOrder,
+  useSimpanOrder,
+  useSiaranAntrean,
+} from '@/api/penjualan';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
 import { formatDesimal } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -146,9 +151,8 @@ export function InputOrderCepat() {
     setZona('cari');
   }
 
-  function kirim() {
-    if (simpan.isPending) return;
-    const isian: InputOrder = {
+  function isianOrder(): InputOrder {
+    return {
       jenisPenjualan: jenis,
       idPelanggan: tr.t.pelanggan?.id ?? null,
       namaPembeli: tr.t.pelanggan ? null : tr.t.namaPembeli.trim() || null,
@@ -157,7 +161,21 @@ export function InputOrderCepat() {
       ongkir: antar ? Number(ongkir || '0') : 0,
       baris: tr.t.baris.map(keBarisOrder),
     };
-    const data = skemaOrder.safeParse(isian);
+  }
+
+  // PR5: harga, promo, dan total dari API; angka lokal hanya cadangan selama menunggu.
+  const pratinjau = usePratinjauOrder(
+    tr.t.baris.length > 0 ? { idOrder: null, order: isianOrder() } : null,
+  );
+  const pratinjauBaris = new Map((pratinjau.data?.baris ?? []).map((b) => [b.idBarang, b]));
+  const total =
+    pratinjau.segar && pratinjau.data
+      ? pratinjau.data.total
+      : tr.total + (antar ? Number(ongkir || '0') : 0);
+
+  function kirim() {
+    if (simpan.isPending) return;
+    const data = skemaOrder.safeParse(isianOrder());
     if (!data.success) {
       toast.error(data.error.issues[0]?.message ?? 'Isian belum lengkap.');
       setZona(data.error.issues[0]?.path[0] === 'idPelanggan' ? 'pelanggan' : 'cari');
@@ -325,18 +343,25 @@ export function InputOrderCepat() {
             onFokus={() => setZona('keranjang')}
             bolehTier={saya.izin.includes('penjualan.tier.ubah')}
             bolehDiskon={saya.izin.includes('penjualan.diskon')}
+            bolehLepasPromo={saya.izin.includes('penjualan.checkout')}
+            pratinjau={pratinjauBaris}
           />
 
           <div className="flex items-center gap-3">
             <div className="flex flex-1 items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
               <span className="text-xs tracking-widest text-slate-300 uppercase">
-                Total (perkiraan)
+                Total{pratinjau.segar ? '' : ' (menghitung…)'}
+                {pratinjau.segar && pratinjau.data && pratinjau.data.totalDiskonPromo > 0 && (
+                  <span className="ml-2 tracking-normal text-emerald-300 normal-case">
+                    hemat promo {formatRupiah(pratinjau.data.totalDiskonPromo)}
+                  </span>
+                )}
               </span>
               <span
                 className="text-2xl font-black text-emerald-400 tabular-nums"
                 data-testid="total-order"
               >
-                {formatRupiah(tr.total + (antar ? Number(ongkir || '0') : 0))}
+                {formatRupiah(total)}
               </span>
             </div>
             <button

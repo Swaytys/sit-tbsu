@@ -8,6 +8,7 @@ import type {
   DataSuratJalan,
   DataTutupShift,
   DataVoid,
+  InputPratinjauOrder,
   JenisPenjualan,
   StatusOrder,
   StatusPembayaran,
@@ -18,6 +19,7 @@ import type {
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { useTunda } from '@/lib/use-tunda';
 import { ambilData, ambilIsi, api } from './client';
 
 /** Penjualan (Fase 5): order & antrean. */
@@ -83,6 +85,30 @@ export function useSimpanOrder() {
           : await api.order[':id'].$put({ param: param(id), json }),
       ),
   );
+}
+
+/**
+ * PR5: pratinjau harga, promo, diskon, saran tier, dan total dari API setiap isi order berubah (ditunda
+ * sebentar agar ketikan cepat tidak memicu banyak permintaan). `segar` = hasil sesuai isian terbaru.
+ */
+export function usePratinjauOrder(input: InputPratinjauOrder | null) {
+  const kunci = input === null ? null : JSON.stringify(input);
+  const tertunda = useTunda(kunci, 200);
+  const q = useQuery({
+    queryKey: ['pratinjau-order', tertunda],
+    queryFn: async () =>
+      ambilData(
+        await api.order.pratinjau.$post({
+          json: JSON.parse(tertunda ?? '{}') as InputPratinjauOrder,
+        }),
+      ),
+    enabled: tertunda !== null,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+  const segar =
+    kunci !== null && tertunda === kunci && q.isSuccess && !q.isPlaceholderData && !q.isFetching;
+  return { data: kunci === null ? undefined : q.data, segar, galat: q.error, memuat: q.isFetching };
 }
 
 export function useKirimOrder() {

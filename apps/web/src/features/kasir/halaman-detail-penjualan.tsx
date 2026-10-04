@@ -241,6 +241,11 @@ export function HalamanDetailPenjualan() {
                   <div className="text-xs text-slate-500">
                     {b.hargaManual ? 'Harga manual' : b.namaTier}
                   </div>
+                  {b.diskonPromo > 0 && (
+                    <div className="text-xs text-emerald-700">
+                      Promo {b.namaPromo} − {formatRupiah(b.diskonPromo)}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatDesimal(b.qty)} {b.kodeSatuan}
@@ -249,7 +254,9 @@ export function HalamanDetailPenjualan() {
                   {formatRupiah(b.hargaSatuan)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {b.diskonBaris > 0 ? formatRupiah(b.diskonBaris) : '—'}
+                  {b.diskonBaris + b.diskonPromo > 0
+                    ? formatRupiah(b.diskonBaris + b.diskonPromo)
+                    : '—'}
                 </TableCell>
                 <TableCell className="text-right font-medium tabular-nums">
                   {formatRupiah(b.subtotal)}
