@@ -29,6 +29,7 @@ import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import * as orderRepo from '../order/repo';
+import { hitungPromoCheckout } from '../harga-baris';
 import { buatOrderTx, ubahOrderTx } from '../order/service';
 import { catatPembayaran, hitungTagihan } from '../pembayaran';
 import * as sjRepo from '../surat-jalan/repo';
@@ -148,69 +149,89 @@ async function siapkanOrder(tx: Tx, input: DataCheckout, pelaku: PenggunaAktif, 
   return { o, h, rows };
 }
 
+type BarisOrder = Awaited<ReturnType<typeof siapkanOrder>>['rows'][number];
+
 /**
- * P2: "Perbarui harga" per baris — harga tier dibaca ulang dari master; subtotal & total order dihitung ulang.
- * Dicatat log ORDER_UBAH. Harga manual tidak ikut diperbarui.
+ * P2: "Perbarui harga" per baris — harga tier barang terpilih dibaca ulang dari master (harga manual tidak).
+ * Belum menulis apa pun; penulisan bersama hasil promo di `selaraskanOrder()`.
  */
-async function perbaruiHarga(
-  tx: Tx,
-  ctx: Awaited<ReturnType<typeof siapkanOrder>>,
-  idBarang: number[],
-  pelaku: PenggunaAktif,
-  asal: AsalRequest,
-) {
-  if (idBarang.length === 0) return ctx.rows;
+async function hargaTerkini(tx: Tx, rows: BarisOrder[], idBarang: number[]) {
+  const catatan: string[] = [];
+  if (idBarang.length === 0) return { rows, catatan };
   const kini = new Map(
     (await hargaBarangDasar(tx, idBarang)).map((h) => [`${h.idBarang}:${h.idTingkatHarga}`, h]),
   );
-  const catatan: string[] = [];
-  const rows = [];
-  for (const r of ctx.rows) {
+  const hasil = rows.map((r) => {
     const h = kini.get(`${r.idBarang}:${r.idTingkatHarga}`);
     if (!idBarang.includes(r.idBarang) || r.hargaManual || !h || h.hargaJual === r.hargaSatuan) {
-      rows.push(r);
-      continue;
+      return r;
     }
-    const bruto = subtotalRupiah(r.qty, h.hargaJual);
-    if (r.diskonBaris > bruto) {
+    if (r.diskonBaris > subtotalRupiah(r.qty, h.hargaJual)) {
       throw new AppError('VALIDASI', `Diskon ${r.namaBarang} melebihi harga baru.`, 400);
     }
-    const subtotal = bruto - r.diskonBaris;
+    catatan.push(`${r.namaBarang} ${formatRupiah(r.hargaSatuan)} → ${formatRupiah(h.hargaJual)}`);
+    return { ...r, hargaSatuan: h.hargaJual };
+  });
+  return { rows: hasil, catatan };
+}
+
+/**
+ * Baris order yang berubah karena "perbarui harga" (P2) atau evaluasi ulang promo (PR5) ditulis ke order
+ * dalam transaksi checkout yang sama (aturan 15), beserta subtotal/total header. Log ORDER_UBAH untuk
+ * perubahan harga.
+ */
+async function selaraskanOrder(
+  tx: Tx,
+  ctx: Awaited<ReturnType<typeof siapkanOrder>>,
+  rows: BarisOrder[],
+  catatanHarga: string[],
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+) {
+  const awal = new Map(ctx.rows.map((r) => [r.id, r]));
+  const waktu = sekarang();
+  let berubah = false;
+  for (const r of rows) {
+    const a = awal.get(r.id);
+    if (
+      a &&
+      a.hargaSatuan === r.hargaSatuan &&
+      a.idPromo === r.idPromo &&
+      a.diskonPromo === r.diskonPromo &&
+      a.subtotal === r.subtotal
+    ) {
+      continue;
+    }
+    berubah = true;
     await tx
       .update(orderPenjualanDetail)
-      .set({ hargaSatuan: h.hargaJual, subtotal, diubahPada: sekarang() })
+      .set({
+        hargaSatuan: r.hargaSatuan,
+        idPromo: r.idPromo,
+        diskonPromo: r.diskonPromo,
+        subtotal: r.subtotal,
+        diubahPada: waktu,
+      })
       .where(eq(orderPenjualanDetail.id, r.id));
-    catatan.push(`${r.namaBarang} ${formatRupiah(r.hargaSatuan)} → ${formatRupiah(h.hargaJual)}`);
-    rows.push({ ...r, hargaSatuan: h.hargaJual, subtotal });
   }
-  if (catatan.length > 0) {
+  if (berubah) {
     const sub = rows.reduce((t, r) => t + r.subtotal, 0);
-    if (ctx.h.diskonTransaksi > sub) {
-      throw new AppError(
-        'VALIDASI',
-        'Diskon transaksi melebihi subtotal setelah harga diperbarui.',
-        400,
-      );
-    }
     await tx
       .update(orderPenjualan)
-      .set({
-        subtotal: sub,
-        total: sub - ctx.h.diskonTransaksi + ctx.h.ongkir,
-        diubahPada: sekarang(),
-      })
+      .set({ subtotal: sub, total: sub - ctx.h.diskonTransaksi + ctx.h.ongkir, diubahPada: waktu })
       .where(eq(orderPenjualan.id, ctx.o.id));
+  }
+  if (catatanHarga.length > 0) {
     await catatLog(tx, {
       aksi: 'ORDER_UBAH',
       idPengguna: pelaku.id,
       entitas: 'order_penjualan',
       idEntitas: ctx.o.id,
       nomorDokumen: ctx.o.nomor,
-      ringkasan: `Perbarui harga saat checkout: ${catatan.join('; ')}`,
+      ringkasan: `Perbarui harga saat checkout: ${catatanHarga.join('; ')}`,
       ip: asal.ip,
     });
   }
-  return rows;
 }
 
 /** P7: jatuh tempo bawaan = tanggal operasional + term pelanggan (term 0 → + jatuh_tempo_default_hari). */
@@ -226,19 +247,34 @@ export async function checkout(
   asal: AsalRequest,
 ): Promise<DetailPenjualan> {
   const id = await dalamTransaksi(async (tx) => {
+    // PR5: tanggal checkout yang menentukan promo.
+    const tanggal = tanggalOperasional();
     const ctx = await siapkanOrder(tx, input, pelaku, asal);
-    const rows = await perbaruiHarga(tx, ctx, input.perbaruiHarga, pelaku, asal);
     const { h } = ctx;
     const jenis = h.jenisPenjualan;
-
-    const totalBruto = rows.reduce((t, r) => t + subtotalRupiah(r.qty, r.hargaSatuan), 0);
-    const diskonBaris = rows.reduce((t, r) => t + r.diskonBaris, 0);
-    const totalNeto = totalBruto - diskonBaris - h.diskonTransaksi + h.ongkir;
     if (input.bayarSaatTerima && jenis !== 'PENGANTARAN') {
       throw new AppError('VALIDASI', 'Bayar saat terima hanya untuk pengantaran.', 400);
     }
+    const terkini = await hargaTerkini(tx, ctx.rows, input.perbaruiHarga);
+    const promo = await hitungPromoCheckout(tx, terkini.rows, pelaku, tanggal);
+    const rows = terkini.rows.map((r, i) => ({ ...r, ...promo[i] }));
+    const subtotalOrder = rows.reduce((t, r) => t + r.subtotal, 0);
+    if (h.diskonTransaksi > subtotalOrder) {
+      throw new AppError(
+        'VALIDASI',
+        `Diskon transaksi melebihi subtotal ${formatRupiah(subtotalOrder)} setelah harga/promo terbaru.`,
+        400,
+      );
+    }
+    await selaraskanOrder(tx, ctx, rows, terkini.catatan, pelaku, asal);
 
-    const tanggal = tanggalOperasional();
+    const totalBruto = rows.reduce((t, r) => t + subtotalRupiah(r.qty, r.hargaSatuan), 0);
+    const diskonBaris = rows.reduce((t, r) => t + r.diskonBaris, 0);
+    const diskonPromo = rows.reduce((t, r) => t + r.diskonPromo, 0);
+    // P4/D3: total diskon = diskon baris + diskon promo + diskon transaksi.
+    const totalDiskon = diskonBaris + diskonPromo + h.diskonTransaksi;
+    const totalNeto = totalBruto - totalDiskon + h.ongkir;
+
     const nomor = await terbitkanNomor(tx, jenis === 'LANGSUNG' ? 'STR' : 'INV', tanggal);
     const shift = await shiftBuka(tx, pelaku.id, true);
     const [pj] = await tx
@@ -253,7 +289,7 @@ export async function checkout(
         idKasir: pelaku.id,
         idShift: shift?.id ?? null,
         totalBruto,
-        totalDiskon: diskonBaris + h.diskonTransaksi,
+        totalDiskon,
         diskonTransaksi: h.diskonTransaksi,
         ongkir: h.ongkir,
         totalNeto,
@@ -285,6 +321,8 @@ export async function checkout(
           hargaSatuan: r.hargaSatuan,
           hargaManual: r.hargaManual,
           diskonBaris: r.diskonBaris,
+          idPromo: r.idPromo,
+          diskonPromo: r.diskonPromo,
           subtotal: r.subtotal,
           // P5: HPP saat checkout (konsinyasi: hpp_rata2 = harga titip, L7).
           hppSaatTransaksi: p.hppRata2,
@@ -340,6 +378,7 @@ export async function checkout(
       nomorDokumen: nomor,
       ringkasan:
         `Checkout ${nomor} dari order ${h.nomor}: ${rows.length} barang, ${formatRupiah(totalNeto)}, ` +
+        (diskonPromo > 0 ? `promo ${formatRupiah(diskonPromo)}, ` : '') +
         `${hasil.statusPembayaran.toLowerCase().replace('_', ' ')}`,
       ip: asal.ip,
     });

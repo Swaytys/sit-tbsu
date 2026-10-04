@@ -14,6 +14,7 @@ import {
   pengguna,
   penjualan,
   penjualanDetail,
+  promo,
   satuan,
   shiftKasir,
   tingkatHarga,
@@ -130,6 +131,9 @@ export function detailPenjualan(ex: Executor, id: number) {
       hargaSatuan: penjualanDetail.hargaSatuan,
       hargaManual: penjualanDetail.hargaManual,
       diskonBaris: penjualanDetail.diskonBaris,
+      idPromo: penjualanDetail.idPromo,
+      namaPromo: promo.nama,
+      diskonPromo: penjualanDetail.diskonPromo,
       subtotal: penjualanDetail.subtotal,
       statusItem: penjualanDetail.statusItem,
       hppSaatTransaksi: penjualanDetail.hppSaatTransaksi,
@@ -138,6 +142,7 @@ export function detailPenjualan(ex: Executor, id: number) {
     .innerJoin(barang, eq(barang.id, penjualanDetail.idBarang))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
     .leftJoin(tingkatHarga, eq(tingkatHarga.id, penjualanDetail.idTingkatHarga))
+    .leftJoin(promo, eq(promo.id, penjualanDetail.idPromo))
     .where(eq(penjualanDetail.idPenjualan, id))
     .orderBy(asc(penjualanDetail.id));
 }

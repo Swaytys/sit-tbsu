@@ -56,6 +56,8 @@ export const skemaBarisOrder = z
     diskonBaris: z.preprocess((v) => (v === '' || v == null ? 0 : v), skemaRupiah).default(0),
     diskonBarisPersen: skemaPersen.default(null),
     catatanItem: teksOpsional(150, 'Catatan item maksimal 150 karakter.'),
+    /** PR5: promo baris ini dilepas (mengubahnya butuh `penjualan.checkout`, dicatat log). */
+    tanpaPromo: z.boolean().default(false),
   })
   .superRefine((b, ctx) => {
     if (b.hargaManual && b.hargaSatuan === null) {
@@ -64,57 +66,100 @@ export const skemaBarisOrder = z
   });
 export type InputBarisOrder = z.input<typeof skemaBarisOrder>;
 
-export const skemaOrder = z
-  .object({
-    jenisPenjualan: z.enum(JENIS_PENJUALAN, 'Jenis penjualan tidak valid.'),
-    idPelanggan: z.number().int().positive().nullable().default(null),
-    namaPembeli: teksOpsional(100, 'Nama pembeli maksimal 100 karakter.'),
-    prioritas: z.enum(PRIORITAS_ORDER).default('NORMAL'),
-    alamatKirim: teksOpsional(255, 'Alamat kirim maksimal 255 karakter.'),
-    catatanKirim: teksOpsional(255, 'Catatan kirim maksimal 255 karakter.'),
-    ongkir: z.preprocess((v) => (v === '' || v == null ? 0 : v), skemaRupiah).default(0),
-    diskonTransaksi: z.preprocess((v) => (v === '' || v == null ? 0 : v), skemaRupiah).default(0),
-    diskonTransaksiPersen: skemaPersen.default(null),
-    catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
-    /** H9: Admin/Owner menyetujui harga manual di bawah modal. */
-    setujuDiBawahModal: z.boolean().default(false),
-    baris: z
-      .array(skemaBarisOrder)
-      .min(1, 'Tambahkan minimal satu barang.')
-      .max(200, 'Maksimal 200 barang per order.'),
-  })
-  .superRefine((d, ctx) => {
-    if (d.jenisPenjualan === 'PENGANTARAN') {
-      if (d.idPelanggan === null) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['idPelanggan'],
-          message: 'Pengantaran wajib memilih pelanggan.',
-        });
-      }
-      if (!d.alamatKirim) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['alamatKirim'],
-          message: 'Alamat kirim wajib diisi untuk pengantaran.',
-        });
-      }
+/** Isi order tanpa aturan lintas kolom (dipakai pratinjau harga saat isian belum lengkap). */
+const bentukOrder = z.object({
+  jenisPenjualan: z.enum(JENIS_PENJUALAN, 'Jenis penjualan tidak valid.'),
+  idPelanggan: z.number().int().positive().nullable().default(null),
+  namaPembeli: teksOpsional(100, 'Nama pembeli maksimal 100 karakter.'),
+  prioritas: z.enum(PRIORITAS_ORDER).default('NORMAL'),
+  alamatKirim: teksOpsional(255, 'Alamat kirim maksimal 255 karakter.'),
+  catatanKirim: teksOpsional(255, 'Catatan kirim maksimal 255 karakter.'),
+  ongkir: z.preprocess((v) => (v === '' || v == null ? 0 : v), skemaRupiah).default(0),
+  diskonTransaksi: z.preprocess((v) => (v === '' || v == null ? 0 : v), skemaRupiah).default(0),
+  diskonTransaksiPersen: skemaPersen.default(null),
+  catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+  /** H9: Admin/Owner menyetujui harga manual di bawah modal. */
+  setujuDiBawahModal: z.boolean().default(false),
+  baris: z
+    .array(skemaBarisOrder)
+    .min(1, 'Tambahkan minimal satu barang.')
+    .max(200, 'Maksimal 200 barang per order.'),
+});
+
+export const skemaOrder = bentukOrder.superRefine((d, ctx) => {
+  if (d.jenisPenjualan === 'PENGANTARAN') {
+    if (d.idPelanggan === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['idPelanggan'],
+        message: 'Pengantaran wajib memilih pelanggan.',
+      });
     }
-    const terlihat = new Map<number, number>();
-    d.baris.forEach((b, i) => {
-      const lain = terlihat.get(b.idBarang);
-      if (lain !== undefined) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['baris', i, 'idBarang'],
-          message: `Barang sama dengan baris ${lain + 1}; ubah qty-nya saja.`,
-        });
-      }
-      terlihat.set(b.idBarang, i);
-    });
+    if (!d.alamatKirim) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['alamatKirim'],
+        message: 'Alamat kirim wajib diisi untuk pengantaran.',
+      });
+    }
+  }
+  const terlihat = new Map<number, number>();
+  d.baris.forEach((b, i) => {
+    const lain = terlihat.get(b.idBarang);
+    if (lain !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['baris', i, 'idBarang'],
+        message: `Barang sama dengan baris ${lain + 1}; ubah qty-nya saja.`,
+      });
+    }
+    terlihat.set(b.idBarang, i);
   });
+});
 export type InputOrder = z.input<typeof skemaOrder>;
 export type DataOrder = z.output<typeof skemaOrder>;
+
+/**
+ * Pratinjau harga order (PR5): harga, promo, diskon, dan total dihitung API tanpa menyimpan apa pun, dipanggil
+ * layar order/kasir setiap isi berubah. `idOrder` = order yang sedang diubah (harga janji P2).
+ */
+export const skemaPratinjauOrder = z.object({
+  idOrder: z.number().int().positive().nullable().default(null),
+  order: bentukOrder,
+});
+export type InputPratinjauOrder = z.input<typeof skemaPratinjauOrder>;
+
+export type BarisPratinjau = {
+  idBarang: number;
+  idTingkatHarga: number | null;
+  hargaSatuan: number;
+  /** bulatkanRupiah(qty × harga satuan). */
+  bruto: number;
+  idPromo: number | null;
+  namaPromo: string | null;
+  diskonPromo: number;
+  promoNonaktif: boolean;
+  /** PR5: promo yang tidak diberikan karena dilepas. */
+  promoDilepas: { nama: string; potongan: number } | null;
+  /** PR6: promo yang lebih besar tidak berlaku karena harga jadi di bawah modal (tanpa angka modal). */
+  promoDitolak: boolean;
+  diskonBaris: number;
+  subtotal: number;
+  /** H8: tier lebih murah yang syarat qty-nya sudah terpenuhi; `null` = tidak ada saran. */
+  idTingkatHargaSaran: number | null;
+};
+
+export type PratinjauOrder = {
+  baris: BarisPratinjau[];
+  totalBruto: number;
+  totalDiskonPromo: number;
+  totalDiskonBaris: number;
+  /** Σ subtotal baris (setelah promo dan diskon baris). */
+  subtotal: number;
+  diskonTransaksi: number;
+  ongkir: number;
+  total: number;
+};
 
 export const skemaCariOrder = skemaHalaman.extend({
   cari: z.string().trim().max(100).optional(),
@@ -180,6 +225,8 @@ export type BarisDetailOrder = {
   idBarang: number;
   kodeBarang: string;
   namaBarang: string;
+  /** Kategori barang (sasaran promo, PR2). */
+  idKategori: number;
   kodeSatuan: string;
   kepemilikan: Kepemilikan;
   qty: string;
@@ -189,6 +236,11 @@ export type BarisDetailOrder = {
   hargaSatuan: number;
   hargaManual: boolean;
   diskonBaris: number;
+  /** PR4: promo baris (dievaluasi ulang saat checkout, PR5). */
+  idPromo: number | null;
+  namaPromo: string | null;
+  diskonPromo: number;
+  promoNonaktif: boolean;
   subtotal: number;
   catatanItem: string | null;
   /** Stok tersedia untuk order ini (stok tersedia + yang sudah ditahan order ini). */
@@ -347,6 +399,10 @@ export type BarisDetailPenjualan = {
   hargaSatuan: number;
   hargaManual: boolean;
   diskonBaris: number;
+  /** PR4/PR7: promo baris (nama dicetak di bawah baris struk). */
+  idPromo: number | null;
+  namaPromo: string | null;
+  diskonPromo: number;
   subtotal: number;
   statusItem: StatusItem;
   /** PENGANTARAN: qty di surat jalan yang tidak BATAL, dan yang sudah SELESAI (S2/S4). */

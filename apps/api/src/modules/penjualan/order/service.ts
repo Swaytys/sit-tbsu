@@ -9,6 +9,7 @@ import {
   type DetailOrder,
   type JenisPenjualan,
   type MetaHalaman,
+  type PratinjauOrder,
   type RingkasBarisOrder,
   type TiketAntrean,
 } from '@sit/shared';
@@ -24,7 +25,7 @@ import { hargaBarangDasar } from '../../master/harga/repo';
 import { ambilAngka, ambilTeks } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
-import { hitungBarisJual, type HargaLama, type HasilHarga } from '../harga-baris';
+import { hitungBarisJual, type HargaLama, type HasilHarga, type OpsiHitung } from '../harga-baris';
 import * as repo from './repo';
 
 /*
@@ -193,12 +194,18 @@ function nilaiDetail(h: HasilHarga) {
     hargaSatuan: b.hargaSatuan,
     hargaManual: b.hargaManual,
     diskonBaris: b.diskonBaris,
+    idPromo: b.idPromo,
+    diskonPromo: b.diskonPromo,
+    promoNonaktif: b.promoNonaktif,
     subtotal: b.subtotal,
     catatanItem: b.catatanItem,
   }));
 }
 
-/** Log harga manual (H9) dan diskon (D5) untuk setiap baris yang memakainya. */
+/**
+ * Log harga manual (H9) dan diskon (D5) untuk setiap baris yang memakainya, dan promo yang baru dilepas
+ * (PR5, hanya saat berubah).
+ */
 async function logHargaDiskon(
   tx: Tx,
   h: HasilHarga,
@@ -206,8 +213,22 @@ async function logHargaDiskon(
   idOrder: number,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
+  lama: HargaLama = new Map(),
 ) {
   for (const b of h.baris) {
+    if (b.promoDilepas && !lama.get(b.idBarang)?.promoNonaktif) {
+      await catatLog(tx, {
+        aksi: 'PENJUALAN_PROMO_LEPAS',
+        idPengguna: pelaku.id,
+        entitas: 'order_penjualan',
+        idEntitas: idOrder,
+        nomorDokumen: nomor,
+        ringkasan:
+          `Promo ${b.promoDilepas.nama} dilepas dari ${b.namaBarang} ` +
+          `(potongan ${formatRupiah(b.promoDilepas.potongan)} tidak diberikan)`,
+        ip: asal.ip,
+      });
+    }
     if (b.hargaManual) {
       await catatLog(tx, {
         aksi: 'PENJUALAN_HARGA_MANUAL',
@@ -382,7 +403,10 @@ export async function ubahOrderTx(
   await validasiPelanggan(tx, input);
   const lama = await repo.barisReservasi(tx, id);
   const hargaLama: HargaLama = new Map(lama.map((b) => [b.idBarang, b]));
-  const harga = await hitungBarisJual(tx, input, pelaku, hargaLama);
+  const harga = await hitungBarisJual(tx, input, pelaku, {
+    lama: hargaLama,
+    diskonTransaksiLama: h.diskonTransaksi,
+  });
   if (h.status !== 'DRAFT') {
     await ubahReservasi(tx, selisihReservasi(lama, harga.baris));
   }
@@ -397,7 +421,7 @@ export async function ubahOrderTx(
     ringkasan: `Mengubah order ${h.nomor}: ${harga.baris.length} barang, ${formatRupiah(harga.total)}`,
     ip: asal.ip,
   });
-  await logHargaDiskon(tx, harga, h.nomor, id, pelaku, asal);
+  await logHargaDiskon(tx, harga, h.nomor, id, pelaku, asal, hargaLama);
 }
 
 export async function ubahOrder(
@@ -409,6 +433,54 @@ export async function ubahOrder(
   await dalamTransaksi((tx) => ubahOrderTx(tx, id, input, pelaku, asal));
   siarkan('antrean');
   return detailOrder(id, pelaku);
+}
+
+/**
+ * PR5: pratinjau harga, promo, diskon, saran tier, dan total tanpa menyimpan apa pun. Untuk order yang sedang
+ * diubah, harga janji (P2) dan nilai yang sudah diberikan pelaku lain dipakai seperti saat menyimpan.
+ */
+export async function pratinjauOrder(
+  input: { idOrder: number | null; order: Parameters<typeof hitungBarisJual>[1] },
+  pelaku: PenggunaAktif,
+): Promise<PratinjauOrder> {
+  return dalamTransaksi(async (tx) => {
+    const opsi: OpsiHitung = {};
+    if (input.idOrder !== null) {
+      const h = await repo.orderById(tx, input.idOrder);
+      if (!h || !bolehLihat(h, pelaku)) throw tidakDitemukan();
+      opsi.lama = new Map(
+        (await repo.barisReservasi(tx, input.idOrder)).map((b) => [b.idBarang, b]),
+      );
+      opsi.diskonTransaksiLama = h.diskonTransaksi;
+    }
+    const harga = await hitungBarisJual(tx, input.order, pelaku, opsi);
+    return {
+      baris: harga.baris.map((b) => ({
+        idBarang: b.idBarang,
+        idTingkatHarga: b.idTingkatHarga,
+        hargaSatuan: b.hargaSatuan,
+        bruto: b.bruto,
+        idPromo: b.idPromo,
+        namaPromo: b.namaPromo,
+        diskonPromo: b.diskonPromo,
+        promoNonaktif: b.promoNonaktif,
+        promoDilepas: b.promoDilepas
+          ? { nama: b.promoDilepas.nama, potongan: b.promoDilepas.potongan }
+          : null,
+        promoDitolak: b.promoDitolak,
+        diskonBaris: b.diskonBaris,
+        subtotal: b.subtotal,
+        idTingkatHargaSaran: b.idTingkatHargaSaran,
+      })),
+      totalBruto: harga.totalBruto,
+      totalDiskonPromo: harga.totalDiskonPromo,
+      totalDiskonBaris: harga.totalDiskonBaris,
+      subtotal: harga.subtotal,
+      diskonTransaksi: harga.diskonTransaksi,
+      ongkir: harga.ongkir,
+      total: harga.total,
+    };
+  });
 }
 
 /** R3: DRAFT → MENUNGGU (hanya pembuat). */

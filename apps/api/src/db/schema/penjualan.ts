@@ -111,7 +111,7 @@ export const orderPenjualan = pgTable(
   ],
 );
 
-/** Boleh diubah selama order DRAFT/MENUNGGU. */
+/** Boleh diubah selama order DRAFT/MENUNGGU. Kolom promo ditambah migrasi 0005 (K-087). */
 export const orderPenjualanDetail = pgTable(
   'order_penjualan_detail',
   {
@@ -128,6 +128,10 @@ export const orderPenjualanDetail = pgTable(
     hargaSatuan: uang('harga_satuan').notNull(),
     hargaManual: boolean('harga_manual').notNull().default(false),
     diskonBaris: uang('diskon_baris').notNull().default(0),
+    idPromo: kolomRef('id_promo'),
+    diskonPromo: uang('diskon_promo').notNull().default(0),
+    /** PR5: promo baris dilepas kasir. */
+    promoNonaktif: boolean('promo_nonaktif').notNull().default(false),
     subtotal: uang('subtotal').notNull(),
     catatanItem: varchar('catatan_item', { length: 150 }),
     dibuatPada: dibuatPada(),
@@ -154,8 +158,16 @@ export const orderPenjualanDetail = pgTable(
       columns: [t.idTingkatHarga],
       foreignColumns: [tingkatHarga.id],
     }),
+    foreignKey({
+      name: 'order_penjualan_detail_id_promo_fkey',
+      columns: [t.idPromo],
+      foreignColumns: [promo.id],
+    }),
     check('chk_order_detail_qty', sql`qty > 0 and qty_dasar > 0 and faktor > 0`),
-    check('chk_order_detail_harga', sql`harga_satuan >= 0 and diskon_baris >= 0 and subtotal >= 0`),
+    check(
+      'chk_order_detail_harga',
+      sql`harga_satuan >= 0 and diskon_baris >= 0 and diskon_promo >= 0 and subtotal >= 0`,
+    ),
     check('chk_order_detail_tier', sql`harga_manual or id_tingkat_harga is not null`),
     index('idx_order_detail_order').on(t.idOrder),
     index('idx_order_detail_barang').on(t.idBarang),
@@ -324,6 +336,10 @@ export const penjualanDetail = pgTable(
     index('idx_penjualan_detail_header').on(t.idPenjualan),
     index('idx_penjualan_detail_barang').on(t.idBarang),
     index('idx_penjualan_detail_ksg').on(t.idPenyelesaianKonsinyasi),
+    // Laporan Promo dan pemeriksaan "promo sudah dipakai" (K-087).
+    index('idx_penjualan_detail_promo')
+      .on(t.idPromo)
+      .where(sql`id_promo is not null`),
   ],
 );
 

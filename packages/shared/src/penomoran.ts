@@ -21,7 +21,7 @@ export const KODE_DOKUMEN = [
 export type KodeDokumen = (typeof KODE_DOKUMEN)[number];
 
 /** Kode master (docs/05 N5): `PREFIX-NNNNN`, penghitung tanpa reset harian. */
-export const KODE_MASTER = ['BRG', 'PLG', 'PMS', 'USR'] as const;
+export const KODE_MASTER = ['BRG', 'PLG', 'PMS', 'USR', 'PRM'] as const;
 export type KodeMaster = (typeof KODE_MASTER)[number];
 
 export const LABEL_KODE_DOKUMEN: Record<KodeDokumen, string> = {

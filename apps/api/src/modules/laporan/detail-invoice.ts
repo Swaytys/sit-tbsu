@@ -95,17 +95,20 @@ export async function laporanDetailInvoice(
 
   const pembeli = d.namaPelanggan ?? d.namaPembeli ?? 'Pembeli umum';
   const adaStatusKhusus = d.baris.some((b) => b.statusItem !== 'NORMAL');
+  // PR7: kolom promo hanya bila ada baris berpromo (harga × qty − diskon − promo = subtotal).
+  const adaPromo = d.baris.some((b) => b.diskonPromo > 0);
   const jumlahBarang = d.baris.reduce((t, b) => t + b.subtotal, 0);
   const isiBarang: BarisTabelLaporan[] = d.baris.map((b, i) => ({
     gaya: 'data',
     sel: [
       angka(i + 1),
       teks(b.kodeBarang, { mono: true }),
-      teks(b.namaBarang),
+      teks(b.namaPromo ? `${b.namaBarang} · ${b.namaPromo}` : b.namaBarang),
       qty(b.qty),
       teks(b.kodeSatuan),
       uang(b.hargaSatuan),
       uang(b.diskonBaris),
+      ...(adaPromo ? [uang(b.diskonPromo)] : []),
       uang(b.subtotal),
       ...(adaStatusKhusus
         ? [
@@ -127,6 +130,7 @@ export async function laporanDetailInvoice(
       KOSONG,
       KOSONG,
       KOSONG,
+      ...(adaPromo ? [KOSONG] : []),
       uang(jumlahBarang),
       ...(adaStatusKhusus ? [KOSONG] : []),
     ],
@@ -165,6 +169,7 @@ export async function laporanDetailInvoice(
           { judul: 'Satuan', jenis: 'teks', lebar: 8 },
           { judul: 'Harga Satuan', jenis: 'uang', lebar: 13 },
           { judul: 'Diskon', jenis: 'uang', lebar: 11 },
+          ...(adaPromo ? [{ judul: 'Promo', jenis: 'uang' as const, lebar: 11 }] : []),
           { judul: 'Subtotal', jenis: 'uang', lebar: 14 },
           ...(adaStatusKhusus ? [{ judul: 'Status', jenis: 'teks' as const, lebar: 12 }] : []),
         ],

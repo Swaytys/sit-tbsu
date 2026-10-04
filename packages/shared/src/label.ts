@@ -1,10 +1,13 @@
 import type {
   JenisMutasi,
+  JenisPotongan,
   JenisPenjualan,
   JenisPenyesuaian,
   KondisiRetur,
   MetodePembayaran,
   PenyelesaianRetur,
+  SasaranPromo,
+  StatusBerlakuPromo,
   StatusItem,
   StatusPembayaran,
   StatusPersetujuan,
@@ -91,4 +94,21 @@ export const LABEL_STATUS_PERSETUJUAN: Record<StatusPersetujuan, string> = {
   MENUNGGU: 'Menunggu',
   DISETUJUI: 'Disetujui',
   DITOLAK: 'Ditolak',
+};
+
+export const LABEL_JENIS_POTONGAN: Record<JenisPotongan, string> = {
+  PERSEN: 'Persen',
+  NOMINAL: 'Rupiah per satuan',
+};
+
+export const LABEL_SASARAN_PROMO: Record<SasaranPromo, string> = {
+  SEMUA: 'Semua barang',
+  KATEGORI: 'Satu kategori',
+  BARANG: 'Satu barang',
+};
+
+export const LABEL_STATUS_BERLAKU_PROMO: Record<StatusBerlakuPromo, string> = {
+  TERJADWAL: 'Terjadwal',
+  BERJALAN: 'Berjalan',
+  BERAKHIR: 'Berakhir',
 };

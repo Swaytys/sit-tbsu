@@ -8,6 +8,7 @@ import {
   pelanggan,
   pengguna,
   persediaan,
+  promo,
   satuan,
   tingkatHarga,
 } from '../../../db/schema';
@@ -124,6 +125,7 @@ export async function kunciOrder(tx: Tx, id: number) {
       idPengguna: orderPenjualan.idPengguna,
       idKasirProses: orderPenjualan.idKasirProses,
       jenisPenjualan: orderPenjualan.jenisPenjualan,
+      diskonTransaksi: orderPenjualan.diskonTransaksi,
     })
     .from(orderPenjualan)
     .where(eq(orderPenjualan.id, id))
@@ -139,6 +141,7 @@ export function detailOrder(ex: Executor, idOrder: number) {
       idBarang: orderPenjualanDetail.idBarang,
       kodeBarang: barang.kode,
       namaBarang: barang.namaBarang,
+      idKategori: barang.idKategori,
       kodeSatuan: satuan.kode,
       kepemilikan: barang.kepemilikan,
       qty: orderPenjualanDetail.qty,
@@ -148,6 +151,10 @@ export function detailOrder(ex: Executor, idOrder: number) {
       hargaSatuan: orderPenjualanDetail.hargaSatuan,
       hargaManual: orderPenjualanDetail.hargaManual,
       diskonBaris: orderPenjualanDetail.diskonBaris,
+      idPromo: orderPenjualanDetail.idPromo,
+      namaPromo: promo.nama,
+      diskonPromo: orderPenjualanDetail.diskonPromo,
+      promoNonaktif: orderPenjualanDetail.promoNonaktif,
       subtotal: orderPenjualanDetail.subtotal,
       catatanItem: orderPenjualanDetail.catatanItem,
       stokTersedia: sql<string>`${persediaan.stokTersedia}::text`,
@@ -157,6 +164,7 @@ export function detailOrder(ex: Executor, idOrder: number) {
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
     .innerJoin(persediaan, eq(persediaan.idBarang, orderPenjualanDetail.idBarang))
     .leftJoin(tingkatHarga, eq(tingkatHarga.id, orderPenjualanDetail.idTingkatHarga))
+    .leftJoin(promo, eq(promo.id, orderPenjualanDetail.idPromo))
     .where(eq(orderPenjualanDetail.idOrder, idOrder))
     .orderBy(asc(orderPenjualanDetail.id));
 }
@@ -195,6 +203,8 @@ export function barisReservasi(tx: Tx, idOrder: number) {
       idTingkatHarga: orderPenjualanDetail.idTingkatHarga,
       hargaSatuan: orderPenjualanDetail.hargaSatuan,
       hargaManual: orderPenjualanDetail.hargaManual,
+      diskonBaris: orderPenjualanDetail.diskonBaris,
+      promoNonaktif: orderPenjualanDetail.promoNonaktif,
     })
     .from(orderPenjualanDetail)
     .where(eq(orderPenjualanDetail.idOrder, idOrder));

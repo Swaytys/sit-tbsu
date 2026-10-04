@@ -77,6 +77,18 @@ export function subtotalRupiah(qty: NilaiDesimal, hargaSatuan: number): number {
   return bulatkanRupiah(new Decimal(qty).times(hargaSatuan));
 }
 
+/**
+ * PR3: potongan promo persen = bulatkanRupiah(qty × harga satuan × persen ÷ 100), dibulatkan sekali (bukan
+ * persen dari subtotal yang sudah dibulatkan, yang bisa selisih Rp 1 pada qty desimal).
+ */
+export function potonganPersenRupiah(
+  qty: NilaiDesimal,
+  hargaSatuan: number,
+  persen: NilaiDesimal,
+): number {
+  return bulatkanRupiah(new Decimal(qty).times(hargaSatuan).times(persen).div(100));
+}
+
 /** T2: harga satuan efektif = bulatkanRupiah(subtotal baris ÷ qty) (sudah bersih diskon baris). */
 export function hargaSatuanEfektif(subtotal: number, qty: NilaiDesimal): number {
   const q = new Decimal(qty);

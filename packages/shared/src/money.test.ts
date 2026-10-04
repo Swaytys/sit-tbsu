@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { bulatkanHarga, bulatkanRupiah, formatRupiah, hargaMarkup, persenKeRupiah } from './money';
+import {
+  bulatkanHarga,
+  bulatkanRupiah,
+  formatRupiah,
+  hargaMarkup,
+  marginPersen,
+  persenKeRupiah,
+  potonganPersenRupiah,
+} from './money';
 import { bandingQty, keQty, konversiQty, tambahQty } from './qty';
 
 describe('uang (docs/05 §1)', () => {
@@ -27,6 +35,19 @@ describe('uang (docs/05 §1)', () => {
     expect(hargaMarkup(50_000, '25.00', 100)).toBe(62_500);
     expect(hargaMarkup(43_210, '20', 100)).toBe(51_900); // 51.852 → 51.900
     expect(hargaMarkup(43_210, '0', 500)).toBe(43_500);
+  });
+
+  it('PR3 potongan promo persen dibulatkan sekali dari qty × harga × persen', () => {
+    // 0,5 × 201 × 50% = 50,25 → 50 (bukan 50% dari bruto 101 = 51).
+    expect(potonganPersenRupiah('0.5', 201, '50')).toBe(50);
+    expect(persenKeRupiah(bulatkanRupiah('100.5'), '50')).toBe(51);
+    expect(potonganPersenRupiah('3', 12_345, '12.5')).toBe(4629); // 4.629,375
+  });
+
+  it('H12 margin = (harga jual − D) ÷ harga jual, dua desimal; null bila harga 0', () => {
+    expect(marginPersen(48_900, 41_234)).toBe(15.68);
+    expect(marginPersen(52_600, 56_000)).toBe(-6.46);
+    expect(marginPersen(0, 1000)).toBeNull();
   });
 
   it('format Rp dengan titik ribuan', () => {
