@@ -1,4 +1,5 @@
-import { Hono } from 'hono';
+import { Hono, type MiddlewareHandler } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { csrf } from 'hono/csrf';
 import { secureHeaders } from 'hono/secure-headers';
 import { env } from './env';
@@ -99,6 +100,15 @@ app.use(
       origin === new URL(c.req.url).origin || env.ORIGIN_TAMBAHAN.includes(origin),
   }),
 );
+// Batas ukuran body JSON 1 MB (K-083); unggahan berkas punya batas sendiri di rutenya.
+const batasJson = bodyLimit({
+  maxSize: 1024 * 1024,
+  onError: (c) =>
+    c.json({ error: { kode: 'VALIDASI', pesan: 'Data yang dikirim terlalu besar.' } }, 413),
+});
+const batasJsonSaja: MiddlewareHandler<EnvApp> = async (c, next) =>
+  (c.req.header('content-type') ?? '').includes('json') ? batasJson(c, next) : next();
+app.use('/api/*', batasJsonSaja);
 app.use('/api/*', muatSesi);
 app.route('/api', rute);
 if (env.NODE_ENV === 'development') {

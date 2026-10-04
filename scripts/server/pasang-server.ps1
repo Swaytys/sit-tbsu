@@ -112,6 +112,11 @@ if (-not (Get-NetFirewallRule -DisplayName 'BonsaiUrip HTTPS' -ErrorAction Silen
   Write-Host 'Port 443 dan 80 dibuka untuk jaringan pribadi (Private/Domain).'
 }
 
+# Berkas rahasia (.env, kunci sertifikat) hanya bisa dibaca Administrator dan SYSTEM (K-083).
+foreach ($rahasia in @($envPath, (Join-Path $repo 'sertifikat'))) {
+  & icacls.exe $rahasia /inheritance:r /grant:r 'Administrators:(OI)(CI)F' 'SYSTEM:(OI)(CI)F' | Out-Null
+}
+
 Langkah '5. Menyalakan otomatis saat komputer menyala'
 $aksi = New-ScheduledTaskAction -Execute 'powershell.exe' -WorkingDirectory $repo `
   -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$repo\scripts\server\jalankan-server.ps1`" -Node `"$node`""

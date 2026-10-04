@@ -63,3 +63,8 @@ catalog:
 allowBuilds:
   esbuild: true
   argon2: true
+
+# Keamanan (K-083): exceljs 4.4.0 memakai uuid 8 (GHSA-w5hq-g745-h8pq, moderat). exceljs hanya memanggil
+# v4() lewat require CommonJS, yang tetap ada di uuid 11.
+overrides:
+  'uuid@<11.1.1': 11.1.1
