@@ -175,7 +175,7 @@ tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembe
 | Data Master › Data Pemasok | `master.pemasok.lihat` | |
 | Data Master › Data Pengguna | `master.pengguna.kelola` | Label "Owner Only" seperti mockup |
 | Data Master › Referensi Barang | `master.kategori.kelola` | Satu halaman bertab: Kategori, Merk, Satuan, Atribut |
-| Data Master › Harga Jual | `master.harga.kelola` | Tier dan harga per barang; M2 menambah tab Tinjau Harga |
+| Data Master › Harga Jual | `master.harga.kelola` | Tier dan harga per barang; tab Tinjau Harga butuh `master.harga.tinjau` + `master.barang.lihat_hpp` (K-086) |
 | Transaksi › Order Penjualan | `penjualan.order.buat` | Staf hanya melihat order miliknya kecuali `order.lihat_semua` |
 | Transaksi › Penjualan Langsung | `penjualan.checkout` | |
 | Transaksi › Penjualan Pengantaran | `penjualan.checkout` | Daftar invoice, detail, surat jalan, pembayaran |
@@ -251,3 +251,6 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-02 — Izin baru `penjualan.order.lepas_paksa` (Admin, Owner) untuk melepas kunci order kasir lain (K-070).
 - 2026-10-04 — §2: Laporan Nilai Persediaan memerlukan `laporan.persediaan` dan `laporan.laba` (K-081).
 - 2026-10-04 — Izin `sistem.cadangan.kelola` (Owner) untuk Pengaturan › Cadangan (K-084).
+- 2026-10-04 — Tinjau Harga (API dan tab) memerlukan `master.harga.tinjau` dan `master.barang.lihat_hpp`; persen markup
+  per barang dan margin hanya untuk `master.barang.lihat_hpp`; mengubah harga otomatis barang butuh
+  `master.harga.kelola` (K-086).
