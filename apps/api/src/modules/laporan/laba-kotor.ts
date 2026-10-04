@@ -573,7 +573,7 @@ export async function laporanLabaKotor(
             tingkat: 1,
             gaya: 'kurang',
           },
-          { label: 'Jumlah HPP', nilai: uang(ik.hpp), gaya: 'kurang' },
+          { label: 'Jumlah HPP', nilai: uang(-ik.hpp), gaya: 'subtotal' },
           { label: 'LABA KOTOR (GROSS PROFIT)', nilai: uang(ik.labaKotor), gaya: 'total' },
           { label: 'Margin laba kotor', nilai: persen(ik.margin), tingkat: 1 },
         ],

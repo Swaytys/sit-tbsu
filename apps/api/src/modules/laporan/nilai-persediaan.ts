@@ -172,6 +172,13 @@ function barisBerkategori(daftar: BarisNilaiPersediaan[], labelTotal: string): B
   return isi;
 }
 
+/** Nilai per kategori, urut nama kategori. */
+function perKategori(daftar: BarisNilaiPersediaan[]): [string, number][] {
+  const m = new Map<string, number>();
+  for (const b of daftar) m.set(b.namaKategori, (m.get(b.namaKategori) ?? 0) + b.nilai);
+  return [...m.entries()];
+}
+
 export async function laporanNilaiPersediaan(
   p: DataNilaiPersediaan,
   pelaku: PenggunaAktif,
@@ -184,15 +191,21 @@ export async function laporanNilaiPersediaan(
     bagian: [
       {
         jenis: 'ikhtisar',
-        judul: 'Ikhtisar',
+        judul: 'Ikhtisar per Kategori',
         baris: [
+          { label: 'Persediaan milik sendiri', gaya: 'judul' },
+          ...perKategori(h.milikSendiri).map(([kat, nilai]) => ({
+            label: kat,
+            nilai: uang(nilai),
+            tingkat: 1 as const,
+          })),
           {
-            label: `Persediaan milik sendiri (${h.milikSendiri.length} barang)`,
+            label: `Jumlah nilai persediaan milik sendiri (${h.milikSendiri.length} barang)`,
             nilai: uang(h.totalMilikSendiri),
             gaya: 'total',
           },
           {
-            label: `Barang titipan/konsinyasi — bukan aset toko (${h.titipan.length} barang)`,
+            label: `Barang titipan/konsinyasi — informasi, bukan aset toko (${h.titipan.length} barang)`,
             nilai: uang(h.totalTitipan),
             tingkat: 1,
           },

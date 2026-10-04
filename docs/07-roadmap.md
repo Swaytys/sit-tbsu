@@ -20,7 +20,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 4 | Inti persediaan | Selesai | 2026-10-01 |
 | 5 | Penjualan | Selesai | 2026-10-02 |
 | 6 | Koreksi dan kontrol | Selesai | 2026-10-03 |
-| 7 | Laporan dan dashboard | Belum | — |
+| 7 | Laporan dan dashboard | Selesai | 2026-10-04 |
 | 8 | Pengerasan dan deploy (akhir M1) | Belum | — |
 | 9 | Harga dan promo | Belum | — |
 | 10 | Hutang pemasok, retur pemasok, stok rusak | Belum | — |
@@ -240,6 +240,19 @@ notifikasi topbar (order basi, stok minimum, persetujuan menunggu, piutang jatuh
 Tes: angka laporan stok rekap = ledger; gross profit = Σ(harga jual − HPP snapshot) × qty − retur; Kasir tidak
 menerima kolom HPP.
 Selesai bila: 10 laporan cocok dengan data uji yang dihitung manual.
+
+Catatan penyelesaian (2026-10-04, branch `feat/07-laporan`):
+- 10 laporan (stok rekap, kartu stok, stok minimum, nilai persediaan, penjualan per periode, produk terlaris,
+  detail invoice, retur penjualan, gross profit, piutang) disusun API sebagai dokumen formal bergaya laporan
+  keuangan — kop, periode, ikhtisar, rincian, catatan, tanda tangan — yang sama untuk layar, cetak/PDF, dan
+  Excel (K-078, arahan pemilik). Tafsiran angka K-079; izin K-081.
+- Dashboard per peran: kartu ringkasan, grafik penjualan bersih 7 hari, pengingat persetujuan, aksi cepat,
+  aktivitas terkini (K-080). Notifikasi topbar sudah lengkap sejak Fase 5–6.
+- Tes: `apps/api/src/modules/laporan/laporan.test.ts` — data uji dua hari (saldo awal, penerimaan, 5 penjualan
+  termasuk diskon/ongkir/DP, void sebagian & penuh, retur refund/potong tagihan/tukar) dihitung manual dan
+  dicocokkan untuk ke-10 laporan; stok rekap = ledger; gross profit = Σ (harga jual − HPP snapshot) × qty − retur;
+  Kasir ditolak untuk laporan persediaan/laba dan tidak menerima HPP. Playwright: laporan & dashboard.
+- Usulan di luar fase dicatat di docs/08 (Sprint D).
 
 ### Fase 8 — Pengerasan dan deploy
 Deliverable: Playwright untuk 5 alur kritis; review keamanan dengan checklist (OWASP dasar: auth, otorisasi per

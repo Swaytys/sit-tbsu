@@ -105,7 +105,7 @@ export async function laporanDetailInvoice(
       qty(b.qty),
       teks(b.kodeSatuan),
       uang(b.hargaSatuan),
-      b.diskonBaris > 0 ? uang(b.diskonBaris) : KOSONG,
+      uang(b.diskonBaris),
       uang(b.subtotal),
       ...(adaStatusKhusus
         ? [

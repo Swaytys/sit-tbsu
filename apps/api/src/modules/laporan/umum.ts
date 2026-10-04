@@ -42,7 +42,7 @@ export function waktuTeks(iso: string | Date): string {
 function tandaTangan(pelaku: PenggunaAktif): TandaTanganLaporan[] {
   const dibuat = {
     label: 'Dibuat oleh',
-    jabatan: LABEL_PERAN[pelaku.peran],
+    jabatan: pelaku.peran === 'OWNER' ? 'Pemilik' : LABEL_PERAN[pelaku.peran],
     nama: pelaku.namaPengguna,
   };
   if (pelaku.peran === 'OWNER') return [dibuat];

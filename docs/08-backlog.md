@@ -66,6 +66,15 @@ Sprint pertama v2 dibuka dengan audit terarah; hasilnya daftar temuan berpriorit
 | Kenyamanan | Uji dengan pengguna nyata (waktu per tugas), tema warna & mode gelap, ukuran huruf, aksesibilitas, cetak. |
 | Ketahanan | Perilaku saat koneksi ke server putus (mini-PC toko), antrean ulang, pesan yang jelas. |
 
+Usulan dari Fase 7 (laporan):
+
+| # | Fitur | Catatan |
+|---|---|---|
+| D-L1 | **Analisis ABC/Pareto** di Laporan Produk Terlaris: kelas A (kumulatif ≤ 80%), B (≤ 95%), C, untuk prioritas stok & restock. | Kolom kumulatif sudah ada (K-079); tinggal klasifikasi + saringan per kelas. |
+| D-L2 | **Kartu stok untuk barang nonaktif**: pemilih barang di laporan ikut menampilkan barang nonaktif yang masih punya riwayat mutasi. | Sekarang hanya barang aktif yang bisa dicari (tautan langsung tetap bisa). |
+| D-L3 | **Laporan kas per shift / clerical periode**: rekap modal, penerimaan tunai, kas keluar, selisih per kasir per periode. | Data sudah ada (Fase 6); belum termasuk 10 laporan M1. |
+| D-L4 | Laporan dibandingkan periode sebelumnya (bulan ini vs bulan lalu) dan grafik tren di dokumen laporan. | |
+
 ---
 
 ## v2.0.0 — Sprint E: Stok opname dan pemilihan barang (masukan pemilik 2026-10-02)
@@ -117,3 +126,4 @@ Sprint pertama v2 dibuka dengan audit terarah; hasilnya daftar temuan berpriorit
 ## Riwayat
 
 - 2026-09-30 — Dibuat dari masukan pemilik setelah Fase 3 (K-062).
+- 2026-10-04 — Sprint D: usulan laporan D-L1–D-L4 dari Fase 7.

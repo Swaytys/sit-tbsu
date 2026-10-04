@@ -40,7 +40,7 @@ test('Owner menambah kasir; kasir wajib ganti password; Owner menonaktifkannya',
   await kasir.getByLabel('Ulangi password baru').fill('baru-e2e-1234');
   await kasir.getByRole('button', { name: 'Simpan password baru' }).click();
   await expect(kasir).toHaveURL(/\/dashboard$/);
-  await expect(kasir.getByRole('heading', { name: `Selamat datang, ${nama}` })).toBeVisible();
+  await expect(kasir.getByText(`Selamat datang, ${nama} (Kasir)`)).toBeVisible();
 
   // 3. Owner menonaktifkan kasir → sesi kasir langsung berakhir.
   await owner.getByRole('button', { name: `Aksi untuk ${nama}` }).click();

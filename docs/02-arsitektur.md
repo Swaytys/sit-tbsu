@@ -312,6 +312,10 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 ## Riwayat
 
 - 2026-09-19 — v1.
+- 2026-10-04 — Fase 7: laporan = `DokumenLaporan` disusun API (satu berkas per laporan di `modules/laporan/`),
+  dirender sama untuk layar, cetak, dan Excel (K-078); label enum bersama di `packages/shared/src/label.ts`,
+  helper tanggal kalender tanpa `Date` di `packages/shared/src/tanggal.ts`; grafik dashboard SVG tanpa
+  dependency baru (K-080).
 - 2026-10-02 — §5: cetak lewat `AreaCetak`, layar POS keyboard penuh, siaran perubahan antrean (K-073).
 - 2026-09-30 — Fase 2: kode error `WAJIB_GANTI_PASSWORD`, `TERLALU_BANYAK_PERCOBAAN` (§4); guard default dan
   `requireLogin` (§8) — K-054.
