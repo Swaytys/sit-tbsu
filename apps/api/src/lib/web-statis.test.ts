@@ -64,4 +64,13 @@ describe('header keamanan & CSRF (K-083)', () => {
     });
     expect(r.status).toBe(403);
   });
+
+  it('body JSON > 1 MB ditolak 413', async () => {
+    const r = await app.request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username: 'a', password: 'x'.repeat(1024 * 1024 + 10) }),
+    });
+    expect(r.status).toBe(413);
+  });
 });
