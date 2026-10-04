@@ -203,14 +203,15 @@ describe('ledger stok (docs/05 §2)', () => {
     expect((await terima(idSendiri, '0.333', 33333)).hppSetelah).toBe(12743); // 36.099,889 ÷ 2,833 = 12.742,6
   });
 
-  it('L6 penerimaan pembelian memperbarui harga beli terakhir dan menandai tinjau harga', async () => {
+  it('L6 penerimaan pembelian memperbarui harga beli terakhir (tanda tinjau diputuskan modul harga)', async () => {
     await terima(idSendiri, '1', 11000);
     expect(await stok(idSendiri)).toMatchObject({
       hargaBeliTerakhir: 11000,
       tanggalBeliTerakhir: TANGGAL,
     });
+    // H5/H7 dipicu oleh penerimaan lewat tanggapiPerubahanDasar() (K-086; tes di harga.test.ts).
     const [b] = await db.select().from(barang).where(eq(barang.id, idSendiri));
-    expect(b?.perluTinjauHarga).toBe(true);
+    expect(b?.perluTinjauHarga).toBe(false);
   });
 
   it('L7 barang konsinyasi: HPP selalu harga titip, harga beli terakhir tidak berubah', async () => {

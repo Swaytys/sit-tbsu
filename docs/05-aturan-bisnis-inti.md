@@ -37,7 +37,7 @@ catatMutasi(tx, {
 | L3 | Satu baris `mutasi_persediaan` per bucket per pergerakan. `saldo_setelah` = saldo bucket itu sesudah mutasi. `hpp_setelah` = `hpp_rata2` barang sesudah mutasi. |
 | L4 | **HPP rata-rata tertimbang** (K-008), hanya dihitung pada pergerakan **masuk ke bucket BAIK** barang MILIK_SENDIRI: `hpp_baru = bulatkanRupiah((saldo_lama × hpp_lama + qty_masuk × hpp_satuan) ÷ (saldo_lama + qty_masuk))`. Pergerakan keluar tidak mengubah HPP. Saat saldo menjadi 0, `hpp_rata2` dipertahankan (tidak direset ke 0). |
 | L5 | `hpp_satuan` per jenis: PENERIMAAN = `harga_modal_dasar`; SALDO_AWAL = input pengguna; RETUR_JUAL dan VOID = `hpp_saat_transaksi` baris penjualan; PENYESUAIAN masuk = `hpp_rata2` saat itu (HPP tidak berubah); PENJUALAN/TUKAR_RETUR/RETUR_PEMASOK/MUSNAH keluar = `hpp_rata2` saat itu (TUKAR_RETUR memakai HPP barang pengganti). |
-| L6 | `harga_beli_terakhir` dan `tanggal_beli_terakhir` hanya diperbarui oleh PENERIMAAN jenis PEMBELIAN (nilai `harga_modal_dasar` baris). Bila nilainya berubah, `barang.perlu_tinjau_harga = true` (docs/06 H5). |
+| L6 | `harga_beli_terakhir` dan `tanggal_beli_terakhir` hanya diperbarui oleh PENERIMAAN jenis PEMBELIAN (nilai `harga_modal_dasar` baris). Bila dasar markup `D` berubah karenanya, berlaku docs/06 H5/H7 (tanda perlu tinjau atau harga otomatis) di transaksi yang sama (K-086). |
 | L7 | Barang KONSINYASI: `hpp_rata2` selalu = `harga_titip` (bukan rata-rata). PENERIMAAN KONSINYASI tidak mengubah `harga_beli_terakhir`. Perubahan `harga_titip` di master memperbarui `hpp_rata2` barang itu (dicatat di log). |
 | L8 | Bucket RUSAK: M1 hanya jenis PINDAH_KONDISI (dari penyesuaian RUSAK) yang menulis ke bucket RUSAK. Halaman pengelolaan bucket RUSAK (retur pemasok, musnah) dibangun Fase 10. |
 | L9 | `hitungUlangCache(idBarang)`: menghitung `stok_fisik`, `stok_rusak`, `hpp_rata2` dari ledger dan membandingkan dengan `persediaan`. Dipakai tes dan perintah `pnpm db:audit` (Fase 4). Selisih apa pun = bug. |
@@ -216,7 +216,7 @@ Semua total laporan dihitung untuk seluruh periode di server (K-033); paginasi h
 
 ## 16. Aksi log aktivitas
 
-Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK, VOID_AJUKAN/SETUJUI/TOLAK, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN, PROMO_BUAT/UBAH, HARGA_TINJAU_TERAPKAN.
+Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK, VOID_AJUKAN/SETUJUI/TOLAK, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN, PROMO_BUAT/UBAH.
 
 ## Riwayat
 
@@ -231,3 +231,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-04 — §14: retur periode dan HPP retur tidak mencakup tukar barang (netral); tafsiran angka laporan
   lain dan format dokumen laporan di K-078–K-079.
 - 2026-10-04 — §16: aksi log CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084).
+- 2026-10-04 — L6 merujuk H5/H7; §16: aksi log HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086).

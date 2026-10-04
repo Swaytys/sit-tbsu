@@ -217,12 +217,10 @@ export async function catatMutasi(tx: Tx, m: InputMutasi): Promise<HasilMutasi> 
     ...(kondisi === 'BAIK' ? { stokFisik: saldoBaru } : { stokRusak: saldoBaru }),
   };
   if (m.jenis === 'PENERIMAAN' && m.pembelian) {
-    // L6: harga beli terakhir; perubahan nilai menandai barang untuk ditinjau harganya (H5).
+    // L6: harga beli terakhir. Akibatnya pada harga jual (tanda tinjau H5 / harga otomatis H7) diputuskan
+    // pemanggil lewat `tanggapiPerubahanDasar()` di transaksi yang sama (K-086).
     perubahan.hargaBeliTerakhir = hppSatuan;
     perubahan.tanggalBeliTerakhir = m.tanggalOperasional;
-    if (hppSatuan !== p.hargaBeliTerakhir || p.tanggalBeliTerakhir === null) {
-      await tx.update(barang).set({ perluTinjauHarga: true }).where(eq(barang.id, m.idBarang));
-    }
   }
   await tx.update(persediaan).set(perubahan).where(eq(persediaan.idBarang, m.idBarang));
 

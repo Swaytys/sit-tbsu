@@ -93,3 +93,8 @@ export function persenDari(bagian: number, total: number): number | null {
     .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
     .toNumber();
 }
+
+/** H12: margin = (harga jual − D) ÷ harga jual × 100, dua desimal; `null` bila harga jual 0. */
+export function marginPersen(hargaJual: number, dasar: number): number | null {
+  return persenDari(hargaJual - dasar, hargaJual);
+}

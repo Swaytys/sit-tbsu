@@ -3,8 +3,10 @@ import type {
   DataTingkatHarga,
   DetailBarang,
   BacaImportBarang,
+  InputAbaikanTinjau,
   InputProsesImport,
   InputSimpanHarga,
+  InputTerapkanTinjau,
   StatusAktif,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -100,6 +102,46 @@ export function useHapusGambar() {
 export function useSimpanHarga() {
   return useMutasi(['barang'], async (json: InputSimpanHarga) =>
     ambilData(await api['harga-barang'].$put({ json })),
+  );
+}
+
+// --- Tinjau Harga (docs/06 H6). Kunci kueri di bawah 'barang' agar ikut dimuat ulang setelah simpan. ---
+
+export type ParamTinjauHarga = {
+  cari: string;
+  idKategori: number | null;
+  halaman: number;
+  perHalaman: number;
+};
+
+export function useTinjauHarga(p: ParamTinjauHarga, aktif = true) {
+  return useQuery({
+    queryKey: ['barang', 'tinjau', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api['harga-barang'].tinjau.$get({
+          query: {
+            cari: p.cari || undefined,
+            idKategori: p.idKategori === null ? undefined : String(p.idKategori),
+            halaman: String(p.halaman),
+            perHalaman: String(p.perHalaman),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+    enabled: aktif,
+  });
+}
+
+export function useTerapkanTinjau() {
+  return useMutasi(['barang'], async (json: InputTerapkanTinjau) =>
+    ambilData(await api['harga-barang'].tinjau.terapkan.$post({ json })),
+  );
+}
+
+export function useAbaikanTinjau() {
+  return useMutasi(['barang'], async (json: InputAbaikanTinjau) =>
+    ambilData(await api['harga-barang'].tinjau.abaikan.$post({ json })),
   );
 }
 

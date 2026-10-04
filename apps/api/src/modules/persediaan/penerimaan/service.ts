@@ -15,9 +15,11 @@ import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { tanggalOperasional } from '../../../lib/waktu';
 import { catatKas, shiftBuka } from '../../kas/shift/service';
+import { kunciBarangHarga } from '../../master/harga/repo';
+import { petaDasar, tanggapiPerubahanDasar } from '../../master/harga/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
-import { catatMutasi } from '../ledger';
+import { catatMutasi, kunciPersediaan } from '../ledger';
 import * as repo from './repo';
 
 /*
@@ -130,6 +132,13 @@ export async function simpanPenerimaan(
       return { ...b, brg, qty, harga, subtotal: subtotalRupiah(qty, harga) };
     });
 
+    // Urutan kunci baku barang → persediaan (berurutan id, K-086) agar tidak saling mengunci dengan
+    // simpan harga, ubah barang, atau penerimaan lain. D sebelum penerimaan untuk pemicu H5/H7.
+    const idUnik = [...new Set(baris.map((b) => b.idBarang))].sort((a, b) => a - b);
+    await kunciBarangHarga(tx, idUnik);
+    for (const idBarang of idUnik) await kunciPersediaan(tx, idBarang);
+    const dasarSebelum = konsinyasi ? null : await petaDasar(tx, idUnik);
+
     const totalFaktur = konsinyasi ? 0 : baris.reduce((t, b) => t + b.subtotal, 0);
     const tunai = !konsinyasi && input.syaratBayar === 'TUNAI';
     const statusHutang: StatusHutang = konsinyasi
@@ -176,6 +185,15 @@ export async function simpanPenerimaan(
         idPengguna: pelaku.id,
         tanggalOperasional: tanggal,
         keterangan: `Terima dari ${pms.nama} (${nomor})`,
+      });
+    }
+    // H5/H7 (L6): harga beli baru → tanda perlu tinjau atau harga otomatis, di transaksi yang sama.
+    if (dasarSebelum) {
+      await tanggapiPerubahanDasar(tx, dasarSebelum, {
+        sebab: `penerimaan ${nomor}`,
+        idPengguna: pelaku.id,
+        ip: asal.ip,
+        nomorDokumen: nomor,
       });
     }
 

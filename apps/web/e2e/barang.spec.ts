@@ -69,17 +69,33 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
   await page.getByLabel('Cari barang').fill(nama);
   await expect(baris).toContainText('Perlu tinjau harga');
 
-  // Harga Jual: ubah Grosir menjadi harga tetap, simpan → tanda lepas.
+  // Tinjau Harga (H6): usulan dari dasar baru 45.000; terapkan tanpa mengganti harga Normal.
   await menuUtama(page).getByRole('link', { name: 'Harga Jual' }).click();
   await expect(page.getByRole('heading', { name: 'Harga Jual' })).toBeVisible();
-  await page.getByLabel('Cari barang').fill(nama);
+  await page.getByRole('tab', { name: /Tinjau Harga/ }).click();
+  await page.getByLabel('Cari barang ditinjau').fill(nama);
+  const barisTinjau = page.getByRole('row').filter({ hasText: nama });
+  await expect(barisTinjau).toContainText('Rp 49.500→Rp 54.000'); // Grosir 45.000 × 1,2
+  await expect(barisTinjau).toContainText('Rp 55.000→Rp 56.300'); // usulan Normal (K-086)
+  await page.getByRole('switch', { name: /Ganti juga harga Normal/ }).click();
+  await barisTinjau.getByRole('button', { name: 'Terapkan', exact: true }).click();
+  await expect(page.getByText(/Usulan harga 1 barang diterapkan/)).toBeVisible();
+  await expect(barisTinjau).toHaveCount(0);
+
+  // Harga per tier: Grosir sudah 54.000 dan Normal tetap; ubah Grosir menjadi harga tetap.
+  await page.getByRole('tab', { name: 'Harga per tier' }).click();
+  await page.getByLabel('Cari barang', { exact: true }).fill(nama);
   const barisHarga = page.getByRole('row').filter({ hasText: nama });
-  await expect(barisHarga).toContainText('Perlu tinjau');
-  await page.getByLabel(`Harga Grosir ${nama}`).fill('50000');
+  await expect(barisHarga).not.toContainText('Perlu tinjau');
+  await expect(page.getByLabel(`Harga Normal ${nama}`, { exact: true })).toHaveValue('55.000');
+  await expect(page.getByLabel(`Harga Grosir ${nama}`, { exact: true })).toHaveText('Rp 54.000');
+  await page.getByRole('button', { name: `Metode harga Grosir ${nama}` }).click();
+  await page.getByRole('menuitemradio', { name: 'Harga tetap (Rp)' }).click();
+  await expect(page.getByLabel(`Harga Grosir ${nama}`, { exact: true })).toHaveValue('54.000');
+  await page.getByLabel(`Harga Grosir ${nama}`, { exact: true }).fill('50000');
   await page.getByRole('button', { name: 'Simpan perubahan (1)' }).click();
   await expect(page.getByText('Harga 1 barang disimpan (1 harga berubah).')).toBeVisible();
-  await expect(barisHarga).not.toContainText('Perlu tinjau');
-  await expect(page.getByLabel(`Harga Grosir ${nama}`)).toHaveValue('50.000');
+  await expect(page.getByLabel(`Harga Grosir ${nama}`, { exact: true })).toHaveValue('50.000');
 
   // Kelola tier: tier default ditandai.
   await page.getByRole('button', { name: 'Kelola tier' }).click();

@@ -63,11 +63,30 @@ export const skemaAtributBarang = z.object({
 });
 export type InputAtributBarang = z.input<typeof skemaAtributBarang>;
 
-/** Harga satu tier: angka = TETAP; `null` = IKUT_TIER (dihitung dari markup default tier, K-047). */
-export const skemaHargaTier = z.object({
+/**
+ * Harga satu tier (docs/06 H4): `hargaTetap` angka = TETAP; `markupPersen` diisi = MARKUP (persen sendiri
+ * untuk barang ini); keduanya kosong = IKUT_TIER (markup default tier, K-047).
+ */
+const bentukHargaTier = z.object({
   idTingkatHarga: idWajib('Tier wajib dipilih.'),
   hargaTetap: skemaRupiah.nullable(),
+  markupPersen: skemaPersen.nullable().optional(),
 });
+
+function cekHargaTier(
+  h: { hargaTetap: number | null; markupPersen?: string | null | undefined },
+  ctx: z.RefinementCtx,
+): void {
+  if (h.hargaTetap !== null && h.markupPersen !== null && h.markupPersen !== undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['markupPersen'],
+      message: 'Pilih salah satu: harga tetap atau markup persen.',
+    });
+  }
+}
+
+export const skemaHargaTier = bentukHargaTier.superRefine(cekHargaTier);
 export type InputHargaTier = z.input<typeof skemaHargaTier>;
 
 // --- Barang ---
@@ -99,6 +118,11 @@ export const skemaBarang = z
     atribut: z.array(skemaAtributBarang).max(30, 'Maksimal 30 atribut.').default([]),
     /** Wajib saat tambah (tier default harus TETAP). Saat ubah: tidak dikirim = harga tidak diubah. */
     hargaTier: z.array(skemaHargaTier).optional(),
+    /**
+     * H7: harga IKUT_TIER/MARKUP mengikuti perubahan dasar secara otomatis (naik langsung, turun ditinjau;
+     * K-086). Tidak dikirim = tetap (barang baru: tidak otomatis). Mengubahnya butuh `master.harga.kelola`.
+     */
+    hargaOtomatis: z.boolean().optional(),
   })
   .superRefine((d, ctx) => {
     if (d.kepemilikan === 'KONSINYASI') {
@@ -145,6 +169,10 @@ export type HargaTierBarang = {
   metode: MetodeHarga;
   hargaTetap: number | null;
   hargaJual: number;
+  /** Persen markup sendiri (metode MARKUP); hanya untuk pemegang `master.barang.lihat_hpp`. */
+  markupPersen?: string | null;
+  /** H12: (harga jual − D) ÷ harga jual dalam persen, 2 desimal; hanya untuk `master.barang.lihat_hpp`. */
+  margin?: number | null;
 };
 
 /** Baris daftar barang. Kolom bertanda `?` hanya untuk pemegang `master.barang.lihat_hpp`. */
@@ -168,6 +196,8 @@ export type BarisBarang = {
   idPemasokKonsinyasi: number | null;
   namaPemasokKonsinyasi: string | null;
   perluTinjauHarga: boolean;
+  /** H7: harga IKUT_TIER/MARKUP mengikuti dasar markup secara otomatis. */
+  hargaOtomatis: boolean;
   /** URL gambar (dilayani API dengan izin), `null` bila belum ada. */
   gambar: string | null;
   statusAktif: StatusAktif;
@@ -203,11 +233,77 @@ export type DetailBarang = BarisBarang & {
 
 export const skemaSimpanHarga = z.object({
   perubahan: z
-    .array(skemaHargaTier.extend({ idBarang: idWajib('Barang tidak valid.') }))
+    .array(
+      bentukHargaTier
+        .extend({ idBarang: idWajib('Barang tidak valid.') })
+        .superRefine(cekHargaTier),
+    )
     .min(1, 'Tidak ada perubahan harga.')
     .max(1000, 'Maksimal 1000 perubahan sekali simpan.'),
 });
 export type InputSimpanHarga = z.input<typeof skemaSimpanHarga>;
+export type DataSimpanHarga = z.output<typeof skemaSimpanHarga>;
+
+// --- Tinjau Harga (docs/06 H6, K-086) ---
+
+export const skemaCariTinjauHarga = skemaHalaman.extend({
+  cari: z.string().trim().max(100).optional(),
+  idKategori: z.coerce.number().int().positive().optional(),
+});
+export type ParamCariTinjauHarga = z.input<typeof skemaCariTinjauHarga>;
+
+/** Satu tier di baris Tinjau Harga. Semua angka dihitung API (hanya untuk pemegang lihat_hpp). */
+export type TierTinjauHarga = {
+  idTingkatHarga: number;
+  namaTier: string;
+  isDefault: boolean;
+  metode: MetodeHarga;
+  /** Persen yang dipakai usulan: markup tier (IKUT_TIER dan tier default) atau markup barang (MARKUP). */
+  markupPersen: string | null;
+  hargaSekarang: number;
+  /** D saat harga sekarang dihitung (IKUT_TIER/MARKUP); `null` untuk TETAP. */
+  dasarLama: number | null;
+  /** Harga usulan (H4); `null` = tanpa usulan (harga tetap tier selain default). */
+  hargaUsulan: number | null;
+  /** Margin harga sekarang dan usulan terhadap dasar baru (H12). */
+  marginSekarang: number | null;
+  marginUsulan: number | null;
+};
+
+export type BarisTinjauHarga = {
+  id: number;
+  kode: string;
+  namaBarang: string;
+  namaKategori: string;
+  kodeSatuan: string;
+  kepemilikan: Kepemilikan;
+  hargaOtomatis: boolean;
+  /** Dasar markup `D` sekarang (H3). */
+  dasarBaru: number;
+  tier: TierTinjauHarga[];
+};
+
+export const skemaTerapkanTinjau = z.object({
+  /** `dasar` = dasar baru yang terlihat di layar; bila sudah berubah, penerapan ditolak (muat ulang). */
+  barang: z
+    .array(z.object({ idBarang: idWajib('Barang tidak valid.'), dasar: skemaRupiah }))
+    .min(1, 'Pilih barang yang akan diterapkan.')
+    .max(1000, 'Maksimal 1000 barang sekali terapkan.'),
+  /** Usulan tier default ikut menggantikan harga tetapnya (K-086). */
+  termasukTierDefault: z.boolean().default(true),
+});
+export type InputTerapkanTinjau = z.input<typeof skemaTerapkanTinjau>;
+export type DataTerapkanTinjau = z.output<typeof skemaTerapkanTinjau>;
+
+export const skemaAbaikanTinjau = z.object({
+  idBarang: z
+    .array(idWajib('Barang tidak valid.'))
+    .min(1, 'Pilih barang yang akan diabaikan.')
+    .max(1000, 'Maksimal 1000 barang sekali abaikan.'),
+});
+export type InputAbaikanTinjau = z.input<typeof skemaAbaikanTinjau>;
+
+export type HasilTinjauHarga = { jumlahBarang: number; jumlahPerubahan: number };
 
 // --- Tingkat harga (tier) ---
 

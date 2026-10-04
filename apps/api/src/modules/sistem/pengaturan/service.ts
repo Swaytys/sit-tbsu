@@ -14,6 +14,8 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { bacaGambar, hapusBerkas, simpanGambar } from '../../../lib/penyimpanan';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang } from '../../../lib/waktu';
+import { barangBerformula } from '../../master/harga/repo';
+import { konteksDari, tanggapiPemicuHarga } from '../../master/harga/service';
 import { invalidasiKonfigurasi, semuaNilai } from '../konfigurasi/service';
 import { catatLog } from '../log-aktivitas';
 import * as repo from './repo';
@@ -165,19 +167,44 @@ export async function ubahPengaturan(
   if (berubah.length === 0) return dariKonfigurasi(lama);
 
   const waktu = sekarang();
-  await dalamTransaksi(async (tx) => {
-    for (const entri of berubah) await repo.simpanKonfigurasi(tx, entri, waktu);
-    await catatLog(tx, {
-      aksi: 'PENGATURAN_UBAH',
-      idPengguna: pelaku.id,
-      entitas: 'konfigurasi',
-      ringkasan: `Mengubah pengaturan: ${berubah.map((e) => e.kode).join(', ')}`,
-      dataLama: Object.fromEntries(berubah.map((e) => [e.kode, lama.get(e.kode) ?? null])),
-      dataBaru: Object.fromEntries(berubah.map((e) => [e.kode, e.nilai])),
-      ip: asal.ip,
+  const aturanHargaBerubah = berubah.some(
+    (e) => e.kode === 'dasar_markup' || e.kode === 'pembulatan_harga',
+  );
+  try {
+    await dalamTransaksi(async (tx) => {
+      for (const entri of berubah) await repo.simpanKonfigurasi(tx, entri, waktu);
+      let ringkasHarga = '';
+      if (aturanHargaBerubah) {
+        // H5/H7 (K-086): harga yang dihitung dari markup ditinjau ulang dengan aturan baru, di
+        // transaksi yang sama. Konteks diambil dari nilai baru (cache konfigurasi belum diperbarui).
+        const baru = new Map([...lama, ...berubah.map((e) => [e.kode, e.nilai] as const)]);
+        const hasil = await tanggapiPemicuHarga(tx, await barangBerformula(tx), {
+          sebab: 'aturan harga di Pengaturan diubah',
+          idPengguna: pelaku.id,
+          ip: asal.ip,
+          tandaiBilaBerubah: true,
+          konteks: konteksDari(
+            angka(baru, 'pembulatan_harga', 100),
+            teks(baru, 'dasar_markup', 'HARGA_BELI_TERAKHIR'),
+          ),
+        });
+        if (hasil.ditandai > 0) ringkasHarga += `; ${hasil.ditandai} barang perlu tinjau harga`;
+        if (hasil.diterapkan > 0)
+          ringkasHarga += `; harga otomatis ${hasil.diterapkan} barang naik`;
+      }
+      await catatLog(tx, {
+        aksi: 'PENGATURAN_UBAH',
+        idPengguna: pelaku.id,
+        entitas: 'konfigurasi',
+        ringkasan: `Mengubah pengaturan: ${berubah.map((e) => e.kode).join(', ')}${ringkasHarga}`,
+        dataLama: Object.fromEntries(berubah.map((e) => [e.kode, lama.get(e.kode) ?? null])),
+        dataBaru: Object.fromEntries(berubah.map((e) => [e.kode, e.nilai])),
+        ip: asal.ip,
+      });
     });
-  });
-  invalidasiKonfigurasi();
+  } finally {
+    invalidasiKonfigurasi();
+  }
   return bacaPengaturan();
 }
 
