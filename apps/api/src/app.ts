@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
+import { secureHeaders } from 'hono/secure-headers';
 import { env } from './env';
 import type { EnvApp } from './lib/konteks';
+import { webStatis } from './lib/web-statis';
 import { muatSesi } from './middleware/auth';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { requestLog } from './middleware/request-log';
@@ -68,12 +70,43 @@ const rute = new Hono<EnvApp>()
 
 export const app = new Hono<EnvApp>();
 app.use(requestLog);
+// Header keamanan (OWASP, K-083): CSP hanya sumber sendiri, larang dibingkai situs lain, HSTS bila HTTPS.
+app.use(
+  secureHeaders({
+    contentSecurityPolicy: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      // React memakai atribut style dan dokumen cetak menyisipkan <style>.
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      fontSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+    strictTransportSecurity: env.HTTPS_PFX ? 'max-age=15552000' : false,
+    xFrameOptions: 'DENY',
+    referrerPolicy: 'same-origin',
+  }),
+);
 // CSRF: tolak POST/PUT/PATCH/DELETE bergaya form dari origin lain (CLAUDE.md § Keamanan).
-app.use('/api/*', csrf());
+app.use(
+  '/api/*',
+  csrf({
+    origin: (origin, c) =>
+      origin === new URL(c.req.url).origin || env.ORIGIN_TAMBAHAN.includes(origin),
+  }),
+);
 app.use('/api/*', muatSesi);
 app.route('/api', rute);
 if (env.NODE_ENV === 'development') {
   app.route('/api/auth', authDevRoutes);
+}
+// Produksi: API dan aplikasi web disajikan dari satu port (docs/02 §12).
+if (env.NODE_ENV === 'production') {
+  for (const m of webStatis(env.WEB_DIST)) app.use('*', m);
 }
 app.notFound(notFoundHandler);
 app.onError(errorHandler);

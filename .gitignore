@@ -22,3 +22,8 @@ storage/
 *.log
 .DS_Store
 Thumbs.db
+
+# Server toko (Fase 8): kunci sertifikat HTTPS, log, dan uji produksi lokal
+sertifikat/
+log/
+.uji-produksi/

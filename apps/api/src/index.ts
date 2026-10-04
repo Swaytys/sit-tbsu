@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { createServer as createServerHttp } from 'node:http';
+import { createServer as createServerHttps } from 'node:https';
 import { serve } from '@hono/node-server';
 import { app } from './app';
 import { pool } from './db/client';
@@ -5,9 +8,44 @@ import { env } from './env';
 import { logger } from './lib/logger';
 import { jalankanJobOrder } from './modules/penjualan/order/service';
 
-const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
-  logger.info(`API berjalan di http://localhost:${info.port}`);
-});
+const pfx = env.HTTPS_PFX;
+const https = pfx !== undefined;
+const skema = https ? 'https' : 'http';
+
+const server =
+  pfx !== undefined
+    ? serve(
+        {
+          fetch: app.fetch,
+          port: env.PORT,
+          createServer: createServerHttps,
+          serverOptions: {
+            pfx: readFileSync(pfx),
+            ...(env.HTTPS_PFX_PASSWORD ? { passphrase: env.HTTPS_PFX_PASSWORD } : {}),
+          },
+        },
+        (info) => logger.info(`Server berjalan di ${skema}://localhost:${info.port}`),
+      )
+    : serve({ fetch: app.fetch, port: env.PORT }, (info) =>
+        logger.info(`Server berjalan di ${skema}://localhost:${info.port}`),
+      );
+
+if (env.NODE_ENV === 'production' && !https) {
+  logger.warn(
+    'Produksi tanpa HTTPS: cookie sesi (Secure) hanya berfungsi di localhost. Isi HTTPS_PFX (K-082).',
+  );
+}
+
+/** Port HTTP yang hanya mengalihkan pengunjung ke alamat HTTPS yang sama. */
+const pengalih =
+  https && env.PORT_HTTP_ALIH
+    ? createServerHttp((req, res) => {
+        const host = (req.headers.host ?? 'localhost').replace(/:\d+$/, '');
+        const port = env.PORT === 443 ? '' : `:${env.PORT}`;
+        res.writeHead(301, { Location: `https://${host}${port}${req.url ?? '/'}` });
+        res.end();
+      }).listen(env.PORT_HTTP_ALIH)
+    : null;
 
 /** Job order basi & kunci kadaluarsa (docs/05 R7, R8) tiap 15 menit. */
 const LIMA_BELAS_MENIT = 15 * 60 * 1000;
@@ -23,6 +61,7 @@ const job = setInterval(() => {
 function berhenti(sinyal: string): void {
   logger.info(`${sinyal} diterima, server dihentikan.`);
   clearInterval(job);
+  pengalih?.close();
   server.close(() => {
     void pool.end().finally(() => process.exit(0));
   });

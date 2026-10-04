@@ -20,6 +20,30 @@ const skemaEnv = z.object({
     .string()
     .min(1)
     .default(fileURLToPath(new URL('../../../storage', import.meta.url))),
+  // --- Produksi (Fase 8, K-082) ---
+  // Hasil build web yang disajikan API di produksi (satu port untuk API + aplikasi).
+  WEB_DIST: z
+    .string()
+    .min(1)
+    .default(fileURLToPath(new URL('../../web/dist', import.meta.url))),
+  // HTTPS: sertifikat .pfx buatan scripts/server/buat-sertifikat.ps1 (cookie Secure butuh HTTPS).
+  HTTPS_PFX: z.string().min(1).optional(),
+  HTTPS_PFX_PASSWORD: z.string().optional(),
+  // Port HTTP yang hanya mengalihkan ke HTTPS (mis. 80). Kosong = tidak ada.
+  PORT_HTTP_ALIH: z.coerce.number().int().positive().optional(),
+  // Log ke berkas (diputar saat server menyala bila > 10 MB, simpan 5 berkas lama). Kosong = stdout.
+  LOG_FILE: z.string().min(1).optional(),
+  // Origin lain yang sah untuk permintaan POST/PATCH/DELETE (CSRF), dipisah koma; mis. alamat Tailscale
+  // https://server-toko.tailxxxx.ts.net:8443 saat diakses lewat proxy `tailscale serve`.
+  ORIGIN_TAMBAHAN: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((x) => x.trim().replace(/\/$/, ''))
+        .filter(Boolean),
+    ),
 });
 
 const hasil = skemaEnv.safeParse(process.env);
