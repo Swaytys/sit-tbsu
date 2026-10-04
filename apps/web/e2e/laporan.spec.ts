@@ -54,7 +54,7 @@ test('Admin: laporan penjualan & gross profit hari ini, ekspor Excel, cetak terc
     const daftar = admin.getByRole('navigation', { name: 'Daftar laporan' });
     await daftar.getByRole('button', { name: 'Penjualan per Periode' }).click();
     await expect(
-      admin.getByRole('heading', { name: 'Laporan Penjualan per Periode' }),
+      admin.getByRole('heading', { name: 'Laporan Penjualan per Periode' }).first(),
     ).toBeVisible();
     await admin.getByRole('button', { name: 'Hari ini' }).click();
     const dokumen = admin.getByTestId('dokumen-laporan');
@@ -63,7 +63,7 @@ test('Admin: laporan penjualan & gross profit hari ini, ekspor Excel, cetak terc
 
     await daftar.getByRole('button', { name: 'Gross Profit (Laba Kotor)' }).click();
     await expect(
-      admin.getByRole('heading', { name: 'Laporan Gross Profit Penjualan' }),
+      admin.getByRole('heading', { name: 'Laporan Gross Profit Penjualan' }).first(),
     ).toBeVisible();
     await admin.getByRole('button', { name: 'Hari ini' }).click();
     // Baris barang uji: penjualan 100.000, HPP 80.000, laba kotor 20.000, margin 20%.
@@ -92,7 +92,9 @@ test('Kasir hanya melihat laporan penjualan & piutang; laporan laba dialihkan', 
 }) => {
   await masukCepat(page, 'KASIR');
   await page.goto('/laporan?laporan=laba-kotor');
-  await expect(page.getByRole('heading', { name: 'Laporan Penjualan per Periode' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Laporan Penjualan per Periode' }).first(),
+  ).toBeVisible();
   const daftar = page.getByRole('navigation', { name: 'Daftar laporan' });
   await expect(daftar.getByRole('button', { name: 'Piutang Usaha' })).toBeVisible();
   await expect(daftar.getByRole('button', { name: 'Stok Rekap' })).toHaveCount(0);
