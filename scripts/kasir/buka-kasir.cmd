@@ -13,11 +13,13 @@ rem       "Biarkan Windows mengatur printer bawaan".
 rem    3. Klik dua kali skrip ini (atau buat shortcut-nya di desktop kasir).
 rem
 rem  Pemakaian:  buka-kasir.cmd [alamat]
-rem    alamat bawaan: http://localhost:5173/penjualan-langsung
+rem    alamat diambil dari argumen, atau baris pertama alamat-server.txt di folder ini
+rem    (mis. https://SERVER-TOKO/penjualan-langsung), atau bawaan http://localhost:5173/penjualan-langsung
 rem ============================================================================================
 
 setlocal
 set "ALAMAT=%~1"
+if "%ALAMAT%"=="" if exist "%~dp0alamat-server.txt" set /p ALAMAT=<"%~dp0alamat-server.txt"
 if "%ALAMAT%"=="" set "ALAMAT=http://localhost:5173/penjualan-langsung"
 set "PROFIL=%LOCALAPPDATA%\BonsaiUrip\peramban-kasir"
 
