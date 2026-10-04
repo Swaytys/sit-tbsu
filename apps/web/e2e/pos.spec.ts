@@ -42,83 +42,87 @@ async function bukaShift(kasir: Page) {
   }); // 409 bila sudah terbuka: diabaikan
 }
 
-test('Staf input order cepat → tiket muncul di kasir tanpa reload → kasir bayar dengan keyboard', async ({
-  browser,
-}) => {
-  const kode = Date.now();
-  const admin = await browser.newPage();
-  await masukCepat(admin, 'ADMIN');
-  const paku = await barangUji(admin, `Paku POS ${kode}`, 2000);
-  const semen = await barangUji(admin, `Semen POS ${kode}`, 62000);
-  try {
-    const kasir = await browser.newPage();
-    // Catat isi dokumen yang dicetak (window.print) agar terbukti struk benar-benar dicetak.
-    await kasir.addInitScript(() => {
-      window.print = () => {
-        document.body.dataset.terakhirDicetak =
-          document.querySelector('.area-cetak')?.textContent ?? '';
-      };
-    });
-    await masukCepat(kasir, 'KASIR');
-    await bukaShift(kasir);
-    await kasir.goto('/penjualan-langsung');
-    await expect(kasir.getByTestId('total-pos')).toBeVisible();
+test(
+  'Staf input order cepat → tiket muncul di kasir tanpa reload → kasir bayar dengan keyboard',
+  { tag: '@kritis' },
+  async ({ browser }) => {
+    const kode = Date.now();
+    const admin = await browser.newPage();
+    await masukCepat(admin, 'ADMIN');
+    const paku = await barangUji(admin, `Paku POS ${kode}`, 2000);
+    const semen = await barangUji(admin, `Semen POS ${kode}`, 62000);
+    try {
+      const kasir = await browser.newPage();
+      // Catat isi dokumen yang dicetak (window.print) agar terbukti struk benar-benar dicetak.
+      await kasir.addInitScript(() => {
+        window.print = () => {
+          document.body.dataset.terakhirDicetak =
+            document.querySelector('.area-cetak')?.textContent ?? '';
+        };
+      });
+      await masukCepat(kasir, 'KASIR');
+      await bukaShift(kasir);
+      await kasir.goto('/penjualan-langsung');
+      await expect(kasir.getByTestId('total-pos')).toBeVisible();
 
-    // Staf: halaman Order Penjualan langsung siap input; semua dengan keyboard.
-    const staf = await browser.newPage();
-    await masukCepat(staf, 'STAF_PENJUALAN');
-    await staf.goto('/order');
-    await expect(staf.getByLabel('Cari barang')).toBeFocused();
-    await staf.keyboard.type(`3*Paku POS ${kode}`);
-    await expect(staf.getByRole('option', { name: new RegExp(`Paku POS ${kode}`) })).toBeVisible();
-    await staf.keyboard.press('Enter');
-    await staf.keyboard.type(`Semen POS ${kode}`);
-    await staf.keyboard.press('Enter'); // Enter cepat: tetap ditambah walau hasil belum tampil
-    await expect(staf.getByTestId('total-order')).toHaveText('Rp 68.000');
-    await staf.keyboard.press('Enter'); // kotak kosong → siap kirim
-    await staf.keyboard.press('Enter'); // kirim
-    const terakhir = staf.getByTestId('order-terakhir');
-    await expect(terakhir).toBeVisible();
-    const noAntrean = (await terakhir.locator('span').nth(1).textContent())?.trim() ?? '';
-    expect(noAntrean).toMatch(/^\d+$/);
-    await expect(staf.getByLabel('Cari barang')).toBeFocused();
+      // Staf: halaman Order Penjualan langsung siap input; semua dengan keyboard.
+      const staf = await browser.newPage();
+      await masukCepat(staf, 'STAF_PENJUALAN');
+      await staf.goto('/order');
+      await expect(staf.getByLabel('Cari barang')).toBeFocused();
+      await staf.keyboard.type(`3*Paku POS ${kode}`);
+      await expect(
+        staf.getByRole('option', { name: new RegExp(`Paku POS ${kode}`) }),
+      ).toBeVisible();
+      await staf.keyboard.press('Enter');
+      await staf.keyboard.type(`Semen POS ${kode}`);
+      await staf.keyboard.press('Enter'); // Enter cepat: tetap ditambah walau hasil belum tampil
+      await expect(staf.getByTestId('total-order')).toHaveText('Rp 68.000');
+      await staf.keyboard.press('Enter'); // kotak kosong → siap kirim
+      await staf.keyboard.press('Enter'); // kirim
+      const terakhir = staf.getByTestId('order-terakhir');
+      await expect(terakhir).toBeVisible();
+      const noAntrean = (await terakhir.locator('span').nth(1).textContent())?.trim() ?? '';
+      expect(noAntrean).toMatch(/^\d+$/);
+      await expect(staf.getByLabel('Cari barang')).toBeFocused();
 
-    // Kasir: tiket muncul sendiri (siaran) dengan isi barang terbaca.
-    const tiket = kasir.getByRole('option', { name: `Antrean ${noAntrean}` });
-    await expect(tiket).toContainText(`Paku POS ${kode}`);
-    await expect(tiket).toContainText('3 sak');
-    await expect(tiket).toContainText('Rp 68.000');
+      // Kasir: tiket muncul sendiri (siaran) dengan isi barang terbaca.
+      const tiket = kasir.getByRole('option', { name: `Antrean ${noAntrean}` });
+      await expect(tiket).toContainText(`Paku POS ${kode}`);
+      await expect(tiket).toContainText('3 sak');
+      await expect(tiket).toContainText('Rp 68.000');
 
-    // F3 → antrean; ketik nomor antrean + Enter → order terbuka & kursor di kotak bayar.
-    await kasir.keyboard.press('F3');
-    await kasir.keyboard.type(noAntrean);
-    await kasir.keyboard.press('Enter');
-    await expect(kasir.getByTestId('total-pos')).toHaveText('Rp 68.000');
-    await expect(kasir.getByLabel('Bayar')).toBeFocused();
-    await kasir.keyboard.type('100000');
-    await expect(kasir.getByTestId('kembalian')).toHaveText('Rp 32.000');
-    await kasir.keyboard.press('Enter');
-    const hasil = kasir.getByTestId('hasil-transaksi');
-    await expect(hasil).toContainText('LUNAS');
-    await expect(hasil).toContainText('Rp 32.000');
-    await expect(kasir.getByRole('option', { name: `Antrean ${noAntrean}` })).toHaveCount(0);
-    // Struk tercetak otomatis: nomor STR, barang, total, kembalian.
-    await expect
-      .poll(() => kasir.evaluate(() => document.body.dataset.terakhirDicetak ?? ''))
-      .toMatch(/STR-\d{6}-\d{3,}/);
-    const struk = await kasir.evaluate(() => document.body.dataset.terakhirDicetak ?? '');
-    expect(struk).toContain(`Paku POS ${kode}`);
-    expect(struk).toContain('Rp 68.000');
-    expect(struk).toContain('Rp 32.000');
+      // F3 → antrean; ketik nomor antrean + Enter → order terbuka & kursor di kotak bayar.
+      await kasir.keyboard.press('F3');
+      await kasir.keyboard.type(noAntrean);
+      await kasir.keyboard.press('Enter');
+      await expect(kasir.getByTestId('total-pos')).toHaveText('Rp 68.000');
+      await expect(kasir.getByLabel('Bayar')).toBeFocused();
+      await kasir.keyboard.type('100000');
+      await expect(kasir.getByTestId('kembalian')).toHaveText('Rp 32.000');
+      await kasir.keyboard.press('Enter');
+      const hasil = kasir.getByTestId('hasil-transaksi');
+      await expect(hasil).toContainText('LUNAS');
+      await expect(hasil).toContainText('Rp 32.000');
+      await expect(kasir.getByRole('option', { name: `Antrean ${noAntrean}` })).toHaveCount(0);
+      // Struk tercetak otomatis: nomor STR, barang, total, kembalian.
+      await expect
+        .poll(() => kasir.evaluate(() => document.body.dataset.terakhirDicetak ?? ''))
+        .toMatch(/STR-\d{6}-\d{3,}/);
+      const struk = await kasir.evaluate(() => document.body.dataset.terakhirDicetak ?? '');
+      expect(struk).toContain(`Paku POS ${kode}`);
+      expect(struk).toContain('Rp 68.000');
+      expect(struk).toContain('Rp 32.000');
 
-    const p = await api<{ stokFisik: string }>(admin, `/barang/${paku.id}`);
-    expect(p.stokFisik).toBe('17.000');
-  } finally {
-    for (const b of [paku, semen]) {
-      await api(admin, `/barang/${b.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+      const p = await api<{ stokFisik: string }>(admin, `/barang/${paku.id}`);
+      expect(p.stokFisik).toBe('17.000');
+    } finally {
+      for (const b of [paku, semen]) {
+        await api(admin, `/barang/${b.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+      }
     }
-  }
-});
+  },
+);
 
 test('Kasir: jual langsung tanpa order hanya dengan keyboard (F2 → barang → Enter → Enter uang pas)', async ({
   browser,

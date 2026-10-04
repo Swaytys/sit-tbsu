@@ -21,7 +21,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 5 | Penjualan | Selesai | 2026-10-02 |
 | 6 | Koreksi dan kontrol | Selesai | 2026-10-03 |
 | 7 | Laporan dan dashboard | Selesai | 2026-10-04 |
-| 8 | Pengerasan dan deploy (akhir M1) | Belum | — |
+| 8 | Pengerasan dan deploy (akhir M1) | Siap uji coba toko | — |
 | 9 | Harga dan promo | Belum | — |
 | 10 | Hutang pemasok, retur pemasok, stok rusak | Belum | — |
 | 11 | Konsinyasi | Belum | — |
@@ -261,6 +261,20 @@ objek, injeksi, CSRF, header, rate limit, dependensi); backup `pg_dump` terjadwa
 dan daftar temuan. Komputer kasir dibuka lewat `scripts/kasir/buka-kasir.cmd` (cetak senyap `--kiosk-printing`,
 printer bawaan = printer struk; K-073, K-074).
 Selesai bila: sistem dipakai untuk transaksi sungguhan minimal satu hari penuh tanpa pemilik proyek turun tangan.
+
+Catatan pengerjaan (2026-10-04, branch `feat/08-produksi`, `feat/08-keamanan`, `feat/08-cadangan`,
+`feat/08-uji-kritis`):
+- Deploy diputuskan pemilik: komputer Windows di toko + akses luar Tailscale (K-082). Mode produksi satu port
+  (API + web), HTTPS dengan CA lokal toko, skrip pasang/jalankan/perbarui/pulihkan di `scripts/server/`.
+- Review keamanan OWASP dasar: `docs/09-keamanan.md` (K-083) — header keamanan, batas body, CSRF, audit
+  dependensi bersih.
+- Cadangan restic terenkripsi lokal + Google Drive, retensi 7/4/12/5, uji pulih bulanan, Pengaturan › Cadangan,
+  peringatan di lonceng, pemulihan darurat (K-084). Diuji dengan restic & pg_dump sungguhan.
+- 5 alur kritis Playwright bertanda `@kritis` (`pnpm test:e2e:kritis`): akses & ganti password, order → kasir,
+  pengantaran DP → surat jalan → pelunasan, penerimaan barang, shift & clerical (K-085).
+- Manual pengguna per peran (`docs/panduan/manual-pengguna.md`), panduan pasang server, daftar periksa uji coba
+  (`docs/panduan/fase-8-uji-coba.md`).
+- Tersisa (oleh pemilik): pasang di komputer toko, uji coba satu hari penuh, catat temuan → "Selesai bila".
 
 **Cadangan data (wajib, masukan pemilik 2026-09-30, K-062):**
 - Isi cadangan: seluruh database (data + semua pengaturan, `pg_dump -Fc` terkompresi), folder `storage/`

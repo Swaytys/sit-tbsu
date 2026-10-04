@@ -103,3 +103,21 @@ test('jumlah baris per halaman mengikuti pengaturan (lalu dikembalikan)', async 
     if (asli !== '10 baris') await aturBaris(asli);
   }
 });
+
+test('Owner melihat tab Cadangan (status & petunjuk); Admin tidak', async ({ browser }) => {
+  const owner = await browser.newPage();
+  await masukCepat(owner, 'OWNER');
+  await owner.goto('/pengaturan?tab=cadangan');
+  await expect(owner.getByRole('tab', { name: 'Cadangan' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  // Database pengembangan tanpa repositori cadangan → petunjuk pengaturan; tombol nonaktif.
+  await expect(owner.getByRole('button', { name: /Cadangkan sekarang/ })).toBeVisible();
+
+  const admin = await browser.newPage();
+  await masukCepat(admin, 'ADMIN');
+  await admin.goto('/pengaturan');
+  await expect(admin.getByRole('tab', { name: 'Profil toko' })).toBeVisible();
+  await expect(admin.getByRole('tab', { name: 'Cadangan' })).toHaveCount(0);
+});

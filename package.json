@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "test": "pnpm -r run test",
     "test:e2e": "pnpm --filter @sit/web run test:e2e",
+    "test:e2e:kritis": "pnpm --filter @sit/web run test:e2e:kritis",
     "db:migrate": "pnpm --filter @sit/api run db:migrate",
     "db:seed": "pnpm --filter @sit/api run db:seed",
     "db:reset": "pnpm --filter @sit/api run db:reset",

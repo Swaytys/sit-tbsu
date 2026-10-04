@@ -55,6 +55,7 @@ pnpm typecheck        # tsc --noEmit semua paket
 pnpm lint             # eslint semua paket
 pnpm test             # vitest (unit + service dengan DB uji)
 pnpm test:e2e         # playwright (butuh pnpm dev berjalan)
+pnpm test:e2e:kritis  # 5 alur kritis (@kritis), wajib lulus sebelum memperbarui server toko (K-085)
 pnpm db:migrate       # jalankan migrasi ke DATABASE_URL
 pnpm db:seed          # data awal (konfigurasi, satuan, tier harga, akun owner)
 pnpm db:reset         # HANYA dev: drop + migrate + seed. Minta konfirmasi eksplisit sebelum menjalankan.
