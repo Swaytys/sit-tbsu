@@ -35,6 +35,8 @@ const LABEL_AKSI: Partial<Record<AksiLog, string>> = {
   PENGGUNA_GANTI_PASSWORD: 'Ganti password',
   PENGGUNA_CABUT_SESI: 'Cabut sesi',
   PENGATURAN_UBAH: 'Ubah pengaturan',
+  HARGA_TINJAU_TERAPKAN: 'Terapkan tinjau harga',
+  HARGA_TINJAU_ABAIKAN: 'Abaikan tinjau harga',
 };
 
 /** Label aksi log; aksi tanpa label khusus ditampilkan dari kodenya ("BARANG_UBAH" → "Barang ubah"). */

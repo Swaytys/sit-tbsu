@@ -8,6 +8,7 @@ import {
   type JenisAtribut,
   type Kategori,
   type Merk,
+  type MetodeHarga,
   type Pemasok,
   type Satuan,
   type TingkatHarga,
@@ -17,6 +18,7 @@ import { useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
+import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
 import { useDetailBarang, useHapusGambar, useSimpanBarang, useUnggahGambar } from '@/api/barang';
 import { useDaftarPemasok, useDaftarTingkatHarga } from '@/api/mitra';
@@ -26,6 +28,7 @@ import {
   useDaftarMerk,
   useDaftarSatuan,
 } from '@/api/referensi';
+import { InputPersen } from '@/components/input-persen';
 import { InputRupiah } from '@/components/input-rupiah';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,10 +49,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
+import { rapikanPersen, teksMargin } from '../harga-jual/isian-harga';
 
 type Referensi = {
   kategori: Kategori[];
@@ -135,9 +140,23 @@ function nilaiAwal(b: DetailBarang | null, tierAktif: TingkatHarga[]): InputBara
     })),
     hargaTier: tierAktif.map((t) => {
       const h = b?.harga.find((x) => x.idTingkatHarga === t.id);
-      return { idTingkatHarga: t.id, hargaTetap: h?.metode === 'TETAP' ? h.hargaTetap : null };
+      return {
+        idTingkatHarga: t.id,
+        hargaTetap: h?.metode === 'TETAP' ? h.hargaTetap : null,
+        markupPersen: h?.metode === 'MARKUP' ? rapikanPersen(h.markupPersen) : null,
+      };
     }),
+    hargaOtomatis: b?.hargaOtomatis ?? false,
   };
+}
+
+/** Metode awal per tier: tier default selalu TETAP; barang baru = ikut tier (K-047). */
+function metodeAwal(b: DetailBarang | null, tierAktif: TingkatHarga[]): MetodeHarga[] {
+  return tierAktif.map((t) =>
+    t.isDefault
+      ? 'TETAP'
+      : (b?.harga.find((x) => x.idTingkatHarga === t.id)?.metode ?? 'IKUT_TIER'),
+  );
 }
 
 function FormBarang({ barang, referensi }: { barang: DetailBarang | null; referensi: Referensi }) {
@@ -146,6 +165,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
   const unggah = useUnggahGambar();
   const hapusGambar = useHapusGambar();
   const [berkasBaru, setBerkasBaru] = useState<File | null>(null);
+  const bolehKelolaHarga = usePengguna().izin.includes('master.harga.kelola');
 
   const tierAktif = referensi.tier.filter((t) => t.statusAktif === 'AKTIF');
   const kategoriPilihan = referensi.kategori.filter(
@@ -176,6 +196,52 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
     resolver: zodResolver(skemaBarang),
     defaultValues: nilaiAwal(barang, tierAktif),
   });
+  // Metode dipilih eksplisit (H4) agar "Tetap" yang dikosongkan tidak diam-diam menjadi "Ikut tier".
+  const [metode, setMetode] = useState<MetodeHarga[]>(() => metodeAwal(barang, tierAktif));
+
+  function ubahMetode(i: number, t: TingkatHarga, m: MetodeHarga) {
+    const kini = barang?.harga.find((h) => h.idTingkatHarga === t.id);
+    const opsi = { shouldDirty: true, shouldValidate: false };
+    const tetap = form.getValues(`hargaTier.${i}.hargaTetap`);
+    const persen = form.getValues(`hargaTier.${i}.markupPersen`);
+    form.setValue(
+      `hargaTier.${i}.hargaTetap`,
+      m === 'TETAP' ? (typeof tetap === 'number' ? tetap : (kini?.hargaJual ?? null)) : null,
+      opsi,
+    );
+    form.setValue(
+      `hargaTier.${i}.markupPersen`,
+      m === 'MARKUP'
+        ? typeof persen === 'string'
+          ? persen
+          : rapikanPersen(kini?.markupPersen ?? t.markupDefaultPersen)
+        : null,
+      opsi,
+    );
+    form.clearErrors(`hargaTier.${i}`);
+    setMetode(metode.map((x, j) => (j === i ? m : x)));
+  }
+
+  /** Isian wajib sesuai metode (skema Zod tidak tahu metode yang dipilih di layar). */
+  function cekMetode(data: DataBarang): boolean {
+    let sah = true;
+    tierAktif.forEach((t, i) => {
+      const h = data.hargaTier?.[i];
+      if (metode[i] === 'TETAP' && (h?.hargaTetap ?? null) === null) {
+        form.setError(`hargaTier.${i}.hargaTetap`, {
+          message: t.isDefault
+            ? `Harga ${t.nama} wajib diisi.`
+            : 'Isi harga tetap, atau pilih cara lain.',
+        });
+        sah = false;
+      }
+      if (metode[i] === 'MARKUP' && (h?.markupPersen ?? null) === null) {
+        form.setError(`hargaTier.${i}.markupPersen`, { message: 'Isi persen markup.' });
+        sah = false;
+      }
+    });
+    return sah;
+  }
   const atribut = useFieldArray({ control: form.control, name: 'atribut' });
   const [kepemilikan, atributDiisi] = useWatch({
     control: form.control,
@@ -187,6 +253,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
   );
 
   async function kirim(data: DataBarang) {
+    if (!cekMetode(data)) return;
     // Saat ubah, harga hanya dikirim bila bagian harga disentuh (menyimpan harga melepas tanda tinjau).
     const json: DataBarang =
       barang && !form.getFieldState('hargaTier').isDirty ? { ...data, hargaTier: undefined } : data;
@@ -695,42 +762,125 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
               <CardContent className="space-y-3">
                 {tierAktif.map((t, i) => {
                   const kini = barang?.harga.find((h) => h.idTingkatHarga === t.id);
+                  const m = metode[i] ?? 'IKUT_TIER';
+                  const keterangan =
+                    kini && m === kini.metode
+                      ? [
+                          m === 'MARKUP' ? `= ${formatRupiah(kini.hargaJual)}` : null,
+                          kini.margin != null ? `margin ${teksMargin(kini.margin)}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')
+                      : '';
                   return (
-                    <FormField
-                      key={t.id}
-                      control={form.control}
-                      name={`hargaTier.${i}.hargaTetap`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            {t.nama}
-                            {t.isDefault && <span className="text-red-500">*</span>}
-                          </FormLabel>
-                          <FormControl>
-                            <InputRupiah
-                              {...field}
-                              aria-label={`Harga ${t.nama}`}
-                              placeholder={
-                                t.isDefault
-                                  ? 'Wajib diisi'
-                                  : kini?.metode === 'IKUT_TIER'
-                                    ? `Ikut tier · ${formatRupiah(kini.hargaJual)}`
-                                    : t.markupDefaultPersen
-                                      ? `Ikut tier (+${formatDesimal(t.markupDefaultPersen)}%)`
-                                      : 'Ikut tier'
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    <div key={t.id} className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">
+                          {t.nama}
+                          {t.isDefault && <span className="text-red-500">*</span>}
+                        </span>
+                        {!t.isDefault && (
+                          <Select
+                            value={m}
+                            onValueChange={(v) => ubahMetode(i, t, v as MetodeHarga)}
+                          >
+                            <SelectTrigger
+                              className="h-7 w-40 text-xs"
+                              aria-label={`Cara menentukan harga ${t.nama}`}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="TETAP">Harga tetap</SelectItem>
+                              <SelectItem value="IKUT_TIER">
+                                Ikut tier
+                                {t.markupDefaultPersen
+                                  ? ` (+${formatDesimal(t.markupDefaultPersen)}%)`
+                                  : ''}
+                              </SelectItem>
+                              <SelectItem value="MARKUP">Markup sendiri (%)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                      {m === 'TETAP' && (
+                        <FormField
+                          control={form.control}
+                          name={`hargaTier.${i}.hargaTetap`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <InputRupiah
+                                  {...field}
+                                  aria-label={`Harga ${t.nama}`}
+                                  placeholder="Wajib diisi"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       )}
-                    />
+                      {m === 'MARKUP' && (
+                        <FormField
+                          control={form.control}
+                          name={`hargaTier.${i}.markupPersen`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <InputPersen
+                                  name={field.name}
+                                  ref={field.ref}
+                                  onBlur={field.onBlur}
+                                  value={typeof field.value === 'string' ? field.value : null}
+                                  onChange={field.onChange}
+                                  aria-label={`Markup ${t.nama} (%)`}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                      {m === 'IKUT_TIER' && (
+                        <div className="flex h-9 items-center justify-end rounded-md border border-dashed px-3 text-sm text-slate-500 tabular-nums">
+                          {kini?.metode === 'IKUT_TIER'
+                            ? formatRupiah(kini.hargaJual)
+                            : 'dihitung saat disimpan'}
+                        </div>
+                      )}
+                      {keterangan && <p className="text-xs text-slate-500">{keterangan}</p>}
+                    </div>
                   );
                 })}
                 <p className="text-xs text-slate-500">
-                  Tier selain default boleh dikosongkan: harganya mengikuti markup tier dari dasar
-                  harga modal (dibulatkan ke atas).
+                  Ikut tier dan markup sendiri dihitung dari dasar harga modal lalu dibulatkan ke
+                  atas. Harga {tierAktif.find((t) => t.isDefault)?.nama ?? 'default'} selalu harga
+                  tetap.
                 </p>
+                <FormField
+                  control={form.control}
+                  name="hargaOtomatis"
+                  render={({ field }) => (
+                    <FormItem className="flex items-start justify-between gap-3 rounded-md border p-3">
+                      <div className="space-y-1">
+                        <FormLabel>Harga otomatis</FormLabel>
+                        <FormDescription className="text-xs">
+                          Harga ikut tier dan markup langsung naik saat harga modal naik; bila
+                          turun, menunggu Tinjau Harga. Harga tetap tidak pernah berubah otomatis.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value === true}
+                          onCheckedChange={field.onChange}
+                          disabled={!bolehKelolaHarga}
+                          aria-label="Harga otomatis"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
                 {form.formState.errors.hargaTier?.message && (
                   <p className="text-sm text-red-600">{form.formState.errors.hargaTier.message}</p>
                 )}
