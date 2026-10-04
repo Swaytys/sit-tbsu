@@ -93,3 +93,31 @@ export function useHapusLogo() {
     },
   });
 }
+
+// --- Cadangan data (Owner, K-084) ---
+
+export function useStatusCadangan(aktif: boolean) {
+  return useQuery({
+    queryKey: ['cadangan'],
+    queryFn: async () => ambilData(await api.cadangan.$get()),
+    enabled: aktif,
+    // Selama cadangan/uji pulih berjalan, status diperbarui tiap 3 detik.
+    refetchInterval: (q) => (q.state.data?.sedangBerjalan ? 3000 : false),
+  });
+}
+
+export function useJalankanCadangan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (jenis: 'cadangan' | 'uji-pulih') =>
+      ambilData(
+        jenis === 'cadangan'
+          ? await api.cadangan.jalankan.$post()
+          : await api.cadangan['uji-pulih'].$post(),
+      ),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['cadangan'] });
+      void qc.invalidateQueries({ queryKey: ['notifikasi'] });
+    },
+  });
+}

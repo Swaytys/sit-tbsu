@@ -12,7 +12,16 @@ import {
   varchar,
   bigint,
 } from 'drizzle-orm/pg-core';
-import { PERAN, STATUS_AKTIF, TIPE_KONFIGURASI } from '@sit/shared';
+import {
+  JENIS_CADANGAN,
+  PEMICU_CADANGAN,
+  PERAN,
+  STATUS_AKTIF,
+  STATUS_CADANGAN,
+  STATUS_TUJUAN_CADANGAN,
+  TIPE_KONFIGURASI,
+} from '@sit/shared';
+import { sql } from 'drizzle-orm';
 import {
   dalamDaftar,
   dibuatPada,
@@ -124,5 +133,44 @@ export const logAktivitas = pgTable(
     index('idx_log_waktu').on(t.waktu),
     index('idx_log_pengguna').on(t.idPengguna),
     index('idx_log_entitas').on(t.entitas, t.idEntitas),
+  ],
+);
+
+/**
+ * Riwayat cadangan & uji pulih (Fase 8, K-084). [APPEND] kecuali kolom hasil (status, waktu_selesai,
+ * ukuran, snapshot, pesan) yang diisi saat proses yang sama selesai.
+ */
+export const cadangan = pgTable(
+  'cadangan',
+  {
+    id: kolomId(),
+    jenis: varchar('jenis', { length: 10, enum: JENIS_CADANGAN }).notNull(),
+    status: varchar('status', { length: 10, enum: STATUS_CADANGAN }).notNull().default('BERJALAN'),
+    pemicu: varchar('pemicu', { length: 20, enum: PEMICU_CADANGAN }).notNull(),
+    idPengguna: kolomRef('id_pengguna'),
+    waktuMulai: timestamptz('waktu_mulai').notNull().defaultNow(),
+    waktuSelesai: timestamptz('waktu_selesai'),
+    ukuranDump: bigint('ukuran_dump', { mode: 'number' }),
+    snapshotLokal: varchar('snapshot_lokal', { length: 64 }),
+    statusLokal: varchar('status_lokal', { length: 10, enum: STATUS_TUJUAN_CADANGAN }),
+    snapshotCloud: varchar('snapshot_cloud', { length: 64 }),
+    statusCloud: varchar('status_cloud', { length: 10, enum: STATUS_TUJUAN_CADANGAN }),
+    pesan: varchar('pesan', { length: 1000 }),
+  },
+  (t) => [
+    foreignKey({
+      name: 'cadangan_id_pengguna_fkey',
+      columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_cadangan_jenis', dalamDaftar('jenis', JENIS_CADANGAN)),
+    check('chk_cadangan_status', dalamDaftar('status', STATUS_CADANGAN)),
+    check('chk_cadangan_pemicu', dalamDaftar('pemicu', PEMICU_CADANGAN)),
+    check(
+      'chk_cadangan_tujuan',
+      sql`(status_lokal is null or status_lokal in ('BERHASIL','GAGAL','NONAKTIF'))
+        and (status_cloud is null or status_cloud in ('BERHASIL','GAGAL','NONAKTIF'))`,
+    ),
+    index('idx_cadangan_waktu').on(t.waktuMulai),
   ],
 );

@@ -11,6 +11,7 @@ export const JENIS_NOTIFIKASI = [
   'PIUTANG_JATUH_TEMPO',
   'VOID_MENUNGGU',
   'RETUR_MENUNGGU',
+  'CADANGAN_BERMASALAH',
 ] as const;
 export type JenisNotifikasi = (typeof JENIS_NOTIFIKASI)[number];
 

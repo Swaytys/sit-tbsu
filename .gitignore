@@ -27,3 +27,9 @@ Thumbs.db
 sertifikat/
 log/
 .uji-produksi/
+
+# Alat bantu lokal (restic untuk uji cadangan), tidak di-commit
+.alat/
+
+# Hasil pulih darurat (berisi data mentah)
+pulih/
