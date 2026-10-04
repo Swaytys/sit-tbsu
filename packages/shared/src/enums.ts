@@ -174,3 +174,17 @@ export type JenisKasShift = (typeof JENIS_KAS_SHIFT)[number];
 
 export const ARAH_KAS = ['MASUK', 'KELUAR'] as const;
 export type ArahKas = (typeof ARAH_KAS)[number];
+
+// --- Cadangan data (Fase 8, K-084) ---
+export const JENIS_CADANGAN = ['CADANGAN', 'UJI_PULIH'] as const;
+export type JenisCadangan = (typeof JENIS_CADANGAN)[number];
+
+export const STATUS_CADANGAN = ['BERJALAN', 'BERHASIL', 'GAGAL'] as const;
+export type StatusCadangan = (typeof STATUS_CADANGAN)[number];
+
+export const PEMICU_CADANGAN = ['JADWAL', 'MANUAL', 'SEBELUM_PEMBARUAN'] as const;
+export type PemicuCadangan = (typeof PEMICU_CADANGAN)[number];
+
+/** Hasil per tujuan cadangan (lokal / cloud). */
+export const STATUS_TUJUAN_CADANGAN = ['BERHASIL', 'GAGAL', 'NONAKTIF'] as const;
+export type StatusTujuanCadangan = (typeof STATUS_TUJUAN_CADANGAN)[number];

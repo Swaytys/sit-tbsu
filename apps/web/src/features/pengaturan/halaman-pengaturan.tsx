@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router';
 import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
 import { usePengaturan } from '@/api/pengaturan';
@@ -11,13 +12,20 @@ import { FormOperasional } from './form-operasional';
 import { FormPenomoran } from './form-penomoran';
 import { FormProfil } from './form-profil';
 import { KartuLogo } from './kartu-logo';
+import { TabCadangan } from './tab-cadangan';
 import { TabLog } from './tab-log';
 
-/** Pengaturan sistem (Admin, Owner). Tab "Log Aktivitas" hanya bila `sistem.log.lihat` (docs/04 §4). */
+/**
+ * Pengaturan sistem (Admin, Owner). Tab "Log Aktivitas" bila `sistem.log.lihat`, tab "Cadangan" bila
+ * `sistem.cadangan.kelola` (docs/04 §4). Tab aktif disimpan di URL (?tab=).
+ */
 export function HalamanPengaturan() {
   const pengguna = usePengguna();
   const pengaturan = usePengaturan();
   const bolehLihatLog = bolehAkses(pengguna, 'sistem.log.lihat');
+  const bolehCadangan = bolehAkses(pengguna, 'sistem.cadangan.kelola');
+  const [url, setUrl] = useSearchParams();
+  const tab = url.get('tab') ?? 'profil';
 
   return (
     <div className="max-w-5xl space-y-4 p-6">
@@ -41,13 +49,14 @@ export function HalamanPengaturan() {
           </Button>
         </div>
       ) : (
-        <Tabs defaultValue="profil">
+        <Tabs value={tab} onValueChange={(v) => setUrl({ tab: v }, { replace: true })}>
           <TabsList>
             <TabsTrigger value="profil">Profil toko</TabsTrigger>
             <TabsTrigger value="penomoran">Penomoran</TabsTrigger>
             <TabsTrigger value="operasional">Operasional</TabsTrigger>
             <TabsTrigger value="harga">Harga &amp; diskon</TabsTrigger>
             <TabsTrigger value="keamanan">Keamanan</TabsTrigger>
+            {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
           </TabsList>
           <TabsContent value="profil">
@@ -68,6 +77,11 @@ export function HalamanPengaturan() {
           <TabsContent value="keamanan">
             <FormKeamanan pengaturan={pengaturan.data} />
           </TabsContent>
+          {bolehCadangan && (
+            <TabsContent value="cadangan">
+              <TabCadangan />
+            </TabsContent>
+          )}
           {bolehLihatLog && (
             <TabsContent value="log">
               <TabLog />

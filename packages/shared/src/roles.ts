@@ -67,7 +67,12 @@ const IZIN_ADMIN: readonly Izin[] = [
   'promo.kelola',
 ];
 
-const IZIN_OWNER: readonly Izin[] = [...IZIN_ADMIN, 'sistem.log.lihat', 'master.pengguna.kelola'];
+const IZIN_OWNER: readonly Izin[] = [
+  ...IZIN_ADMIN,
+  'sistem.log.lihat',
+  'master.pengguna.kelola',
+  'sistem.cadangan.kelola',
+];
 
 export const IZIN_PER_PERAN: Readonly<Record<Peran, ReadonlySet<Izin>>> = {
   STAF_PENJUALAN: new Set(IZIN_STAF),

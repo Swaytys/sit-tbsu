@@ -7,6 +7,7 @@ import { pool } from './db/client';
 import { env } from './env';
 import { logger } from './lib/logger';
 import { jalankanJobOrder } from './modules/penjualan/order/service';
+import { cekJadwalCadangan } from './modules/sistem/cadangan/service';
 
 const pfx = env.HTTPS_PFX;
 const https = pfx !== undefined;
@@ -57,10 +58,19 @@ const job = setInterval(() => {
     .catch((err: unknown) => logger.error({ err }, 'Job order gagal'));
 }, LIMA_BELAS_MENIT);
 
+/** Cadangan harian & uji pulih bulanan (K-084): diperiksa tiap 10 menit dan sesaat setelah menyala. */
+const SEPULUH_MENIT = 10 * 60 * 1000;
+const cekCadangan = () =>
+  cekJadwalCadangan().catch((err: unknown) => logger.error({ err }, 'Jadwal cadangan gagal'));
+const jobCadangan = setInterval(() => void cekCadangan(), SEPULUH_MENIT);
+const awalCadangan = setTimeout(() => void cekCadangan(), 60 * 1000);
+
 /** Berhenti dengan rapi: tolak koneksi baru, tutup koneksi database, lalu keluar. */
 function berhenti(sinyal: string): void {
   logger.info(`${sinyal} diterima, server dihentikan.`);
   clearInterval(job);
+  clearInterval(jobCadangan);
+  clearTimeout(awalCadangan);
   pengalih?.close();
   server.close(() => {
     void pool.end().finally(() => process.exit(0));

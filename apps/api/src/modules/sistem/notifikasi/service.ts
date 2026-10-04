@@ -4,6 +4,7 @@ import { jumlahVoidMenunggu } from '../../koreksi/void/service';
 import { jumlahOrderBasi } from '../../penjualan/order/service';
 import { piutangJatuhTempo } from '../../penjualan/piutang/service';
 import { peringatanStok } from '../../persediaan/stok/service';
+import { peringatanCadangan } from '../cadangan/service';
 
 /** Notifikasi topbar per pengguna (docs/05 ST2), disaring menurut izin. */
 export async function notifikasiPengguna(izin: ReadonlySet<Izin>): Promise<Notifikasi[]> {
@@ -17,6 +18,18 @@ export async function notifikasiPengguna(izin: ReadonlySet<Izin>): Promise<Notif
         keterangan: `${basi} order menunggu terlalu lama dan masih menahan stok.`,
         jumlah: basi,
         tautan: '/order?status=MENUNGGU',
+      });
+    }
+  }
+  if (izin.has('sistem.cadangan.kelola')) {
+    const p = await peringatanCadangan();
+    if (p.length > 0) {
+      hasil.push({
+        jenis: 'CADANGAN_BERMASALAH',
+        judul: 'Cadangan data perlu diperiksa',
+        keterangan: p[0]!,
+        jumlah: p.length,
+        tautan: '/pengaturan?tab=cadangan',
       });
     }
   }

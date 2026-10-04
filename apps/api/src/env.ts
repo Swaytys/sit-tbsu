@@ -35,6 +35,18 @@ const skemaEnv = z.object({
   LOG_FILE: z.string().min(1).optional(),
   // Origin lain yang sah untuk permintaan POST/PATCH/DELETE (CSRF), dipisah koma; mis. alamat Tailscale
   // https://server-toko.tailxxxx.ts.net:8443 saat diakses lewat proxy `tailscale serve`.
+  // --- Cadangan data (K-084): restic + pg_dump. Repositori lokal kosong = cadangan belum diatur. ---
+  CADANGAN_REPO_LOKAL: z.string().min(1).optional(),
+  // Repositori cloud restic, mis. rclone:gdrive:BonsaiUrip-cadangan (butuh rclone terkonfigurasi).
+  CADANGAN_REPO_CLOUD: z.string().min(1).optional(),
+  // Kata sandi enkripsi repositori restic. HILANG = cadangan tidak bisa dibuka; simpan juga di tempat aman.
+  CADANGAN_SANDI: z.string().min(8, 'CADANGAN_SANDI minimal 8 karakter').optional(),
+  CADANGAN_RESTIC: z.string().min(1).default('restic'),
+  CADANGAN_RCLONE: z.string().min(1).optional(),
+  // Folder bin PostgreSQL (pg_dump, pg_restore); kosong = dicari di PATH.
+  CADANGAN_PG_BIN: z.string().min(1).optional(),
+  // Jam cadangan harian (WIB, 0-23).
+  CADANGAN_JAM: z.coerce.number().int().min(0).max(23).default(21),
   ORIGIN_TAMBAHAN: z
     .string()
     .default('')

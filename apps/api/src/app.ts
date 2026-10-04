@@ -33,6 +33,7 @@ import { suratJalanRoutes } from './modules/penjualan/surat-jalan/routes';
 import { penerimaanRoutes } from './modules/persediaan/penerimaan/routes';
 import { penyesuaianRoutes } from './modules/persediaan/penyesuaian/routes';
 import { stokRoutes } from './modules/persediaan/stok/routes';
+import { cadanganRoutes } from './modules/sistem/cadangan/routes';
 import { healthRoutes } from './modules/sistem/health/routes';
 import { logRoutes } from './modules/sistem/log/routes';
 import { notifikasiRoutes } from './modules/sistem/notifikasi/routes';
@@ -67,7 +68,8 @@ const rute = new Hono<EnvApp>()
   .route('/log-aktivitas', logRoutes)
   .route('/notifikasi', notifikasiRoutes)
   .route('/dashboard', dashboardRoutes)
-  .route('/laporan', laporanRoutes);
+  .route('/laporan', laporanRoutes)
+  .route('/cadangan', cadanganRoutes);
 
 export const app = new Hono<EnvApp>();
 app.use(requestLog);

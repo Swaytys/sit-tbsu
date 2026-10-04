@@ -82,7 +82,7 @@ if (Test-Path $envPath) {
     Write-Host "Database '$NamaDatabase' atau user '$PenggunaDb' belum ada; dibuat dengan akun postgres."
     $env:PGPASSWORD = TeksBiasa (Read-Host 'Password user postgres (superuser PostgreSQL)' -AsSecureString)
     $sandiSql = $sandiDb.Replace("'", "''")
-    & $psql -h $HostDb -p $PortDb -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO `$`$BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$PenggunaDb') THEN CREATE ROLE $PenggunaDb LOGIN PASSWORD '$sandiSql'; END IF; END`$`$;"
+    & $psql -h $HostDb -p $PortDb -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO `$`$BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$PenggunaDb') THEN CREATE ROLE $PenggunaDb LOGIN CREATEDB PASSWORD '$sandiSql'; END IF; END`$`$;"
     if ($LASTEXITCODE -ne 0) { throw 'Gagal membuat user database.' }
     & $psql -h $HostDb -p $PortDb -U postgres -d postgres -c "CREATE DATABASE $NamaDatabase OWNER $PenggunaDb ENCODING 'UTF8' TEMPLATE template0"
     if ($LASTEXITCODE -ne 0) { throw 'Gagal membuat database.' }
