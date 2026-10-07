@@ -135,7 +135,7 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 
 | # | Aturan |
 |---|---|
-| V1 | Syarat: shift asal penjualan (`penjualan.id_shift`) berstatus BUKA, atau `id_shift` null dan `tanggal_operasional` = hari ini; tidak ada retur berstatus MENUNGGU/DISETUJUI atas penjualan itu; tidak ada surat jalan DIKIRIM/SELESAI; `status_transaksi ≠ VOID`. Di luar itu → `STATUS_TIDAK_VALID` dengan saran "gunakan retur". |
+| V1 | Syarat: shift asal penjualan (`penjualan.id_shift`) berstatus BUKA, atau `id_shift` null dan `tanggal_operasional` = hari ini; tidak ada retur berstatus MENUNGGU/DISETUJUI atas penjualan itu; tidak ada surat jalan DIKIRIM/SELESAI; `status_transaksi ≠ VOID`. Di luar itu → `STATUS_TIDAK_VALID` dengan saran "gunakan retur". Baris barang titipan yang sudah disetor ke pemasok (`id_penyelesaian_konsinyasi` terisi) tidak bisa di-void (K-089). |
 | V2 | Lingkup ITEM: pilih ≥ 1 baris `status_item = NORMAL`. Lingkup TRANSAKSI: seluruh baris NORMAL (service tetap membuat satu `void_transaksi_detail` per baris). `nominal_void = Σ subtotal baris`. |
 | V3 | Persetujuan mengikuti docs/04 §6. Sebelum DISETUJUI tidak ada efek. |
 | V4 | Saat DISETUJUI, per detail: `catatMutasi(VOID, masuk qty_dasar, BAIK, hpp = hpp_saat_transaksi)`; `status_item = VOID`. Header: `total_void += nominal_void`; `status_transaksi` = VOID bila semua baris VOID, selain itu VOID_SEBAGIAN. Surat jalan DIPROSES/DIMUAT → BATAL (S7). Order asal tetap SELESAI. |
@@ -234,3 +234,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-04 — L6 merujuk H5/H7; §16: aksi log HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086).
 - 2026-10-04 — N5 kode promo `PRM`; §16 aksi log promo (K-087).
 - 2026-10-07 — A5 MUSNAH diaktifkan (Fase 10, K-088).
+- 2026-10-07 — V1: baris titipan yang sudah disetor tidak bisa di-void (K-089).

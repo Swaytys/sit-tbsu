@@ -4,6 +4,7 @@ import {
   skemaIdParam,
   skemaLaporanHutang,
   skemaLaporanKartuStok,
+  skemaLaporanKonsinyasi,
   skemaLaporanLabaKotor,
   skemaLaporanNilaiPersediaan,
   skemaLaporanPenjualan,
@@ -28,6 +29,7 @@ import { laporanDetailInvoice } from './detail-invoice';
 import { eksporExcel } from './ekspor';
 import { laporanHutang } from './hutang';
 import { laporanKartuStok } from './kartu-stok';
+import { laporanKonsinyasi } from './konsinyasi';
 import { laporanLabaKotor } from './laba-kotor';
 import { laporanNilaiPersediaan } from './nilai-persediaan';
 import { laporanPenjualanPeriode } from './penjualan-periode';
@@ -79,6 +81,8 @@ export function susunLaporan(
       return laporanRiwayatHargaBeli(urai(skemaLaporanRiwayatHargaBeli, query), pelaku);
     case 'hutang':
       return laporanHutang(urai(skemaLaporanHutang, query), pelaku);
+    case 'konsinyasi':
+      return laporanKonsinyasi(urai(skemaLaporanKonsinyasi, query), pelaku);
   }
 }
 

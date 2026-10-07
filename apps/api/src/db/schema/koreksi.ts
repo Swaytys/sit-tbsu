@@ -8,6 +8,7 @@ import {
   STATUS_PERSETUJUAN,
 } from '@sit/shared';
 import { shiftKasir } from './kas';
+import { penyelesaianKonsinyasi } from './transaksi-pemasok';
 import {
   dalamDaftar,
   dibuatPada,
@@ -103,6 +104,8 @@ export const returPenjualanDetail = pgTable(
     qtyPenggantiDasar: qty('qty_pengganti_dasar'),
     keterangan: varchar('keterangan', { length: 150 }),
     dibuatPada: dibuatPada(),
+    /** KS5–KS6 (K-089): penyelesaian konsinyasi yang sudah memperhitungkan retur baris ini. */
+    idPenyelesaianKonsinyasi: kolomRef('id_penyelesaian_konsinyasi'),
   },
   (t) => [
     foreignKey({
@@ -136,6 +139,12 @@ export const returPenjualanDetail = pgTable(
     index('idx_retur_detail_header').on(t.idRetur),
     index('idx_retur_detail_penjualan').on(t.idPenjualanDetail),
     index('idx_retur_detail_barang').on(t.idBarang),
+    foreignKey({
+      name: 'retur_penjualan_detail_id_penyelesaian_konsinyasi_fkey',
+      columns: [t.idPenyelesaianKonsinyasi],
+      foreignColumns: [penyelesaianKonsinyasi.id],
+    }),
+    index('idx_retur_detail_ksg').on(t.idPenyelesaianKonsinyasi),
   ],
 );
 

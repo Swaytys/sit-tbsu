@@ -128,14 +128,15 @@ export const orderPenjualanDetail = pgTable(
     hargaSatuan: uang('harga_satuan').notNull(),
     hargaManual: boolean('harga_manual').notNull().default(false),
     diskonBaris: uang('diskon_baris').notNull().default(0),
-    idPromo: kolomRef('id_promo'),
-    diskonPromo: uang('diskon_promo').notNull().default(0),
-    /** PR5: promo baris dilepas kasir. */
-    promoNonaktif: boolean('promo_nonaktif').notNull().default(false),
     subtotal: uang('subtotal').notNull(),
     catatanItem: varchar('catatan_item', { length: 150 }),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    // Kolom promo ditambahkan migrasi 0005 (K-087), jadi berada di akhir tabel.
+    idPromo: kolomRef('id_promo'),
+    diskonPromo: uang('diskon_promo').notNull().default(0),
+    /** PR5: promo baris dilepas kasir. */
+    promoNonaktif: boolean('promo_nonaktif').notNull().default(false),
   },
   (t) => [
     foreignKey({

@@ -2,6 +2,7 @@ import {
   skemaIdParam,
   skemaLaporanHutang,
   skemaLaporanKartuStok,
+  skemaLaporanKonsinyasi,
   skemaLaporanLabaKotor,
   skemaLaporanNilaiPersediaan,
   skemaLaporanPenjualan,
@@ -33,6 +34,7 @@ const SKEMA: Record<JenisLaporan, z.ZodType> = {
   promo: skemaLaporanPromo,
   'riwayat-harga-beli': skemaLaporanRiwayatHargaBeli,
   hutang: skemaLaporanHutang,
+  konsinyasi: skemaLaporanKonsinyasi,
 };
 
 /** Pesan galat pertama parameter laporan, atau null bila sah. */
@@ -51,6 +53,7 @@ export const BERPERIODE: ReadonlySet<JenisLaporan> = new Set([
   'laba-kotor',
   'promo',
   'riwayat-harga-beli',
+  'konsinyasi',
 ]);
 
 /** Parameter awal saat laporan dipilih. */
