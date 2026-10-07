@@ -2,6 +2,7 @@ import {
   bolehLihatLaporan,
   infoLaporan,
   skemaIdParam,
+  skemaLaporanDaftarHarga,
   skemaLaporanHutang,
   skemaLaporanKartuStok,
   skemaLaporanKonsinyasi,
@@ -25,6 +26,7 @@ import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { galatValidasi } from '../../lib/validasi';
 import { catatLog } from '../sistem/log-aktivitas';
 import { tampilanToko } from '../sistem/pengaturan/service';
+import { laporanDaftarHarga } from './daftar-harga';
 import { laporanDetailInvoice } from './detail-invoice';
 import { eksporExcel } from './ekspor';
 import { laporanHutang } from './hutang';
@@ -83,6 +85,8 @@ export function susunLaporan(
       return laporanHutang(urai(skemaLaporanHutang, query), pelaku);
     case 'konsinyasi':
       return laporanKonsinyasi(urai(skemaLaporanKonsinyasi, query), pelaku);
+    case 'daftar-harga':
+      return laporanDaftarHarga(urai(skemaLaporanDaftarHarga, query), pelaku);
   }
 }
 

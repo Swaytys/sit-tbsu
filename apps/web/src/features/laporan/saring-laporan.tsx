@@ -280,7 +280,8 @@ export function SaringLaporan({
         kode === 'stok-minimum' ||
         kode === 'nilai-persediaan' ||
         kode === 'produk-terlaris' ||
-        kode === 'riwayat-harga-beli') && <Kategori p={p} ubah={ubah} />}
+        kode === 'riwayat-harga-beli' ||
+        kode === 'daftar-harga') && <Kategori p={p} ubah={ubah} />}
       {kode === 'riwayat-harga-beli' && (
         <>
           <Pemasok p={p} ubah={ubah} />

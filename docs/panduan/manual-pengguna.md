@@ -62,8 +62,8 @@ pelunasan.
 **Akhir hari — tutup shift.** Hitung uang di laci, ketik jumlahnya **sebelum** melihat angka sistem (blind count),
 **Tutup shift**. Bila ada selisih, wajib isi keterangan. Hasil *clerical check* tersimpan dan terlihat Admin/Owner.
 
-**Laporan** (*Laporan*): penjualan per periode, produk terlaris, detail invoice, retur, piutang — bisa dicetak/PDF
-dan diekspor Excel.
+**Laporan** (*Laporan*): penjualan per periode, produk terlaris, detail invoice, retur, piutang, daftar harga
+(katalog untuk pelanggan) — bisa dicetak/PDF dan diekspor Excel.
 
 ## Admin
 
@@ -71,6 +71,9 @@ Semua tugas kasir, ditambah:
 
 - **Data barang** (*Data Master › Data Barang*): tambah/ubah barang, kategori, merk, satuan, atribut, stok
   minimum, gambar. Banyak barang sekaligus: *Import Excel*. Harga per tier di *Harga Jual*.
+- **Label barang** (*Data Barang › Cetak label*): pilih barang dan jumlah label, jenis kertas label, harga
+  tier, lalu **Cetak**. Barcode di label bisa dipindai di layar kasir. Kertas yang sudah terpakai sebagian: isi
+  "Mulai dari label ke-". Cetak dengan skala 100%.
 - **Harga jual** (*Harga Jual*): tiap harga tier bisa **Rp** (harga tetap), **Tier** (ikut markup tier), atau
   **%** (markup sendiri). Harga Normal selalu harga tetap. Kolom margin = (harga − dasar modal) ÷ harga.
 - **Tinjau Harga** (tab di *Harga Jual*): daftar barang yang harga modalnya berubah. **Terapkan** = harga diganti
