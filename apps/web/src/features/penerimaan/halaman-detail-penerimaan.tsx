@@ -1,6 +1,8 @@
 import { formatRupiah } from '@sit/shared';
-import { ArrowLeft, Plus, Printer } from 'lucide-react';
+import { ArrowLeft, Plus, Printer, Wallet } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
 import { useTampilanToko } from '@/api/pengaturan';
 import { useDetailPenerimaan } from '@/api/persediaan';
@@ -17,6 +19,7 @@ import {
 } from '@/components/ui/table';
 import { formatDesimal, formatTanggal, formatWaktu } from '@/lib/format';
 import { LABEL_JENIS_PENERIMAAN } from '@/lib/label';
+import { DialogBayarHutang } from '../hutang/halaman-hutang';
 import { BadgeHutang } from './halaman-penerimaan';
 
 function Info({ label, children }: { label: string; children: React.ReactNode }) {
@@ -33,6 +36,8 @@ export function HalamanDetailPenerimaan() {
   const id = Number(useParams().id);
   const detail = useDetailPenerimaan(id);
   const toko = useTampilanToko().data;
+  const bolehBayar = usePengguna().izin.includes('hutang.kelola');
+  const [bayar, setBayar] = useState(false);
 
   if (detail.error) return <p className="p-6 text-sm text-red-600">{pesanGalat(detail.error)}</p>;
   const p = detail.data;
@@ -52,6 +57,11 @@ export function HalamanDetailPenerimaan() {
           <h1 className="text-xl font-semibold text-slate-900">Penerimaan {p.nomor}</h1>
         </div>
         <div className="flex gap-2">
+          {bolehBayar && p.sisaHutang > 0 && (
+            <Button variant="outline" onClick={() => setBayar(true)}>
+              <Wallet /> Bayar hutang
+            </Button>
+          )}
           <Button variant="outline" asChild>
             <Link to="/penerimaan/baru">
               <Plus /> Penerimaan baru
@@ -171,6 +181,19 @@ export function HalamanDetailPenerimaan() {
           </div>
         </div>
       </Card>
+      {bayar && (
+        <DialogBayarHutang
+          h={{
+            jenis: 'PENERIMAAN',
+            id: p.id,
+            nomor: p.nomor,
+            namaPemasok: p.namaPemasok,
+            sisa: p.sisaHutang,
+            tanggalJatuhTempo: p.tanggalJatuhTempo,
+          }}
+          onTutup={() => setBayar(false)}
+        />
+      )}
     </div>
   );
 }
