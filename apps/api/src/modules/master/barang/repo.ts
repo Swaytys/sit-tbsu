@@ -79,6 +79,9 @@ function syarat(p: SaringBarang): SQL | undefined {
           ilike(barang.namaBarang, pola),
           ilike(barang.barcode, pola),
           ilike(merk.nama, pola),
+          // K-091: barcode satuan jual (pindai barcode dus/roll).
+          sql`exists (select 1 from ${barangSatuanJual} where ${barangSatuanJual.idBarang} = ${barang.id}
+            and ${barangSatuanJual.barcode} ilike ${pola})`,
         )
       : undefined,
   );

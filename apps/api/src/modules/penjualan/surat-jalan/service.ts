@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import {
+  bagiQty,
   bandingQty,
   keQty,
   kurangQty,
@@ -25,15 +26,21 @@ import * as repo from './repo';
  * status maju satu langkah, status pengiriman invoice = agregat (cache, diperbarui di transaksi yang sama).
  */
 
+/** Qty retur dalam satuan baris (K-091: qty retur dasar ÷ faktor satuan jual). */
+function qtyReturBaris(b: { qtyReturDasar: string; faktor: string }): string {
+  return bagiQty(b.qtyReturDasar, b.faktor);
+}
+
 /** S2: qty yang masih boleh dikirim per baris = qty − retur − di SJ non-BATAL (baris VOID = 0). */
 export function sisaKirim(b: {
   qty: string;
   qtyReturDasar: string;
+  faktor: string;
   statusItem: string;
   qtyDikirim: string;
 }): string {
   if (b.statusItem === 'VOID') return '0.000';
-  const sisa = kurangQty(kurangQty(b.qty, b.qtyReturDasar), b.qtyDikirim);
+  const sisa = kurangQty(kurangQty(b.qty, qtyReturBaris(b)), b.qtyDikirim);
   return bandingQty(sisa, 0) < 0 ? '0.000' : keQty(sisa);
 }
 
@@ -50,7 +57,7 @@ export async function sinkronStatusPengiriman(
     const semua = baris.every(
       (b) =>
         b.statusItem === 'VOID' ||
-        bandingQty(b.qtyTerkirim, kurangQty(b.qty, b.qtyReturDasar)) >= 0,
+        bandingQty(b.qtyTerkirim, kurangQty(b.qty, qtyReturBaris(b))) >= 0,
     );
     status = semua ? 'SELESAI' : 'SEBAGIAN';
   }

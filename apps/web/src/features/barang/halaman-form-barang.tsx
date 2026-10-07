@@ -55,6 +55,7 @@ import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { rapikanPersen, teksMargin } from '../harga-jual/isian-harga';
+import { KartuSatuanJual } from './kartu-satuan-jual';
 
 type Referensi = {
   kategori: Kategori[];
@@ -957,6 +958,9 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
           </div>
         </form>
       </Form>
+      {barang && (
+        <KartuSatuanJual barang={barang} satuan={referensi.satuan} tier={referensi.tier} />
+      )}
       {dialogKeluar}
     </div>
   );

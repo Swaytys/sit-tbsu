@@ -170,7 +170,7 @@ tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembe
 | Menu (sidebar) | Izin yang membuka | Catatan |
 |---|---|---|
 | Dashboard | `dashboard.dasar` | Kartu omzet & grafik hanya bila `dashboard.omzet` |
-| Data Master › Data Barang | `master.barang.kelola` | Staf/Kasir mencari barang lewat layar order, bukan menu ini |
+| Data Master › Data Barang | `master.barang.kelola` | Staf/Kasir mencari barang lewat layar order, bukan menu ini. Cetak label dan satuan jual (harga tetap satuan jual butuh `master.harga.kelola`; K-090, K-091) |
 | Data Master › Data Pelanggan | `master.pelanggan.lihat` | |
 | Data Master › Data Pemasok | `master.pemasok.lihat` | |
 | Data Master › Data Pengguna | `master.pengguna.kelola` | Label "Owner Only" seperti mockup |
@@ -260,3 +260,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
   nilai yang diubah pelaku (K-087).
 - 2026-10-07 — Menu Retur ke Pemasok dan Hutang Pemasok, tab Stok rusak; melampaui limit kredit memakai `master.pelanggan.atur_kredit` (K-088).
 - 2026-10-07 — Menu Konsinyasi dan Laporan Konsinyasi (`laporan.hutang`) (K-089).
+- 2026-10-07 — Cetak label, Daftar Harga (`laporan.penjualan`), satuan jual (K-090, K-091).

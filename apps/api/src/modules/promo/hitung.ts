@@ -32,8 +32,10 @@ export type KandidatPromo = {
 export type BarisUntukPromo = {
   idBarang: number;
   idKategori: number;
-  /** Qty satuan dasar (M1: qty = qty dasar). */
+  /** Qty satuan dasar: syarat min qty (PR2) dan potongan nominal per satuan (K-091). */
   qty: string;
+  /** Qty dalam satuan `hargaSatuan` (satuan jual baris); bawaan = `qty`. */
+  qtyHarga?: string;
   hargaSatuan: number;
   /** bulatkanRupiah(qty × harga satuan). */
   bruto: number;
@@ -67,7 +69,7 @@ export function promoCocok(p: KandidatPromo, b: BarisUntukPromo, totalBruto: num
 export function potonganPromo(p: KandidatPromo, b: BarisUntukPromo): number {
   let nilai =
     p.jenisPotongan === 'PERSEN'
-      ? potonganPersenRupiah(b.qty, b.hargaSatuan, p.potonganPersen ?? '0')
+      ? potonganPersenRupiah(b.qtyHarga ?? b.qty, b.hargaSatuan, p.potonganPersen ?? '0')
       : subtotalRupiah(b.qty, p.potonganNominal ?? 0);
   if (p.jenisPotongan === 'PERSEN' && p.maksPotongan !== null)
     nilai = Math.min(nilai, p.maksPotongan);

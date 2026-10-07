@@ -2,10 +2,12 @@ import { and, eq, inArray } from 'drizzle-orm';
 import {
   bandingQty,
   formatRupiah,
+  kaliQty,
   keQty,
   persenKeRupiah,
   subtotalRupiah,
   type DataOrder,
+  type SatuanJualBarang,
 } from '@sit/shared';
 import type { Tx } from '../../db/client';
 import { barang, pelanggan, persediaan, tingkatHarga } from '../../db/schema';
@@ -14,6 +16,7 @@ import type { PenggunaAktif } from '../../lib/konteks';
 import { tanggalOperasional } from '../../lib/waktu';
 import { hargaBarangDasar } from '../master/harga/repo';
 import { dasarMarkup, muatKonteksHarga } from '../master/harga/service';
+import { muatSatuanJual } from '../master/satuan-jual/service';
 import { pilihPromo, type KandidatPromo } from '../promo/hitung';
 import { kandidatPromo } from '../promo/repo';
 import { ambilAngka } from '../sistem/konfigurasi/service';
@@ -29,6 +32,9 @@ export type BarisSiap = {
   idBarang: number;
   namaBarang: string;
   idKategori: number;
+  /** K-091: satuan jual baris (`null` = satuan dasar) dan faktornya ke satuan dasar. */
+  idSatuanJual: number | null;
+  faktor: string;
   qty: string;
   qtyDasar: string;
   idTingkatHarga: number | null;
@@ -74,6 +80,7 @@ export type HasilHarga = {
  * Kasir menyelesaikan order, K-087).
  */
 export type BarisLama = {
+  idSatuanJual: number | null;
   idTingkatHarga: number | null;
   hargaSatuan: number;
   hargaManual: boolean;
@@ -185,6 +192,17 @@ export async function hitungBarisJual(
   for (const h of await hargaBarangDasar(tx, idBarang)) {
     harga.set(`${h.idBarang}:${h.idTingkatHarga}`, h.hargaJual);
   }
+  // K-091: harga satuan jual per tier (tetap atau otomatis dari satuan dasar × faktor).
+  const satuanJual = new Map<number, { idBarang: number; s: SatuanJualBarang }>();
+  for (const [idBrg, daftar] of await muatSatuanJual(tx, idBarang)) {
+    for (const s of daftar) {
+      satuanJual.set(s.id, { idBarang: idBrg, s });
+      for (const h of s.harga) harga.set(`${s.id}#${h.idTingkatHarga}`, h.hargaJual);
+    }
+  }
+  /** Harga tier untuk satuan baris (satuan dasar: `idBarang:tier`, satuan jual: `idSatuanJual#tier`). */
+  const hargaUntuk = (idBrg: number, idSj: number | null, idTier: number) =>
+    harga.get(idSj === null ? `${idBrg}:${idTier}` : `${idSj}#${idTier}`);
   const bawaan = await tierBawaan(tx, input.idPelanggan);
   const konteks = await muatKonteksHarga(tx);
   const batas = await batasDiskon(tx, pelaku);
@@ -201,7 +219,27 @@ export async function hitungBarisJual(
     }
     const qty = keQty(b.qty);
     const lama = lamaPer.get(b.idBarang);
-    const dasar = dasarMarkup(brg, konteks.modeDasar);
+    let faktor = '1';
+    if (b.idSatuanJual !== null) {
+      const sj = satuanJual.get(b.idSatuanJual);
+      if (!sj || sj.idBarang !== b.idBarang) {
+        throw galatBaris(i, 'idSatuanJual', `Satuan jual bukan milik ${brg.namaBarang}.`);
+      }
+      if (sj.s.statusAktif !== 'AKTIF') {
+        throw galatBaris(
+          i,
+          'idSatuanJual',
+          `Satuan ${sj.s.kodeSatuan} untuk ${brg.namaBarang} sudah nonaktif.`,
+        );
+      }
+      faktor = sj.s.faktor;
+    }
+    const qtyDasar = kaliQty(qty, faktor);
+    if (!/[1-9]/.test(qtyDasar)) {
+      throw galatBaris(i, 'qty', 'Qty terlalu kecil untuk satuan ini.');
+    }
+    // Dasar modal per satuan baris (H9, PR6): D × faktor.
+    const dasar = subtotalRupiah(faktor, dasarMarkup(brg, konteks.modeDasar));
     let idTier: number | null = null;
     let hargaSatuan: number;
     let diBawahModal = false;
@@ -227,11 +265,15 @@ export async function hitungBarisJual(
       idTier = b.idTingkatHarga ?? bawaan;
       if (!idTierAktif.has(idTier))
         throw galatBaris(i, 'idTingkatHarga', 'Tier harga tidak aktif.');
-      const tierSama = lama !== undefined && !lama.hargaManual && lama.idTingkatHarga === idTier;
+      const tierSama =
+        lama !== undefined &&
+        !lama.hargaManual &&
+        lama.idTingkatHarga === idTier &&
+        lama.idSatuanJual === b.idSatuanJual;
       if (idTier !== bawaan && !tierSama && !pelaku.izin.has('penjualan.tier.ubah')) {
         throw new AppError('TIDAK_BERIZIN', 'Anda tidak berizin mengganti tier harga.', 403);
       }
-      const kini = harga.get(`${b.idBarang}:${idTier}`);
+      const kini = hargaUntuk(b.idBarang, b.idSatuanJual, idTier);
       if (tierSama) {
         hargaSatuan = lama.hargaSatuan; // P2: harga yang dijanjikan saat order dibuat
       } else if (kini === undefined) {
@@ -244,6 +286,8 @@ export async function hitungBarisJual(
       b,
       brg,
       qty,
+      qtyDasar,
+      faktor,
       lama,
       dasar,
       idTier,
@@ -259,7 +303,7 @@ export async function hitungBarisJual(
 
   // Tahap 2: promo, diskon manual, subtotal, dan saran tier per baris.
   const baris: BarisSiap[] = tahap1.map((x, i) => {
-    const { b, brg, qty, lama, bruto } = x;
+    const { b, brg, qty, qtyDasar, lama, bruto } = x;
     const tanpaPromo = b.tanpaPromo;
     if (tanpaPromo !== (lama?.promoNonaktif ?? false) && !pelaku.izin.has('penjualan.checkout')) {
       throw new AppError('TIDAK_BERIZIN', 'Anda tidak berizin melepas atau memasang promo.', 403);
@@ -273,7 +317,8 @@ export async function hitungBarisJual(
           {
             idBarang: b.idBarang,
             idKategori: brg.idKategori,
-            qty,
+            qty: qtyDasar,
+            qtyHarga: qty,
             hargaSatuan: x.hargaSatuan,
             bruto,
             batasBawah: bebasModal ? null : subtotalRupiah(qty, x.dasar),
@@ -311,8 +356,8 @@ export async function hitungBarisJual(
     if (!b.hargaManual) {
       for (const t of tierAktif) {
         if (t.id === x.idTier || t.saranMinQty === null) continue;
-        if (bandingQty(qty, t.saranMinQty) < 0) continue;
-        const h = harga.get(`${b.idBarang}:${t.id}`);
+        if (bandingQty(qtyDasar, t.saranMinQty) < 0) continue;
+        const h = hargaUntuk(b.idBarang, b.idSatuanJual, t.id);
         if (h === undefined || h >= x.hargaSatuan) continue;
         if (!saran || h < saran.harga) saran = { id: t.id, harga: h };
       }
@@ -322,8 +367,10 @@ export async function hitungBarisJual(
       idBarang: b.idBarang,
       namaBarang: brg.namaBarang,
       idKategori: brg.idKategori,
+      idSatuanJual: b.idSatuanJual,
+      faktor: x.faktor,
       qty,
-      qtyDasar: qty, // M1: faktor satuan = 1 (U2)
+      qtyDasar,
       idTingkatHarga: x.idTier,
       hargaSatuan: x.hargaSatuan,
       hargaManual: b.hargaManual,
@@ -341,7 +388,9 @@ export async function hitungBarisJual(
       subtotal: dasarManual - diskonBaris,
       catatanItem: b.catatanItem ?? null,
       diBawahModal: x.diBawahModal,
-      hargaPembanding: b.hargaManual ? (harga.get(`${b.idBarang}:${bawaan}`) ?? null) : null,
+      hargaPembanding: b.hargaManual
+        ? (hargaUntuk(b.idBarang, b.idSatuanJual, bawaan) ?? null)
+        : null,
       idTingkatHargaSaran: saran?.id ?? null,
     };
   });
@@ -393,6 +442,8 @@ export type BarisCheckout = {
   idKategori: number;
   namaBarang: string;
   qty: string;
+  /** qty × faktor satuan jual (K-091). */
+  qtyDasar: string;
   hargaSatuan: number;
   hargaManual: boolean;
   diskonBaris: number;
@@ -437,10 +488,13 @@ export async function hitungPromoCheckout(
       {
         idBarang: r.idBarang,
         idKategori: r.idKategori,
-        qty: r.qty,
+        qty: r.qtyDasar,
+        qtyHarga: r.qty,
         hargaSatuan: r.hargaSatuan,
         bruto: b,
-        batasBawah: bebasModal ? null : subtotalRupiah(r.qty, dasarMarkup(brg, konteks.modeDasar)),
+        batasBawah: bebasModal
+          ? null
+          : subtotalRupiah(r.qtyDasar, dasarMarkup(brg, konteks.modeDasar)),
         batasPotongan: Math.max(0, b - r.diskonBaris),
       },
       totalBruto,

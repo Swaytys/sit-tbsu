@@ -13,7 +13,7 @@ dan stok rusak ada di `06-harga-piutang-hutang.md`.
 | # | Aturan |
 |---|---|
 | U1 | Uang = integer rupiah. `bulatkanRupiah(x)` = pembulatan ke rupiah terdekat, setengah ke atas (`ROUND_HALF_UP`). Dipakai untuk hasil perkalian qty × harga dan persentase. |
-| U2 | Kuantitas = 3 desimal, `ROUND_HALF_UP`. `qty_dasar = qty × faktor` (M1: faktor = 1). |
+| U2 | Kuantitas = 3 desimal, `ROUND_HALF_UP`. `qty_dasar = qty × faktor` (faktor satuan jual baris, 1 untuk satuan dasar; K-091). Stok, reservasi, HPP, laba, setoran konsinyasi memakai `qty_dasar`; harga, subtotal, struk, surat jalan, retur memakai `qty` satuan baris. |
 | U3 | Subtotal baris = `bulatkanRupiah(qty × harga_satuan) − diskon_baris − diskon_promo`, minimal 0. |
 | U4 | Persen → rupiah: `bulatkanRupiah(dasar × persen ÷ 100)`. Simpan hasil rupiahnya, bukan persennya, di transaksi. |
 | U5 | Semua aritmatika qty lewat `packages/shared/src/qty.ts`; semua uang lewat `money.ts`. Tidak ada `number` float untuk qty, tidak ada `parseFloat` untuk uang. |
@@ -235,3 +235,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-04 — N5 kode promo `PRM`; §16 aksi log promo (K-087).
 - 2026-10-07 — A5 MUSNAH diaktifkan (Fase 10, K-088).
 - 2026-10-07 — V1: baris titipan yang sudah disetor tidak bisa di-void (K-089).
+- 2026-10-07 — U2: faktor satuan jual (K-091).

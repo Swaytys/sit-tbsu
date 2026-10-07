@@ -10,6 +10,7 @@ import {
   type HargaTierBarang,
   type Izin,
   type MetaHalaman,
+  type SatuanJualBarang,
   type StatusAktif,
   type StatusStok,
 } from '@sit/shared';
@@ -36,6 +37,8 @@ import {
   type KonteksHarga,
   type PerubahanHarga,
 } from '../harga/service';
+import { muatSatuanJual } from '../satuan-jual/service';
+import * as satuanJualRepo from '../satuan-jual/repo';
 import * as repo from './repo';
 
 /*
@@ -65,6 +68,8 @@ function keBaris(
   izin: ReadonlySet<Izin>,
   konteks: KonteksHarga,
   statusStok: StatusStok,
+  satuanJual: SatuanJualBarang[] = [],
+  idSatuanJualCocok: number | null = null,
 ): BarisBarang {
   const lihatHpp = izin.has('master.barang.lihat_hpp');
   const dasar = dasarMarkup(b, konteks.modeDasar);
@@ -100,6 +105,8 @@ function keBaris(
     gambar: urlGambar(b.id, b.gambar),
     statusAktif: b.statusAktif,
     harga,
+    satuanJual,
+    idSatuanJualCocok,
   };
   if (!lihatHpp) return umum;
   return {
@@ -130,9 +137,23 @@ export async function daftarBarang(
   const harga = await hargaPerBarang(baris.map((b) => b.id));
   const konteks = await muatKonteksHarga(db);
   const status = await statusStokBarang(baris.map((b) => b.id));
+  const satuanJual = await muatSatuanJual(
+    db,
+    baris.map((b) => b.id),
+  );
+  // K-091: kata cari sama persis dengan barcode satuan jual → satuan itu dipilih saat dipindai.
+  const cocok = p.cari ? await satuanJualRepo.satuanJualDariBarcode(db, p.cari.trim()) : undefined;
   return {
     data: baris.map((b) =>
-      keBaris(b, harga.get(b.id) ?? [], izin, konteks, status.get(b.id) ?? 'HABIS'),
+      keBaris(
+        b,
+        harga.get(b.id) ?? [],
+        izin,
+        konteks,
+        status.get(b.id) ?? 'HABIS',
+        satuanJual.get(b.id) ?? [],
+        cocok?.idBarang === b.id ? cocok.id : null,
+      ),
     ),
     meta: metaHalaman(total, p),
   };
@@ -162,6 +183,7 @@ export async function detailBarang(id: number, izin: ReadonlySet<Izin>): Promise
       izin,
       await muatKonteksHarga(db),
       (await statusStokBarang([id])).get(id) ?? 'HABIS',
+      (await muatSatuanJual(db, [id])).get(id) ?? [],
     ),
     keterangan: b.keterangan,
     atribut,

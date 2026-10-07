@@ -1,5 +1,11 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaBarang, skemaCariBarang, skemaIdParam, skemaUbahStatus } from '@sit/shared';
+import {
+  skemaBarang,
+  skemaCariBarang,
+  skemaIdParam,
+  skemaSimpanSatuanJual,
+  skemaUbahStatus,
+} from '@sit/shared';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { AppError } from '../../../lib/errors';
@@ -17,6 +23,7 @@ import {
   ubahStatusBarang,
   unggahGambar,
 } from './service';
+import { simpanSatuanJual } from '../satuan-jual/service';
 
 const lihat = requirePermission('master.barang.lihat');
 const kelola = requirePermission('master.barang.kelola');
@@ -50,6 +57,20 @@ export const barangRoutes = new Hono<EnvApp>()
     const data = await ubahBarang(id, c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 200);
   })
+  .put(
+    '/:id/satuan-jual',
+    kelola,
+    param,
+    zValidator('json', skemaSimpanSatuanJual, kaitValidasi),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const pelaku = penggunaWajib(c);
+      const data = await simpanSatuanJual(id, c.req.valid('json'), pelaku, c.get('asal'), (x) =>
+        detailBarang(x, pelaku.izin),
+      );
+      return c.json({ data }, 200);
+    },
+  )
   .patch(
     '/:id/status',
     kelola,

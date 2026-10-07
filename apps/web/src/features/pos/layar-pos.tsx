@@ -81,6 +81,7 @@ const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
     { kunci: '+ −', label: 'Qty ±1' },
     { kunci: 'Angka', label: 'Ubah qty' },
     { kunci: '%', label: 'Diskon' },
+    { kunci: 'S', label: 'Satuan' },
     { kunci: 'T', label: 'Tier' },
     { kunci: 'P', label: 'Lepas promo' },
     { kunci: 'Del', label: 'Hapus' },

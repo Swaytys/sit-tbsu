@@ -34,6 +34,24 @@ export function kaliQty(a: Decimal.Value, b: Decimal.Value): string {
   return keQty(new Decimal(a).times(b));
 }
 
+/** `a ÷ b` dibulatkan 3 desimal (konversi qty dasar → satuan jual, K-091). */
+export function bagiQty(a: Decimal.Value, b: Decimal.Value): string {
+  return keQty(new Decimal(a).div(b));
+}
+
+/** Faktor satuan jual ke satuan dasar dari faktor ke basis masing-masing (dimensi fisik sama), 4 desimal. */
+export function faktorSatuan(faktorJual: Decimal.Value, faktorDasar: Decimal.Value): string {
+  return new Decimal(faktorJual)
+    .div(faktorDasar)
+    .toDecimalPlaces(4, Decimal.ROUND_HALF_UP)
+    .toFixed();
+}
+
+/** Teks desimal tanpa nol di belakang: `"12.0000"` → `"12"`, `"0.2500"` → `"0.25"`. */
+export function rapikanDesimal(nilai: Decimal.Value): string {
+  return new Decimal(nilai).toFixed();
+}
+
 /** -1, 0, 1 seperti `a < b`, `a = b`, `a > b`. */
 export function bandingQty(a: Decimal.Value, b: Decimal.Value): number {
   return new Decimal(a).comparedTo(b);

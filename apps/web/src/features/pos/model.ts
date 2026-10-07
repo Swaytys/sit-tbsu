@@ -1,9 +1,11 @@
 import {
+  kaliQty,
   POLA_QTY,
   subtotalRupiah,
   type BarisBarang,
   type DetailOrder,
   type InputBarisOrder,
+  type OpsiSatuanBaris,
 } from '@sit/shared';
 
 /*
@@ -17,7 +19,12 @@ export type BarisPos = {
   idBarang: number;
   kode: string;
   nama: string;
+  /** Kode satuan baris (satuan jual terpilih, atau satuan dasar). */
   satuan: string;
+  /** K-091: satuan jual baris; `null` = satuan dasar. */
+  idSatuanJual: number | null;
+  /** Pilihan satuan: satuan dasar lalu satuan jual aktif, masing-masing dengan harga per tier. */
+  opsiSatuan: OpsiSatuanBaris[];
   /** Stok tersedia saat barang dipilih (info), `null` bila tidak diketahui. */
   stokTersedia: string | null;
   qty: string;
@@ -26,9 +33,12 @@ export type BarisPos = {
   hargaManual: boolean;
   /** Harga manual, bila `hargaManual`. */
   hargaSatuan: number | null;
-  hargaTier: HargaTier[];
-  /** Harga yang dijanjikan saat order dibuat (P2): berlaku selama tier baris tidak berubah. */
-  snapshot: { idTingkatHarga: number | null; hargaSatuan: number } | null;
+  /** Harga yang dijanjikan saat order dibuat (P2): berlaku selama tier dan satuan baris tidak berubah. */
+  snapshot: {
+    idTingkatHarga: number | null;
+    idSatuanJual: number | null;
+    hargaSatuan: number;
+  } | null;
   diskonBaris: number;
   /** PR5: promo baris dilepas kasir. */
   tanpaPromo: boolean;
@@ -38,12 +48,68 @@ export function qtySah(q: string): boolean {
   return POLA_QTY.test(q) && /[1-9]/.test(q);
 }
 
+/** Pilihan satuan baris yang sedang dipakai. */
+export function opsiKini(b: BarisPos): OpsiSatuanBaris | undefined {
+  return b.opsiSatuan.find((o) => o.idSatuanJual === b.idSatuanJual);
+}
+
 /** Harga satuan yang tampil untuk baris (perkiraan; P2/P3/H9). */
 export function hargaBaris(b: BarisPos, tierBawaan: number | null): number | null {
   if (b.hargaManual) return b.hargaSatuan;
   const tier = b.idTingkatHarga ?? tierBawaan;
-  if (b.snapshot && b.snapshot.idTingkatHarga === tier) return b.snapshot.hargaSatuan;
-  return b.hargaTier.find((h) => h.idTingkatHarga === tier)?.hargaJual ?? null;
+  if (
+    b.snapshot &&
+    b.snapshot.idTingkatHarga === tier &&
+    b.snapshot.idSatuanJual === b.idSatuanJual
+  )
+    return b.snapshot.hargaSatuan;
+  return opsiKini(b)?.hargaTier.find((h) => h.idTingkatHarga === tier)?.hargaJual ?? null;
+}
+
+/** Qty dalam satuan dasar (info "= 20 sak"); `null` bila satuan baris = satuan dasar. */
+export function qtyDasarBaris(b: BarisPos): string | null {
+  const o = opsiKini(b);
+  if (!o || o.idSatuanJual === null || !qtySah(b.qty)) return null;
+  return kaliQty(b.qty, o.faktor);
+}
+
+/** Satuan berikutnya (tombol S): satuan dasar → satuan jual → … → satuan dasar. */
+export function satuanBerikut(b: BarisPos): Pick<BarisPos, 'idSatuanJual' | 'satuan'> | null {
+  if (b.opsiSatuan.length < 2) return null;
+  const i = b.opsiSatuan.findIndex((o) => o.idSatuanJual === b.idSatuanJual);
+  const o = b.opsiSatuan[(i + 1) % b.opsiSatuan.length];
+  return o ? { idSatuanJual: o.idSatuanJual, satuan: o.kodeSatuan } : null;
+}
+
+/** Pilihan satuan dari data barang: satuan dasar lalu satuan jual aktif (K-091). */
+export function opsiDariBarang(b: BarisBarang): OpsiSatuanBaris[] {
+  return [
+    {
+      idSatuanJual: null,
+      kodeSatuan: b.kodeSatuan,
+      faktor: '1',
+      hargaTier: b.harga.map((h) => ({ idTingkatHarga: h.idTingkatHarga, hargaJual: h.hargaJual })),
+    },
+    ...b.satuanJual
+      .filter((s) => s.statusAktif === 'AKTIF')
+      .map((s) => ({
+        idSatuanJual: s.id,
+        kodeSatuan: s.kodeSatuan,
+        faktor: s.faktor,
+        hargaTier: s.harga.map((h) => ({
+          idTingkatHarga: h.idTingkatHarga,
+          hargaJual: h.hargaJual,
+        })),
+      })),
+  ];
+}
+
+/** Satuan awal saat barang dipilih: barcode satuan jual yang dipindai, satuan jual bawaan, atau dasar. */
+export function satuanAwal(b: BarisBarang): number | null {
+  const aktif = b.satuanJual.filter((s) => s.statusAktif === 'AKTIF');
+  if (b.idSatuanJualCocok !== null && aktif.some((s) => s.id === b.idSatuanJualCocok))
+    return b.idSatuanJualCocok;
+  return aktif.find((s) => s.isDefaultJual)?.id ?? null;
 }
 
 export function subtotalBaris(b: BarisPos, tierBawaan: number | null): number {
@@ -58,17 +124,20 @@ export function rapikanQty(q: string): string {
 }
 
 export function dariBarang(b: BarisBarang, qty: string): BarisPos {
+  const opsi = opsiDariBarang(b);
+  const idSatuanJual = satuanAwal(b);
   return {
     idBarang: b.id,
     kode: b.kode,
     nama: b.namaBarang,
-    satuan: b.kodeSatuan,
+    satuan: opsi.find((o) => o.idSatuanJual === idSatuanJual)?.kodeSatuan ?? b.kodeSatuan,
+    idSatuanJual,
+    opsiSatuan: opsi,
     stokTersedia: b.stokTersedia,
     qty,
     idTingkatHarga: null,
     hargaManual: false,
     hargaSatuan: null,
-    hargaTier: b.harga.map((h) => ({ idTingkatHarga: h.idTingkatHarga, hargaJual: h.hargaJual })),
     snapshot: null,
     diskonBaris: 0,
     tanpaPromo: false,
@@ -81,15 +150,20 @@ export function dariOrder(d: DetailOrder): BarisPos[] {
     kode: r.kodeBarang,
     nama: r.namaBarang,
     satuan: r.kodeSatuan,
+    idSatuanJual: r.idSatuanJual,
+    opsiSatuan: r.opsiSatuan,
     stokTersedia: r.stokTersedia,
     qty: rapikanQty(r.qty),
     idTingkatHarga: r.hargaManual ? null : r.idTingkatHarga,
     hargaManual: r.hargaManual,
     hargaSatuan: r.hargaManual ? r.hargaSatuan : null,
-    hargaTier: r.hargaTier,
     snapshot: r.hargaManual
       ? null
-      : { idTingkatHarga: r.idTingkatHarga, hargaSatuan: r.hargaSatuan },
+      : {
+          idTingkatHarga: r.idTingkatHarga,
+          idSatuanJual: r.idSatuanJual,
+          hargaSatuan: r.hargaSatuan,
+        },
     diskonBaris: r.diskonBaris,
     tanpaPromo: r.promoNonaktif,
   }));
@@ -99,6 +173,7 @@ export function dariOrder(d: DetailOrder): BarisPos[] {
 export function keBarisOrder(b: BarisPos): InputBarisOrder {
   return {
     idBarang: b.idBarang,
+    idSatuanJual: b.idSatuanJual,
     qty: b.qty,
     idTingkatHarga: b.hargaManual ? null : b.idTingkatHarga,
     hargaManual: b.hargaManual,

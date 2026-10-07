@@ -7,8 +7,10 @@ import { cn } from '@/lib/utils';
 import {
   digitSaja,
   hargaBaris,
+  qtyDasarBaris,
   qtySah,
   rapikanQty,
+  satuanBerikut,
   subtotalBaris,
   tampilRibuan,
   type BarisPos,
@@ -19,6 +21,7 @@ type Sunting = { jenis: 'qty' | 'diskon'; nilai: string } | null;
 /**
  * Daftar barang transaksi POS (K-073). Keyboard: ↑/↓ pilih baris, + / − ubah qty 1, ketik angka = qty baru
  * (Enter simpan), % = diskon rupiah (berizin), T = ganti tier (berizin), P = lepas/pasang promo (berizin),
+ * S = ganti satuan (satuan dasar ↔ satuan jual, K-091),
  * Delete = hapus, Enter = lanjut bayar, Esc/↑ di baris pertama = kembali ke kotak cari. Harga, promo, dan
  * subtotal diambil dari pratinjau API bila sudah tersedia.
  */
@@ -124,6 +127,10 @@ export function KeranjangPos({
       e.preventDefault();
       const pr = pratinjau.get(b.idBarang);
       if (b.tanpaPromo || pr?.idPromo != null) onUbah(indeks, { tanpaPromo: !b.tanpaPromo });
+    } else if (e.key === 's' || e.key === 'S') {
+      e.preventDefault();
+      const berikut = satuanBerikut(b);
+      if (berikut) onUbah(indeks, berikut);
     } else if ((e.key === 't' || e.key === 'T') && bolehTier && !b.hargaManual) {
       e.preventDefault();
       // Urutan: bawaan → tier lain → kembali ke bawaan.
@@ -222,7 +229,17 @@ export function KeranjangPos({
                     ) : (
                       <>
                         {formatDesimal(r.qty)}{' '}
-                        <span className="text-xs font-normal">{r.satuan}</span>
+                        <span className="text-xs font-normal">
+                          {r.satuan}
+                          {r.opsiSatuan.length > 1 && (
+                            <kbd className="ml-0.5 font-mono text-[10px] text-slate-400">S</kbd>
+                          )}
+                        </span>
+                        {qtyDasarBaris(r) !== null && (
+                          <div className="text-[11px] font-normal text-slate-500">
+                            = {formatDesimal(qtyDasarBaris(r) ?? '0')} {r.opsiSatuan[0]?.kodeSatuan}
+                          </div>
+                        )}
                       </>
                     )}
                   </td>

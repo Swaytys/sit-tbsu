@@ -15,6 +15,7 @@ import type { StatusPersetujuan } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
   barang,
+  barangSatuanJual,
   pelanggan,
   pengguna,
   penjualan,
@@ -24,6 +25,7 @@ import {
   satuan,
 } from '../../../db/schema';
 import { polaCari } from '../../../lib/paginasi';
+import { kodeSatuanBaris, satuanBaris } from '../../penjualan/satuan-baris';
 
 const pengaju = aliasedTable(pengguna, 'pengaju');
 const namaPenyetuju = sql<string | null>`(select p.nama_pengguna from ${pengguna} p
@@ -96,7 +98,7 @@ export function detail(ex: Executor, idRetur: number[]) {
       idPenjualanDetail: returPenjualanDetail.idPenjualanDetail,
       idBarang: returPenjualanDetail.idBarang,
       namaBarang: barang.namaBarang,
-      kodeSatuan: satuan.kode,
+      kodeSatuan: kodeSatuanBaris,
       qtyRetur: returPenjualanDetail.qtyRetur,
       qtyReturDasar: returPenjualanDetail.qtyReturDasar,
       kondisi: returPenjualanDetail.kondisi,
@@ -105,8 +107,11 @@ export function detail(ex: Executor, idRetur: number[]) {
       qtyPenggantiDasar: returPenjualanDetail.qtyPenggantiDasar,
     })
     .from(returPenjualanDetail)
+    .innerJoin(penjualanDetail, eq(penjualanDetail.id, returPenjualanDetail.idPenjualanDetail))
     .innerJoin(barang, eq(barang.id, returPenjualanDetail.idBarang))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, penjualanDetail.idSatuanJual))
+    .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
     .where(inArray(returPenjualanDetail.idRetur, idRetur))
     .orderBy(asc(returPenjualanDetail.id));
 }
@@ -140,7 +145,8 @@ export function barisPenjualan(ex: Executor, idPenjualan: number) {
       id: penjualanDetail.id,
       idBarang: penjualanDetail.idBarang,
       namaBarang: barang.namaBarang,
-      kodeSatuan: satuan.kode,
+      kodeSatuan: kodeSatuanBaris,
+      faktor: penjualanDetail.faktor,
       qty: penjualanDetail.qty,
       qtyDasar: penjualanDetail.qtyDasar,
       qtyReturDasar: penjualanDetail.qtyReturDasar,
@@ -152,6 +158,8 @@ export function barisPenjualan(ex: Executor, idPenjualan: number) {
     .from(penjualanDetail)
     .innerJoin(barang, eq(barang.id, penjualanDetail.idBarang))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, penjualanDetail.idSatuanJual))
+    .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
     .where(eq(penjualanDetail.idPenjualan, idPenjualan))
     .orderBy(asc(penjualanDetail.id));
 }

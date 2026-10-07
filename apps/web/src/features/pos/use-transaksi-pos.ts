@@ -81,9 +81,20 @@ export function useTransaksiPos(tierDefault: number | null) {
     setCadangan(null);
   }
 
-  /** Menambah barang; barang yang sudah ada digabung qty-nya (scan berulang). Mengembalikan indeks baris. */
+  /**
+   * Menambah barang; barang yang sudah ada digabung qty-nya (scan berulang) bila satuannya sama. Satu barang
+   * satu baris (K-091): pindai satuan lain untuk barang yang sudah ada hanya memberi tahu kasir.
+   * Mengembalikan indeks baris.
+   */
   function tambah(b: BarisBarang, qty: string): number {
     const ada = t.baris.findIndex((x) => x.idBarang === b.id);
+    const lama = t.baris[ada];
+    if (lama && b.idSatuanJualCocok !== null && b.idSatuanJualCocok !== lama.idSatuanJual) {
+      toast.info(
+        `${b.namaBarang} sudah ada dalam satuan ${lama.satuan}. Ubah qty-nya, atau tekan S untuk ganti satuan.`,
+      );
+      return ada;
+    }
     if (ada >= 0) {
       const qtyBaru = rapikanQty(tambahQty(t.baris[ada]?.qty ?? '0', qty));
       setT({
