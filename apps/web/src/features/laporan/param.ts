@@ -1,5 +1,6 @@
 import {
   skemaIdParam,
+  skemaLaporanHutang,
   skemaLaporanKartuStok,
   skemaLaporanLabaKotor,
   skemaLaporanNilaiPersediaan,
@@ -31,6 +32,7 @@ const SKEMA: Record<JenisLaporan, z.ZodType> = {
   piutang: skemaLaporanPiutang,
   promo: skemaLaporanPromo,
   'riwayat-harga-beli': skemaLaporanRiwayatHargaBeli,
+  hutang: skemaLaporanHutang,
 };
 
 /** Pesan galat pertama parameter laporan, atau null bila sah. */
@@ -59,6 +61,7 @@ export function paramAwal(kode: JenisLaporan): Record<string, string> {
       return { tanggal: tanggalHariIni() };
     case 'stok-minimum':
     case 'piutang':
+    case 'hutang':
     case 'detail-invoice':
       return {};
     case 'produk-terlaris':

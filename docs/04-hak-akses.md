@@ -183,8 +183,9 @@ tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembe
 | Transaksi › Retur Penjualan | `retur.ajukan` | Tab "Persetujuan" bila `retur.setujui` |
 | Transaksi › Void Transaksi | `void.ajukan` | Tab "Persetujuan" bila `void.setujui` |
 | Persediaan › Penerimaan Barang | `persediaan.penerimaan.kelola` | |
-| Persediaan › Stok Persediaan | `persediaan.stok.lihat` | Tab posisi stok, mutasi, kartu stok, stok tertahan, penyesuaian |
-| Persediaan › Hutang Pemasok (M2) | `hutang.lihat` | |
+| Persediaan › Stok Persediaan | `persediaan.stok.lihat` | Tab posisi stok, mutasi, kartu stok, stok tertahan, stok rusak, penyesuaian |
+| Persediaan › Retur ke Pemasok (M2) | `persediaan.retur_pemasok.kelola` | Daftar, form, detail, cetak nota retur (K-088) |
+| Persediaan › Hutang Pemasok (M2) | `hutang.lihat` | Tombol bayar bila `hutang.kelola` (K-088) |
 | Persediaan › Konsinyasi (M2) | `konsinyasi.kelola` | |
 | Kas › Shift & Clerical Check | `kas.shift.kelola_sendiri` | Tab "Semua Shift" bila `kas.shift.lihat_semua` |
 | Laporan | `laporan.penjualan` atau `laporan.persediaan` | Daftar laporan disaring per izin |
@@ -257,3 +258,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-04 — §2: Laporan Promo (`laporan.penjualan`), Laporan Riwayat Harga Beli (`laporan.persediaan` +
   `laporan.laba`); lepas promo per baris butuh `penjualan.checkout`; izin harga manual/tier/diskon diuji hanya untuk
   nilai yang diubah pelaku (K-087).
+- 2026-10-07 — Menu Retur ke Pemasok dan Hutang Pemasok, tab Stok rusak; melampaui limit kredit memakai `master.pelanggan.atur_kredit` (K-088).

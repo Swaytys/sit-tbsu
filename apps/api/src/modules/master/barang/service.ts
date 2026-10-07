@@ -89,6 +89,7 @@ function keBaris(
     kodeSatuan: b.kodeSatuan,
     stokMinimum: b.stokMinimum,
     stokFisik: b.stokFisik,
+    stokRusak: b.stokRusak,
     stokTersedia: keQty(b.stokTersedia),
     statusStok,
     kepemilikan: b.kepemilikan,

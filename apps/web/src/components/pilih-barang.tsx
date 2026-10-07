@@ -18,6 +18,7 @@ export function PilihBarang({
   label = 'Cari barang',
   disabled,
   idInput,
+  hanyaRusak,
 }: {
   onPilih: (b: BarisBarang) => void;
   /** Hanya tampilkan barang yang lolos saringan (mis. hanya barang titipan pemasok tertentu). */
@@ -27,6 +28,8 @@ export function PilihBarang({
   disabled?: boolean;
   /** `id` input, mis. agar layar kasir bisa memfokuskannya dengan F2. */
   idInput?: string;
+  /** Hanya barang yang punya stok rusak (pemusnahan, retur ke pemasok). */
+  hanyaRusak?: boolean;
 }) {
   const [cari, setCari] = useState('');
   const [buka, setBuka] = useState(false);
@@ -37,6 +40,7 @@ export function PilihBarang({
     idKategori: null,
     status: 'AKTIF',
     perluTinjau: false,
+    adaRusak: hanyaRusak,
     halaman: 1,
     perHalaman: 20,
   });

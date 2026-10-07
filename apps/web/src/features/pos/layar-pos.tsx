@@ -4,6 +4,7 @@ import {
   skemaSuratJalan,
   type BarisBarang,
   type BarisSuratJalan,
+  type DataCheckout,
   type DataPembayaran,
   type DetailPenjualan,
   type InputCheckout,
@@ -14,7 +15,7 @@ import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent } from 
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
-import { ambilData, api, pesanGalat } from '@/api/client';
+import { ambilData, api, GalatApi, pesanGalat } from '@/api/client';
 import { useDaftarTingkatHarga } from '@/api/mitra';
 import { useTampilanToko } from '@/api/pengaturan';
 import {
@@ -29,6 +30,7 @@ import {
   useSiaranAntrean,
 } from '@/api/penjualan';
 import { AreaCetak } from '@/components/area-cetak';
+import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InvoiceA4, SuratJalanA4 } from '@/components/dokumen-a4';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
 import { Struk } from '@/components/struk';
@@ -188,6 +190,8 @@ export function LayarPos({
   const [dialogShift, setDialogShift] = useState(false);
   const [shiftDitunda, setShiftDitunda] = useState(false);
   const [sedangProses, setSedangProses] = useState(false);
+  // PT6: checkout ditolak karena limit kredit; pemegang izin atur kredit boleh melanjutkan.
+  const [limit, setLimit] = useState<{ data: DataCheckout; pesan: string } | null>(null);
 
   const order = tr.t.order;
   const adaTransaksi = order !== null || tr.t.baris.length > 0;
@@ -338,8 +342,12 @@ export function LayarPos({
       toast.error(data.error.issues[0]?.message ?? 'Isian belum lengkap.');
       return;
     }
-    checkout
-      .mutateAsync(data.data)
+    void kirimCheckout(data.data);
+  }
+
+  async function kirimCheckout(data: DataCheckout) {
+    return checkout
+      .mutateAsync(data)
       .then((p) => {
         setHasil(p);
         // K-074: struk penjualan langsung selalu dicetak otomatis; invoice pengantaran hanya bila diminta (P).
@@ -354,6 +362,19 @@ export function LayarPos({
       })
       .catch((err: unknown) => {
         const pesan = pesanGalat(err);
+        if (err instanceof GalatApi && err.kode === 'LIMIT_TERLAMPAUI') {
+          const bolehLanjut =
+            typeof err.detail === 'object' &&
+            err.detail !== null &&
+            'bolehLanjut' in err.detail &&
+            err.detail.bolehLanjut === true;
+          if (bolehLanjut && !data.setujuLimit) {
+            setLimit({ data, pesan });
+            return;
+          }
+          toast.error(`${pesan} Minta Admin/Owner menyetujui, atau terima pembayaran lebih dulu.`);
+          return;
+        }
         toast.error(pesan);
         if (pesan.includes('Buka shift')) setDialogShift(true);
       });
@@ -665,6 +686,23 @@ export function LayarPos({
       </div>
       <BilahTombol daftar={tombol} />
 
+      <DialogKonfirmasi
+        terbuka={limit !== null}
+        onTutup={() => setLimit(null)}
+        judul="Limit kredit terlampaui"
+        pesan={
+          <>
+            <p>{limit?.pesan}</p>
+            <p className="mt-2">
+              Lanjutkan penjualan tidak lunas ini? Persetujuan Anda dicatat di log aktivitas.
+            </p>
+          </>
+        }
+        labelKonfirmasi="Setujui & lanjutkan"
+        onKonfirmasi={async () => {
+          if (limit) await kirimCheckout({ ...limit.data, setujuLimit: true });
+        }}
+      />
       {tampilDialogShift && (
         <DialogBukaShift
           onTutup={() => {

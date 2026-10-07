@@ -4,6 +4,7 @@ import {
   skemaCariInvoiceLaporan,
   skemaCatatCetakLaporan,
   skemaIdParam,
+  skemaLaporanHutang,
   skemaLaporanKartuStok,
   skemaLaporanLabaKotor,
   skemaLaporanNilaiPersediaan,
@@ -23,6 +24,7 @@ import { kaitValidasi } from '../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../middleware/require-permission';
 import { catatCetak, eksporLaporan } from './daftar';
 import { cariInvoice, laporanDetailInvoice } from './detail-invoice';
+import { laporanHutang } from './hutang';
 import { laporanKartuStok } from './kartu-stok';
 import { laporanLabaKotor } from './laba-kotor';
 import { laporanNilaiPersediaan } from './nilai-persediaan';
@@ -130,6 +132,12 @@ export const laporanRoutes = new Hono<EnvApp>()
     zValidator('query', skemaLaporanRiwayatHargaBeli, kaitValidasi),
     async (c) =>
       c.json({ data: await laporanRiwayatHargaBeli(c.req.valid('query'), penggunaWajib(c)) }, 200),
+  )
+  .get(
+    '/hutang',
+    requirePermission('laporan.hutang'),
+    zValidator('query', skemaLaporanHutang, kaitValidasi),
+    async (c) => c.json({ data: await laporanHutang(c.req.valid('query'), penggunaWajib(c)) }, 200),
   )
   .get(
     '/ekspor/:kode',

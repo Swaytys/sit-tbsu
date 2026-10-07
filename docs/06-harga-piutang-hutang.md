@@ -53,8 +53,8 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | PT2 | `tanggal_jatuh_tempo` wajib bila penjualan tidak lunas saat checkout (default P7). Bisa diubah oleh Kasir/Admin/Owner dengan log. |
 | PT3 | Halaman Piutang: daftar per penjualan (pelanggan, nomor, tanggal, jatuh tempo, sisa, status), filter pelanggan/terlambat, total; tombol "Terima pembayaran" membuka form pembayaran PELUNASAN (P8). Ringkasan per pelanggan: total sisa, jumlah invoice, terlama. |
 | PT4 | Terlambat = `tanggal_jatuh_tempo < hari ini`. Notifikasi H-3 dan terlambat (ST2). |
-| PT5 | **[M2 Fase 10] Umur piutang**: kelompok 0–30, 31–60, 61–90, > 90 hari sejak jatuh tempo (belum jatuh tempo = "belum jatuh tempo"). Laporan piutang menampilkan per pelanggan per kelompok. |
-| PT6 | **[M2 Fase 10] Limit kredit**: bila `pelanggan.limit_kredit` terisi, saat checkout tidak lunas: `piutang_berjalan + sisa_tagihan_baru > limit_kredit` → `LIMIT_TERLAMPAUI` menyebut limit dan piutang berjalan. Admin/Owner dapat melanjutkan dengan konfirmasi (log `PENJUALAN_LIMIT_OVERRIDE`). |
+| PT5 | **[M2 Fase 10] Umur piutang**: kelompok menurut hari lewat jatuh tempo: belum jatuh tempo (≤ 0 hari, termasuk jatuh tempo hari ini), 1–30, 31–60, 61–90, > 90 hari (K-088). Laporan piutang menampilkan ringkasan umur dan per pelanggan. |
+| PT6 | **[M2 Fase 10] Limit kredit**: bila `pelanggan.limit_kredit` terisi, saat checkout tidak lunas: `piutang_berjalan + sisa_tagihan_baru > limit_kredit` → `LIMIT_TERLAMPAUI` menyebut limit dan piutang berjalan. Pemegang `master.pelanggan.atur_kredit` (Admin/Owner) dapat melanjutkan dengan konfirmasi (`setujuLimit`, log `PENJUALAN_LIMIT_OVERRIDE`; K-088). |
 | PT7 | Pelanggan dengan piutang terlambat tidak diblokir otomatis; UI menampilkan peringatan di layar order/checkout. |
 | PT8 | Retur POTONG_TAGIHAN mengurangi piutang (T7); refund tidak. |
 
@@ -63,8 +63,8 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | # | Aturan |
 |---|---|
 | HT1 | Hutang = `penerimaan_barang` PEMBELIAN TEMPO dengan `status_hutang ∈ {BELUM_LUNAS, SEBAGIAN}` (sisa = `sisa_hutang`), dan `penyelesaian_konsinyasi` dengan `status_hutang ≠ LUNAS`. |
-| HT2 | Pembayaran ke pemasok (`PBP`): `nominal ≤ sisa_hutang` dokumen sumber; TUNAI wajib shift BUKA pengguna dan otomatis `kas_shift(BAYAR_PEMASOK, KELUAR)`; TRANSFER wajib `rekening`/`referensi`. `status_hutang`: sisa 0 → LUNAS; sebagian dibayar → SEBAGIAN. |
-| HT3 | Halaman Hutang: daftar per dokumen (pemasok, nomor, tanggal, jatuh tempo, total, dibayar, sisa), ringkasan per pemasok, umur hutang (kelompok seperti PT5), tombol bayar. |
+| HT2 | Pembayaran ke pemasok (`PBP`): `nominal ≤ sisa_hutang` dokumen sumber; TUNAI wajib shift BUKA pengguna dan otomatis `kas_shift(BAYAR_PEMASOK, KELUAR)`; TRANSFER wajib `rekening` tujuan, `referensi` opsional (K-088). `status_hutang`: sisa 0 → LUNAS; sebagian dibayar → SEBAGIAN. |
+| HT3 | Halaman Hutang: daftar per dokumen (pemasok, nomor, tanggal, jatuh tempo, total, dibayar, potongan retur, sisa), ringkasan per pemasok (saringan pemasok), umur hutang (kelompok seperti PT5), riwayat pembayaran, tombol bayar (K-088). |
 | HT4 | Notifikasi hutang jatuh tempo H-3 dan terlambat (`hutang.lihat`). |
 | HT5 | Laporan Hutang: per pemasok, per dokumen, per kelompok umur; total. |
 | HT6 | Retur pemasok POTONG_HUTANG (RP4) menambah `total_retur_potong` dokumen penerimaan sumber dan menghitung ulang `status_hutang`. |
@@ -78,7 +78,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | RP2 | Efek stok: per baris `catatMutasi(RETUR_PEMASOK, keluar qty_dasar, bucket kondisi_asal, hpp = hpp_rata2 saat itu)`; `subtotal = bulatkanRupiah(qty × hpp)`; `total_retur = Σ subtotal`. |
 | RP3 | `kondisi_asal = BAIK` mengurangi stok tersedia; ditolak bila melanggar A6 (stok dipesan). |
 | RP4 | POTONG_HUTANG: wajib `id_penerimaan` dengan `sisa_hutang ≥ total_retur`; `total_retur_potong += total_retur` (HT6). |
-| RP5 | GANTI_BARANG: barang pengganti dicatat sebagai penerimaan PEMBELIAN baru dengan `harga_modal_masuk` = hpp yang diretur, syarat TUNAI, dan `pembayaran_pemasok` otomatis metode KOMPENSASI (`id_retur_pemasok` diisi) sehingga tidak ada uang bergerak dan HPP tidak terdistorsi. |
+| RP5 | GANTI_BARANG: barang pengganti dicatat sebagai penerimaan PEMBELIAN baru dengan `harga_modal_masuk` = hpp yang diretur, syarat TUNAI, dan `pembayaran_pemasok` otomatis metode KOMPENSASI (`id_retur_pemasok` diisi) sehingga tidak ada uang bergerak dan HPP tidak terdistorsi. Barang pengganti dicatat masuk saat retur disimpan; mutasinya bukan pembelian (harga beli terakhir tetap, tidak ikut HT7) (K-088). |
 | RP6 | REFUND: pemasok mengembalikan uang; TUNAI → `kas_shift(MASUK_LAIN, MASUK, keterangan "Refund RTP-…")` pada shift pengguna; TRANSFER → dicatat di `catatan` retur pemasok dengan referensi. |
 | RP7 | PENGEMBALIAN_TITIPAN: hanya barang KONSINYASI; tanpa kompensasi; mengurangi stok titipan (RP2). |
 
@@ -103,7 +103,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | SR1 | Bucket RUSAK (`persediaan.stok_rusak`) terpisah dari stok jual. Tidak masuk `stok_tersedia`, tidak masuk nilai persediaan aset; nilainya (`stok_rusak × hpp_rata2`) ditampilkan sebagai informasi "nilai barang rusak". |
 | SR2 | Masuk ke bucket RUSAK: retur pelanggan kondisi RUSAK/CACAT (T4), penyesuaian RUSAK dari bucket BAIK (A5). |
 | SR3 | Keluar dari bucket RUSAK: retur pemasok `kondisi_asal = RUSAK` (RP2), penyesuaian MUSNAH (A5) dengan alasan wajib. |
-| SR4 | Halaman Stok Rusak: daftar barang dengan `stok_rusak > 0`, riwayat mutasi bucket RUSAK, tombol "Retur ke pemasok" dan "Musnahkan". |
+| SR4 | Tab "Stok rusak" di Stok Persediaan: daftar barang dengan `stok_rusak > 0` (nilai HPP bila berizin), tombol "Retur ke pemasok" dan "Musnahkan"; riwayat bucket RUSAK lewat Kartu stok kondisi Rusak dan tab Mutasi (K-088). |
 | SR5 | Kartu stok menampilkan kedua bucket dengan kolom kondisi; stok rekap memakai bucket BAIK, dengan lampiran rekap rusak. |
 | SR6 | Barang KONSINYASI yang rusak masuk bucket RUSAK juga; penyelesaiannya lewat RP7 (klaim) atau MUSNAH. |
 
@@ -122,3 +122,4 @@ Konfigurasi: `dasar_markup`, `pembulatan_harga`, `batas_diskon_persen_<PERAN>`, 
 - 2026-10-04 — §1 H4–H7, H12: markup per barang, pemicu dibandingkan dari `D`, harga otomatis naik langsung/turun
   ditinjau, usulan harga Normal di Tinjau Harga, margin (K-086, keputusan pemilik).
 - 2026-10-04 — §2 D1–D2 dasar setelah promo, §3 PR3–PR7 dirinci, H8 saran termurah, HT7 dipindah ke Fase 9 (K-087).
+- 2026-10-07 — PT5 kelompok umur dirinci, PT6 izin melanjutkan, HT2 rekening, HT3, RP5 barang pengganti, SR4 tab Stok rusak (K-088).

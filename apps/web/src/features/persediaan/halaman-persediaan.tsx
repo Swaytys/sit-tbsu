@@ -5,13 +5,15 @@ import { TabKartu } from './tab-kartu';
 import { TabMutasi } from './tab-mutasi';
 import { TabPenyesuaian } from './tab-penyesuaian';
 import { TabPosisi } from './tab-posisi';
+import { TabRusak } from './tab-rusak';
 import { TabTertahan } from './tab-tertahan';
 
-const TAB = ['posisi', 'mutasi', 'kartu', 'tertahan', 'penyesuaian'] as const;
+const TAB = ['posisi', 'mutasi', 'kartu', 'tertahan', 'rusak', 'penyesuaian'] as const;
 type Tab = (typeof TAB)[number];
 
 /**
- * Persediaan › Stok Persediaan (docs/04 §4): posisi stok, riwayat mutasi, kartu stok, penyesuaian.
+ * Persediaan › Stok Persediaan (docs/04 §4): posisi stok, riwayat mutasi, kartu stok, stok tertahan,
+ * stok rusak, penyesuaian.
  */
 export function HalamanPersediaan() {
   const [cari, setCari] = useSearchParams();
@@ -34,6 +36,7 @@ export function HalamanPersediaan() {
           <TabsTrigger value="mutasi">Mutasi</TabsTrigger>
           <TabsTrigger value="kartu">Kartu stok</TabsTrigger>
           <TabsTrigger value="tertahan">Stok tertahan</TabsTrigger>
+          <TabsTrigger value="rusak">Stok rusak</TabsTrigger>
           {bolehSesuaikan && <TabsTrigger value="penyesuaian">Penyesuaian</TabsTrigger>}
         </TabsList>
         <TabsContent value="posisi">
@@ -47,6 +50,9 @@ export function HalamanPersediaan() {
         </TabsContent>
         <TabsContent value="tertahan">
           <TabTertahan />
+        </TabsContent>
+        <TabsContent value="rusak">
+          <TabRusak />
         </TabsContent>
         {bolehSesuaikan && (
           <TabsContent value="penyesuaian">

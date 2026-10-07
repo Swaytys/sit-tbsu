@@ -28,6 +28,7 @@ export const JENIS_LAPORAN = [
   'piutang',
   'promo',
   'riwayat-harga-beli',
+  'hutang',
 ] as const;
 export type JenisLaporan = (typeof JENIS_LAPORAN)[number];
 
@@ -153,6 +154,14 @@ export const DAFTAR_LAPORAN = [
     izin: ['laporan.persediaan', 'laporan.laba'],
     deskripsi:
       'Harga beli tiap penerimaan pembelian, perubahannya, dan perbandingan harga antarpemasok.',
+  },
+  {
+    kode: 'hutang',
+    nama: 'Hutang Usaha',
+    judul: 'Laporan Hutang Usaha',
+    grup: 'KEUANGAN',
+    izin: ['laporan.hutang'],
+    deskripsi: 'Hutang ke pemasok yang belum lunas, jatuh tempo, dan umurnya, per pemasok.',
   },
 ] as const satisfies readonly InfoLaporan[];
 
@@ -298,6 +307,15 @@ export const skemaLaporanRiwayatHargaBeli = z
   })
   .superRefine(cekPeriode);
 export type ParamLaporanRiwayatHargaBeli = z.input<typeof skemaLaporanRiwayatHargaBeli>;
+
+export const skemaLaporanHutang = z.object({
+  idPemasok: idOpsional,
+  terlambat: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
+});
+export type ParamLaporanHutang = z.input<typeof skemaLaporanHutang>;
 
 /** Catatan cetak PDF (log LAPORAN_EKSPOR); ekspor Excel dicatat server saat berkas dibuat. */
 export const skemaCatatCetakLaporan = z.object({

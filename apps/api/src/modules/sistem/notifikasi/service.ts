@@ -1,4 +1,5 @@
 import type { Izin, Notifikasi } from '@sit/shared';
+import { hutangJatuhTempo } from '../../hutang/service';
 import { jumlahReturMenunggu } from '../../koreksi/retur/service';
 import { jumlahVoidMenunggu } from '../../koreksi/void/service';
 import { jumlahOrderBasi } from '../../penjualan/order/service';
@@ -75,6 +76,28 @@ export async function notifikasiPengguna(izin: ReadonlySet<Izin>): Promise<Notif
         keterangan: `${p.segera} piutang jatuh tempo dalam 3 hari.`,
         jumlah: p.segera,
         tautan: '/piutang',
+      });
+    }
+  }
+  if (izin.has('hutang.lihat')) {
+    // HT4: hutang pemasok terlambat dan jatuh tempo dalam 3 hari.
+    const h = await hutangJatuhTempo();
+    if (h.terlambat > 0) {
+      hasil.push({
+        jenis: 'HUTANG_TERLAMBAT',
+        judul: 'Hutang pemasok terlambat',
+        keterangan: `${h.terlambat} hutang ke pemasok melewati jatuh tempo.`,
+        jumlah: h.terlambat,
+        tautan: '/hutang?terlambat=true',
+      });
+    }
+    if (h.segera > 0) {
+      hasil.push({
+        jenis: 'HUTANG_JATUH_TEMPO',
+        judul: 'Hutang pemasok segera jatuh tempo',
+        keterangan: `${h.segera} hutang ke pemasok jatuh tempo dalam 3 hari.`,
+        jumlah: h.segera,
+        tautan: '/hutang',
       });
     }
   }

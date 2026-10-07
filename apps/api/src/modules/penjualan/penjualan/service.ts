@@ -361,6 +361,38 @@ export async function checkout(
         400,
       );
     }
+    if (hasil.statusPembayaran !== 'LUNAS' && h.idPelanggan !== null) {
+      // PT6: limit kredit pelanggan; pemegang `master.pelanggan.atur_kredit` boleh melanjutkan (K-088).
+      const kredit = await repo.posisiKredit(tx, h.idPelanggan, pj.id);
+      const tagihanBaru = hitungTagihan(hasil).sisa;
+      if (kredit.limit !== null && kredit.piutangBerjalan + tagihanBaru > kredit.limit) {
+        const rinci =
+          `limit ${formatRupiah(kredit.limit)}, piutang berjalan ${formatRupiah(kredit.piutangBerjalan)}, ` +
+          `tagihan baru ${formatRupiah(tagihanBaru)}`;
+        if (!input.setujuLimit || !pelaku.izin.has('master.pelanggan.atur_kredit')) {
+          throw new AppError(
+            'LIMIT_TERLAMPAUI',
+            `Limit kredit ${kredit.nama} terlampaui: ${rinci}.`,
+            409,
+            {
+              limit: kredit.limit,
+              piutangBerjalan: kredit.piutangBerjalan,
+              tagihanBaru,
+              bolehLanjut: pelaku.izin.has('master.pelanggan.atur_kredit'),
+            },
+          );
+        }
+        await catatLog(tx, {
+          aksi: 'PENJUALAN_LIMIT_OVERRIDE',
+          idPengguna: pelaku.id,
+          entitas: 'penjualan',
+          idEntitas: pj.id,
+          nomorDokumen: nomor,
+          ringkasan: `Melewati limit kredit ${kredit.nama} pada ${nomor}: ${rinci}`,
+          ip: asal.ip,
+        });
+      }
+    }
     if (hasil.statusPembayaran !== 'LUNAS') {
       // PT2: jatuh tempo wajib bila belum lunas (default P7).
       const jatuhTempo =

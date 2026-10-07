@@ -10,6 +10,7 @@ import { db } from '../../db/client';
 import { pelanggan, penjualan } from '../../db/schema';
 import type { PenggunaAktif } from '../../lib/konteks';
 import { tanggalOperasional } from '../../lib/waktu';
+import { bagianUmur, ikhtisarUmur, kelompokkanUmur } from './umur';
 import {
   angka,
   KOSONG,
@@ -23,8 +24,8 @@ import {
 
 /*
  * Laporan Piutang Usaha (docs/05 §14, docs/06 PT1): penjualan status ≠ VOID dan status pembayaran ≠ LUNAS,
- * per pelanggan: sisa tagihan, jatuh tempo, dan umur (hari lewat jatuh tempo). Posisi saat ini.
- * Pengelompokan umur 0–30/31–60/61–90/>90 hari menyusul di Fase 10 (PT5).
+ * per pelanggan: sisa tagihan, jatuh tempo, dan umur (hari lewat jatuh tempo), serta umur piutang per
+ * kelompok (PT5, Fase 10). Posisi saat ini.
  */
 
 export type DataPiutang = z.output<typeof skemaLaporanPiutang>;
@@ -172,6 +173,12 @@ export async function laporanPiutang(
       sel: [KOSONG, KOSONG, KOSONG, KOSONG, KOSONG, KOSONG, uang(h.total), KOSONG],
     });
   }
+  const umur = kelompokkanUmur(
+    h.baris,
+    (b) => b.namaPelanggan,
+    (b) => b.umurHari,
+    (b) => b.sisa,
+  );
   return susunDokumen('piutang', pelaku, {
     subjudul: [
       teksPerSaatIni(),
@@ -184,8 +191,7 @@ export async function laporanPiutang(
         jenis: 'ikhtisar',
         judul: 'Ikhtisar',
         baris: [
-          { label: 'Belum jatuh tempo', nilai: uang(h.belumJatuhTempo), tingkat: 1 },
-          { label: 'Lewat jatuh tempo', nilai: uang(h.lewatJatuhTempo), tingkat: 1 },
+          ...ikhtisarUmur(umur.total),
           {
             label: `Jumlah piutang usaha (${h.baris.length} invoice, ${h.jumlahPelanggan} pelanggan)`,
             nilai: uang(h.total),
@@ -193,6 +199,7 @@ export async function laporanPiutang(
           },
         ],
       },
+      bagianUmur('Umur Piutang per Pelanggan', 'Pelanggan', umur.per, umur.total),
       {
         jenis: 'tabel',
         judul: 'Rincian per Pelanggan',
@@ -214,8 +221,7 @@ export async function laporanPiutang(
     ],
     catatan: [
       'Tagihan = total invoice dikurangi void dan retur; dibayar = pembayaran diterima dikurangi refund; sisa = tagihan − dibayar.',
-      'Umur dihitung dari tanggal jatuh tempo sampai hari ini.',
-      'Pengelompokan umur piutang (0–30, 31–60, 61–90, > 90 hari) tersedia mulai Fase 10.',
+      'Umur dihitung dari tanggal jatuh tempo sampai hari ini; piutang yang jatuh tempo hari ini termasuk "belum jatuh tempo".',
     ],
     berkas: tanggalOperasional(),
   });

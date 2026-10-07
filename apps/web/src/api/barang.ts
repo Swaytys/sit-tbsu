@@ -20,6 +20,8 @@ export type ParamDaftarBarang = {
   idMerk?: number | null;
   status: StatusAktif | 'SEMUA';
   perluTinjau: boolean;
+  /** Hanya barang yang punya stok rusak. */
+  adaRusak?: boolean;
   halaman: number;
   perHalaman: number;
 };
@@ -36,6 +38,7 @@ export function useDaftarBarang(p: ParamDaftarBarang) {
             idMerk: p.idMerk ? String(p.idMerk) : undefined,
             status: p.status,
             perluTinjau: p.perluTinjau ? 'true' : undefined,
+            adaRusak: p.adaRusak ? 'true' : undefined,
             halaman: String(p.halaman),
             perHalaman: String(p.perHalaman),
           },

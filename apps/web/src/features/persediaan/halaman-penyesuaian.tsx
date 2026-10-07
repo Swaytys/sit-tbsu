@@ -13,10 +13,11 @@ import {
   type JenisPenyesuaianM1,
 } from '@sit/shared';
 import { ArrowLeft, Ban, Printer, RotateCcw, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
+import { useDetailBarang } from '@/api/barang';
 import { pesanGalat } from '@/api/client';
 import { useTampilanToko } from '@/api/pengaturan';
 import {
@@ -71,6 +72,8 @@ const PENJELASAN: Record<JenisPenyesuaianM1, string> = {
     'Isi hasil hitung fisik. Selisih = fisik − stok sistem − barang terjual yang belum diambil, dihitung saat diselesaikan.',
   KOREKSI: 'Perbaikan stok langsung: + menambah, − mengurangi. Alasan wajib diisi.',
   RUSAK: 'Memindahkan barang dari stok jual ke stok rusak (tidak bisa dijual).',
+  MUSNAH:
+    'Mengeluarkan barang dari stok rusak karena dibuang atau dimusnahkan. Nilainya menjadi kerugian; alasan wajib diisi.',
 };
 
 /** "14.000" → "14", "2.500" → "2,5" (isian form). */
@@ -100,12 +103,11 @@ export function HalamanPenyesuaian() {
   if (idDok !== null && !detail.data) return <p className="p-6 text-sm text-slate-500">Memuat…</p>;
   const d = detail.data ?? null;
   const dariUrl = cari.get('jenis') as JenisPenyesuaianM1 | null;
-  const jenis: JenisPenyesuaianM1 =
-    d && d.jenis !== 'MUSNAH'
-      ? d.jenis
-      : dariUrl && JENIS_PENYESUAIAN_M1.includes(dariUrl)
-        ? dariUrl
-        : 'KOREKSI';
+  const jenis: JenisPenyesuaianM1 = d
+    ? d.jenis
+    : dariUrl && JENIS_PENYESUAIAN_M1.includes(dariUrl)
+      ? dariUrl
+      : 'KOREKSI';
   if (d && d.status !== 'DRAFT') return <TampilanDokumen d={d} />;
   return <FormPenyesuaian key={d?.id ?? `baru-${jenis}`} dokumen={d} jenis={jenis} />;
 }
@@ -167,7 +169,7 @@ function FormPenyesuaian({
         idBarang: b.idBarang,
         qtyFisik: keIsian(b.qtyFisik),
         qtySelisih:
-          jenis === 'RUSAK'
+          jenis === 'RUSAK' || jenis === 'MUSNAH'
             ? keIsian(kurangQty(0, b.qtySelisih))
             : jenis === 'KOREKSI'
               ? keIsian(b.qtySelisih)
@@ -182,6 +184,12 @@ function FormPenyesuaian({
   const baris = useFieldArray({ control: form.control, name: 'baris' });
   const isi = useWatch({ control: form.control, name: 'baris' }) ?? [];
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
+
+  // `?barang=<id>` (dari tab Stok rusak): dokumen baru langsung berisi barang itu.
+  const [url] = useSearchParams();
+  const idAwal = dokumen ? null : Number(url.get('barang')) || null;
+  const awal = useDetailBarang(idAwal);
+  const sudahAwal = useRef(false);
 
   /** Hapus baris dengan kesempatan mengurungkan (salah pencet tidak menghilangkan isian). */
   function hapusBaris(i: number) {
@@ -213,7 +221,7 @@ function FormPenyesuaian({
         kode: b.kode,
         nama: b.namaBarang,
         satuan: b.kodeSatuan,
-        sistem: b.stokFisik,
+        sistem: jenis === 'MUSNAH' ? b.stokRusak : b.stokFisik,
         belum: '0.000',
       },
     }));
@@ -232,6 +240,17 @@ function FormPenyesuaian({
       alasanKecuali: '',
     });
   }
+
+  useEffect(() => {
+    if (!awal.data || sudahAwal.current) return;
+    sudahAwal.current = true;
+    tambah(awal.data);
+    // Pemusnahan: usulkan seluruh stok rusak; tetap bisa diubah.
+    if (jenis === 'MUSNAH') {
+      form.setValue('baris.0.qtySelisih', keIsian(awal.data.stokRusak), { shouldDirty: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cukup sekali saat data barang tiba
+  }, [awal.data]);
 
   // K-069: barang yang sudah tersimpan di dokumen OPNAME tidak dihapus, tetapi dikecualikan dengan alasan.
   const tersimpan = new Set(
@@ -307,7 +326,9 @@ function FormPenyesuaian({
         ? 'Jumlah awal'
         : jenis === 'RUSAK'
           ? 'Qty rusak'
-          : 'Selisih (+/−)';
+          : jenis === 'MUSNAH'
+            ? 'Qty dimusnahkan'
+            : 'Selisih (+/−)';
   const namaQty = jenis === 'OPNAME' || jenis === 'SALDO_AWAL' ? 'qtyFisik' : 'qtySelisih';
   const totalSaldoAwal =
     jenis === 'SALDO_AWAL'
@@ -389,7 +410,9 @@ function FormPenyesuaian({
                 name="alasan"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Alasan{jenis === 'KOREKSI' ? '' : ' (opsional)'}</FormLabel>
+                    <FormLabel>
+                      Alasan{jenis === 'KOREKSI' || jenis === 'MUSNAH' ? '' : ' (opsional)'}
+                    </FormLabel>
                     <FormControl>
                       <Input {...field} value={field.value ?? ''} />
                     </FormControl>
@@ -415,7 +438,15 @@ function FormPenyesuaian({
 
           <Card className="gap-0 py-0">
             <div className="border-b p-4">
-              <PilihBarang onPilih={tambah} />
+              <PilihBarang
+                onPilih={tambah}
+                hanyaRusak={jenis === 'MUSNAH'}
+                placeholder={
+                  jenis === 'MUSNAH'
+                    ? 'Cari barang yang punya stok rusak (kode, nama, barcode)…'
+                    : undefined
+                }
+              />
               {jenis === 'OPNAME' && baris.fields.length > 0 && (
                 <p className="mt-2 text-xs text-slate-500" data-testid="ringkasan-opname">
                   {baris.fields.length} barang · {jumlahTerisi} sudah diisi · {jumlahKecuali}{' '}
@@ -432,7 +463,9 @@ function FormPenyesuaian({
                 <TableRow>
                   <TableHead className="w-10">#</TableHead>
                   <TableHead>Barang</TableHead>
-                  <TableHead className="text-right">Stok sistem</TableHead>
+                  <TableHead className="text-right">
+                    {jenis === 'MUSNAH' ? 'Stok rusak' : 'Stok sistem'}
+                  </TableHead>
                   {jenis === 'OPNAME' && (
                     <TableHead className="text-right">Belum diambil</TableHead>
                   )}
@@ -666,7 +699,7 @@ function FormPenyesuaian({
 
 /** Dokumen SELESAI/BATAL: hanya baca. */
 function TampilanDokumen({ d }: { d: DetailPenyesuaian }) {
-  const jenis = d.jenis === 'MUSNAH' ? 'KOREKSI' : d.jenis;
+  const jenis = d.jenis;
   return (
     <div className="space-y-4 p-6">
       <Judul d={d} jenis={jenis} />
@@ -693,7 +726,9 @@ function TampilanDokumen({ d }: { d: DetailPenyesuaian }) {
           <TableHeader>
             <TableRow>
               <TableHead>Barang</TableHead>
-              <TableHead className="text-right">Stok sistem</TableHead>
+              <TableHead className="text-right">
+                {jenis === 'MUSNAH' ? 'Stok rusak' : 'Stok sistem'}
+              </TableHead>
               {jenis === 'OPNAME' && <TableHead className="text-right">Belum diambil</TableHead>}
               {(jenis === 'OPNAME' || jenis === 'SALDO_AWAL') && (
                 <TableHead className="text-right">

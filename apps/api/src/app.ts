@@ -14,6 +14,8 @@ import { dashboardRoutes } from './modules/dashboard/routes';
 import { barangRoutes } from './modules/master/barang/routes';
 import { hargaRoutes } from './modules/master/harga/routes';
 import { promoRoutes } from './modules/promo/routes';
+import { hutangRoutes } from './modules/hutang/routes';
+import { returPemasokRoutes } from './modules/persediaan/retur-pemasok/routes';
 import { importRoutes } from './modules/master/import/routes';
 import { jenisAtributRoutes } from './modules/master/jenis-atribut/routes';
 import { kategoriRoutes } from './modules/master/kategori/routes';
@@ -54,6 +56,8 @@ const rute = new Hono<EnvApp>()
   .route('/promo', promoRoutes)
   .route('/import', importRoutes)
   .route('/penerimaan', penerimaanRoutes)
+  .route('/retur-pemasok', returPemasokRoutes)
+  .route('/hutang', hutangRoutes)
   .route('/penyesuaian', penyesuaianRoutes)
   .route('/stok', stokRoutes)
   .route('/order', orderRoutes)

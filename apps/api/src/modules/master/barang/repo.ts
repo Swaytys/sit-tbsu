@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, inArray, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql, type SQL } from 'drizzle-orm';
 import type { Kepemilikan, StatusAktif } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
@@ -27,6 +27,7 @@ const kolom = {
   kodeSatuan: satuan.kode,
   stokMinimum: barang.stokMinimum,
   stokFisik: persediaan.stokFisik,
+  stokRusak: persediaan.stokRusak,
   stokTersedia: sql<string>`coalesce(${persediaan.stokTersedia}, 0)::text`,
   kepemilikan: barang.kepemilikan,
   idPemasokKonsinyasi: barang.idPemasokKonsinyasi,
@@ -61,6 +62,7 @@ export type SaringBarang = {
   idMerk?: number | undefined;
   status: StatusAktif | 'SEMUA';
   perluTinjau?: boolean | undefined;
+  adaRusak?: boolean | undefined;
 };
 
 function syarat(p: SaringBarang): SQL | undefined {
@@ -70,6 +72,7 @@ function syarat(p: SaringBarang): SQL | undefined {
     p.idKategori === undefined ? undefined : eq(barang.idKategori, p.idKategori),
     p.idMerk === undefined ? undefined : eq(barang.idMerk, p.idMerk),
     p.perluTinjau === undefined ? undefined : eq(barang.perluTinjauHarga, p.perluTinjau),
+    p.adaRusak ? gt(persediaan.stokRusak, '0') : undefined,
     pola
       ? or(
           ilike(barang.kode, pola),
@@ -94,6 +97,7 @@ export async function daftarBarang(
   const [hitung] = await ex
     .select({ total: count() })
     .from(barang)
+    .innerJoin(persediaan, eq(persediaan.idBarang, barang.id))
     .leftJoin(merk, eq(merk.id, barang.idMerk))
     .where(where);
   return { baris, total: hitung?.total ?? 0 };

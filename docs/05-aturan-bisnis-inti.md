@@ -176,7 +176,7 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 | A3 | OPNAME: saat SELESAI, per baris: `FOR UPDATE persediaan`, `qty_sistem = stok_fisik` saat itu (bukan saat draft dibuat), `qty_selisih = qty_fisik − qty_sistem − qty_belum_diambil`, di mana `qty_belum_diambil` = Σ `qty_dasar` baris penjualan LANGSUNG `status_pengambilan = BELUM_DIAMBIL` untuk barang itu (barang terjual yang masih di toko). Selisih > 0 → PENYESUAIAN masuk (hpp = hpp_rata2); < 0 → PENYESUAIAN keluar; 0 → tidak ada mutasi. Lembar hitung (cetak) menampilkan kolom "Sistem", "Belum diambil", "Fisik dihitung". |
 | A3a | Lembar opname (K-069): barang yang sudah tersimpan di dokumen OPNAME tidak bisa dihapus dari dokumen. Barang yang tidak dihitung **dikecualikan** dengan alasan wajib (≥ 3 huruf); tercatat siapa dan kapan, tercetak di lembar hitung, tampil di dokumen selesai, dan tidak menghasilkan mutasi. SELESAI ditolak bila ada baris yang belum diisi dan tidak dikecualikan. Log PENYESUAIAN_UBAH mencatat barang yang dikecualikan/disertakan lagi; log PENYESUAIAN_SELESAI mencatat jumlah dihitung, dikecualikan (beserta alasan), dan barang aktif di luar dokumen. |
 | A4 | KOREKSI: `qty_selisih` diisi langsung (± ) dengan `alasan` wajib; mutasi PENYESUAIAN. |
-| A5 | RUSAK: `qty_selisih` negatif dari bucket BAIK; dua mutasi PINDAH_KONDISI (keluar BAIK, masuk RUSAK, `hpp = hpp_rata2`). MUSNAH [M2]: keluar dari bucket RUSAK. |
+| A5 | RUSAK: `qty_selisih` negatif dari bucket BAIK; dua mutasi PINDAH_KONDISI (keluar BAIK, masuk RUSAK, `hpp = hpp_rata2`). MUSNAH [M2 Fase 10]: keluar dari bucket RUSAK (mutasi MUSNAH, `hpp = hpp_rata2`), alasan wajib; `qty_sistem` = stok rusak (K-088). |
 | A6 | Pengurangan `stok_fisik` di bawah `stok_dipesan` ditolak (K-048) dengan daftar order penahan. |
 | A7 | Penyesuaian tidak mengubah `harga_beli_terakhir`; SALDO_AWAL mengubah `hpp_rata2` lewat L4. |
 
@@ -233,3 +233,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-04 — §16: aksi log CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084).
 - 2026-10-04 — L6 merujuk H5/H7; §16: aksi log HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086).
 - 2026-10-04 — N5 kode promo `PRM`; §16 aksi log promo (K-087).
+- 2026-10-07 — A5 MUSNAH diaktifkan (Fase 10, K-088).

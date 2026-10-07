@@ -6,6 +6,7 @@ import type {
   KondisiRetur,
   MetodePembayaran,
   PenyelesaianRetur,
+  PenyelesaianReturPemasok,
   SasaranPromo,
   StatusBerlakuPromo,
   StatusItem,
@@ -111,4 +112,11 @@ export const LABEL_STATUS_BERLAKU_PROMO: Record<StatusBerlakuPromo, string> = {
   TERJADWAL: 'Terjadwal',
   BERJALAN: 'Berjalan',
   BERAKHIR: 'Berakhir',
+};
+
+export const LABEL_PENYELESAIAN_RETUR_PEMASOK: Record<PenyelesaianReturPemasok, string> = {
+  POTONG_HUTANG: 'Potong hutang',
+  GANTI_BARANG: 'Ganti barang',
+  REFUND: 'Uang kembali',
+  PENGEMBALIAN_TITIPAN: 'Pengembalian titipan',
 };
