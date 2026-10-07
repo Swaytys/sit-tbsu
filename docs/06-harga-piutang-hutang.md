@@ -17,7 +17,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | H8 | Pilihan tier di transaksi (Fase 5): default P3 docs/05; dropdown menampilkan nama tier dan harganya. **[M2 Fase 9]** bila `qty ≥ tingkat_harga.saran_min_qty` dan tier itu lebih murah dari harga baris, API memberi saran (bila lebih dari satu: yang termurah); UI menyorotnya untuk semua peran, tidak memaksa (K-087). |
 | H9 | Harga manual (`penjualan.harga_manual`): kasir/Admin mengetik harga; `harga_manual = true`, `id_tingkat_harga = null`; log mencatat harga tier default sebagai pembanding. Harga manual di bawah `D` (di bawah modal) ditolak untuk Kasir; Admin/Owner diperbolehkan dengan konfirmasi dan log `PENJUALAN_HARGA_MANUAL` bertanda "di bawah modal". |
 | H10 | Mengubah harga master tidak mengubah transaksi yang sudah ada (snapshot, P2). |
-| H11 | **[M2 Fase 12]** Harga per satuan jual: baris `harga_barang` dengan `id_satuan_jual`; default dibuat otomatis = `bulatkanHarga(harga_jual satuan dasar × faktor_ke_dasar)` saat satuan jual dibuat; bisa diubah menjadi TETAP. Perubahan harga satuan dasar tidak menimpa harga satuan jual yang TETAP. |
+| H11 | **[M2 Fase 12]** Harga per satuan jual: bawaan = `bulatkanHarga(harga_jual satuan dasar tier itu × faktor_ke_dasar)`, **dihitung saat dibaca** (selalu mengikuti harga satuan dasar); bisa ditetapkan TETAP per tier (baris `harga_barang` dengan `id_satuan_jual`). Perubahan harga satuan dasar tidak menimpa harga satuan jual yang TETAP. Promo: syarat min qty dan potongan nominal per satuan dihitung dalam satuan dasar; potongan persen dari harga baris. Satu barang satu baris per transaksi (K-091). |
 | H12 | Margin tampil (`(harga_jual − D) ÷ harga_jual`, 2 desimal, dihitung API) di Harga Jual, form barang, Tinjau Harga, dan ekspor, hanya untuk pemegang `master.barang.lihat_hpp`; API menyaring `D`, `margin`, `markup_persen` barang, `hpp` untuk yang lain. |
 | H13 | Halaman Harga Jual (Fase 3): tabel barang × tier, edit sel langsung, simpan massal; filter kategori; ekspor Excel. Import harga dari Excel ikut templat import barang. |
 
@@ -124,3 +124,4 @@ Konfigurasi: `dasar_markup`, `pembulatan_harga`, `batas_diskon_persen_<PERAN>`, 
 - 2026-10-04 — §2 D1–D2 dasar setelah promo, §3 PR3–PR7 dirinci, H8 saran termurah, HT7 dipindah ke Fase 9 (K-087).
 - 2026-10-07 — PT5 kelompok umur dirinci, PT6 izin melanjutkan, HT2 rekening, HT3, RP5 barang pengganti, SR4 tab Stok rusak (K-088).
 - 2026-10-07 — KS5–KS6 dirinci: baris per harga titip, retur tukar netral, koreksi ditunda (K-089).
+- 2026-10-07 — H11 dirinci: harga satuan jual dihitung saat dibaca, promo per satuan dasar (K-091).

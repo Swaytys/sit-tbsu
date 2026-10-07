@@ -41,6 +41,8 @@ Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
 - **Promo** tampil di bawah barang dan total sudah dipotong. Di daftar barang, **P** melepas promo baris itu (mis.
   pembeli menolak) dan **P** lagi memasangnya kembali; pelepasan tercatat di log. Promo yang tampil saat order
   dihitung ulang saat bayar (promo yang sudah berakhir tidak berlaku lagi).
+- Barang dengan satuan jual: di daftar barang tekan **S** untuk ganti satuan (sak ↔ dus); memindai barcode dus
+  langsung memakai satuan dus. Di bawah qty tampil isinya dalam satuan dasar (mis. "= 30 sak").
 - **F8** bayar → ketik uang yang diterima → **Enter**. Kembalian tampil besar; struk tercetak otomatis.
 - Barang belum diambil pembeli: tandai *belum diambil*; konfirmasi saat diambil.
 
@@ -71,6 +73,9 @@ Semua tugas kasir, ditambah:
 
 - **Data barang** (*Data Master › Data Barang*): tambah/ubah barang, kategori, merk, satuan, atribut, stok
   minimum, gambar. Banyak barang sekaligus: *Import Excel*. Harga per tier di *Harga Jual*.
+- **Satuan jual** (form barang › *Satuan jual*): jual barang per dus/roll/dsb. Isi satuan, isi per satuan dasar
+  (mis. dus = 12 pcs), barcode dus bila ada, dan centang *Satuan bawaan* bila biasanya dijual per dus. Harga
+  kosong = otomatis (harga satuan dasar × isi); isi harga bila dus lebih murah. Stok tetap dalam satuan dasar.
 - **Label barang** (*Data Barang › Cetak label*): pilih barang dan jumlah label, jenis kertas label, harga
   tier, lalu **Cetak**. Barcode di label bisa dipindai di layar kasir. Kertas yang sudah terpakai sebagian: isi
   "Mulai dari label ke-". Cetak dengan skala 100%.

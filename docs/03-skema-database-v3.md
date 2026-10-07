@@ -95,7 +95,10 @@ dipakai barang diverifikasi dimensinya (aturan service).
 (CHECK `num_nonnulls = 1`). `id_satuan` wajib bila jenis atribut berdimensi (service).
 
 **`barang_satuan_jual`** [M2] — satuan alternatif per barang dengan `faktor_ke_dasar` (roll = 50 m → 50).
-Boleh punya barcode sendiri. M1 tidak membuat baris di sini; semua transaksi memakai satuan dasar (`faktor = 1`).
+Boleh punya barcode sendiri (unik bersama `barang.barcode`). Sejak Fase 12 (K-091) diatur di form barang; baris
+tidak dihapus (dinonaktifkan). Baris order/penjualan menyimpan `id_satuan_jual` dan `faktor` (snapshot);
+`qty_dasar = qty × faktor`. Baris `harga_barang` dengan `id_satuan_jual` hanya bermakna bila `TETAP`; metode
+lain = harga dihitung saat dibaca dari harga satuan dasar × faktor (kolom `harga_jual`-nya tidak dipakai).
 
 **`tingkat_harga`** — master tier. Tepat satu `is_default` (index parsial). `markup_default_persen` dipakai barang
 bermetode IKUT_TIER; `saran_min_qty` untuk saran tier di UI (M2).
@@ -416,3 +419,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-04 — v3.5: `order_penjualan_detail` + `id_promo` (FK promo), `diskon_promo`, `promo_nonaktif`; CHECK
   `chk_order_detail_harga` memuat `diskon_promo`; indeks parsial `idx_penjualan_detail_promo` (migrasi 0005; K-087).
 - 2026-10-07 — v3.6: `retur_penjualan_detail.id_penyelesaian_konsinyasi` (FK, indeks `idx_retur_detail_ksg`); unique `uq_ksg_detail` menjadi (`id_penyelesaian`, `id_barang`, `harga_titip`) (migrasi 0006; K-089). Urutan kolom promo `order_penjualan_detail` di skema Drizzle disamakan dengan migrasi 0005 (verifikasi skema identik).
+- 2026-10-07 — Fase 12: pemakaian `barang_satuan_jual` dan baris harga satuan jual dirinci (tanpa perubahan struktur; K-091).

@@ -25,7 +25,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 9 | Harga dan promo | Selesai (menunggu tinjauan pemilik) | 2026-10-05 |
 | 10 | Hutang pemasok, retur pemasok, stok rusak | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 11 | Konsinyasi | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
-| 12 | Multi-satuan jual dan label (akhir M2) | Sebagian: label & daftar harga selesai (menunggu tinjauan) | — |
+| 12 | Multi-satuan jual dan label (akhir M2) | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 
 Nilai status: Belum · Aktif · Berjalan (sebagian branch merge) · Selesai · Ditunda.
 
@@ -350,8 +350,12 @@ Satuan jual per barang dengan faktor, dropdown satuan di order/kasir, harga per 
 bisa override), cetak label barcode, ekspor katalog harga.
 
 Catatan bagian 1 (2026-10-07, branch `feat/12-label`, K-090): cetak label barcode Code 128 (Data Barang › Cetak
-label, dua ukuran kertas label A4) dan laporan Daftar Harga (katalog per tier, cetak/Excel). Multi-satuan jual
-belum dikerjakan.
+label, dua ukuran kertas label A4) dan laporan Daftar Harga (katalog per tier, cetak/Excel).
+
+Catatan bagian 2 (2026-10-07, branch `feat/12-satuan-jual`, K-091): satuan jual per barang di form barang (faktor,
+barcode, bawaan, harga tetap per tier atau otomatis), satuan per baris di layar kasir (tombol S, pindai barcode
+dus), form order dan input order cepat; checkout, struk, invoice, surat jalan, retur, dan laporan memakai satuan
+baris; stok/HPP/laba memakai qty dasar. Tes `satuan-jual.test.ts` dan e2e `satuan-jual.spec.ts`.
 
 ---
 
@@ -373,5 +377,6 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-10-07 — Fase 10 selesai di branch `feat/10-hutang` (K-088), menunggu tinjauan pemilik.
 - 2026-10-07 — Fase 11 selesai di branch `feat/11-konsinyasi` (K-089), menunggu tinjauan pemilik.
 - 2026-10-07 — Fase 12 bagian 1 (label barcode, Daftar Harga) di branch `feat/12-label` (K-090).
+- 2026-10-07 — Fase 12 selesai (satuan jual, K-091) di branch `feat/12-satuan-jual`, menunggu tinjauan pemilik.
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).
