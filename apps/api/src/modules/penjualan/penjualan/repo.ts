@@ -210,12 +210,17 @@ export async function termPelanggan(ex: Executor, id: number): Promise<number> {
 }
 
 /** PT6: limit kredit pelanggan (`null` = tanpa limit) dan piutang berjalan selain penjualan `kecuali`. */
-export async function posisiKredit(ex: Executor, idPelanggan: number, kecuali: number) {
-  const [p] = await ex
+/**
+ * PT6: limit dan piutang berjalan pelanggan. Baris pelanggan dikunci agar dua checkout tidak lunas bersamaan
+ * untuk pelanggan yang sama tidak sama-sama lolos limit (yang kedua menunggu, lalu melihat piutang yang pertama).
+ */
+export async function posisiKredit(tx: Tx, idPelanggan: number, kecuali: number) {
+  const [p] = await tx
     .select({ limit: pelanggan.limitKredit, nama: pelanggan.namaPelanggan })
     .from(pelanggan)
-    .where(eq(pelanggan.id, idPelanggan));
-  const [b] = await ex
+    .where(eq(pelanggan.id, idPelanggan))
+    .for('update');
+  const [b] = await tx
     .select({
       piutang: sql<number>`coalesce(sum(${penjualan.sisaTagihan}), 0)::bigint`.mapWith(Number),
     })
