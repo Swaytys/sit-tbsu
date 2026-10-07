@@ -18,6 +18,7 @@ import {
   barangSatuanJual,
   pelanggan,
   pengguna,
+  persediaan,
   penjualan,
   penjualanDetail,
   returPenjualan,
@@ -136,13 +137,15 @@ export async function kunci(tx: Tx, id: number) {
 }
 
 /** Baris penjualan + qty retur yang masih menunggu persetujuan (agar tidak diajukan dobel, T1). */
-export function barisPenjualan(ex: Executor, idPenjualan: number) {
+/** Baris penjualan; `idPenjualan` boleh banyak sekaligus (kandidat retur/void tanpa kueri per penjualan). */
+export function barisPenjualan(ex: Executor, idPenjualan: number | number[]) {
   const menunggu = sql<string>`coalesce((select sum(d.qty_retur_dasar) from ${returPenjualanDetail} d
     join ${returPenjualan} r on r.id = d.id_retur
     where d.id_penjualan_detail = ${penjualanDetail.id} and r.status = 'MENUNGGU'), 0)::text`;
   return ex
     .select({
       id: penjualanDetail.id,
+      idPenjualan: penjualanDetail.idPenjualan,
       idBarang: penjualanDetail.idBarang,
       namaBarang: barang.namaBarang,
       kodeSatuan: kodeSatuanBaris,
@@ -160,7 +163,11 @@ export function barisPenjualan(ex: Executor, idPenjualan: number) {
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
     .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, penjualanDetail.idSatuanJual))
     .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
-    .where(eq(penjualanDetail.idPenjualan, idPenjualan))
+    .where(
+      Array.isArray(idPenjualan)
+        ? inArray(penjualanDetail.idPenjualan, idPenjualan.length ? idPenjualan : [0])
+        : eq(penjualanDetail.idPenjualan, idPenjualan),
+    )
     .orderBy(asc(penjualanDetail.id));
 }
 
@@ -230,4 +237,13 @@ export async function jumlahMenunggu(ex: Executor): Promise<number> {
     .from(returPenjualan)
     .where(eq(returPenjualan.status, 'MENUNGGU'));
   return h?.n ?? 0;
+}
+
+/** Stok tersedia (stok baik − dipesan) satu barang, untuk barang pengganti tukar (T5). */
+export async function stokTersedia(ex: Executor, idBarang: number): Promise<string> {
+  const [p] = await ex
+    .select({ tersedia: sql<string>`${persediaan.stokTersedia}::text` })
+    .from(persediaan)
+    .where(eq(persediaan.idBarang, idBarang));
+  return p?.tersedia ?? '0';
 }

@@ -265,6 +265,7 @@ export function NotaSetoranKonsinyasiA4({
             <th className="py-1 text-left">Barang</th>
             <th className="py-1 text-right">Terjual</th>
             <th className="py-1 text-right">Retur</th>
+            <th className="py-1 text-right">Ganti rugi</th>
             <th className="py-1 text-right">Disetor</th>
             <th className="py-1 text-right">Harga titip</th>
             <th className="py-1 text-right">Subtotal</th>
@@ -279,6 +280,7 @@ export function NotaSetoranKonsinyasiA4({
               </td>
               <td className="py-1.5 text-right">{formatDesimal(b.qtyTerjual)}</td>
               <td className="py-1.5 text-right">{formatDesimal(b.qtyRetur)}</td>
+              <td className="py-1.5 text-right">{formatDesimal(b.qtyGantiRugi)}</td>
               <td className="py-1.5 text-right">
                 {formatDesimal(b.qtyNeto)} {b.kodeSatuan}
               </td>
@@ -287,7 +289,7 @@ export function NotaSetoranKonsinyasiA4({
             </tr>
           ))}
           <tr className="border-b border-black font-bold">
-            <td colSpan={6} className="py-1.5 text-right">
+            <td colSpan={7} className="py-1.5 text-right">
               Total setoran
             </td>
             <td className="py-1.5 text-right">{formatRupiah(k.total)}</td>

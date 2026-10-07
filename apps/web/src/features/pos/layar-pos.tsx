@@ -60,6 +60,7 @@ type Cetakan =
 
 const TOMBOL_UMUM: Tombol[] = [
   { kunci: 'F2', label: 'Cari barang' },
+  { kunci: 'F1', label: 'Qty (*)' },
   { kunci: 'F3', label: 'Antrean' },
   { kunci: 'F4', label: 'Pelanggan' },
   { kunci: 'F8', label: 'Bayar' },

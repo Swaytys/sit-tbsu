@@ -420,3 +420,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
   `chk_order_detail_harga` memuat `diskon_promo`; indeks parsial `idx_penjualan_detail_promo` (migrasi 0005; K-087).
 - 2026-10-07 — v3.6: `retur_penjualan_detail.id_penyelesaian_konsinyasi` (FK, indeks `idx_retur_detail_ksg`); unique `uq_ksg_detail` menjadi (`id_penyelesaian`, `id_barang`, `harga_titip`) (migrasi 0006; K-089). Urutan kolom promo `order_penjualan_detail` di skema Drizzle disamakan dengan migrasi 0005 (verifikasi skema identik).
 - 2026-10-07 — Fase 12: pemakaian `barang_satuan_jual` dan baris harga satuan jual dirinci (tanpa perubahan struktur; K-091).
+- 2026-10-08 — v3.7: `penyesuaian_stok_detail.id_penyelesaian_konsinyasi`, `penyelesaian_konsinyasi_detail.qty_ganti_rugi` (migrasi 0007; K-092).

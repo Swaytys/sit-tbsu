@@ -26,6 +26,8 @@ import {
   penjualanDetail,
   penyelesaianKonsinyasi,
   penyelesaianKonsinyasiDetail,
+  penyesuaianStok,
+  penyesuaianStokDetail,
   persediaan,
   returPenjualan,
   returPenjualanDetail,
@@ -79,8 +81,9 @@ export function jualBelumDisetor(ex: Executor, idPemasok: number, periodeSelesai
 }
 
 /**
- * KS5–KS6: retur pelanggan DISETUJUI kondisi BAIK atas barang titipan pemasok yang belum diperhitungkan.
- * Tukar barang (ada barang pengganti) netral bagi pemasok sehingga tidak ikut (K-089).
+ * KS5–KS6 (K-092): retur pelanggan DISETUJUI atas barang titipan pemasok yang belum diperhitungkan, apa pun
+ * kondisinya (barang kembali menjadi milik penitip; yang rusak diselesaikan lewat kembalikan/musnahkan). Tukar
+ * barang (ada barang pengganti) netral bagi pemasok sehingga tidak ikut (K-089).
  */
 export function returBelumDihitung(ex: Executor, idPemasok: number, periodeSelesai: string) {
   return ex
@@ -100,13 +103,53 @@ export function returBelumDihitung(ex: Executor, idPemasok: number, periodeSeles
       and(
         titipanPemasok(idPemasok),
         eq(returPenjualan.status, 'DISETUJUI'),
-        eq(returPenjualanDetail.kondisi, 'BAIK'),
         isNull(returPenjualanDetail.idBarangPengganti),
         isNull(returPenjualanDetail.idPenyelesaianKonsinyasi),
         lte(returPenjualan.tanggalOperasional, periodeSelesai),
       ),
     )
     .orderBy(asc(returPenjualan.tanggalOperasional), asc(returPenjualanDetail.id));
+}
+
+/**
+ * K-092: pemusnahan barang titipan pemasok (penyesuaian MUSNAH selesai) yang belum ditagihkan: toko menanggung,
+ * nilainya (harga titip saat dimusnahkan) dibayar ke penitip lewat setoran.
+ */
+export function musnahBelumDihitung(ex: Executor, idPemasok: number, periodeSelesai: string) {
+  return ex
+    .select({
+      id: penyesuaianStokDetail.id,
+      idBarang: penyesuaianStokDetail.idBarang,
+      qtySelisih: penyesuaianStokDetail.qtySelisih,
+      hargaTitip: penyesuaianStokDetail.hppSatuan,
+    })
+    .from(penyesuaianStokDetail)
+    .innerJoin(penyesuaianStok, eq(penyesuaianStok.id, penyesuaianStokDetail.idPenyesuaian))
+    .innerJoin(barang, eq(barang.id, penyesuaianStokDetail.idBarang))
+    .where(
+      and(
+        titipanPemasok(idPemasok),
+        eq(penyesuaianStok.jenis, 'MUSNAH'),
+        eq(penyesuaianStok.status, 'SELESAI'),
+        isNull(penyesuaianStokDetail.idPenyelesaianKonsinyasi),
+        lte(penyesuaianStok.tanggalOperasional, periodeSelesai),
+      ),
+    )
+    .orderBy(asc(penyesuaianStokDetail.id));
+}
+
+/** Kolom penanda (K-092): pemusnahan titipan sudah ditagihkan di KSG ini. */
+export async function tandaiMusnah(tx: Tx, idDetail: number[], idKsg: number) {
+  if (idDetail.length === 0) return;
+  await tx
+    .update(penyesuaianStokDetail)
+    .set({ idPenyelesaianKonsinyasi: idKsg })
+    .where(
+      and(
+        inArray(penyesuaianStokDetail.id, idDetail),
+        isNull(penyesuaianStokDetail.idPenyelesaianKonsinyasi),
+      ),
+    );
 }
 
 export function infoBarang(ex: Executor, id: number[]) {
@@ -245,6 +288,7 @@ export function detail(ex: Executor, id: number) {
       hargaTitip: penyelesaianKonsinyasiDetail.hargaTitip,
       qtyTerjual: penyelesaianKonsinyasiDetail.qtyTerjual,
       qtyRetur: penyelesaianKonsinyasiDetail.qtyRetur,
+      qtyGantiRugi: penyelesaianKonsinyasiDetail.qtyGantiRugi,
       qtyNeto: penyelesaianKonsinyasiDetail.qtyNeto,
       subtotal: penyelesaianKonsinyasiDetail.subtotal,
     })
@@ -350,4 +394,25 @@ export async function bayarPeriode(
       ),
     );
   return b?.total ?? 0;
+}
+
+/** KS8 + K-092: pemusnahan barang titipan yang belum ditagihkan (semua pemasok). */
+export function semuaMusnahBelumDihitung(ex: Executor) {
+  return ex
+    .select({
+      idPemasok: barang.idPemasokKonsinyasi,
+      qtySelisih: penyesuaianStokDetail.qtySelisih,
+      hargaTitip: penyesuaianStokDetail.hppSatuan,
+    })
+    .from(penyesuaianStokDetail)
+    .innerJoin(penyesuaianStok, eq(penyesuaianStok.id, penyesuaianStokDetail.idPenyesuaian))
+    .innerJoin(barang, eq(barang.id, penyesuaianStokDetail.idBarang))
+    .where(
+      and(
+        eq(barang.kepemilikan, 'KONSINYASI'),
+        eq(penyesuaianStok.jenis, 'MUSNAH'),
+        eq(penyesuaianStok.status, 'SELESAI'),
+        isNull(penyesuaianStokDetail.idPenyelesaianKonsinyasi),
+      ),
+    );
 }

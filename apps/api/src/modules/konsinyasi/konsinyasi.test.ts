@@ -18,6 +18,7 @@ import {
   kasShift,
   logAktivitas,
   penjualanDetail,
+  persediaan,
   penyelesaianKonsinyasi,
   penyelesaianKonsinyasiDetail,
   returPenjualan,
@@ -158,8 +159,8 @@ describe('hitungSetoran (KS5, KS6, KS9)', () => {
       ],
     );
     expect(h.grup).toEqual([
-      { idBarang: 7, hargaTitip: 30000, terjual: '3.000', retur: '3.000' },
-      { idBarang: 7, hargaTitip: 35000, terjual: '1.000', retur: '0' },
+      { idBarang: 7, hargaTitip: 30000, terjual: '3.000', retur: '3.000', gantiRugi: '0' },
+      { idBarang: 7, hargaTitip: 35000, terjual: '1.000', retur: '0', gantiRugi: '0' },
     ]);
     expect(h.idRetur).toEqual([10, 11]);
     expect(h.koreksiDitunda).toBe(1);
@@ -172,18 +173,22 @@ describe('penyelesaian konsinyasi (KS5–KS8)', () => {
     const pj2 = await jual('2');
     const pj3 = await jual('1');
     await retur(pj1, '1', 'BAIK');
-    await retur(pj2, '1', 'RUSAK'); // rusak tidak mengurangi setoran (KS6)
+    await retur(pj2, '1', 'RUSAK'); // K-092: rusak juga kembali milik penitip → mengurangi setoran
+    // Barang rusak masuk stok rusak, bukan stok jual: 20 − 6 + 1 (baik) = 15 baik, 1 rusak.
+    const [st] = await db.select().from(persediaan).where(eq(persediaan.idBarang, m.titip));
+    expect(st).toMatchObject({ stokFisik: '15.000', stokRusak: '1.000' });
 
     const p = await pratinjau();
-    expect(p).toMatchObject({ total: 150_000, jumlahBarisJual: 3, koreksiDitunda: 0 });
+    expect(p).toMatchObject({ total: 120_000, jumlahBarisJual: 3, koreksiDitunda: 0 });
     expect(p.baris).toEqual([
       expect.objectContaining({
         idBarang: m.titip,
         hargaTitip: 30000,
         qtyTerjual: '6.000',
-        qtyRetur: '1.000',
-        qtyNeto: '5.000',
-        subtotal: 150_000,
+        qtyRetur: '2.000',
+        qtyGantiRugi: '0.000',
+        qtyNeto: '4.000',
+        subtotal: 120_000,
       }),
     ]);
     expect(
@@ -196,7 +201,7 @@ describe('penyelesaian konsinyasi (KS5–KS8)', () => {
 
     const ksg = await selesaikan();
     expect(ksg.nomor).toMatch(/^KSG-/);
-    expect(ksg).toMatchObject({ total: 150_000, statusHutang: 'BELUM_LUNAS', sisaHutang: 150_000 });
+    expect(ksg).toMatchObject({ total: 120_000, statusHutang: 'BELUM_LUNAS', sisaHutang: 120_000 });
     const ditandai = await db
       .select({ id: penjualanDetail.id })
       .from(penjualanDetail)
@@ -206,7 +211,7 @@ describe('penyelesaian konsinyasi (KS5–KS8)', () => {
       .select({ kondisi: returPenjualanDetail.kondisi })
       .from(returPenjualanDetail)
       .where(isNotNull(returPenjualanDetail.idPenyelesaianKonsinyasi));
-    expect(returDitandai).toEqual([{ kondisi: 'BAIK' }]);
+    expect(returDitandai.map((r) => r.kondisi).sort()).toEqual(['BAIK', 'RUSAK']);
     const [log] = await db
       .select()
       .from(logAktivitas)
@@ -224,7 +229,7 @@ describe('penyelesaian konsinyasi (KS5–KS8)', () => {
     // Hutang konsinyasi muncul di Hutang Pemasok dan bisa dibayar sebagian (KS7).
     const daftar = await json<DaftarHutang>(await minta('/api/hutang', { cookie: admin.cookie }));
     expect(daftar.data).toEqual([
-      expect.objectContaining({ jenis: 'KONSINYASI', nomor: ksg.nomor, sisa: 150_000 }),
+      expect.objectContaining({ jenis: 'KONSINYASI', nomor: ksg.nomor, sisa: 120_000 }),
     ]);
     const bayar = await kirim<{ statusHutang: string; sisa: number }>(admin, '/api/hutang/bayar', {
       jenis: 'KONSINYASI',
@@ -233,10 +238,10 @@ describe('penyelesaian konsinyasi (KS5–KS8)', () => {
       metode: 'TRANSFER',
       rekening: 'BRI 001',
     });
-    expect(bayar).toMatchObject({ statusHutang: 'SEBAGIAN', sisa: 100_000 });
+    expect(bayar).toMatchObject({ statusHutang: 'SEBAGIAN', sisa: 70_000 });
     const detail = await ambil<DetailPenyelesaianKonsinyasi>(admin, `/api/konsinyasi/${ksg.id}`);
     expect(detail.pembayaran).toHaveLength(1);
-    expect(detail.sisaHutang).toBe(100_000);
+    expect(detail.sisaHutang).toBe(70_000);
 
     // Void baris yang sudah disetor ditolak (gunakan retur).
     const tolakVoid = await galat(kasir, '/api/void', {
@@ -262,12 +267,31 @@ describe('penyelesaian konsinyasi (KS5–KS8)', () => {
       expect.objectContaining({
         idPemasok: m.pemasokA,
         nilaiBelumDisetor: 0,
-        sisaHutang: 130_000,
+        sisaHutang: 100_000,
         terakhirDisetor: hariIni,
         // Stok titipan: baik 20 − 6 + 1 + 1 − 2 = 14, ditambah 1 rusak (tetap milik penitip).
         nilaiStokTitipan: 15 * 30_000,
       }),
     ]);
+
+    // K-092: barang titipan rusak dimusnahkan toko → ganti rugi di setoran berikutnya (tanpa penjualan baru).
+    const musnah = await kirim<{ id: number }>(admin, '/api/penyesuaian', {
+      jenis: 'MUSNAH',
+      alasan: 'Pecah, tidak bisa dikembalikan',
+      baris: [{ idBarang: m.titip, qtySelisih: '1' }],
+    });
+    await kirim(admin, `/api/penyesuaian/${musnah.id}/selesai`);
+    const p3 = await pratinjau();
+    expect(p3).toMatchObject({ jumlahBarisJual: 0, jumlahBarisGantiRugi: 1, total: 30_000 });
+    expect(p3.baris).toEqual([
+      expect.objectContaining({ qtyTerjual: '0.000', qtyGantiRugi: '1.000', qtyNeto: '1.000' }),
+    ]);
+    const ksg3 = await selesaikan();
+    expect(ksg3.baris[0]).toMatchObject({ qtyGantiRugi: '1.000', subtotal: 30_000 });
+    expect(
+      (await galat(admin, '/api/konsinyasi', { idPemasok: m.pemasokA, periodeSelesai: hariIni }))
+        .status,
+    ).toBe(409);
 
     const r = await minta(`/api/laporan/konsinyasi?dari=${hariIni}&sampai=${hariIni}`, {
       cookie: admin.cookie,

@@ -130,10 +130,12 @@ export async function kunci(tx: Tx, id: number) {
 }
 
 /** Baris penjualan beserta hpp snapshot (untuk mutasi VOID, V4). */
-export function barisPenjualan(ex: Executor, idPenjualan: number) {
+/** Baris penjualan; `idPenjualan` boleh banyak sekaligus (kandidat retur/void tanpa kueri per penjualan). */
+export function barisPenjualan(ex: Executor, idPenjualan: number | number[]) {
   return ex
     .select({
       id: penjualanDetail.id,
+      idPenjualan: penjualanDetail.idPenjualan,
       idBarang: penjualanDetail.idBarang,
       namaBarang: barang.namaBarang,
       kodeSatuan: kodeSatuanBaris,
@@ -148,7 +150,11 @@ export function barisPenjualan(ex: Executor, idPenjualan: number) {
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
     .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, penjualanDetail.idSatuanJual))
     .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
-    .where(eq(penjualanDetail.idPenjualan, idPenjualan))
+    .where(
+      Array.isArray(idPenjualan)
+        ? inArray(penjualanDetail.idPenjualan, idPenjualan.length ? idPenjualan : [0])
+        : eq(penjualanDetail.idPenjualan, idPenjualan),
+    )
     .orderBy(asc(penjualanDetail.id));
 }
 

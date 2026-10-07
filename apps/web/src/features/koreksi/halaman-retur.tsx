@@ -269,6 +269,12 @@ function FormAjukan() {
                 ))}
               </div>
             </div>
+            <p className="text-xs text-slate-500">
+              Kondisi baik kembali ke stok jual; rusak/cacat masuk stok rusak (tidak dijual lagi,
+              diselesaikan di Stok Persediaan › Stok rusak).
+              {penyelesaian === 'TUKAR_BARANG' &&
+                ' Tukar mengambil barang pengganti dari stok baik; bila stok kurang, tukar sebagian lalu ajukan sisanya sebagai uang kembali atau potong tagihan.'}
+            </p>
             {penyelesaian === 'REFUND' && (
               <IsianRefund
                 nilai={refund}

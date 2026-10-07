@@ -37,7 +37,7 @@ Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
 **Penjualan langsung** (*Transaksi › Penjualan Langsung*):
 - Papan antrean menampilkan order dari staf (terlama disorot). **Enter** memproses order yang disorot; panah
   untuk memilih order lain; ketik nomor antrean + **Enter** untuk memanggil nomor tertentu.
-- Tanpa order: **F2** cari barang → **Enter** tambah. **F4** pelanggan, **F9** batal.
+- Tanpa order: **F2** cari barang → **Enter** tambah. Qty langsung: `semen*3` atau `3*semen` (**F1** = tanda `*`). **F4** pelanggan, **F9** batal.
 - **Promo** tampil di bawah barang dan total sudah dipotong. Di daftar barang, **P** melepas promo baris itu (mis.
   pembeli menolak) dan **P** lagi memasangnya kembali; pelepasan tercatat di log. Promo yang tampil saat order
   dihitung ulang saat bayar (promo yang sudah berakhir tidak berlaku lagi).
@@ -76,8 +76,8 @@ Semua tugas kasir, ditambah:
 - **Satuan jual** (form barang › *Satuan jual*): jual barang per dus/roll/dsb. Isi satuan, isi per satuan dasar
   (mis. dus = 12 pcs), barcode dus bila ada, dan centang *Satuan bawaan* bila biasanya dijual per dus. Harga
   kosong = otomatis (harga satuan dasar × isi); isi harga bila dus lebih murah. Stok tetap dalam satuan dasar.
-- **Label barang** (*Data Barang › Cetak label*): pilih barang dan jumlah label, jenis kertas label, harga
-  tier, lalu **Cetak**. Barcode di label bisa dipindai di layar kasir. Kertas yang sudah terpakai sebagian: isi
+- **Label barang** (*Data Barang › Cetak label*): pilih barang dan jumlah label, jenis kertas (printer thermal
+  58/57/80 mm atau kertas label A4), harga tier, lalu **Cetak**. Barcode di label bisa dipindai di layar kasir. Kertas yang sudah terpakai sebagian: isi
   "Mulai dari label ke-". Cetak dengan skala 100%.
 - **Harga jual** (*Harga Jual*): tiap harga tier bisa **Rp** (harga tetap), **Tier** (ikut markup tier), atau
   **%** (markup sendiri). Harga Normal selalu harga tetap. Kolom margin = (harga − dasar modal) ÷ harga.
@@ -104,7 +104,11 @@ Semua tugas kasir, ditambah:
 - **Hutang pemasok** (*Persediaan › Hutang Pemasok*): pembelian tempo yang belum lunas, umurnya, dan yang lewat
   jatuh tempo (juga muncul di lonceng). **Bayar**: transfer (isi rekening tujuan) atau tunai dari laci shift Anda;
   boleh sebagian. Ikon jam menampilkan riwayat pembayaran.
-- **Konsinyasi** (*Persediaan › Konsinyasi*): tab *Posisi per pemasok* menunjukkan barang titipan yang terjual
+- **Konsinyasi** (*Persediaan › Konsinyasi*): (1) daftarkan barang titipan (Data Barang, Kepemilikan: Titipan,
+  pilih penitip dan harga titip), (2) terima barangnya (Penerimaan, jenis Konsinyasi), (3) jual seperti biasa, (4)
+  setor & bayar. Retur pelanggan barang titipan (baik maupun rusak) otomatis mengurangi setoran. Barang titipan
+  rusak: **Kembalikan ke penitip** (penitip menanggung) atau **Musnahkan** (toko mengganti di setoran berikutnya).
+  Tab *Posisi per pemasok* menunjukkan barang titipan yang terjual
   tetapi belum disetor. **Buat setoran** → pilih tanggal akhir → periksa pratinjau (retur pelanggan kondisi baik
   sudah dikurangkan) → **Simpan setoran** → **Cetak nota setoran** untuk pemasok → **Bayar** (transfer atau tunai
   dari laci). Barang titipan yang tidak laku dikembalikan lewat *Retur ke Pemasok › Pengembalian titipan*.

@@ -11,7 +11,7 @@ import {
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { useDaftarPemasok } from '@/api/mitra';
 import { useSimpanPenerimaan } from '@/api/persediaan';
@@ -58,6 +58,10 @@ function subtotalTampil(qty: unknown, harga: unknown): number {
 /** Catat penerimaan barang (docs/05 E1–E4). Tanggal = hari ini (tanggal operasional). */
 export function HalamanFormPenerimaan() {
   const navigasi = useNavigate();
+  const [url] = useSearchParams();
+  // `?jenis=KONSINYASI&pemasok=<id>` dari halaman Konsinyasi.
+  const titipanAwal = url.get('jenis') === 'KONSINYASI';
+  const pemasokAwal = Number(url.get('pemasok')) || undefined;
   const simpan = useSimpanPenerimaan();
   const pemasok = useDaftarPemasok({ cari: '', status: 'AKTIF', halaman: 1, perHalaman: 100 });
   // Data tampilan barang per baris (kode, nama, satuan, harga titip).
@@ -66,8 +70,9 @@ export function HalamanFormPenerimaan() {
   const form = useForm<InputPenerimaan, unknown, DataPenerimaan>({
     resolver: zodResolver(skemaPenerimaan),
     defaultValues: {
-      jenis: 'PEMBELIAN',
-      syaratBayar: 'TUNAI',
+      jenis: titipanAwal ? 'KONSINYASI' : 'PEMBELIAN',
+      idPemasok: pemasokAwal,
+      syaratBayar: titipanAwal ? null : 'TUNAI',
       tanggalJatuhTempo: null,
       metodeBayar: 'TRANSFER',
       noFakturPemasok: '',
@@ -368,6 +373,19 @@ export function HalamanFormPenerimaan() {
                     : 'Cari barang yang diterima (kode, nama, barcode)… lalu Enter'
                 }
               />
+              {konsinyasi && idPemasok && (
+                <p className="text-xs text-slate-500">
+                  Hanya barang yang terdaftar sebagai titipan pemasok ini.{' '}
+                  <Link
+                    to={`/barang/baru?titipan=${idPemasok}`}
+                    target="_blank"
+                    className="text-blue-700 hover:underline"
+                  >
+                    Daftarkan barang titipan baru
+                  </Link>{' '}
+                  (tab baru), lalu cari lagi di sini.
+                </p>
+              )}
               {form.formState.errors.baris?.message && (
                 <p className="text-sm text-red-600">{form.formState.errors.baris.message}</p>
               )}

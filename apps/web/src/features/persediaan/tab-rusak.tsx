@@ -91,15 +91,31 @@ export function TabRusak() {
         <div className="flex justify-end gap-2">
           {bolehRetur && (
             <Button size="sm" variant="outline" asChild>
-              <Link to={`/retur-pemasok/baru?barang=${b.id}`}>
-                <Undo2 /> Retur ke pemasok
+              <Link
+                to={`/retur-pemasok/baru?barang=${b.id}`}
+                title={
+                  b.kepemilikan === 'KONSINYASI'
+                    ? 'Barang dikembalikan ke penitip; penitip yang menanggung, toko tidak membayar.'
+                    : 'Klaim ke pemasok: potong hutang, ganti barang, atau uang kembali.'
+                }
+              >
+                <Undo2 />{' '}
+                {b.kepemilikan === 'KONSINYASI' ? 'Kembalikan ke penitip' : 'Retur ke pemasok'}
               </Link>
             </Button>
           )}
           {bolehMusnah && (
             <Button size="sm" variant="outline" asChild>
-              <Link to={`/persediaan/penyesuaian/baru?jenis=MUSNAH&barang=${b.id}`}>
-                <Flame /> Musnahkan
+              <Link
+                to={`/persediaan/penyesuaian/baru?jenis=MUSNAH&barang=${b.id}`}
+                title={
+                  b.kepemilikan === 'KONSINYASI'
+                    ? 'Toko menanggung: nilai harga titip dibayarkan ke penitip di setoran berikutnya.'
+                    : 'Barang dibuang; nilainya menjadi kerugian toko.'
+                }
+              >
+                <Flame />{' '}
+                {b.kepemilikan === 'KONSINYASI' ? 'Musnahkan (toko ganti rugi)' : 'Musnahkan'}
               </Link>
             </Button>
           )}
@@ -125,8 +141,8 @@ export function TabRusak() {
           />
         </div>
         <p className="min-w-0 flex-1 text-sm text-slate-500">
-          Barang rusak tidak bisa dijual dan tidak termasuk nilai persediaan. Pindahkan barang ke
-          stok rusak lewat Penyesuaian › Stok rusak.
+          Barang rusak tidak bisa dijual. Barang titipan yang rusak: kembalikan ke penitip (penitip
+          menanggung) atau musnahkan (toko mengganti ke penitip di setoran berikutnya).
         </p>
       </div>
       <DataTable

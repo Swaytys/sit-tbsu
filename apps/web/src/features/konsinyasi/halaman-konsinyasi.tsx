@@ -3,7 +3,7 @@ import {
   type BarisDaftarPenyelesaianKonsinyasi,
   type RingkasanKonsinyasiPemasok,
 } from '@sit/shared';
-import { HandCoins, Search } from 'lucide-react';
+import { Download, HandCoins, PackagePlus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useDaftarPenyelesaianKonsinyasi, useRingkasanKonsinyasi } from '@/api/konsinyasi';
@@ -37,13 +37,44 @@ export function HalamanKonsinyasi() {
   const tab: Tab = TAB.find((t) => t === diminta) ?? 'posisi';
   return (
     <div className="space-y-4 p-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Konsinyasi</h1>
-        <p className="text-sm text-slate-500">
-          Barang titipan pemasok. Penjualan titipan disetor per pemasok: (terjual − retur baik) ×
-          harga titip saat dijual; setoran menjadi hutang yang dibayar di Hutang Pemasok.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">Konsinyasi (barang titipan)</h1>
+          <p className="text-sm text-slate-500">
+            Barang milik pemasok yang dititipkan untuk dijual. Toko hanya membayar yang laku.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/barang/baru?titipan=">
+              <PackagePlus /> Daftarkan barang titipan
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/penerimaan/baru?jenis=KONSINYASI">
+              <Download /> Terima barang titipan
+            </Link>
+          </Button>
+        </div>
       </div>
+      <ol className="grid grid-cols-4 gap-2 text-xs text-slate-600" aria-label="Alur konsinyasi">
+        {[
+          [
+            'Daftarkan barang',
+            'Data Barang › Kepemilikan: Titipan, pilih penitip dan harga titip.',
+          ],
+          ['Terima barang', 'Penerimaan › jenis Konsinyasi. Tidak menjadi hutang.'],
+          ['Jual seperti biasa', 'Retur pelanggan otomatis mengurangi yang harus disetor.'],
+          ['Setor & bayar', 'Buat setoran per penitip di sini, lalu bayar.'],
+        ].map(([judul, isi], i) => (
+          <li key={judul} className="rounded-md border bg-white px-3 py-2">
+            <span className="font-semibold text-slate-800">
+              {i + 1}. {judul}
+            </span>
+            <div>{isi}</div>
+          </li>
+        ))}
+      </ol>
       <Tabs value={tab} onValueChange={(v) => setUrl({ tab: v }, { replace: true })}>
         <TabsList>
           <TabsTrigger value="posisi">Posisi per pemasok</TabsTrigger>
@@ -74,17 +105,17 @@ function TabPosisi() {
             <TableHead>Pemasok penitip</TableHead>
             <TableHead className="text-right">Barang titipan</TableHead>
             <TableHead className="text-right">Nilai stok titipan</TableHead>
-            <TableHead className="text-right">Terjual belum disetor</TableHead>
+            <TableHead className="text-right">Belum disetor</TableHead>
             <TableHead className="text-right">Sisa hutang setoran</TableHead>
             <TableHead>Disetor s/d</TableHead>
-            <TableHead className="w-40" />
+            <TableHead className="w-52" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 && (
             <TableRow>
               <TableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
-                Belum ada barang titipan.
+                Belum ada barang titipan. Mulai dari &quot;Daftarkan barang titipan&quot; di atas.
               </TableCell>
             </TableRow>
           )}
@@ -113,7 +144,16 @@ function TabPosisi() {
               <TableCell>
                 {r.terakhirDisetor ? formatTanggal(r.terakhirDisetor) : 'Belum pernah'}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="space-x-1 text-right whitespace-nowrap">
+                <Button size="sm" variant="ghost" asChild>
+                  <Link
+                    to={`/penerimaan/baru?jenis=KONSINYASI&pemasok=${r.idPemasok}`}
+                    aria-label={`Terima barang titipan ${r.namaPemasok}`}
+                    title="Terima barang titipan dari penitip ini"
+                  >
+                    <Download />
+                  </Link>
+                </Button>
                 <Button
                   size="sm"
                   variant={r.nilaiBelumDisetor > 0 ? 'default' : 'outline'}
@@ -158,7 +198,8 @@ function TabPosisi() {
       </Table>
       <p className="border-t p-3 text-xs text-slate-500">
         Nilai stok titipan = stok titipan (baik dan rusak) × harga titip saat ini; bukan aset toko.
-        Terjual belum disetor dihitung sebelum retur pelanggan.
+        Belum disetor = penjualan titipan + barang titipan yang dimusnahkan toko, sebelum dikurangi
+        retur pelanggan.
       </p>
     </Card>
   );

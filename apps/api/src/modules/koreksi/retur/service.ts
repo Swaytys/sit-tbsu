@@ -88,8 +88,15 @@ export async function kandidatRetur(cari: string): Promise<KandidatRetur[]> {
   if (!cari.trim()) return [];
   const rows = await repo.kandidat(db, cari.trim());
   const hasil: KandidatRetur[] = [];
+  const barisPer = new Map<number, Awaited<ReturnType<typeof repo.barisPenjualan>>>();
+  for (const b of await repo.barisPenjualan(
+    db,
+    rows.map((r) => r.id),
+  )) {
+    barisPer.set(b.idPenjualan, [...(barisPer.get(b.idPenjualan) ?? []), b]);
+  }
   for (const r of rows) {
-    const baris = await repo.barisPenjualan(db, r.id);
+    const baris = barisPer.get(r.id) ?? [];
     hasil.push({
       id: r.id,
       nomor: r.nomor,
@@ -161,6 +168,22 @@ export async function ajukanRetur(
       const hse = hargaSatuanEfektif(b.subtotal, b.qty);
       return { r, b, qty, qtyDasar, hse, nominal: subtotalRupiah(qty, hse) };
     });
+    // T5: tukar butuh stok baik untuk barang pengganti. Dicek sejak pengajuan agar kasir langsung tahu;
+    // bila stok kurang, tukar sebagian dan ajukan sisanya sebagai retur uang kembali/potong tagihan.
+    if (input.penyelesaian === 'TUKAR_BARANG') {
+      for (const x of isi) {
+        const tersedia = await repo.stokTersedia(tx, x.b.idBarang);
+        if (bandingQty(x.qtyDasar, tersedia) > 0) {
+          const bisa = bagiQty(tersedia, x.b.faktor);
+          throw new AppError(
+            'STOK_TIDAK_CUKUP',
+            `Stok ${x.b.namaBarang} untuk pengganti tinggal ${keQty(bisa)} ${x.b.kodeSatuan}. ` +
+              `Ajukan tukar ${keQty(bisa)} saja, lalu sisanya sebagai retur dengan uang kembali atau potong tagihan.`,
+            409,
+          );
+        }
+      }
+    }
     const total = isi.reduce((t, x) => t + x.nominal, 0);
     if (input.penyelesaian === 'POTONG_TAGIHAN' && total > hitungTagihan(pj).sisa) {
       throw new AppError(

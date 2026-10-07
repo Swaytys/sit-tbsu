@@ -257,7 +257,7 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
                 name="potonganNominal"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Potongan per satuan</FormLabel>
+                    <FormLabel>Potongan per satuan dasar</FormLabel>
                     <FormControl>
                       <InputRupiah
                         {...field}
@@ -388,7 +388,7 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
               name="minQty"
               render={({ field }) => (
                 <FormItem className="col-start-1">
-                  <FormLabel>Minimal qty per baris (opsional)</FormLabel>
+                  <FormLabel>Minimal qty per baris, satuan dasar (opsional)</FormLabel>
                   <FormControl>
                     <Input
                       inputMode="decimal"

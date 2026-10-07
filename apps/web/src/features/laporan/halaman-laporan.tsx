@@ -7,7 +7,7 @@ import {
   type JenisLaporan,
 } from '@sit/shared';
 import { Download, FileText, Printer, RefreshCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useSearchParams } from 'react-router';
 import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
@@ -27,7 +27,29 @@ import { SaringLaporan } from './saring-laporan';
 const TAMPILAN = (k: string) => k.startsWith('_') || k === 'laporan';
 
 /** Laporan operasional (docs/01 §5.9, rancangan KP §5.5.6.15): daftar per kelompok, saringan, dokumen. */
+/** Lebar elemen (px), diperbarui saat ukuran berubah. */
+function useLebar(ref: RefObject<HTMLDivElement | null>): number {
+  const [lebar, setLebar] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const amati = new ResizeObserver(([e]) => setLebar(e?.contentRect.width ?? 0));
+    amati.observe(el);
+    return () => amati.disconnect();
+  }, [ref]);
+  return lebar;
+}
+
+/** Skala pratinjau: kertas A4 (96 dpi) diperkecil agar muat di wadah, tidak pernah diperbesar. */
+function skalaPratinjau(lebarWadah: number, orientasi: 'potret' | 'lanskap'): number {
+  const lebarKertas = ((orientasi === 'lanskap' ? 297 : 210) / 25.4) * 96;
+  if (lebarWadah <= 0) return 1;
+  return Math.min(1, lebarWadah / lebarKertas);
+}
+
 export function HalamanLaporan() {
+  const wadahPratinjau = useRef<HTMLDivElement>(null);
+  const lebarWadah = useLebar(wadahPratinjau);
   const pengguna = usePengguna();
   const toko = useTampilanToko().data;
   const bolehEkspor = pengguna.izin.includes('laporan.ekspor');
@@ -181,7 +203,7 @@ export function HalamanLaporan() {
           )}
         </Card>
 
-        <div className="overflow-x-auto rounded-lg bg-slate-100 p-6">
+        <div ref={wadahPratinjau} className="overflow-hidden rounded-lg bg-slate-100 p-6">
           {galat !== null && (kode === 'kartu-stok' || kode === 'detail-invoice') ? (
             <p className="py-16 text-center text-sm text-slate-500">
               {kode === 'kartu-stok'
@@ -196,7 +218,11 @@ export function HalamanLaporan() {
               </Button>
             </div>
           ) : d && toko ? (
-            <div className={cn(dokumen.isFetching && 'opacity-60 transition-opacity')}>
+            <div
+              className={cn(dokumen.isFetching && 'opacity-60 transition-opacity')}
+              // Kertas diperkecil agar muat di layar; isi dan tata letaknya sama dengan hasil cetak.
+              style={{ zoom: skalaPratinjau(lebarWadah, d.orientasi) }}
+            >
               <DokumenLaporanFormal d={d} toko={toko} />
             </div>
           ) : (

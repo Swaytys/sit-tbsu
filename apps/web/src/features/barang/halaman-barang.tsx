@@ -1,4 +1,4 @@
-import { formatRupiah, type BarisBarang, type StatusAktif } from '@sit/shared';
+import { formatRupiah, type BarisBarang, type Kepemilikan, type StatusAktif } from '@sit/shared';
 import { Columns3, Download, FileSpreadsheet, ImageOff, Plus, Tags } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -55,6 +55,7 @@ export function HalamanBarang() {
   const [status, setStatus] = useState<SaringStatus>('SEMUA');
   const [idKategori, setIdKategori] = useState<number | null>(null);
   const [idMerk, setIdMerk] = useState<number | null>(null);
+  const [kepemilikan, setKepemilikan] = useState<Kepemilikan | null>(null);
   const [perluTinjau, setPerluTinjau] = useState(false);
   const [halaman, setHalaman] = useState(1);
 
@@ -69,6 +70,7 @@ export function HalamanBarang() {
     idMerk,
     status,
     perluTinjau,
+    kepemilikan,
     halaman,
     perHalaman: barisPerHalaman,
   });
@@ -272,6 +274,22 @@ export function HalamanBarang() {
           placeholder="Cari kode, nama, barcode, atau merk…"
           label="Cari barang"
         >
+          <Select
+            value={kepemilikan ?? SEMUA_KATEGORI}
+            onValueChange={(v) => {
+              setKepemilikan(v === SEMUA_KATEGORI ? null : (v as Kepemilikan));
+              setHalaman(1);
+            }}
+          >
+            <SelectTrigger className="w-40" aria-label="Saring kepemilikan">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SEMUA_KATEGORI}>Semua kepemilikan</SelectItem>
+              <SelectItem value="MILIK_SENDIRI">Milik toko</SelectItem>
+              <SelectItem value="KONSINYASI">Titipan</SelectItem>
+            </SelectContent>
+          </Select>
           <Select
             value={idKategori === null ? SEMUA_KATEGORI : String(idKategori)}
             onValueChange={(v) => {

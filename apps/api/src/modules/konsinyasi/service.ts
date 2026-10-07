@@ -26,43 +26,55 @@ import { terbitkanNomor } from '../sistem/penomoran';
 import * as repo from './repo';
 
 /*
- * Penyelesaian konsinyasi (docs/06 KS5–KS9, K-089). Setoran = penjualan barang titipan yang belum disetor
- * dikurangi retur pelanggan kondisi BAIK, per barang per harga titip saat jual. Retur atas baris yang sudah
- * disetor menjadi koreksi pada setoran berikutnya; bila penjualan baru dengan harga titip yang sama belum
- * cukup, koreksi ditunda (qty neto tidak boleh negatif, CHECK DB).
+ * Penyelesaian konsinyasi (docs/06 KS5–KS9, K-089, K-092). Setoran = penjualan barang titipan yang belum
+ * disetor − retur pelanggan (baik maupun rusak; barang kembali milik penitip) + barang titipan yang dimusnahkan
+ * toko (ganti rugi), per barang per harga titip. Retur atas baris yang sudah disetor menjadi koreksi pada setoran
+ * berikutnya; bila penjualan/ganti rugi baru dengan harga titip yang sama belum cukup, koreksi ditunda (qty neto
+ * tidak boleh negatif, CHECK DB).
  */
 
 type BarisJual = Awaited<ReturnType<typeof repo.jualBelumDisetor>>[number];
 type BarisRetur = Awaited<ReturnType<typeof repo.returBelumDihitung>>[number];
+type BarisMusnah = { id: number; idBarang: number; qtySelisih: string; hargaTitip: number };
 
 type Grup = {
   idBarang: number;
   hargaTitip: number;
   terjual: string;
   retur: string;
+  gantiRugi: string;
 };
 
 export type HasilSetoran = {
   grup: Grup[];
   idJual: number[];
   idRetur: number[];
+  idMusnah: number[];
   koreksiDitunda: number;
 };
 
 /** Hitung setoran dari kandidat (murni, mudah diuji). */
-export function hitungSetoran(jual: BarisJual[], retur: BarisRetur[]): HasilSetoran {
+export function hitungSetoran(
+  jual: BarisJual[],
+  retur: BarisRetur[],
+  musnah: BarisMusnah[] = [],
+): HasilSetoran {
   const peta = new Map<string, Grup>();
   const kunci = (idBarang: number, harga: number) => `${idBarang}:${harga}`;
-  for (const j of jual) {
-    const k = kunci(j.idBarang, j.hargaTitip);
-    const g = peta.get(k) ?? {
-      idBarang: j.idBarang,
-      hargaTitip: j.hargaTitip,
-      terjual: '0',
-      retur: '0',
-    };
-    g.terjual = tambahQty(g.terjual, j.qtyDasar);
+  const grup = (idBarang: number, hargaTitip: number) => {
+    const k = kunci(idBarang, hargaTitip);
+    const g = peta.get(k) ?? { idBarang, hargaTitip, terjual: '0', retur: '0', gantiRugi: '0' };
     peta.set(k, g);
+    return g;
+  };
+  for (const j of jual) {
+    const g = grup(j.idBarang, j.hargaTitip);
+    g.terjual = tambahQty(g.terjual, j.qtyDasar);
+  }
+  // K-092: pemusnahan titipan = toko menanggung (qty selisih tersimpan negatif).
+  for (const m of musnah) {
+    const g = grup(m.idBarang, m.hargaTitip);
+    g.gantiRugi = tambahQty(g.gantiRugi, kurangQty(0, m.qtySelisih));
   }
   const idJualSet = new Set(jual.map((j) => j.id));
   const idRetur: number[] = [];
@@ -74,19 +86,25 @@ export function hitungSetoran(jual: BarisJual[], retur: BarisRetur[]): HasilSeto
     g.retur = tambahQty(g.retur, r.qtyDasar);
     idRetur.push(r.id);
   }
-  // KS6: koreksi atas baris yang sudah disetor, sejauh penjualan baru berharga titip sama mencukupi.
+  // KS6: koreksi atas baris yang sudah disetor, sejauh penjualan/ganti rugi baru berharga titip sama cukup.
   let koreksiDitunda = 0;
   for (const r of retur) {
     if (!r.sudahDisetor) continue;
     const g = peta.get(kunci(r.idBarang, r.hargaTitip));
-    if (g && bandingQty(tambahQty(g.retur, r.qtyDasar), g.terjual) <= 0) {
+    if (g && bandingQty(tambahQty(g.retur, r.qtyDasar), tambahQty(g.terjual, g.gantiRugi)) <= 0) {
       g.retur = tambahQty(g.retur, r.qtyDasar);
       idRetur.push(r.id);
     } else {
       koreksiDitunda += 1;
     }
   }
-  return { grup: [...peta.values()], idJual: jual.map((j) => j.id), idRetur, koreksiDitunda };
+  return {
+    grup: [...peta.values()],
+    idJual: jual.map((j) => j.id),
+    idRetur,
+    idMusnah: musnah.map((m) => m.id),
+    koreksiDitunda,
+  };
 }
 
 async function susunPratinjau(
@@ -100,7 +118,8 @@ async function susunPratinjau(
   }
   const jual = await repo.jualBelumDisetor(ex, pms.id, periodeSelesai);
   const retur = await repo.returBelumDihitung(ex, pms.id, periodeSelesai);
-  const setoran = hitungSetoran(jual, retur);
+  const musnah = await repo.musnahBelumDihitung(ex, pms.id, periodeSelesai);
+  const setoran = hitungSetoran(jual, retur, musnah);
   const info = new Map(
     (await repo.infoBarang(ex, [...new Set(setoran.grup.map((g) => g.idBarang))])).map((b) => [
       b.id,
@@ -110,7 +129,7 @@ async function susunPratinjau(
   const baris: BarisSetoranKonsinyasi[] = setoran.grup
     .map((g) => {
       const b = info.get(g.idBarang);
-      const qtyNeto = kurangQty(g.terjual, g.retur);
+      const qtyNeto = kurangQty(tambahQty(g.terjual, g.gantiRugi), g.retur);
       return {
         idBarang: g.idBarang,
         kodeBarang: b?.kode ?? '',
@@ -119,6 +138,7 @@ async function susunPratinjau(
         hargaTitip: g.hargaTitip,
         qtyTerjual: keQty(g.terjual),
         qtyRetur: keQty(g.retur),
+        qtyGantiRugi: keQty(g.gantiRugi),
         qtyNeto: keQty(qtyNeto),
         subtotal: subtotalRupiah(qtyNeto, g.hargaTitip),
       };
@@ -139,6 +159,7 @@ async function susunPratinjau(
       baris,
       total: baris.reduce((t, b) => t + b.subtotal, 0),
       jumlahBarisJual: jual.length,
+      jumlahBarisGantiRugi: musnah.length,
       koreksiDitunda: setoran.koreksiDitunda,
     },
   };
@@ -168,8 +189,8 @@ export async function selesaikanKonsinyasi(
     const pms = await repo.kunciPemasok(tx, input.idPemasok);
     if (!pms) throw pemasokTidakAda();
     const { pratinjau: p, setoran } = await susunPratinjau(tx, pms, input.periodeSelesai);
-    if (setoran.idJual.length === 0) {
-      const pesan = `Tidak ada penjualan barang titipan ${pms.nama} yang belum disetor sampai ${teksTanggalAngka(input.periodeSelesai)}.`;
+    if (setoran.idJual.length === 0 && setoran.idMusnah.length === 0) {
+      const pesan = `Tidak ada penjualan barang titipan ${pms.nama} atau ganti rugi yang belum disetor sampai ${teksTanggalAngka(input.periodeSelesai)}.`;
       throw new AppError('KONFLIK', pesan, 409);
     }
     const tanggal = tanggalOperasional();
@@ -192,6 +213,7 @@ export async function selesaikanKonsinyasi(
         idBarang: b.idBarang,
         qtyTerjual: b.qtyTerjual,
         qtyRetur: b.qtyRetur,
+        qtyGantiRugi: b.qtyGantiRugi,
         qtyNeto: b.qtyNeto,
         hargaTitip: b.hargaTitip,
         subtotal: b.subtotal,
@@ -199,6 +221,7 @@ export async function selesaikanKonsinyasi(
     );
     await repo.tandaiJual(tx, setoran.idJual, idKsg);
     await repo.tandaiRetur(tx, setoran.idRetur, idKsg);
+    await repo.tandaiMusnah(tx, setoran.idMusnah, idKsg);
     await catatLog(tx, {
       aksi: 'KONSINYASI_SELESAIKAN',
       idPengguna: pelaku.id,
@@ -249,6 +272,7 @@ export async function detailPenyelesaian(id: number): Promise<DetailPenyelesaian
     ...b,
     qtyTerjual: keQty(b.qtyTerjual),
     qtyRetur: keQty(b.qtyRetur),
+    qtyGantiRugi: keQty(b.qtyGantiRugi),
     qtyNeto: keQty(b.qtyNeto),
   }));
   return {
@@ -286,6 +310,14 @@ export async function ringkasanKonsinyasi(): Promise<RingkasanKonsinyasiPemasok[
   for (const j of await repo.semuaJualBelumDisetor(db)) {
     if (j.idPemasok === null) continue;
     ambil(j.idPemasok).nilaiBelumDisetor += subtotalRupiah(j.qtyDasar, j.hargaTitip);
+  }
+  // K-092: ganti rugi pemusnahan titipan yang belum ditagihkan ikut "belum disetor".
+  for (const m of await repo.semuaMusnahBelumDihitung(db)) {
+    if (m.idPemasok === null) continue;
+    ambil(m.idPemasok).nilaiBelumDisetor += subtotalRupiah(
+      kurangQty(0, m.qtySelisih),
+      m.hargaTitip,
+    );
   }
   for (const k of await repo.rekapPenyelesaian(db)) {
     const r = ambil(k.idPemasok);

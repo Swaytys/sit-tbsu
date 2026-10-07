@@ -12,13 +12,19 @@ import { formatDesimal } from '@/lib/format';
 
 /** Baris setoran konsinyasi (pratinjau dan detail): per barang per harga titip saat jual. */
 export function TabelSetoran({ baris, total }: { baris: BarisSetoranKonsinyasi[]; total: number }) {
+  const adaGantiRugi = baris.some((b) => /[1-9]/.test(b.qtyGantiRugi));
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Barang</TableHead>
           <TableHead className="text-right">Terjual</TableHead>
-          <TableHead className="text-right">Retur baik</TableHead>
+          <TableHead className="text-right">Retur pelanggan</TableHead>
+          {adaGantiRugi && (
+            <TableHead className="text-right" title="Barang titipan yang dimusnahkan toko">
+              Ganti rugi toko
+            </TableHead>
+          )}
           <TableHead className="text-right">Disetor</TableHead>
           <TableHead className="text-right">Harga titip</TableHead>
           <TableHead className="text-right">Subtotal</TableHead>
@@ -44,6 +50,11 @@ export function TabelSetoran({ baris, total }: { baris: BarisSetoranKonsinyasi[]
             <TableCell className="text-right tabular-nums">
               {/[1-9]/.test(b.qtyRetur) ? `−${formatDesimal(b.qtyRetur)}` : '—'}
             </TableCell>
+            {adaGantiRugi && (
+              <TableCell className="text-right tabular-nums">
+                {/[1-9]/.test(b.qtyGantiRugi) ? `+${formatDesimal(b.qtyGantiRugi)}` : '—'}
+              </TableCell>
+            )}
             <TableCell className="text-right font-medium tabular-nums">
               {formatDesimal(b.qtyNeto)} {b.kodeSatuan}
             </TableCell>
@@ -54,7 +65,7 @@ export function TabelSetoran({ baris, total }: { baris: BarisSetoranKonsinyasi[]
       </TableBody>
       <TableFooter>
         <TableRow>
-          <TableCell colSpan={5} className="text-right font-medium">
+          <TableCell colSpan={adaGantiRugi ? 6 : 5} className="text-right font-medium">
             Total setoran
           </TableCell>
           <TableCell className="text-right text-base font-semibold tabular-nums">

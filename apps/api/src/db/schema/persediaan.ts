@@ -33,7 +33,7 @@ import { returPenjualanDetail, voidTransaksiDetail } from './koreksi';
 import { barang, barangSatuanJual, pemasok } from './master';
 import { penjualanDetail } from './penjualan';
 import { pengguna } from './sistem';
-import { returPemasokDetail } from './transaksi-pemasok';
+import { penyelesaianKonsinyasi, returPemasokDetail } from './transaksi-pemasok';
 
 // Bagian PERSEDIAAN, PENERIMAAN BARANG, PENYESUAIAN STOK, dan MUTASI PERSEDIAAN (LEDGER).
 
@@ -231,8 +231,16 @@ export const penyesuaianStokDetail = pgTable(
     alasanKecuali: varchar('alasan_kecuali', { length: 150 }),
     idPenggunaKecuali: kolomRef('id_pengguna_kecuali'),
     waktuKecuali: timestamptz('waktu_kecuali'),
+    /** K-092: pemusnahan barang titipan yang sudah ditagihkan sebagai ganti rugi di setoran konsinyasi. */
+    idPenyelesaianKonsinyasi: kolomRef('id_penyelesaian_konsinyasi'),
   },
   (t) => [
+    foreignKey({
+      name: 'penyesuaian_stok_detail_id_penyelesaian_konsinyasi_fkey',
+      columns: [t.idPenyelesaianKonsinyasi],
+      foreignColumns: [penyelesaianKonsinyasi.id],
+    }),
+    index('idx_penyesuaian_detail_ksg').on(t.idPenyelesaianKonsinyasi),
     foreignKey({
       name: 'penyesuaian_stok_detail_id_pengguna_kecuali_fkey',
       columns: [t.idPenggunaKecuali],
