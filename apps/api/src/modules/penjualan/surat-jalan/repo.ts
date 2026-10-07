@@ -3,6 +3,7 @@ import type { StatusSuratJalan } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
   barang,
+  barangSatuanJual,
   pelanggan,
   pengguna,
   penjualan,
@@ -11,6 +12,7 @@ import {
   suratJalan,
   suratJalanDetail,
 } from '../../../db/schema';
+import { kodeSatuanBaris, satuanBaris } from '../satuan-baris';
 import { polaCari } from '../../../lib/paginasi';
 
 const kolom = {
@@ -100,13 +102,15 @@ export function detail(ex: Executor, idSuratJalan: number[]) {
       idPenjualanDetail: suratJalanDetail.idPenjualanDetail,
       namaBarang: barang.namaBarang,
       kodeBarang: barang.kode,
-      kodeSatuan: satuan.kode,
+      kodeSatuan: kodeSatuanBaris,
       qtyKirim: suratJalanDetail.qtyKirim,
     })
     .from(suratJalanDetail)
     .innerJoin(penjualanDetail, eq(penjualanDetail.id, suratJalanDetail.idPenjualanDetail))
     .innerJoin(barang, eq(barang.id, penjualanDetail.idBarang))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, penjualanDetail.idSatuanJual))
+    .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
     .where(inArray(suratJalanDetail.idSuratJalan, idSuratJalan))
     .orderBy(asc(suratJalanDetail.id));
 }
@@ -139,6 +143,7 @@ export function qtyBaris(ex: Executor, idPenjualan: number) {
       id: penjualanDetail.id,
       namaBarang: barang.namaBarang,
       qty: penjualanDetail.qty,
+      faktor: penjualanDetail.faktor,
       qtyReturDasar: penjualanDetail.qtyReturDasar,
       statusItem: penjualanDetail.statusItem,
       qtyDikirim: sjAktif(penjualanDetail.id, sql`s.status <> 'BATAL'`),

@@ -38,6 +38,15 @@ export function bulatkanHarga(nilai: NilaiDesimal, kelipatan: number): number {
   return keRupiah(new Decimal(nilai).div(kelipatan).ceil().times(kelipatan));
 }
 
+/** H11 (K-091): harga satuan jual otomatis = bulatkanHarga(harga satuan dasar × faktor). */
+export function hargaSatuanJual(
+  hargaDasar: number,
+  faktor: NilaiDesimal,
+  kelipatan: number,
+): number {
+  return bulatkanHarga(new Decimal(hargaDasar).times(faktor), kelipatan);
+}
+
 /** H4: harga hasil markup = bulatkanHarga(dasar × (1 + persen/100)). */
 export function hargaMarkup(dasar: number, persen: NilaiDesimal, kelipatan: number): number {
   return bulatkanHarga(new Decimal(dasar).times(new Decimal(persen).div(100).plus(1)), kelipatan);

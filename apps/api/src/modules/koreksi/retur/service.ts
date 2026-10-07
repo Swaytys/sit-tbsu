@@ -1,6 +1,8 @@
 import {
+  bagiQty,
   bandingQty,
   formatRupiah,
+  kaliQty,
   hargaSatuanEfektif,
   keQty,
   kurangQty,
@@ -70,7 +72,7 @@ export async function detailRetur(id: number): Promise<BarisRetur> {
   return r;
 }
 
-/** qty yang masih bisa diretur = qty − sudah diretur − sedang diajukan (baris VOID = 0). */
+/** Qty dasar yang masih bisa diretur = qty − sudah diretur − sedang diajukan (baris VOID = 0). */
 function bisaRetur(b: {
   qtyDasar: string;
   qtyReturDasar: string;
@@ -103,7 +105,8 @@ export async function kandidatRetur(cari: string): Promise<KandidatRetur[]> {
         namaBarang: b.namaBarang,
         kodeSatuan: b.kodeSatuan,
         qty: b.qty,
-        qtyBisaRetur: bisaRetur(b),
+        // K-091: dalam satuan baris (satuan jual), dihitung dari satuan dasar.
+        qtyBisaRetur: bagiQty(bisaRetur(b), b.faktor),
         hargaSatuanEfektif: hargaSatuanEfektif(b.subtotal, b.qty),
         statusItem: b.statusItem,
       })),
@@ -142,9 +145,12 @@ export async function ajukanRetur(
         throw new AppError('VALIDASI', `Baris ${i + 1}: barang tidak ada di transaksi ini.`, 400);
       }
       terlihat.add(b.id);
-      const sisa = bisaRetur(b);
+      const sisaDasar = bisaRetur(b);
       const qty = keQty(r.qtyRetur);
-      if (bandingQty(qty, sisa) > 0) {
+      // K-091: qty retur dalam satuan baris; batas diperiksa dalam satuan dasar.
+      const qtyDasar = kaliQty(qty, b.faktor);
+      if (bandingQty(qtyDasar, sisaDasar) > 0) {
+        const sisa = bagiQty(sisaDasar, b.faktor);
         throw new AppError(
           'STATUS_TIDAK_VALID',
           `${b.namaBarang}: qty retur ${qty} melebihi yang bisa diretur (${sisa}).`,
@@ -153,7 +159,7 @@ export async function ajukanRetur(
         );
       }
       const hse = hargaSatuanEfektif(b.subtotal, b.qty);
-      return { r, b, qty, hse, nominal: subtotalRupiah(qty, hse) };
+      return { r, b, qty, qtyDasar, hse, nominal: subtotalRupiah(qty, hse) };
     });
     const total = isi.reduce((t, x) => t + x.nominal, 0);
     if (input.penyelesaian === 'POTONG_TAGIHAN' && total > hitungTagihan(pj).sisa) {
@@ -186,13 +192,13 @@ export async function ajukanRetur(
         idPenjualanDetail: x.b.id,
         idBarang: x.b.idBarang,
         qtyRetur: x.qty,
-        qtyReturDasar: x.qty,
+        qtyReturDasar: x.qtyDasar,
         hargaSatuanEfektif: x.hse,
         nominalRetur: x.nominal,
         kondisi: x.r.kondisi,
         // T5: tukar hanya barang yang sama dengan qty sama.
         idBarangPengganti: input.penyelesaian === 'TUKAR_BARANG' ? x.b.idBarang : null,
-        qtyPenggantiDasar: input.penyelesaian === 'TUKAR_BARANG' ? x.qty : null,
+        qtyPenggantiDasar: input.penyelesaian === 'TUKAR_BARANG' ? x.qtyDasar : null,
         keterangan: x.r.keterangan ?? null,
       })),
     );

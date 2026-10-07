@@ -3,6 +3,7 @@ import type { JenisPenjualan, StatusOrder } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
   barang,
+  barangSatuanJual,
   orderPenjualan,
   orderPenjualanDetail,
   pelanggan,
@@ -13,6 +14,7 @@ import {
   tingkatHarga,
 } from '../../../db/schema';
 import { polaCari } from '../../../lib/paginasi';
+import { kodeSatuanBaris, satuanBaris } from '../satuan-baris';
 
 // Subkueri (bukan join kedua ke `pengguna`): Drizzle tidak bisa mengetik dua join ke tabel yang sama.
 const namaKasirProses = sql<string | null>`(select k.nama_pengguna from ${pengguna} k
@@ -142,7 +144,10 @@ export function detailOrder(ex: Executor, idOrder: number) {
       kodeBarang: barang.kode,
       namaBarang: barang.namaBarang,
       idKategori: barang.idKategori,
-      kodeSatuan: satuan.kode,
+      kodeSatuan: kodeSatuanBaris,
+      kodeSatuanDasar: satuan.kode,
+      idSatuanJual: orderPenjualanDetail.idSatuanJual,
+      faktor: orderPenjualanDetail.faktor,
       kepemilikan: barang.kepemilikan,
       qty: orderPenjualanDetail.qty,
       qtyDasar: orderPenjualanDetail.qtyDasar,
@@ -162,6 +167,8 @@ export function detailOrder(ex: Executor, idOrder: number) {
     .from(orderPenjualanDetail)
     .innerJoin(barang, eq(barang.id, orderPenjualanDetail.idBarang))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, orderPenjualanDetail.idSatuanJual))
+    .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
     .innerJoin(persediaan, eq(persediaan.idBarang, orderPenjualanDetail.idBarang))
     .leftJoin(tingkatHarga, eq(tingkatHarga.id, orderPenjualanDetail.idTingkatHarga))
     .leftJoin(promo, eq(promo.id, orderPenjualanDetail.idPromo))
@@ -199,6 +206,7 @@ export function barisReservasi(tx: Tx, idOrder: number) {
   return tx
     .select({
       idBarang: orderPenjualanDetail.idBarang,
+      idSatuanJual: orderPenjualanDetail.idSatuanJual,
       qtyDasar: orderPenjualanDetail.qtyDasar,
       idTingkatHarga: orderPenjualanDetail.idTingkatHarga,
       hargaSatuan: orderPenjualanDetail.hargaSatuan,
@@ -279,11 +287,13 @@ export function ringkasBaris(ex: Executor, idOrder: number[]) {
       idOrder: orderPenjualanDetail.idOrder,
       namaBarang: barang.namaBarang,
       qty: orderPenjualanDetail.qty,
-      kodeSatuan: satuan.kode,
+      kodeSatuan: kodeSatuanBaris,
     })
     .from(orderPenjualanDetail)
     .innerJoin(barang, eq(barang.id, orderPenjualanDetail.idBarang))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, orderPenjualanDetail.idSatuanJual))
+    .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
     .where(inArray(orderPenjualanDetail.idOrder, idOrder))
     .orderBy(asc(orderPenjualanDetail.id));
 }

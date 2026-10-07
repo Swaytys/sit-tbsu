@@ -180,6 +180,20 @@ export type HargaTierBarang = {
   margin?: number | null;
 };
 
+/** Satuan jual barang (K-091) beserta harga per tier yang berlaku (tetap, atau otomatis dari satuan dasar). */
+export type SatuanJualBarang = {
+  id: number;
+  idSatuan: number;
+  kodeSatuan: string;
+  namaSatuan: string;
+  /** Faktor ke satuan dasar, teks desimal (mis. "12", "0.25"). */
+  faktor: string;
+  barcode: string | null;
+  isDefaultJual: boolean;
+  statusAktif: StatusAktif;
+  harga: { idTingkatHarga: number; hargaJual: number; tetap: boolean }[];
+};
+
 /** Baris daftar barang. Kolom bertanda `?` hanya untuk pemegang `master.barang.lihat_hpp`. */
 export type BarisBarang = {
   id: number;
@@ -210,6 +224,10 @@ export type BarisBarang = {
   statusAktif: StatusAktif;
   /** Harga per tier (satuan dasar). */
   harga: HargaTierBarang[];
+  /** K-091: satuan jual (aktif dan nonaktif); transaksi hanya memakai yang aktif. */
+  satuanJual: SatuanJualBarang[];
+  /** Pencarian tepat sama dengan barcode satuan jual: satuan jual itu (pindai barcode dus, dsb.). */
+  idSatuanJualCocok: number | null;
   hargaModalAwal?: number;
   hargaTitip?: number | null;
   hppRata2?: number;
@@ -407,3 +425,66 @@ export const skemaProsesImport = z.object({
   kodeLain: z.array(z.string().max(12)).max(2000).default([]),
 });
 export type InputProsesImport = z.input<typeof skemaProsesImport>;
+
+// --- Satuan jual per barang (Fase 12, K-091) ---
+
+const POLA_FAKTOR = /^\d{1,8}(\.\d{1,4})?$/;
+
+export const skemaBarisSatuanJual = z.object({
+  idSatuan: idWajib('Satuan wajib dipilih.'),
+  faktor: z
+    .string('Faktor wajib diisi.')
+    .trim()
+    .transform((v) => v.replace(',', '.'))
+    .refine((v) => POLA_FAKTOR.test(v), 'Faktor berupa angka, paling banyak 4 desimal.')
+    .refine((v) => /[1-9]/.test(v), 'Faktor harus lebih dari 0.'),
+  barcode: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z
+      .string()
+      .trim()
+      .max(64, 'Barcode maksimal 64 karakter.')
+      .regex(/^[\x21-\x7E]+$/, 'Barcode tanpa spasi.')
+      .nullable()
+      .default(null),
+  ),
+  isDefaultJual: z.boolean().default(false),
+  statusAktif: z.enum(STATUS_AKTIF).default('AKTIF'),
+  /** Harga tetap per tier; `null` = otomatis (harga satuan dasar × faktor). Butuh `master.harga.kelola`. */
+  hargaTetap: z
+    .array(
+      z.object({
+        idTingkatHarga: idWajib('Tier wajib dipilih.'),
+        harga: z.preprocess((v) => (v === '' ? null : v), skemaRupiah.nullable()),
+      }),
+    )
+    .default([]),
+});
+export type InputBarisSatuanJual = z.input<typeof skemaBarisSatuanJual>;
+
+export const skemaSimpanSatuanJual = z
+  .object({ baris: z.array(skemaBarisSatuanJual).max(10, 'Maksimal 10 satuan jual per barang.') })
+  .superRefine((d, ctx) => {
+    const terlihat = new Map<number, number>();
+    d.baris.forEach((b, i) => {
+      const lain = terlihat.get(b.idSatuan);
+      if (lain !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['baris', i, 'idSatuan'],
+          message: `Satuan sama dengan baris ${lain + 1}.`,
+        });
+      }
+      terlihat.set(b.idSatuan, i);
+    });
+    const bawaan = d.baris.filter((b) => b.isDefaultJual && b.statusAktif === 'AKTIF');
+    if (bawaan.length > 1) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['baris'],
+        message: 'Hanya satu satuan jual yang boleh menjadi bawaan.',
+      });
+    }
+  });
+export type InputSimpanSatuanJual = z.input<typeof skemaSimpanSatuanJual>;
+export type DataSimpanSatuanJual = z.output<typeof skemaSimpanSatuanJual>;

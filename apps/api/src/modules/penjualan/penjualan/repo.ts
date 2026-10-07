@@ -8,6 +8,7 @@ import type {
 import type { Executor, Tx } from '../../../db/client';
 import {
   barang,
+  barangSatuanJual,
   orderPenjualan,
   pelanggan,
   pembayaranPenjualan,
@@ -20,6 +21,7 @@ import {
   tingkatHarga,
 } from '../../../db/schema';
 import { polaCari } from '../../../lib/paginasi';
+import { kodeSatuanBaris, satuanBaris } from '../satuan-baris';
 
 const kolom = {
   id: penjualan.id,
@@ -125,8 +127,12 @@ export function detailPenjualan(ex: Executor, id: number) {
       idBarang: penjualanDetail.idBarang,
       kodeBarang: barang.kode,
       namaBarang: barang.namaBarang,
-      kodeSatuan: satuan.kode,
+      kodeSatuan: kodeSatuanBaris,
+      kodeSatuanDasar: satuan.kode,
+      idSatuanJual: penjualanDetail.idSatuanJual,
+      faktor: penjualanDetail.faktor,
       qty: penjualanDetail.qty,
+      qtyDasar: penjualanDetail.qtyDasar,
       namaTier: tingkatHarga.nama,
       hargaSatuan: penjualanDetail.hargaSatuan,
       hargaManual: penjualanDetail.hargaManual,
@@ -141,6 +147,8 @@ export function detailPenjualan(ex: Executor, id: number) {
     .from(penjualanDetail)
     .innerJoin(barang, eq(barang.id, penjualanDetail.idBarang))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, penjualanDetail.idSatuanJual))
+    .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
     .leftJoin(tingkatHarga, eq(tingkatHarga.id, penjualanDetail.idTingkatHarga))
     .leftJoin(promo, eq(promo.id, penjualanDetail.idPromo))
     .where(eq(penjualanDetail.idPenjualan, id))

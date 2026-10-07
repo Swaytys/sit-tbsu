@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import {
   formatRupiah,
+  rapikanDesimal,
   subtotalRupiah,
   type BarisDaftarPenjualan,
   type DataCheckout,
@@ -29,6 +30,7 @@ import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import * as orderRepo from '../order/repo';
+import { muatSatuanJual } from '../../master/satuan-jual/service';
 import { hitungPromoCheckout } from '../harga-baris';
 import { buatOrderTx, ubahOrderTx } from '../order/service';
 import { catatPembayaran, hitungTagihan } from '../pembayaran';
@@ -89,6 +91,7 @@ export async function detailPenjualan(
     const k = kirim.get(b.id);
     const umum = {
       ...b,
+      faktor: rapikanDesimal(b.faktor),
       qtyDikirim: k?.qtyDikirim ?? '0.000',
       qtyTerkirim: k?.qtyTerkirim ?? '0.000',
       qtyBelumDikirim: k ? sisaKirim(k) : '0.000',
@@ -159,18 +162,35 @@ async function hargaTerkini(tx: Tx, rows: BarisOrder[], idBarang: number[]) {
   const catatan: string[] = [];
   if (idBarang.length === 0) return { rows, catatan };
   const kini = new Map(
-    (await hargaBarangDasar(tx, idBarang)).map((h) => [`${h.idBarang}:${h.idTingkatHarga}`, h]),
+    (await hargaBarangDasar(tx, idBarang)).map((h) => [
+      `${h.idBarang}:${h.idTingkatHarga}`,
+      h.hargaJual,
+    ]),
   );
+  // K-091: harga satuan jual (tetap, atau otomatis dari satuan dasar × faktor).
+  for (const daftar of (await muatSatuanJual(tx, idBarang)).values()) {
+    for (const s of daftar)
+      for (const h of s.harga) kini.set(`${s.id}#${h.idTingkatHarga}`, h.hargaJual);
+  }
   const hasil = rows.map((r) => {
-    const h = kini.get(`${r.idBarang}:${r.idTingkatHarga}`);
-    if (!idBarang.includes(r.idBarang) || r.hargaManual || !h || h.hargaJual === r.hargaSatuan) {
+    const hargaBaru = kini.get(
+      r.idSatuanJual === null
+        ? `${r.idBarang}:${r.idTingkatHarga}`
+        : `${r.idSatuanJual}#${r.idTingkatHarga}`,
+    );
+    if (
+      !idBarang.includes(r.idBarang) ||
+      r.hargaManual ||
+      hargaBaru === undefined ||
+      hargaBaru === r.hargaSatuan
+    ) {
       return r;
     }
-    if (r.diskonBaris > subtotalRupiah(r.qty, h.hargaJual)) {
+    if (r.diskonBaris > subtotalRupiah(r.qty, hargaBaru)) {
       throw new AppError('VALIDASI', `Diskon ${r.namaBarang} melebihi harga baru.`, 400);
     }
-    catatan.push(`${r.namaBarang} ${formatRupiah(r.hargaSatuan)} → ${formatRupiah(h.hargaJual)}`);
-    return { ...r, hargaSatuan: h.hargaJual };
+    catatan.push(`${r.namaBarang} ${formatRupiah(r.hargaSatuan)} → ${formatRupiah(hargaBaru)}`);
+    return { ...r, hargaSatuan: hargaBaru };
   });
   return { rows: hasil, catatan };
 }
@@ -315,6 +335,8 @@ export async function checkout(
         .values({
           idPenjualan: pj.id,
           idBarang: r.idBarang,
+          idSatuanJual: r.idSatuanJual,
+          faktor: r.faktor,
           qty: r.qty,
           qtyDasar: r.qtyDasar,
           idTingkatHarga: r.idTingkatHarga,

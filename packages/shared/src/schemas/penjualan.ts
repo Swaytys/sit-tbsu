@@ -47,6 +47,8 @@ export const skemaBarisOrder = z
   .object({
     idBarang: z.number('Barang wajib dipilih.').int().positive('Barang wajib dipilih.'),
     qty: skemaQtyPositif('Qty'),
+    /** K-091: satuan jual baris; `null` = satuan dasar barang. Qty dan harga dalam satuan ini. */
+    idSatuanJual: z.number().int().positive().nullable().default(null),
     /** null = tier bawaan (tier pelanggan, atau tier default) (P3). */
     idTingkatHarga: z.number().int().positive().nullable().default(null),
     /** Harga manual (H9): butuh izin `penjualan.harga_manual`. */
@@ -131,6 +133,7 @@ export type InputPratinjauOrder = z.input<typeof skemaPratinjauOrder>;
 
 export type BarisPratinjau = {
   idBarang: number;
+  idSatuanJual: number | null;
   idTingkatHarga: number | null;
   hargaSatuan: number;
   /** bulatkanRupiah(qty × harga satuan). */
@@ -227,7 +230,12 @@ export type BarisDetailOrder = {
   namaBarang: string;
   /** Kategori barang (sasaran promo, PR2). */
   idKategori: number;
+  /** Satuan baris (satuan jual, atau satuan dasar). */
   kodeSatuan: string;
+  kodeSatuanDasar: string;
+  /** K-091: `null` = satuan dasar; faktor ke satuan dasar (snapshot). */
+  idSatuanJual: number | null;
+  faktor: string;
   kepemilikan: Kepemilikan;
   qty: string;
   qtyDasar: string;
@@ -245,7 +253,17 @@ export type BarisDetailOrder = {
   catatanItem: string | null;
   /** Stok tersedia untuk order ini (stok tersedia + yang sudah ditahan order ini). */
   stokTersedia: string;
-  /** Harga jual barang per tier saat ini (pilihan tier di form). */
+  /** Harga jual barang per tier saat ini untuk satuan baris (pilihan tier di form). */
+  hargaTier: { idTingkatHarga: number; hargaJual: number }[];
+  /** Pilihan satuan baris (satuan dasar + satuan jual aktif) dengan harga per tier (K-091). */
+  opsiSatuan: OpsiSatuanBaris[];
+};
+
+/** Pilihan satuan untuk baris transaksi; satuan dasar = `idSatuanJual` null, faktor "1". */
+export type OpsiSatuanBaris = {
+  idSatuanJual: number | null;
+  kodeSatuan: string;
+  faktor: string;
   hargaTier: { idTingkatHarga: number; hargaJual: number }[];
 };
 
@@ -395,8 +413,13 @@ export type BarisDetailPenjualan = {
   idBarang: number;
   kodeBarang: string;
   namaBarang: string;
+  /** Satuan baris (satuan jual, atau satuan dasar). */
   kodeSatuan: string;
+  kodeSatuanDasar: string;
+  idSatuanJual: number | null;
+  faktor: string;
   qty: string;
+  qtyDasar: string;
   namaTier: string | null;
   hargaSatuan: number;
   hargaManual: boolean;

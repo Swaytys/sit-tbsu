@@ -18,13 +18,16 @@ import type { z } from 'zod';
 import { db } from '../../db/client';
 import {
   barang,
+  barangSatuanJual,
   pelanggan,
   penjualan,
+  penjualanDetail,
   returPenjualan,
   returPenjualanDetail,
   satuan,
 } from '../../db/schema';
 import type { PenggunaAktif } from '../../lib/konteks';
+import { kodeSatuanBaris, satuanBaris } from '../penjualan/satuan-baris';
 import { angka, KOSONG, qty, SATUAN_RUPIAH, susunDokumen, teks, uang } from './umum';
 
 /*
@@ -95,15 +98,18 @@ export async function hitungReturPenjualan(p: DataReturPenjualan): Promise<Hasil
           idRetur: returPenjualanDetail.idRetur,
           kode: barang.kode,
           namaBarang: barang.namaBarang,
-          kodeSatuan: satuan.kode,
+          kodeSatuan: kodeSatuanBaris,
           qty: returPenjualanDetail.qtyRetur,
           kondisi: returPenjualanDetail.kondisi,
           hargaSatuan: returPenjualanDetail.hargaSatuanEfektif,
           nominal: returPenjualanDetail.nominalRetur,
         })
         .from(returPenjualanDetail)
+        .innerJoin(penjualanDetail, eq(penjualanDetail.id, returPenjualanDetail.idPenjualanDetail))
         .innerJoin(barang, eq(barang.id, returPenjualanDetail.idBarang))
         .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+        .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, penjualanDetail.idSatuanJual))
+        .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
         .where(
           inArray(
             returPenjualanDetail.idRetur,

@@ -1,6 +1,7 @@
 import {
   formatRupiah,
   keQty,
+  rapikanDesimal,
   tambahQty,
   nomorAntrean,
   type BarisDaftarOrder,
@@ -22,6 +23,7 @@ import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahJam, tambahMenit, tanggalOperasional } from '../../../lib/waktu';
 import { ubahReservasi, type PerubahanReservasi } from '../../persediaan/ledger';
 import { hargaBarangDasar } from '../../master/harga/repo';
+import { muatSatuanJual, opsiSatuan } from '../../master/satuan-jual/service';
 import { ambilAngka, ambilTeks } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
@@ -120,15 +122,15 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
   const h = await repo.orderById(db, id);
   if (!h || !bolehLihat(h, pelaku)) throw tidakDitemukan();
   const rows = await repo.detailOrder(db, id);
+  const idBarang = rows.map((r) => r.idBarang);
   const hargaTier = new Map<number, { idTingkatHarga: number; hargaJual: number }[]>();
-  for (const x of await hargaBarangDasar(
-    db,
-    rows.map((r) => r.idBarang),
-  )) {
+  for (const x of await hargaBarangDasar(db, idBarang)) {
     const daftar = hargaTier.get(x.idBarang) ?? [];
     daftar.push({ idTingkatHarga: x.idTingkatHarga, hargaJual: x.hargaJual });
     hargaTier.set(x.idBarang, daftar);
   }
+  // K-091: pilihan satuan per baris dan harga tier untuk satuan baris.
+  const satuanJual = await muatSatuanJual(db, idBarang);
   const menahan = h.status === 'MENUNGGU' || h.status === 'DIPROSES';
   return {
     ...keRespons(
@@ -145,12 +147,21 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
     subtotal: h.subtotal,
     diskonTransaksi: h.diskonTransaksi,
     ongkir: h.ongkir,
-    baris: rows.map((r) => ({
-      ...r,
-      // Stok tersedia "untuk order ini" = tersedia + yang sudah ditahan order ini sendiri.
-      stokTersedia: keQty(menahan ? tambahQty(r.stokTersedia, r.qtyDasar) : r.stokTersedia),
-      hargaTier: hargaTier.get(r.idBarang) ?? [],
-    })),
+    baris: rows.map((r) => {
+      const opsi = opsiSatuan(
+        r.kodeSatuanDasar,
+        hargaTier.get(r.idBarang) ?? [],
+        satuanJual.get(r.idBarang) ?? [],
+      );
+      return {
+        ...r,
+        faktor: rapikanDesimal(r.faktor),
+        // Stok tersedia "untuk order ini" (satuan dasar) = tersedia + yang ditahan order ini sendiri.
+        stokTersedia: keQty(menahan ? tambahQty(r.stokTersedia, r.qtyDasar) : r.stokTersedia),
+        hargaTier: opsi.find((o) => o.idSatuanJual === r.idSatuanJual)?.hargaTier ?? [],
+        opsiSatuan: opsi,
+      };
+    }),
   };
 }
 
@@ -188,6 +199,8 @@ function nilaiHeader(input: DataOrder, h: HasilHarga) {
 function nilaiDetail(h: HasilHarga) {
   return h.baris.map((b) => ({
     idBarang: b.idBarang,
+    idSatuanJual: b.idSatuanJual,
+    faktor: b.faktor,
     qty: b.qty,
     qtyDasar: b.qtyDasar,
     idTingkatHarga: b.idTingkatHarga,
@@ -457,6 +470,7 @@ export async function pratinjauOrder(
     return {
       baris: harga.baris.map((b) => ({
         idBarang: b.idBarang,
+        idSatuanJual: b.idSatuanJual,
         idTingkatHarga: b.idTingkatHarga,
         hargaSatuan: b.hargaSatuan,
         bruto: b.bruto,
