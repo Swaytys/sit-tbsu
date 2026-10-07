@@ -1,7 +1,9 @@
 import {
   formatRupiah,
+  LABEL_PENYELESAIAN_RETUR_PEMASOK,
   type BarisSuratJalan,
   type DetailPenjualan,
+  type DetailReturPemasok,
   type TampilanToko,
 } from '@sit/shared';
 import type { ReactNode } from 'react';
@@ -160,6 +162,64 @@ export function SuratJalanA4({ sj, toko }: { sj: BarisSuratJalan; toko: Tampilan
       {sj.catatan && <p className="mt-2">Catatan: {sj.catatan}</p>}
       <div className="mt-12 grid grid-cols-3 gap-8 text-center">
         {['Penerima', 'Sopir', 'Hormat kami'].map((t) => (
+          <div key={t}>
+            {t}
+            <div className="mt-16 border-t border-black" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Nota retur ke pemasok A4 (docs/06 RP1–RP7): diserahkan bersama barang, ditandatangani kedua pihak. */
+export function NotaReturPemasokA4({ r, toko }: { r: DetailReturPemasok; toko: TampilanToko }) {
+  return (
+    <div className="bg-white p-2 text-sm text-black" data-testid="nota-retur-pemasok">
+      <Kop toko={toko} judul="NOTA RETUR PEMBELIAN" nomor={r.nomor} />
+      <div className="mb-4 grid grid-cols-2 gap-4">
+        <div>
+          <Pasangan kiri="Kepada" kanan={<b>{r.namaPemasok}</b>} />
+          <Pasangan kiri="Alasan" kanan={r.alasan} />
+          {r.catatan && <Pasangan kiri="Catatan" kanan={r.catatan} />}
+        </div>
+        <div>
+          <Pasangan kiri="Tanggal" kanan={formatWaktu(r.tanggal)} />
+          <Pasangan kiri="Penyelesaian" kanan={LABEL_PENYELESAIAN_RETUR_PEMASOK[r.penyelesaian]} />
+          {r.nomorPenerimaan && <Pasangan kiri="Penerimaan asal" kanan={r.nomorPenerimaan} />}
+          {r.nomorPenerimaanPengganti && (
+            <Pasangan kiri="Barang pengganti" kanan={r.nomorPenerimaanPengganti} />
+          )}
+        </div>
+      </div>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-y border-black">
+            <th className="py-1 text-left">No</th>
+            <th className="py-1 text-left">Kode</th>
+            <th className="py-1 text-left">Barang</th>
+            <th className="py-1 text-left">Kondisi</th>
+            <th className="py-1 text-right">Qty</th>
+            <th className="py-1 pl-2 text-left">Satuan</th>
+            <th className="py-1 text-left">Keterangan</th>
+          </tr>
+        </thead>
+        <tbody>
+          {r.baris.map((b, i) => (
+            <tr key={b.id} className="border-b border-slate-300">
+              <td className="py-1.5">{i + 1}</td>
+              <td className="py-1.5 font-mono text-xs">{b.kodeBarang}</td>
+              <td className="py-1.5">{b.namaBarang}</td>
+              <td className="py-1.5">{b.kondisiAsal === 'RUSAK' ? 'Rusak' : 'Baik'}</td>
+              <td className="py-1.5 text-right">{formatDesimal(b.qty)}</td>
+              <td className="py-1.5 pl-2">{b.kodeSatuan}</td>
+              <td className="py-1.5">{b.keterangan ?? ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="mt-12 grid grid-cols-2 gap-16 text-center">
+        {['Diterima pemasok', 'Hormat kami'].map((t) => (
           <div key={t}>
             {t}
             <div className="mt-16 border-t border-black" />

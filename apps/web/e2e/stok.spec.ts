@@ -75,5 +75,7 @@ test('Kasir: kartu peringatan stok di dashboard, tanpa menu Stok Persediaan', as
   await expect(page.getByTestId('jumlah-peringatan-stok')).toBeVisible();
   await expect(menuUtama(page).getByRole('link', { name: 'Stok Persediaan' })).toHaveCount(0);
   await page.getByRole('button', { name: /^Notifikasi/ }).click();
-  await expect(page.getByText('Tidak ada notifikasi.')).toBeVisible();
+  // Notifikasi stok hanya untuk pemegang izin stok; notifikasi lain (mis. piutang) bergantung data dev.
+  await expect(page.getByRole('menu', { name: /^Notifikasi/ })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /Stok (kritis|habis|perlu)/i })).toHaveCount(0);
 });

@@ -378,6 +378,19 @@ export function SaringLaporan({
           </label>
         </>
       )}
+      {kode === 'hutang' && (
+        <>
+          <Pemasok p={p} ubah={ubah} />
+          <label className="flex h-9 items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={p.terlambat === 'true'}
+              onChange={(e) => ubah({ terlambat: e.target.checked ? 'true' : null })}
+            />
+            Hanya yang lewat jatuh tempo
+          </label>
+        </>
+      )}
       {kode === 'detail-invoice' && <CariInvoice p={p} ubah={ubah} />}
     </div>
   );

@@ -3,6 +3,7 @@ import {
   ClipboardList,
   Download,
   FileSpreadsheet,
+  Flame,
   PackageMinus,
   PackagePlus,
   Pencil,
@@ -233,6 +234,11 @@ export function TabPenyesuaian() {
             <PackageMinus /> Stok rusak
           </Link>
         </Button>
+        <Button variant="outline" asChild>
+          <Link to="/persediaan/penyesuaian/baru?jenis=MUSNAH">
+            <Flame /> Musnahkan stok rusak
+          </Link>
+        </Button>
       </div>
       <Card className="gap-0 overflow-hidden py-0">
         <div className="flex items-center gap-3 border-b p-3">
@@ -248,7 +254,7 @@ export function TabPenyesuaian() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={SEMUA}>Semua jenis</SelectItem>
-              {(['SALDO_AWAL', 'OPNAME', 'KOREKSI', 'RUSAK'] as const).map((j) => (
+              {(['SALDO_AWAL', 'OPNAME', 'KOREKSI', 'RUSAK', 'MUSNAH'] as const).map((j) => (
                 <SelectItem key={j} value={j}>
                   {LABEL_JENIS_PENYESUAIAN[j]}
                 </SelectItem>
