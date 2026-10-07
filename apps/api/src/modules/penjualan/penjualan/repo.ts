@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, ilike, lte, or, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, ilike, lte, ne, or, sql, type SQL } from 'drizzle-orm';
 import type {
   JenisPenjualan,
   StatusPembayaran,
@@ -199,4 +199,26 @@ export async function termPelanggan(ex: Executor, id: number): Promise<number> {
     .from(pelanggan)
     .where(eq(pelanggan.id, id));
   return p?.termHari ?? 0;
+}
+
+/** PT6: limit kredit pelanggan (`null` = tanpa limit) dan piutang berjalan selain penjualan `kecuali`. */
+export async function posisiKredit(ex: Executor, idPelanggan: number, kecuali: number) {
+  const [p] = await ex
+    .select({ limit: pelanggan.limitKredit, nama: pelanggan.namaPelanggan })
+    .from(pelanggan)
+    .where(eq(pelanggan.id, idPelanggan));
+  const [b] = await ex
+    .select({
+      piutang: sql<number>`coalesce(sum(${penjualan.sisaTagihan}), 0)::bigint`.mapWith(Number),
+    })
+    .from(penjualan)
+    .where(
+      and(
+        eq(penjualan.idPelanggan, idPelanggan),
+        ne(penjualan.id, kecuali),
+        ne(penjualan.statusTransaksi, 'VOID'),
+        ne(penjualan.statusPembayaran, 'LUNAS'),
+      ),
+    );
+  return { limit: p?.limit ?? null, nama: p?.nama ?? '', piutangBerjalan: b?.piutang ?? 0 };
 }

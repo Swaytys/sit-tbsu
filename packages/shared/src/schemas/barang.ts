@@ -161,6 +161,11 @@ export const skemaCariBarang = skemaHalaman.extend({
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
     .optional(),
+  /** Hanya barang yang punya stok rusak (tab Stok Rusak, SR1). */
+  adaRusak: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
 });
 export type ParamCariBarang = z.input<typeof skemaCariBarang>;
 
@@ -190,6 +195,8 @@ export type BarisBarang = {
   stokMinimum: string;
   stokFisik: string;
   stokTersedia: string;
+  /** Stok kondisi rusak (bucket RUSAK): tidak bisa dijual, menunggu retur pemasok atau dimusnahkan. */
+  stokRusak: string;
   /** ST1, dihitung API dari stok fisik dan minimum. */
   statusStok: StatusStok;
   kepemilikan: Kepemilikan;

@@ -151,8 +151,8 @@ export type DetailPenerimaan = BarisDaftarPenerimaan & {
 
 // --- Penyesuaian stok (docs/05 §12, A1–A7) ---
 
-/** Jenis yang bisa dibuat di M1 (MUSNAH = M2, Fase 10). */
-export const JENIS_PENYESUAIAN_M1 = ['SALDO_AWAL', 'OPNAME', 'KOREKSI', 'RUSAK'] as const;
+/** Jenis yang bisa dibuat pengguna (MUSNAH = pemusnahan stok rusak, Fase 10). */
+export const JENIS_PENYESUAIAN_M1 = ['SALDO_AWAL', 'OPNAME', 'KOREKSI', 'RUSAK', 'MUSNAH'] as const;
 export type JenisPenyesuaianM1 = (typeof JENIS_PENYESUAIAN_M1)[number];
 
 const POLA_QTY_BERTANDA = /^-?\d{1,11}(\.\d{1,3})?$/;
@@ -193,6 +193,7 @@ export const skemaPenyesuaian = z
     const salah = (path: (string | number)[], message: string) =>
       ctx.addIssue({ code: 'custom', path, message });
     if (d.jenis === 'KOREKSI' && !d.alasan) salah(['alasan'], 'Alasan koreksi wajib diisi.');
+    if (d.jenis === 'MUSNAH' && !d.alasan) salah(['alasan'], 'Alasan pemusnahan wajib diisi.');
     const terlihat = new Map<number, number>();
     d.baris.forEach((b, i) => {
       const lain = terlihat.get(b.idBarang);
@@ -215,9 +216,14 @@ export const skemaPenyesuaian = z
       if (d.jenis === 'KOREKSI' && nol(b.qtySelisih)) {
         salah(['baris', i, 'qtySelisih'], 'Selisih koreksi tidak boleh 0.');
       }
-      if (d.jenis === 'RUSAK') {
+      if (d.jenis === 'RUSAK' || d.jenis === 'MUSNAH') {
         if (nol(b.qtySelisih) || b.qtySelisih?.startsWith('-')) {
-          salah(['baris', i, 'qtySelisih'], 'Jumlah rusak harus lebih dari 0.');
+          salah(
+            ['baris', i, 'qtySelisih'],
+            d.jenis === 'RUSAK'
+              ? 'Jumlah rusak harus lebih dari 0.'
+              : 'Jumlah dimusnahkan harus lebih dari 0.',
+          );
         }
       }
     });

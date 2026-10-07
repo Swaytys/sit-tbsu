@@ -21,6 +21,7 @@ import { angka, KOSONG, qty, SATUAN_RUPIAH, susunDokumen, teks, uang } from './u
  * Laporan Nilai Persediaan per tanggal (docs/05 §14, docs/06 KS4): kuantitas × HPP rata-rata tertimbang
  * (K-008), bucket BAIK. Hari ini = Σ stok_fisik × hpp_rata2 (cache); tanggal lampau = saldo & HPP sesudah
  * mutasi terakhir tiap barang ≤ tanggal itu. Barang titipan dipisah: bukan aset toko, hanya informasi.
+ * Barang rusak (bucket RUSAK, SR1) disajikan terpisah sebagai informasi, tidak termasuk nilai persediaan.
  */
 
 export type DataNilaiPersediaan = z.output<typeof skemaLaporanNilaiPersediaan>;
@@ -39,8 +40,11 @@ export type BarisNilaiPersediaan = {
 export type HasilNilaiPersediaan = {
   milikSendiri: BarisNilaiPersediaan[];
   titipan: BarisNilaiPersediaan[];
+  /** SR1: stok rusak (milik sendiri dan titipan) × HPP, informasi. */
+  rusak: BarisNilaiPersediaan[];
   totalMilikSendiri: number;
   totalTitipan: number;
+  totalRusak: number;
 };
 
 export async function hitungNilaiPersediaan(p: DataNilaiPersediaan): Promise<HasilNilaiPersediaan> {
@@ -59,6 +63,7 @@ export async function hitungNilaiPersediaan(p: DataNilaiPersediaan): Promise<Has
       kodeSatuan: satuan.kode,
       kepemilikan: barang.kepemilikan,
       stokFisik: persediaan.stokFisik,
+      stokRusak: persediaan.stokRusak,
       hppRata2: persediaan.hppRata2,
     })
     .from(barang)
@@ -67,10 +72,17 @@ export async function hitungNilaiPersediaan(p: DataNilaiPersediaan): Promise<Has
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
     .where(p.idKategori === undefined ? undefined : eq(barang.idKategori, p.idKategori));
 
-  let posisi: Map<number, { qty: string; hpp: number }>;
-  if (p.tanggal === hariIni) {
-    posisi = new Map(master.map((b) => [b.idBarang, { qty: b.stokFisik, hpp: b.hppRata2 }]));
-  } else {
+  const kini = p.tanggal === hariIni;
+  // Saldo & HPP per kondisi: hari ini dari cache persediaan, tanggal lampau dari mutasi terakhir ≤ tanggal.
+  async function posisiKondisi(kondisi: 'BAIK' | 'RUSAK') {
+    if (kini) {
+      return new Map(
+        master.map((b) => [
+          b.idBarang,
+          { qty: kondisi === 'BAIK' ? b.stokFisik : b.stokRusak, hpp: b.hppRata2 },
+        ]),
+      );
+    }
     const m = mutasiPersediaan;
     const r = await db
       .selectDistinctOn([m.idBarang], {
@@ -79,16 +91,20 @@ export async function hitungNilaiPersediaan(p: DataNilaiPersediaan): Promise<Has
         hpp: m.hppSetelah,
       })
       .from(m)
-      .where(and(eq(m.kondisi, 'BAIK'), lte(m.tanggalOperasional, p.tanggal)))
+      .where(and(eq(m.kondisi, kondisi), lte(m.tanggalOperasional, p.tanggal)))
       .orderBy(m.idBarang, desc(m.id));
-    posisi = new Map(r.map((x) => [x.idBarang, { qty: x.qty, hpp: x.hpp }]));
+    return new Map(r.map((x) => [x.idBarang, { qty: x.qty, hpp: x.hpp }]));
   }
+  const posisi = await posisiKondisi('BAIK');
+  const posisiRusak = await posisiKondisi('RUSAK');
 
   const hasil: HasilNilaiPersediaan = {
     milikSendiri: [],
     titipan: [],
+    rusak: [],
     totalMilikSendiri: 0,
     totalTitipan: 0,
+    totalRusak: 0,
   };
   const urut = [...master].sort(
     (a, b) =>
@@ -97,6 +113,21 @@ export async function hitungNilaiPersediaan(p: DataNilaiPersediaan): Promise<Has
       a.idBarang - b.idBarang,
   );
   for (const b of urut) {
+    const r = posisiRusak.get(b.idBarang);
+    if (r && !/^0(\.0+)?$/.test(r.qty)) {
+      const nilai = subtotalRupiah(r.qty, r.hpp);
+      hasil.rusak.push({
+        kode: b.kode,
+        namaBarang: b.namaBarang,
+        namaKategori: b.namaKategori,
+        kodeSatuan: b.kodeSatuan,
+        kepemilikan: b.kepemilikan,
+        qty: keQty(r.qty),
+        hpp: r.hpp,
+        nilai,
+      });
+      hasil.totalRusak += nilai;
+    }
     const x = posisi.get(b.idBarang);
     if (!x || /^0(\.0+)?$/.test(x.qty)) continue;
     const baris: BarisNilaiPersediaan = {
@@ -209,6 +240,11 @@ export async function laporanNilaiPersediaan(
             nilai: uang(h.totalTitipan),
             tingkat: 1,
           },
+          {
+            label: `Barang rusak — informasi, tidak termasuk nilai persediaan (${h.rusak.length} barang)`,
+            nilai: uang(h.totalRusak),
+            tingkat: 1,
+          },
         ],
       },
       {
@@ -234,13 +270,27 @@ export async function laporanNilaiPersediaan(
             },
           ]
         : []),
+      ...(h.rusak.length > 0
+        ? [
+            {
+              jenis: 'tabel' as const,
+              judul: `${h.titipan.length > 0 ? 'C' : 'B'}. Barang Rusak — Informasi`,
+              tabel: {
+                kolom: [...KOLOM].map((k) =>
+                  k.judul === 'Nilai Persediaan' ? { ...k, judul: 'Nilai (HPP)' } : { ...k },
+                ),
+                baris: barisBerkategori(h.rusak, 'Jumlah Barang Rusak'),
+              },
+            },
+          ]
+        : []),
     ],
     catatan: [
       'Metode penilaian: rata-rata tertimbang bergerak (moving average). Nilai = kuantitas × HPP rata-rata, dibulatkan ke rupiah utuh per barang.',
       p.tanggal === tanggalOperasional()
         ? 'Kuantitas dan HPP adalah posisi saat laporan disusun.'
         : `Kuantitas dan HPP adalah posisi akhir hari ${teksTanggalPanjang(p.tanggal)} menurut buku persediaan.`,
-      'Hanya stok kondisi baik; stok rusak tidak dinilai. Barang dengan kuantitas nol tidak dicantumkan.',
+      'Nilai persediaan hanya stok kondisi baik. Barang rusak (menunggu retur ke pemasok atau dimusnahkan) disajikan terpisah sebagai informasi dan tidak termasuk nilai persediaan. Barang dengan kuantitas nol tidak dicantumkan.',
       'Barang titipan (konsinyasi) milik pemasok dan bukan aset toko; nilainya (harga titip) disajikan sebagai informasi.',
     ],
     berkas: p.tanggal,

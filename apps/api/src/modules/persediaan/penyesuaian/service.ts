@@ -2,6 +2,7 @@ import {
   bandingQty,
   keQty,
   kurangQty,
+  type KondisiStok,
   type BarisDaftarPenyesuaian,
   type DataPenyesuaian,
   type DetailPenyesuaian,
@@ -20,7 +21,8 @@ import * as repo from './repo';
 
 /*
  * Penyesuaian stok (docs/05 §12, A1–A7): dokumen ADJ dibuat DRAFT, baris boleh diubah selama DRAFT,
- * SELESAI menulis mutasi lewat ledger dalam satu transaksi, BATAL tidak berefek. MUSNAH = M2.
+ * SELESAI menulis mutasi lewat ledger dalam satu transaksi, BATAL tidak berefek. MUSNAH mengeluarkan
+ * barang dari bucket RUSAK (A5, SR3; Fase 10).
  */
 
 type Header = NonNullable<Awaited<ReturnType<typeof repo.penyesuaianById>>>;
@@ -145,9 +147,10 @@ async function siapkanDetail(
           waktuKecuali: tetap ? sebelum.waktuKecuali : sekarang(),
         }
       : { dikecualikan: false, alasanKecuali: null, idPenggunaKecuali: null, waktuKecuali: null };
+    const kondisi: KondisiStok = input.jenis === 'MUSNAH' ? 'RUSAK' : 'BAIK';
     const dasar = {
       idBarang: b.idBarang,
-      kondisi: 'BAIK' as const,
+      kondisi,
       keterangan: b.keterangan ?? null,
       ...kecuali,
     };
@@ -167,7 +170,8 @@ async function siapkanDetail(
       case 'KOREKSI':
         return { ...dasar, qtyFisik: null, qtySelisih: keQty(b.qtySelisih ?? '0') };
       case 'RUSAK':
-        // Disimpan negatif: keluar dari bucket asal BAIK (docs/03 penyesuaian_stok_detail).
+      case 'MUSNAH':
+        // Disimpan negatif: keluar dari bucket asal (RUSAK: dari BAIK; MUSNAH: dari RUSAK).
         return { ...dasar, qtyFisik: null, qtySelisih: kurangQty(0, b.qtySelisih ?? '0') };
     }
   });
@@ -298,12 +302,8 @@ export async function selesaikanPenyesuaian(
     if (h.jenis === 'KOREKSI' && !h.alasan) {
       throw new AppError('VALIDASI', 'Alasan koreksi wajib diisi sebelum diselesaikan.', 400);
     }
-    if (h.jenis === 'MUSNAH') {
-      throw new AppError(
-        'STATUS_TIDAK_VALID',
-        'Pemusnahan stok rusak tersedia di versi berikutnya.',
-        409,
-      );
+    if (h.jenis === 'MUSNAH' && !h.alasan) {
+      throw new AppError('VALIDASI', 'Alasan pemusnahan wajib diisi sebelum diselesaikan.', 400);
     }
     const belumDihitung = baris.filter(
       (b) => h.jenis === 'OPNAME' && !b.dikecualikan && b.qtyFisik === null,
@@ -330,7 +330,14 @@ export async function selesaikanPenyesuaian(
             baris.map((b) => b.idBarang),
           )
         : new Map<number, string>();
-    const ket = `${h.jenis === 'SALDO_AWAL' ? 'Saldo awal' : h.jenis === 'RUSAK' ? 'Pindah ke stok rusak' : h.jenis === 'OPNAME' ? 'Stok opname' : 'Koreksi'} ${h.nomor}${h.alasan ? `: ${h.alasan}` : ''}`;
+    const LABEL_KET = {
+      SALDO_AWAL: 'Saldo awal',
+      RUSAK: 'Pindah ke stok rusak',
+      MUSNAH: 'Pemusnahan stok rusak',
+      OPNAME: 'Stok opname',
+      KOREKSI: 'Koreksi',
+    } as const;
+    const ket = `${LABEL_KET[h.jenis]} ${h.nomor}${h.alasan ? `: ${h.alasan}` : ''}`;
     const umum = {
       idPengguna: pelaku.id,
       tanggalOperasional: tanggal,
@@ -382,6 +389,15 @@ export async function selesaikanPenyesuaian(
           qtyMasuk: qty,
           sumber,
         });
+      } else if (h.jenis === 'MUSNAH') {
+        await catatMutasi(tx, {
+          ...umum,
+          idBarang: b.idBarang,
+          jenis: 'MUSNAH',
+          kondisi: 'RUSAK',
+          qtyKeluar: kurangQty(0, b.qtySelisih),
+          sumber,
+        });
       } else if (bandingQty(selisih, 0) !== 0) {
         const arah =
           bandingQty(selisih, 0) > 0 ? { qtyMasuk: selisih } : { qtyKeluar: kurangQty(0, selisih) };
@@ -394,7 +410,7 @@ export async function selesaikanPenyesuaian(
         });
       }
       await repo.ubahDetail(tx, b.id, {
-        qtySistem: p.stokFisik,
+        qtySistem: h.jenis === 'MUSNAH' ? p.stokRusak : p.stokFisik,
         qtySelisih: selisih,
         hppSatuan: hpp,
       });

@@ -89,6 +89,10 @@ export const AKSI_LOG = [
   'KAS_SHIFT_CATAT',
   'CETAK_ULANG',
   'LAPORAN_EKSPOR',
+  // Hutang, retur pemasok, limit kredit (Fase 10, K-088).
+  'HUTANG_BAYAR',
+  'RETUR_PEMASOK_SIMPAN',
+  'PENJUALAN_LIMIT_OVERRIDE',
   // Cadangan data (Fase 8, K-084).
   'CADANGAN_JALANKAN',
   'CADANGAN_UJI_PULIH',

@@ -2,6 +2,7 @@ import {
   bolehLihatLaporan,
   infoLaporan,
   skemaIdParam,
+  skemaLaporanHutang,
   skemaLaporanKartuStok,
   skemaLaporanLabaKotor,
   skemaLaporanNilaiPersediaan,
@@ -25,6 +26,7 @@ import { catatLog } from '../sistem/log-aktivitas';
 import { tampilanToko } from '../sistem/pengaturan/service';
 import { laporanDetailInvoice } from './detail-invoice';
 import { eksporExcel } from './ekspor';
+import { laporanHutang } from './hutang';
 import { laporanKartuStok } from './kartu-stok';
 import { laporanLabaKotor } from './laba-kotor';
 import { laporanNilaiPersediaan } from './nilai-persediaan';
@@ -75,6 +77,8 @@ export function susunLaporan(
       return laporanPromo(urai(skemaLaporanPromo, query), pelaku);
     case 'riwayat-harga-beli':
       return laporanRiwayatHargaBeli(urai(skemaLaporanRiwayatHargaBeli, query), pelaku);
+    case 'hutang':
+      return laporanHutang(urai(skemaLaporanHutang, query), pelaku);
   }
 }
 

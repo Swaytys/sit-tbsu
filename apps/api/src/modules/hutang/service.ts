@@ -1,0 +1,279 @@
+import {
+  formatRupiah,
+  KELOMPOK_UMUR,
+  kelompokUmur,
+  nomorHari,
+  type BarisHutang,
+  type DaftarHutang,
+  type DataBayarHutang,
+  type HasilBayarHutang,
+  type JenisDokumenHutang,
+  type KelompokUmur,
+  type PembayaranPemasok,
+  type StatusHutang,
+} from '@sit/shared';
+import { db, type Tx } from '../../db/client';
+import { AppError } from '../../lib/errors';
+import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
+import { metaHalaman } from '../../lib/paginasi';
+import { dalamTransaksi } from '../../lib/transaksi';
+import { sekarang, tambahHari, tanggalOperasional } from '../../lib/waktu';
+import { catatKas, shiftBuka } from '../kas/shift/service';
+import { tambahPembayaran } from '../persediaan/penerimaan/repo';
+import { catatLog } from '../sistem/log-aktivitas';
+import { terbitkanNomor } from '../sistem/penomoran';
+import * as repo from './repo';
+
+/*
+ * Hutang pemasok (docs/06 HT1–HT4, K-088): daftar dokumen terbuka dengan umur, ringkasan per pemasok dan per
+ * kelompok umur, serta pembayaran (PBP). TUNAI keluar dari laci shift pembayar (K2); TRANSFER wajib rekening.
+ */
+
+/** Hari lewat jatuh tempo (negatif = belum), `null` bila dokumen tanpa jatuh tempo. */
+export function hariLewat(jatuhTempo: string | null, hariIni: string): number | null {
+  return jatuhTempo === null ? null : nomorHari(hariIni) - nomorHari(jatuhTempo);
+}
+
+function keBaris(d: repo.DokumenHutang, hariIni: string): BarisHutang {
+  const lewat = hariLewat(d.tanggalJatuhTempo, hariIni);
+  return { ...d, hariLewat: lewat, kelompokUmur: kelompokUmur(lewat) };
+}
+
+export type SaringHutang = {
+  cari?: string | undefined;
+  idPemasok?: number | undefined;
+  terlambat?: boolean | undefined;
+  halaman: number;
+  perHalaman: number;
+};
+
+/** Seluruh hutang terbuka sebagai baris (urut jatuh tempo terdekat; tanpa jatuh tempo di akhir). */
+export async function semuaBarisHutang(hariIni = tanggalOperasional()): Promise<BarisHutang[]> {
+  return (await repo.semuaHutang(db))
+    .map((d) => keBaris(d, hariIni))
+    .sort(
+      (a, b) =>
+        (a.tanggalJatuhTempo ?? '9999-12-31').localeCompare(b.tanggalJatuhTempo ?? '9999-12-31') ||
+        a.tanggalOperasional.localeCompare(b.tanggalOperasional) ||
+        a.id - b.id,
+    );
+}
+
+export async function daftarHutang(p: SaringHutang): Promise<DaftarHutang> {
+  const hariIni = tanggalOperasional();
+  const semua = await semuaBarisHutang(hariIni);
+  const cari = p.cari?.toLowerCase();
+  const tersaring = semua.filter(
+    (b) =>
+      (p.idPemasok === undefined || b.idPemasok === p.idPemasok) &&
+      (!p.terlambat || (b.hariLewat !== null && b.hariLewat > 0)) &&
+      (!cari ||
+        b.nomor.toLowerCase().includes(cari) ||
+        b.namaPemasok.toLowerCase().includes(cari) ||
+        (b.noFaktur ?? '').toLowerCase().includes(cari)),
+  );
+  const mulai = (p.halaman - 1) * p.perHalaman;
+
+  const umur = Object.fromEntries(KELOMPOK_UMUR.map((k) => [k, 0])) as Record<KelompokUmur, number>;
+  const perPemasok = new Map<number, DaftarHutang['ringkasan']['perPemasok'][number]>();
+  let totalSisa = 0;
+  let jumlahTerlambat = 0;
+  let totalTerlambat = 0;
+  for (const b of semua) {
+    totalSisa += b.sisa;
+    umur[b.kelompokUmur] += b.sisa;
+    if (b.hariLewat !== null && b.hariLewat > 0) {
+      jumlahTerlambat += 1;
+      totalTerlambat += b.sisa;
+    }
+    const r = perPemasok.get(b.idPemasok) ?? {
+      idPemasok: b.idPemasok,
+      namaPemasok: b.namaPemasok,
+      jumlahDokumen: 0,
+      totalSisa: 0,
+      jatuhTempoTerlama: null,
+    };
+    r.jumlahDokumen += 1;
+    r.totalSisa += b.sisa;
+    if (
+      b.tanggalJatuhTempo &&
+      (!r.jatuhTempoTerlama || b.tanggalJatuhTempo < r.jatuhTempoTerlama)
+    ) {
+      r.jatuhTempoTerlama = b.tanggalJatuhTempo;
+    }
+    perPemasok.set(b.idPemasok, r);
+  }
+  return {
+    data: tersaring.slice(mulai, mulai + p.perHalaman),
+    meta: metaHalaman(tersaring.length, p),
+    ringkasan: {
+      totalSisa,
+      jumlah: semua.length,
+      jumlahTerlambat,
+      totalTerlambat,
+      perPemasok: [...perPemasok.values()].sort((a, b) => b.totalSisa - a.totalSisa),
+      umur,
+    },
+  };
+}
+
+export async function pembayaranHutang(
+  jenis: JenisDokumenHutang,
+  id: number,
+): Promise<PembayaranPemasok[]> {
+  return (await repo.pembayaranDokumen(db, jenis, id)).map((b) => ({
+    ...b,
+    tanggal: b.tanggal.toISOString(),
+  }));
+}
+
+/** Status hutang dari sisa: 0 → LUNAS; selain itu SEBAGIAN bila sudah ada bayar/potongan (HT2, HT6). */
+export function statusHutangDari(sisa: number, sudahBerkurang: boolean): StatusHutang {
+  if (sisa <= 0) return 'LUNAS';
+  return sudahBerkurang ? 'SEBAGIAN' : 'BELUM_LUNAS';
+}
+
+type DokumenTerkunci = {
+  idPemasok: number;
+  nomor: string;
+  sisa: number;
+  terapkan: (nominal: number) => Promise<HasilBayarHutang['statusHutang']>;
+  entitas: string;
+};
+
+async function kunciDokumen(
+  tx: Tx,
+  jenis: JenisDokumenHutang,
+  id: number,
+): Promise<DokumenTerkunci> {
+  const waktu = sekarang();
+  if (jenis === 'PENERIMAAN') {
+    const d = await repo.kunciPenerimaan(tx, id);
+    if (!d || d.jenis !== 'PEMBELIAN') {
+      throw new AppError('TIDAK_DITEMUKAN', 'Dokumen hutang tidak ditemukan.', 404);
+    }
+    const sisa = d.totalFaktur - d.totalDibayar - d.totalReturPotong;
+    return {
+      idPemasok: d.idPemasok,
+      nomor: d.nomor,
+      sisa,
+      entitas: 'penerimaan_barang',
+      terapkan: async (nominal) => {
+        const dibayar = d.totalDibayar + nominal;
+        const status = statusHutangDari(d.totalFaktur - dibayar - d.totalReturPotong, true);
+        await repo.aturHutangPenerimaan(
+          tx,
+          id,
+          { totalDibayar: dibayar, statusHutang: status },
+          waktu,
+        );
+        return status;
+      },
+    };
+  }
+  const d = await repo.kunciPenyelesaian(tx, id);
+  if (!d) throw new AppError('TIDAK_DITEMUKAN', 'Dokumen hutang tidak ditemukan.', 404);
+  return {
+    idPemasok: d.idPemasok,
+    nomor: d.nomor,
+    sisa: d.total - d.totalDibayar,
+    entitas: 'penyelesaian_konsinyasi',
+    terapkan: async (nominal) => {
+      const dibayar = d.totalDibayar + nominal;
+      const status = statusHutangDari(d.total - dibayar, true);
+      await repo.aturHutangPenyelesaian(
+        tx,
+        id,
+        { totalDibayar: dibayar, statusHutang: status },
+        waktu,
+      );
+      return status;
+    },
+  };
+}
+
+/**
+ * HT2: bayar hutang satu dokumen. Nominal ≤ sisa; TUNAI wajib shift BUKA pembayar dan tercatat sebagai kas
+ * BAYAR_PEMASOK di laci itu; status LUNAS bila sisa 0, selain itu SEBAGIAN. Log HUTANG_BAYAR.
+ */
+export async function bayarHutang(
+  input: DataBayarHutang,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<HasilBayarHutang> {
+  return dalamTransaksi(async (tx) => {
+    const d = await kunciDokumen(tx, input.jenis, input.id);
+    if (d.sisa <= 0) {
+      throw new AppError('STATUS_TIDAK_VALID', `Hutang ${d.nomor} sudah lunas.`, 409);
+    }
+    if (input.nominal > d.sisa) {
+      const pesan = `Nominal melebihi sisa hutang ${formatRupiah(d.sisa)}.`;
+      throw new AppError('VALIDASI', pesan, 400, { kolom: { nominal: [pesan] } });
+    }
+    const shift = input.metode === 'TUNAI' ? await shiftBuka(tx, pelaku.id, true) : null;
+    if (input.metode === 'TUNAI' && !shift) {
+      throw new AppError(
+        'KONFLIK',
+        'Bayar tunai dari laci butuh shift kasir terbuka. Buka shift dulu, atau pilih transfer.',
+        409,
+        { kolom: { metode: ['Butuh shift terbuka.'] } },
+      );
+    }
+    const tanggal = tanggalOperasional();
+    const nomor = await terbitkanNomor(tx, 'PBP', tanggal);
+    const idBayar = await tambahPembayaran(tx, {
+      nomor,
+      tanggalOperasional: tanggal,
+      idPemasok: d.idPemasok,
+      idPenerimaan: input.jenis === 'PENERIMAAN' ? input.id : null,
+      idPenyelesaianKonsinyasi: input.jenis === 'KONSINYASI' ? input.id : null,
+      idPengguna: pelaku.id,
+      idShift: shift?.id ?? null,
+      nominal: input.nominal,
+      metode: input.metode,
+      rekening: input.rekening ?? null,
+      referensi: input.referensi ?? null,
+      catatan: input.catatan ?? null,
+    });
+    if (input.metode === 'TUNAI') {
+      await catatKas(tx, {
+        jenis: 'BAYAR_PEMASOK',
+        nominal: input.nominal,
+        pelaku,
+        keterangan: `${nomor}: bayar hutang ${d.nomor}`,
+        idPembayaranPemasok: idBayar,
+      });
+    }
+    const status = await d.terapkan(input.nominal);
+    await catatLog(tx, {
+      aksi: 'HUTANG_BAYAR',
+      idPengguna: pelaku.id,
+      entitas: d.entitas,
+      idEntitas: input.id,
+      nomorDokumen: nomor,
+      ringkasan:
+        `Bayar hutang ${d.nomor}: ${formatRupiah(input.nominal)} ${input.metode.toLowerCase()}` +
+        ` — sisa ${formatRupiah(d.sisa - input.nominal)}`,
+      ip: asal.ip,
+    });
+    return { nomor, sisa: d.sisa - input.nominal, statusHutang: status };
+  });
+}
+
+/** HT4: jumlah hutang terlambat dan yang jatuh tempo dalam 3 hari (notifikasi). */
+export async function hutangJatuhTempo(): Promise<{ terlambat: number; segera: number }> {
+  const hariIni = tanggalOperasional();
+  const batas = tambahHari(hariIni, 3);
+  let terlambat = 0;
+  let segera = 0;
+  for (const d of await repo.semuaHutang(db)) {
+    if (!d.tanggalJatuhTempo) continue;
+    if (d.tanggalJatuhTempo < hariIni) terlambat += 1;
+    else if (d.tanggalJatuhTempo <= batas) segera += 1;
+  }
+  return { terlambat, segera };
+}
+
+export async function penerimaanBerhutang(idPemasok: number) {
+  return repo.penerimaanBerhutang(db, idPemasok);
+}

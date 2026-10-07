@@ -347,6 +347,8 @@ export const skemaCheckout = z
     catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
     /** P2: barang yang harganya diperbarui ke harga tier saat ini (dicatat log). */
     perbaruiHarga: z.array(z.number().int().positive()).default([]),
+    /** PT6: lanjut walau limit kredit terlampaui (butuh `master.pelanggan.atur_kredit`, dicatat log). */
+    setujuLimit: z.boolean().default(false),
   })
   .refine((d) => d.idOrder !== null || d.order !== null, {
     message: 'Pilih order dari antrean atau isi keranjang.',
