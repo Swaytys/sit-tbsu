@@ -97,7 +97,7 @@ export async function laporanKonsinyasi(
   }
 
   return susunDokumen('konsinyasi', pelaku, {
-    subjudul: [`Periode ${teksPeriode(p.dari, p.sampai)}`, SATUAN_RUPIAH],
+    subjudul: [teksPeriode(p.dari, p.sampai), SATUAN_RUPIAH],
     orientasi: 'lanskap',
     bagian: [
       {

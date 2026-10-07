@@ -1,5 +1,6 @@
 import {
   skemaIdParam,
+  skemaLaporanDaftarHarga,
   skemaLaporanHutang,
   skemaLaporanKartuStok,
   skemaLaporanKonsinyasi,
@@ -35,6 +36,7 @@ const SKEMA: Record<JenisLaporan, z.ZodType> = {
   'riwayat-harga-beli': skemaLaporanRiwayatHargaBeli,
   hutang: skemaLaporanHutang,
   konsinyasi: skemaLaporanKonsinyasi,
+  'daftar-harga': skemaLaporanDaftarHarga,
 };
 
 /** Pesan galat pertama parameter laporan, atau null bila sah. */
@@ -65,6 +67,7 @@ export function paramAwal(kode: JenisLaporan): Record<string, string> {
     case 'stok-minimum':
     case 'piutang':
     case 'hutang':
+    case 'daftar-harga':
     case 'detail-invoice':
       return {};
     case 'produk-terlaris':

@@ -1,5 +1,5 @@
 import { formatRupiah, type BarisBarang, type StatusAktif } from '@sit/shared';
-import { Columns3, Download, FileSpreadsheet, ImageOff, Plus } from 'lucide-react';
+import { Columns3, Download, FileSpreadsheet, ImageOff, Plus, Tags } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePengguna } from '@/api/auth';
@@ -244,6 +244,11 @@ export function HalamanBarang() {
               </Button>
             </>
           )}
+          <Button variant="outline" asChild>
+            <Link to="/barang/label">
+              <Tags /> Cetak label
+            </Link>
+          </Button>
           <Button asChild>
             <Link to="/barang/baru">
               <Plus /> Tambah barang

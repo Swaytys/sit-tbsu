@@ -25,7 +25,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 9 | Harga dan promo | Selesai (menunggu tinjauan pemilik) | 2026-10-05 |
 | 10 | Hutang pemasok, retur pemasok, stok rusak | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 11 | Konsinyasi | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
-| 12 | Multi-satuan jual dan label (akhir M2) | Belum | — |
+| 12 | Multi-satuan jual dan label (akhir M2) | Sebagian: label & daftar harga selesai (menunggu tinjauan) | — |
 
 Nilai status: Belum · Aktif · Berjalan (sebagian branch merge) · Selesai · Ditunda.
 
@@ -349,6 +349,10 @@ Catatan penyelesaian (2026-10-07, branch `feat/11-konsinyasi`, K-089):
 Satuan jual per barang dengan faktor, dropdown satuan di order/kasir, harga per satuan jual (default × faktor,
 bisa override), cetak label barcode, ekspor katalog harga.
 
+Catatan bagian 1 (2026-10-07, branch `feat/12-label`, K-090): cetak label barcode Code 128 (Data Barang › Cetak
+label, dua ukuran kertas label A4) dan laporan Daftar Harga (katalog per tier, cetak/Excel). Multi-satuan jual
+belum dikerjakan.
+
 ---
 
 ## Cara memperbarui dokumen ini
@@ -368,5 +372,6 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-09-30 — Fase 2 diaktifkan; branch `feat/02-akses` (login, sesi, izin, penomoran, log, menu) di-merge (K-054).
 - 2026-10-07 — Fase 10 selesai di branch `feat/10-hutang` (K-088), menunggu tinjauan pemilik.
 - 2026-10-07 — Fase 11 selesai di branch `feat/11-konsinyasi` (K-089), menunggu tinjauan pemilik.
+- 2026-10-07 — Fase 12 bagian 1 (label barcode, Daftar Harga) di branch `feat/12-label` (K-090).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).

@@ -77,7 +77,7 @@ Jangan pakai mode auto-accept.
 | 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086; menu Fase 10, K-088) | 2026-10-07 |
 | 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH; §14 tukar retur netral, K-079; L6 → H5/H7, K-086; A5 MUSNAH, K-088; V1 setoran, K-089) | 2026-10-07 |
 | 06-harga-piutang-hutang.md | Final v1 (H4–H8, H12, D1–D2, PR3–PR7, HT7 dirinci, K-086–K-087; PT5–PT6, HT2–HT3, RP5, SR4, K-088; KS5–KS6, K-089) | 2026-10-07 |
-| 07-roadmap.md | Final v1 (Fase 8 siap uji coba toko; Fase 9–11 selesai, menunggu tinjauan) | 2026-10-07 |
+| 07-roadmap.md | Final v1 (Fase 8 siap uji coba toko; Fase 9–11 selesai, Fase 12 sebagian; menunggu tinjauan) | 2026-10-07 |
 | 09-keamanan.md | Hidup (checklist OWASP dasar, K-083) | 2026-10-04 |
 | 08-backlog.md | Hidup (v2.0.0, v3.0.0) | 2026-10-04 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |

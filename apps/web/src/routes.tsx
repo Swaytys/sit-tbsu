@@ -166,6 +166,9 @@ export const router = createBrowserRouter([
       ),
       ruteLazy('order/baru', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
       ruteLazy('order/:id/ubah', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
+      ruteLazy('barang/label', 'Data Barang', 'master.barang.kelola', () =>
+        import('@/features/barang/halaman-label').then((m) => m.HalamanLabel),
+      ),
       ruteLazy('barang/baru', 'Data Barang', 'master.barang.kelola', muatFormBarang),
       ruteLazy('barang/:id', 'Data Barang', 'master.barang.kelola', muatFormBarang),
       {
