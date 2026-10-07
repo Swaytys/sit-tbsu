@@ -23,7 +23,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 7 | Laporan dan dashboard | Selesai | 2026-10-04 |
 | 8 | Pengerasan dan deploy (akhir M1) | Siap uji coba toko | — |
 | 9 | Harga dan promo | Selesai (menunggu tinjauan pemilik) | 2026-10-05 |
-| 10 | Hutang pemasok, retur pemasok, stok rusak | Belum | — |
+| 10 | Hutang pemasok, retur pemasok, stok rusak | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 11 | Konsinyasi | Belum | — |
 | 12 | Multi-satuan jual dan label (akhir M2) | Belum | — |
 
@@ -322,6 +322,17 @@ Halaman hutang (daftar, jatuh tempo, umur), pembayaran ke pemasok, retur ke pema
 mengurangi hutang bila belum dibayar), bucket stok rusak (mutasi kondisi, tampilan terpisah, tidak masuk nilai
 persediaan), limit kredit pelanggan ditegakkan, umur piutang, laporan hutang.
 
+Catatan penyelesaian (2026-10-07, branch `feat/10-hutang`, K-088):
+- Hutang Pemasok (`/hutang`): ringkasan, umur hutang, saringan pemasok, riwayat dan dialog bayar (TUNAI dari laci
+  shift / TRANSFER dengan rekening), notifikasi hutang terlambat dan H-3.
+- Retur ke Pemasok (`/retur-pemasok`): RTP empat penyelesaian (potong hutang, ganti barang dengan RCV pengganti
+  dibayar kompensasi, uang kembali tunai/transfer, pengembalian titipan), peringatan RP1, nota retur A4.
+- Stok rusak: tab di Stok Persediaan, pemusnahan (penyesuaian MUSNAH), nilai barang rusak sebagai informasi di
+  laporan Nilai Persediaan.
+- Limit kredit di checkout (dialog persetujuan Admin/Owner di layar kasir), umur piutang di laporan Piutang,
+  Laporan Hutang Usaha.
+- Tes: hutang.test.ts (hutang, laporan, retur RP1–RP7, MUSNAH, limit kredit) dan e2e `hutang.spec.ts`.
+
 ### Fase 11 — Konsinyasi
 Penyelesaian konsinyasi per pemasok per periode (qty terjual × harga titip), pembayaran, retur barang tidak laku,
 laporan konsinyasi. Kepemilikan barang dan penerimaan konsinyasi sudah ada sejak Fase 3–4.
@@ -347,5 +358,6 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-09-30 — `feat/03-import` (import Excel barang, ekspor harga jual) di-merge (K-061). Fase 3 selesai.
 - 2026-09-30 — Fase 2 selesai: `feat/02-pengguna` dan `feat/02-pengaturan` di-merge (K-055).
 - 2026-09-30 — Fase 2 diaktifkan; branch `feat/02-akses` (login, sesi, izin, penomoran, log, menu) di-merge (K-054).
+- 2026-10-07 — Fase 10 selesai di branch `feat/10-hutang` (K-088), menunggu tinjauan pemilik.
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).

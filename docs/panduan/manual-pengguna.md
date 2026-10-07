@@ -86,10 +86,23 @@ Semua tugas kasir, ditambah:
 - **Stok** (*Persediaan › Stok Persediaan*): posisi stok, mutasi, kartu stok per barang, stok tertahan, dan
   **penyesuaian** (saldo awal, koreksi, barang rusak, **stok opname**). Barang yang tidak dihitung saat opname
   dikecualikan dengan alasan, bukan dihapus.
+- **Stok rusak** (tab *Stok rusak* di *Stok Persediaan*): barang rusak tidak bisa dijual. Pindahkan dari stok
+  baik lewat *Penyesuaian › Stok rusak*. Lalu pilih **Retur ke pemasok** (diklaim) atau **Musnahkan** (dibuang;
+  alasan wajib).
+- **Retur ke pemasok** (*Persediaan › Retur ke Pemasok*): pilih pemasok, barang (dari stok baik atau rusak), alasan,
+  dan penyelesaian: **Potong hutang** (pilih penerimaan tempo yang dipotong), **Ganti barang** (barang pengganti
+  langsung tercatat masuk), **Uang kembali** (tunai ke laci shift Anda atau transfer), **Pengembalian titipan**
+  (barang konsinyasi). Retur tidak bisa diubah setelah disimpan. **Cetak nota retur** untuk ditandatangani pemasok.
+- **Hutang pemasok** (*Persediaan › Hutang Pemasok*): pembelian tempo yang belum lunas, umurnya, dan yang lewat
+  jatuh tempo (juga muncul di lonceng). **Bayar**: transfer (isi rekening tujuan) atau tunai dari laci shift Anda;
+  boleh sebagian. Ikon jam menampilkan riwayat pembayaran.
+- **Limit kredit**: bila penjualan tidak lunas membuat piutang pelanggan melewati limitnya, kasir ditolak. Admin/
+  Owner melihat dialog **Setujui & lanjutkan**; persetujuan tercatat di log.
 - **Persetujuan**: tab *Persetujuan* di *Retur Penjualan* dan *Void Transaksi* (juga dari lonceng). Periksa
   alasan, pilih cara pengembalian uang, **Setujui** atau **Tolak** dengan alasan.
-- **Laporan lengkap**: stok rekap, kartu stok, stok minimum, nilai persediaan, riwayat harga beli (bandingkan
-  harga antarpemasok), promo, gross profit (laba kotor).
+- **Laporan lengkap**: stok rekap, kartu stok, stok minimum, nilai persediaan (termasuk informasi barang rusak),
+  riwayat harga beli (bandingkan harga antarpemasok), promo, gross profit (laba kotor), hutang usaha, umur
+  piutang.
 - **Pengaturan**: profil toko & logo, penomoran, aturan operasional, batas diskon, keamanan.
 
 ## Owner (pemilik)
