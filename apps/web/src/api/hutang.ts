@@ -70,7 +70,7 @@ export function useBayarHutang() {
     mutationFn: async (json: DataBayarHutang) => ambilData(await api.hutang.bayar.$post({ json })),
     onSuccess: () =>
       Promise.all(
-        ['hutang', 'penerimaan', 'shift', 'notifikasi'].map((k) =>
+        ['hutang', 'penerimaan', 'shift', 'notifikasi', 'konsinyasi'].map((k) =>
           qc.invalidateQueries({ queryKey: [k] }),
         ),
       ),

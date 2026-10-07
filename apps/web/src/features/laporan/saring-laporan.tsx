@@ -378,6 +378,7 @@ export function SaringLaporan({
           </label>
         </>
       )}
+      {kode === 'konsinyasi' && <Pemasok p={p} ubah={ubah} />}
       {kode === 'hutang' && (
         <>
           <Pemasok p={p} ubah={ubah} />

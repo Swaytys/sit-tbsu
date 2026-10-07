@@ -3,6 +3,7 @@ import {
   LABEL_PENYELESAIAN_RETUR_PEMASOK,
   type BarisSuratJalan,
   type DetailPenjualan,
+  type DetailPenyelesaianKonsinyasi,
   type DetailReturPemasok,
   type TampilanToko,
 } from '@sit/shared';
@@ -216,6 +217,81 @@ export function NotaReturPemasokA4({ r, toko }: { r: DetailReturPemasok; toko: T
               <td className="py-1.5">{b.keterangan ?? ''}</td>
             </tr>
           ))}
+        </tbody>
+      </table>
+      <div className="mt-12 grid grid-cols-2 gap-16 text-center">
+        {['Diterima pemasok', 'Hormat kami'].map((t) => (
+          <div key={t}>
+            {t}
+            <div className="mt-16 border-t border-black" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Nota setoran konsinyasi A4 (docs/06 KS5): rincian yang dibayarkan ke pemasok penitip. */
+export function NotaSetoranKonsinyasiA4({
+  k,
+  toko,
+}: {
+  k: DetailPenyelesaianKonsinyasi;
+  toko: TampilanToko;
+}) {
+  return (
+    <div className="bg-white p-2 text-sm text-black" data-testid="nota-setoran-konsinyasi">
+      <Kop toko={toko} judul="SETORAN KONSINYASI" nomor={k.nomor} />
+      <div className="mb-4 grid grid-cols-2 gap-4">
+        <div>
+          <Pasangan kiri="Kepada" kanan={<b>{k.namaPemasok}</b>} />
+          <Pasangan
+            kiri="Periode jual"
+            kanan={`${formatTanggal(k.periodeMulai)} – ${formatTanggal(k.periodeSelesai)}`}
+          />
+          {k.catatan && <Pasangan kiri="Catatan" kanan={k.catatan} />}
+        </div>
+        <div>
+          <Pasangan kiri="Tanggal" kanan={formatWaktu(k.tanggal)} />
+          <Pasangan kiri="Total setoran" kanan={formatRupiah(k.total)} />
+          <Pasangan kiri="Sudah dibayar" kanan={formatRupiah(k.totalDibayar)} />
+          <Pasangan kiri="Sisa" kanan={formatRupiah(k.sisaHutang)} />
+        </div>
+      </div>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-y border-black">
+            <th className="py-1 text-left">No</th>
+            <th className="py-1 text-left">Barang</th>
+            <th className="py-1 text-right">Terjual</th>
+            <th className="py-1 text-right">Retur</th>
+            <th className="py-1 text-right">Disetor</th>
+            <th className="py-1 text-right">Harga titip</th>
+            <th className="py-1 text-right">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {k.baris.map((b, i) => (
+            <tr key={`${b.idBarang}-${b.hargaTitip}`} className="border-b border-slate-300">
+              <td className="py-1.5">{i + 1}</td>
+              <td className="py-1.5">
+                {b.namaBarang} <span className="font-mono text-xs">({b.kodeBarang})</span>
+              </td>
+              <td className="py-1.5 text-right">{formatDesimal(b.qtyTerjual)}</td>
+              <td className="py-1.5 text-right">{formatDesimal(b.qtyRetur)}</td>
+              <td className="py-1.5 text-right">
+                {formatDesimal(b.qtyNeto)} {b.kodeSatuan}
+              </td>
+              <td className="py-1.5 text-right">{formatRupiah(b.hargaTitip)}</td>
+              <td className="py-1.5 text-right">{formatRupiah(b.subtotal)}</td>
+            </tr>
+          ))}
+          <tr className="border-b border-black font-bold">
+            <td colSpan={6} className="py-1.5 text-right">
+              Total setoran
+            </td>
+            <td className="py-1.5 text-right">{formatRupiah(k.total)}</td>
+          </tr>
         </tbody>
       </table>
       <div className="mt-12 grid grid-cols-2 gap-16 text-center">

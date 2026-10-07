@@ -40,6 +40,8 @@ const HALAMAN: Record<string, MuatHalaman> = {
   '/laporan': () => import('@/features/laporan/halaman-laporan').then((m) => m.HalamanLaporan),
   '/promo': () => import('@/features/promo/halaman-promo').then((m) => m.HalamanPromo),
   '/hutang': () => import('@/features/hutang/halaman-hutang').then((m) => m.HalamanHutang),
+  '/konsinyasi': () =>
+    import('@/features/konsinyasi/halaman-konsinyasi').then((m) => m.HalamanKonsinyasi),
   '/retur-pemasok': () =>
     import('@/features/retur-pemasok/halaman-retur-pemasok').then((m) => m.HalamanReturPemasok),
   '/piutang': () => import('@/features/piutang/halaman-piutang').then((m) => m.HalamanPiutang),
@@ -128,6 +130,16 @@ export const router = createBrowserRouter([
       ruteLazy('penerimaan/:id', 'Penerimaan Barang', 'persediaan.penerimaan.kelola', () =>
         import('@/features/penerimaan/halaman-detail-penerimaan').then(
           (m) => m.HalamanDetailPenerimaan,
+        ),
+      ),
+      ruteLazy('konsinyasi/baru', 'Konsinyasi', 'konsinyasi.kelola', () =>
+        import('@/features/konsinyasi/halaman-form-konsinyasi').then(
+          (m) => m.HalamanFormKonsinyasi,
+        ),
+      ),
+      ruteLazy('konsinyasi/:id', 'Konsinyasi', 'konsinyasi.kelola', () =>
+        import('@/features/konsinyasi/halaman-detail-konsinyasi').then(
+          (m) => m.HalamanDetailKonsinyasi,
         ),
       ),
       ruteLazy('retur-pemasok/baru', 'Retur ke Pemasok', 'persediaan.retur_pemasok.kelola', () =>

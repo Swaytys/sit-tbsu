@@ -132,7 +132,12 @@ export function HalamanHutang() {
               {h.nomor}
             </Link>
           ) : (
-            <span className="font-mono text-xs font-medium">{h.nomor}</span>
+            <Link
+              to={`/konsinyasi/${h.id}`}
+              className="font-mono text-xs font-medium text-blue-700 hover:underline"
+            >
+              {h.nomor}
+            </Link>
           )}
           <div className="max-w-64 truncate font-medium" title={h.namaPemasok}>
             {h.namaPemasok}
@@ -330,7 +335,13 @@ export function HalamanHutang() {
 const LABEL_METODE = { TUNAI: 'Tunai', TRANSFER: 'Transfer', KOMPENSASI: 'Kompensasi retur' };
 
 /** HT2: bayar satu dokumen hutang, sebagian atau lunas. */
-function DialogBayarHutang({ h, onTutup }: { h: BarisHutang; onTutup: () => void }) {
+/** Data dokumen yang dibutuhkan dialog bayar (juga dipakai halaman detail setoran konsinyasi). */
+export type DokumenBayar = Pick<
+  BarisHutang,
+  'jenis' | 'id' | 'nomor' | 'namaPemasok' | 'sisa' | 'tanggalJatuhTempo'
+>;
+
+export function DialogBayarHutang({ h, onTutup }: { h: DokumenBayar; onTutup: () => void }) {
   const bayar = useBayarHutang();
   const form = useForm<InputBayarHutang, unknown, DataBayarHutang>({
     resolver: zodResolver(skemaBayarHutang),

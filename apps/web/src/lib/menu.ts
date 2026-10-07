@@ -6,6 +6,7 @@ import {
   Download,
   FileText,
   HandCoins,
+  Handshake,
   LayoutDashboard,
   Package,
   PackageX,
@@ -152,6 +153,7 @@ export const MENU: EntriMenu[] = [
         izin: 'persediaan.retur_pemasok.kelola',
       },
       { path: '/hutang', label: 'Hutang Pemasok', ikon: HandCoins, izin: 'hutang.lihat' },
+      { path: '/konsinyasi', label: 'Konsinyasi', ikon: Handshake, izin: 'konsinyasi.kelola' },
     ],
   },
   {
