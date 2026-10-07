@@ -30,6 +30,8 @@ export type BarisPos = {
   /** Harga yang dijanjikan saat order dibuat (P2): berlaku selama tier baris tidak berubah. */
   snapshot: { idTingkatHarga: number | null; hargaSatuan: number } | null;
   diskonBaris: number;
+  /** PR5: promo baris dilepas kasir. */
+  tanpaPromo: boolean;
 };
 
 export function qtySah(q: string): boolean {
@@ -69,6 +71,7 @@ export function dariBarang(b: BarisBarang, qty: string): BarisPos {
     hargaTier: b.harga.map((h) => ({ idTingkatHarga: h.idTingkatHarga, hargaJual: h.hargaJual })),
     snapshot: null,
     diskonBaris: 0,
+    tanpaPromo: false,
   };
 }
 
@@ -88,6 +91,7 @@ export function dariOrder(d: DetailOrder): BarisPos[] {
       ? null
       : { idTingkatHarga: r.idTingkatHarga, hargaSatuan: r.hargaSatuan },
     diskonBaris: r.diskonBaris,
+    tanpaPromo: r.promoNonaktif,
   }));
 }
 
@@ -100,6 +104,7 @@ export function keBarisOrder(b: BarisPos): InputBarisOrder {
     hargaManual: b.hargaManual,
     hargaSatuan: b.hargaManual ? b.hargaSatuan : null,
     diskonBaris: b.diskonBaris,
+    tanpaPromo: b.tanpaPromo,
   };
 }
 

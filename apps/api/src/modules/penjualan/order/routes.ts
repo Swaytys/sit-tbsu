@@ -5,6 +5,7 @@ import {
   skemaCariOrder,
   skemaIdParam,
   skemaOrder,
+  skemaPratinjauOrder,
 } from '@sit/shared';
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
@@ -21,6 +22,7 @@ import {
   kirimOrder,
   lepasOrder,
   papanAntrean,
+  pratinjauOrder,
   prosesOrder,
   ubahOrder,
 } from './service';
@@ -75,6 +77,10 @@ export const orderRoutes = new Hono<EnvApp>()
   )
   .get('/:id', buat, param, async (c) =>
     c.json({ data: await detailOrder(c.req.valid('param').id, penggunaWajib(c)) }, 200),
+  )
+  /** PR5: pratinjau harga/promo/total tanpa menyimpan (layar order & kasir, setiap isi berubah). */
+  .post('/pratinjau', buat, zValidator('json', skemaPratinjauOrder, kaitValidasi), async (c) =>
+    c.json({ data: await pratinjauOrder(c.req.valid('json'), penggunaWajib(c)) }, 200),
   )
   .post('/', buat, opsiKirim, zValidator('json', skemaOrder, kaitValidasi), async (c) => {
     const data = await buatOrder(

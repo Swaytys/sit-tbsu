@@ -7,6 +7,7 @@ import {
 import { Search } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useCariInvoiceLaporan } from '@/api/laporan';
+import { useDaftarPemasok } from '@/api/mitra';
 import { useDaftarKategori } from '@/api/referensi';
 import { PilihBarang } from '@/components/pilih-barang';
 import { PilihPelanggan } from '@/components/pilih-pelanggan';
@@ -145,6 +146,68 @@ function Pilihan({
   );
 }
 
+function Pemasok({ p, ubah }: { p: Record<string, string>; ubah: Ubah }) {
+  const pemasok =
+    useDaftarPemasok({ cari: '', status: 'SEMUA', halaman: 1, perHalaman: 100 }).data?.data ?? [];
+  return (
+    <Bidang label="Pemasok" htmlFor="laporan-pemasok">
+      <select
+        id="laporan-pemasok"
+        className={KELAS_PILIH}
+        value={p.idPemasok ?? ''}
+        onChange={(e) => ubah({ idPemasok: e.target.value || null })}
+      >
+        <option value="">Semua pemasok</option>
+        {pemasok.map((x) => (
+          <option key={x.id} value={x.id}>
+            {x.namaPemasok}
+          </option>
+        ))}
+      </select>
+    </Bidang>
+  );
+}
+
+/** Pilih satu barang (atau semua) untuk saringan laporan; label disimpan di URL agar tetap terbaca. */
+function SaringBarang({
+  p,
+  ubah,
+  label,
+  wajib,
+}: {
+  p: Record<string, string>;
+  ubah: Ubah;
+  label: string;
+  wajib?: boolean;
+}) {
+  return (
+    <div className="w-80">
+      <Bidang label="Barang">
+        {p.idBarang ? (
+          <div className="flex h-9 items-center justify-between rounded-md border border-slate-300 bg-white px-2 text-sm">
+            <span className="truncate font-medium">{p._barang ?? `Barang #${p.idBarang}`}</span>
+            <button
+              type="button"
+              className="text-xs text-blue-700 hover:underline"
+              onClick={() => ubah({ idBarang: null, _barang: null })}
+            >
+              {wajib ? 'Ganti' : 'Semua barang'}
+            </button>
+          </div>
+        ) : (
+          <PilihBarang
+            label={label}
+            placeholder={wajib ? undefined : 'Semua barang (ketik untuk memilih satu)'}
+            onPilih={(b) =>
+              ubah({ idBarang: String(b.id), _barang: `${b.kode} · ${b.namaBarang}` })
+            }
+          />
+        )}
+      </Bidang>
+    </div>
+  );
+}
+
 /** Daftar transaksi untuk Laporan Detail Invoice: cari nomor/pembeli, pilih satu. */
 function CariInvoice({ p, ubah }: { p: Record<string, string>; ubah: Ubah }) {
   const [cari, setCari] = useState('');
@@ -216,7 +279,14 @@ export function SaringLaporan({
       {(kode === 'stok-rekap' ||
         kode === 'stok-minimum' ||
         kode === 'nilai-persediaan' ||
-        kode === 'produk-terlaris') && <Kategori p={p} ubah={ubah} />}
+        kode === 'produk-terlaris' ||
+        kode === 'riwayat-harga-beli') && <Kategori p={p} ubah={ubah} />}
+      {kode === 'riwayat-harga-beli' && (
+        <>
+          <Pemasok p={p} ubah={ubah} />
+          <SaringBarang p={p} ubah={ubah} label="Barang riwayat harga beli" />
+        </>
+      )}
       {kode === 'stok-rekap' && (
         <>
           <Pilihan
@@ -242,31 +312,7 @@ export function SaringLaporan({
           />
         </>
       )}
-      {kode === 'kartu-stok' && (
-        <div className="w-80">
-          <Bidang label="Barang">
-            {p.idBarang ? (
-              <div className="flex h-9 items-center justify-between rounded-md border border-slate-300 bg-white px-2 text-sm">
-                <span className="truncate font-medium">{p._barang ?? `Barang #${p.idBarang}`}</span>
-                <button
-                  type="button"
-                  className="text-xs text-blue-700 hover:underline"
-                  onClick={() => ubah({ idBarang: null, _barang: null })}
-                >
-                  Ganti
-                </button>
-              </div>
-            ) : (
-              <PilihBarang
-                label="Barang kartu stok"
-                onPilih={(b) =>
-                  ubah({ idBarang: String(b.id), _barang: `${b.kode} · ${b.namaBarang}` })
-                }
-              />
-            )}
-          </Bidang>
-        </div>
-      )}
+      {kode === 'kartu-stok' && <SaringBarang p={p} ubah={ubah} label="Barang kartu stok" wajib />}
       {kode === 'penjualan' && (
         <Pilihan
           label="Jenis penjualan"

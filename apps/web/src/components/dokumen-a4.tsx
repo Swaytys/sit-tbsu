@@ -72,13 +72,22 @@ export function InvoiceA4({ p, toko }: { p: DetailPenjualan; toko: TampilanToko 
           {p.baris.map((b, i) => (
             <tr key={b.id} className="border-b border-slate-300">
               <td className="py-1">{i + 1}</td>
-              <td className="py-1">{b.namaBarang}</td>
+              <td className="py-1">
+                {b.namaBarang}
+                {b.diskonPromo > 0 && (
+                  <div className="text-[10px] text-slate-600">
+                    Promo {b.namaPromo}: - {formatRupiah(b.diskonPromo)}
+                  </div>
+                )}
+              </td>
               <td className="py-1 text-right">
                 {formatDesimal(b.qty)} {b.kodeSatuan}
               </td>
               <td className="py-1 text-right">{formatRupiah(b.hargaSatuan)}</td>
               <td className="py-1 text-right">
-                {b.diskonBaris > 0 ? formatRupiah(b.diskonBaris) : '-'}
+                {b.diskonBaris + b.diskonPromo > 0
+                  ? formatRupiah(b.diskonBaris + b.diskonPromo)
+                  : '-'}
               </td>
               <td className="py-1 text-right">{formatRupiah(b.subtotal)}</td>
             </tr>

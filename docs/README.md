@@ -71,13 +71,13 @@ Jangan pakai mode auto-accept.
 | Dokumen | Status | Terakhir |
 |---|---|---|
 | CLAUDE.md | Final v1 | 2026-09-19 |
-| 01-ikhtisar-sistem.md | Final v1 (§5.1 alur cepat order → kasir, K-073) | 2026-10-02 |
+| 01-ikhtisar-sistem.md | Final v1 (§5.1 alur cepat order → kasir, K-073; laporan Fase 9) | 2026-10-04 |
 | 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073; dokumen laporan, K-078; deploy & cadangan, K-082–K-084) | 2026-10-04 |
-| 03-skema-database-v3 (.md + .sql) | Final v3.4 (.sql = v3.1 migrasi 0000; v3.2–v3.4 lewat migrasi 0001–0004) | 2026-10-04 |
+| 03-skema-database-v3 (.md + .sql) | Final v3.5 (.sql = v3.1 migrasi 0000; v3.2–v3.5 lewat migrasi 0001–0005) | 2026-10-04 |
 | 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086) | 2026-10-04 |
 | 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH; §14 tukar retur netral, K-079; L6 → H5/H7, K-086) | 2026-10-04 |
-| 06-harga-piutang-hutang.md | Final v1 (H4–H7, H12 dirinci, K-086) | 2026-10-04 |
-| 07-roadmap.md | Final v1 (Fase 8 siap uji coba toko) | 2026-10-04 |
+| 06-harga-piutang-hutang.md | Final v1 (H4–H8, H12, D1–D2, PR3–PR7, HT7 dirinci, K-086–K-087) | 2026-10-04 |
+| 07-roadmap.md | Final v1 (Fase 8 siap uji coba toko; Fase 9 selesai, menunggu tinjauan) | 2026-10-05 |
 | 09-keamanan.md | Hidup (checklist OWASP dasar, K-083) | 2026-10-04 |
 | 08-backlog.md | Hidup (v2.0.0, v3.0.0) | 2026-10-04 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
@@ -90,7 +90,7 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-10-03-koreksi.md | Final (K-075–K-077) | 2026-10-03 |
 | keputusan/2026-10-04-laporan.md | Final (K-078–K-081) | 2026-10-04 |
 | keputusan/2026-10-04-deploy-cadangan.md | Final (K-082–K-085) | 2026-10-04 |
-| keputusan/2026-10-04-harga-promo.md | Berjalan (K-086–) | 2026-10-04 |
+| keputusan/2026-10-04-harga-promo.md | Final (K-086–K-087) | 2026-10-05 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |
 | panduan/fase-8-pasang-server.md | Final v1 (server toko Windows, Tailscale, cadangan, pemulihan) | 2026-10-04 |
 | panduan/fase-8-uji-coba.md | Final v1 (persiapan, skenario, daftar temuan) | 2026-10-04 |

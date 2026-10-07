@@ -66,7 +66,7 @@ catatMutasi(tx, {
 | N2 | Prefix dibaca dari `konfigurasi.prefix_<KODE>` saat penerbitan. Mengubah prefix tidak mengubah nomor yang sudah terbit. |
 | N3 | Penerbitan lewat `penomoran.terbitkan(tx, kode, tanggalOperasional)` di transaksi yang sama dengan penyimpanan dokumen: `INSERT INTO penghitung_nomor … ON CONFLICT (prefix, tanggal_kode) DO UPDATE SET nilai_terakhir = penghitung_nomor.nilai_terakhir + 1 RETURNING nilai_terakhir`. Tes: 50 penerbitan paralel → 50 nomor unik berurutan tanpa celah. |
 | N4 | Nomor boleh berlubang bila transaksi dibatalkan setelah penerbitan (rollback). Diterima; tidak ada mekanisme "pakai ulang". |
-| N5 | Kode master (`BRG`, `PLG`, `PMS`, `USR`) memakai penghitung yang sama dengan `tanggal_kode = '000000'` dan format `PREFIX-NNNNN` (5 digit, tanpa reset). Pengguna boleh mengganti kode barang dengan kode sendiri selama unik. |
+| N5 | Kode master (`BRG`, `PLG`, `PMS`, `USR`, `PRM`) memakai penghitung yang sama dengan `tanggal_kode = '000000'` dan format `PREFIX-NNNNN` (5 digit, tanpa reset). Pengguna boleh mengganti kode barang dengan kode sendiri selama unik. `PRM` = kode promo (K-087). |
 
 ## 5. Status dokumen dan transisi
 
@@ -216,7 +216,7 @@ Semua total laporan dihitung untuk seluruh periode di server (K-033); paginasi h
 
 ## 16. Aksi log aktivitas
 
-Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK, VOID_AJUKAN/SETUJUI/TOLAK, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN, PROMO_BUAT/UBAH.
+Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK, VOID_AJUKAN/SETUJUI/TOLAK, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086), PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN, PENJUALAN_PROMO_LEPAS (K-087). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN.
 
 ## Riwayat
 
@@ -232,3 +232,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
   lain dan format dokumen laporan di K-078–K-079.
 - 2026-10-04 — §16: aksi log CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084).
 - 2026-10-04 — L6 merujuk H5/H7; §16: aksi log HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086).
+- 2026-10-04 — N5 kode promo `PRM`; §16 aksi log promo (K-087).

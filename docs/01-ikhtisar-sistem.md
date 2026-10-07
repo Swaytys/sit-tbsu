@@ -167,7 +167,7 @@ Dokumen transaksi: Struk Penjualan Langsung (thermal 58/80 mm), Invoice Penjuala
 
 Laporan M1 (9 dari Laporan KP + 1): Stok Rekap, Kartu Stok, Stok Minimum, Nilai Persediaan, Penjualan per Periode,
 Produk Terlaris, Detail Invoice, Retur Penjualan, Gross Profit Penjualan, **Piutang**.
-Laporan M2: Hutang Pemasok, Konsinyasi, Riwayat Harga Beli, Promo.
+Laporan M2: Hutang Pemasok, Konsinyasi, Riwayat Harga Beli (Fase 9), Promo (Fase 9).
 
 Rancangan visual tiap laporan ada di `referensi/laporan-kp/` (berkas 1–9).
 

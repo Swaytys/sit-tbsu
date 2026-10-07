@@ -14,7 +14,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | H5 | **Tanda perlu tinjau.** Pemicu = `D` barang berubah (dibandingkan sebelum/sesudah kejadian): penerimaan pembelian (L6; mode `HPP_RATA2` mengikuti HPP), `harga_modal_awal` diubah sebelum ada penerimaan, `harga_titip` atau kepemilikan berubah; juga `markup_default_persen` tier non-default berubah (barang yang punya baris IKUT_TIER pada tier itu) dan `dasar_markup`/`pembulatan_harga` di Pengaturan berubah (barang yang hasil hitung markupnya berubah). Barang tidak otomatis → `perlu_tinjau_harga = true`, harga tidak berubah; barang otomatis → H7. Tanda dilepas saat Tinjau Harga diterapkan atau diabaikan, atau saat harga barang itu disimpan manual (semua baris IKUT_TIER/MARKUP barang itu dihitung ulang dengan `D` terkini). Tier yang diaktifkan kembali: baris IKUT_TIER/MARKUP-nya dihitung ulang tanpa tanda, seperti tier baru (K-086). |
 | H6 | **[M2 Fase 9] Tinjau Harga** (tab di Harga Jual; `master.harga.tinjau` dan `master.barang.lihat_hpp`): daftar barang aktif `perlu_tinjau_harga`, per tier: harga sekarang, dasar lama → baru, harga usulan (H4; harga tetap tier default diusulkan `bulatkanHarga(D × (1 + markup tier default))`, harga tetap tier lain tidak diusulkan), margin sekarang dan usulan. Aksi: terapkan per barang, terapkan semua terpilih (harga tetap tier default ikut diganti hanya bila dipilih), abaikan (lepas tanda). Menerapkan memakai `D` yang dihitung ulang (ditolak bila berbeda dari yang ditampilkan), mengubah `harga_jual`, dan mencatat `HARGA_TINJAU_TERAPKAN` dengan nilai lama/baru; abaikan mencatat `HARGA_TINJAU_ABAIKAN` (K-086). |
 | H7 | **[M2 Fase 9]** `harga_otomatis = true` (bawaan false; diubah pemegang `master.harga.kelola`): saat pemicu H5 terjadi, baris IKUT_TIER/MARKUP yang hasil hitungnya **naik** langsung diterapkan (H4) di transaksi yang sama dengan log `HARGA_UBAH`; yang **turun** (termasuk dasar Rp 0) tidak diterapkan dan barang ditandai perlu tinjau. Pada pemicu perubahan `D`, barang juga ditandai bila harga tetap tier default di bawah usulannya. Selain itu tanda dilepas. Baris TETAP tidak pernah otomatis (K-086). |
-| H8 | Pilihan tier di transaksi (Fase 5): default P3 docs/05; dropdown menampilkan nama tier dan harganya. **[M2 Fase 9]** bila `qty ≥ tingkat_harga.saran_min_qty` (dan tier itu lebih murah dari yang terpilih), UI menyorot tier itu sebagai saran; tidak memaksa. |
+| H8 | Pilihan tier di transaksi (Fase 5): default P3 docs/05; dropdown menampilkan nama tier dan harganya. **[M2 Fase 9]** bila `qty ≥ tingkat_harga.saran_min_qty` dan tier itu lebih murah dari harga baris, API memberi saran (bila lebih dari satu: yang termurah); UI menyorotnya untuk semua peran, tidak memaksa (K-087). |
 | H9 | Harga manual (`penjualan.harga_manual`): kasir/Admin mengetik harga; `harga_manual = true`, `id_tingkat_harga = null`; log mencatat harga tier default sebagai pembanding. Harga manual di bawah `D` (di bawah modal) ditolak untuk Kasir; Admin/Owner diperbolehkan dengan konfirmasi dan log `PENJUALAN_HARGA_MANUAL` bertanda "di bawah modal". |
 | H10 | Mengubah harga master tidak mengubah transaksi yang sudah ada (snapshot, P2). |
 | H11 | **[M2 Fase 12]** Harga per satuan jual: baris `harga_barang` dengan `id_satuan_jual`; default dibuat otomatis = `bulatkanHarga(harga_jual satuan dasar × faktor_ke_dasar)` saat satuan jual dibuat; bisa diubah menjadi TETAP. Perubahan harga satuan dasar tidak menimpa harga satuan jual yang TETAP. |
@@ -25,8 +25,8 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 
 | # | Aturan |
 |---|---|
-| D1 | Diskon baris: dimasukkan sebagai rupiah atau persen; disimpan sebagai rupiah (`diskon_baris`, U4). Diskon transaksi: rupiah atau persen dari `total_bruto − Σ diskon_baris`, disimpan rupiah (`diskon_transaksi`). |
-| D2 | Batas per peran: `konfigurasi.batas_diskon_persen_<PERAN>` (seed: STAF 0, KASIR 0, ADMIN 100, OWNER 100). Diskon baris ditolak bila `diskon_baris ÷ bulatkanRupiah(qty × harga) × 100 > batas`; diskon transaksi ditolak bila `diskon_transaksi ÷ (total_bruto − Σ diskon_baris) × 100 > batas`. Batas 0 = tidak boleh memberi diskon manual. Pesan menyebut batas peran. |
+| D1 | Diskon baris: dimasukkan sebagai rupiah atau persen; disimpan sebagai rupiah (`diskon_baris`, U4); persen dihitung dari subtotal baris setelah promo (`bruto − diskon_promo`). Diskon transaksi: rupiah atau persen dari Σ subtotal baris (setelah promo dan diskon baris), disimpan rupiah (`diskon_transaksi`). |
+| D2 | Batas per peran: `konfigurasi.batas_diskon_persen_<PERAN>` (seed: STAF 0, KASIR 0, ADMIN 100, OWNER 100). Diskon baris ditolak bila `diskon_baris ÷ (bulatkanRupiah(qty × harga) − diskon_promo) × 100 > batas`; diskon transaksi ditolak bila `diskon_transaksi ÷ Σ subtotal × 100 > batas`. Batas 0 = tidak boleh memberi diskon manual. Pesan menyebut batas peran. Batas diuji untuk nilai yang diberikan/diubah pelaku; diskon yang sudah ada di order dan tidak diubah tetap sah (K-087). |
 | D3 | Diskon manual dan diskon promo disimpan terpisah (`diskon_baris` vs `diskon_promo`); keduanya boleh ada pada baris yang sama hanya bila peran punya batas > 0 (D2 dihitung atas subtotal setelah promo). |
 | D4 | Subtotal baris dan `total_neto` tidak boleh negatif. |
 | D5 | Setiap diskon manual > 0 dicatat log `PENJUALAN_DISKON` (nomor, baris, nilai, peran). |
@@ -38,11 +38,11 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 |---|---|
 | PR1 | Promo berlaku bila `status_aktif = AKTIF` dan `tanggal_operasional` transaksi di dalam `[tanggal_mulai, tanggal_selesai]`. |
 | PR2 | Kecocokan baris: `sasaran = SEMUA`; atau KATEGORI dan `barang.id_kategori` sama; atau BARANG dan `id_barang` sama. Syarat: `qty ≥ min_qty` (bila diisi) dan `total_bruto transaksi ≥ min_belanja` (bila diisi). |
-| PR3 | Potongan baris: PERSEN → `bulatkanRupiah(qty × harga_satuan × persen/100)`, dibatasi `maks_potongan` bila diisi; NOMINAL → `potongan_nominal × qty`, dibatasi subtotal. |
-| PR4 | Satu promo per baris: bila lebih dari satu cocok, dipilih potongan terbesar; seri → yang `tanggal_mulai` terbaru. `id_promo` dan `diskon_promo` disimpan di baris. |
-| PR5 | Promo dievaluasi ulang setiap baris berubah dan sekali lagi saat checkout (tanggal checkout yang menentukan). Kasir dapat menonaktifkan promo pada baris tertentu (log). |
-| PR6 | Promo tidak bisa mengurangi harga di bawah `D` untuk Kasir; bila terjadi, promo tidak diterapkan dan UI memberi tahu (Admin/Owner tetap boleh). |
-| PR7 | Struk mencetak nama promo di bawah baris. Laporan promo (M2): promo, jumlah baris, total potongan, omzet baris berpromo. |
+| PR3 | Potongan baris: PERSEN → `bulatkanRupiah(qty × harga_satuan × persen/100)` (dibulatkan sekali), dibatasi `maks_potongan` bila diisi; NOMINAL → `bulatkanRupiah(potongan_nominal × qty)`. Potongan selalu ≤ bruto baris. |
+| PR4 | Satu promo per baris: bila lebih dari satu cocok, dipilih potongan terbesar; seri → yang `tanggal_mulai` terbaru, lalu id terbesar. `id_promo` dan `diskon_promo` disimpan di baris order dan penjualan. Promo tidak berlaku untuk baris harga manual (K-087). |
+| PR5 | Promo dievaluasi ulang setiap baris berubah (pratinjau API) dan sekali lagi saat checkout (tanggal dan pelaku checkout yang menentukan; baris & total order ikut diselaraskan). Kasir (`penjualan.checkout`) dapat melepas/memasang promo pada baris tertentu; dicatat `PENJUALAN_PROMO_LEPAS` (K-087). |
+| PR6 | Promo tidak boleh membuat harga baris di bawah `D` untuk pelaku tanpa izin `penjualan.harga_manual` (Staf/Kasir): promo itu dilewati dan dipakai promo aman berikutnya; UI diberi tanda tanpa angka modal. Pemegang izin itu (Admin/Owner) tetap boleh (K-087, keputusan pemilik). |
+| PR7 | Struk mencetak "Promo <nama>" di bawah baris; invoice, detail penjualan, dan Laporan Detail Invoice menampilkan potongan promo. Laporan Promo: ringkasan per promo (transaksi, baris, bruto, potongan, bersih, rasio) dan rincian per barang. |
 | PR8 | Yang tidak ada: beli X gratis Y, kupon, poin, promo bertingkat, promo per pelanggan. |
 
 ## 4. Piutang pelanggan (Fase 5 dasar, Fase 10 limit dan umur)
@@ -68,7 +68,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | HT4 | Notifikasi hutang jatuh tempo H-3 dan terlambat (`hutang.lihat`). |
 | HT5 | Laporan Hutang: per pemasok, per dokumen, per kelompok umur; total. |
 | HT6 | Retur pemasok POTONG_HUTANG (RP4) menambah `total_retur_potong` dokumen penerimaan sumber dan menghitung ulang `status_hutang`. |
-| HT7 | Riwayat harga beli per barang: dari `penerimaan_barang_detail` PEMBELIAN, urut tanggal, per pemasok (laporan M2). |
+| HT7 | **[M2 Fase 9]** Laporan Riwayat Harga Beli: dari `penerimaan_barang_detail` PEMBELIAN, urut tanggal, per barang dan pemasok; perubahan dibanding pembelian sebelumnya dari pemasok yang sama; perbandingan antarpemasok (terendah, tertinggi, rata-rata tertimbang, terakhir). Izin `laporan.persediaan` + `laporan.laba` (K-087). |
 
 ## 6. Retur ke pemasok [M2 Fase 10]
 
@@ -121,3 +121,4 @@ Konfigurasi: `dasar_markup`, `pembulatan_harga`, `batas_diskon_persen_<PERAN>`, 
 - 2026-09-19 — v1.
 - 2026-10-04 — §1 H4–H7, H12: markup per barang, pemicu dibandingkan dari `D`, harga otomatis naik langsung/turun
   ditinjau, usulan harga Normal di Tinjau Harga, margin (K-086, keputusan pemilik).
+- 2026-10-04 — §2 D1–D2 dasar setelah promo, §3 PR3–PR7 dirinci, H8 saran termurah, HT7 dipindah ke Fase 9 (K-087).

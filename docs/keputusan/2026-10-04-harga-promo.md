@@ -57,3 +57,46 @@ penerapan bila `D` berubah mencegah harga yang tidak pernah dilihat Admin ikut d
 **Ditolak:** Normal boleh IKUT_TIER/MARKUP (harga eceran bisa berubah tanpa disadari); harga otomatis yang juga
 menurunkan harga (harga bisa jatuh ke Rp 0 karena barang bonus); terapkan per tier (baris "ikut tier" yang tidak
 mengikuti tier membingungkan); menghitung usulan atau margin di React (aturan 1, data sensitif).
+
+### K-087 — Promo, diskon lintas peran, saran tier, dan laporan Fase 9
+**Keputusan:**
+1. **(pemilik)** Promo **tidak berlaku untuk baris harga manual** (harga hasil tawar). Promo berlaku untuk semua
+   tier.
+2. **(pemilik) PR6:** bila promo dengan potongan terbesar membuat harga baris di bawah modal `D` untuk pelaku tanpa
+   izin `penjualan.harga_manual` (Staf/Kasir), promo itu dilewati dan dipakai **promo aman berikutnya**; baris diberi
+   tanda "promo lebih besar tidak berlaku" tanpa angka modal. Pemegang `penjualan.harga_manual` (Admin/Owner) tidak
+   dibatasi. Tidak ada penanda promo "cuci gudang" (belum perlu).
+3. **Hitungan per baris** (satu jalur `hitungBarisJual` untuk order, pratinjau, dan checkout): harga → bruto →
+   promo (PR1–PR4, `min_belanja` dibanding total bruto seluruh baris) → diskon manual atas subtotal setelah promo
+   (D3: persen dan batas D2 memakai dasar `bruto − diskon_promo`) → subtotal. Diskon transaksi tetap atas Σ
+   subtotal. PR3 persen dibulatkan sekali `bulatkanRupiah(qty × harga × persen ÷ 100)`; nominal ×
+   qty dibulatkan; potongan selalu ≤ bruto. Seri potongan → `tanggal_mulai` terbaru → **id terbesar**.
+4. **PR5:** promo dievaluasi saat order (tanggal hari itu) dan **dievaluasi ulang saat checkout** dengan tanggal dan
+   pelaku checkout; hasilnya ikut menyelaraskan baris & total order dalam transaksi yang sama. Melepas/memasang
+   promo per baris (`tanpaPromo`) butuh `penjualan.checkout` (Kasir ke atas) dan dicatat `PENJUALAN_PROMO_LEPAS`
+   hanya saat berubah. Saat checkout, potongan promo dibatasi agar tidak melebihi `bruto − diskon manual`.
+5. **Izin diuji untuk nilai yang diubah pelaku.** Harga manual, tier, diskon baris, dan diskon transaksi yang sudah
+   ada di order dan tidak diubah tidak diuji ulang terhadap izin/batas pelaku berikutnya (diskon dari Admin tetap
+   sah saat Kasir menyelesaikan order); nilai baru selalu diuji (D2).
+6. **Pratinjau** `POST /api/order/pratinjau` (`penjualan.order.buat`): harga, promo, diskon, saran tier, dan total
+   dihitung server tanpa menyimpan; layar kasir, input order cepat, dan form order memakainya (ditunda 200 ms).
+   Angka lokal hanya cadangan sementara dengan label "menghitung…".
+7. **Migrasi 0005:** `order_penjualan_detail` + `id_promo` (FK), `diskon_promo`, `promo_nonaktif`, CHECK harga
+   memuat `diskon_promo`; indeks parsial `penjualan_detail(id_promo)`.
+8. **Master promo:** kode `PRM-nnnnn` dari penghitung kode master (N5); tidak dihapus, dinonaktifkan. **Aturan
+   dikunci setelah promo terpakai di penjualan** (tanggal mulai, jenis & nilai potongan, batas, sasaran, syarat);
+   nama, keterangan, tanggal selesai, dan status tetap bisa diubah. Log `PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN`.
+9. **H8 saran tier:** tier aktif lain yang `saran_min_qty`-nya terpenuhi dan harganya lebih murah dari harga baris;
+   bila lebih dari satu, yang **termurah**. Ditampilkan untuk semua peran (Staf sebagai info), tidak memaksa.
+10. **Laporan:** *Promo* (grup Penjualan, `laporan.penjualan`) — ikhtisar, ringkasan per promo (promo yang masanya
+    beririsan ditampilkan walau belum terpakai), rincian per barang; *Riwayat Harga Beli* (grup Persediaan,
+    `laporan.persediaan` + `laporan.laba` karena isinya harga modal) — riwayat per penerimaan pembelian dengan
+    perubahan dibanding pembelian sebelumnya dari pemasok yang sama (termasuk sebelum periode), dan perbandingan
+    antarpemasok. Detail Invoice mendapat kolom Promo; struk mencetak "Promo <nama>" di bawah baris (PR7).
+
+**Alasan:** Satu jalur hitung mencegah layar, struk, dan laporan berbeda angka; evaluasi ulang saat checkout
+memenuhi PR5 tanpa menyimpan promo yang sudah berakhir; mengunci aturan promo terpakai menjaga cetak ulang struk
+dan Laporan Promo tetap sesuai kejadian.
+**Ditolak:** menghitung promo di React (aturan 1, butuh `D` yang sensitif); promo untuk harga manual (harga tawar
+sudah final); membatalkan promo sepenuhnya saat promo terbesar di bawah modal (pembeli kehilangan promo aman);
+menguji ulang semua diskon terhadap kasir (order dari Admin tidak bisa diselesaikan Kasir).

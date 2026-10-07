@@ -6,7 +6,9 @@ import {
   skemaLaporanPenjualan,
   skemaLaporanPiutang,
   skemaLaporanProdukTerlaris,
+  skemaLaporanPromo,
   skemaLaporanRetur,
+  skemaLaporanRiwayatHargaBeli,
   skemaLaporanStokMinimum,
   skemaLaporanStokRekap,
   type JenisLaporan,
@@ -27,6 +29,8 @@ const SKEMA: Record<JenisLaporan, z.ZodType> = {
   'retur-penjualan': skemaLaporanRetur,
   'laba-kotor': skemaLaporanLabaKotor,
   piutang: skemaLaporanPiutang,
+  promo: skemaLaporanPromo,
+  'riwayat-harga-beli': skemaLaporanRiwayatHargaBeli,
 };
 
 /** Pesan galat pertama parameter laporan, atau null bila sah. */
@@ -43,6 +47,8 @@ export const BERPERIODE: ReadonlySet<JenisLaporan> = new Set([
   'produk-terlaris',
   'retur-penjualan',
   'laba-kotor',
+  'promo',
+  'riwayat-harga-beli',
 ]);
 
 /** Parameter awal saat laporan dipilih. */

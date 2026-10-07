@@ -163,7 +163,8 @@ dikecualikan); baris lembar opname tidak dihapus (K-069).
 `waktu_masuk_antrean` diisi; dasar deteksi basi) → DIPROSES (dikunci `id_kasir_proses`) → SELESAI (`id_penjualan`
 terisi) | BATAL (`alasan_batal`). PENGANTARAN wajib pelanggan dan alamat (CHECK). Detail menyimpan tier, harga,
 diskon, dan `qty_dasar` yang ditahan. Detail boleh diubah selama DRAFT/MENUNGGU (service menyesuaikan
-`stok_dipesan`).
+`stok_dipesan`). v3.5: detail juga menyimpan promo baris (`id_promo`, `diskon_promo`) dan `promo_nonaktif` (promo
+dilepas kasir); promo dievaluasi ulang saat checkout (K-087).
 
 **`penjualan`** [APPEND] + **`penjualan_detail`** [APPEND] — satu tabel untuk LANGSUNG (nomor `STR`,
 `status_pengambilan` wajib) dan PENGANTARAN (nomor `INV`, `status_pengiriman` wajib, pelanggan dan alamat wajib) —
@@ -410,3 +411,5 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-09-29 — Fase 1: DDL v3.1 dipasang sebagai migrasi `0000_skema_v3.sql` di PostgreSQL 17.11 (41 tabel); skema
   Drizzle terverifikasi identik (K-052). §8 diperbarui (7 berkas skema, cara verifikasi, letak seed).
 - 2026-10-04 — v3.4: tabel `cadangan` (riwayat cadangan & uji pulih, migrasi 0004; K-084).
+- 2026-10-04 — v3.5: `order_penjualan_detail` + `id_promo` (FK promo), `diskon_promo`, `promo_nonaktif`; CHECK
+  `chk_order_detail_harga` memuat `diskon_promo`; indeks parsial `idx_penjualan_detail_promo` (migrasi 0005; K-087).

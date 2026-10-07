@@ -8,7 +8,9 @@ import {
   skemaLaporanPenjualan,
   skemaLaporanPiutang,
   skemaLaporanProdukTerlaris,
+  skemaLaporanPromo,
   skemaLaporanRetur,
+  skemaLaporanRiwayatHargaBeli,
   skemaLaporanStokMinimum,
   skemaLaporanStokRekap,
   type DokumenLaporan,
@@ -29,7 +31,9 @@ import { laporanNilaiPersediaan } from './nilai-persediaan';
 import { laporanPenjualanPeriode } from './penjualan-periode';
 import { laporanPiutang } from './piutang';
 import { laporanProdukTerlaris } from './produk-terlaris';
+import { laporanPromo } from './promo';
 import { laporanReturPenjualan } from './retur-penjualan';
+import { laporanRiwayatHargaBeli } from './riwayat-harga-beli';
 import { laporanStokMinimum } from './stok-minimum';
 import { laporanStokRekap } from './stok-rekap';
 
@@ -67,6 +71,10 @@ export function susunLaporan(
       return laporanLabaKotor(urai(skemaLaporanLabaKotor, query), pelaku);
     case 'piutang':
       return laporanPiutang(urai(skemaLaporanPiutang, query), pelaku);
+    case 'promo':
+      return laporanPromo(urai(skemaLaporanPromo, query), pelaku);
+    case 'riwayat-harga-beli':
+      return laporanRiwayatHargaBeli(urai(skemaLaporanRiwayatHargaBeli, query), pelaku);
   }
 }
 

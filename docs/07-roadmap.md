@@ -22,7 +22,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 6 | Koreksi dan kontrol | Selesai | 2026-10-03 |
 | 7 | Laporan dan dashboard | Selesai | 2026-10-04 |
 | 8 | Pengerasan dan deploy (akhir M1) | Siap uji coba toko | — |
-| 9 | Harga dan promo | Belum | — |
+| 9 | Harga dan promo | Selesai (menunggu tinjauan pemilik) | 2026-10-05 |
 | 10 | Hutang pemasok, retur pemasok, stok rusak | Belum | — |
 | 11 | Konsinyasi | Belum | — |
 | 12 | Multi-satuan jual dan label (akhir M2) | Belum | — |
@@ -299,6 +299,23 @@ Markup per tier (default tier, override per barang), dasar markup (harga beli te
 tanda "perlu tinjau harga" saat dasar berubah, halaman Tinjau Harga (massal), opsi otomatis per barang,
 saran tier by qty, batas diskon per peran, promo (CRUD, penerapan otomatis di checkout, tercetak di struk),
 riwayat harga beli per pemasok. Tes sesuai docs/06.
+
+Catatan pengerjaan (2026-10-04/05, branch `feat/09-harga`, `feat/09-promo`):
+- Keputusan pemilik: barang baru tidak berharga otomatis; harga Normal tetap harga tetap dan hanya diusulkan di
+  Tinjau Harga; harga otomatis naik langsung, turun ditinjau; promo tidak untuk harga manual; promo di bawah
+  modal untuk Kasir diganti promo aman berikutnya; belum perlu promo cuci gudang (K-086, K-087).
+- Harga: metode markup per barang, simpan manual menghitung ulang semua baris markup, pemicu dibandingkan dari
+  dasar `D`, harga otomatis, tab Tinjau Harga (terapkan/abaikan, usulan Normal opsional), margin untuk
+  Admin/Owner, tier diaktifkan kembali dihitung ulang, pengaturan dasar/pembulatan memicu tinjau (K-086).
+- Promo: menu Promo (kode PRM, aturan terkunci setelah terpakai), evaluasi di order dan ulang saat checkout,
+  pratinjau harga di kasir/order (total dari API), lepas promo per baris (tombol P), struk/invoice mencetak
+  promo, saran tier menurut qty, izin diskon diuji hanya untuk nilai yang diubah (K-087). Migrasi 0005.
+- Laporan baru: Promo (Penjualan) dan Riwayat Harga Beli (Persediaan, butuh `laporan.laba`); Detail Invoice
+  mendapat kolom Promo.
+- Tes: harga.test.ts (17), promo.test.ts (11), laporan-fase9.test.ts (2), tes unit pembulatan; E2E Tinjau
+  Harga (barang.spec) dan promo.spec; 5 alur kritis tetap lulus.
+- Usulan (di luar fase): input diskon baris dalam persen di layar kasir; tombol "terapkan semua hasil saringan"
+  di Tinjau Harga bila barang bertanda sangat banyak.
 
 ### Fase 10 — Hutang pemasok, retur pemasok, stok rusak
 Halaman hutang (daftar, jatuh tempo, umur), pembayaran ke pemasok, retur ke pemasok (dari stok baik atau rusak,

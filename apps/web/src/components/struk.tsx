@@ -44,8 +44,14 @@ export function Struk({ p, toko }: { p: DetailPenjualan; toko: TampilanToko }) {
           <div>{b.namaBarang}</div>
           <Baris
             kiri={`  ${formatDesimal(b.qty)} ${b.kodeSatuan} x ${formatRupiah(b.hargaSatuan).replace('Rp ', '')}`}
-            kanan={formatRupiah(b.subtotal + b.diskonBaris).replace('Rp ', '')}
+            kanan={formatRupiah(b.subtotal + b.diskonBaris + b.diskonPromo).replace('Rp ', '')}
           />
+          {b.diskonPromo > 0 && (
+            <Baris
+              kiri={`  Promo ${b.namaPromo ?? ''}`}
+              kanan={`-${formatRupiah(b.diskonPromo).replace('Rp ', '')}`}
+            />
+          )}
           {b.diskonBaris > 0 && (
             <Baris kiri="  Disc" kanan={`-${formatRupiah(b.diskonBaris).replace('Rp ', '')}`} />
           )}

@@ -10,7 +10,9 @@ import {
   skemaLaporanPenjualan,
   skemaLaporanPiutang,
   skemaLaporanProdukTerlaris,
+  skemaLaporanPromo,
   skemaLaporanRetur,
+  skemaLaporanRiwayatHargaBeli,
   skemaLaporanStokMinimum,
   skemaLaporanStokRekap,
 } from '@sit/shared';
@@ -27,7 +29,9 @@ import { laporanNilaiPersediaan } from './nilai-persediaan';
 import { laporanPenjualanPeriode } from './penjualan-periode';
 import { laporanPiutang } from './piutang';
 import { laporanProdukTerlaris } from './produk-terlaris';
+import { laporanPromo } from './promo';
 import { laporanReturPenjualan } from './retur-penjualan';
+import { laporanRiwayatHargaBeli } from './riwayat-harga-beli';
 import { laporanStokMinimum } from './stok-minimum';
 import { laporanStokRekap } from './stok-rekap';
 
@@ -115,6 +119,17 @@ export const laporanRoutes = new Hono<EnvApp>()
     zValidator('query', skemaLaporanPiutang, kaitValidasi),
     async (c) =>
       c.json({ data: await laporanPiutang(c.req.valid('query'), penggunaWajib(c)) }, 200),
+  )
+  .get('/promo', penjualan, zValidator('query', skemaLaporanPromo, kaitValidasi), async (c) =>
+    c.json({ data: await laporanPromo(c.req.valid('query'), penggunaWajib(c)) }, 200),
+  )
+  .get(
+    '/riwayat-harga-beli',
+    persediaan,
+    requirePermission('laporan.laba'),
+    zValidator('query', skemaLaporanRiwayatHargaBeli, kaitValidasi),
+    async (c) =>
+      c.json({ data: await laporanRiwayatHargaBeli(c.req.valid('query'), penggunaWajib(c)) }, 200),
   )
   .get(
     '/ekspor/:kode',

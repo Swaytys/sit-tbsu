@@ -55,6 +55,10 @@ export type JenisPotongan = (typeof JENIS_POTONGAN)[number];
 export const SASARAN_PROMO = ['SEMUA', 'KATEGORI', 'BARANG'] as const;
 export type SasaranPromo = (typeof SASARAN_PROMO)[number];
 
+/** PR1: status menurut tanggal (dihitung API dari tanggal operasional hari ini, tidak disimpan). */
+export const STATUS_BERLAKU_PROMO = ['TERJADWAL', 'BERJALAN', 'BERAKHIR'] as const;
+export type StatusBerlakuPromo = (typeof STATUS_BERLAKU_PROMO)[number];
+
 // --- Persediaan & pemasok ---
 export const JENIS_PENERIMAAN = ['PEMBELIAN', 'KONSINYASI'] as const;
 export type JenisPenerimaan = (typeof JENIS_PENERIMAAN)[number];
