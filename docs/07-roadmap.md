@@ -24,7 +24,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 8 | Pengerasan dan deploy (akhir M1) | Siap uji coba toko | — |
 | 9 | Harga dan promo | Selesai (menunggu tinjauan pemilik) | 2026-10-05 |
 | 10 | Hutang pemasok, retur pemasok, stok rusak | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
-| 11 | Konsinyasi | Belum | — |
+| 11 | Konsinyasi | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 12 | Multi-satuan jual dan label (akhir M2) | Belum | — |
 
 Nilai status: Belum · Aktif · Berjalan (sebagian branch merge) · Selesai · Ditunda.
@@ -337,6 +337,14 @@ Catatan penyelesaian (2026-10-07, branch `feat/10-hutang`, K-088):
 Penyelesaian konsinyasi per pemasok per periode (qty terjual × harga titip), pembayaran, retur barang tidak laku,
 laporan konsinyasi. Kepemilikan barang dan penerimaan konsinyasi sudah ada sejak Fase 3–4.
 
+Catatan penyelesaian (2026-10-07, branch `feat/11-konsinyasi`, K-089):
+- Halaman Konsinyasi: posisi per pemasok, buat setoran dengan pratinjau, riwayat, detail + bayar + nota setoran A4.
+- Setoran KSG per barang per harga titip, retur baik dikurangkan, koreksi retur atas baris yang sudah disetor
+  pada setoran berikutnya (ditunda bila belum cukup), void baris yang sudah disetor ditolak.
+- Migrasi 0006 (penanda retur, unique detail per harga titip); Laporan Konsinyasi.
+- Retur barang titipan tidak laku memakai Retur ke Pemasok › Pengembalian titipan (Fase 10).
+- Tes: `konsinyasi.test.ts` dan e2e `konsinyasi.spec.ts`.
+
 ### Fase 12 — Multi-satuan jual dan label
 Satuan jual per barang dengan faktor, dropdown satuan di order/kasir, harga per satuan jual (default × faktor,
 bisa override), cetak label barcode, ekspor katalog harga.
@@ -359,5 +367,6 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-09-30 — Fase 2 selesai: `feat/02-pengguna` dan `feat/02-pengaturan` di-merge (K-055).
 - 2026-09-30 — Fase 2 diaktifkan; branch `feat/02-akses` (login, sesi, izin, penomoran, log, menu) di-merge (K-054).
 - 2026-10-07 — Fase 10 selesai di branch `feat/10-hutang` (K-088), menunggu tinjauan pemilik.
+- 2026-10-07 — Fase 11 selesai di branch `feat/11-konsinyasi` (K-089), menunggu tinjauan pemilik.
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).

@@ -206,7 +206,9 @@ dikurangi).
 **`penyelesaian_konsinyasi`** + detail — dokumen `KSG` per pemasok per periode: `qty_terjual`, `qty_retur` (retur
 pelanggan kondisi BAIK atas baris yang sama), `qty_neto`, `harga_titip`, `subtotal`. Header punya `total`,
 `total_dibayar`, `sisa_hutang` (generated), `status_hutang`. Baris `penjualan_detail` yang disertakan diberi
-`id_penyelesaian_konsinyasi` agar tidak disetor dua kali.
+`id_penyelesaian_konsinyasi` agar tidak disetor dua kali. v3.6: satu baris detail per barang **per harga titip**
+(unique `id_penyelesaian, id_barang, harga_titip`), dan `retur_penjualan_detail.id_penyelesaian_konsinyasi` menandai
+retur pelanggan yang sudah diperhitungkan di setoran (kolom penanda, diisi sekali; K-089).
 
 **`pembayaran_pemasok`** [APPEND] — nomor `PBP`; tepat satu sumber: `id_penerimaan` atau
 `id_penyelesaian_konsinyasi` (CHECK). `metode` TUNAI/TRANSFER, atau KOMPENSASI (tanpa uang: barang pengganti dari
@@ -413,3 +415,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-04 — v3.4: tabel `cadangan` (riwayat cadangan & uji pulih, migrasi 0004; K-084).
 - 2026-10-04 — v3.5: `order_penjualan_detail` + `id_promo` (FK promo), `diskon_promo`, `promo_nonaktif`; CHECK
   `chk_order_detail_harga` memuat `diskon_promo`; indeks parsial `idx_penjualan_detail_promo` (migrasi 0005; K-087).
+- 2026-10-07 — v3.6: `retur_penjualan_detail.id_penyelesaian_konsinyasi` (FK, indeks `idx_retur_detail_ksg`); unique `uq_ksg_detail` menjadi (`id_penyelesaian`, `id_barang`, `harga_titip`) (migrasi 0006; K-089). Urutan kolom promo `order_penjualan_detail` di skema Drizzle disamakan dengan migrasi 0005 (verifikasi skema identik).

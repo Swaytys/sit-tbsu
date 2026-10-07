@@ -96,13 +96,17 @@ Semua tugas kasir, ditambah:
 - **Hutang pemasok** (*Persediaan › Hutang Pemasok*): pembelian tempo yang belum lunas, umurnya, dan yang lewat
   jatuh tempo (juga muncul di lonceng). **Bayar**: transfer (isi rekening tujuan) atau tunai dari laci shift Anda;
   boleh sebagian. Ikon jam menampilkan riwayat pembayaran.
+- **Konsinyasi** (*Persediaan › Konsinyasi*): tab *Posisi per pemasok* menunjukkan barang titipan yang terjual
+  tetapi belum disetor. **Buat setoran** → pilih tanggal akhir → periksa pratinjau (retur pelanggan kondisi baik
+  sudah dikurangkan) → **Simpan setoran** → **Cetak nota setoran** untuk pemasok → **Bayar** (transfer atau tunai
+  dari laci). Barang titipan yang tidak laku dikembalikan lewat *Retur ke Pemasok › Pengembalian titipan*.
 - **Limit kredit**: bila penjualan tidak lunas membuat piutang pelanggan melewati limitnya, kasir ditolak. Admin/
   Owner melihat dialog **Setujui & lanjutkan**; persetujuan tercatat di log.
 - **Persetujuan**: tab *Persetujuan* di *Retur Penjualan* dan *Void Transaksi* (juga dari lonceng). Periksa
   alasan, pilih cara pengembalian uang, **Setujui** atau **Tolak** dengan alasan.
 - **Laporan lengkap**: stok rekap, kartu stok, stok minimum, nilai persediaan (termasuk informasi barang rusak),
   riwayat harga beli (bandingkan harga antarpemasok), promo, gross profit (laba kotor), hutang usaha, umur
-  piutang.
+  piutang, konsinyasi.
 - **Pengaturan**: profil toko & logo, penomoran, aturan operasional, batas diskon, keamanan.
 
 ## Owner (pemilik)
