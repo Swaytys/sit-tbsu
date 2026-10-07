@@ -93,6 +93,8 @@ export const AKSI_LOG = [
   'HUTANG_BAYAR',
   'RETUR_PEMASOK_SIMPAN',
   'PENJUALAN_LIMIT_OVERRIDE',
+  // Penyelesaian konsinyasi (Fase 11, K-089).
+  'KONSINYASI_SELESAIKAN',
   // Cadangan data (Fase 8, K-084).
   'CADANGAN_JALANKAN',
   'CADANGAN_UJI_PULIH',

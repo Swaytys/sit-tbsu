@@ -176,7 +176,8 @@ export const penyelesaianKonsinyasiDetail = pgTable(
       columns: [t.idBarang],
       foreignColumns: [barang.id],
     }),
-    unique('uq_ksg_detail').on(t.idPenyelesaian, t.idBarang),
+    // Satu baris per barang per harga titip saat jual (KS9, K-089).
+    unique('uq_ksg_detail').on(t.idPenyelesaian, t.idBarang, t.hargaTitip),
     check(
       'chk_ksg_detail',
       sql`qty_terjual >= 0 and qty_retur >= 0 and qty_neto >= 0 and harga_titip >= 0 and subtotal >= 0`,

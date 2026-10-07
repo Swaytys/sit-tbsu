@@ -123,6 +123,13 @@ async function periksaSyarat(
       409,
     );
   }
+  if (idDetail.some((d) => h.detailDisetor.has(d))) {
+    throw new AppError(
+      'STATUS_TIDAK_VALID',
+      `Barang titipan penjualan ${pj.nomor} sudah disetor ke pemasok; void tidak bisa.${saran}`,
+      409,
+    );
+  }
   if (idVoidSendiri === null && idDetail.some((d) => h.detailMenunggu.has(d))) {
     throw new AppError(
       'KONFLIK',

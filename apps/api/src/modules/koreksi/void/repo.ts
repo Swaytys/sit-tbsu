@@ -7,6 +7,7 @@ import {
   eq,
   ilike,
   inArray,
+  isNotNull,
   isNull,
   ne,
   or,
@@ -178,11 +179,22 @@ export async function halanganVoid(ex: Executor, idPenjualan: number, idShift: n
     .from(voidTransaksiDetail)
     .innerJoin(voidTransaksi, eq(voidTransaksi.id, voidTransaksiDetail.idVoid))
     .where(and(eq(voidTransaksi.idPenjualan, idPenjualan), eq(voidTransaksi.status, 'MENUNGGU')));
+  // KS5 (K-089): baris barang titipan yang sudah disetor ke pemasok tidak bisa di-void.
+  const disetor = await ex
+    .select({ id: penjualanDetail.id })
+    .from(penjualanDetail)
+    .where(
+      and(
+        eq(penjualanDetail.idPenjualan, idPenjualan),
+        isNotNull(penjualanDetail.idPenyelesaianKonsinyasi),
+      ),
+    );
   return {
     statusShift: shift?.status ?? null,
     adaRetur: (retur?.n ?? 0) > 0,
     adaKirim: (sj?.n ?? 0) > 0,
     detailMenunggu: new Set(menunggu.map((m) => m.idPenjualanDetail)),
+    detailDisetor: new Set(disetor.map((d) => d.id)),
   };
 }
 

@@ -14,6 +14,7 @@ export * from './schemas/barang';
 export * from './schemas/cadangan';
 export * from './schemas/hutang';
 export * from './schemas/kas';
+export * from './schemas/konsinyasi';
 export * from './schemas/koreksi';
 export * from './schemas/laporan';
 export * from './schemas/mitra';

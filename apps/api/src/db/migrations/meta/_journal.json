@@ -43,6 +43,13 @@
       "when": 1791131003017,
       "tag": "0005_promo_order",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791367126508,
+      "tag": "0006_konsinyasi",
+      "breakpoints": true
     }
   ]
 }
