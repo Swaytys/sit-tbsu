@@ -444,4 +444,68 @@ describe('limit kredit pelanggan (PT6) dan umur piutang (PT5)', () => {
     const dok = (await json<{ data: DokumenLaporan }>(r)).data;
     expect(dok.bagian.map((b) => b.judul)).toContain('Umur Piutang per Pelanggan');
   });
+
+  it('dua checkout tidak lunas bersamaan tidak sama-sama lolos limit', async () => {
+    const [t] = await db
+      .insert(tingkatHarga)
+      .values({ kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', isDefault: true })
+      .onConflictDoNothing()
+      .returning();
+    const idTier =
+      t?.id ?? (await db.select().from(tingkatHarga).where(eq(tingkatHarga.kode, 'NORMAL')))[0]!.id;
+    await db.insert(hargaBarang).values([
+      {
+        idBarang: m.semen,
+        idTingkatHarga: idTier,
+        metode: 'TETAP',
+        hargaTetap: 12_000,
+        hargaJual: 12_000,
+      },
+      {
+        idBarang: m.pasir,
+        idTingkatHarga: idTier,
+        metode: 'TETAP',
+        hargaTetap: 4000,
+        hargaJual: 4000,
+      },
+    ]);
+    const sa = await kirim<{ id: number }>(admin, '/api/penyesuaian', {
+      jenis: 'SALDO_AWAL',
+      baris: [
+        { idBarang: m.semen, qtyFisik: '20', hppSatuan: 9000 },
+        { idBarang: m.pasir, qtyFisik: '20', hppSatuan: 3000 },
+      ],
+    });
+    await kirim(admin, `/api/penyesuaian/${sa.id}/selesai`);
+    const [p] = await db
+      .insert(pelanggan)
+      .values({
+        kode: 'PLG-90002',
+        namaPelanggan: 'CV. Paralel',
+        noHp: '0812',
+        alamat: 'Jl. B',
+        termHari: 14,
+        limitKredit: 30_000,
+      })
+      .returning();
+    await kirim(kasir, '/api/shift/buka', { modalAwal: 0 });
+    // Barang berbeda (tidak saling menunggu kunci stok): 2 sak semen = 24.000 dan 6 pasir = 24.000;
+    // berdua 48.000 > 30.000 → tepat satu yang lolos.
+    const hasil = await Promise.all(
+      [
+        { idBarang: m.semen, qty: '2' },
+        { idBarang: m.pasir, qty: '6' },
+      ].map((baris) =>
+        minta('/api/penjualan/checkout', {
+          method: 'POST',
+          cookie: kasir.cookie,
+          body: {
+            order: { jenisPenjualan: 'LANGSUNG', idPelanggan: p!.id, baris: [baris] },
+            pembayaran: [],
+          },
+        }),
+      ),
+    );
+    expect(hasil.map((r) => r.status).sort()).toEqual([201, 409]);
+  });
 });
