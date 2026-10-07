@@ -26,6 +26,8 @@ export const JENIS_LAPORAN = [
   'retur-penjualan',
   'laba-kotor',
   'piutang',
+  'promo',
+  'riwayat-harga-beli',
 ] as const;
 export type JenisLaporan = (typeof JENIS_LAPORAN)[number];
 
@@ -132,6 +134,25 @@ export const DAFTAR_LAPORAN = [
     grup: 'KEUANGAN',
     izin: ['laporan.piutang'],
     deskripsi: 'Tagihan pelanggan yang belum lunas, jatuh tempo, dan umurnya, per pelanggan.',
+  },
+  {
+    kode: 'promo',
+    nama: 'Promo',
+    judul: 'Laporan Promo Penjualan',
+    grup: 'PENJUALAN',
+    izin: ['laporan.penjualan'],
+    deskripsi:
+      'Pemakaian promo dalam periode: transaksi, potongan yang diberikan, dan penjualan barang berpromo.',
+  },
+  {
+    kode: 'riwayat-harga-beli',
+    nama: 'Riwayat Harga Beli',
+    judul: 'Laporan Riwayat Harga Beli',
+    grup: 'PERSEDIAAN',
+    // Seluruh isinya harga modal (data sensitif, docs/04 §5; K-087).
+    izin: ['laporan.persediaan', 'laporan.laba'],
+    deskripsi:
+      'Harga beli tiap penerimaan pembelian, perubahannya, dan perbandingan harga antarpemasok.',
   },
 ] as const satisfies readonly InfoLaporan[];
 
@@ -264,6 +285,19 @@ export const skemaLaporanPiutang = z.object({
     .optional(),
 });
 export type ParamLaporanPiutang = z.input<typeof skemaLaporanPiutang>;
+
+export const skemaLaporanPromo = z.object({ ...bentukPeriode }).superRefine(cekPeriode);
+export type ParamLaporanPromo = z.input<typeof skemaLaporanPromo>;
+
+export const skemaLaporanRiwayatHargaBeli = z
+  .object({
+    ...bentukPeriode,
+    idBarang: idOpsional,
+    idPemasok: idOpsional,
+    idKategori: idOpsional,
+  })
+  .superRefine(cekPeriode);
+export type ParamLaporanRiwayatHargaBeli = z.input<typeof skemaLaporanRiwayatHargaBeli>;
 
 /** Catatan cetak PDF (log LAPORAN_EKSPOR); ekspor Excel dicatat server saat berkas dibuat. */
 export const skemaCatatCetakLaporan = z.object({

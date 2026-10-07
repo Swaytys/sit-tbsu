@@ -24,6 +24,8 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
 3. **F8** kirim ke antrean. Order mendapat **nomor antrean** dan langsung muncul di layar kasir. Serahkan barang
    ke kasir sambil menyebut isi order (mis. "semen 3 sak, nomor 12").
 4. Stok yang tampil adalah stok **tersedia** (sudah dikurangi order lain yang belum dibayar).
+5. **Promo** dihitung otomatis: potongan tampil hijau di bawah barang ("Promo … −Rp …") dan total sudah memakai
+   potongan. "Saran: Grosir" berarti qty sudah cukup untuk harga grosir — sampaikan ke kasir.
 
 ## Kasir
 
@@ -36,6 +38,9 @@ Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
 - Papan antrean menampilkan order dari staf (terlama disorot). **Enter** memproses order yang disorot; panah
   untuk memilih order lain; ketik nomor antrean + **Enter** untuk memanggil nomor tertentu.
 - Tanpa order: **F2** cari barang → **Enter** tambah. **F4** pelanggan, **F9** batal.
+- **Promo** tampil di bawah barang dan total sudah dipotong. Di daftar barang, **P** melepas promo baris itu (mis.
+  pembeli menolak) dan **P** lagi memasangnya kembali; pelepasan tercatat di log. Promo yang tampil saat order
+  dihitung ulang saat bayar (promo yang sudah berakhir tidak berlaku lagi).
 - **F8** bayar → ketik uang yang diterima → **Enter**. Kembalian tampil besar; struk tercetak otomatis.
 - Barang belum diambil pembeli: tandai *belum diambil*; konfirmasi saat diambil.
 
@@ -66,6 +71,15 @@ Semua tugas kasir, ditambah:
 
 - **Data barang** (*Data Master › Data Barang*): tambah/ubah barang, kategori, merk, satuan, atribut, stok
   minimum, gambar. Banyak barang sekaligus: *Import Excel*. Harga per tier di *Harga Jual*.
+- **Harga jual** (*Harga Jual*): tiap harga tier bisa **Rp** (harga tetap), **Tier** (ikut markup tier), atau
+  **%** (markup sendiri). Harga Normal selalu harga tetap. Kolom margin = (harga − dasar modal) ÷ harga.
+- **Tinjau Harga** (tab di *Harga Jual*): daftar barang yang harga modalnya berubah. **Terapkan** = harga diganti
+  usulan (harga Normal ikut diganti hanya bila sakelar "Ganti juga harga Normal" menyala); **Abaikan** = harga
+  tidak diubah. Barang dengan **Harga otomatis** (sakelar di form barang) naik sendiri saat harga modal naik; bila
+  harga modal turun atau harga Normal jadi di bawah target, barang itu masuk Tinjau Harga.
+- **Promo** (*Promo*): buat potongan persen atau rupiah per satuan untuk semua barang, satu kategori, atau satu
+  barang, dengan masa berlaku dan syarat (minimal qty per baris, minimal total belanja). Satu promo per baris
+  (potongan terbesar). Promo yang sudah terpakai tidak bisa diubah aturannya; nonaktifkan lalu buat promo baru.
 - **Pelanggan & pemasok** (*Data Pelanggan*, *Data Pemasok*): tier harga, term pembayaran, limit.
 - **Penerimaan barang** (*Persediaan › Penerimaan Barang*): catat barang datang dari pemasok (pembelian tunai/
   tempo atau titipan). Stok dan HPP rata-rata diperbarui otomatis.
@@ -74,7 +88,8 @@ Semua tugas kasir, ditambah:
   dikecualikan dengan alasan, bukan dihapus.
 - **Persetujuan**: tab *Persetujuan* di *Retur Penjualan* dan *Void Transaksi* (juga dari lonceng). Periksa
   alasan, pilih cara pengembalian uang, **Setujui** atau **Tolak** dengan alasan.
-- **Laporan lengkap**: stok rekap, kartu stok, stok minimum, nilai persediaan, gross profit (laba kotor).
+- **Laporan lengkap**: stok rekap, kartu stok, stok minimum, nilai persediaan, riwayat harga beli (bandingkan
+  harga antarpemasok), promo, gross profit (laba kotor).
 - **Pengaturan**: profil toko & logo, penomoran, aturan operasional, batas diskon, keamanan.
 
 ## Owner (pemilik)

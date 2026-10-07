@@ -40,7 +40,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -151,8 +150,9 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
         <DialogHeader>
           <DialogTitle>{promo ? `Ubah promo ${promo.kode}` : 'Buat promo'}</DialogTitle>
           <DialogDescription>
-            Potongan dihitung per baris barang saat order dan saat dibayar di kasir. Bila beberapa
-            promo cocok, dipakai potongan terbesar. Tidak berlaku untuk harga manual.
+            Potongan dihitung per baris barang saat order dan saat dibayar di kasir, selama tanggal
+            mulai sampai tanggal selesai (keduanya termasuk). Bila beberapa promo cocok, dipakai
+            potongan terbesar. Tidak berlaku untuk harga manual.
           </DialogDescription>
         </DialogHeader>
         {terkunci && (
@@ -204,7 +204,6 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
-                  <FormDescription>Promo berlaku sampai akhir hari ini (termasuk).</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -499,10 +498,11 @@ export function HalamanPromo() {
     {
       kunci: 'periode',
       judul: 'Periode',
-      className: 'whitespace-nowrap',
       sel: (p) => (
-        <span className="text-sm tabular-nums">
-          {formatTanggal(p.tanggalMulai)} – {formatTanggal(p.tanggalSelesai)}
+        <span className="text-sm whitespace-nowrap tabular-nums">
+          {p.tanggalMulai === p.tanggalSelesai
+            ? formatTanggal(p.tanggalMulai)
+            : `${formatTanggal(p.tanggalMulai)} – ${formatTanggal(p.tanggalSelesai)}`}
         </span>
       ),
     },
@@ -510,7 +510,11 @@ export function HalamanPromo() {
     {
       kunci: 'sasaran',
       judul: 'Berlaku untuk',
-      sel: (p) => <span className="text-sm">{uraianSasaran(p)}</span>,
+      sel: (p) => (
+        <span className="block max-w-56 truncate text-sm" title={uraianSasaran(p)}>
+          {uraianSasaran(p)}
+        </span>
+      ),
     },
     {
       kunci: 'syarat',
@@ -518,15 +522,18 @@ export function HalamanPromo() {
       sel: (p) => <span className="text-xs text-slate-500">{uraianSyarat(p)}</span>,
     },
     {
-      kunci: 'berlaku',
-      judul: 'Masa',
-      sel: (p) => (
-        <Badge variant="outline" className={cn(WARNA_BERLAKU[p.statusBerlaku])}>
-          {LABEL_STATUS_BERLAKU_PROMO[p.statusBerlaku]}
-        </Badge>
-      ),
+      kunci: 'status',
+      judul: 'Status',
+      // Promo nonaktif tidak berlaku walau masanya berjalan; yang aktif ditandai menurut masanya.
+      sel: (p) =>
+        p.statusAktif === 'NONAKTIF' ? (
+          <BadgeStatusAktif status="NONAKTIF" />
+        ) : (
+          <Badge variant="outline" className={cn(WARNA_BERLAKU[p.statusBerlaku])}>
+            {LABEL_STATUS_BERLAKU_PROMO[p.statusBerlaku]}
+          </Badge>
+        ),
     },
-    { kunci: 'status', judul: 'Status', sel: (p) => <BadgeStatusAktif status={p.statusAktif} /> },
     {
       kunci: 'pakai',
       judul: 'Dipakai',

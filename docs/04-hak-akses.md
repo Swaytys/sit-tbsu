@@ -89,8 +89,8 @@ memakai kode di luar daftar gagal typecheck.
 |---|---|
 | `dashboard.dasar` | Kartu antrean order, pengiriman aktif, peringatan stok, aksi cepat |
 | `dashboard.omzet` | Kartu penjualan hari ini, grafik penjualan |
-| `laporan.penjualan` | Penjualan per periode, produk terlaris, detail invoice, retur (tanpa HPP/laba jika tidak punya `lihat_hpp`) |
-| `laporan.persediaan` | Stok rekap, kartu stok, stok minimum, nilai persediaan (nilai persediaan juga butuh `laporan.laba`, K-081) |
+| `laporan.penjualan` | Penjualan per periode, produk terlaris, detail invoice, retur, promo (tanpa HPP/laba jika tidak punya `lihat_hpp`) |
+| `laporan.persediaan` | Stok rekap, kartu stok, stok minimum, nilai persediaan, riwayat harga beli (nilai persediaan dan riwayat harga beli juga butuh `laporan.laba`, K-081, K-087) |
 | `laporan.laba` | Gross profit |
 | `laporan.piutang` | Laporan piutang |
 | `laporan.hutang` | (M2) Laporan hutang, konsinyasi |
@@ -100,7 +100,7 @@ memakai kode di luar daftar gagal typecheck.
 
 | Kode | Arti |
 |---|---|
-| `promo.kelola` | Buat/ubah/nonaktifkan promo |
+| `promo.kelola` | Buat/ubah/nonaktifkan promo (menu Promo). Melepas promo pada baris transaksi memakai `penjualan.checkout`; pratinjau harga order memakai `penjualan.order.buat` (K-087) |
 
 ## 3. Matriks peran
 
@@ -254,3 +254,6 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-04 — Tinjau Harga (API dan tab) memerlukan `master.harga.tinjau` dan `master.barang.lihat_hpp`; persen markup
   per barang dan margin hanya untuk `master.barang.lihat_hpp`; mengubah harga otomatis barang butuh
   `master.harga.kelola` (K-086).
+- 2026-10-04 — §2: Laporan Promo (`laporan.penjualan`), Laporan Riwayat Harga Beli (`laporan.persediaan` +
+  `laporan.laba`); lepas promo per baris butuh `penjualan.checkout`; izin harga manual/tier/diskon diuji hanya untuk
+  nilai yang diubah pelaku (K-087).
