@@ -103,7 +103,9 @@ export const skemaBarang = z
       .string('Nama barang wajib diisi.')
       .trim()
       .min(1, 'Nama barang wajib diisi.')
-      .max(150, 'Nama barang maksimal 150 karakter.'),
+      .max(150, 'Nama barang maksimal 150 karakter.')
+      // Tanda * dipakai kasir untuk qty ("3*semen" / "semen*3").
+      .refine((v) => !v.includes('*'), 'Nama barang tidak boleh memakai tanda *.'),
     idKategori: idWajib('Kategori wajib dipilih.'),
     /** `null` = tanpa merk (K-063). */
     idMerk: z.number().int().positive().nullable().optional(),
@@ -161,6 +163,7 @@ export const skemaCariBarang = skemaHalaman.extend({
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
     .optional(),
+  kepemilikan: z.enum(KEPEMILIKAN).optional(),
   /** Hanya barang yang punya stok rusak (tab Stok Rusak, SR1). */
   adaRusak: z
     .enum(['true', 'false'])

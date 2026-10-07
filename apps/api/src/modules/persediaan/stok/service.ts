@@ -130,13 +130,30 @@ export async function eksporStok(
 type BarisMutasiDb = Awaited<ReturnType<typeof repo.mutasiKartu>>[number];
 
 function keBarisMutasi(m: BarisMutasiDb, izin: ReadonlySet<Izin>): BarisMutasi {
-  const { hppSatuan, hppSetelah, waktu, jenisDokumen, ...umum } = m;
   const baris: BarisMutasi = {
-    ...umum,
-    waktu: waktu.toISOString(),
-    jenisDokumen: jenisDokumen as BarisMutasi['jenisDokumen'],
+    id: m.id,
+    waktu: m.waktu.toISOString(),
+    tanggalOperasional: m.tanggalOperasional,
+    idBarang: m.idBarang,
+    kodeBarang: m.kodeBarang,
+    namaBarang: m.namaBarang,
+    kodeSatuan: m.kodeSatuan,
+    kepemilikan: m.kepemilikan,
+    namaPemasokKonsinyasi: m.namaPemasokKonsinyasi,
+    jenis: m.jenis,
+    kondisi: m.kondisi,
+    qtyMasuk: m.qtyMasuk,
+    qtyKeluar: m.qtyKeluar,
+    saldoSetelah: m.saldoSetelah,
+    nomorDokumen: m.nomorDokumen,
+    jenisDokumen: m.jenisDokumen,
+    idDokumen: m.idDokumen,
+    namaPengguna: m.namaPengguna,
+    keterangan: m.keterangan,
   };
-  return izin.has(IZIN_HPP) ? { ...baris, hppSatuan, hppSetelah } : baris;
+  return izin.has(IZIN_HPP)
+    ? { ...baris, hppSatuan: m.hppSatuan, hppSetelah: m.hppSetelah }
+    : baris;
 }
 
 export async function daftarMutasi(

@@ -332,6 +332,10 @@ export const skemaCariMutasi = skemaHalaman.extend({
   jenis: z.enum(JENIS_MUTASI).optional(),
   dari: skemaTanggal('Tanggal awal').optional(),
   sampai: skemaTanggal('Tanggal akhir').optional(),
+  /** Milik sendiri / titipan (konsinyasi). */
+  kepemilikan: z.enum(KEPEMILIKAN).optional(),
+  /** Stok baik / stok rusak. */
+  kondisi: z.enum(KONDISI_STOK).optional(),
 });
 export type ParamCariMutasi = z.input<typeof skemaCariMutasi>;
 
@@ -343,6 +347,9 @@ export type BarisMutasi = {
   kodeBarang: string;
   namaBarang: string;
   kodeSatuan: string;
+  kepemilikan: Kepemilikan;
+  /** Penitip, untuk barang titipan. */
+  namaPemasokKonsinyasi: string | null;
   jenis: JenisMutasi;
   kondisi: KondisiStok;
   qtyMasuk: string;

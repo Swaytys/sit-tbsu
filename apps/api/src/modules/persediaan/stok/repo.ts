@@ -21,6 +21,7 @@ import {
   mutasiPersediaan,
   penerimaanBarang,
   penerimaanBarangDetail,
+  pemasok,
   pengguna,
   penjualan,
   penjualanDetail,
@@ -181,21 +182,6 @@ export function barangPeringatan(ex: Executor, ambang: number, batas: number) {
 
 // --- Mutasi (ledger) ---
 
-/** Nomor dan jenis dokumen sumber mutasi, dari kolom sumber yang terisi (tepat satu). */
-const sqlNomorDokumen = sql<string | null>`coalesce(${penerimaanBarang.nomor},
-  ${penyesuaianStok.nomor}, ${penjualan.nomor}, ${returPenjualan.nomor}, ${voidTransaksi.nomor},
-  ${returPemasok.nomor})`;
-const sqlJenisDokumen = sql<string | null>`(case
-  when ${mutasiPersediaan.idPenerimaanDetail} is not null then 'PENERIMAAN'
-  when ${mutasiPersediaan.idPenyesuaianDetail} is not null then 'PENYESUAIAN'
-  when ${mutasiPersediaan.idPenjualanDetail} is not null then 'PENJUALAN'
-  when ${mutasiPersediaan.idReturDetail} is not null then 'RETUR'
-  when ${mutasiPersediaan.idVoidDetail} is not null then 'VOID'
-  when ${mutasiPersediaan.idReturPemasokDetail} is not null then 'RETUR_PEMASOK'
-  end)`;
-const sqlIdDokumen = sql<number | null>`coalesce(${penerimaanBarang.id}, ${penyesuaianStok.id},
-  ${penjualan.id}, ${returPenjualan.id}, ${voidTransaksi.id}, ${returPemasok.id})`;
-
 const kolomMutasi = {
   id: mutasiPersediaan.id,
   waktu: mutasiPersediaan.waktu,
@@ -204,6 +190,8 @@ const kolomMutasi = {
   kodeBarang: barang.kode,
   namaBarang: barang.namaBarang,
   kodeSatuan: satuan.kode,
+  kepemilikan: barang.kepemilikan,
+  namaPemasokKonsinyasi: pemasok.namaPemasok,
   jenis: mutasiPersediaan.jenisMutasi,
   kondisi: mutasiPersediaan.kondisi,
   qtyMasuk: mutasiPersediaan.qtyMasuk,
@@ -211,13 +199,20 @@ const kolomMutasi = {
   saldoSetelah: mutasiPersediaan.saldoSetelah,
   hppSatuan: mutasiPersediaan.hppSatuan,
   hppSetelah: mutasiPersediaan.hppSetelah,
-  nomorDokumen: sqlNomorDokumen,
-  jenisDokumen: sqlJenisDokumen,
-  idDokumen: sql<number | null>`${sqlIdDokumen}`.mapWith((v) => (v === null ? null : Number(v))),
+  idPenerimaanDetail: mutasiPersediaan.idPenerimaanDetail,
+  idPenyesuaianDetail: mutasiPersediaan.idPenyesuaianDetail,
+  idPenjualanDetail: mutasiPersediaan.idPenjualanDetail,
+  idReturDetail: mutasiPersediaan.idReturDetail,
+  idVoidDetail: mutasiPersediaan.idVoidDetail,
+  idReturPemasokDetail: mutasiPersediaan.idReturPemasokDetail,
   namaPengguna: pengguna.namaPengguna,
   keterangan: mutasiPersediaan.keterangan,
 };
 
+/*
+ * Kueri mutasi sengaja memakai sedikit join: join ke semua dokumen sumber (17 tabel) membuat PostgreSQL butuh
+ * >100 ms hanya untuk merencanakan kueri. Nomor dokumen dilengkapi sesudahnya per jenis (`lengkapiDokumen`).
+ */
 function dasarMutasi(ex: Executor) {
   const m = mutasiPersediaan;
   return ex
@@ -226,18 +221,109 @@ function dasarMutasi(ex: Executor) {
     .innerJoin(barang, eq(barang.id, m.idBarang))
     .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
     .innerJoin(pengguna, eq(pengguna.id, m.idPengguna))
-    .leftJoin(penerimaanBarangDetail, eq(penerimaanBarangDetail.id, m.idPenerimaanDetail))
-    .leftJoin(penerimaanBarang, eq(penerimaanBarang.id, penerimaanBarangDetail.idPenerimaan))
-    .leftJoin(penyesuaianStokDetail, eq(penyesuaianStokDetail.id, m.idPenyesuaianDetail))
-    .leftJoin(penyesuaianStok, eq(penyesuaianStok.id, penyesuaianStokDetail.idPenyesuaian))
-    .leftJoin(penjualanDetail, eq(penjualanDetail.id, m.idPenjualanDetail))
-    .leftJoin(penjualan, eq(penjualan.id, penjualanDetail.idPenjualan))
-    .leftJoin(returPenjualanDetail, eq(returPenjualanDetail.id, m.idReturDetail))
-    .leftJoin(returPenjualan, eq(returPenjualan.id, returPenjualanDetail.idRetur))
-    .leftJoin(voidTransaksiDetail, eq(voidTransaksiDetail.id, m.idVoidDetail))
-    .leftJoin(voidTransaksi, eq(voidTransaksi.id, voidTransaksiDetail.idVoid))
-    .leftJoin(returPemasokDetail, eq(returPemasokDetail.id, m.idReturPemasokDetail))
-    .leftJoin(returPemasok, eq(returPemasok.id, returPemasokDetail.idReturPemasok));
+    .leftJoin(pemasok, eq(pemasok.id, barang.idPemasokKonsinyasi));
+}
+
+type BarisMutasiMentah = Awaited<ReturnType<ReturnType<typeof dasarMutasi>['execute']>>[number];
+export type JenisDokumenMutasi =
+  'PENERIMAAN' | 'PENYESUAIAN' | 'PENJUALAN' | 'RETUR' | 'VOID' | 'RETUR_PEMASOK';
+type Dok = { id: number; nomor: string };
+
+async function peta(
+  id: number[],
+  ambil: (id: number[]) => Promise<{ idDetail: number; id: number; nomor: string }[]>,
+): Promise<Map<number, Dok>> {
+  if (id.length === 0) return new Map();
+  return new Map((await ambil(id)).map((r) => [r.idDetail, { id: r.id, nomor: r.nomor }]));
+}
+
+/** Lengkapi nomor, jenis, dan id dokumen sumber tiap mutasi (satu kueri kecil per jenis yang muncul). */
+export async function lengkapiDokumen(ex: Executor, rows: BarisMutasiMentah[]) {
+  const ambil = (k: keyof BarisMutasiMentah) => [
+    ...new Set(rows.map((r) => r[k]).filter((v): v is number => typeof v === 'number')),
+  ];
+  const [terima, sesuai, jual, retur, batal, rtp] = await Promise.all([
+    peta(ambil('idPenerimaanDetail'), (id) =>
+      ex
+        .select({
+          idDetail: penerimaanBarangDetail.id,
+          id: penerimaanBarang.id,
+          nomor: penerimaanBarang.nomor,
+        })
+        .from(penerimaanBarangDetail)
+        .innerJoin(penerimaanBarang, eq(penerimaanBarang.id, penerimaanBarangDetail.idPenerimaan))
+        .where(inArray(penerimaanBarangDetail.id, id)),
+    ),
+    peta(ambil('idPenyesuaianDetail'), (id) =>
+      ex
+        .select({
+          idDetail: penyesuaianStokDetail.id,
+          id: penyesuaianStok.id,
+          nomor: penyesuaianStok.nomor,
+        })
+        .from(penyesuaianStokDetail)
+        .innerJoin(penyesuaianStok, eq(penyesuaianStok.id, penyesuaianStokDetail.idPenyesuaian))
+        .where(inArray(penyesuaianStokDetail.id, id)),
+    ),
+    peta(ambil('idPenjualanDetail'), (id) =>
+      ex
+        .select({ idDetail: penjualanDetail.id, id: penjualan.id, nomor: penjualan.nomor })
+        .from(penjualanDetail)
+        .innerJoin(penjualan, eq(penjualan.id, penjualanDetail.idPenjualan))
+        .where(inArray(penjualanDetail.id, id)),
+    ),
+    peta(ambil('idReturDetail'), (id) =>
+      ex
+        .select({
+          idDetail: returPenjualanDetail.id,
+          id: returPenjualan.id,
+          nomor: returPenjualan.nomor,
+        })
+        .from(returPenjualanDetail)
+        .innerJoin(returPenjualan, eq(returPenjualan.id, returPenjualanDetail.idRetur))
+        .where(inArray(returPenjualanDetail.id, id)),
+    ),
+    peta(ambil('idVoidDetail'), (id) =>
+      ex
+        .select({
+          idDetail: voidTransaksiDetail.id,
+          id: voidTransaksi.id,
+          nomor: voidTransaksi.nomor,
+        })
+        .from(voidTransaksiDetail)
+        .innerJoin(voidTransaksi, eq(voidTransaksi.id, voidTransaksiDetail.idVoid))
+        .where(inArray(voidTransaksiDetail.id, id)),
+    ),
+    peta(ambil('idReturPemasokDetail'), (id) =>
+      ex
+        .select({ idDetail: returPemasokDetail.id, id: returPemasok.id, nomor: returPemasok.nomor })
+        .from(returPemasokDetail)
+        .innerJoin(returPemasok, eq(returPemasok.id, returPemasokDetail.idReturPemasok))
+        .where(inArray(returPemasokDetail.id, id)),
+    ),
+  ]);
+  return rows.map((r) => {
+    const [jenisDokumen, dok]: [JenisDokumenMutasi | null, Dok | undefined] =
+      r.idPenerimaanDetail !== null
+        ? ['PENERIMAAN', terima.get(r.idPenerimaanDetail)]
+        : r.idPenyesuaianDetail !== null
+          ? ['PENYESUAIAN', sesuai.get(r.idPenyesuaianDetail)]
+          : r.idPenjualanDetail !== null
+            ? ['PENJUALAN', jual.get(r.idPenjualanDetail)]
+            : r.idReturDetail !== null
+              ? ['RETUR', retur.get(r.idReturDetail)]
+              : r.idVoidDetail !== null
+                ? ['VOID', batal.get(r.idVoidDetail)]
+                : r.idReturPemasokDetail !== null
+                  ? ['RETUR_PEMASOK', rtp.get(r.idReturPemasokDetail)]
+                  : [null, undefined];
+    return {
+      ...r,
+      jenisDokumen,
+      nomorDokumen: dok?.nomor ?? null,
+      idDokumen: dok?.id ?? null,
+    };
+  });
 }
 
 export type SaringMutasi = {
@@ -246,6 +332,8 @@ export type SaringMutasi = {
   jenis?: JenisMutasi | undefined;
   dari?: string | undefined;
   sampai?: string | undefined;
+  kepemilikan?: Kepemilikan | undefined;
+  kondisi?: KondisiStok | undefined;
 };
 
 function syaratMutasi(p: SaringMutasi): SQL | undefined {
@@ -255,6 +343,8 @@ function syaratMutasi(p: SaringMutasi): SQL | undefined {
     p.jenis === undefined ? undefined : eq(mutasiPersediaan.jenisMutasi, p.jenis),
     p.dari === undefined ? undefined : gte(mutasiPersediaan.tanggalOperasional, p.dari),
     p.sampai === undefined ? undefined : lte(mutasiPersediaan.tanggalOperasional, p.sampai),
+    p.kepemilikan === undefined ? undefined : eq(barang.kepemilikan, p.kepemilikan),
+    p.kondisi === undefined ? undefined : eq(mutasiPersediaan.kondisi, p.kondisi),
     pola ? or(ilike(barang.kode, pola), ilike(barang.namaBarang, pola)) : undefined,
   );
 }
@@ -264,11 +354,14 @@ export async function daftarMutasi(
   p: SaringMutasi & { limit: number; offset: number },
 ) {
   const where = syaratMutasi(p);
-  const baris = await dasarMutasi(ex)
-    .where(where)
-    .orderBy(desc(mutasiPersediaan.id))
-    .limit(p.limit)
-    .offset(p.offset);
+  const baris = await lengkapiDokumen(
+    ex,
+    await dasarMutasi(ex)
+      .where(where)
+      .orderBy(desc(mutasiPersediaan.id))
+      .limit(p.limit)
+      .offset(p.offset),
+  );
   const [hitung] = await ex
     .select({ total: count() })
     .from(mutasiPersediaan)
@@ -322,14 +415,14 @@ export async function posisiSebelum(
   return { saldo: saldo?.saldo ?? null, hpp: hpp?.hpp ?? null };
 }
 
-export function mutasiKartu(
+export async function mutasiKartu(
   ex: Executor,
   idBarang: number,
   kondisi: KondisiStok,
   dari: string,
   sampai: string,
 ) {
-  return dasarMutasi(ex)
+  const rows = await dasarMutasi(ex)
     .where(
       and(
         eq(mutasiPersediaan.idBarang, idBarang),
@@ -339,6 +432,7 @@ export function mutasiKartu(
       ),
     )
     .orderBy(asc(mutasiPersediaan.id));
+  return lengkapiDokumen(ex, rows);
 }
 
 /** Status stok (ST1) untuk sekumpulan barang, misalnya baris daftar Master Barang. */

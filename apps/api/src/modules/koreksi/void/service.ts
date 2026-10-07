@@ -71,8 +71,15 @@ export async function detailVoid(id: number): Promise<BarisVoid> {
 export async function kandidatVoid(cari: string | undefined): Promise<KandidatVoid[]> {
   const rows = await repo.kandidat(db, cari, tanggalOperasional());
   const hasil: KandidatVoid[] = [];
+  const barisPer = new Map<number, Awaited<ReturnType<typeof repo.barisPenjualan>>>();
+  for (const b of await repo.barisPenjualan(
+    db,
+    rows.map((r) => r.id),
+  )) {
+    barisPer.set(b.idPenjualan, [...(barisPer.get(b.idPenjualan) ?? []), b]);
+  }
   for (const r of rows) {
-    const baris = await repo.barisPenjualan(db, r.id);
+    const baris = barisPer.get(r.id) ?? [];
     hasil.push({
       ...r,
       tanggal: r.tanggal.toISOString(),

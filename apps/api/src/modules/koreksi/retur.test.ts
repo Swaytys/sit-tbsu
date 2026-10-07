@@ -306,4 +306,36 @@ describe('retur penjualan (docs/05 §8)', () => {
     expect(await stok(m.semen)).toEqual({ baik: '15.000', rusak: '0.000' }); // 20 − 6 + 1
     expect(await stok(m.pasir)).toEqual({ baik: '15.000', rusak: '0.000' }); // 20 − 7 + 2
   });
+
+  it('T5 tukar ditolak sejak pengajuan bila stok pengganti kurang; sisanya bisa diretur uang kembali', async () => {
+    const pj = await jual(
+      kasir,
+      [{ idBarang: m.semen, qty: '19', diskonBaris: 0 }],
+      [{ metode: 'TUNAI' }],
+    );
+    const b = pj.baris[0]!;
+    // Stok tinggal 1: tukar 2 sak rusak ditolak dengan saran memecah.
+    const tolak = await galat(kasir, '/api/retur', {
+      idPenjualan: pj.id,
+      alasan: 'Sak sobek',
+      penyelesaian: 'TUKAR_BARANG',
+      baris: [{ idPenjualanDetail: b.id, qtyRetur: '2', kondisi: 'RUSAK' }],
+    });
+    expect(tolak.status).toBe(409);
+    expect(tolak.pesan).toContain('tinggal 1.000');
+    // Tukar 1 + retur 1 uang kembali: keduanya bisa diajukan.
+    await kirim(kasir, '/api/retur', {
+      idPenjualan: pj.id,
+      alasan: 'Sak sobek',
+      penyelesaian: 'TUKAR_BARANG',
+      baris: [{ idPenjualanDetail: b.id, qtyRetur: '1', kondisi: 'RUSAK' }],
+    });
+    await kirim(kasir, '/api/retur', {
+      idPenjualan: pj.id,
+      alasan: 'Sak sobek, stok pengganti habis',
+      penyelesaian: 'REFUND',
+      persetujuan: { metodeRefund: 'TUNAI' },
+      baris: [{ idPenjualanDetail: b.id, qtyRetur: '1', kondisi: 'RUSAK' }],
+    });
+  });
 });

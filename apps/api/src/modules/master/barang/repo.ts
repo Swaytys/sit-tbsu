@@ -63,6 +63,7 @@ export type SaringBarang = {
   status: StatusAktif | 'SEMUA';
   perluTinjau?: boolean | undefined;
   adaRusak?: boolean | undefined;
+  kepemilikan?: Kepemilikan | undefined;
 };
 
 function syarat(p: SaringBarang): SQL | undefined {
@@ -73,6 +74,7 @@ function syarat(p: SaringBarang): SQL | undefined {
     p.idMerk === undefined ? undefined : eq(barang.idMerk, p.idMerk),
     p.perluTinjau === undefined ? undefined : eq(barang.perluTinjauHarga, p.perluTinjau),
     p.adaRusak ? gt(persediaan.stokRusak, '0') : undefined,
+    p.kepemilikan === undefined ? undefined : eq(barang.kepemilikan, p.kepemilikan),
     pola
       ? or(
           ilike(barang.kode, pola),

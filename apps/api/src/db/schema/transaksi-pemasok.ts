@@ -164,6 +164,10 @@ export const penyelesaianKonsinyasiDetail = pgTable(
     qtyNeto: qty('qty_neto').notNull(),
     hargaTitip: uang('harga_titip').notNull(),
     subtotal: uang('subtotal').notNull(),
+    /** K-092: barang titipan yang dimusnahkan toko (toko menanggung, dibayar ke penitip). */
+    qtyGantiRugi: qty('qty_ganti_rugi')
+      .notNull()
+      .default(sql`0`),
   },
   (t) => [
     foreignKey({
@@ -180,7 +184,7 @@ export const penyelesaianKonsinyasiDetail = pgTable(
     unique('uq_ksg_detail').on(t.idPenyelesaian, t.idBarang, t.hargaTitip),
     check(
       'chk_ksg_detail',
-      sql`qty_terjual >= 0 and qty_retur >= 0 and qty_neto >= 0 and harga_titip >= 0 and subtotal >= 0`,
+      sql`qty_terjual >= 0 and qty_retur >= 0 and qty_ganti_rugi >= 0 and qty_neto >= 0 and harga_titip >= 0 and subtotal >= 0`,
     ),
   ],
 );

@@ -41,8 +41,11 @@ export type BarisSetoranKonsinyasi = {
   kodeSatuan: string;
   hargaTitip: number;
   qtyTerjual: string;
-  /** Retur pelanggan kondisi baik (termasuk koreksi atas baris yang sudah disetor, KS6). */
+  /** Retur pelanggan (baik maupun rusak; termasuk koreksi atas baris yang sudah disetor, K-092). */
   qtyRetur: string;
+  /** Barang titipan yang dimusnahkan toko: toko menanggung, tetap dibayar ke penitip (K-092). */
+  qtyGantiRugi: string;
+  /** Terjual − retur + ganti rugi. */
   qtyNeto: string;
   subtotal: number;
 };
@@ -56,6 +59,8 @@ export type PratinjauKonsinyasi = {
   total: number;
   /** Jumlah baris penjualan yang akan ditandai disetor. */
   jumlahBarisJual: number;
+  /** Jumlah baris pemusnahan barang titipan yang ditagihkan sebagai ganti rugi. */
+  jumlahBarisGantiRugi: number;
   /** Retur atas baris yang sudah disetor yang belum bisa dikoreksi (penjualan baru belum cukup). */
   koreksiDitunda: number;
 };
@@ -95,7 +100,7 @@ export type RingkasanKonsinyasiPemasok = {
   jumlahBarang: number;
   /** Stok titipan (baik + rusak) × harga titip saat ini. */
   nilaiStokTitipan: number;
-  /** Penjualan titipan yang belum disetor (Σ qty × harga titip saat jual, sebelum retur). */
+  /** Penjualan titipan + ganti rugi pemusnahan yang belum disetor (sebelum dikurangi retur). */
   nilaiBelumDisetor: number;
   sisaHutang: number;
   terakhirDisetor: string | null;
