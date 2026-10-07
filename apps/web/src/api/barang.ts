@@ -8,6 +8,7 @@ import type {
   InputProsesImport,
   InputSimpanHarga,
   InputTerapkanTinjau,
+  Kepemilikan,
   StatusAktif,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -23,6 +24,7 @@ export type ParamDaftarBarang = {
   perluTinjau: boolean;
   /** Hanya barang yang punya stok rusak. */
   adaRusak?: boolean;
+  kepemilikan?: Kepemilikan | null;
   halaman: number;
   perHalaman: number;
 };
@@ -40,6 +42,7 @@ export function useDaftarBarang(p: ParamDaftarBarang) {
             status: p.status,
             perluTinjau: p.perluTinjau ? 'true' : undefined,
             adaRusak: p.adaRusak ? 'true' : undefined,
+            kepemilikan: p.kepemilikan ?? undefined,
             halaman: String(p.halaman),
             perHalaman: String(p.perHalaman),
           },

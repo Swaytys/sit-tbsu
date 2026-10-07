@@ -1,4 +1,11 @@
-import { formatRupiah, JENIS_MUTASI, type BarisMutasi, type JenisMutasi } from '@sit/shared';
+import {
+  formatRupiah,
+  JENIS_MUTASI,
+  type BarisMutasi,
+  type JenisMutasi,
+  type Kepemilikan,
+  type KondisiStok,
+} from '@sit/shared';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 import { useBarisPerHalaman } from '@/api/pengaturan';
@@ -25,6 +32,8 @@ export function TabMutasi() {
   const [cari, setCari] = useState('');
   const cariTertunda = useTunda(cari, 300);
   const [jenis, setJenis] = useState<JenisMutasi | null>(null);
+  const [kepemilikan, setKepemilikan] = useState<Kepemilikan | null>(null);
+  const [kondisi, setKondisi] = useState<KondisiStok | null>(null);
   const [dari, setDari] = useState('');
   const [sampai, setSampai] = useState('');
   const [halaman, setHalaman] = useState(1);
@@ -33,6 +42,8 @@ export function TabMutasi() {
     cari: cariTertunda,
     idBarang: null,
     jenis,
+    kepemilikan,
+    kondisi,
     dari,
     sampai,
     halaman,
@@ -44,7 +55,12 @@ export function TabMutasi() {
     {
       kunci: 'waktu',
       judul: 'Waktu',
-      sel: (m) => <span className="text-xs whitespace-nowrap">{formatWaktu(m.waktu)}</span>,
+      sel: (m) => (
+        <div className="text-xs whitespace-nowrap">
+          <div>{formatWaktu(m.waktu)}</div>
+          <div className="text-slate-500">{m.namaPengguna}</div>
+        </div>
+      ),
     },
     {
       kunci: 'barang',
@@ -52,7 +68,14 @@ export function TabMutasi() {
       sel: (m) => (
         <div>
           <div className="font-medium">{m.namaBarang}</div>
-          <div className="font-mono text-xs text-slate-500">{m.kodeBarang}</div>
+          <div className="text-xs text-slate-500">
+            <span className="font-mono">{m.kodeBarang}</span>
+            {m.kepemilikan === 'KONSINYASI' && (
+              <span className="ml-1.5 rounded bg-violet-50 px-1 text-violet-700">
+                Titipan {m.namaPemasokKonsinyasi}
+              </span>
+            )}
+          </div>
         </div>
       ),
     },
@@ -66,7 +89,16 @@ export function TabMutasi() {
         </span>
       ),
     },
-    { kunci: 'dokumen', judul: 'Dokumen', sel: (m) => <TautanDokumen m={m} /> },
+    {
+      kunci: 'dokumen',
+      judul: 'Dokumen',
+      // Keterangan (alasan, nomor sumber) sebagai tooltip agar tabel tetap ringkas.
+      sel: (m) => (
+        <span title={m.keterangan ?? undefined}>
+          <TautanDokumen m={m} />
+        </span>
+      ),
+    },
     {
       kunci: 'masuk',
       judul: 'Masuk',
@@ -93,7 +125,9 @@ export function TabMutasi() {
       kunci: 'saldo',
       judul: 'Saldo',
       className: 'text-right tabular-nums font-medium',
-      sel: (m) => `${formatDesimal(m.saldoSetelah)} ${m.kodeSatuan}`,
+      // Saldo bucket mutasi itu: baris stok rusak menunjukkan saldo stok rusak, bukan stok jual.
+      sel: (m) =>
+        `${formatDesimal(m.saldoSetelah)} ${m.kodeSatuan}${m.kondisi === 'RUSAK' ? ' rusak' : ''}`,
     },
     ...(lihatHpp
       ? [
@@ -105,18 +139,12 @@ export function TabMutasi() {
           },
         ]
       : []),
-    { kunci: 'oleh', judul: 'Oleh', sel: (m) => m.namaPengguna },
-    {
-      kunci: 'keterangan',
-      judul: 'Keterangan',
-      sel: (m) => <span className="text-xs text-slate-600">{m.keterangan ?? ''}</span>,
-    },
   ];
 
   return (
     <Card className="gap-0 overflow-hidden py-0">
       <div className="flex flex-wrap items-center gap-3 border-b p-3">
-        <div className="relative max-w-xs flex-1">
+        <div className="relative w-64 shrink-0">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400" />
           <Input
             value={cari}
@@ -136,7 +164,7 @@ export function TabMutasi() {
             setHalaman(1);
           }}
         >
-          <SelectTrigger className="w-44" aria-label="Saring jenis mutasi">
+          <SelectTrigger className="w-40" aria-label="Saring jenis mutasi">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -146,6 +174,38 @@ export function TabMutasi() {
                 {LABEL_JENIS_MUTASI[j]}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={kepemilikan ?? SEMUA}
+          onValueChange={(v) => {
+            setKepemilikan(v === SEMUA ? null : (v as Kepemilikan));
+            setHalaman(1);
+          }}
+        >
+          <SelectTrigger className="w-48" aria-label="Saring kepemilikan">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SEMUA}>Semua kepemilikan</SelectItem>
+            <SelectItem value="MILIK_SENDIRI">Milik toko</SelectItem>
+            <SelectItem value="KONSINYASI">Titipan (konsinyasi)</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={kondisi ?? SEMUA}
+          onValueChange={(v) => {
+            setKondisi(v === SEMUA ? null : (v as KondisiStok));
+            setHalaman(1);
+          }}
+        >
+          <SelectTrigger className="w-36" aria-label="Saring kondisi stok">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SEMUA}>Baik & rusak</SelectItem>
+            <SelectItem value="BAIK">Stok baik</SelectItem>
+            <SelectItem value="RUSAK">Stok rusak</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex items-center gap-2 text-sm text-slate-600">

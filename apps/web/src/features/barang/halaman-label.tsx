@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -29,8 +30,9 @@ import {
 } from '@/components/ui/table';
 
 /*
- * Cetak label barang (Fase 12, K-090): label harga rak atau stiker barcode di kertas label A4. Barcode = barcode
- * pabrik bila ada, selain itu kode barang (keduanya bisa dicari di layar kasir).
+ * Cetak label barang (Fase 12, K-090, K-093): label di printer thermal (gulungan 58/57/80 mm, satu label per
+ * baris) atau kertas label A4. Barcode = barcode pabrik bila ada, selain itu kode barang (keduanya bisa dicari di
+ * layar kasir).
  */
 
 type TataLetak = {
@@ -40,9 +42,27 @@ type TataLetak = {
   lebarMm: number;
   tinggiMm: number;
   margin: string;
+  /** Lebar gulungan thermal (mm); tanpa nilai = kertas A4. */
+  gulunganMm?: number;
 };
 
+/** Label thermal: lebar cetak = lebar gulungan − 2 × 3 mm, satu label per baris, jarak 3 mm. */
+function thermal(lebar: number, nama: string): TataLetak {
+  return {
+    nama,
+    kolom: 1,
+    baris: 1000,
+    lebarMm: lebar - 6,
+    tinggiMm: lebar >= 80 ? 32 : 30,
+    margin: '0 3mm',
+    gulunganMm: lebar,
+  };
+}
+
 const TATA_LETAK = {
+  T58: thermal(58, 'Printer thermal 58 mm'),
+  T57: thermal(57, 'Printer thermal 57 mm'),
+  T80: thermal(80, 'Printer thermal 80 mm'),
   RAK: {
     nama: 'Label harga rak — 3 × 8 per A4 (63,5 × 33,9 mm)',
     kolom: 3,
@@ -59,7 +79,7 @@ const TATA_LETAK = {
     tinggiMm: 25.4,
     margin: '21mm 8mm',
   },
-} as const satisfies Record<string, TataLetak>;
+} satisfies Record<string, TataLetak>;
 type KodeTataLetak = keyof typeof TATA_LETAK;
 
 type Isi = { barang: BarisBarang; jumlah: number };
@@ -119,6 +139,7 @@ function Lembar({
       style={{
         gridTemplateColumns: `repeat(${t.kolom}, ${t.lebarMm}mm)`,
         gridAutoRows: `${t.tinggiMm}mm`,
+        rowGap: t.gulunganMm ? '3mm' : 0,
       }}
     >
       {label.map((l, i) =>
@@ -137,12 +158,20 @@ export function HalamanLabel() {
   const tier = (useDaftarTingkatHarga().data ?? []).filter((x) => x.statusAktif === 'AKTIF');
   const [idTier, setIdTier] = useState<number | null>(null);
   const tierDipakai = idTier ?? tier.find((x) => x.isDefault)?.id ?? null;
-  const [kode, setKode] = useState<KodeTataLetak>('RAK');
+  const [kode, setKode] = useState<KodeTataLetak>(() => {
+    // Pilihan terakhir diingat per perangkat (preferensi tampilan, bukan data bisnis).
+    try {
+      const k = localStorage.getItem('label-tata-letak');
+      return k && k in TATA_LETAK ? (k as KodeTataLetak) : 'T58';
+    } catch {
+      return 'T58';
+    }
+  });
   const [tampilHarga, setTampilHarga] = useState(true);
   const [mulai, setMulai] = useState(1);
   const [isi, setIsi] = useState<Isi[]>([]);
   const [cetak, setCetak] = useState(false);
-  const t = TATA_LETAK[kode];
+  const t: TataLetak = TATA_LETAK[kode];
   const perLembar = t.kolom * t.baris;
 
   useEffect(() => {
@@ -164,7 +193,7 @@ export function HalamanLabel() {
 
   const harga = (b: BarisBarang) =>
     b.harga.find((h) => h.idTingkatHarga === tierDipakai)?.hargaJual ?? null;
-  const awal = Math.min(Math.max(1, mulai), perLembar) - 1;
+  const awal = t.gulunganMm ? 0 : Math.min(Math.max(1, mulai), perLembar) - 1;
   const semua: ({ b: BarisBarang; harga: number | null } | null)[] = [
     ...Array<null>(awal).fill(null),
     ...isi.flatMap((x) =>
@@ -187,8 +216,9 @@ export function HalamanLabel() {
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Cetak label barang</h1>
             <p className="text-sm text-slate-500">
-              Label harga rak atau stiker barcode di kertas label A4. Barcode memakai barcode pabrik
-              bila ada, selain itu kode barang; keduanya bisa dipindai di layar kasir.
+              Label harga untuk printer thermal (58/57/80 mm) atau kertas label A4. Barcode memakai
+              barcode pabrik bila ada, selain itu kode barang; keduanya bisa dipindai di layar
+              kasir.
             </p>
           </div>
         </div>
@@ -206,7 +236,17 @@ export function HalamanLabel() {
           <Card className="grid grid-cols-3 gap-4 p-4">
             <div className="col-span-3 space-y-1.5">
               <Label>Jenis label</Label>
-              <Select value={kode} onValueChange={(v) => setKode(v as KodeTataLetak)}>
+              <Select
+                value={kode}
+                onValueChange={(v) => {
+                  setKode(v as KodeTataLetak);
+                  try {
+                    localStorage.setItem('label-tata-letak', v);
+                  } catch {
+                    // penyimpanan peramban tidak tersedia: abaikan
+                  }
+                }}
+              >
                 <SelectTrigger className="w-full" aria-label="Jenis label">
                   <SelectValue />
                 </SelectTrigger>
@@ -237,7 +277,7 @@ export function HalamanLabel() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className={cn('space-y-1.5', t.gulunganMm && 'invisible')}>
               <Label htmlFor="label-mulai">Mulai dari label ke-</Label>
               <Input
                 id="label-mulai"
@@ -360,12 +400,23 @@ export function HalamanLabel() {
 
         <Card className="w-[340px] gap-2 self-start p-3">
           <div className="text-sm font-semibold text-slate-700">
-            Pratinjau lembar 1 dari {Math.max(1, lembar.length)}
+            {t.gulunganMm
+              ? `Pratinjau gulungan ${t.gulunganMm} mm`
+              : `Pratinjau lembar 1 dari ${Math.max(1, lembar.length)}`}
           </div>
-          <div className="h-[460px] overflow-hidden rounded border bg-slate-50">
-            <div className="origin-top-left scale-[0.4] p-[8mm]" style={{ width: '210mm' }}>
-              <Lembar label={lembar[0] ?? []} t={t} tampilHarga={tampilHarga} />
-            </div>
+          <div className="h-[460px] overflow-y-auto rounded border bg-slate-50">
+            {t.gulunganMm ? (
+              <div
+                className="mx-auto my-2 origin-top scale-[0.8] bg-white py-[3mm] shadow-sm"
+                style={{ width: `${t.gulunganMm}mm`, paddingInline: '3mm' }}
+              >
+                <Lembar label={(lembar[0] ?? []).slice(0, 12)} t={t} tampilHarga={tampilHarga} />
+              </div>
+            ) : (
+              <div className="origin-top-left scale-[0.4] p-[8mm]" style={{ width: '210mm' }}>
+                <Lembar label={lembar[0] ?? []} t={t} tampilHarga={tampilHarga} />
+              </div>
+            )}
           </div>
           <p className="text-xs text-slate-500">
             Garis putus-putus hanya di layar. Cetak dengan skala 100% (tanpa "fit to page").
@@ -375,10 +426,10 @@ export function HalamanLabel() {
 
       {cetak && (
         <AreaCetak
-          ukuranKertas="A4"
+          ukuranKertas={t.gulunganMm ? `${t.gulunganMm}mm auto` : 'A4'}
           css={`
             @page {
-              size: A4;
+              size: ${t.gulunganMm ? `${t.gulunganMm}mm auto` : 'A4'};
               margin: ${t.margin};
             }
           `}

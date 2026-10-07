@@ -192,7 +192,11 @@ export function HalamanFormKonsinyasi() {
             </Button>
             <Button
               type="submit"
-              disabled={form.formState.isSubmitting || !p || p.jumlahBarisJual === 0}
+              disabled={
+                form.formState.isSubmitting ||
+                !p ||
+                p.jumlahBarisJual + p.jumlahBarisGantiRugi === 0
+              }
             >
               {form.formState.isSubmitting ? 'Menyimpan…' : 'Simpan setoran'}
             </Button>

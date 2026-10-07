@@ -73,7 +73,7 @@ const PENJELASAN: Record<JenisPenyesuaianM1, string> = {
   KOREKSI: 'Perbaikan stok langsung: + menambah, − mengurangi. Alasan wajib diisi.',
   RUSAK: 'Memindahkan barang dari stok jual ke stok rusak (tidak bisa dijual).',
   MUSNAH:
-    'Mengeluarkan barang dari stok rusak karena dibuang atau dimusnahkan. Nilainya menjadi kerugian; alasan wajib diisi.',
+    'Mengeluarkan barang dari stok rusak karena dibuang. Nilainya menjadi kerugian toko; barang titipan yang dimusnahkan dibayar ke penitip di setoran berikutnya. Alasan wajib.',
 };
 
 /** "14.000" → "14", "2.500" → "2,5" (isian form). */

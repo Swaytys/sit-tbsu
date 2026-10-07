@@ -160,7 +160,8 @@ function Tabel({ t }: { t: TabelLaporan }) {
   const lebarTotal = t.kolom.reduce((a, k) => a + k.lebar, 0);
   const adaData = t.baris.some((b) => b.gaya === 'data');
   return (
-    <table className="w-full border-collapse">
+    // Lebar kolom tetap dari colgroup (tidak didorong isi) dan teks membungkus: tabel selalu muat di kertas.
+    <table className="w-full table-fixed border-collapse break-words">
       <colgroup>
         {t.kolom.map((k, i) => (
           <col key={i} style={{ width: `${((k.lebar / lebarTotal) * 100).toFixed(2)}%` }} />
@@ -264,9 +265,10 @@ export function DokumenLaporanFormal({
     <article
       className={cn(
         'dokumen-laporan bg-white text-[12.5px] leading-snug text-slate-900',
-        !cetak && 'mx-auto border border-slate-200 px-10 py-9 shadow-sm',
-        !cetak && (d.orientasi === 'lanskap' ? 'max-w-[1180px]' : 'max-w-[900px]'),
+        // Pratinjau = selembar kertas A4 asli dengan margin cetak (lebarnya sama dengan hasil cetak).
+        !cetak && 'mx-auto border border-slate-200 px-[12mm] py-[14mm] shadow-sm',
       )}
+      style={cetak ? undefined : { width: d.orientasi === 'lanskap' ? '297mm' : '210mm' }}
       data-testid="dokumen-laporan"
     >
       <Kop toko={toko} />

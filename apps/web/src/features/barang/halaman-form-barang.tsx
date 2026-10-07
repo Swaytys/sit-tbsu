@@ -16,7 +16,7 @@ import {
 import { AlertTriangle, ArrowLeft, ImagePlus, Lock, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
@@ -120,7 +120,12 @@ export function HalamanFormBarang() {
 
 const TANPA = 'TANPA';
 
-function nilaiAwal(b: DetailBarang | null, tierAktif: TingkatHarga[]): InputBarang {
+/** `?titipan=<idPemasok>`: barang baru langsung berkepemilikan titipan pemasok itu (dari halaman Konsinyasi). */
+function nilaiAwal(
+  b: DetailBarang | null,
+  tierAktif: TingkatHarga[],
+  idPenitip: number | null = null,
+): InputBarang {
   return {
     kode: b?.kode ?? '',
     barcode: b?.barcode ?? '',
@@ -130,8 +135,8 @@ function nilaiAwal(b: DetailBarang | null, tierAktif: TingkatHarga[]): InputBara
     idSatuanDasar: b?.idSatuanDasar ?? 0,
     stokMinimum: b ? formatDesimal(b.stokMinimum).replaceAll('.', '') : '',
     hargaModalAwal: b?.hargaModalAwal ?? null,
-    kepemilikan: b?.kepemilikan ?? 'MILIK_SENDIRI',
-    idPemasokKonsinyasi: b?.idPemasokKonsinyasi ?? null,
+    kepemilikan: b?.kepemilikan ?? (idPenitip !== null ? 'KONSINYASI' : 'MILIK_SENDIRI'),
+    idPemasokKonsinyasi: b?.idPemasokKonsinyasi ?? (idPenitip || null),
     hargaTitip: b?.hargaTitip ?? null,
     keterangan: b?.keterangan ?? '',
     atribut: (b?.atribut ?? []).map((a) => ({
@@ -167,6 +172,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
   const hapusGambar = useHapusGambar();
   const [berkasBaru, setBerkasBaru] = useState<File | null>(null);
   const bolehKelolaHarga = usePengguna().izin.includes('master.harga.kelola');
+  const [url] = useSearchParams();
 
   const tierAktif = referensi.tier.filter((t) => t.statusAktif === 'AKTIF');
   const kategoriPilihan = referensi.kategori.filter(
@@ -195,7 +201,11 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
 
   const form = useForm<InputBarang, unknown, DataBarang>({
     resolver: zodResolver(skemaBarang),
-    defaultValues: nilaiAwal(barang, tierAktif),
+    defaultValues: nilaiAwal(
+      barang,
+      tierAktif,
+      barang ? null : url.has('titipan') ? Number(url.get('titipan')) || 0 : null,
+    ),
   });
   // Metode dipilih eksplisit (H4) agar "Tetap" yang dikosongkan tidak diam-diam menjadi "Ikut tier".
   const [metode, setMetode] = useState<MetodeHarga[]>(() => metodeAwal(barang, tierAktif));
@@ -867,8 +877,10 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
                       <div className="space-y-1">
                         <FormLabel>Harga otomatis</FormLabel>
                         <FormDescription className="text-xs">
-                          Harga ikut tier dan markup langsung naik saat harga modal naik; bila
-                          turun, menunggu Tinjau Harga. Harga tetap tidak pernah berubah otomatis.
+                          Nyala: harga yang dihitung dari modal (pilihan Tier atau %) ikut naik
+                          sendiri saat harga beli naik. Bila modal turun, harga tidak langsung
+                          turun, tetapi masuk Tinjau Harga untuk diputuskan. Harga Rp (tetap) tidak
+                          pernah berubah sendiri.
                         </FormDescription>
                       </div>
                       <FormControl>

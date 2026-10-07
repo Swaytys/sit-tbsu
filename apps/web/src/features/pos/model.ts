@@ -184,13 +184,23 @@ export function keBarisOrder(b: BarisPos): InputBarisOrder {
 }
 
 /**
- * Isian kotak cari: "3*semen" atau "3x semen" = qty 3 untuk barang berikutnya (kebiasaan POS ritel);
- * koma desimal diterima ("0,5*paku").
+ * Isian kotak cari: "3*semen", "3x semen", atau "semen*3" = qty 3 untuk barang tersebut (kebiasaan POS
+ * ritel); koma desimal diterima ("0,5*paku"). Nama barang tidak boleh memuat "*".
  */
 export function uraikanCari(teks: string): { qty: string; kata: string } {
-  const m = /^\s*(\d+(?:[.,]\d{1,3})?)\s*[*x×]\s*(.*)$/i.exec(teks);
-  if (m?.[1] !== undefined && m[2] !== undefined && qtySah(m[1].replace(',', '.'))) {
-    return { qty: m[1].replace(',', '.'), kata: m[2].trim() };
+  // Qty paling banyak 6 digit: angka lebih panjang adalah barcode ("8991234567890*2" = barcode × 2).
+  const depan = /^\s*(\d{1,6}(?:[.,]\d{1,3})?)\s*[*x×]\s*(.*)$/i.exec(teks);
+  if (depan?.[1] !== undefined && depan[2] !== undefined && qtySah(depan[1].replace(',', '.'))) {
+    return { qty: depan[1].replace(',', '.'), kata: depan[2].trim() };
+  }
+  const belakang = /^(.*?)\s*\*\s*(\d{1,6}(?:[.,]\d{1,3})?)\s*$/.exec(teks);
+  if (
+    belakang?.[1] !== undefined &&
+    belakang[2] !== undefined &&
+    belakang[1].trim() !== '' &&
+    qtySah(belakang[2].replace(',', '.'))
+  ) {
+    return { qty: belakang[2].replace(',', '.'), kata: belakang[1].trim() };
   }
   return { qty: '1', kata: teks.trim() };
 }

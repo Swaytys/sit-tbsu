@@ -1,6 +1,6 @@
 import { formatRupiah, type BarisBarang } from '@sit/shared';
 import { Search } from 'lucide-react';
-import { useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { toast } from 'sonner';
 import { useDaftarBarang } from '@/api/barang';
 import { ambilIsi, api, pesanGalat } from '@/api/client';
@@ -20,7 +20,7 @@ function terbaik(daftar: BarisBarang[], kata: string): BarisBarang | undefined {
 }
 
 /**
- * Kotak cari barang layar POS (K-073). "3*semen" = qty 3. Enter langsung menambah hasil yang disorot; bila
+ * Kotak cari barang layar POS (K-073). "3*semen" atau "semen*3" = qty 3; F1 menyisipkan "*". Enter langsung menambah hasil yang disorot; bila
  * hasil belum tiba (mengetik cepat / scanner barcode), Enter menunggu jawaban server lalu memakai kecocokan
  * terbaik — tidak ada ketikan yang hilang. Enter pada kotak kosong = lanjut ke pembayaran.
  */
@@ -33,7 +33,7 @@ export function CariBarangPos({
   onEsc,
   onFokus,
   tierBawaan,
-  placeholder = 'Ketik nama/kode atau scan barcode… (3*semen = qty 3)',
+  placeholder = 'Ketik nama/kode atau scan barcode… (semen*3 = qty 3, F1 = *)',
 }: {
   id: string;
   aktif: boolean;
@@ -48,6 +48,28 @@ export function CariBarangPos({
 }) {
   const [teks, setTeks] = useState('');
   const [sorot, setSorot] = useState(0);
+  const kotak = useRef<HTMLInputElement>(null);
+
+  // F1 di mana pun: fokus ke kotak cari dan sisipkan "*" (qty) di posisi kursor.
+  useEffect(() => {
+    function f1(e: globalThis.KeyboardEvent) {
+      if (e.key !== 'F1') return;
+      e.preventDefault();
+      const el = kotak.current;
+      if (!el) return;
+      const fokus = document.activeElement === el;
+      el.focus();
+      setTeks((t) => {
+        const awal = fokus ? (el.selectionStart ?? t.length) : t.length;
+        const akhir = fokus ? (el.selectionEnd ?? t.length) : t.length;
+        const baru = `${t.slice(0, awal)}*${t.slice(akhir)}`;
+        requestAnimationFrame(() => el.setSelectionRange(awal + 1, awal + 1));
+        return baru;
+      });
+    }
+    window.addEventListener('keydown', f1);
+    return () => window.removeEventListener('keydown', f1);
+  }, []);
   const [mencari, setMencari] = useState(false);
   const { qty, kata } = uraikanCari(teks);
   const kataTunda = useTunda(kata, 100);
@@ -120,6 +142,7 @@ export function CariBarangPos({
       <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-slate-400" />
       <input
         id={id}
+        ref={kotak}
         value={teks}
         onChange={(e) => {
           setTeks(e.target.value);

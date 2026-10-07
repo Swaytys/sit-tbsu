@@ -6,6 +6,8 @@ function pathDokumen(m: Pick<BarisMutasi, 'jenisDokumen' | 'idDokumen'>): string
   if (m.idDokumen === null) return null;
   if (m.jenisDokumen === 'PENERIMAAN') return `/penerimaan/${m.idDokumen}`;
   if (m.jenisDokumen === 'PENYESUAIAN') return `/persediaan/penyesuaian/${m.idDokumen}`;
+  if (m.jenisDokumen === 'PENJUALAN') return `/penjualan/${m.idDokumen}`;
+  if (m.jenisDokumen === 'RETUR_PEMASOK') return `/retur-pemasok/${m.idDokumen}`;
   return null;
 }
 

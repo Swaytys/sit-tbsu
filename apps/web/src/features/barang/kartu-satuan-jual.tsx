@@ -146,7 +146,7 @@ export function KartuSatuanJual({
         <CardDescription>
           Jual barang ini dalam satuan lain (mis. dus isi 12, roll 50 m). Stok tetap dihitung dalam
           satuan dasar <b>{barang.kodeSatuan}</b>. Harga kosong = otomatis (harga{' '}
-          {barang.kodeSatuan} × faktor).
+          {barang.kodeSatuan} × isi).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -184,7 +184,10 @@ export function KartuSatuanJual({
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <span className="text-sm font-medium">Isi ({barang.kodeSatuan})</span>
+                  <span className="text-sm font-medium">
+                    1 {satuan.find((s) => s.id === x.idSatuan)?.kode ?? 'satuan'} = …{' '}
+                    {barang.kodeSatuan}
+                  </span>
                   <Input
                     inputMode="decimal"
                     aria-label={`Faktor satuan jual ${i + 1}`}
@@ -238,33 +241,16 @@ export function KartuSatuanJual({
                 )}
               </div>
               {bolehHarga && (
-                <div className="grid grid-cols-3 gap-3">
-                  {tierAktif.map((t) => {
-                    const d = hargaDasar(t.id);
-                    const sah = /^\d+(\.\d+)?$/.test(x.faktor.replace(',', '.'));
-                    const kiraan =
-                      d !== null && sah
-                        ? hargaSatuanJual(d, x.faktor.replace(',', '.'), KELIPATAN_PERKIRAAN)
-                        : null;
-                    return (
-                      <div key={t.id} className="space-y-1">
-                        <span className="text-xs font-medium text-slate-600">
-                          Harga {t.nama} / {kode}
-                        </span>
-                        <InputRupiah
-                          aria-label={`Harga ${t.nama} satuan jual ${i + 1}`}
-                          value={x.hargaTetap[t.id] ?? null}
-                          placeholder={
-                            kiraan === null ? 'Otomatis' : `Otomatis ≈ ${formatRupiah(kiraan)}`
-                          }
-                          onChange={(v) =>
-                            ubah(x.kunci, { hargaTetap: { ...x.hargaTetap, [t.id]: v } })
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+                <HargaSatuanJual
+                  tier={tierAktif}
+                  kode={kode}
+                  kodeDasar={barang.kodeSatuan}
+                  faktor={x.faktor}
+                  nomor={i + 1}
+                  hargaDasar={hargaDasar}
+                  hargaTetap={x.hargaTetap}
+                  onUbah={(h) => ubah(x.kunci, { hargaTetap: h })}
+                />
               )}
             </div>
           );
@@ -299,5 +285,75 @@ export function KartuSatuanJual({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Harga satuan jual per tier. Kosong = otomatis: harga satuan dasar tier itu × isi (dibulatkan). Tier bawaan
+ * tampil; tier lain dilipat agar form tetap ringkas.
+ */
+function HargaSatuanJual({
+  tier,
+  kode,
+  kodeDasar,
+  faktor,
+  nomor,
+  hargaDasar,
+  hargaTetap,
+  onUbah,
+}: {
+  tier: TingkatHarga[];
+  kode: string;
+  kodeDasar: string;
+  faktor: string;
+  nomor: number;
+  hargaDasar: (idTier: number) => number | null;
+  hargaTetap: Record<number, number | null>;
+  onUbah: (h: Record<number, number | null>) => void;
+}) {
+  const f = faktor.replace(',', '.');
+  const sah = /^\d+(\.\d+)?$/.test(f) && /[1-9]/.test(f);
+  const isian = (t: TingkatHarga) => {
+    const d = hargaDasar(t.id);
+    const kiraan = d !== null && sah ? hargaSatuanJual(d, f, KELIPATAN_PERKIRAAN) : null;
+    return (
+      <div key={t.id} className="space-y-1">
+        <span className="text-xs font-medium text-slate-600">
+          Harga {t.nama} per {kode}
+        </span>
+        <InputRupiah
+          aria-label={`Harga ${t.nama} satuan jual ${nomor}`}
+          value={hargaTetap[t.id] ?? null}
+          placeholder={
+            kiraan === null
+              ? `Isi dulu 1 ${kode} = … ${kodeDasar}`
+              : `Otomatis ${formatRupiah(kiraan)}`
+          }
+          onChange={(v) => onUbah({ ...hargaTetap, [t.id]: v })}
+        />
+      </div>
+    );
+  };
+  const utama = tier.filter((t) => t.isDefault);
+  const lain = tier.filter((t) => !t.isDefault);
+  const adaIsiLain = lain.some((t) => (hargaTetap[t.id] ?? null) !== null);
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 items-end gap-3">
+        {utama.map(isian)}
+        <p className="col-span-2 text-xs text-slate-500">
+          Kosongkan = otomatis ikut harga {kodeDasar} × isi. Isi angka hanya bila harga per {kode}{' '}
+          berbeda (mis. lebih murah).
+        </p>
+      </div>
+      {lain.length > 0 && (
+        <details open={adaIsiLain} className="text-sm">
+          <summary className="cursor-pointer text-xs text-blue-700">
+            Harga tier lain ({lain.length})
+          </summary>
+          <div className="mt-2 grid grid-cols-3 gap-3">{lain.map(isian)}</div>
+        </details>
+      )}
+    </div>
   );
 }

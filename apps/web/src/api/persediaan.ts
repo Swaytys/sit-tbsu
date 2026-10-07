@@ -195,6 +195,8 @@ export type ParamDaftarMutasi = {
   cari: string;
   idBarang: number | null;
   jenis: JenisMutasi | null;
+  kepemilikan?: Kepemilikan | null;
+  kondisi?: KondisiStok | null;
   dari: string;
   sampai: string;
   halaman: number;
@@ -213,6 +215,8 @@ export function useDaftarMutasi(p: ParamDaftarMutasi) {
             jenis: p.jenis ?? undefined,
             dari: p.dari || undefined,
             sampai: p.sampai || undefined,
+            kepemilikan: p.kepemilikan ?? undefined,
+            kondisi: p.kondisi ?? undefined,
             halaman: String(p.halaman),
             perHalaman: String(p.perHalaman),
           },
