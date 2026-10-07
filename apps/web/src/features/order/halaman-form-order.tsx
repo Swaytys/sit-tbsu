@@ -8,6 +8,7 @@ import {
   type DataOrder,
   type DetailOrder,
   type InputOrder,
+  type OpsiSatuanBaris,
   type InputPratinjauOrder,
 } from '@sit/shared';
 import { ArrowLeft, Trash2 } from 'lucide-react';
@@ -56,14 +57,17 @@ import {
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
+import { opsiDariBarang, satuanAwal } from '../pos/model';
 
 /** Info tampilan per barang di form (bukan bagian data yang dikirim). */
 type InfoBarang = {
   kode: string;
   nama: string;
+  /** Satuan dasar (stok). */
   satuan: string;
   stokTersedia: string;
-  hargaTier: { idTingkatHarga: number; hargaJual: number }[];
+  /** Pilihan satuan baris dengan harga per tier (K-091). */
+  opsiSatuan: OpsiSatuanBaris[];
 };
 
 const BAWAAN = 'BAWAAN';
@@ -122,9 +126,9 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
         {
           kode: b.kodeBarang,
           nama: b.namaBarang,
-          satuan: b.kodeSatuan,
+          satuan: b.kodeSatuanDasar,
           stokTersedia: b.stokTersedia,
-          hargaTier: b.hargaTier,
+          opsiSatuan: b.opsiSatuan,
         },
       ]),
     ),
@@ -151,6 +155,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
       setujuDiBawahModal: false,
       baris: (dokumen?.baris ?? []).map((b) => ({
         idBarang: b.idBarang,
+        idSatuanJual: b.idSatuanJual,
         qty: b.qty.includes('.') ? b.qty.replace(/\.?0+$/, '') : b.qty,
         idTingkatHarga: b.hargaManual ? null : b.idTingkatHarga,
         hargaManual: b.hargaManual,
@@ -184,9 +189,19 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
     if (!b) return null;
     if (b.hargaManual) return typeof b.hargaSatuan === 'number' ? b.hargaSatuan : null;
     const idTier = b.idTingkatHarga ?? tierBawaan;
+    const idSj = b.idSatuanJual ?? null;
     const lama = dokumen?.baris.find((x) => x.idBarang === b.idBarang);
-    if (lama && !lama.hargaManual && lama.idTingkatHarga === idTier) return lama.hargaSatuan;
-    return info[b.idBarang]?.hargaTier.find((h) => h.idTingkatHarga === idTier)?.hargaJual ?? null;
+    if (lama && !lama.hargaManual && lama.idTingkatHarga === idTier && lama.idSatuanJual === idSj)
+      return lama.hargaSatuan;
+    return hargaTierBaris(i).find((h) => h.idTingkatHarga === idTier)?.hargaJual ?? null;
+  }
+
+  /** Harga per tier untuk satuan baris i (K-091). */
+  function hargaTierBaris(i: number) {
+    const b = isi?.[i];
+    if (!b) return [];
+    const opsi = info[b.idBarang]?.opsiSatuan ?? [];
+    return opsi.find((o) => o.idSatuanJual === (b.idSatuanJual ?? null))?.hargaTier ?? [];
   }
 
   function subtotalBaris(i: number): number {
@@ -222,6 +237,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
           diskonTransaksiPersen: persenTransaksi ? (diskonPersen ?? null) : null,
           baris: (isi ?? []).map((b) => ({
             idBarang: b.idBarang,
+            idSatuanJual: b.idSatuanJual ?? null,
             qty: teksQty(b.qty) ?? '0',
             idTingkatHarga: b.hargaManual ? null : (b.idTingkatHarga ?? null),
             hargaManual: b.hargaManual === true,
@@ -251,14 +267,12 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
         nama: b.namaBarang,
         satuan: b.kodeSatuan,
         stokTersedia: b.stokTersedia,
-        hargaTier: b.harga.map((h) => ({
-          idTingkatHarga: h.idTingkatHarga,
-          hargaJual: h.hargaJual,
-        })),
+        opsiSatuan: opsiDariBarang(b),
       },
     }));
     baris.append({
       idBarang: b.id,
+      idSatuanJual: satuanAwal(b),
       qty: '1',
       idTingkatHarga: null,
       hargaManual: false,
@@ -568,14 +582,42 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                           name={`baris.${i}.qty`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormControl>
-                                <Input
-                                  inputMode="decimal"
-                                  aria-label={`Qty ${inf?.nama ?? i + 1}`}
-                                  {...field}
-                                  value={typeof field.value === 'string' ? field.value : ''}
-                                />
-                              </FormControl>
+                              <div className="flex items-center gap-1.5">
+                                <FormControl>
+                                  <Input
+                                    inputMode="decimal"
+                                    aria-label={`Qty ${inf?.nama ?? i + 1}`}
+                                    {...field}
+                                    value={typeof field.value === 'string' ? field.value : ''}
+                                  />
+                                </FormControl>
+                                {(inf?.opsiSatuan.length ?? 0) > 1 ? (
+                                  <select
+                                    aria-label={`Satuan ${inf?.nama ?? i + 1}`}
+                                    className="h-9 rounded-md border border-slate-300 bg-white px-1 text-sm"
+                                    value={String(isi?.[i]?.idSatuanJual ?? '')}
+                                    onChange={(e) =>
+                                      form.setValue(
+                                        `baris.${i}.idSatuanJual`,
+                                        e.target.value ? Number(e.target.value) : null,
+                                        { shouldDirty: true },
+                                      )
+                                    }
+                                  >
+                                    {inf?.opsiSatuan.map((o) => (
+                                      <option
+                                        key={o.idSatuanJual ?? 0}
+                                        value={o.idSatuanJual ?? ''}
+                                      >
+                                        {o.kodeSatuan}
+                                        {o.idSatuanJual !== null ? ` (${o.faktor})` : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="text-xs text-slate-500">{inf?.satuan}</span>
+                                )}
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -631,7 +673,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                                     {tierAktif
                                       .filter((t) => t.id !== tierBawaan)
                                       .map((t) => {
-                                        const h = inf?.hargaTier.find(
+                                        const h = hargaTierBaris(i).find(
                                           (x) => x.idTingkatHarga === t.id,
                                         );
                                         return (

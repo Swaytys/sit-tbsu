@@ -1,5 +1,6 @@
 import type {
   DataBarang,
+  DataSimpanSatuanJual,
   DataTingkatHarga,
   DetailBarang,
   BacaImportBarang,
@@ -74,6 +75,13 @@ export function useSimpanBarang() {
         ? await api.barang.$post({ json })
         : await api.barang[':id'].$patch({ param: param(id), json }),
     ),
+  );
+}
+
+/** Simpan satuan jual barang (K-091); harga satuan jual ikut berubah. */
+export function useSimpanSatuanJual() {
+  return useMutasi(['barang'], async ({ id, json }: { id: number; json: DataSimpanSatuanJual }) =>
+    ambilData(await api.barang[':id']['satuan-jual'].$put({ param: param(id), json })),
   );
 }
 
