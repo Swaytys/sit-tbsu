@@ -7,7 +7,7 @@ import { ambilIsi, api, pesanGalat } from '@/api/client';
 import { formatDesimal } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
-import { uraikanCari } from './model';
+import { opsiDariBarang, satuanAwal, uraikanCari } from './model';
 
 const JUMLAH_HASIL = 8;
 
@@ -170,10 +170,13 @@ export function CariBarangPos({
                 <span className="font-medium">{b.namaBarang}</span>
               </span>
               <span className="shrink-0 text-xs text-slate-500 tabular-nums">
-                {formatRupiah(
-                  (b.harga.find((h) => h.idTingkatHarga === tierBawaan) ?? b.harga[0])?.hargaJual ??
-                    0,
-                )}{' '}
+                {(() => {
+                  // K-091: satuan yang akan dipakai (barcode satuan jual / satuan bawaan) dan harganya.
+                  const o = opsiDariBarang(b).find((x) => x.idSatuanJual === satuanAwal(b));
+                  const h =
+                    o?.hargaTier.find((x) => x.idTingkatHarga === tierBawaan) ?? o?.hargaTier[0];
+                  return `${formatRupiah(h?.hargaJual ?? 0)}/${o?.kodeSatuan ?? b.kodeSatuan}`;
+                })()}{' '}
                 · stok {formatDesimal(b.stokTersedia)} {b.kodeSatuan}
               </span>
             </li>
