@@ -105,6 +105,11 @@ export function CariBarangPos({
     kata !== '' && kataTunda === kata && !daftar.isPlaceholderData && !daftar.isFetching;
   const hasil = segar ? pilihanDari(daftar.data?.data ?? []) : [];
 
+  // Hasil yang disorot dengan panah tetap terlihat walau daftar perlu digulir.
+  useEffect(() => {
+    document.getElementById(`${id}-hasil-${sorot}`)?.scrollIntoView({ block: 'nearest' });
+  }, [id, sorot]);
+
   function tambah(b: BarisBarang | undefined, idSatuanJual?: number | null) {
     if (!b) {
       toast.error(`Barang "${kata}" tidak ditemukan.`);
@@ -186,35 +191,40 @@ export function CariBarangPos({
         </span>
       )}
       {aktif && kata && (
-        <ul
-          role="listbox"
-          aria-label="Hasil cari barang"
-          className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg"
-        >
-          {hasil.length === 0 && (
-            <li className="px-3 py-2 text-sm text-slate-500">
-              {segar && !mencari ? 'Tidak ada barang yang cocok.' : 'Mencari…'}
-            </li>
-          )}
-          {hasil.map(({ b, o }, i) => {
-            const h = o.hargaTier.find((x) => x.idTingkatHarga === tierBawaan) ?? o.hargaTier[0];
-            return (
-              <li
-                key={`${b.id}:${o.idSatuanJual ?? 0}`}
-                role="option"
-                aria-selected={i === sorot}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  tambah(b, o.idSatuanJual);
-                }}
-                className={cn(
-                  'flex cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-sm',
-                  i === sorot && 'bg-blue-50',
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="shrink-0 font-mono text-xs text-slate-500">{b.kode}</span>
-                  <span className="truncate font-medium">{b.namaBarang}</span>
+        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+          <ul
+            role="listbox"
+            aria-label="Hasil cari barang"
+            className="max-h-[50vh] overflow-y-auto"
+          >
+            {hasil.length === 0 && (
+              <li className="px-3 py-2 text-sm text-slate-500">
+                {segar && !mencari ? 'Tidak ada barang yang cocok.' : 'Mencari…'}
+              </li>
+            )}
+            {hasil.map(({ b, o }, i) => {
+              const h = o.hargaTier.find((x) => x.idTingkatHarga === tierBawaan) ?? o.hargaTier[0];
+              return (
+                <li
+                  key={`${b.id}:${o.idSatuanJual ?? 0}`}
+                  id={`${id}-hasil-${i}`}
+                  role="option"
+                  aria-selected={i === sorot}
+                  onMouseEnter={() => setSorot(i)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    tambah(b, o.idSatuanJual);
+                  }}
+                  className={cn(
+                    'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm',
+                    i === sorot && 'bg-blue-50',
+                  )}
+                >
+                  <span className="max-w-[55%] shrink-0 truncate font-medium">{b.namaBarang}</span>
+                  {/* Atribut ringkas: pembeda barang yang namanya mirip. */}
+                  <span className="min-w-0 flex-1 truncate text-xs text-slate-500">
+                    {b.ringkasAtribut.map((a) => a.nilai).join(' · ')}
+                  </span>
                   <span
                     className={cn(
                       'shrink-0 rounded px-1 text-xs',
@@ -226,16 +236,36 @@ export function CariBarangPos({
                     {o.kodeSatuan}
                     {o.idSatuanJual !== null && ` isi ${formatDesimal(o.faktor)} ${b.kodeSatuan}`}
                   </span>
-                </span>
-                <span className="shrink-0 text-xs text-slate-500 tabular-nums">
-                  {formatRupiah(h?.hargaJual ?? 0)}/{o.kodeSatuan} · stok{' '}
-                  {formatDesimal(b.stokTersedia)} {b.kodeSatuan}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+                  <span className="w-44 shrink-0 text-right text-xs text-slate-500 tabular-nums">
+                    {h && h.hargaJual > 0
+                      ? `${formatRupiah(h.hargaJual)}/${o.kodeSatuan}`
+                      : 'harga belum ada'}{' '}
+                    · stok {formatDesimal(b.stokTersedia)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          {/* Info lengkap barang yang disorot (panah atau kursor): kode, kategori, merk, atribut. */}
+          {hasil[sorot] && <InfoBarang b={hasil[sorot].b} />}
+        </div>
       )}
+    </div>
+  );
+}
+
+function InfoBarang({ b }: { b: BarisBarang }) {
+  const bagian = [
+    b.kode,
+    b.barcode ? `barcode ${b.barcode}` : null,
+    b.namaKategori,
+    b.namaMerk,
+    ...b.ringkasAtribut.map((a) => `${a.nama}: ${a.nilai}`),
+    b.kepemilikan === 'KONSINYASI' ? `titipan ${b.namaPemasokKonsinyasi ?? ''}` : null,
+  ].filter(Boolean);
+  return (
+    <div className="border-t bg-slate-50 px-3 py-1.5 text-xs text-slate-600" aria-live="polite">
+      {bagian.join(' · ')}
     </div>
   );
 }

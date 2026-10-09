@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  kunciBaris,
   formatRupiah,
   skemaOrder,
   subtotalRupiah,
@@ -189,7 +190,9 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
     const b = isi?.[i];
     if (!b) return null;
     if (b.hargaManual) return typeof b.hargaSatuan === 'number' ? b.hargaSatuan : null;
-    const lama = dokumen?.baris.find((x) => x.idBarang === b.idBarang);
+    const lama = dokumen?.baris.find(
+      (x) => x.idBarang === b.idBarang && x.idSatuanJual === (b.idSatuanJual ?? null),
+    );
     // Perkiraan sebelum pratinjau API tiba; tier otomatis (K-094) ditentukan API.
     const idTier = b.idTingkatHarga ?? lama?.idTingkatHarga ?? tierBawaan;
     const idSj = b.idSatuanJual ?? null;
@@ -251,12 +254,17 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
       }
     : null;
   const pratinjau = usePratinjauOrder(isianPratinjau);
-  const pratinjauBaris = new Map((pratinjau.data?.baris ?? []).map((b) => [b.idBarang, b]));
+  const pratinjauBaris = new Map(
+    (pratinjau.data?.baris ?? []).map((b) => [kunciBaris(b.idBarang, b.idSatuanJual), b]),
+  );
   const hasil = pratinjau.segar ? pratinjau.data : undefined;
   const namaTier = (id: number) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain';
 
   function tambah(b: BarisBarang) {
-    const ada = (isi ?? []).findIndex((x) => x.idBarang === b.id);
+    const satuan = satuanAwal(b);
+    const ada = (isi ?? []).findIndex(
+      (x) => x.idBarang === b.id && (x.idSatuanJual ?? null) === satuan,
+    );
     if (ada >= 0) {
       toast.info(`${b.namaBarang} sudah ada di baris ${ada + 1}.`);
       form.setFocus(`baris.${ada}.qty`);
@@ -274,7 +282,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
     }));
     baris.append({
       idBarang: b.id,
-      idSatuanJual: satuanAwal(b),
+      idSatuanJual: satuan,
       qty: '1',
       idTingkatHarga: null,
       hargaManual: false,
@@ -297,7 +305,10 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
         label: 'Urungkan',
         onClick: () => {
           const kini = form.getValues('baris');
-          if (kini.some((b) => b.idBarang === nilai.idBarang)) return;
+          if (
+            kini.some((b) => b.idBarang === nilai.idBarang && b.idSatuanJual === nilai.idSatuanJual)
+          )
+            return;
           baris.insert(Math.min(i, kini.length), nilai);
         },
       },
@@ -546,7 +557,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                 {baris.fields.map((f, i) => {
                   const inf = info[f.idBarang];
                   const manual = isi?.[i]?.hargaManual === true;
-                  const pr = pratinjauBaris.get(f.idBarang);
+                  const pr = pratinjauBaris.get(kunciBaris(f.idBarang, isi?.[i]?.idSatuanJual));
                   const harga = pr?.hargaSatuan ?? hargaBaris(i);
                   const tanpaPromo = isi?.[i]?.tanpaPromo === true;
                   return (

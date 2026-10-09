@@ -1,4 +1,5 @@
 import {
+  kunciBaris,
   formatRupiah,
   skemaCheckout,
   skemaSuratJalan,
@@ -12,6 +13,7 @@ import {
   type TiketAntrean,
 } from '@sit/shared';
 import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent } from 'react';
+import { Printer } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
@@ -19,6 +21,7 @@ import { ambilData, api, GalatApi, pesanGalat } from '@/api/client';
 import { useDaftarTingkatHarga } from '@/api/mitra';
 import { useTampilanToko } from '@/api/pengaturan';
 import {
+  catatCetakUlang,
   useBukaShift,
   useBuatSuratJalan,
   useCheckout,
@@ -34,6 +37,17 @@ import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InvoiceA4, SuratJalanA4 } from '@/components/dokumen-a4';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
 import { Struk } from '@/components/struk';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { BilahTombol, type Tombol } from './bilah-tombol';
 import { CariBarangPos } from './cari-barang-pos';
@@ -82,7 +96,7 @@ const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
     { kunci: '+ −', label: 'Qty ±1' },
     { kunci: 'Angka', label: 'Ubah qty' },
     { kunci: '%', label: 'Diskon' },
-    { kunci: 'S', label: 'Satuan' },
+    { kunci: 'S', label: 'Ganti satuan' },
     { kunci: 'T', label: 'Tier' },
     { kunci: 'P', label: 'Lepas promo' },
     { kunci: 'Del', label: 'Hapus' },
@@ -187,6 +201,16 @@ export function LayarPos({
   const [bayarSaatTerima, setBayarSaatTerima] = useState(false);
   const [jatuhTempo, setJatuhTempo] = useState('');
   const [hasil, setHasil] = useState<DetailPenjualan | null>(null);
+  /** K-095: penjualan yang menunggu jawaban "cetak struk?" (mode TANYA). */
+  const [tanyaStruk, setTanyaStruk] = useState<DetailPenjualan | null>(null);
+  const [strukTercetak, setStrukTercetak] = useState(false);
+
+  /** Cetak struk; cetakan kedua dan seterusnya dicatat sebagai cetak ulang (log). */
+  function cetakStruk(p: DetailPenjualan, ulang: boolean) {
+    if (ulang) void catatCetakUlang(p.id).catch(() => undefined);
+    setCetak({ jenis: 'struk', p });
+    setStrukTercetak(true);
+  }
   const [cetak, setCetak] = useState<Cetakan>(null);
   const [kunciPanel, setKunciPanel] = useState(0);
   const [dialogShift, setDialogShift] = useState(false);
@@ -201,7 +225,9 @@ export function LayarPos({
   const pratinjau = usePratinjauOrder(
     tr.t.baris.length > 0 ? { idOrder: order?.id ?? null, order: tr.isianOrder(jenis) } : null,
   );
-  const pratinjauBaris = new Map((pratinjau.data?.baris ?? []).map((b) => [b.idBarang, b]));
+  const pratinjauBaris = new Map(
+    (pratinjau.data?.baris ?? []).map((b) => [kunciBaris(b.idBarang, b.idSatuanJual), b]),
+  );
   const totalTampil = pratinjau.segar && pratinjau.data ? pratinjau.data.total : tr.total;
   const indeksAman = Math.min(indeksTiket, Math.max(0, tiket.length - 1));
   const tanpaShift = bolehShift && shift.isSuccess && shift.data === null;
@@ -352,8 +378,14 @@ export function LayarPos({
       .mutateAsync(data)
       .then((p) => {
         setHasil(p);
-        // K-074: struk penjualan langsung selalu dicetak otomatis; invoice pengantaran hanya bila diminta (P).
-        if (!pengantaran) setCetak({ jenis: 'struk', p });
+        // K-074/K-095: struk penjualan langsung mengikuti Pengaturan (langsung cetak, tanya dulu, atau tidak);
+        // invoice pengantaran hanya bila diminta (P).
+        setStrukTercetak(false);
+        if (!pengantaran) {
+          const mode = toko?.strukCetak ?? 'OTOMATIS';
+          if (mode === 'OTOMATIS') cetakStruk(p, false);
+          else if (mode === 'TANYA') setTanyaStruk(p);
+        }
         tr.kosongkan();
         mulaiBaru();
         setZona(pengantaran ? 'hasil' : tiket.length > 1 ? 'antrean' : 'cari');
@@ -478,7 +510,7 @@ export function LayarPos({
         </section>
 
         {/* Kanan: transaksi aktif */}
-        <section className="flex w-[45%] min-w-0 flex-col gap-2">
+        <section className="flex min-h-0 w-[45%] min-w-0 flex-col gap-2 overflow-y-auto pr-1">
           <div className="rounded-md border bg-white px-3 py-2 text-sm">
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-semibold">
@@ -567,6 +599,14 @@ export function LayarPos({
               <div className="text-5xl font-black text-emerald-700 tabular-nums">
                 {formatRupiah(kembalianTerakhir)}
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => cetakStruk(hasil, strukTercetak)}
+              >
+                <Printer /> {strukTercetak ? 'Cetak struk lagi' : 'Cetak struk'}
+              </Button>
             </div>
           ) : (
             <KeranjangPos
@@ -688,6 +728,28 @@ export function LayarPos({
       </div>
       <BilahTombol daftar={tombol} />
 
+      <AlertDialog open={tanyaStruk !== null} onOpenChange={(buka) => !buka && setTanyaStruk(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cetak struk?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tanyaStruk?.nomor} · {formatRupiah(tanyaStruk?.totalNeto ?? 0)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Tidak (Esc)</AlertDialogCancel>
+            <AlertDialogAction
+              autoFocus
+              onClick={() => {
+                if (tanyaStruk) cetakStruk(tanyaStruk, false);
+                setTanyaStruk(null);
+              }}
+            >
+              Cetak (Enter)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <DialogKonfirmasi
         terbuka={limit !== null}
         onTutup={() => setLimit(null)}

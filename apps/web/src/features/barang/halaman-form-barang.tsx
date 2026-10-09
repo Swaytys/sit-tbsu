@@ -33,6 +33,7 @@ import { InputPersen } from '@/components/input-persen';
 import { InputRupiah } from '@/components/input-rupiah';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
   FormControl,
@@ -236,6 +237,10 @@ function FormBarang({
     });
   }
   const adaStok = barang !== null && barang.stokFisik !== '0.000';
+  // Harga modal boleh dikosongkan saat belum diketahui; dasar markup lalu dari penerimaan pertama (K-095).
+  const [modalBelumTahu, setModalBelumTahu] = useState(
+    barang !== null && !barang.sudahAdaMutasi && !barang.hargaModalAwal,
+  );
 
   const form = useForm<InputBarang, unknown, DataBarang>({
     resolver: zodResolver(skemaBarang),
@@ -672,12 +677,31 @@ function FormBarang({
                       <FormItem>
                         <FormLabel>Harga modal awal</FormLabel>
                         <FormControl>
-                          <InputRupiah {...field} disabled={barang?.sudahAdaMutasi} />
+                          <InputRupiah
+                            {...field}
+                            disabled={barang?.sudahAdaMutasi || modalBelumTahu}
+                            placeholder={modalBelumTahu ? 'Belum diketahui' : undefined}
+                          />
                         </FormControl>
+                        {!barang?.sudahAdaMutasi && (
+                          <label className="flex items-center gap-2 text-xs text-slate-600">
+                            <Checkbox
+                              checked={modalBelumTahu}
+                              onCheckedChange={(c) => {
+                                setModalBelumTahu(c === true);
+                                if (c === true) field.onChange(null);
+                              }}
+                              aria-label="Harga modal belum diketahui"
+                            />
+                            Belum tahu harga modalnya
+                          </label>
+                        )}
                         <FormDescription>
                           {barang?.sudahAdaMutasi
                             ? 'Dikunci: HPP sekarang mengikuti penerimaan.'
-                            : 'Dasar HPP dan markup sebelum ada penerimaan.'}
+                            : modalBelumTahu
+                              ? 'Harga yang ikut markup terisi sendiri setelah penerimaan pertama. Sebelum itu barang belum bisa dijual, kecuali harganya diisi Rp.'
+                              : 'Dasar HPP dan markup sebelum ada penerimaan.'}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
