@@ -175,6 +175,15 @@ export async function simpanSatuanJual(
           throw galat(i, 'faktor', `Satuan ${s.kode} terlalu kecil terhadap ${dasar.kode}.`);
         }
       }
+      // K-094: satuan jual = kemasan berisi lebih dari satu satuan dasar. Satuan terkecil yang dijual
+      // (sak, pcs, meter) dijadikan satuan dasar barang, sehingga sebagian kemasan dijual dalam satuan dasar.
+      if (b.statusAktif === 'AKTIF' && bandingQty(faktor, '1') <= 0) {
+        throw galat(
+          i,
+          'faktor',
+          `1 ${s.kode} harus berisi lebih dari 1 ${dasar.kode}. Satuan terkecil yang dijual dijadikan satuan dasar barang.`,
+        );
+      }
       if (b.barcode && (await repo.barcodeTerpakai(tx, b.barcode, l?.id ?? null))) {
         throw galat(i, 'barcode', `Barcode ${b.barcode} sudah dipakai barang atau satuan lain.`);
       }

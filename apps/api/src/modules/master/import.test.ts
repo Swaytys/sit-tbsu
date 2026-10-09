@@ -238,7 +238,7 @@ describe('baca, pratinjau, sunting, simpan', () => {
         { ...SEMEN, kategori: 'Keramik', merk: 'Tanpa' },
         { ...SEMEN, kode: 'X-1' },
         { ...SEMEN, kode: 'X-1', nama_barang: 'Kembar' },
-        { ...SEMEN, harga_normal: '' },
+        { ...SEMEN, harga_normal: '', harga_modal_awal: '' },
         { ...SEMEN, atribut_panjang: '6' },
         { ...SEMEN, harga_modal_awal: '1000,5' },
       ]),
@@ -259,7 +259,8 @@ describe('baca, pratinjau, sunting, simpan', () => {
     expect(pesan[2]).toContain('Merk "Tanpa" tidak ditemukan');
     expect(pesan[2]).not.toContain('wajib dipilih');
     expect(pesan[4]).toContain('Kode sama dengan baris 6');
-    expect(pesan[5]).toContain('tier default');
+    // K-094: harga Normal kosong = ikut markup, jadi harga modal awal wajib ada.
+    expect(pesan[5]).toContain('isi harga modal awal');
     expect(pesan[6]).toContain('angka dan satuan');
     expect(pesan[7]).toContain('rupiah bulat');
     const [jumlah] = await db.select({ n: count() }).from(barang);

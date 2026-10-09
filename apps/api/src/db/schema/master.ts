@@ -205,7 +205,7 @@ export const barang = pgTable(
       .default('MILIK_SENDIRI'),
     idPemasokKonsinyasi: kolomRef('id_pemasok_konsinyasi'),
     hargaTitip: uang('harga_titip'),
-    hargaOtomatis: boolean('harga_otomatis').notNull().default(false),
+    hargaOtomatis: boolean('harga_otomatis').notNull().default(true),
     perluTinjauHarga: boolean('perlu_tinjau_harga').notNull().default(false),
     gambar: varchar('gambar', { length: 255 }),
     keterangan: varchar('keterangan', { length: 255 }),

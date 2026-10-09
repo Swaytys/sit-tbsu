@@ -49,7 +49,10 @@ export const skemaBarisOrder = z
     qty: skemaQtyPositif('Qty'),
     /** K-091: satuan jual baris; `null` = satuan dasar barang. Qty dan harga dalam satuan ini. */
     idSatuanJual: z.number().int().positive().nullable().default(null),
-    /** null = tier bawaan (tier pelanggan, atau tier default) (P3). */
+    /**
+     * null = otomatis: tier pelanggan (atau tier default), atau tier lebih murah yang syarat qty-nya
+     * terpenuhi (P3, H8, K-094). Diisi = tier dipilih kasir (tombol T).
+     */
     idTingkatHarga: z.number().int().positive().nullable().default(null),
     /** Harga manual (H9): butuh izin `penjualan.harga_manual`. */
     hargaManual: z.boolean().default(false),
@@ -134,7 +137,10 @@ export type InputPratinjauOrder = z.input<typeof skemaPratinjauOrder>;
 export type BarisPratinjau = {
   idBarang: number;
   idSatuanJual: number | null;
+  /** Tier yang dipakai (hasil otomatis bila tidak dipilih kasir). */
   idTingkatHarga: number | null;
+  /** K-094: `false` = tier otomatis. */
+  tierDipilih: boolean;
   hargaSatuan: number;
   /** bulatkanRupiah(qty × harga satuan). */
   bruto: number;
@@ -148,7 +154,7 @@ export type BarisPratinjau = {
   promoDitolak: boolean;
   diskonBaris: number;
   subtotal: number;
-  /** H8: tier lebih murah yang syarat qty-nya sudah terpenuhi; `null` = tidak ada saran. */
+  /** H8: tier pilihan kasir lebih mahal dari tier yang syarat qty-nya terpenuhi; `null` = tanpa saran. */
   idTingkatHargaSaran: number | null;
 };
 
@@ -240,6 +246,8 @@ export type BarisDetailOrder = {
   qty: string;
   qtyDasar: string;
   idTingkatHarga: number | null;
+  /** K-094: tier dipilih kasir; `false` = otomatis. */
+  tierDipilih: boolean;
   namaTier: string | null;
   hargaSatuan: number;
   hargaManual: boolean;

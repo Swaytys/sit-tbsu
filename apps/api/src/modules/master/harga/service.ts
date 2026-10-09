@@ -9,6 +9,7 @@ import {
   type DataTerapkanTinjau,
   type HasilTinjauHarga,
   type InputAbaikanTinjau,
+  type InputHargaOtomatis,
   type Kepemilikan,
   type MetaHalaman,
   type MetodeHarga,
@@ -158,8 +159,8 @@ function galatHarga(pesan: string): AppError {
 /**
  * Menerapkan harga tier untuk satu barang di dalam `tx` (form barang, halaman Harga Jual). Tier yang dikirim
  * diubah; tier aktif yang belum punya baris dilengkapi IKUT_TIER (K-047, H2); baris IKUT_TIER/MARKUP lain
- * dihitung ulang dengan `D` terkini (K-060 #4: menyimpan harga = menerima D terkini). Tier default wajib
- * TETAP. Pemanggil mengunci baris barang lebih dulu (urutan kunci K-086).
+ * dihitung ulang dengan `D` terkini (K-060 #4: menyimpan harga = menerima D terkini). Harga tier default
+ * tidak boleh Rp 0 (K-094). Pemanggil mengunci baris barang lebih dulu (urutan kunci K-086).
  */
 export async function terapkanHargaBarang(
   tx: Tx,
@@ -193,10 +194,15 @@ export async function terapkanHargaBarang(
         isian = { hargaTetap: null, markupPersen: barisLama.markupPersen };
       } else continue;
     }
-    if (t.isDefault && isian.hargaTetap === null) {
-      throw galatHarga(`Harga tier ${t.nama} (tier default) wajib diisi harga tetap.`);
-    }
     const nilai = nilaiHarga(isian, t.markupDefaultPersen, opsi.dasar, opsi.konteks.kelipatan);
+    // K-094: tier default boleh ikut markup, tetapi barang tanpa dasar modal tidak boleh berharga Rp 0.
+    if (t.isDefault && nilai.hargaJual <= 0) {
+      throw galatHarga(
+        nilai.metode === 'TETAP'
+          ? `Harga ${t.nama} tidak boleh Rp 0.`
+          : `Harga ${t.nama} jadi Rp 0 karena harga modal belum diisi. Isi harga modal, atau isi harga ${t.nama} sendiri (Rp).`,
+      );
+    }
     if (barisLama) {
       const sama =
         barisLama.metode === nilai.metode &&
@@ -311,6 +317,46 @@ export async function simpanHargaMassal(
     }
     await repo.aturTandaTinjau(tx, idBarang, false);
     return { jumlahBarang: idBarang.length, jumlahPerubahan };
+  });
+}
+
+/**
+ * H7 (K-094): nyalakan/matikan harga otomatis barang terpilih. Menyalakan langsung mengevaluasi harga
+ * barang itu (naik diterapkan, turun ditinjau), sama seperti dari form barang. Log `BARANG_UBAH` per barang.
+ */
+export async function aturHargaOtomatis(
+  input: InputHargaOtomatis,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<{ jumlahBarang: number }> {
+  const ids = [...new Set(input.idBarang)].sort((a, b) => a - b);
+  return dalamTransaksi(async (tx) => {
+    const berubah = (await repo.kunciBarangHarga(tx, ids)).filter(
+      (b) => b.hargaOtomatis !== input.hargaOtomatis,
+    );
+    const idBerubah = berubah.map((b) => b.id);
+    await repo.aturHargaOtomatis(tx, idBerubah, input.hargaOtomatis, sekarang());
+    if (input.hargaOtomatis) {
+      await tanggapiPemicuHarga(tx, idBerubah, {
+        sebab: 'harga otomatis dinyalakan',
+        idPengguna: pelaku.id,
+        ip: asal.ip,
+      });
+    }
+    await catatLogBanyak(
+      tx,
+      berubah.map((b) => ({
+        aksi: 'BARANG_UBAH',
+        idPengguna: pelaku.id,
+        entitas: 'barang',
+        idEntitas: b.id,
+        ringkasan: `Harga otomatis ${b.namaBarang} ${input.hargaOtomatis ? 'dinyalakan' : 'dimatikan'}`,
+        dataLama: { hargaOtomatis: !input.hargaOtomatis },
+        dataBaru: { hargaOtomatis: input.hargaOtomatis },
+        ip: asal.ip,
+      })),
+    );
+    return { jumlahBarang: berubah.length };
   });
 }
 
@@ -440,7 +486,7 @@ export async function tanggapiPemicuHarga(
       const u = hargaUsulan(h, t, D, konteks.kelipatan);
       if (u === null) continue;
       if (!berformula(h.metode)) {
-        // Harga tetap tier default: hanya diusulkan, tidak pernah otomatis (K-086).
+        // Harga tetap (Rp) tier default: hanya diusulkan, tidak pernah otomatis (K-086).
         if (lengkap && h.hargaJual < u) defaultDiBawah = true;
         continue;
       }

@@ -118,11 +118,11 @@ export const skemaBarang = z
     hargaTitip: skemaRupiah.nullable().optional(),
     keterangan: teksOpsional(255, 'Keterangan maksimal 255 karakter.'),
     atribut: z.array(skemaAtributBarang).max(30, 'Maksimal 30 atribut.').default([]),
-    /** Wajib saat tambah (tier default harus TETAP). Saat ubah: tidak dikirim = harga tidak diubah. */
+    /** Saat tambah: tier yang tidak dikirim ikut markup tier. Saat ubah: tidak dikirim = tidak diubah. */
     hargaTier: z.array(skemaHargaTier).optional(),
     /**
      * H7: harga IKUT_TIER/MARKUP mengikuti perubahan dasar secara otomatis (naik langsung, turun ditinjau;
-     * K-086). Tidak dikirim = tetap (barang baru: tidak otomatis). Mengubahnya butuh `master.harga.kelola`.
+     * K-086). Tidak dikirim = tetap (barang baru: otomatis, K-094). Mengubahnya butuh `master.harga.kelola`.
      */
     hargaOtomatis: z.boolean().optional(),
   })
@@ -271,6 +271,16 @@ export const skemaSimpanHarga = z.object({
 });
 export type InputSimpanHarga = z.input<typeof skemaSimpanHarga>;
 export type DataSimpanHarga = z.output<typeof skemaSimpanHarga>;
+
+/** H7 (K-094): nyalakan/matikan harga otomatis beberapa barang sekaligus dari halaman Harga Jual. */
+export const skemaHargaOtomatis = z.object({
+  idBarang: z
+    .array(idWajib('Barang tidak valid.'))
+    .min(1, 'Pilih barang.')
+    .max(1000, 'Maksimal 1000 barang sekali ubah.'),
+  hargaOtomatis: z.boolean(),
+});
+export type InputHargaOtomatis = z.input<typeof skemaHargaOtomatis>;
 
 // --- Tinjau Harga (docs/06 H6, K-086) ---
 

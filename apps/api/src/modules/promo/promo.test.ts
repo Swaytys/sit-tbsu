@@ -246,9 +246,9 @@ describe('promo di order dan pratinjau (PR1–PR4, PR6)', () => {
       ['Semua 5%', 400],
     ]);
 
-    // Total bruto 132.000 ≥ min belanja; pasir qty 3 ≥ min qty.
+    // Total bruto 132.000 ≥ min belanja; pasir qty 3 ≥ min qty. Tier Normal dipilih (tanpa tier qty).
     p = await pratinjau(admin, [
-      { idBarang: m.semen, qty: '10' },
+      { idBarang: m.semen, qty: '10', idTingkatHarga: tier.normal },
       { idBarang: m.pasir, qty: '3' },
     ]);
     expect(p.baris.map((b) => [b.namaPromo, b.diskonPromo, b.subtotal])).toEqual([
@@ -271,7 +271,7 @@ describe('promo di order dan pratinjau (PR1–PR4, PR6)', () => {
       maksPotongan: 5000,
     });
     const p = await pratinjau(admin, [
-      { idBarang: m.semen, qty: '10' },
+      { idBarang: m.semen, qty: '10', idTingkatHarga: tier.normal },
       { idBarang: m.pasir, qty: '0.5' },
     ]);
     // 0,5 × 201 = 100,5 → bruto 101; potongan bulat(0,5 × 201 × 50%) = bulat(50,25) = 50.
@@ -441,17 +441,53 @@ describe('PR5: lepas promo dan evaluasi ulang saat checkout', () => {
   });
 });
 
-describe('H8 saran tier', () => {
-  it('tier lebih murah disarankan bila qty ≥ saran min qty; tidak untuk tier mahal atau harga manual', async () => {
-    const saran = async (baris: Record<string, unknown>) =>
-      (await pratinjau(staf, [baris])).baris[0]?.idTingkatHargaSaran;
-    expect(await saran({ idBarang: m.semen, qty: '9' })).toBeNull();
-    expect(await saran({ idBarang: m.semen, qty: '10' })).toBe(tier.grosir);
-    expect(await saran({ idBarang: m.pasir, qty: '10' })).toBeNull(); // Grosir 4.500 > Normal 4.000
-    const sudahGrosir = await pratinjau(admin, [
-      { idBarang: m.semen, qty: '10', idTingkatHarga: tier.grosir },
+describe('H8 tier otomatis (K-094)', () => {
+  it('qty ≥ syarat tier: tier lebih murah dipakai otomatis, juga untuk Staf; tier mahal tidak', async () => {
+    const baris = async (b: Record<string, unknown>, sesi = staf) =>
+      (await pratinjau(sesi, [b])).baris[0]!;
+    expect(await baris({ idBarang: m.semen, qty: '9' })).toMatchObject({
+      idTingkatHarga: tier.normal,
+      tierDipilih: false,
+      hargaSatuan: 12_000,
+    });
+    expect(await baris({ idBarang: m.semen, qty: '10' })).toMatchObject({
+      idTingkatHarga: tier.grosir,
+      tierDipilih: false,
+      hargaSatuan: 11_000,
+      idTingkatHargaSaran: null,
+    });
+    // Grosir 4.500 > Normal 4.000: tetap Normal.
+    expect(await baris({ idBarang: m.pasir, qty: '10' })).toMatchObject({
+      idTingkatHarga: tier.normal,
+      hargaSatuan: 4000,
+    });
+    // Normal dipilih kasir: tidak diganti otomatis, tetapi Grosir disarankan. Harga manual tanpa saran.
+    const dipilih = await pratinjau(admin, [
+      { idBarang: m.semen, qty: '10', idTingkatHarga: tier.normal },
       { idBarang: m.pasir, qty: '10', hargaManual: true, hargaSatuan: 4000 },
     ]);
-    expect(sudahGrosir.baris.map((b) => b.idTingkatHargaSaran)).toEqual([null, null]);
+    expect(dipilih.baris[0]).toMatchObject({
+      idTingkatHarga: tier.normal,
+      tierDipilih: true,
+      hargaSatuan: 12_000,
+      idTingkatHargaSaran: tier.grosir,
+    });
+    expect(dipilih.baris[1]?.idTingkatHargaSaran).toBeNull();
+  });
+
+  it('order menyimpan tier otomatis; qty diubah di bawah syarat kembali ke tier pelanggan', async () => {
+    const o = await kirimData<{ id: number }>(
+      staf,
+      '/api/order',
+      keranjang([{ idBarang: m.semen, qty: '10' }]),
+    );
+    const detail = await kirimData<DetailOrder>(staf, `/api/order/${o.id}`, undefined, 'GET');
+    expect(detail.baris[0]).toMatchObject({
+      idTingkatHarga: tier.grosir,
+      tierDipilih: false,
+      hargaSatuan: 11_000,
+    });
+    const p = await pratinjau(staf, [{ idBarang: m.semen, qty: '5' }], o.id);
+    expect(p.baris[0]).toMatchObject({ idTingkatHarga: tier.normal, hargaSatuan: 12_000 });
   });
 });

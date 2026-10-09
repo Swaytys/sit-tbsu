@@ -152,6 +152,7 @@ export function detailOrder(ex: Executor, idOrder: number) {
       qty: orderPenjualanDetail.qty,
       qtyDasar: orderPenjualanDetail.qtyDasar,
       idTingkatHarga: orderPenjualanDetail.idTingkatHarga,
+      tierDipilih: orderPenjualanDetail.tierDipilih,
       namaTier: tingkatHarga.nama,
       hargaSatuan: orderPenjualanDetail.hargaSatuan,
       hargaManual: orderPenjualanDetail.hargaManual,

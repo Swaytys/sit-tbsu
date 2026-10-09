@@ -52,7 +52,7 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     kode: 'lebar_struk_mm',
     nilai: '80',
     tipe: 'ANGKA',
-    deskripsi: 'Lebar kertas struk: 58 atau 80',
+    deskripsi: 'Lebar kertas struk: 57, 58, atau 80',
   },
   {
     kode: 'struk_tampilkan_nama',

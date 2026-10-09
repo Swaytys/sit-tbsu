@@ -131,6 +131,8 @@ function barangBaru(ubah: Record<string, unknown> = {}) {
     idSatuanDasar: ref.sak,
     hargaModalAwal: 41_234,
     hargaTier: [{ idTingkatHarga: ref.normal, hargaTetap: 55_000 }],
+    // Barang uji "biasa" (ditinjau dulu); K-094 menjadikan barang baru otomatis bila tidak dikirim.
+    hargaOtomatis: false,
     ...ubah,
   };
 }
@@ -189,19 +191,24 @@ describe('tambah barang', () => {
     expect((await buat(barangBaru({ namaBarang: 'Kedua' }))).kode).toBe('BRG-00002');
   });
 
-  it('harga tier default wajib diisi harga tetap', async () => {
-    let res = await kirim(admin, '/api/barang', barangBaru({ hargaTier: undefined }));
-    expect(res.status).toBe(400);
-    expect((await galat(res)).error.detail?.kolom?.hargaTier).toBeDefined();
-
-    res = await kirim(
+  it('harga tier default boleh ikut markup, tetapi tanpa modal ditolak (K-094)', async () => {
+    let res = await kirim(
       admin,
       '/api/barang',
-      barangBaru({ hargaTier: [{ idTingkatHarga: ref.grosir, hargaTetap: 50_000 }] }),
+      barangBaru({ hargaModalAwal: 0, hargaTier: undefined }),
     );
     expect(res.status).toBe(400);
-    expect((await galat(res)).error.pesan).toContain('Normal');
+    expect((await galat(res)).error.detail?.kolom?.hargaTier?.[0]).toContain('Normal');
     expect(await db.select().from(barang)).toHaveLength(0);
+
+    // Tanpa harga tier: semua tier ikut markup dari modal 41.234 (Normal 25%, dibulatkan ke atas 100).
+    res = await kirim(admin, '/api/barang', barangBaru({ hargaTier: undefined }));
+    expect(res.status).toBe(201);
+    const b = (await json<{ data: Baris }>(res)).data;
+    expect(await hargaTier(b.id, ref.normal)).toMatchObject({
+      metode: 'IKUT_TIER',
+      hargaJual: 51_600,
+    });
   });
 
   it('kode sendiri boleh selama unik (N5); kode BRG-nnnnn menaikkan penghitung', async () => {
@@ -469,7 +476,7 @@ describe('ubah barang', () => {
 });
 
 describe('harga jual dan tier', () => {
-  it('simpan massal: tier default tidak boleh ikut tier; Kasir ditolak; log HARGA_UBAH', async () => {
+  it('simpan massal: Kasir ditolak; log HARGA_UBAH; tier default boleh kembali ikut tier', async () => {
     const b = await buat(barangBaru());
     const put = (sesi: Sesi, perubahan: unknown[]) =>
       kirim(sesi, '/api/harga-barang', { perubahan }, 'PUT');
@@ -477,10 +484,6 @@ describe('harga jual dan tier', () => {
     expect(
       (await put(kasir, [{ idBarang: b.id, idTingkatHarga: ref.grosir, hargaTetap: 1 }])).status,
     ).toBe(403);
-    const tolak = await put(admin, [
-      { idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: null },
-    ]);
-    expect(tolak.status).toBe(400);
 
     const res = await put(admin, [
       { idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: 56_000 },
@@ -492,6 +495,16 @@ describe('harga jual dan tier', () => {
     });
     expect(await hargaTier(b.id, ref.grosir)).toMatchObject({ metode: 'TETAP', hargaJual: 52_000 });
     expect((await logTerakhir('HARGA_UBAH'))?.ringkasan).toContain('Normal Rp 55.000 → Rp 56.000');
+
+    // K-094: harga Normal dikosongkan = ikut markup tier dari modal.
+    const ikut = await put(admin, [
+      { idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: null },
+    ]);
+    expect(ikut.status).toBe(200);
+    expect(await hargaTier(b.id, ref.normal)).toMatchObject({
+      metode: 'IKUT_TIER',
+      hargaJual: 51_600,
+    });
   });
 
   it('tier baru mendapat harga IKUT_TIER untuk semua barang (H2)', async () => {
