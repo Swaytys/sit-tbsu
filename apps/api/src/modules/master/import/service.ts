@@ -268,18 +268,6 @@ function petakan(b: BarisImportMentah, ref: ReferensiImport): Petaan {
     idTingkatHarga: x.id,
     hargaTetap: rupiah(t(`harga_${x.kode.toLowerCase()}`), `Harga ${x.nama}`, pesan),
   }));
-  // K-094: harga tier default kosong = ikut markup, jadi dasar modalnya harus ada.
-  const tierDefault = tierAktif.find((x) => x.isDefault);
-  const dasarKosong =
-    kepemilikan === 'KONSINYASI'
-      ? t('harga_titip') === '' || t('harga_titip') === '0'
-      : t('harga_modal_awal') === '' || t('harga_modal_awal') === '0';
-  if (tierDefault && t(`harga_${tierDefault.kode.toLowerCase()}`) === '' && dasarKosong) {
-    pesan.push(
-      `Harga ${tierDefault.nama} kosong: isi harga modal awal (harga dihitung dari markup) atau harga ${tierDefault.nama}.`,
-    );
-  }
-
   const input: InputBarang = {
     kode: t('kode'),
     barcode: t('barcode'),

@@ -6,6 +6,7 @@ import {
   type KodeDokumen,
   type Pengaturan,
   type Peran,
+  type StrukCetak,
   type TampilanToko,
   type TipeKonfigurasi,
 } from '@sit/shared';
@@ -37,6 +38,11 @@ function angka(m: Peta, kode: string, bawaan: number): number {
   return nilai && /^-?\d+$/.test(nilai) ? Number.parseInt(nilai, 10) : bawaan;
 }
 
+/** K-095: cara cetak struk; nilai tidak dikenal dianggap OTOMATIS. */
+function strukCetak(nilai: string | null | undefined): StrukCetak {
+  return nilai === 'TANYA' || nilai === 'TIDAK' ? nilai : 'OTOMATIS';
+}
+
 /** Lebar kertas struk thermal yang didukung; nilai lain dianggap 80 mm. */
 function lebarStruk(mm: number): 57 | 58 | 80 {
   return mm === 57 || mm === 58 ? mm : 80;
@@ -66,6 +72,7 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       lebarStrukMm: lebarStruk(angka(m, 'lebar_struk_mm', 80)),
       strukTampilkanNama: bool(m, 'struk_tampilkan_nama', true),
       strukTampilkanLogo: bool(m, 'struk_tampilkan_logo', false),
+      strukCetak: strukCetak(m.get('struk_cetak')),
     },
     penomoran: {
       prefix: Object.fromEntries(KODE_DOKUMEN.map((k) => [k, teks(m, `prefix_${k}`, k)])) as Record<
@@ -122,6 +129,7 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     a('lebar_struk_mm', p.profil.lebarStrukMm);
     b('struk_tampilkan_nama', p.profil.strukTampilkanNama);
     b('struk_tampilkan_logo', p.profil.strukTampilkanLogo);
+    t('struk_cetak', p.profil.strukCetak);
   }
   if (p.penomoran) {
     for (const k of KODE_DOKUMEN) t(`prefix_${k}`, p.penomoran.prefix[k]);
@@ -237,6 +245,7 @@ export async function tampilanToko(): Promise<TampilanToko> {
     lebarStrukMm: p.profil.lebarStrukMm,
     strukTampilkanNama: p.profil.strukTampilkanNama,
     strukTampilkanLogo: p.profil.strukTampilkanLogo,
+    strukCetak: p.profil.strukCetak,
     rekeningTransfer: p.operasional.rekeningTransfer,
     rekeningEdc: p.operasional.rekeningEdc,
   };

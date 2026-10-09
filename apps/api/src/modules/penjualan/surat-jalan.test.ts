@@ -103,7 +103,7 @@ describe('surat jalan (docs/05 §7)', () => {
       baris: [{ idPenjualanDetail: semen!.id, qtyKirim: '3' }],
     });
     expect(lebih.status).toBe(409);
-    expect(lebih.pesan).toContain('melebihi sisa yang belum dikirim (2.000)');
+    expect(lebih.pesan).toContain('melebihi sisa yang belum dikirim (2 sak)');
 
     const sj2 = await kirim<BarisSuratJalan>(kasir, `/api/penjualan/${inv.id}/surat-jalan`, {
       sopir: 'Pak Slamet',

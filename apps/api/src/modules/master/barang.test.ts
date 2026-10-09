@@ -191,11 +191,11 @@ describe('tambah barang', () => {
     expect((await buat(barangBaru({ namaBarang: 'Kedua' }))).kode).toBe('BRG-00002');
   });
 
-  it('harga tier default boleh ikut markup, tetapi tanpa modal ditolak (K-094)', async () => {
+  it('harga tier default boleh ikut markup; Rp 0 tetap ditolak (K-094, K-095)', async () => {
     let res = await kirim(
       admin,
       '/api/barang',
-      barangBaru({ hargaModalAwal: 0, hargaTier: undefined }),
+      barangBaru({ hargaTier: [{ idTingkatHarga: ref.normal, hargaTetap: 0 }] }),
     );
     expect(res.status).toBe(400);
     expect((await galat(res)).error.detail?.kolom?.hargaTier?.[0]).toContain('Normal');

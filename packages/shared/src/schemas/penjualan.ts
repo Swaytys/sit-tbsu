@@ -71,6 +71,14 @@ export const skemaBarisOrder = z
   });
 export type InputBarisOrder = z.input<typeof skemaBarisOrder>;
 
+/**
+ * K-095: satu barang boleh beberapa baris asal satuannya berbeda (mis. 100 dus + 50 buah); baris dikenali
+ * dari barang + satuan.
+ */
+export function kunciBaris(idBarang: number, idSatuanJual: number | null | undefined): string {
+  return `${idBarang}:${idSatuanJual ?? 0}`;
+}
+
 /** Isi order tanpa aturan lintas kolom (dipakai pratinjau harga saat isian belum lengkap). */
 const bentukOrder = z.object({
   jenisPenjualan: z.enum(JENIS_PENJUALAN, 'Jenis penjualan tidak valid.'),
@@ -108,17 +116,18 @@ export const skemaOrder = bentukOrder.superRefine((d, ctx) => {
       });
     }
   }
-  const terlihat = new Map<number, number>();
+  const terlihat = new Map<string, number>();
   d.baris.forEach((b, i) => {
-    const lain = terlihat.get(b.idBarang);
+    const k = kunciBaris(b.idBarang, b.idSatuanJual);
+    const lain = terlihat.get(k);
     if (lain !== undefined) {
       ctx.addIssue({
         code: 'custom',
         path: ['baris', i, 'idBarang'],
-        message: `Barang sama dengan baris ${lain + 1}; ubah qty-nya saja.`,
+        message: `Barang dan satuan sama dengan baris ${lain + 1}; ubah qty-nya saja.`,
       });
     }
-    terlihat.set(b.idBarang, i);
+    terlihat.set(k, i);
   });
 });
 export type InputOrder = z.input<typeof skemaOrder>;

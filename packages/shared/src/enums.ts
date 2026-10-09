@@ -176,6 +176,10 @@ export const JENIS_KAS_SHIFT = [
 ] as const;
 export type JenisKasShift = (typeof JENIS_KAS_SHIFT)[number];
 
+/** K-095: struk penjualan langsung setelah bayar: langsung dicetak, ditanya dulu, atau tidak dicetak. */
+export const STRUK_CETAK = ['OTOMATIS', 'TANYA', 'TIDAK'] as const;
+export type StrukCetak = (typeof STRUK_CETAK)[number];
+
 export const ARAH_KAS = ['MASUK', 'KELUAR'] as const;
 export type ArahKas = (typeof ARAH_KAS)[number];
 
