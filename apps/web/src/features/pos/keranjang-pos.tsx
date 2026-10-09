@@ -1,4 +1,11 @@
-import { bandingQty, formatRupiah, kurangQty, tambahQty, type BarisPratinjau } from '@sit/shared';
+import {
+  bandingQty,
+  formatRupiah,
+  kunciBaris,
+  kurangQty,
+  tambahQty,
+  type BarisPratinjau,
+} from '@sit/shared';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { toast } from 'sonner';
 import { InfoPromo } from '@/components/info-promo';
@@ -61,8 +68,8 @@ export function KeranjangPos({
   bolehTier: boolean;
   bolehDiskon: boolean;
   bolehLepasPromo: boolean;
-  /** Hasil pratinjau API per barang (promo, subtotal, saran tier). */
-  pratinjau: ReadonlyMap<number, BarisPratinjau>;
+  /** Hasil pratinjau API per baris (`kunciBaris`): harga, promo, subtotal, tier. */
+  pratinjau: ReadonlyMap<string, BarisPratinjau>;
 }) {
   const [sunting, setSunting] = useState<Sunting>(null);
   const wadah = useRef<HTMLDivElement>(null);
@@ -125,12 +132,20 @@ export function KeranjangPos({
       setSunting({ jenis: 'diskon', nilai: b.diskonBaris ? String(b.diskonBaris) : '' });
     } else if ((e.key === 'p' || e.key === 'P') && bolehLepasPromo) {
       e.preventDefault();
-      const pr = pratinjau.get(b.idBarang);
+      const pr = pratinjau.get(kunciBaris(b.idBarang, b.idSatuanJual));
       if (b.tanpaPromo || pr?.idPromo != null) onUbah(indeks, { tanpaPromo: !b.tanpaPromo });
     } else if (e.key === 's' || e.key === 'S') {
       e.preventDefault();
       const berikut = satuanBerikut(b);
-      if (berikut) onUbah(indeks, berikut);
+      // K-095: satuan yang sudah punya baris sendiri untuk barang ini tidak dipakai dua kali.
+      const bentrok =
+        berikut &&
+        baris.some(
+          (x, j) =>
+            j !== indeks && x.idBarang === b.idBarang && x.idSatuanJual === berikut.idSatuanJual,
+        );
+      if (bentrok) toast.info(`${b.nama} dalam ${berikut.satuan} sudah ada di baris lain.`);
+      else if (berikut) onUbah(indeks, berikut);
     } else if ((e.key === 't' || e.key === 'T') && bolehTier && !b.hargaManual) {
       e.preventDefault();
       // Urutan: otomatis (tier pelanggan / syarat qty) → setiap tier → kembali ke otomatis.
@@ -153,7 +168,8 @@ export function KeranjangPos({
       onKeyDown={tombol}
       onFocus={onFokus}
       className={cn(
-        'min-h-0 flex-1 overflow-y-auto rounded-md border bg-white outline-none',
+        // Minimal ±4 baris tetap terlihat walau panel bayar membesar (transfer/EDC/campuran).
+        'min-h-40 flex-1 overflow-y-auto rounded-md border bg-white outline-none',
         aktif && 'ring-2 ring-blue-500',
       )}
     >
@@ -163,7 +179,7 @@ export function KeranjangPos({
         <table className="w-full text-sm">
           <tbody>
             {baris.map((r, i) => {
-              const pr = pratinjau.get(r.idBarang);
+              const pr = pratinjau.get(kunciBaris(r.idBarang, r.idSatuanJual));
               const harga = pr?.hargaSatuan ?? hargaBaris(r, tierBawaan);
               // K-094: tier yang dipakai API (otomatis dari pelanggan/qty, atau dipilih kasir).
               const idTier = r.hargaManual
@@ -174,7 +190,7 @@ export function KeranjangPos({
               const dipilih = aktif && i === indeks;
               return (
                 <tr
-                  key={r.idBarang}
+                  key={kunciBaris(r.idBarang, r.idSatuanJual)}
                   id={`baris-pos-${i}`}
                   role="option"
                   aria-selected={i === indeks}
@@ -234,12 +250,7 @@ export function KeranjangPos({
                     ) : (
                       <>
                         {formatDesimal(r.qty)}{' '}
-                        <span className="text-xs font-normal">
-                          {r.satuan}
-                          {r.opsiSatuan.length > 1 && (
-                            <kbd className="ml-0.5 font-mono text-[10px] text-slate-400">S</kbd>
-                          )}
-                        </span>
+                        <span className="text-xs font-normal">{r.satuan}</span>
                         {qtyDasarBaris(r) !== null && (
                           <div className="text-[11px] font-normal text-slate-500">
                             = {formatDesimal(qtyDasarBaris(r) ?? '0')} {r.opsiSatuan[0]?.kodeSatuan}

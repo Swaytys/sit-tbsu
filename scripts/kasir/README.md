@@ -7,11 +7,13 @@ bertanya (K-074).
 
 ## Persiapan (sekali per komputer kasir)
 
-1. Pasang driver printer struk (thermal 58 atau 80 mm).
+1. Pasang driver printer struk (thermal 57, 58, atau 80 mm). Printer **Bluetooth**: pasangkan dulu di Windows ›
+   Bluetooth & perangkat, lalu pasang driver-nya sampai printer muncul di _Printer & pemindai_.
 2. Windows › Pengaturan › Bluetooth & perangkat › Printer & pemindai:
    - matikan **"Biarkan Windows mengatur printer bawaan"**;
    - pilih printer struk › **Jadikan default**.
-3. Pengaturan aplikasi › Profil toko › Lebar struk: samakan dengan kertas printer (58/80 mm).
+3. Pengaturan aplikasi › Profil toko › Lebar struk: samakan dengan kertas printer (57/58/80 mm). Di bawahnya,
+   _Cetak struk setelah bayar_: **Langsung cetak**, **Tanya dulu**, atau **Tidak dicetak** (K-095).
 4. Klik dua kali `buka-kasir.cmd` (boleh buat shortcut di desktop). Terbuka jendela kasir khusus; setiap transaksi
    penjualan langsung yang selesai langsung mencetak struk.
 
@@ -27,5 +29,5 @@ otomatis. Login di jendela kasir cukup sekali (sesi mengikuti batas di Pengatura
 - Invoice dan surat jalan pengantaran (A4) tidak dicetak otomatis; tekan **P** (invoice) atau **S** (surat jalan)
   setelah invoice dibuat. Bila jendela kasir ini juga dipakai untuk pengantaran, cetakannya ikut keluar di printer
   bawaan (printer struk) — gunakan peramban biasa (dengan jendela print) di komputer yang punya printer A4.
-- Pengaturan printer dari dalam aplikasi (pilih printer, matikan cetak otomatis) dijadwalkan di v2.0.0
-  (docs/08-backlog.md, Sprint F).
+- Cetak otomatis bisa dimatikan atau diganti "tanya dulu" di Pengaturan › Profil toko (K-095). Memilih printer
+  dari dalam aplikasi dijadwalkan di v2.0.0 (docs/08-backlog.md, Sprint F).

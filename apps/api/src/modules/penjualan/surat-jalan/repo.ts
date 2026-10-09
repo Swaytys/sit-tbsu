@@ -142,6 +142,7 @@ export function qtyBaris(ex: Executor, idPenjualan: number) {
     .select({
       id: penjualanDetail.id,
       namaBarang: barang.namaBarang,
+      kodeSatuan: kodeSatuanBaris,
       qty: penjualanDetail.qty,
       faktor: penjualanDetail.faktor,
       qtyReturDasar: penjualanDetail.qtyReturDasar,
@@ -151,6 +152,9 @@ export function qtyBaris(ex: Executor, idPenjualan: number) {
     })
     .from(penjualanDetail)
     .innerJoin(barang, eq(barang.id, penjualanDetail.idBarang))
+    .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, penjualanDetail.idSatuanJual))
+    .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
     .where(eq(penjualanDetail.idPenjualan, idPenjualan))
     .orderBy(asc(penjualanDetail.id));
 }

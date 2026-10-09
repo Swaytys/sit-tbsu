@@ -13,6 +13,7 @@ import {
   dariOrder,
   keBarisOrder,
   rapikanQty,
+  satuanAwal,
   subtotalBaris,
   type BarisPos,
 } from './model';
@@ -82,21 +83,14 @@ export function useTransaksiPos(tierDefault: number | null) {
   }
 
   /**
-   * Menambah barang; barang yang sudah ada digabung qty-nya (scan berulang) bila satuannya sama. Satu barang
-   * satu baris (K-091): pindai satuan lain untuk barang yang sudah ada hanya memberi tahu kasir.
+   * Menambah barang; barang dengan satuan yang sama digabung qty-nya (scan berulang). Satuan lain untuk
+   * barang yang sama menjadi baris sendiri dengan harganya sendiri (K-095, mis. 100 dus + 50 buah).
    * Mengembalikan indeks baris.
    */
   function tambah(b: BarisBarang, qty: string, idSatuanJual?: number | null): number {
-    const ada = t.baris.findIndex((x) => x.idBarang === b.id);
-    const lama = t.baris[ada];
-    // Satuan yang diminta: dipilih di hasil cari, atau barcode satuan jual yang dipindai.
-    const diminta = idSatuanJual !== undefined ? idSatuanJual : (b.idSatuanJualCocok ?? undefined);
-    if (lama && diminta !== undefined && diminta !== lama.idSatuanJual) {
-      toast.info(
-        `${b.namaBarang} sudah ada dalam satuan ${lama.satuan}. Ubah qty-nya, atau tekan S untuk ganti satuan.`,
-      );
-      return ada;
-    }
+    // Satuan yang diminta: dipilih di hasil cari, barcode satuan jual yang dipindai, atau satuan awal.
+    const diminta = idSatuanJual !== undefined ? idSatuanJual : satuanAwal(b);
+    const ada = t.baris.findIndex((x) => x.idBarang === b.id && x.idSatuanJual === diminta);
     if (ada >= 0) {
       const qtyBaru = rapikanQty(tambahQty(t.baris[ada]?.qty ?? '0', qty));
       setT({
@@ -106,7 +100,7 @@ export function useTransaksiPos(tierDefault: number | null) {
       });
       return ada;
     }
-    setT({ ...t, diubah: true, baris: [...t.baris, dariBarang(b, qty, idSatuanJual)] });
+    setT({ ...t, diubah: true, baris: [...t.baris, dariBarang(b, qty, diminta)] });
     return t.baris.length;
   }
 

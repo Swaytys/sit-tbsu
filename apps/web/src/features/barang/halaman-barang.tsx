@@ -1,5 +1,14 @@
 import { formatRupiah, type BarisBarang, type Kepemilikan, type StatusAktif } from '@sit/shared';
-import { Columns3, Copy, Download, FileSpreadsheet, ImageOff, Plus, Tags } from 'lucide-react';
+import {
+  Columns3,
+  Copy,
+  Download,
+  FileSpreadsheet,
+  Filter,
+  ImageOff,
+  Plus,
+  Tags,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePengguna } from '@/api/auth';
@@ -38,6 +47,15 @@ import { useKolomTampil } from './kolom-tampil';
 
 const SEMUA_KATEGORI = 'SEMUA';
 
+/** Saringan yang bisa dipilih tampil di bilah atas tabel (preferensi tampilan per perangkat). */
+const SARINGAN = [
+  { kunci: 'status', label: 'Status' },
+  { kunci: 'kepemilikan', label: 'Kepemilikan' },
+  { kunci: 'kategori', label: 'Kategori' },
+  { kunci: 'merk', label: 'Merk' },
+  { kunci: 'tinjau', label: 'Perlu tinjau harga' },
+] as const;
+
 function GambarKecil({ b }: { b: BarisBarang }) {
   return b.gambar ? (
     <img src={b.gambar} alt="" className="size-9 rounded border object-cover" loading="lazy" />
@@ -59,6 +77,23 @@ export function HalamanBarang() {
   const [kepemilikan, setKepemilikan] = useState<Kepemilikan | null>(null);
   const [perluTinjau, setPerluTinjau] = useState(false);
   const [halaman, setHalaman] = useState(1);
+  const saring = useKolomTampil(
+    'saring-barang',
+    SARINGAN.map((x) => x.kunci),
+    ['status', 'kepemilikan', 'merk', 'tinjau'],
+  );
+  /** Menyembunyikan saringan juga mengembalikan nilainya ke "semua". */
+  function alihSaring(kunci: (typeof SARINGAN)[number]['kunci']) {
+    if (saring.tampil(kunci)) {
+      if (kunci === 'status') setStatus('SEMUA');
+      if (kunci === 'kepemilikan') setKepemilikan(null);
+      if (kunci === 'kategori') setIdKategori(null);
+      if (kunci === 'merk') setIdMerk(null);
+      if (kunci === 'tinjau') setPerluTinjau(false);
+      setHalaman(1);
+    }
+    saring.alih(kunci);
+  }
 
   const kategori = useDaftarKategori();
   const merk = useDaftarMerk();
@@ -86,6 +121,10 @@ export function HalamanBarang() {
     sel: (b) => {
       const h = b.harga.find((x) => x.idTingkatHarga === t.id);
       if (!h) return <span className="text-slate-300">—</span>;
+      // K-095: harga modal belum diketahui → harga markup terisi setelah penerimaan pertama.
+      if (h.hargaJual === 0) {
+        return <span className="text-xs text-orange-600">menunggu modal</span>;
+      }
       return (
         <span className={h.metode === 'IKUT_TIER' ? 'text-slate-500' : 'text-slate-800'}>
           {formatRupiah(h.hargaJual)}
@@ -282,71 +321,101 @@ export function HalamanBarang() {
           }}
           placeholder="Cari kode, nama, barcode, atau merk…"
           label="Cari barang"
+          tampilStatus={saring.tampil('status')}
         >
-          <Select
-            value={kepemilikan ?? SEMUA_KATEGORI}
-            onValueChange={(v) => {
-              setKepemilikan(v === SEMUA_KATEGORI ? null : (v as Kepemilikan));
-              setHalaman(1);
-            }}
-          >
-            <SelectTrigger className="w-40" aria-label="Saring kepemilikan">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SEMUA_KATEGORI}>Semua kepemilikan</SelectItem>
-              <SelectItem value="MILIK_SENDIRI">Milik toko</SelectItem>
-              <SelectItem value="KONSINYASI">Titipan</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={idKategori === null ? SEMUA_KATEGORI : String(idKategori)}
-            onValueChange={(v) => {
-              setIdKategori(v === SEMUA_KATEGORI ? null : Number(v));
-              setHalaman(1);
-            }}
-          >
-            <SelectTrigger className="w-48" aria-label="Saring kategori">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SEMUA_KATEGORI}>Semua kategori</SelectItem>
-              {(kategori.data ?? []).map((k) => (
-                <SelectItem key={k.id} value={String(k.id)}>
-                  {k.nama}
-                </SelectItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" aria-label="Pilih saringan">
+                <Filter /> Saring
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52">
+              <DropdownMenuLabel>Saringan yang ditampilkan</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {SARINGAN.map((x) => (
+                <DropdownMenuCheckboxItem
+                  key={x.kunci}
+                  checked={saring.tampil(x.kunci)}
+                  onCheckedChange={() => alihSaring(x.kunci)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {x.label}
+                </DropdownMenuCheckboxItem>
               ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={idMerk === null ? SEMUA_KATEGORI : String(idMerk)}
-            onValueChange={(v) => {
-              setIdMerk(v === SEMUA_KATEGORI ? null : Number(v));
-              setHalaman(1);
-            }}
-          >
-            <SelectTrigger className="w-40" aria-label="Saring merk">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SEMUA_KATEGORI}>Semua merk</SelectItem>
-              {(merk.data ?? []).map((m) => (
-                <SelectItem key={m.id} value={String(m.id)}>
-                  {m.nama}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <label className="ml-auto flex items-center gap-2 text-sm text-slate-600">
-            <Switch
-              checked={perluTinjau}
-              onCheckedChange={(v) => {
-                setPerluTinjau(v);
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {saring.tampil('kepemilikan') && (
+            <Select
+              value={kepemilikan ?? SEMUA_KATEGORI}
+              onValueChange={(v) => {
+                setKepemilikan(v === SEMUA_KATEGORI ? null : (v as Kepemilikan));
                 setHalaman(1);
               }}
-            />
-            Perlu tinjau harga
-          </label>
+            >
+              <SelectTrigger className="w-40" aria-label="Saring kepemilikan">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEMUA_KATEGORI}>Semua kepemilikan</SelectItem>
+                <SelectItem value="MILIK_SENDIRI">Milik toko</SelectItem>
+                <SelectItem value="KONSINYASI">Titipan</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {saring.tampil('kategori') && (
+            <Select
+              value={idKategori === null ? SEMUA_KATEGORI : String(idKategori)}
+              onValueChange={(v) => {
+                setIdKategori(v === SEMUA_KATEGORI ? null : Number(v));
+                setHalaman(1);
+              }}
+            >
+              <SelectTrigger className="w-48" aria-label="Saring kategori">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEMUA_KATEGORI}>Semua kategori</SelectItem>
+                {(kategori.data ?? []).map((k) => (
+                  <SelectItem key={k.id} value={String(k.id)}>
+                    {k.nama}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {saring.tampil('merk') && (
+            <Select
+              value={idMerk === null ? SEMUA_KATEGORI : String(idMerk)}
+              onValueChange={(v) => {
+                setIdMerk(v === SEMUA_KATEGORI ? null : Number(v));
+                setHalaman(1);
+              }}
+            >
+              <SelectTrigger className="w-40" aria-label="Saring merk">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEMUA_KATEGORI}>Semua merk</SelectItem>
+                {(merk.data ?? []).map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    {m.nama}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {saring.tampil('tinjau') && (
+            <label className="ml-auto flex items-center gap-2 text-sm text-slate-600">
+              <Switch
+                checked={perluTinjau}
+                onCheckedChange={(v) => {
+                  setPerluTinjau(v);
+                  setHalaman(1);
+                }}
+              />
+              Perlu tinjau harga
+            </label>
+          )}
         </BilahSaring>
         <DataTable
           kolom={kolom}

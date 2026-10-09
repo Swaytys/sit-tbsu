@@ -250,7 +250,7 @@ describe('baca, pratinjau, sunting, simpan', () => {
       'GALAT',
       'SIAP',
       'GALAT',
-      'GALAT',
+      'SIAP', // K-095: harga Normal dan modal kosong = harga menunggu penerimaan pertama
       'GALAT',
       'GALAT',
     ]);
@@ -259,8 +259,6 @@ describe('baca, pratinjau, sunting, simpan', () => {
     expect(pesan[2]).toContain('Merk "Tanpa" tidak ditemukan');
     expect(pesan[2]).not.toContain('wajib dipilih');
     expect(pesan[4]).toContain('Kode sama dengan baris 6');
-    // K-094: harga Normal kosong = ikut markup, jadi harga modal awal wajib ada.
-    expect(pesan[5]).toContain('isi harga modal awal');
     expect(pesan[6]).toContain('angka dan satuan');
     expect(pesan[7]).toContain('rupiah bulat');
     const [jumlah] = await db.select({ n: count() }).from(barang);

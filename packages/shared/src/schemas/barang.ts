@@ -231,6 +231,8 @@ export type BarisBarang = {
   satuanJual: SatuanJualBarang[];
   /** Pencarian tepat sama dengan barcode satuan jual: satuan jual itu (pindai barcode dus, dsb.). */
   idSatuanJualCocok: number | null;
+  /** Atribut ringkas (pembeda barang mirip di hasil cari), mis. { nama: 'Panjang', nilai: '6 m' }. */
+  ringkasAtribut: RingkasAtribut[];
   hargaModalAwal?: number;
   hargaTitip?: number | null;
   hppRata2?: number;
@@ -238,6 +240,8 @@ export type BarisBarang = {
   /** Dasar markup `D` saat ini (docs/06 H3). */
   dasarMarkup?: number;
 };
+
+export type RingkasAtribut = { nama: string; nilai: string };
 
 export type AtributBarang = {
   idJenisAtribut: number;

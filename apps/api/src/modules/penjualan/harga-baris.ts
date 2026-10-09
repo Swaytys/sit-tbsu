@@ -4,8 +4,10 @@ import {
   formatRupiah,
   kaliQty,
   keQty,
+  kunciBaris,
   persenKeRupiah,
   subtotalRupiah,
+  tambahQty,
   type DataOrder,
   type SatuanJualBarang,
 } from '@sit/shared';
@@ -89,7 +91,8 @@ export type BarisLama = {
   diskonBaris: number;
   promoNonaktif: boolean;
 };
-export type HargaLama = Map<number, BarisLama>;
+/** Kunci: `kunciBaris(idBarang, idSatuanJual)` (K-095). */
+export type HargaLama = Map<string, BarisLama>;
 
 export type OpsiHitung = {
   lama?: HargaLama;
@@ -202,7 +205,7 @@ export async function hitungBarisJual(
   pelaku: PenggunaAktif,
   opsi: OpsiHitung = {},
 ): Promise<HasilHarga> {
-  const lamaPer = opsi.lama ?? new Map<number, BarisLama>();
+  const lamaPer = opsi.lama ?? new Map<string, BarisLama>();
   const tanggal = opsi.tanggal ?? tanggalOperasional();
   const idBarang = input.baris.map((b) => b.idBarang);
   const brgPer = await dataBarang(tx, idBarang);
@@ -227,6 +230,15 @@ export async function hitungBarisJual(
   const hargaUntuk = (idBrg: number, idSj: number | null, idTier: number) =>
     harga.get(idSj === null ? `${idBrg}:${idTier}` : `${idSj}#${idTier}`);
   const bawaan = await tierBawaan(tx, input.idPelanggan);
+  // K-095: syarat qty tier dihitung dari total satuan dasar barang itu di transaksi (semua baris satuannya).
+  const totalDasar = new Map<number, string>();
+  for (const b of input.baris) {
+    const f = b.idSatuanJual === null ? '1' : (satuanJual.get(b.idSatuanJual)?.s.faktor ?? '1');
+    totalDasar.set(
+      b.idBarang,
+      tambahQty(totalDasar.get(b.idBarang) ?? '0', kaliQty(keQty(b.qty), f)),
+    );
+  }
   const konteks = await muatKonteksHarga(tx);
   const batas = await batasDiskon(tx, pelaku);
   const bolehDiskon = pelaku.izin.has('penjualan.diskon');
@@ -241,7 +253,8 @@ export async function hitungBarisJual(
       throw galatBaris(i, 'idBarang', `${brg.namaBarang} nonaktif dan tidak bisa dijual.`);
     }
     const qty = keQty(b.qty);
-    const lama = lamaPer.get(b.idBarang);
+    const lama = lamaPer.get(kunciBaris(b.idBarang, b.idSatuanJual));
+    const qtyTier = totalDasar.get(b.idBarang) ?? '0';
     let faktor = '1';
     if (b.idSatuanJual !== null) {
       const sj = satuanJual.get(b.idSatuanJual);
@@ -297,7 +310,7 @@ export async function hitungBarisJual(
       // K-094: tanpa pilihan kasir, tier ditentukan otomatis dari pelanggan dan qty.
       idTier =
         b.idTingkatHarga ??
-        pilihTierOtomatis(bawaan, tierAktif, qtyDasar, (t) =>
+        pilihTierOtomatis(bawaan, tierAktif, qtyTier, (t) =>
           hargaUntuk(b.idBarang, b.idSatuanJual, t),
         );
       if (!idTierAktif.has(idTier))
@@ -322,7 +335,8 @@ export async function hitungBarisJual(
         throw galatBaris(
           i,
           'idTingkatHarga',
-          `Harga ${brg.namaBarang} untuk tier ini belum diatur. Atur di Data Barang › Harga jual.`,
+          `Harga ${brg.namaBarang} belum ada (harga modal belum diketahui). ` +
+            'Catat penerimaan barangnya, atau isi harganya (Rp) di Data Barang.',
         );
       } else {
         hargaSatuan = kini;
@@ -336,6 +350,7 @@ export async function hitungBarisJual(
       faktor,
       lama,
       dasar,
+      qtyTier,
       idTier,
       tierDipilih,
       hargaSatuan,
@@ -403,7 +418,7 @@ export async function hitungBarisJual(
     if (x.tierDipilih) {
       for (const t of tierAktif) {
         if (t.id === x.idTier || t.saranMinQty === null) continue;
-        if (bandingQty(qtyDasar, t.saranMinQty) < 0) continue;
+        if (bandingQty(x.qtyTier, t.saranMinQty) < 0) continue;
         const h = hargaUntuk(b.idBarang, b.idSatuanJual, t.id);
         if (h === undefined || h >= x.hargaSatuan) continue;
         if (!saran || h < saran.harga) saran = { id: t.id, harga: h };

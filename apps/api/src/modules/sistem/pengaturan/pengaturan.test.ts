@@ -16,7 +16,7 @@ import { terbitkanNomor } from '../penomoran';
 
 type Galat = { error: { kode: string; pesan: string } };
 type Pengaturan = {
-  profil: { namaToko: string; footerStruk: string; lebarStrukMm: number };
+  profil: { namaToko: string; footerStruk: string; lebarStrukMm: number; strukCetak: string };
   penomoran: { prefix: Record<string, string>; digitNomor: number };
   keamanan: { passwordMin: number };
 };
@@ -69,6 +69,7 @@ describe('pengaturan › baca dan ubah', () => {
       lebar_struk_mm: '80',
       struk_tampilkan_nama: 'true',
       struk_tampilkan_logo: 'false',
+      struk_cetak: 'OTOMATIS',
     });
     const sekarang = await baca();
 
@@ -151,6 +152,10 @@ describe('pengaturan › validasi', () => {
     // Printer thermal 57 mm (K-094).
     expect((await ubah({ profil: { ...p.profil, lebarStrukMm: 57 } })).status).toBe(200);
     expect((await baca()).profil.lebarStrukMm).toBe(57);
+    // K-095: cara cetak struk setelah bayar; terbaca juga oleh layar kasir (tampilan).
+    expect((await ubah({ profil: { ...p.profil, strukCetak: 'TANYA' } })).status).toBe(200);
+    expect((await baca()).profil.strukCetak).toBe('TANYA');
+    expect((await ubah({ profil: { ...p.profil, strukCetak: 'KADANG' } })).status).toBe(400);
 
     const kosong = await ubah({});
     expect(kosong.status).toBe(400);

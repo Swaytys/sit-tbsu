@@ -7,7 +7,8 @@ rem  dijalankan dengan --kiosk-printing yang langsung mencetak ke PRINTER BAWAAN
 rem  Skrip ini membuka jendela peramban khusus kasir (profil terpisah, tidak mengganggu browsing biasa).
 rem
 rem  Persiapan sekali saja:
-rem    1. Pasang driver printer struk (thermal 58/80 mm).
+rem    1. Pasang driver printer struk (thermal 57/58/80 mm). Printer Bluetooth: pasangkan dulu di
+rem       Windows > Bluetooth, pasang driver-nya sampai muncul di daftar printer.
 rem    2. Windows > Pengaturan > Printer: jadikan printer struk sebagai PRINTER BAWAAN, dan matikan
 rem       "Biarkan Windows mengatur printer bawaan".
 rem    3. Klik dua kali skrip ini (atau buat shortcut-nya di desktop kasir).

@@ -141,7 +141,7 @@ describe('retur penjualan (docs/05 §8)', () => {
       persetujuan: { metodeRefund: 'TUNAI' },
       baris: [{ idPenjualanDetail: baris.id, qtyRetur: '4' }],
     });
-    expect(lebih.pesan).toContain('melebihi yang bisa diretur (3.000)');
+    expect(lebih.pesan).toContain('melebihi yang bisa diretur (3 sak)');
 
     const ok = await kirim<BarisRetur>(admin, `/api/retur/${r.id}/setujui`, {});
     expect(ok).toMatchObject({ status: 'DISETUJUI', metodeRefund: 'TUNAI' });
@@ -322,7 +322,7 @@ describe('retur penjualan (docs/05 §8)', () => {
       baris: [{ idPenjualanDetail: b.id, qtyRetur: '2', kondisi: 'RUSAK' }],
     });
     expect(tolak.status).toBe(409);
-    expect(tolak.pesan).toContain('tinggal 1.000');
+    expect(tolak.pesan).toContain('tinggal 1 sak');
     // Tukar 1 + retur 1 uang kembali: keduanya bisa diajukan.
     await kirim(kasir, '/api/retur', {
       idPenjualan: pj.id,

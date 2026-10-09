@@ -55,6 +55,12 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     deskripsi: 'Lebar kertas struk: 57, 58, atau 80',
   },
   {
+    kode: 'struk_cetak',
+    nilai: 'OTOMATIS',
+    tipe: 'TEKS',
+    deskripsi: 'Struk setelah bayar: OTOMATIS, TANYA, atau TIDAK (K-095)',
+  },
+  {
     kode: 'struk_tampilkan_nama',
     nilai: 'true',
     tipe: 'BOOL',

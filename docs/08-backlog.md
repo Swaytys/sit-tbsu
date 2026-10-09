@@ -95,6 +95,7 @@ Usulan dari Fase 7 (laporan):
 | F3 | **Panduan tombol yang bisa dibuka/ditutup** kapan saja (mis. tombol `?`) di Order Penjualan, layar kasir, dan pengantaran: ringkasan alur + daftar tombol; pilihan "jangan tampilkan lagi" per pengguna. | Bilah tombol bawah (K-073) tetap ada dan bisa disembunyikan. |
 | F4 | **Pengaturan › Printer**: aktif/nonaktif cetak struk otomatis per komputer kasir, pilih printer struk & printer A4, jumlah salinan, uji cetak. | Peramban tidak bisa memilih printer sendiri; butuh agen cetak lokal kecil (atau ESC/POS lewat Web Serial) — dinilai saat Sprint F. Sampai itu: `scripts/kasir/buka-kasir.cmd` (K-074). |
 | F5 | Laci uang terbuka otomatis saat struk tunai dicetak (perintah ESC/POS lewat printer struk). | Bergantung F4. |
+| F6 | **(masukan pemilik 2026-10-09) Tata letak POS bisa diatur pengguna**: daftar barang, papan antrean, panel bayar, dan hasil cari bisa diperlebar/dipersempit dengan menarik pembatas; ukuran diingat per komputer; tombol "kembalikan tata letak". | Preferensi tampilan (boleh `localStorage`). Cetak senyap & pilihan "tanya dulu/tidak cetak" sudah ada sejak K-095. |
 
 ## v3.0.0 — Pembukuan dan skala
 
@@ -127,3 +128,4 @@ Usulan dari Fase 7 (laporan):
 
 - 2026-09-30 — Dibuat dari masukan pemilik setelah Fase 3 (K-062).
 - 2026-10-04 — Sprint D: usulan laporan D-L1–D-L4 dari Fase 7.
+- 2026-10-09 — Sprint F: F6 tata letak POS yang bisa diatur (masukan pemilik).

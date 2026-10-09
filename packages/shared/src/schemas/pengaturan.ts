@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AKSI_LOG } from '../log';
-import { PERAN } from '../enums';
+import { PERAN, STRUK_CETAK, type StrukCetak } from '../enums';
 import { KODE_DOKUMEN } from '../penomoran';
 import { skemaHalaman } from './umum';
 
@@ -34,6 +34,8 @@ export const skemaProfilToko = z.object({
   /** Kop struk memakai nama toko / logo toko (K-065). */
   strukTampilkanNama: z.boolean(),
   strukTampilkanLogo: z.boolean(),
+  /** K-095: cetak struk setelah bayar. */
+  strukCetak: z.enum(STRUK_CETAK, 'Pilihan cetak struk tidak valid.'),
 });
 
 /** Pilihan jumlah baris per halaman tabel (K-065). */
@@ -142,6 +144,7 @@ export type TampilanToko = {
   lebarStrukMm: 57 | 58 | 80;
   strukTampilkanNama: boolean;
   strukTampilkanLogo: boolean;
+  strukCetak: StrukCetak;
   /** Rekening bawaan pembayaran transfer/EDC di layar kasir (K-073). */
   rekeningTransfer: string;
   rekeningEdc: string;

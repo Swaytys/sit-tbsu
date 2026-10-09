@@ -182,7 +182,7 @@ describe('ledger stok (docs/05 §2)', () => {
     await terima(idSendiri, '3', 10000);
     await expect(keluar(idSendiri, '3.001')).rejects.toMatchObject({
       kode: 'STOK_TIDAK_CUKUP',
-      message: 'Stok Semen Gresik tidak cukup: tersedia 3.000, diminta 3.001.',
+      message: 'Stok Semen Gresik tidak cukup: tersedia 3 sak, diminta 3,001 sak.',
     });
     await expect(keluar(idSendiri, '1', 'RUSAK')).rejects.toBeInstanceOf(AppError);
     expect((await stok(idSendiri)).stokFisik).toBe('3.000');

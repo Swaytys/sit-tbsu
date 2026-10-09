@@ -2,6 +2,7 @@ import {
   formatRupiah,
   keQty,
   rapikanDesimal,
+  kunciBaris,
   tambahQty,
   nomorAntrean,
   type BarisDaftarOrder,
@@ -230,7 +231,7 @@ async function logHargaDiskon(
   lama: HargaLama = new Map(),
 ) {
   for (const b of h.baris) {
-    if (b.promoDilepas && !lama.get(b.idBarang)?.promoNonaktif) {
+    if (b.promoDilepas && !lama.get(kunciBaris(b.idBarang, b.idSatuanJual))?.promoNonaktif) {
       await catatLog(tx, {
         aksi: 'PENJUALAN_PROMO_LEPAS',
         idPengguna: pelaku.id,
@@ -416,7 +417,9 @@ export async function ubahOrderTx(
   }
   await validasiPelanggan(tx, input);
   const lama = await repo.barisReservasi(tx, id);
-  const hargaLama: HargaLama = new Map(lama.map((b) => [b.idBarang, b]));
+  const hargaLama: HargaLama = new Map(
+    lama.map((b) => [kunciBaris(b.idBarang, b.idSatuanJual), b]),
+  );
   const harga = await hitungBarisJual(tx, input, pelaku, {
     lama: hargaLama,
     diskonTransaksiLama: h.diskonTransaksi,
@@ -463,7 +466,10 @@ export async function pratinjauOrder(
       const h = await repo.orderById(tx, input.idOrder);
       if (!h || !bolehLihat(h, pelaku)) throw tidakDitemukan();
       opsi.lama = new Map(
-        (await repo.barisReservasi(tx, input.idOrder)).map((b) => [b.idBarang, b]),
+        (await repo.barisReservasi(tx, input.idOrder)).map((b) => [
+          kunciBaris(b.idBarang, b.idSatuanJual),
+          b,
+        ]),
       );
       opsi.diskonTransaksiLama = h.diskonTransaksi;
     }
@@ -590,12 +596,15 @@ export async function lepasOrder(
   return detailOrder(id, pelaku);
 }
 
-async function lepasDanBatal(tx: Tx, id: number, alasan: string) {
-  const baris = await repo.barisReservasi(tx, id);
-  await ubahReservasi(
-    tx,
-    baris.map((b) => ({ idBarang: b.idBarang, delta: `-${b.qtyDasar}` })),
-  );
+/** Membatalkan order; reservasi dilepas hanya bila order menahan stok (draf tidak menahan, R2). */
+async function lepasDanBatal(tx: Tx, id: number, alasan: string, menahan: boolean) {
+  if (menahan) {
+    const baris = await repo.barisReservasi(tx, id);
+    await ubahReservasi(
+      tx,
+      baris.map((b) => ({ idBarang: b.idBarang, delta: `-${b.qtyDasar}` })),
+    );
+  }
   await repo.ubahHeader(tx, id, {
     status: 'BATAL',
     alasanBatal: alasan,
@@ -634,7 +643,7 @@ export async function batalOrder(
         throw new AppError('KONFLIK', `Order ${h.nomor} sedang diproses kasir lain.`, 409);
       }
     }
-    await lepasDanBatal(tx, id, alasan);
+    await lepasDanBatal(tx, id, alasan, h.status !== 'DRAFT');
     await catatLog(tx, {
       aksi: 'ORDER_BATAL',
       idPengguna: pelaku.id,
@@ -664,7 +673,7 @@ export async function jalankanJobOrder(): Promise<{ dibatalkan: string[]; dilepa
       await dalamTransaksi(async (tx) => {
         const h = await repo.kunciOrder(tx, o.id);
         if (h?.status !== 'MENUNGGU') return;
-        await lepasDanBatal(tx, o.id, 'KADALUARSA');
+        await lepasDanBatal(tx, o.id, 'KADALUARSA', true);
         await catatLog(tx, {
           aksi: 'ORDER_BATAL',
           idPengguna: null,
@@ -719,6 +728,12 @@ export async function stokTertahan(): Promise<BarisStokTertahan[]> {
         order: [],
       };
       hasil.set(r.idBarang, b);
+    }
+    // K-095: beberapa baris satuan untuk barang yang sama dalam satu order digabung.
+    const sama = b.order.find((o) => o.id === r.idOrder);
+    if (sama) {
+      sama.qtyDasar = tambahQty(sama.qtyDasar, r.qtyDasar);
+      continue;
     }
     b.order.push({
       id: r.idOrder,

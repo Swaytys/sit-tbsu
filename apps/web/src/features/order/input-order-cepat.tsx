@@ -1,7 +1,9 @@
 import {
+  kunciBaris,
   formatRupiah,
   skemaOrder,
   type BarisBarang,
+  type DetailOrder,
   type InputOrder,
   type JenisPenjualan,
   type Pelanggan,
@@ -10,10 +12,12 @@ import {
 import { useEffect, useEffectEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
-import { pesanGalat } from '@/api/client';
+import { ambilData, ambilIsi, api, pesanGalat } from '@/api/client';
 import { useDaftarTingkatHarga } from '@/api/mitra';
 import {
+  useBatalOrder,
   useDaftarOrder,
+  useKirimOrder,
   usePratinjauOrder,
   useSimpanOrder,
   useSiaranAntrean,
@@ -55,6 +59,7 @@ const TOMBOL: Record<Zona, Tombol[]> = {
   keranjang: [
     { kunci: '+ −', label: 'Qty ±1' },
     { kunci: 'Angka', label: 'Ubah qty' },
+    { kunci: 'S', label: 'Ganti satuan' },
     { kunci: 'Del', label: 'Hapus' },
     { kunci: 'Ctrl+Z', label: 'Urungkan' },
   ],
@@ -68,8 +73,11 @@ const TOMBOL: Record<Zona, Tombol[]> = {
   ],
 };
 
-/** Daftar order milik sendiri (hari ini), diperbarui otomatis lewat siaran antrean. */
-function OrderSaya() {
+/**
+ * Daftar order milik sendiri (hari ini), diperbarui otomatis lewat siaran antrean. Draf bisa diklik untuk
+ * dilanjutkan.
+ */
+function OrderSaya({ onLanjutDraf }: { onLanjutDraf: (id: number) => void }) {
   const daftar = useDaftarOrder({
     cari: '',
     status: null,
@@ -85,7 +93,15 @@ function OrderSaya() {
       <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
         {data.length === 0 && <li className="text-sm text-slate-400">Belum ada order.</li>}
         {data.map((o) => (
-          <li key={o.id} className="rounded-md border bg-white p-2 text-sm">
+          <li
+            key={o.id}
+            className={cn(
+              'rounded-md border bg-white p-2 text-sm',
+              o.status === 'DRAFT' && 'cursor-pointer border-amber-300 hover:bg-amber-50',
+            )}
+            title={o.status === 'DRAFT' ? 'Klik untuk melanjutkan draf ini' : undefined}
+            onClick={o.status === 'DRAFT' ? () => onLanjutDraf(o.id) : undefined}
+          >
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-lg leading-none font-black tabular-nums">{o.noAntrean}</span>
               <span
@@ -127,7 +143,11 @@ export function InputOrderCepat() {
   const tierAktif = (useDaftarTingkatHarga().data ?? []).filter((t) => t.statusAktif === 'AKTIF');
   const tierDefault = tierAktif.find((t) => t.isDefault)?.id ?? null;
   const simpan = useSimpanOrder();
+  const kirimOrder = useKirimOrder();
+  const batalOrder = useBatalOrder();
   const tr = useTransaksiPos(tierDefault);
+  /** Draf yang sedang diisi (disimpan otomatis saat halaman ditinggalkan, K-095). */
+  const idDraf = tr.t.order?.status === 'DRAFT' ? tr.t.order.id : null;
   const [zona, setZona] = useState<Zona>('cari');
   const [indeksBaris, setIndeksBaris] = useState(0);
   const [jenis, setJenis] = useState<JenisPenjualan>('LANGSUNG');
@@ -163,11 +183,79 @@ export function InputOrderCepat() {
     };
   }
 
+  function muatDraf(d: DetailOrder) {
+    tr.muatOrder(d);
+    setJenis(d.jenisPenjualan);
+    setAlamat(d.alamatKirim ?? '');
+    setOngkir(d.ongkir ? String(d.ongkir) : '');
+    setCatatanKirim(d.catatanKirim ?? '');
+    setIndeksBaris(0);
+    setZona('cari');
+  }
+
+  async function lanjutDraf(id: number, diam = false) {
+    if (id === idDraf) return;
+    if (tr.t.baris.length > 0) {
+      if (!diam) toast.info('Kirim atau kosongkan (F9) order yang sedang diisi dulu.');
+      return;
+    }
+    const d = await ambilData(await api.order[':id'].$get({ param: { id: String(id) } }));
+    if (d.status !== 'DRAFT') return;
+    muatDraf(d);
+    toast.info(`Draf order ${d.nomor} dilanjutkan.`);
+  }
+
+  // K-095: draf terakhir milik sendiri dibuka lagi saat halaman dibuka, agar isian tidak hilang.
+  const bukaDrafTerakhir = useEffectEvent(async () => {
+    const r = await ambilIsi(
+      await api.order.$get({
+        query: { status: 'DRAFT', milikSaya: 'true', halaman: '1', perHalaman: '1' },
+      }),
+    );
+    const d = r.data[0];
+    if (d) await lanjutDraf(d.id, true);
+  });
+
+  /**
+   * K-095: isian yang belum dikirim disimpan sebagai draf (tidak menahan stok) saat halaman ditinggalkan:
+   * pindah menu, muat ulang, atau tab ditutup (`keepalive` agar permintaan tetap terkirim).
+   */
+  const simpanDraf = useEffectEvent(() => {
+    if (!tr.t.diubah || tr.t.baris.length === 0) return;
+    const data = skemaOrder.safeParse(isianOrder());
+    if (!data.success) return;
+    void fetch(idDraf === null ? '/api/order?kirim=false' : `/api/order/${idDraf}`, {
+      method: idDraf === null ? 'POST' : 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(data.data),
+      credentials: 'same-origin',
+      keepalive: true,
+    })
+      .then((r) => {
+        if (r.ok) toast.info('Order yang belum dikirim disimpan sebagai draf (Order Penjualan).');
+      })
+      .catch(() => undefined);
+  });
+
+  useEffect(() => {
+    // Dimuat setelah tampilan pertama; isian draf diterapkan saat jawaban API tiba.
+    const t = setTimeout(() => void bukaDrafTerakhir().catch(() => undefined), 0);
+    const keluar = () => simpanDraf();
+    window.addEventListener('pagehide', keluar);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('pagehide', keluar);
+      simpanDraf();
+    };
+  }, []);
+
   // PR5: harga, promo, dan total dari API; angka lokal hanya cadangan selama menunggu.
   const pratinjau = usePratinjauOrder(
-    tr.t.baris.length > 0 ? { idOrder: null, order: isianOrder() } : null,
+    tr.t.baris.length > 0 ? { idOrder: idDraf, order: isianOrder() } : null,
   );
-  const pratinjauBaris = new Map((pratinjau.data?.baris ?? []).map((b) => [b.idBarang, b]));
+  const pratinjauBaris = new Map(
+    (pratinjau.data?.baris ?? []).map((b) => [kunciBaris(b.idBarang, b.idSatuanJual), b]),
+  );
   const total =
     pratinjau.segar && pratinjau.data
       ? pratinjau.data.total
@@ -181,8 +269,13 @@ export function InputOrderCepat() {
       setZona(data.error.issues[0]?.path[0] === 'idPelanggan' ? 'pelanggan' : 'cari');
       return;
     }
-    simpan
-      .mutateAsync({ json: data.data, kirim: true })
+    const kirimDraf = idDraf;
+    (kirimDraf === null
+      ? simpan.mutateAsync({ json: data.data, kirim: true })
+      : simpan
+          .mutateAsync({ id: kirimDraf, json: data.data, kirim: false })
+          .then(() => kirimOrder.mutateAsync(kirimDraf))
+    )
       .then((o) => {
         setTerakhir({
           no: o.noAntrean,
@@ -215,7 +308,17 @@ export function InputOrderCepat() {
       kirim();
     } else if (e.key === 'F9') {
       e.preventDefault();
-      tr.kosongkan(true);
+      if (idDraf !== null) {
+        // Draf yang dikosongkan dibatalkan agar tidak dibuka lagi.
+        const id = idDraf;
+        batalOrder
+          .mutateAsync({ id, alasan: 'Draf dikosongkan sebelum dikirim' })
+          .then(() => toast.info('Draf dibuang.'))
+          .catch((err: unknown) => toast.error(pesanGalat(err)));
+        tr.kosongkan(false);
+      } else {
+        tr.kosongkan(true);
+      }
       setZona('cari');
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && tr.adaCadangan) {
       const el = document.activeElement;
@@ -232,6 +335,7 @@ export function InputOrderCepat() {
 
   const tombol: Tombol[] = [
     { kunci: 'F2', label: 'Cari barang' },
+    { kunci: 'F1', label: 'Qty (*)' },
     { kunci: 'F4', label: 'Pelanggan' },
     { kunci: 'F3', label: antar ? 'Ubah ke langsung' : 'Ubah ke pengantaran' },
     { kunci: 'F8', label: 'Kirim ke antrean' },
@@ -401,7 +505,11 @@ export function InputOrderCepat() {
             </div>
           )}
         </section>
-        <OrderSaya />
+        <OrderSaya
+          onLanjutDraf={(id) =>
+            void lanjutDraf(id).catch((err: unknown) => toast.error(pesanGalat(err)))
+          }
+        />
       </div>
       <BilahTombol daftar={tombol} />
     </div>

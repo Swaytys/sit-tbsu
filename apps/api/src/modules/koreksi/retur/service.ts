@@ -5,6 +5,7 @@ import {
   kaliQty,
   hargaSatuanEfektif,
   keQty,
+  teksQty,
   kurangQty,
   subtotalRupiah,
   tambahQty,
@@ -160,9 +161,10 @@ export async function ajukanRetur(
         const sisa = bagiQty(sisaDasar, b.faktor);
         throw new AppError(
           'STATUS_TIDAK_VALID',
-          `${b.namaBarang}: qty retur ${qty} melebihi yang bisa diretur (${sisa}).`,
+          `${b.namaBarang}: qty retur ${teksQty(qty)} melebihi yang bisa diretur ` +
+            `(${teksQty(sisa)} ${b.kodeSatuan}).`,
           409,
-          { kolom: { [`baris.${i}.qtyRetur`]: [`Maksimal ${sisa}.`] } },
+          { kolom: { [`baris.${i}.qtyRetur`]: [`Maksimal ${teksQty(sisa)} ${b.kodeSatuan}.`] } },
         );
       }
       const hse = hargaSatuanEfektif(b.subtotal, b.qty);
@@ -177,8 +179,8 @@ export async function ajukanRetur(
           const bisa = bagiQty(tersedia, x.b.faktor);
           throw new AppError(
             'STOK_TIDAK_CUKUP',
-            `Stok ${x.b.namaBarang} untuk pengganti tinggal ${keQty(bisa)} ${x.b.kodeSatuan}. ` +
-              `Ajukan tukar ${keQty(bisa)} saja, lalu sisanya sebagai retur dengan uang kembali atau potong tagihan.`,
+            `Stok ${x.b.namaBarang} untuk pengganti tinggal ${teksQty(bisa)} ${x.b.kodeSatuan}. ` +
+              `Ajukan tukar ${teksQty(bisa)} saja, lalu sisanya sebagai retur dengan uang kembali atau potong tagihan.`,
             409,
           );
         }

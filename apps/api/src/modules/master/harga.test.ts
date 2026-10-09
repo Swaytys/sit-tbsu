@@ -226,16 +226,21 @@ describe('metode harga (H4, H12)', () => {
     expect(res.status).toBe(200);
     expect(await harga(b.id, ref.normal)).toMatchObject({ metode: 'MARKUP', hargaJual: 13_000 });
 
-    // Tanpa harga modal, Normal ikut tier akan Rp 0: ditolak dengan pesan yang menunjuk modal.
-    const tanpaModal = await kirim(
+    // K-095: harga modal belum diketahui → harga ikut markup Rp 0 (belum bisa dijual); harga Rp 0 ditolak.
+    const nol = await kirim(
       admin,
       '/api/barang',
-      barangBaru({ hargaModalAwal: 0, hargaTier: [] }),
+      barangBaru({ hargaTier: [{ idTingkatHarga: ref.normal, hargaTetap: 0 }] }),
     );
-    expect(tanpaModal.status).toBe(400);
-    expect((await json<{ error: { pesan: string } }>(tanpaModal)).error.pesan).toContain(
-      'harga modal belum diisi',
-    );
+    expect(nol.status).toBe(400);
+    const tanpaModal = await buat({ hargaModalAwal: 0, hargaTier: [], hargaOtomatis: undefined });
+    expect(await harga(tanpaModal.id, ref.normal)).toMatchObject({
+      metode: 'IKUT_TIER',
+      hargaJual: 0,
+    });
+    // Penerimaan pertama mengisi harganya sendiri (harga otomatis): 25% dari 8.000.
+    await terimaBerhasil([{ idBarang: tanpaModal.id, harga: 8000 }]);
+    expect((await harga(tanpaModal.id, ref.normal)).hargaJual).toBe(10_000);
   });
 
   it('simpan manual menghitung ulang SEMUA baris markup barang itu dengan D terkini (K-060 #4)', async () => {

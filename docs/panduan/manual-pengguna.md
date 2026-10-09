@@ -21,10 +21,13 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
    **Ctrl+Z** urungkan.
 2. Pembeli umum tidak perlu nama. Pelanggan langganan: **F4** cari pelanggan. Pengantaran: **F3** ubah jenis
    (alamat pelanggan terisi otomatis).
-3. **F8** kirim ke antrean. Order mendapat **nomor antrean** dan langsung muncul di layar kasir. Serahkan barang
+3. Isian yang belum dikirim **tidak hilang**: saat Anda pindah menu atau menutup halaman, isian disimpan sebagai
+   **draf** dan dibuka lagi saat kembali ke Order Penjualan (draf lain bisa diklik di "Order saya"). **F9** pada
+   draf = buang draf.
+4. **F8** kirim ke antrean. Order mendapat **nomor antrean** dan langsung muncul di layar kasir. Serahkan barang
    ke kasir sambil menyebut isi order (mis. "semen 3 sak, nomor 12").
-4. Stok yang tampil adalah stok **tersedia** (sudah dikurangi order lain yang belum dibayar).
-5. **Harga dan promo otomatis**: harga mengikuti tier pelanggan, dan berubah ke harga grosir sendiri bila qty
+5. Stok yang tampil adalah stok **tersedia** (sudah dikurangi order lain yang belum dibayar).
+6. **Harga dan promo otomatis**: harga mengikuti tier pelanggan, dan berubah ke harga grosir sendiri bila qty
    memenuhi syarat (mis. Grosir mulai 10 sak). Potongan promo tampil hijau di bawah barang ("Promo … −Rp …") dan
    total sudah memakai potongan. Anda tidak perlu memilih harga apa pun.
 
@@ -48,9 +51,15 @@ Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
 - Barang berkemasan (dus, roll, …): hasil cari menampilkan setiap kemasan sebagai pilihan sendiri, mis.
   "Semen · sak" dan "Semen · dus isi 10 sak" — pilih dengan panah lalu **Enter**. Memindai barcode dus langsung
   memakai dus; **S** di daftar barang mengganti satuan baris. Qty kemasan harus bulat; setengah dus dijual
-  sebagai 5 sak. Di bawah qty tampil isinya dalam satuan dasar (mis. "= 30 sak").
+  sebagai 5 sak. Pembeli yang mengambil dus **dan** satuan ecer (mis. 100 dus + 50 buah): tambahkan keduanya —
+  setiap satuan menjadi baris sendiri dengan harganya sendiri. Di bawah qty tampil isinya dalam satuan dasar (mis.
+  "= 30 sak").
+- Hasil cari menampilkan nama, atribut singkat, satuan, harga, dan stok; info lengkap (kode, merk, atribut)
+  muncul di bawah daftar untuk barang yang disorot.
 - **F8** bayar → ketik uang yang diterima → **Enter**. Kembalian tampil besar; struk tercetak otomatis di kertas
-  thermal (lebar 57/58/80 mm diatur di *Pengaturan › Profil toko*; panjang struk mengikuti isinya).
+  thermal (lebar 57/58/80 mm diatur di *Pengaturan › Profil toko*; panjang struk mengikuti isinya). Di pengaturan
+  yang sama: **Langsung cetak**, **Tanya dulu**, atau **Tidak dicetak**; tombol *Cetak struk* juga ada di layar
+  hasil. Agar tanpa jendela pratinjau, buka kasir lewat pintasan `buka-kasir` (lihat panduan server).
 - Barang belum diambil pembeli: tandai *belum diambil*; konfirmasi saat diambil.
 
 **Penjualan pengantaran** (*Transaksi › Penjualan Pengantaran*): pilih order pengantaran → bayar penuh / DP /
@@ -79,7 +88,9 @@ pelunasan.
 Semua tugas kasir, ditambah:
 
 - **Data barang** (*Data Master › Data Barang*): tambah/ubah barang, kategori, merk, satuan, atribut, stok
-  minimum, gambar. Banyak barang sekaligus: *Import Excel*. Harga per tier di *Harga Jual*.
+  minimum, gambar. Belum tahu harga modalnya? Centang *Belum tahu harga modalnya*: harga markup terisi sendiri
+  setelah penerimaan pertama (sebelum itu barang belum bisa dijual kecuali harganya diisi Rp). Tombol **Saring**
+  memilih saringan yang tampil di atas tabel. Banyak barang sekaligus: *Import Excel*. Harga per tier di *Harga Jual*.
 - **Kemasan** (form barang › *Kemasan (satuan jual lain)*): untuk barang yang juga dijual per dus/roll/dsb.
   Satuan dasar barang = satuan **terkecil** yang dijual (sak, pcs, meter). Isi kemasan, isinya (mis. 1 dus = 12
   pcs; harus lebih dari 1), barcode dus bila ada, dan nyalakan *Satuan bawaan* bila biasanya dijual per dus.

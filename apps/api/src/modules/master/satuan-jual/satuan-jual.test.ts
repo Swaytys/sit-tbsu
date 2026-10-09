@@ -197,7 +197,7 @@ describe('transaksi dengan satuan jual (K-091)', () => {
       persetujuan: { metodeRefund: 'TUNAI' },
       baris: [{ idPenjualanDetail: pj.baris[0]!.id, qtyRetur: '3', kondisi: 'BAIK' }],
     });
-    expect(lebih.pesan).toContain('melebihi yang bisa diretur (2.000)');
+    expect(lebih.pesan).toContain('melebihi yang bisa diretur (2 dus)');
     await kirim(admin, '/api/shift/buka', { modalAwal: 500_000 });
     const r = await kirim<BarisRetur>(admin, '/api/retur', {
       idPenjualan: pj.id,
@@ -251,6 +251,50 @@ describe('transaksi dengan satuan jual (K-091)', () => {
       order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '5' }] },
     });
     expect(p.baris[0]).toMatchObject({ idSatuanJual: null, bruto: 60_000 });
+  });
+
+  it('K-095: barang sama boleh dua baris beda satuan (dus + sak), satuan sama ditolak; stok dihitung total', async () => {
+    const d = await simpanSj([{ idSatuan: idDus, faktor: '10' }]);
+    const idSj = d.satuanJual[0]!.id;
+    const baris = [
+      { idBarang: m.semen, idSatuanJual: idSj, qty: '9' },
+      { idBarang: m.semen, qty: '5' },
+    ];
+    const p = await kirim<PratinjauOrder>(kasir, '/api/order/pratinjau', {
+      idOrder: null,
+      order: { jenisPenjualan: 'LANGSUNG', baris },
+    });
+    expect(p.baris.map((b) => [b.idSatuanJual, b.bruto])).toEqual([
+      [idSj, 1_080_000],
+      [null, 60_000],
+    ]);
+
+    const kembar = await galat(kasir, '/api/penjualan/checkout', {
+      order: { jenisPenjualan: 'LANGSUNG', baris: [...baris, { idBarang: m.semen, qty: '1' }] },
+      pembayaran: [{ metode: 'TUNAI', uangDiterima: 2_000_000 }],
+    });
+    expect(kembar.status).toBe(400);
+
+    // 90 + 5 = 95 sak dari stok 100: lolos; ditambah 1 dus lagi (105 sak) ditolak.
+    await kirim(kasir, '/api/shift/buka', { modalAwal: 0 });
+    const pj = await kirim<DetailPenjualan>(kasir, '/api/penjualan/checkout', {
+      order: { jenisPenjualan: 'LANGSUNG', baris },
+      pembayaran: [{ metode: 'TUNAI', uangDiterima: 2_000_000 }],
+    });
+    expect(pj.baris).toHaveLength(2);
+    expect(await stok(m.semen)).toBe('5.000');
+    const lebih = await galat(kasir, '/api/penjualan/checkout', {
+      order: {
+        jenisPenjualan: 'LANGSUNG',
+        baris: [
+          { idBarang: m.semen, idSatuanJual: idSj, qty: '1' },
+          { idBarang: m.semen, qty: '1' },
+        ],
+      },
+      pembayaran: [{ metode: 'TUNAI', uangDiterima: 200_000 }],
+    });
+    expect(lebih.status).toBe(409);
+    expect(lebih.pesan).toContain('tersedia');
   });
 
   it('sisa kirim surat jalan dihitung dalam satuan baris', () => {

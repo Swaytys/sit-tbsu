@@ -162,6 +162,35 @@ export function FormProfil({ pengaturan }: { pengaturan: Pengaturan }) {
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="strukCetak"
+              render={({ field }) => (
+                <FormItem className="col-span-2">
+                  <FormLabel>Cetak struk setelah bayar (penjualan langsung)</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger className="w-full" aria-label="Cetak struk setelah bayar">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="OTOMATIS">Langsung cetak</SelectItem>
+                      <SelectItem value="TANYA">Tanya dulu (Enter = cetak, Esc = tidak)</SelectItem>
+                      <SelectItem value="TIDAK">
+                        Tidak dicetak (bisa cetak dari layar hasil)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Agar struk keluar tanpa jendela pratinjau, buka kasir lewat pintasan buka-kasir
+                    (Chrome mode cetak senyap) dan jadikan printer thermal sebagai printer bawaan
+                    Windows. Invoice pengantaran tetap memakai pratinjau A4.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

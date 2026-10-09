@@ -85,7 +85,12 @@ async function logTerakhir(aksi: 'PENJUALAN_HARGA_MANUAL' | 'ORDER_LEPAS' | 'ORD
 beforeEach(async () => {
   await siapkanDatabaseSistem();
   m = await siapkanMasterPersediaan();
-  await kosongkanTabel(pelanggan);
+  await kosongkanTabel(pelanggan, tingkatHarga);
+  // Tier sendiri (tanpa syarat qty) agar tes tidak bergantung pada sisa data tes lain.
+  await db.insert(tingkatHarga).values([
+    { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
+    { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2 },
+  ]);
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
   staf = await sesiUji('STAF_PENJUALAN');
@@ -132,6 +137,13 @@ beforeEach(async () => {
 });
 
 describe('order penjualan (docs/05 §3, §6)', () => {
+  it('K-095: draf yang dibuang dibatalkan tanpa melepas reservasi', async () => {
+    const d = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '2' }]));
+    const batal = await kirim(staf, `/api/order/${d.id}/batal`, { alasan: 'Draf dibuang' });
+    expect(batal.status).toBe('BATAL');
+    expect((await stok(m.semen)).dipesan).toBe('0.000');
+  });
+
   it('R2/R3 draf tidak menahan stok; kirim ke antrean menahan; stok kurang ditolak menyebut semua barang', async () => {
     const d = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '4' }]));
     expect(d.nomor).toMatch(/^ORD-\d{6}-001$/);
@@ -159,8 +171,8 @@ describe('order penjualan (docs/05 §3, §6)', () => {
     );
     expect(kurang.status).toBe(409);
     expect(kurang.kode).toBe('STOK_TIDAK_CUKUP');
-    expect(kurang.pesan).toContain('Semen Gresik 40 kg (tersedia 6.000, diminta 7.000)');
-    expect(kurang.pesan).toContain('Pasir (tersedia 5.000, diminta 6.000)');
+    expect(kurang.pesan).toContain('Semen Gresik 40 kg (tersedia 6 sak, diminta 7 sak)');
+    expect(kurang.pesan).toContain('Pasir (tersedia 5 sak, diminta 6 sak)');
     // Gagal seluruhnya: tidak ada order baru, reservasi tidak berubah.
     expect((await db.select().from(orderPenjualan)).length).toBe(1);
     expect((await stok(m.pasir)).dipesan).toBe('0.000');

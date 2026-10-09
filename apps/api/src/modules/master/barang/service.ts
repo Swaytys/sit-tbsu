@@ -10,6 +10,7 @@ import {
   type HargaTierBarang,
   type Izin,
   type MetaHalaman,
+  type RingkasAtribut,
   type SatuanJualBarang,
   type StatusAktif,
   type StatusStok,
@@ -70,6 +71,7 @@ function keBaris(
   statusStok: StatusStok,
   satuanJual: SatuanJualBarang[] = [],
   idSatuanJualCocok: number | null = null,
+  atribut: RingkasAtribut[] = [],
 ): BarisBarang {
   const lihatHpp = izin.has('master.barang.lihat_hpp');
   const dasar = dasarMarkup(b, konteks.modeDasar);
@@ -107,6 +109,7 @@ function keBaris(
     harga,
     satuanJual,
     idSatuanJualCocok,
+    ringkasAtribut: atribut,
   };
   if (!lihatHpp) return umum;
   return {
@@ -117,6 +120,22 @@ function keBaris(
     hargaBeliTerakhir: b.hargaBeliTerakhir,
     dasarMarkup: dasar,
   };
+}
+
+/** Atribut per barang untuk tampilan ringkas, mis. { nama: 'Panjang', nilai: '6 m' }. */
+async function atributPerBarang(idBarang: number[]): Promise<Map<number, RingkasAtribut[]>> {
+  const peta = new Map<number, RingkasAtribut[]>();
+  if (idBarang.length === 0) return peta;
+  for (const a of await repo.atributBanyak(db, idBarang)) {
+    const nilai =
+      a.nilaiAngka === null
+        ? (a.nilaiTeks ?? '')
+        : `${rapikanAngka(a.nilaiAngka).replace('.', ',')}${a.kodeSatuan ? ` ${a.kodeSatuan}` : ''}`;
+    const daftar = peta.get(a.idBarang) ?? [];
+    daftar.push({ nama: a.namaJenis, nilai });
+    peta.set(a.idBarang, daftar);
+  }
+  return peta;
 }
 
 async function hargaPerBarang(idBarang: number[]): Promise<Map<number, BarisHarga[]>> {
@@ -143,6 +162,7 @@ export async function daftarBarang(
   );
   // K-091: kata cari sama persis dengan barcode satuan jual → satuan itu dipilih saat dipindai.
   const cocok = p.cari ? await satuanJualRepo.satuanJualDariBarcode(db, p.cari.trim()) : undefined;
+  const atribut = await atributPerBarang(baris.map((b) => b.id));
   return {
     data: baris.map((b) =>
       keBaris(
@@ -153,6 +173,7 @@ export async function daftarBarang(
         status.get(b.id) ?? 'HABIS',
         satuanJual.get(b.id) ?? [],
         cocok?.idBarang === b.id ? cocok.id : null,
+        atribut.get(b.id) ?? [],
       ),
     ),
     meta: metaHalaman(total, p),

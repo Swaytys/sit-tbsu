@@ -3,6 +3,7 @@ import {
   bagiQty,
   bandingQty,
   keQty,
+  teksQty,
   kurangQty,
   type BarisSuratJalan,
   type DataSuratJalan,
@@ -137,9 +138,10 @@ export async function buatSuratJalan(
       if (bandingQty(r.qtyKirim, sisa) > 0) {
         throw new AppError(
           'STATUS_TIDAK_VALID',
-          `${b.namaBarang}: qty kirim ${keQty(r.qtyKirim)} melebihi sisa yang belum dikirim (${sisa}).`,
+          `${b.namaBarang}: qty kirim ${teksQty(keQty(r.qtyKirim))} melebihi sisa yang belum dikirim ` +
+            `(${teksQty(sisa)} ${b.kodeSatuan}).`,
           409,
-          { kolom: { [`baris.${i}.qtyKirim`]: [`Maksimal ${sisa}.`] } },
+          { kolom: { [`baris.${i}.qtyKirim`]: [`Maksimal ${teksQty(sisa)} ${b.kodeSatuan}.`] } },
         );
       }
     }

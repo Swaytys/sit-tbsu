@@ -5,6 +5,7 @@ import {
   keQty,
   kurangQty,
   tambahQty,
+  teksQty,
   type JenisMutasi,
   type Kepemilikan,
   type KondisiStok,
@@ -16,6 +17,7 @@ import {
   orderPenjualan,
   orderPenjualanDetail,
   persediaan,
+  satuan,
 } from '../../db/schema';
 import { AppError } from '../../lib/errors';
 import { sekarang } from '../../lib/waktu';
@@ -173,8 +175,10 @@ export async function catatMutasi(tx: Tx, m: InputMutasi): Promise<HasilMutasi> 
       namaBarang: barang.namaBarang,
       kepemilikan: barang.kepemilikan,
       hargaTitip: barang.hargaTitip,
+      kodeSatuan: satuan.kode,
     })
     .from(barang)
+    .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
     .where(eq(barang.id, m.idBarang));
   if (!b) throw new Error(`Barang ${m.idBarang} tidak ada`);
 
@@ -183,7 +187,7 @@ export async function catatMutasi(tx: Tx, m: InputMutasi): Promise<HasilMutasi> 
     throw new AppError(
       'STOK_TIDAK_CUKUP',
       `Stok ${b.namaBarang}${kondisi === 'RUSAK' ? ' (rusak)' : ''} tidak cukup: ` +
-        `tersedia ${saldoLama}, diminta ${qty}.`,
+        `tersedia ${teksQty(saldoLama)} ${b.kodeSatuan}, diminta ${teksQty(qty)} ${b.kodeSatuan}.`,
       409,
       { idBarang: m.idBarang, saldo: saldoLama, diminta: qty },
     );
@@ -193,7 +197,8 @@ export async function catatMutasi(tx: Tx, m: InputMutasi): Promise<HasilMutasi> 
     const nomor = await orderPenahan(tx, m.idBarang);
     throw new AppError(
       'KONFLIK',
-      `Stok fisik ${b.namaBarang} tidak boleh di bawah stok yang dipesan (${p.stokDipesan}). ` +
+      `Stok fisik ${b.namaBarang} tidak boleh di bawah stok yang dipesan ` +
+        `(${teksQty(p.stokDipesan)} ${b.kodeSatuan}). ` +
         `Batalkan atau selesaikan dulu order: ${nomor.join(', ') || '-'}.`,
       409,
       { idBarang: m.idBarang, orderPenahan: nomor },
@@ -263,7 +268,13 @@ export async function ubahReservasi(tx: Tx, perubahan: PerubahanReservasi[]): Pr
   const urut = [...gabung.entries()]
     .filter(([, d]) => bandingQty(d, 0) !== 0)
     .sort(([a], [b]) => a - b);
-  const kurang: { idBarang: number; nama: string; tersedia: string; diminta: string }[] = [];
+  const kurang: {
+    idBarang: number;
+    nama: string;
+    kodeSatuan: string;
+    tersedia: string;
+    diminta: string;
+  }[] = [];
   const baru: { idBarang: number; dipesan: string }[] = [];
   for (const [idBarang, delta] of urut) {
     const p = await kunciPersediaan(tx, idBarang);
@@ -275,10 +286,17 @@ export async function ubahReservasi(tx: Tx, perubahan: PerubahanReservasi[]): Pr
       const tersedia = kurangQty(p.stokFisik, p.stokDipesan);
       if (bandingQty(delta, tersedia) > 0) {
         const [b] = await tx
-          .select({ nama: barang.namaBarang })
+          .select({ nama: barang.namaBarang, kodeSatuan: satuan.kode })
           .from(barang)
+          .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
           .where(eq(barang.id, idBarang));
-        kurang.push({ idBarang, nama: b?.nama ?? `#${idBarang}`, tersedia, diminta: keQty(delta) });
+        kurang.push({
+          idBarang,
+          nama: b?.nama ?? `#${idBarang}`,
+          kodeSatuan: b?.kodeSatuan ?? '',
+          tersedia,
+          diminta: keQty(delta),
+        });
       }
     }
     baru.push({ idBarang, dipesan });
@@ -287,7 +305,11 @@ export async function ubahReservasi(tx: Tx, perubahan: PerubahanReservasi[]): Pr
     throw new AppError(
       'STOK_TIDAK_CUKUP',
       `Stok tersedia tidak cukup: ${kurang
-        .map((k) => `${k.nama} (tersedia ${k.tersedia}, diminta ${k.diminta})`)
+        .map(
+          (k) =>
+            `${k.nama} (tersedia ${teksQty(k.tersedia)} ${k.kodeSatuan}, ` +
+            `diminta ${teksQty(k.diminta)} ${k.kodeSatuan})`,
+        )
         .join('; ')}.`,
       409,
       { barang: kurang },

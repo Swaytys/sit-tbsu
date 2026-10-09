@@ -159,8 +159,8 @@ function galatHarga(pesan: string): AppError {
 /**
  * Menerapkan harga tier untuk satu barang di dalam `tx` (form barang, halaman Harga Jual). Tier yang dikirim
  * diubah; tier aktif yang belum punya baris dilengkapi IKUT_TIER (K-047, H2); baris IKUT_TIER/MARKUP lain
- * dihitung ulang dengan `D` terkini (K-060 #4: menyimpan harga = menerima D terkini). Harga tier default
- * tidak boleh Rp 0 (K-094). Pemanggil mengunci baris barang lebih dulu (urutan kunci K-086).
+ * dihitung ulang dengan `D` terkini (K-060 #4: menyimpan harga = menerima D terkini). Harga tetap tier
+ * default tidak boleh Rp 0 (K-094). Pemanggil mengunci baris barang lebih dulu (urutan kunci K-086).
  */
 export async function terapkanHargaBarang(
   tx: Tx,
@@ -195,13 +195,10 @@ export async function terapkanHargaBarang(
       } else continue;
     }
     const nilai = nilaiHarga(isian, t.markupDefaultPersen, opsi.dasar, opsi.konteks.kelipatan);
-    // K-094: tier default boleh ikut markup, tetapi barang tanpa dasar modal tidak boleh berharga Rp 0.
-    if (t.isDefault && nilai.hargaJual <= 0) {
-      throw galatHarga(
-        nilai.metode === 'TETAP'
-          ? `Harga ${t.nama} tidak boleh Rp 0.`
-          : `Harga ${t.nama} jadi Rp 0 karena harga modal belum diisi. Isi harga modal, atau isi harga ${t.nama} sendiri (Rp).`,
-      );
+    // K-094/K-095: harga Rp tetap tier default tidak boleh 0. Harga ikut markup boleh 0 selama harga modal
+    // belum diketahui (barang belum bisa dijual); harganya terisi sendiri setelah penerimaan pertama.
+    if (t.isDefault && nilai.metode === 'TETAP' && nilai.hargaJual <= 0) {
+      throw galatHarga(`Harga ${t.nama} tidak boleh Rp 0.`);
     }
     if (barisLama) {
       const sama =

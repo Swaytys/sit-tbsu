@@ -132,6 +132,23 @@ export function atributBarang(ex: Executor, idBarang: number) {
     .orderBy(asc(barangAtribut.urutan), asc(barangAtribut.id));
 }
 
+/** Atribut banyak barang sekaligus (daftar barang / hasil cari kasir), urut seperti di form. */
+export function atributBanyak(ex: Executor, idBarang: number[]) {
+  return ex
+    .select({
+      idBarang: barangAtribut.idBarang,
+      namaJenis: jenisAtribut.nama,
+      nilaiAngka: barangAtribut.nilaiAngka,
+      nilaiTeks: barangAtribut.nilaiTeks,
+      kodeSatuan: satuan.kode,
+    })
+    .from(barangAtribut)
+    .innerJoin(jenisAtribut, eq(jenisAtribut.id, barangAtribut.idJenisAtribut))
+    .leftJoin(satuan, eq(satuan.id, barangAtribut.idSatuan))
+    .where(inArray(barangAtribut.idBarang, idBarang))
+    .orderBy(asc(barangAtribut.idBarang), asc(barangAtribut.urutan), asc(barangAtribut.id));
+}
+
 export async function kunciBarang(tx: Tx, id: number) {
   const [baris] = await tx
     .select({
