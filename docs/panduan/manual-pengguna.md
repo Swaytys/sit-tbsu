@@ -23,7 +23,8 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
    (alamat pelanggan terisi otomatis).
 3. Isian yang belum dikirim **tidak hilang**: saat Anda pindah menu atau menutup halaman, isian disimpan sebagai
    **draf** dan dibuka lagi saat kembali ke Order Penjualan (draf lain bisa diklik di "Order saya"). **F9** pada
-   draf = buang draf.
+   draf = buang draf. Tombol **Simpan draf & order baru** menyimpan isian sekarang sebagai draf lalu mengosongkan
+   form untuk pembeli berikutnya. Qty bisa diubah dengan tombol **−** / **+** di sebelah qty.
 4. **F8** kirim ke antrean. Order mendapat **nomor antrean** dan langsung muncul di layar kasir. Serahkan barang
    ke kasir sambil menyebut isi order (mis. "semen 3 sak, nomor 12").
 5. Stok yang tampil adalah stok **tersedia** (sudah dikurangi order lain yang belum dibayar).
