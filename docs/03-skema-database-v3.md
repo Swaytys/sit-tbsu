@@ -88,8 +88,8 @@ dipakai barang diverifikasi dimensinya (aturan service).
 **`barang`** — master utama. Kolom penting: `id_satuan_dasar` (satuan stok), `stok_minimum`, `harga_modal_awal`
 (dasar HPP dan markup sebelum ada penerimaan; saat barang dibuat, service membuat baris `persediaan` dengan
 `hpp_rata2 = harga_beli_terakhir = harga_modal_awal`), `kepemilikan` MILIK_SENDIRI/KONSINYASI dengan
-`id_pemasok_konsinyasi` + `harga_titip` wajib untuk konsinyasi (CHECK), `harga_otomatis` dan `perlu_tinjau_harga`
-(M2), `barcode` unik opsional. Aturan service: kepemilikan tidak boleh diubah selama `stok_fisik + stok_rusak > 0`.
+`id_pemasok_konsinyasi` + `harga_titip` wajib untuk konsinyasi (CHECK), `harga_otomatis` (bawaan true sejak v3.8,
+K-094) dan `perlu_tinjau_harga` (M2), `barcode` unik opsional. Aturan service: kepemilikan tidak boleh diubah selama `stok_fisik + stok_rusak > 0`.
 
 **`barang_atribut`** — satu baris per (barang, jenis atribut); tepat satu dari `nilai_angka`/`nilai_teks` terisi
 (CHECK `num_nonnulls = 1`). `id_satuan` wajib bila jenis atribut berdimensi (service).
@@ -167,7 +167,8 @@ dikecualikan); baris lembar opname tidak dihapus (K-069).
 terisi) | BATAL (`alasan_batal`). PENGANTARAN wajib pelanggan dan alamat (CHECK). Detail menyimpan tier, harga,
 diskon, dan `qty_dasar` yang ditahan. Detail boleh diubah selama DRAFT/MENUNGGU (service menyesuaikan
 `stok_dipesan`). v3.5: detail juga menyimpan promo baris (`id_promo`, `diskon_promo`) dan `promo_nonaktif` (promo
-dilepas kasir); promo dievaluasi ulang saat checkout (K-087).
+dilepas kasir); promo dievaluasi ulang saat checkout (K-087). v3.8: `tier_dipilih` (bawaan false = tier otomatis
+dari pelanggan/qty; true = dipilih kasir, K-094).
 
 **`penjualan`** [APPEND] + **`penjualan_detail`** [APPEND] — satu tabel untuk LANGSUNG (nomor `STR`,
 `status_pengambilan` wajib) dan PENGANTARAN (nomor `INV`, `status_pengiriman` wajib, pelanggan dan alamat wajib) —
@@ -421,3 +422,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-07 — v3.6: `retur_penjualan_detail.id_penyelesaian_konsinyasi` (FK, indeks `idx_retur_detail_ksg`); unique `uq_ksg_detail` menjadi (`id_penyelesaian`, `id_barang`, `harga_titip`) (migrasi 0006; K-089). Urutan kolom promo `order_penjualan_detail` di skema Drizzle disamakan dengan migrasi 0005 (verifikasi skema identik).
 - 2026-10-07 — Fase 12: pemakaian `barang_satuan_jual` dan baris harga satuan jual dirinci (tanpa perubahan struktur; K-091).
 - 2026-10-08 — v3.7: `penyesuaian_stok_detail.id_penyelesaian_konsinyasi`, `penyelesaian_konsinyasi_detail.qty_ganti_rugi` (migrasi 0007; K-092).
+- 2026-10-09 — v3.8: `barang.harga_otomatis` bawaan true (barang lama dinyalakan), `order_penjualan_detail.tier_dipilih` (migrasi 0008; K-094).
