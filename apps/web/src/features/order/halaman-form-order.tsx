@@ -157,7 +157,8 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
         idBarang: b.idBarang,
         idSatuanJual: b.idSatuanJual,
         qty: b.qty.includes('.') ? b.qty.replace(/\.?0+$/, '') : b.qty,
-        idTingkatHarga: b.hargaManual ? null : b.idTingkatHarga,
+        // K-094: tier otomatis dikirim sebagai null agar API menentukannya lagi (pelanggan / qty).
+        idTingkatHarga: b.hargaManual || !b.tierDipilih ? null : b.idTingkatHarga,
         hargaManual: b.hargaManual,
         hargaSatuan: b.hargaManual ? b.hargaSatuan : null,
         diskonBaris: b.diskonBaris,
@@ -188,9 +189,10 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
     const b = isi?.[i];
     if (!b) return null;
     if (b.hargaManual) return typeof b.hargaSatuan === 'number' ? b.hargaSatuan : null;
-    const idTier = b.idTingkatHarga ?? tierBawaan;
-    const idSj = b.idSatuanJual ?? null;
     const lama = dokumen?.baris.find((x) => x.idBarang === b.idBarang);
+    // Perkiraan sebelum pratinjau API tiba; tier otomatis (K-094) ditentukan API.
+    const idTier = b.idTingkatHarga ?? lama?.idTingkatHarga ?? tierBawaan;
+    const idSj = b.idSatuanJual ?? null;
     if (lama && !lama.hargaManual && lama.idTingkatHarga === idTier && lama.idSatuanJual === idSj)
       return lama.hargaSatuan;
     return hargaTierBaris(i).find((h) => h.idTingkatHarga === idTier)?.hargaJual ?? null;
@@ -367,8 +369,8 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
             {dokumen ? `Ubah order ${dokumen.nomor}` : 'Buat order baru'}
           </h1>
           <p className="text-sm text-slate-500">
-            Harga mengikuti tier pelanggan. Barang ditahan (stok tersedia berkurang) setelah order
-            masuk antrean.
+            Harga otomatis mengikuti tier pelanggan dan jumlah beli (harga grosir bila qty memenuhi
+            syarat). Barang ditahan (stok tersedia berkurang) setelah order masuk antrean.
           </p>
         </div>
       </div>
@@ -544,8 +546,8 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                 {baris.fields.map((f, i) => {
                   const inf = info[f.idBarang];
                   const manual = isi?.[i]?.hargaManual === true;
-                  const harga = hargaBaris(i);
                   const pr = pratinjauBaris.get(f.idBarang);
+                  const harga = pr?.hargaSatuan ?? hargaBaris(i);
                   const tanpaPromo = isi?.[i]?.tanpaPromo === true;
                   return (
                     <TableRow key={f.id}>
@@ -610,7 +612,9 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                                         value={o.idSatuanJual ?? ''}
                                       >
                                         {o.kodeSatuan}
-                                        {o.idSatuanJual !== null ? ` (${o.faktor})` : ''}
+                                        {o.idSatuanJual !== null
+                                          ? ` (isi ${formatDesimal(o.faktor)} ${inf?.satuan ?? ''})`
+                                          : ''}
                                       </option>
                                     ))}
                                   </select>
@@ -666,27 +670,26 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value={BAWAAN}>
-                                      {tierAktif.find((t) => t.id === tierBawaan)?.nama ?? 'Bawaan'}{' '}
-                                      (bawaan)
-                                    </SelectItem>
-                                    {tierAktif
-                                      .filter((t) => t.id !== tierBawaan)
-                                      .map((t) => {
-                                        const h = hargaTierBaris(i).find(
-                                          (x) => x.idTingkatHarga === t.id,
-                                        );
-                                        return (
-                                          <SelectItem key={t.id} value={String(t.id)}>
-                                            {t.nama}
-                                            {h ? ` — ${formatRupiah(h.hargaJual)}` : ''}
-                                          </SelectItem>
-                                        );
-                                      })}
+                                    {/* K-094: otomatis = tier pelanggan, atau tier lebih murah bila syarat qty terpenuhi. */}
+                                    <SelectItem value={BAWAAN}>Otomatis</SelectItem>
+                                    {tierAktif.map((t) => {
+                                      const h = hargaTierBaris(i).find(
+                                        (x) => x.idTingkatHarga === t.id,
+                                      );
+                                      return (
+                                        <SelectItem key={t.id} value={String(t.id)}>
+                                          {t.nama}
+                                          {h ? ` — ${formatRupiah(h.hargaJual)}` : ''}
+                                        </SelectItem>
+                                      );
+                                    })}
                                   </SelectContent>
                                 </Select>
                                 <div className="text-xs text-slate-500 tabular-nums">
                                   {harga === null ? 'Harga belum ada' : formatRupiah(harga)}
+                                  {pr?.idTingkatHarga != null && !pr.tierDipilih && (
+                                    <span> · {namaTier(pr.idTingkatHarga)}</span>
+                                  )}
                                   {pr?.idTingkatHargaSaran != null && (
                                     <span className="ml-1 text-blue-700">
                                       · saran {namaTier(pr.idTingkatHargaSaran)}

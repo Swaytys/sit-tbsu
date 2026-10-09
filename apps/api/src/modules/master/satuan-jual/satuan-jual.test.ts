@@ -222,6 +222,37 @@ describe('transaksi dengan satuan jual (K-091)', () => {
     expect(tolak.pesan).toContain('nonaktif');
   });
 
+  it('K-094: kemasan berisi lebih dari 1 satuan dasar; qty kemasan wajib bulat', async () => {
+    // Isi 1 (atau kurang) ditolak: satuan terkecil seharusnya menjadi satuan dasar.
+    const kecil = await galat(
+      admin,
+      `/api/barang/${m.semen}/satuan-jual`,
+      { baris: [{ idSatuan: idDus, faktor: '0,5' }] },
+      'PUT',
+    );
+    expect(kecil.status).toBe(400);
+    expect(kecil.pesan).toContain('lebih dari 1 sak');
+
+    const d = await simpanSj([{ idSatuan: idDus, faktor: '10' }]);
+    const idSj = d.satuanJual[0]!.id;
+    const pecahan = await galat(kasir, '/api/order/pratinjau', {
+      idOrder: null,
+      order: {
+        jenisPenjualan: 'LANGSUNG',
+        baris: [{ idBarang: m.semen, idSatuanJual: idSj, qty: '1.5' }],
+      },
+    });
+    expect(pecahan.status).toBe(400);
+    expect(pecahan.pesan).toContain('harus bilangan bulat');
+
+    // Setengah dus dijual dalam satuan dasar: 5 sak.
+    const p = await kirim<PratinjauOrder>(kasir, '/api/order/pratinjau', {
+      idOrder: null,
+      order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '5' }] },
+    });
+    expect(p.baris[0]).toMatchObject({ idSatuanJual: null, bruto: 60_000 });
+  });
+
   it('sisa kirim surat jalan dihitung dalam satuan baris', () => {
     expect(
       sisaKirim({

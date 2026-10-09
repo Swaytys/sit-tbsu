@@ -30,7 +30,7 @@ export const skemaProfilToko = z.object({
   footerStruk: teks('Teks footer struk', 255),
   lebarStrukMm: z.coerce
     .number()
-    .refine((v) => v === 58 || v === 80, 'Lebar struk hanya 58 atau 80 mm.'),
+    .refine((v) => v === 57 || v === 58 || v === 80, 'Lebar struk hanya 57, 58, atau 80 mm.'),
   /** Kop struk memakai nama toko / logo toko (K-065). */
   strukTampilkanNama: z.boolean(),
   strukTampilkanLogo: z.boolean(),
@@ -139,7 +139,7 @@ export type TampilanToko = {
   /** Kop laporan (Fase 7); boleh kosong. */
   emailToko: string;
   footerStruk: string;
-  lebarStrukMm: 58 | 80;
+  lebarStrukMm: 57 | 58 | 80;
   strukTampilkanNama: boolean;
   strukTampilkanLogo: boolean;
   /** Rekening bawaan pembayaran transfer/EDC di layar kasir (K-073). */

@@ -137,6 +137,8 @@ export const orderPenjualanDetail = pgTable(
     diskonPromo: uang('diskon_promo').notNull().default(0),
     /** PR5: promo baris dilepas kasir. */
     promoNonaktif: boolean('promo_nonaktif').notNull().default(false),
+    /** K-094 (migrasi 0008): tier dipilih kasir; false = otomatis (tier pelanggan / syarat qty). */
+    tierDipilih: boolean('tier_dipilih').notNull().default(false),
   },
   (t) => [
     foreignKey({

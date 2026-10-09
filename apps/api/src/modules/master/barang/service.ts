@@ -328,7 +328,7 @@ function nilaiDari(
   input: DataBarang,
   kode: string,
   stokMinimum: string,
-  hargaOtomatisLama = false,
+  hargaOtomatisLama = true,
 ): repo.NilaiBarang {
   const konsinyasi = input.kepemilikan === 'KONSINYASI';
   return {
@@ -344,7 +344,7 @@ function nilaiDari(
     idPemasokKonsinyasi: konsinyasi ? (input.idPemasokKonsinyasi ?? null) : null,
     hargaTitip: konsinyasi ? (input.hargaTitip ?? null) : null,
     keterangan: input.keterangan ?? null,
-    // Barang baru: tidak otomatis ("ditinjau dulu", K-086).
+    // Barang baru: harga otomatis (K-094, menggantikan K-086 #1).
     hargaOtomatis: input.hargaOtomatis ?? hargaOtomatisLama,
   };
 }
@@ -386,7 +386,7 @@ async function catatLogHarga(
 
 // --- Mutasi ---
 
-/** Izin menambah barang: form memuat harga modal dan harga tier default wajib diisi. */
+/** Izin menambah barang: form memuat harga modal dan harga jual per tier. */
 export function pastikanBolehTambahBarang(pelaku: PenggunaAktif): void {
   pastikanBolehHpp(pelaku);
   if (!pelaku.izin.has('master.harga.kelola')) {
@@ -410,9 +410,6 @@ export async function buatBarang(
   input: DataBarang,
   idPengguna: number,
 ): Promise<BarangBaru> {
-  if (!input.hargaTier || input.hargaTier.length === 0) {
-    throw galatKolom('VALIDASI', 'hargaTier', 'Harga jual tier default wajib diisi.');
-  }
   const stokMinimum = keQty(input.stokMinimum ?? (await ambilAngka('stok_minimum_default', 0, tx)));
   const kode = await tentukanKode(tx, input.kode);
   const nilai = nilaiDari(input, kode, stokMinimum);
@@ -428,7 +425,8 @@ export async function buatBarang(
   await repo.gantiAtribut(tx, id, atribut);
   const konteks = await muatKonteksHarga(tx);
   const persediaanBaru = await kunciPersediaan(tx, id);
-  const harga = await terapkanHargaBarang(tx, id, input.hargaTier, {
+  // Tier yang tidak dikirim ikut markup tier (K-047, K-094).
+  const harga = await terapkanHargaBarang(tx, id, input.hargaTier ?? [], {
     dasar: dasarMarkup(dataDasarDari(nilai, persediaanBaru), konteks.modeDasar),
     konteks,
     idPengguna,

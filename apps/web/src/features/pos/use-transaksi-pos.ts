@@ -86,10 +86,12 @@ export function useTransaksiPos(tierDefault: number | null) {
    * satu baris (K-091): pindai satuan lain untuk barang yang sudah ada hanya memberi tahu kasir.
    * Mengembalikan indeks baris.
    */
-  function tambah(b: BarisBarang, qty: string): number {
+  function tambah(b: BarisBarang, qty: string, idSatuanJual?: number | null): number {
     const ada = t.baris.findIndex((x) => x.idBarang === b.id);
     const lama = t.baris[ada];
-    if (lama && b.idSatuanJualCocok !== null && b.idSatuanJualCocok !== lama.idSatuanJual) {
+    // Satuan yang diminta: dipilih di hasil cari, atau barcode satuan jual yang dipindai.
+    const diminta = idSatuanJual !== undefined ? idSatuanJual : (b.idSatuanJualCocok ?? undefined);
+    if (lama && diminta !== undefined && diminta !== lama.idSatuanJual) {
       toast.info(
         `${b.namaBarang} sudah ada dalam satuan ${lama.satuan}. Ubah qty-nya, atau tekan S untuk ganti satuan.`,
       );
@@ -104,7 +106,7 @@ export function useTransaksiPos(tierDefault: number | null) {
       });
       return ada;
     }
-    setT({ ...t, diubah: true, baris: [...t.baris, dariBarang(b, qty)] });
+    setT({ ...t, diubah: true, baris: [...t.baris, dariBarang(b, qty, idSatuanJual)] });
     return t.baris.length;
   }
 

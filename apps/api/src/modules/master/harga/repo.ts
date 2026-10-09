@@ -216,6 +216,20 @@ export async function barangBerformula(ex: Executor, idTingkatHarga?: number): P
   return baris.map((b) => b.id);
 }
 
+/** H7: sakelar harga otomatis barang (K-094). */
+export async function aturHargaOtomatis(
+  tx: Tx,
+  idBarang: number[],
+  nilai: boolean,
+  waktu: Date,
+): Promise<void> {
+  if (idBarang.length === 0) return;
+  await tx
+    .update(barang)
+    .set({ hargaOtomatis: nilai, diubahPada: waktu })
+    .where(inArray(barang.id, idBarang));
+}
+
 export async function aturTandaTinjau(tx: Tx, idBarang: number[], nilai: boolean): Promise<void> {
   for (let i = 0; i < idBarang.length; i += 1000) {
     await tx

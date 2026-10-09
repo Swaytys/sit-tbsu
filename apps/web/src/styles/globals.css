@@ -66,11 +66,24 @@
 .area-cetak {
   display: none;
 }
+/* Gulungan thermal: tetap digambar (di luar layar) agar tingginya bisa diukur untuk ukuran kertas. */
+.area-cetak-gulungan {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  visibility: hidden;
+  pointer-events: none;
+}
 @media print {
   body:has(.area-cetak) > *:not(.area-cetak) {
     display: none !important;
   }
   .area-cetak {
     display: block;
+  }
+  .area-cetak-gulungan {
+    position: static;
+    visibility: visible;
   }
 }

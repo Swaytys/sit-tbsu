@@ -152,6 +152,7 @@ export function FormProfil({ pengaturan }: { pengaturan: Pengaturan }) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="57">57 mm</SelectItem>
                       <SelectItem value="58">58 mm</SelectItem>
                       <SelectItem value="80">80 mm</SelectItem>
                     </SelectContent>

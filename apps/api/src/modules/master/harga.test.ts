@@ -97,6 +97,8 @@ function barangBaru(ubah: Record<string, unknown> = {}) {
     idSatuanDasar: ref.sak,
     hargaModalAwal: 10_000,
     hargaTier: [{ idTingkatHarga: ref.normal, hargaTetap: 15_000 }],
+    // Barang uji "biasa" (ditinjau dulu); K-094 menjadikan barang baru otomatis bila tidak dikirim.
+    hargaOtomatis: false,
     ...ubah,
   };
 }
@@ -111,7 +113,10 @@ async function ubahBarang(b: Baris, ubah: Record<string, unknown>) {
   const res = await kirim(
     admin,
     `/api/barang/${b.id}`,
-    { ...barangBaru({ namaBarang: b.namaBarang, hargaTier: undefined }), ...ubah },
+    {
+      ...barangBaru({ namaBarang: b.namaBarang, hargaTier: undefined, hargaOtomatis: undefined }),
+      ...ubah,
+    },
     'PATCH',
   );
   if (res.status !== 200) throw new Error(`ubah barang gagal (${res.status}): ${await res.text()}`);
@@ -205,7 +210,7 @@ describe('metode harga (H4, H12)', () => {
     }
   });
 
-  it('harga tetap dan markup sekaligus ditolak; tier default tidak boleh markup', async () => {
+  it('harga tetap dan markup sekaligus ditolak; tier default boleh markup, tetapi tidak Rp 0 (K-094)', async () => {
     const b = await buat();
     expect(
       (
@@ -214,12 +219,22 @@ describe('metode harga (H4, H12)', () => {
         ])
       ).status,
     ).toBe(400);
+    // Normal ikut markup sendiri 30% dari modal 10.000.
     const res = await putHarga([
       { idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: null, markupPersen: '30' },
     ]);
-    expect(res.status).toBe(400);
-    expect((await json<{ error: { pesan: string } }>(res)).error.pesan).toContain(
-      'tier default) wajib diisi harga tetap',
+    expect(res.status).toBe(200);
+    expect(await harga(b.id, ref.normal)).toMatchObject({ metode: 'MARKUP', hargaJual: 13_000 });
+
+    // Tanpa harga modal, Normal ikut tier akan Rp 0: ditolak dengan pesan yang menunjuk modal.
+    const tanpaModal = await kirim(
+      admin,
+      '/api/barang',
+      barangBaru({ hargaModalAwal: 0, hargaTier: [] }),
+    );
+    expect(tanpaModal.status).toBe(400);
+    expect((await json<{ error: { pesan: string } }>(tanpaModal)).error.pesan).toContain(
+      'harga modal belum diisi',
     );
   });
 
@@ -378,6 +393,37 @@ describe('pemicu dasar dan harga otomatis (H5, H7, K-086)', () => {
     expect((await logTerakhir('HARGA_UBAH', b.id))?.ringkasan).toContain(
       'harga otomatis dinyalakan',
     );
+  });
+
+  it('K-094: barang baru otomatis dan Normal ikut markup; sakelar dari halaman Harga Jual', async () => {
+    // Tanpa hargaOtomatis dan tanpa harga tier: semua tier ikut markup, harga otomatis nyala.
+    const b = await buat({ hargaTier: undefined, hargaOtomatis: undefined });
+    const [baru] = await db.select().from(barang).where(eq(barang.id, b.id));
+    expect(baru!.hargaOtomatis).toBe(true);
+    expect(await harga(b.id, ref.normal)).toMatchObject({
+      metode: 'IKUT_TIER',
+      hargaJual: 12_500,
+    });
+
+    // Harga beli naik: Normal ikut naik langsung (25% dari 12.000 = 15.000).
+    await terimaBerhasil([{ idBarang: b.id, harga: 12_000 }]);
+    expect((await harga(b.id, ref.normal)).hargaJual).toBe(15_000);
+
+    // Matikan dari halaman Harga Jual: kenaikan berikutnya hanya menandai.
+    const otomatis = (idBarang: number[], hargaOtomatis: boolean, sesi = admin) =>
+      kirim(sesi, '/api/harga-barang/otomatis', { idBarang, hargaOtomatis }, 'PUT');
+    expect((await otomatis([b.id], false, kasir)).status).toBe(403);
+    expect((await otomatis([b.id], false)).status).toBe(200);
+    expect((await logTerakhir('BARANG_UBAH', b.id))?.ringkasan).toContain('dimatikan');
+    await terimaBerhasil([{ idBarang: b.id, harga: 14_000 }]);
+    expect((await harga(b.id, ref.normal)).hargaJual).toBe(15_000);
+    expect(await tanda(b.id)).toBe(true);
+
+    // Nyalakan lagi: kenaikan langsung diterapkan dan tanda lepas.
+    const res = await otomatis([b.id], true);
+    expect((await json<{ data: { jumlahBarang: number } }>(res)).data.jumlahBarang).toBe(1);
+    expect((await harga(b.id, ref.normal)).hargaJual).toBe(17_500);
+    expect(await tanda(b.id)).toBe(false);
   });
 
   it('tier diaktifkan kembali: baris markup lama dihitung ulang dengan D terkini', async () => {

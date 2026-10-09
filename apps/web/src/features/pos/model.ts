@@ -28,7 +28,7 @@ export type BarisPos = {
   /** Stok tersedia saat barang dipilih (info), `null` bila tidak diketahui. */
   stokTersedia: string | null;
   qty: string;
-  /** `null` = tier bawaan transaksi (tier pelanggan / tier default). */
+  /** `null` = tier otomatis (tier pelanggan / tier default / syarat qty, K-094); diisi = dipilih kasir. */
   idTingkatHarga: number | null;
   hargaManual: boolean;
   /** Harga manual, bila `hargaManual`. */
@@ -53,10 +53,13 @@ export function opsiKini(b: BarisPos): OpsiSatuanBaris | undefined {
   return b.opsiSatuan.find((o) => o.idSatuanJual === b.idSatuanJual);
 }
 
-/** Harga satuan yang tampil untuk baris (perkiraan; P2/P3/H9). */
+/**
+ * Harga satuan yang tampil untuk baris sebelum pratinjau API tiba (perkiraan; P2/P3/H9). Tier otomatis
+ * (K-094) ditentukan API; perkiraan memakai tier harga janji order, atau tier bawaan.
+ */
 export function hargaBaris(b: BarisPos, tierBawaan: number | null): number | null {
   if (b.hargaManual) return b.hargaSatuan;
-  const tier = b.idTingkatHarga ?? tierBawaan;
+  const tier = b.idTingkatHarga ?? b.snapshot?.idTingkatHarga ?? tierBawaan;
   if (
     b.snapshot &&
     b.snapshot.idTingkatHarga === tier &&
@@ -123,9 +126,10 @@ export function rapikanQty(q: string): string {
   return q.includes('.') ? q.replace(/\.?0+$/, '') : q;
 }
 
-export function dariBarang(b: BarisBarang, qty: string): BarisPos {
+/** `pilihSatuan` = satuan yang dipilih kasir di hasil cari; tidak diisi = satuan awal barang. */
+export function dariBarang(b: BarisBarang, qty: string, pilihSatuan?: number | null): BarisPos {
   const opsi = opsiDariBarang(b);
-  const idSatuanJual = satuanAwal(b);
+  const idSatuanJual = pilihSatuan !== undefined ? pilihSatuan : satuanAwal(b);
   return {
     idBarang: b.id,
     kode: b.kode,
@@ -154,7 +158,7 @@ export function dariOrder(d: DetailOrder): BarisPos[] {
     opsiSatuan: r.opsiSatuan,
     stokTersedia: r.stokTersedia,
     qty: rapikanQty(r.qty),
-    idTingkatHarga: r.hargaManual ? null : r.idTingkatHarga,
+    idTingkatHarga: r.hargaManual || !r.tierDipilih ? null : r.idTingkatHarga,
     hargaManual: r.hargaManual,
     hargaSatuan: r.hargaManual ? r.hargaSatuan : null,
     snapshot: r.hargaManual

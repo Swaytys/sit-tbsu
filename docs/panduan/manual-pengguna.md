@@ -24,8 +24,9 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
 3. **F8** kirim ke antrean. Order mendapat **nomor antrean** dan langsung muncul di layar kasir. Serahkan barang
    ke kasir sambil menyebut isi order (mis. "semen 3 sak, nomor 12").
 4. Stok yang tampil adalah stok **tersedia** (sudah dikurangi order lain yang belum dibayar).
-5. **Promo** dihitung otomatis: potongan tampil hijau di bawah barang ("Promo … −Rp …") dan total sudah memakai
-   potongan. "Saran: Grosir" berarti qty sudah cukup untuk harga grosir — sampaikan ke kasir.
+5. **Harga dan promo otomatis**: harga mengikuti tier pelanggan, dan berubah ke harga grosir sendiri bila qty
+   memenuhi syarat (mis. Grosir mulai 10 sak). Potongan promo tampil hijau di bawah barang ("Promo … −Rp …") dan
+   total sudah memakai potongan. Anda tidak perlu memilih harga apa pun.
 
 ## Kasir
 
@@ -41,9 +42,15 @@ Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
 - **Promo** tampil di bawah barang dan total sudah dipotong. Di daftar barang, **P** melepas promo baris itu (mis.
   pembeli menolak) dan **P** lagi memasangnya kembali; pelepasan tercatat di log. Promo yang tampil saat order
   dihitung ulang saat bayar (promo yang sudah berakhir tidak berlaku lagi).
-- Barang dengan satuan jual: di daftar barang tekan **S** untuk ganti satuan (sak ↔ dus); memindai barcode dus
-  langsung memakai satuan dus. Di bawah qty tampil isinya dalam satuan dasar (mis. "= 30 sak").
-- **F8** bayar → ketik uang yang diterima → **Enter**. Kembalian tampil besar; struk tercetak otomatis.
+- **Harga otomatis**: tier pelanggan dipakai otomatis; bila qty memenuhi syarat tier yang lebih murah (mis.
+  Grosir mulai 10 sak), harga grosir langsung dipakai ("· Grosir otomatis"). Yang berizin bisa menekan **T** untuk
+  memilih tier tertentu (urutan: otomatis → setiap tier).
+- Barang berkemasan (dus, roll, …): hasil cari menampilkan setiap kemasan sebagai pilihan sendiri, mis.
+  "Semen · sak" dan "Semen · dus isi 10 sak" — pilih dengan panah lalu **Enter**. Memindai barcode dus langsung
+  memakai dus; **S** di daftar barang mengganti satuan baris. Qty kemasan harus bulat; setengah dus dijual
+  sebagai 5 sak. Di bawah qty tampil isinya dalam satuan dasar (mis. "= 30 sak").
+- **F8** bayar → ketik uang yang diterima → **Enter**. Kembalian tampil besar; struk tercetak otomatis di kertas
+  thermal (lebar 57/58/80 mm diatur di *Pengaturan › Profil toko*; panjang struk mengikuti isinya).
 - Barang belum diambil pembeli: tandai *belum diambil*; konfirmasi saat diambil.
 
 **Penjualan pengantaran** (*Transaksi › Penjualan Pengantaran*): pilih order pengantaran → bayar penuh / DP /
@@ -73,18 +80,25 @@ Semua tugas kasir, ditambah:
 
 - **Data barang** (*Data Master › Data Barang*): tambah/ubah barang, kategori, merk, satuan, atribut, stok
   minimum, gambar. Banyak barang sekaligus: *Import Excel*. Harga per tier di *Harga Jual*.
-- **Satuan jual** (form barang › *Satuan jual*): jual barang per dus/roll/dsb. Isi satuan, isi per satuan dasar
-  (mis. dus = 12 pcs), barcode dus bila ada, dan centang *Satuan bawaan* bila biasanya dijual per dus. Harga
-  kosong = otomatis (harga satuan dasar × isi); isi harga bila dus lebih murah. Stok tetap dalam satuan dasar.
+- **Kemasan** (form barang › *Kemasan (satuan jual lain)*): untuk barang yang juga dijual per dus/roll/dsb.
+  Satuan dasar barang = satuan **terkecil** yang dijual (sak, pcs, meter). Isi kemasan, isinya (mis. 1 dus = 12
+  pcs; harus lebih dari 1), barcode dus bila ada, dan nyalakan *Satuan bawaan* bila biasanya dijual per dus.
+  Harga kosong = otomatis (harga satuan dasar × isi); isi harga bila dus lebih murah. Stok tetap dalam satuan
+  dasar.
 - **Label barang** (*Data Barang › Cetak label*): pilih barang dan jumlah label, jenis kertas (printer thermal
   58/57/80 mm atau kertas label A4), harga tier, lalu **Cetak**. Barcode di label bisa dipindai di layar kasir. Kertas yang sudah terpakai sebagian: isi
   "Mulai dari label ke-". Cetak dengan skala 100%.
-- **Harga jual** (*Harga Jual*): tiap harga tier bisa **Rp** (harga tetap), **Tier** (ikut markup tier), atau
-  **%** (markup sendiri). Harga Normal selalu harga tetap. Kolom margin = (harga − dasar modal) ÷ harga.
+- **Harga jual** (*Harga Jual*): tiap harga tier — termasuk Normal — bisa **Tier** (harga modal + markup tier;
+  bawaan barang baru), **%** (markup sendiri), atau **Rp** (harga tetap yang Anda ketik). Kolom margin = (harga −
+  dasar modal) ÷ harga. Sakelar **otomatis** di bawah nama barang: nyala (bawaan) = harga markup ikut naik sendiri
+  saat harga beli naik; matikan bila harga barang itu ingin selalu ditinjau dulu.
+- **Tier harga** (*Harga Jual › Kelola tier*): Normal untuk pembeli umum; tier lain (mis. Grosir, Distributor)
+  dipakai otomatis untuk pelanggan yang diberi tier itu (*Data Pelanggan*), dan untuk siapa saja bila qty
+  mencapai *syarat qty* tier itu. Kasir tidak perlu memilih harga.
 - **Tinjau Harga** (tab di *Harga Jual*): daftar barang yang harga modalnya berubah. **Terapkan** = harga diganti
   usulan (harga Normal ikut diganti hanya bila sakelar "Ganti juga harga Normal" menyala); **Abaikan** = harga
-  tidak diubah. Barang dengan **Harga otomatis** (sakelar di form barang) naik sendiri saat harga modal naik; bila
-  harga modal turun atau harga Normal jadi di bawah target, barang itu masuk Tinjau Harga.
+  tidak diubah. Barang dengan **Harga otomatis** (bawaan semua barang) naik sendiri saat harga modal naik; bila
+  harga modal turun atau harga Normal Rp tetap jadi di bawah target, barang itu masuk Tinjau Harga.
 - **Promo** (*Promo*): buat potongan persen atau rupiah per satuan untuk semua barang, satu kategori, atau satu
   barang, dengan masa berlaku dan syarat (minimal qty per baris, minimal total belanja). Satu promo per baris
   (potongan terbesar). Promo yang sudah terpakai tidak bisa diubah aturannya; nonaktifkan lalu buat promo baru.
@@ -104,12 +118,13 @@ Semua tugas kasir, ditambah:
 - **Hutang pemasok** (*Persediaan › Hutang Pemasok*): pembelian tempo yang belum lunas, umurnya, dan yang lewat
   jatuh tempo (juga muncul di lonceng). **Bayar**: transfer (isi rekening tujuan) atau tunai dari laci shift Anda;
   boleh sebagian. Ikon jam menampilkan riwayat pembayaran.
-- **Konsinyasi** (*Persediaan › Konsinyasi*): (1) daftarkan barang titipan (Data Barang, Kepemilikan: Titipan,
-  pilih penitip dan harga titip), (2) terima barangnya (Penerimaan, jenis Konsinyasi), (3) jual seperti biasa, (4)
+- **Konsinyasi** (*Persediaan › Konsinyasi*): (1) daftarkan barang titipan (barang baru: tombol *Daftarkan barang
+  titipan*; barang yang sudah ada di toko: *Data Barang* › ⋯ › **Daftarkan versi titipan**, lalu pilih penitip
+  dan harga titip), (2) terima barangnya (Penerimaan, jenis Konsinyasi), (3) jual seperti biasa, (4)
   setor & bayar. Retur pelanggan barang titipan (baik maupun rusak) otomatis mengurangi setoran. Barang titipan
   rusak: **Kembalikan ke penitip** (penitip menanggung) atau **Musnahkan** (toko mengganti di setoran berikutnya).
   Tab *Posisi per pemasok* menunjukkan barang titipan yang terjual
-  tetapi belum disetor. **Buat setoran** → pilih tanggal akhir → periksa pratinjau (retur pelanggan kondisi baik
+  tetapi belum disetor. **Buat setoran** → pilih tanggal akhir → periksa pratinjau (retur pelanggan
   sudah dikurangkan) → **Simpan setoran** → **Cetak nota setoran** untuk pemasok → **Bayar** (transfer atau tunai
   dari laci). Barang titipan yang tidak laku dikembalikan lewat *Retur ke Pemasok › Pengembalian titipan*.
 - **Limit kredit**: bila penjualan tidak lunas membuat piutang pelanggan melewati limitnya, kasir ditolak. Admin/

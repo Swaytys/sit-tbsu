@@ -379,5 +379,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-10-07 — Fase 12 bagian 1 (label barcode, Daftar Harga) di branch `feat/12-label` (K-090).
 - 2026-10-07 — Fase 12 selesai (satuan jual, K-091) di branch `feat/12-satuan-jual`, menunggu tinjauan pemilik.
 - 2026-10-08 — Revisi dari tinjauan pemilik atas Fase 9–12 (K-092, K-093).
+- 2026-10-09 — Revisi lanjutan: harga otomatis bawaan, tier otomatis per qty, kemasan, struk thermal, versi
+  titipan (K-094).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).

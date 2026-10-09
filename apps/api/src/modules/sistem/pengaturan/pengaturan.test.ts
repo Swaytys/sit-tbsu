@@ -143,11 +143,14 @@ describe('pengaturan › validasi', () => {
     expect((await json<Galat>(res)).error.pesan).toBe('Prefix STR sudah dipakai STR.');
   });
 
-  it('lebar struk selain 58/80 dan body kosong ditolak', async () => {
+  it('lebar struk 57/58/80 saja dan body kosong ditolak', async () => {
     const p = await baca();
     const lebar = await ubah({ profil: { ...p.profil, lebarStrukMm: 70 } });
     expect(lebar.status).toBe(400);
-    expect((await json<Galat>(lebar)).error.pesan).toBe('Lebar struk hanya 58 atau 80 mm.');
+    expect((await json<Galat>(lebar)).error.pesan).toBe('Lebar struk hanya 57, 58, atau 80 mm.');
+    // Printer thermal 57 mm (K-094).
+    expect((await ubah({ profil: { ...p.profil, lebarStrukMm: 57 } })).status).toBe(200);
+    expect((await baca()).profil.lebarStrukMm).toBe(57);
 
     const kosong = await ubah({});
     expect(kosong.status).toBe(400);

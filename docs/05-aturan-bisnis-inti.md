@@ -91,7 +91,7 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 |---|---|
 | P1 | Checkout memakai order (DIPROSES) sebagai sumber baris. Kasir juga bisa "checkout langsung": layar kasir membuat order DRAFT→MENUNGGU→DIPROSES→SELESAI dalam satu transaksi (order tetap tersimpan untuk jejak). |
 | P2 | Harga baris = `harga_barang.harga_jual` untuk tier yang dipilih saat baris ditambahkan (snapshot). Harga yang dijanjikan di order berlaku saat checkout meski master berubah; kasir dapat menekan "Perbarui harga" per baris (log). |
-| P3 | Tier baris: default = `pelanggan.id_tingkat_harga` bila pelanggan dipilih, selain itu tier `is_default`. Mengganti tier butuh `penjualan.tier.ubah`. Harga manual (`harga_manual = true`, tier null) butuh `penjualan.harga_manual` dan dicatat log dengan harga tier pembanding. |
+| P3 | Tier bawaan transaksi = `pelanggan.id_tingkat_harga` bila pelanggan dipilih, selain itu tier `is_default`; tier baris otomatis memakai tier qty yang lebih murah bila syaratnya terpenuhi (docs/06 H8, K-094). Memilih tier lain secara manual butuh `penjualan.tier.ubah`. Harga manual (`harga_manual = true`, tier null) butuh `penjualan.harga_manual` dan dicatat log dengan harga tier pembanding. |
 | P4 | Total: `total_bruto = Σ bulatkanRupiah(qty × harga_satuan)`; `total_diskon = Σ diskon_baris + Σ diskon_promo + diskon_transaksi`; `total_neto = total_bruto − total_diskon + ongkir`, minimal 0. Diskon mengikuti docs/06 §2. |
 | P5 | `hpp_saat_transaksi` = `persediaan.hpp_rata2` saat checkout (KONSINYASI: `harga_titip`). Dibaca setelah `FOR UPDATE` di R6. |
 | P6 | LANGSUNG tanpa pelanggan (pembeli umum): wajib LUNAS saat checkout. LANGSUNG dengan pelanggan terdata: boleh DP/BELUM_BAYAR dengan `tanggal_jatuh_tempo` (piutang, docs/06 §4). |

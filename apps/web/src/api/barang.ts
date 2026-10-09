@@ -6,6 +6,7 @@ import type {
   BacaImportBarang,
   InputAbaikanTinjau,
   InputProsesImport,
+  InputHargaOtomatis,
   InputSimpanHarga,
   InputTerapkanTinjau,
   Kepemilikan,
@@ -116,6 +117,13 @@ export function useHapusGambar() {
 export function useSimpanHarga() {
   return useMutasi(['barang'], async (json: InputSimpanHarga) =>
     ambilData(await api['harga-barang'].$put({ json })),
+  );
+}
+
+/** H7 (K-094): sakelar harga otomatis dari halaman Harga Jual. */
+export function useHargaOtomatis() {
+  return useMutasi(['barang'], async (json: InputHargaOtomatis) =>
+    ambilData(await api['harga-barang'].otomatis.$put({ json })),
   );
 }
 

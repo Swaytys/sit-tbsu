@@ -1,4 +1,4 @@
-import { formatRupiah, type BarisBarang } from '@sit/shared';
+import { formatRupiah, type BarisBarang, type OpsiSatuanBaris } from '@sit/shared';
 import { Search } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { toast } from 'sonner';
@@ -11,6 +11,24 @@ import { opsiDariBarang, satuanAwal, uraikanCari } from './model';
 
 const JUMLAH_HASIL = 8;
 
+/** Satu pilihan di hasil cari: barang dalam satu satuan (satuan dasar atau kemasan, K-094). */
+type Pilihan = { b: BarisBarang; o: OpsiSatuanBaris };
+
+/**
+ * Hasil cari dipecah per satuan: setiap kemasan aktif (dus, roll, …) tampil sebagai pilihan sendiri, satuan
+ * yang dipindai/bawaan lebih dulu, sehingga kasir memilih satuan cukup dengan panah dan Enter.
+ */
+function pilihanDari(daftar: BarisBarang[]): Pilihan[] {
+  return daftar.flatMap((b) => {
+    const awal = satuanAwal(b);
+    const opsi = opsiDariBarang(b);
+    return [
+      ...opsi.filter((o) => o.idSatuanJual === awal),
+      ...opsi.filter((o) => o.idSatuanJual !== awal),
+    ].map((o) => ({ b, o }));
+  });
+}
+
 /** Pilih hasil terbaik: kode/barcode persis sama lebih dulu, selain itu hasil pertama. */
 function terbaik(daftar: BarisBarang[], kata: string): BarisBarang | undefined {
   const k = kata.toLowerCase();
@@ -20,9 +38,10 @@ function terbaik(daftar: BarisBarang[], kata: string): BarisBarang | undefined {
 }
 
 /**
- * Kotak cari barang layar POS (K-073). "3*semen" atau "semen*3" = qty 3; F1 menyisipkan "*". Enter langsung menambah hasil yang disorot; bila
- * hasil belum tiba (mengetik cepat / scanner barcode), Enter menunggu jawaban server lalu memakai kecocokan
- * terbaik — tidak ada ketikan yang hilang. Enter pada kotak kosong = lanjut ke pembayaran.
+ * Kotak cari barang layar POS (K-073). "3*semen" atau "semen*3" = qty 3; F1 menyisipkan "*". Enter langsung
+ * menambah hasil yang disorot; bila hasil belum tiba (mengetik cepat / scanner barcode), Enter menunggu
+ * jawaban server lalu memakai kecocokan terbaik — tidak ada ketikan yang hilang. Enter pada kotak kosong =
+ * lanjut ke pembayaran. Barang berkemasan tampil sekali per satuan ("Semen · sak", "Semen · dus isi 10").
  */
 export function CariBarangPos({
   id,
@@ -39,7 +58,8 @@ export function CariBarangPos({
   aktif: boolean;
   /** Tier untuk harga yang ditampilkan di hasil cari. */
   tierBawaan: number | null;
-  onTambah: (b: BarisBarang, qty: string) => void;
+  /** `idSatuanJual` diisi bila kasir memilih satuan tertentu di hasil cari (`null` = satuan dasar). */
+  onTambah: (b: BarisBarang, qty: string, idSatuanJual?: number | null) => void;
   onKosongEnter: () => void;
   onTurun: () => void;
   onEsc: () => void;
@@ -83,14 +103,14 @@ export function CariBarangPos({
   });
   const segar =
     kata !== '' && kataTunda === kata && !daftar.isPlaceholderData && !daftar.isFetching;
-  const hasil = segar ? (daftar.data?.data ?? []) : [];
+  const hasil = segar ? pilihanDari(daftar.data?.data ?? []) : [];
 
-  function tambah(b: BarisBarang | undefined) {
+  function tambah(b: BarisBarang | undefined, idSatuanJual?: number | null) {
     if (!b) {
       toast.error(`Barang "${kata}" tidak ditemukan.`);
       return;
     }
-    onTambah(b, qty);
+    onTambah(b, qty, idSatuanJual);
     setTeks('');
     setSorot(0);
   }
@@ -101,7 +121,9 @@ export function CariBarangPos({
       return;
     }
     if (segar) {
-      tambah(hasil[sorot] ?? terbaik(hasil, kata));
+      const p = hasil[sorot];
+      if (p) tambah(p.b, p.o.idSatuanJual);
+      else tambah(terbaik(daftar.data?.data ?? [], kata));
       return;
     }
     setMencari(true);
@@ -174,36 +196,44 @@ export function CariBarangPos({
               {segar && !mencari ? 'Tidak ada barang yang cocok.' : 'Mencari…'}
             </li>
           )}
-          {hasil.map((b, i) => (
-            <li
-              key={b.id}
-              role="option"
-              aria-selected={i === sorot}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                tambah(b);
-              }}
-              className={cn(
-                'flex cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-sm',
-                i === sorot && 'bg-blue-50',
-              )}
-            >
-              <span className="min-w-0 truncate">
-                <span className="font-mono text-xs text-slate-500">{b.kode}</span>{' '}
-                <span className="font-medium">{b.namaBarang}</span>
-              </span>
-              <span className="shrink-0 text-xs text-slate-500 tabular-nums">
-                {(() => {
-                  // K-091: satuan yang akan dipakai (barcode satuan jual / satuan bawaan) dan harganya.
-                  const o = opsiDariBarang(b).find((x) => x.idSatuanJual === satuanAwal(b));
-                  const h =
-                    o?.hargaTier.find((x) => x.idTingkatHarga === tierBawaan) ?? o?.hargaTier[0];
-                  return `${formatRupiah(h?.hargaJual ?? 0)}/${o?.kodeSatuan ?? b.kodeSatuan}`;
-                })()}{' '}
-                · stok {formatDesimal(b.stokTersedia)} {b.kodeSatuan}
-              </span>
-            </li>
-          ))}
+          {hasil.map(({ b, o }, i) => {
+            const h = o.hargaTier.find((x) => x.idTingkatHarga === tierBawaan) ?? o.hargaTier[0];
+            return (
+              <li
+                key={`${b.id}:${o.idSatuanJual ?? 0}`}
+                role="option"
+                aria-selected={i === sorot}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  tambah(b, o.idSatuanJual);
+                }}
+                className={cn(
+                  'flex cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-sm',
+                  i === sorot && 'bg-blue-50',
+                )}
+              >
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="shrink-0 font-mono text-xs text-slate-500">{b.kode}</span>
+                  <span className="truncate font-medium">{b.namaBarang}</span>
+                  <span
+                    className={cn(
+                      'shrink-0 rounded px-1 text-xs',
+                      o.idSatuanJual === null
+                        ? 'bg-slate-100 text-slate-700'
+                        : 'bg-blue-50 font-medium text-blue-700',
+                    )}
+                  >
+                    {o.kodeSatuan}
+                    {o.idSatuanJual !== null && ` isi ${formatDesimal(o.faktor)} ${b.kodeSatuan}`}
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs text-slate-500 tabular-nums">
+                  {formatRupiah(h?.hargaJual ?? 0)}/{o.kodeSatuan} · stok{' '}
+                  {formatDesimal(b.stokTersedia)} {b.kodeSatuan}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

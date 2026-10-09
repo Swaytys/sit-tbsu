@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
 import { useBarisPerHalaman } from '@/api/pengaturan';
-import { useDaftarBarang, useSimpanHarga } from '@/api/barang';
+import { useDaftarBarang, useHargaOtomatis, useSimpanHarga } from '@/api/barang';
 import { useDaftarKategori } from '@/api/referensi';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
@@ -57,15 +57,13 @@ function SelHarga({
   return (
     <div className="flex flex-col items-end gap-0.5">
       <div className="flex items-center gap-1">
-        {/* Tier default selalu harga tetap (K-047, K-086). */}
-        {!t.isDefault && (
-          <PilihMetode
-            nilai={isi.metode}
-            onUbah={(m) => onUbah(gantiMetode(isi, m, h, t))}
-            t={t}
-            label={`Metode harga ${t.nama} ${b.namaBarang}`}
-          />
-        )}
+        {/* K-094: tier default juga boleh ikut markup. */}
+        <PilihMetode
+          nilai={isi.metode}
+          onUbah={(m) => onUbah(gantiMetode(isi, m, h, t))}
+          t={t}
+          label={`Metode harga ${t.nama} ${b.namaBarang}`}
+        />
         <IsianSel
           isi={isi}
           h={h}
@@ -111,6 +109,18 @@ export function TabHargaTier({ tierAktif }: { tierAktif: TingkatHarga[] }) {
     perHalaman: barisPerHalaman,
   });
   const simpan = useSimpanHarga();
+  const otomatis = useHargaOtomatis();
+
+  function aturOtomatis(b: BarisBarang, nyala: boolean) {
+    otomatis.mutate(
+      { idBarang: [b.id], hargaOtomatis: nyala },
+      {
+        onSuccess: () =>
+          toast.success(`Harga otomatis ${b.namaBarang} ${nyala ? 'dinyalakan' : 'dimatikan'}.`),
+        onError: (err) => toast.error(pesanGalat(err)),
+      },
+    );
+  }
 
   function ubahSel(b: BarisBarang, t: TingkatHarga, isi: IsianHarga) {
     const baru = new Map(perubahan);
@@ -161,11 +171,21 @@ export function TabHargaTier({ tierAktif }: { tierAktif: TingkatHarga[] }) {
             <span>
               per {b.kodeSatuan} · {b.namaKategori}
             </span>
-            {b.hargaOtomatis && (
-              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-                Otomatis
-              </Badge>
-            )}
+            <label
+              className="flex items-center gap-1"
+              title="Harga ikut naik sendiri saat harga beli naik; turun masuk Tinjau Harga."
+            >
+              <Switch
+                className="scale-75"
+                checked={b.hargaOtomatis}
+                disabled={otomatis.isPending}
+                onCheckedChange={(c) => aturOtomatis(b, c)}
+                aria-label={`Harga otomatis ${b.namaBarang}`}
+              />
+              <span className={cn(b.hargaOtomatis ? 'text-blue-700' : 'text-slate-400')}>
+                otomatis
+              </span>
+            </label>
             {b.perluTinjauHarga && (
               <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
                 Perlu tinjau

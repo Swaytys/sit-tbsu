@@ -2,6 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import {
   skemaAbaikanTinjau,
   skemaCariTinjauHarga,
+  skemaHargaOtomatis,
   skemaSimpanHarga,
   skemaTerapkanTinjau,
 } from '@sit/shared';
@@ -14,6 +15,7 @@ import { penggunaWajib, requirePermission } from '../../../middleware/require-pe
 import { eksporHargaJual } from './ekspor';
 import {
   abaikanTinjauHarga,
+  aturHargaOtomatis,
   daftarTinjauHarga,
   simpanHargaMassal,
   terapkanTinjauHarga,
@@ -36,6 +38,10 @@ const skemaSaringEkspor = z.object({
 export const hargaRoutes = new Hono<EnvApp>()
   .put('/', kelola, zValidator('json', skemaSimpanHarga, kaitValidasi), async (c) => {
     const data = await simpanHargaMassal(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
+    return c.json({ data }, 200);
+  })
+  .put('/otomatis', kelola, zValidator('json', skemaHargaOtomatis, kaitValidasi), async (c) => {
+    const data = await aturHargaOtomatis(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 200);
   })
   .get('/ekspor', kelola, zValidator('query', skemaSaringEkspor, kaitValidasi), async (c) => {

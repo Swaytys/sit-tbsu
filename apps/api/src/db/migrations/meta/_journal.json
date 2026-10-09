@@ -57,6 +57,13 @@
       "when": 1791392157227,
       "tag": "0007_konsinyasi_ganti_rugi",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791519674239,
+      "tag": "0008_harga_otomatis_tier_dipilih",
+      "breakpoints": true
     }
   ]
 }

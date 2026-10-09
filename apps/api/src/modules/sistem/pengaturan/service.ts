@@ -37,6 +37,11 @@ function angka(m: Peta, kode: string, bawaan: number): number {
   return nilai && /^-?\d+$/.test(nilai) ? Number.parseInt(nilai, 10) : bawaan;
 }
 
+/** Lebar kertas struk thermal yang didukung; nilai lain dianggap 80 mm. */
+function lebarStruk(mm: number): 57 | 58 | 80 {
+  return mm === 57 || mm === 58 ? mm : 80;
+}
+
 function bool(m: Peta, kode: string, bawaan: boolean): boolean {
   const nilai = m.get(kode);
   return nilai === 'true' ? true : nilai === 'false' ? false : bawaan;
@@ -58,7 +63,7 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       telpToko: teks(m, 'telp_toko', ''),
       emailToko: teks(m, 'email_toko', ''),
       footerStruk: teks(m, 'footer_struk', ''),
-      lebarStrukMm: angka(m, 'lebar_struk_mm', 80) === 58 ? 58 : 80,
+      lebarStrukMm: lebarStruk(angka(m, 'lebar_struk_mm', 80)),
       strukTampilkanNama: bool(m, 'struk_tampilkan_nama', true),
       strukTampilkanLogo: bool(m, 'struk_tampilkan_logo', false),
     },
