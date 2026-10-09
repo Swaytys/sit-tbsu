@@ -6,7 +6,8 @@ import {
   tambahQty,
   type BarisPratinjau,
 } from '@sit/shared';
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { Minus, Plus } from 'lucide-react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { InfoPromo } from '@/components/info-promo';
 import { formatDesimal } from '@/lib/format';
@@ -99,6 +100,14 @@ export function KeranjangPos({
     kembaliFokus();
   }
 
+  /** Qty ±1 (tombol + / − di baris, atau tombol keyboard); qty tidak boleh 0 atau kurang. */
+  function ubahQty(i: number, arah: 1 | -1) {
+    const b = baris[i];
+    if (!b) return;
+    const q = arah === 1 ? tambahQty(b.qty, 1) : kurangQty(b.qty, 1);
+    if (bandingQty(q, 0) > 0) onUbah(i, { qty: rapikanQty(q) });
+  }
+
   function tombol(e: KeyboardEvent<HTMLDivElement>) {
     if (sunting) return; // ditangani input sunting
     const akhir = baris.length - 1;
@@ -119,11 +128,10 @@ export function KeranjangPos({
       return;
     } else if (e.key === '+' || e.key === '=') {
       e.preventDefault();
-      onUbah(indeks, { qty: rapikanQty(tambahQty(b.qty, 1)) });
+      ubahQty(indeks, 1);
     } else if (e.key === '-') {
       e.preventDefault();
-      const q = kurangQty(b.qty, 1);
-      if (bandingQty(q, 0) > 0) onUbah(indeks, { qty: rapikanQty(q) });
+      ubahQty(indeks, -1);
     } else if (/^[\d.,]$/.test(e.key)) {
       e.preventDefault();
       setSunting({ jenis: 'qty', nilai: e.key });
@@ -227,7 +235,7 @@ export function KeranjangPos({
                       }
                     />
                   </td>
-                  <td className="w-28 py-1.5 text-right font-bold tabular-nums">
+                  <td className="w-40 py-1.5 text-right font-bold tabular-nums">
                     {dipilih && sunting?.jenis === 'qty' ? (
                       <input
                         autoFocus
@@ -249,8 +257,22 @@ export function KeranjangPos({
                       />
                     ) : (
                       <>
-                        {formatDesimal(r.qty)}{' '}
-                        <span className="text-xs font-normal">{r.satuan}</span>
+                        <div className="flex items-center justify-end gap-1">
+                          <TombolQty
+                            label={`Kurangi 1 ${r.nama}`}
+                            disabled={bandingQty(r.qty, 1) <= 0}
+                            onClick={() => ubahQty(i, -1)}
+                          >
+                            <Minus />
+                          </TombolQty>
+                          <span>
+                            {formatDesimal(r.qty)}{' '}
+                            <span className="text-xs font-normal">{r.satuan}</span>
+                          </span>
+                          <TombolQty label={`Tambah 1 ${r.nama}`} onClick={() => ubahQty(i, 1)}>
+                            <Plus />
+                          </TombolQty>
+                        </div>
                         {qtyDasarBaris(r) !== null && (
                           <div className="text-[11px] font-normal text-slate-500">
                             = {formatDesimal(qtyDasarBaris(r) ?? '0')} {r.opsiSatuan[0]?.kodeSatuan}
@@ -291,5 +313,33 @@ export function KeranjangPos({
         </table>
       )}
     </div>
+  );
+}
+
+/** Tombol kecil qty ±1 di baris; tidak mengambil fokus agar navigasi keyboard tetap di daftar. */
+function TombolQty({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className="flex size-6 items-center justify-center rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 [&_svg]:size-3"
+    >
+      {children}
+    </button>
   );
 }

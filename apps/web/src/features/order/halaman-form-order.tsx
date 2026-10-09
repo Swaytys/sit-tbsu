@@ -1,6 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  bandingQty,
   kunciBaris,
+  kurangQty,
+  tambahQty,
   formatRupiah,
   skemaOrder,
   subtotalRupiah,
@@ -12,7 +15,7 @@ import {
   type OpsiSatuanBaris,
   type InputPratinjauOrder,
 } from '@sit/shared';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -58,7 +61,7 @@ import {
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
-import { opsiDariBarang, satuanAwal } from '../pos/model';
+import { opsiDariBarang, qtySah, rapikanQty, satuanAwal } from '../pos/model';
 
 /** Info tampilan per barang di form (bukan bagian data yang dikirim). */
 type InfoBarang = {
@@ -92,6 +95,14 @@ export function HalamanFormOrder() {
     );
   }
   return <FormOrder key={detail.data?.id ?? 'baru'} dokumen={detail.data ?? null} />;
+}
+
+/** Qty ±1 dari isian teks (koma boleh); isian tidak sah dianggap 0, hasil di bawah 1 tidak diterapkan. */
+function qtyGeser(nilai: unknown, arah: 1 | -1): string {
+  const teks = typeof nilai === 'string' ? nilai.replace(',', '.') : '';
+  const dasar = qtySah(teks) ? teks : '0';
+  const q = arah === 1 ? tambahQty(dasar, 1) : kurangQty(dasar, 1);
+  return bandingQty(q, 0) > 0 ? rapikanQty(q) : typeof nilai === 'string' ? nilai : '1';
 }
 
 function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
@@ -596,6 +607,15 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                           render={({ field }) => (
                             <FormItem>
                               <div className="flex items-center gap-1.5">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon-sm"
+                                  aria-label={`Kurangi 1 ${inf?.nama ?? i + 1}`}
+                                  onClick={() => field.onChange(qtyGeser(field.value, -1))}
+                                >
+                                  <Minus />
+                                </Button>
                                 <FormControl>
                                   <Input
                                     inputMode="decimal"
@@ -604,6 +624,15 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                                     value={typeof field.value === 'string' ? field.value : ''}
                                   />
                                 </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon-sm"
+                                  aria-label={`Tambah 1 ${inf?.nama ?? i + 1}`}
+                                  onClick={() => field.onChange(qtyGeser(field.value, 1))}
+                                >
+                                  <Plus />
+                                </Button>
                                 {(inf?.opsiSatuan.length ?? 0) > 1 ? (
                                   <select
                                     aria-label={`Satuan ${inf?.nama ?? i + 1}`}
