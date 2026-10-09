@@ -293,6 +293,40 @@ export function InputOrderCepat() {
       .catch((err: unknown) => toast.error(pesanGalat(err)));
   }
 
+  /** Isian sekarang disimpan sebagai draf (tidak menahan stok), lalu form kosong untuk pembeli berikutnya. */
+  function orderBaru() {
+    if (simpan.isPending || tr.t.baris.length === 0) return;
+    const selesai = (pesan: string) => {
+      toast.success(pesan);
+      tr.kosongkan();
+      setAlamat('');
+      setOngkir('');
+      setCatatanKirim('');
+      setIndeksBaris(0);
+      setZona('cari');
+      document.getElementById(ID.cari)?.focus();
+    };
+    // Draf yang dibuka dan belum diubah tidak perlu disimpan lagi.
+    if (idDraf !== null && !tr.t.diubah) {
+      selesai(`Draf ${tr.t.order?.nomor ?? ''} tetap tersimpan di "Order saya".`);
+      return;
+    }
+    const data = skemaOrder.safeParse(isianOrder());
+    if (!data.success) {
+      toast.error(data.error.issues[0]?.message ?? 'Isian belum lengkap.');
+      setZona(data.error.issues[0]?.path[0] === 'idPelanggan' ? 'pelanggan' : 'cari');
+      return;
+    }
+    simpan
+      .mutateAsync(
+        idDraf === null
+          ? { json: data.data, kirim: false }
+          : { id: idDraf, json: data.data, kirim: false },
+      )
+      .then((o) => selesai(`Draf ${o.nomor} disimpan di "Order saya". Silakan buat order baru.`))
+      .catch((err: unknown) => toast.error(pesanGalat(err)));
+  }
+
   const tombolGlobal = useEffectEvent((e: globalThis.KeyboardEvent) => {
     if (e.key === 'F2') {
       e.preventDefault();
@@ -468,6 +502,17 @@ export function InputOrderCepat() {
                 {formatRupiah(total)}
               </span>
             </div>
+            {tr.t.baris.length > 0 && (
+              <button
+                type="button"
+                onClick={orderBaru}
+                disabled={simpan.isPending}
+                title="Simpan isian ini sebagai draf, lalu mulai order baru"
+                className="h-12 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Simpan draf & order baru
+              </button>
+            )}
             <button
               id={ID.kirim}
               type="button"

@@ -57,6 +57,24 @@ test('order penjualan: isian tidak hilang saat pindah halaman (draf); F9 membuan
   await expect(keranjang).toContainText(nama);
   await expect(keranjang).toContainText('4');
 
+  // Tombol qty ±1 di baris barang.
+  const total = page.getByTestId('total-order');
+  await expect(total).toHaveText('Rp 12.000');
+  await page.getByRole('button', { name: `Tambah 1 ${nama}` }).click();
+  await expect(total).toHaveText('Rp 15.000');
+  await page.getByRole('button', { name: `Kurangi 1 ${nama}` }).click();
+  await page.getByRole('button', { name: `Tambah 1 ${nama}` }).click();
+  await page.getByRole('button', { name: `Tambah 1 ${nama}` }).click();
+  await expect(total).toHaveText('Rp 18.000');
+
+  // Simpan draf & order baru: form kosong, draf bisa dilanjutkan dari "Order saya".
+  await page.getByRole('button', { name: 'Simpan draf & order baru' }).click();
+  await expect(page.getByText(/disimpan di "Order saya"/)).toBeVisible();
+  await expect(page.getByText('Belum ada barang.')).toBeVisible();
+  await page.getByRole('region', { name: 'Order saya' }).getByText(nama).first().click();
+  await expect(keranjang).toContainText(nama);
+  await expect(total).toHaveText('Rp 18.000');
+
   // F9: draf dibuang (dibatalkan) dan tidak dibuka lagi.
   await page.keyboard.press('F9');
   await expect(page.getByText('Draf dibuang.')).toBeVisible();

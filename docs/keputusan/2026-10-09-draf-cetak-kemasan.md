@@ -59,3 +59,16 @@ Format: **Keputusan** · **Alasan** · **Ditolak** (alternatif yang tidak dipili
 - Menyimpan draf setiap kali isian berubah: membuat log `ORDER_UBAH` sangat banyak; cukup saat halaman ditinggalkan.
 - Menggabungkan 100 dus + 50 buah menjadi satu baris satuan dasar: harga dus (grosir) dan harga buah (ecer)
   harus tetap terpisah di struk.
+
+### K-096 — Tombol "Simpan draf & order baru" dan tombol qty ±1 di baris barang
+
+**Keputusan:**
+
+1. **(pemilik)** Order Penjualan › Input cepat: tombol **Simpan draf & order baru** (tampil bila ada barang)
+   menyimpan isian sebagai draf (tidak menahan stok) lalu mengosongkan form untuk pembeli berikutnya. Draf
+   dilanjutkan dengan mengkliknya di "Order saya". Draf yang dibuka dan belum diubah tidak disimpan ulang.
+2. **(pemilik)** Tombol kecil **−** / **+** di sebelah qty setiap baris barang: layar kasir (penjualan langsung,
+   pengantaran), input order cepat, dan form order lengkap. Qty tidak bisa turun di bawah 1 lewat tombol (hapus
+   baris tetap dengan Del). Tombol tidak mengambil fokus agar navigasi keyboard di daftar tidak terganggu; tombol
+   keyboard + / − tetap berlaku.
+
