@@ -316,7 +316,8 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | telp_toko | (0321) 862620 | |
 | email_toko | (kosong) | |
 | footer_struk | Terima kasih atas kepercayaan Anda. | |
-| lebar_struk_mm | 80 | 58 atau 80 |
+| lebar_struk_mm | 80 | 57, 58, atau 80 (K-094) |
+| struk_cetak | OTOMATIS | struk setelah bayar: OTOMATIS, TANYA, TIDAK (K-095) |
 | struk_tampilkan_nama | true | kop struk memakai nama toko (K-065) |
 | struk_tampilkan_logo | false | kop struk memakai logo toko (K-065) |
 | baris_per_halaman | 25 | 10, 25, 50, 100 (K-065) |

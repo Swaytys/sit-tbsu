@@ -49,7 +49,7 @@ catatMutasi(tx, {
 | # | Aturan |
 |---|---|
 | R1 | `stok_tersedia = stok_fisik − stok_dipesan` (generated column). Angka yang dilihat Staf saat mencari barang adalah stok tersedia. |
-| R2 | Order DRAFT tidak menahan stok. Order MENUNGGU dan DIPROSES menahan `qty_dasar` tiap barisnya di `stok_dipesan`. |
+| R2 | Order DRAFT tidak menahan stok (membatalkannya tidak melepas reservasi apa pun). Order MENUNGGU dan DIPROSES menahan `qty_dasar` tiap barisnya di `stok_dipesan`. Input order cepat menyimpan isian yang belum dikirim sebagai DRAFT saat halaman ditinggalkan dan membukanya lagi (K-095). |
 | R3 | Kirim ke antrean (DRAFT → MENUNGGU): dalam satu transaksi, untuk tiap baris: `FOR UPDATE persediaan`, cek `stok_tersedia ≥ qty_dasar`, tambah `stok_dipesan`. Satu baris gagal → seluruh order gagal, pesan menyebut semua barang yang kurang. Isi `waktu_masuk_antrean`. |
 | R4 | Mengubah baris order MENUNGGU (qty, tambah, hapus): hitung selisih `qty_dasar`, terapkan ke `stok_dipesan` dengan pemeriksaan R3 untuk penambahan. Order DIPROSES hanya bisa diubah oleh `id_kasir_proses`. |
 | R5 | Batal (MENUNGGU/DIPROSES → BATAL): lepas seluruh `stok_dipesan` baris order. `alasan_batal` wajib. Staf hanya boleh membatalkan order buatannya yang MENUNGGU (`penjualan.order.batal_sendiri`). |
