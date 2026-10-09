@@ -312,13 +312,13 @@ export function LayarPos({
     }
   }
 
-  function tambahBarang(b: BarisBarang, qty: string) {
+  function tambahBarang(b: BarisBarang, qty: string, idSatuanJual?: number | null) {
     if (pengantaran && !order) {
       toast.error('Pilih order pengantaran dari antrean dulu (F3).');
       return;
     }
     setHasil(null);
-    setIndeksBaris(tr.tambah(b, qty));
+    setIndeksBaris(tr.tambah(b, qty, idSatuanJual));
   }
 
   function bayar(pembayaran: DataPembayaran[]) {

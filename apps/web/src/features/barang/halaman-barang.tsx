@@ -1,5 +1,5 @@
 import { formatRupiah, type BarisBarang, type Kepemilikan, type StatusAktif } from '@sit/shared';
-import { Columns3, Download, FileSpreadsheet, ImageOff, Plus, Tags } from 'lucide-react';
+import { Columns3, Copy, Download, FileSpreadsheet, ImageOff, Plus, Tags } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePengguna } from '@/api/auth';
@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -190,6 +191,14 @@ export function HalamanBarang() {
           nama={b.namaBarang}
           status={b.statusAktif}
           onUbah={() => void navigasi(`/barang/${b.id}`)}
+          tambahan={
+            b.kepemilikan === 'MILIK_SENDIRI' && (
+              // Barang yang sama dititipkan pemasok: data barang disalin, stok dan harganya terpisah.
+              <DropdownMenuItem onSelect={() => void navigasi(`/barang/baru?salin=${b.id}`)}>
+                <Copy /> Daftarkan versi titipan
+              </DropdownMenuItem>
+            )
+          }
           onUbahStatus={(statusAktif: StatusAktif) =>
             void jalankanDenganToast(
               ubahStatus.mutateAsync({ id: b.id, statusAktif }),

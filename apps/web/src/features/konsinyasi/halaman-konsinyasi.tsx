@@ -61,7 +61,7 @@ export function HalamanKonsinyasi() {
         {[
           [
             'Daftarkan barang',
-            'Data Barang › Kepemilikan: Titipan, pilih penitip dan harga titip.',
+            'Barang baru: tombol di atas. Barang yang sudah ada di toko: Data Barang › ⋯ › Daftarkan versi titipan.',
           ],
           ['Terima barang', 'Penerimaan › jenis Konsinyasi. Tidak menjadi hutang.'],
           ['Jual seperti biasa', 'Retur pelanggan otomatis mengurangi yang harus disetor.'],

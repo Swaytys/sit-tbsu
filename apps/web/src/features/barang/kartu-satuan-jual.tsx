@@ -130,7 +130,7 @@ export function KartuSatuanJual({
     try {
       const hasil = await simpan.mutateAsync({ id: barang.id, json: data.data });
       setIsi(dariBarang(hasil));
-      toast.success('Satuan jual disimpan.');
+      toast.success('Kemasan disimpan.');
     } catch (err) {
       setGalat(pesanGalat(err));
     }
@@ -142,17 +142,19 @@ export function KartuSatuanJual({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Satuan jual</CardTitle>
+        <CardTitle className="text-base">Kemasan (satuan jual lain)</CardTitle>
         <CardDescription>
-          Jual barang ini dalam satuan lain (mis. dus isi 12, roll 50 m). Stok tetap dihitung dalam
-          satuan dasar <b>{barang.kodeSatuan}</b>. Harga kosong = otomatis (harga{' '}
+          Untuk barang yang juga dijual per kemasan, mis. 1 dus isi 10 {barang.kodeSatuan} atau 1
+          roll isi 50 m. Stok tetap dihitung dalam <b>{barang.kodeSatuan}</b> (satuan terkecil yang
+          dijual). Kemasan dijual utuh; sebagian kemasan dijual per {barang.kodeSatuan}. Di kasir,
+          setiap kemasan muncul sebagai pilihan sendiri. Harga kosong = otomatis (harga{' '}
           {barang.kodeSatuan} × isi).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {isi.length === 0 && (
           <p className="rounded-md border border-dashed p-4 text-center text-sm text-slate-500">
-            Belum ada satuan jual; barang dijual per {barang.kodeSatuan}.
+            Belum ada kemasan; barang dijual per {barang.kodeSatuan}.
           </p>
         )}
         {isi.map((x, i) => {
@@ -166,7 +168,7 @@ export function KartuSatuanJual({
             >
               <div className="grid grid-cols-[1fr_120px_1fr_auto] items-end gap-3">
                 <div className="space-y-1.5">
-                  <span className="text-sm font-medium">Satuan</span>
+                  <span className="text-sm font-medium">Kemasan</span>
                   <Select
                     value={x.idSatuan ? String(x.idSatuan) : ''}
                     onValueChange={(v) => ubah(x.kunci, { idSatuan: Number(v) })}
@@ -185,7 +187,7 @@ export function KartuSatuanJual({
                 </div>
                 <div className="space-y-1.5">
                   <span className="text-sm font-medium">
-                    1 {satuan.find((s) => s.id === x.idSatuan)?.kode ?? 'satuan'} = …{' '}
+                    Isi: 1 {satuan.find((s) => s.id === x.idSatuan)?.kode ?? 'kemasan'} = …{' '}
                     {barang.kodeSatuan}
                   </span>
                   <Input
@@ -277,10 +279,10 @@ export function KartuSatuanJual({
               ])
             }
           >
-            <Plus /> Tambah satuan jual
+            <Plus /> Tambah kemasan
           </Button>
           <Button type="button" size="sm" disabled={simpan.isPending} onClick={() => void kirim()}>
-            {simpan.isPending ? 'Menyimpan…' : 'Simpan satuan jual'}
+            {simpan.isPending ? 'Menyimpan…' : 'Simpan kemasan'}
           </Button>
         </div>
       </CardContent>

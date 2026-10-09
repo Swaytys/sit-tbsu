@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { masukCepat } from './pembantu';
 
 // K-093: qty di kotak cari kasir bisa ditulis di belakang nama ("semen*3"), dan F1 menyisipkan "*".
+// K-094: struk berukuran kertas thermal.
 // Menambah satu barang uji di database pengembangan.
 
 async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
@@ -59,5 +60,19 @@ test('kasir: "nama*3" dan F1 untuk qty', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Cari barang' })).toHaveValue(`${nama}*2`);
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('total-pos')).toHaveText('Rp 10.000');
-  await page.keyboard.press('F9');
+
+  // K-094: struk dicetak di kertas gulungan thermal (lebar 57/58/80 mm, tinggi mengikuti isi), bukan A4.
+  await page.evaluate(() => {
+    const w = window as unknown as { ukuranStruk?: string };
+    window.print = () => {
+      w.ukuranStruk = document.querySelector('.area-cetak style')?.textContent ?? '';
+    };
+  });
+  await page.keyboard.press('F8');
+  await page.keyboard.type('10000');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('hasil-transaksi')).toContainText('LUNAS');
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { ukuranStruk?: string }).ukuranStruk))
+    .toMatch(/size: (57|58|80)mm \d+mm/);
 });

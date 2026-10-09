@@ -20,8 +20,8 @@ type Sunting = { jenis: 'qty' | 'diskon'; nilai: string } | null;
 
 /**
  * Daftar barang transaksi POS (K-073). Keyboard: ↑/↓ pilih baris, + / − ubah qty 1, ketik angka = qty baru
- * (Enter simpan), % = diskon rupiah (berizin), T = ganti tier (berizin), P = lepas/pasang promo (berizin),
- * S = ganti satuan (satuan dasar ↔ satuan jual, K-091),
+ * (Enter simpan), % = diskon rupiah (berizin), T = pilih tier: otomatis → tier tertentu (berizin, K-094),
+ * P = lepas/pasang promo (berizin), S = ganti satuan (satuan dasar ↔ kemasan, K-091),
  * Delete = hapus, Enter = lanjut bayar, Esc/↑ di baris pertama = kembali ke kotak cari. Harga, promo, dan
  * subtotal diambil dari pratinjau API bila sudah tersedia.
  */
@@ -133,9 +133,9 @@ export function KeranjangPos({
       if (berikut) onUbah(indeks, berikut);
     } else if ((e.key === 't' || e.key === 'T') && bolehTier && !b.hargaManual) {
       e.preventDefault();
-      // Urutan: bawaan → tier lain → kembali ke bawaan.
-      const pilihan: (number | null)[] = [null, ...urutanTier.filter((t) => t !== tierBawaan)];
-      const kini = pilihan.indexOf(b.idTingkatHarga === tierBawaan ? null : b.idTingkatHarga);
+      // Urutan: otomatis (tier pelanggan / syarat qty) → setiap tier → kembali ke otomatis.
+      const pilihan: (number | null)[] = [null, ...urutanTier];
+      const kini = Math.max(0, pilihan.indexOf(b.idTingkatHarga));
       onUbah(indeks, { idTingkatHarga: pilihan[(kini + 1) % pilihan.length] ?? null });
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
@@ -165,8 +165,12 @@ export function KeranjangPos({
             {baris.map((r, i) => {
               const pr = pratinjau.get(r.idBarang);
               const harga = pr?.hargaSatuan ?? hargaBaris(r, tierBawaan);
-              const tierLain =
-                !r.hargaManual && r.idTingkatHarga !== null && r.idTingkatHarga !== tierBawaan;
+              // K-094: tier yang dipakai API (otomatis dari pelanggan/qty, atau dipilih kasir).
+              const idTier = r.hargaManual
+                ? null
+                : (pr?.idTingkatHarga ?? r.idTingkatHarga ?? r.snapshot?.idTingkatHarga ?? null);
+              const tampilTier =
+                idTier !== null && (idTier !== tierBawaan || r.idTingkatHarga !== null);
               const dipilih = aktif && i === indeks;
               return (
                 <tr
@@ -185,7 +189,8 @@ export function KeranjangPos({
                     <div className="truncate font-medium">{r.nama}</div>
                     <div className="truncate text-xs text-slate-500">
                       {formatRupiah(harga ?? 0)}
-                      {tierLain && r.idTingkatHarga !== null && ` · ${namaTier(r.idTingkatHarga)}`}
+                      {tampilTier &&
+                        ` · ${namaTier(idTier)}${r.idTingkatHarga === null ? ' otomatis' : ''}`}
                       {r.hargaManual && ' · harga manual'}
                       {r.diskonBaris > 0 && ` · diskon ${formatRupiah(r.diskonBaris)}`}
                       {pr?.idTingkatHargaSaran != null && (

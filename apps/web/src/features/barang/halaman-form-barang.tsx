@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   formatRupiah,
+  hargaMarkup,
   skemaBarang,
   type DataBarang,
   type DetailBarang,
@@ -71,6 +72,10 @@ export function HalamanFormBarang() {
   const { id } = useParams();
   const idBarang = id === undefined || id === 'baru' ? null : Number(id);
   const detail = useDetailBarang(idBarang);
+  const [url] = useSearchParams();
+  // `?salin=<id>`: barang baru versi titipan dari barang milik toko yang sudah ada.
+  const idSalin = idBarang === null && url.get('salin') ? Number(url.get('salin')) || null : null;
+  const sumber = useDetailBarang(idSalin);
   const kategori = useDaftarKategori();
   const merk = useDaftarMerk();
   const satuan = useDaftarSatuan();
@@ -86,6 +91,7 @@ export function HalamanFormBarang() {
     tier,
     pemasok,
     ...(idBarang ? [detail] : []),
+    ...(idSalin ? [sumber] : []),
   ];
   const galat = semua.find((q) => q.error)?.error;
   if (galat) {
@@ -98,14 +104,16 @@ export function HalamanFormBarang() {
     !jenisAtribut.data ||
     !tier.data ||
     !pemasok.data ||
-    (idBarang !== null && !detail.data)
+    (idBarang !== null && !detail.data) ||
+    (idSalin !== null && !sumber.data)
   ) {
     return <p className="p-6 text-sm text-slate-500">Memuat…</p>;
   }
   return (
     <FormBarang
-      key={idBarang ?? 'baru'}
+      key={idBarang ?? `baru-${idSalin ?? ''}`}
       barang={detail.data ?? null}
+      salinan={idBarang === null ? (sumber.data ?? null) : null}
       referensi={{
         kategori: kategori.data,
         merk: merk.data,
@@ -119,13 +127,36 @@ export function HalamanFormBarang() {
 }
 
 const TANPA = 'TANPA';
+/** Pembulatan harga untuk perkiraan di layar; nilai final dihitung API dengan konfigurasi toko. */
+const KELIPATAN_PERKIRAAN = 100;
 
-/** `?titipan=<idPemasok>`: barang baru langsung berkepemilikan titipan pemasok itu (dari halaman Konsinyasi). */
+/**
+ * `?titipan=<idPemasok>`: barang baru langsung berkepemilikan titipan pemasok itu (dari halaman Konsinyasi).
+ * `salinan`: barang milik toko yang disalin menjadi barang titipan (nama, kategori, satuan, atribut ikut;
+ * kode, barcode, harga, dan stok tidak).
+ */
 function nilaiAwal(
   b: DetailBarang | null,
   tierAktif: TingkatHarga[],
   idPenitip: number | null = null,
+  salinan: DetailBarang | null = null,
 ): InputBarang {
+  if (!b && salinan) {
+    return {
+      ...nilaiAwal(null, tierAktif, idPenitip ?? 0),
+      namaBarang: salinan.namaBarang,
+      idKategori: salinan.idKategori,
+      idMerk: salinan.idMerk,
+      idSatuanDasar: salinan.idSatuanDasar,
+      stokMinimum: formatDesimal(salinan.stokMinimum).replaceAll('.', ''),
+      keterangan: salinan.keterangan ?? '',
+      atribut: salinan.atribut.map((a) => ({
+        idJenisAtribut: a.idJenisAtribut,
+        nilai: a.tipeNilai === 'ANGKA' ? a.nilai.replace('.', ',') : a.nilai,
+        idSatuan: a.idSatuan,
+      })),
+    };
+  }
   return {
     kode: b?.kode ?? '',
     barcode: b?.barcode ?? '',
@@ -152,20 +183,27 @@ function nilaiAwal(
         markupPersen: h?.metode === 'MARKUP' ? rapikanPersen(h.markupPersen) : null,
       };
     }),
-    hargaOtomatis: b?.hargaOtomatis ?? false,
+    // K-094: barang baru berharga otomatis.
+    hargaOtomatis: b?.hargaOtomatis ?? true,
   };
 }
 
-/** Metode awal per tier: tier default selalu TETAP; barang baru = ikut tier (K-047). */
+/** Metode awal per tier: barang baru = ikut markup tier, termasuk tier default (K-047, K-094). */
 function metodeAwal(b: DetailBarang | null, tierAktif: TingkatHarga[]): MetodeHarga[] {
-  return tierAktif.map((t) =>
-    t.isDefault
-      ? 'TETAP'
-      : (b?.harga.find((x) => x.idTingkatHarga === t.id)?.metode ?? 'IKUT_TIER'),
+  return tierAktif.map(
+    (t) => b?.harga.find((x) => x.idTingkatHarga === t.id)?.metode ?? 'IKUT_TIER',
   );
 }
 
-function FormBarang({ barang, referensi }: { barang: DetailBarang | null; referensi: Referensi }) {
+function FormBarang({
+  barang,
+  salinan = null,
+  referensi,
+}: {
+  barang: DetailBarang | null;
+  salinan?: DetailBarang | null;
+  referensi: Referensi;
+}) {
   const navigasi = useNavigate();
   const simpan = useSimpanBarang();
   const unggah = useUnggahGambar();
@@ -205,6 +243,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
       barang,
       tierAktif,
       barang ? null : url.has('titipan') ? Number(url.get('titipan')) || 0 : null,
+      salinan,
     ),
   });
   // Metode dipilih eksplisit (H4) agar "Tetap" yang dikosongkan tidak diam-diam menjadi "Ikut tier".
@@ -240,9 +279,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
       const h = data.hargaTier?.[i];
       if (metode[i] === 'TETAP' && (h?.hargaTetap ?? null) === null) {
         form.setError(`hargaTier.${i}.hargaTetap`, {
-          message: t.isDefault
-            ? `Harga ${t.nama} wajib diisi.`
-            : 'Isi harga tetap, atau pilih cara lain.',
+          message: `Isi harga ${t.nama}, atau pilih cara lain.`,
         });
         sah = false;
       }
@@ -254,10 +291,19 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
     return sah;
   }
   const atribut = useFieldArray({ control: form.control, name: 'atribut' });
-  const [kepemilikan, atributDiisi] = useWatch({
+  const [kepemilikan, atributDiisi, modalDiisi, titipDiisi, tierDiisi] = useWatch({
     control: form.control,
-    name: ['kepemilikan', 'atribut'],
+    name: ['kepemilikan', 'atribut', 'hargaModalAwal', 'hargaTitip', 'hargaTier'],
   });
+  // Perkiraan harga barang baru dari modal (H3/H4) untuk tampilan; nilai final dihitung API.
+  const dasarKira = kepemilikan === 'KONSINYASI' ? titipDiisi : modalDiisi;
+  function kiraHarga(i: number, t: TingkatHarga): number | null {
+    if (barang || typeof dasarKira !== 'number' || dasarKira <= 0) return null;
+    const isian = metode[i] === 'MARKUP' ? tierDiisi?.[i]?.markupPersen : t.markupDefaultPersen;
+    const persen = typeof isian === 'string' ? isian.replace(',', '.') : '';
+    if (!/^\d+(\.\d+)?$/.test(persen)) return null;
+    return hargaMarkup(dasarKira, persen, KELIPATAN_PERKIRAAN);
+  }
   const barisAtribut = atributDiisi ?? [];
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(
     form.formState.isDirty || berkasBaru !== null,
@@ -338,6 +384,13 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
           </p>
         </div>
       </div>
+
+      {salinan && (
+        <div className="rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-800">
+          Disalin dari <b>{salinan.namaBarang}</b> ({salinan.kode}, milik toko). Pilih penitip dan
+          isi harga titip. Stok dan harga barang titipan terpisah dari barang milik toko.
+        </div>
+      )}
 
       {barang?.perluTinjauHarga && (
         <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
@@ -774,6 +827,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
                 {tierAktif.map((t, i) => {
                   const kini = barang?.harga.find((h) => h.idTingkatHarga === t.id);
                   const m = metode[i] ?? 'IKUT_TIER';
+                  const kira = m === 'MARKUP' ? kiraHarga(i, t) : null;
                   const keterangan =
                     kini && m === kini.metode
                       ? [
@@ -782,37 +836,31 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
                         ]
                           .filter(Boolean)
                           .join(' · ')
-                      : '';
+                      : kira !== null
+                        ? `± ${formatRupiah(kira)}`
+                        : '';
                   return (
                     <div key={t.id} className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          {t.nama}
-                          {t.isDefault && <span className="text-red-500">*</span>}
-                        </span>
-                        {!t.isDefault && (
-                          <Select
-                            value={m}
-                            onValueChange={(v) => ubahMetode(i, t, v as MetodeHarga)}
+                        <span className="text-sm font-medium">{t.nama}</span>
+                        <Select value={m} onValueChange={(v) => ubahMetode(i, t, v as MetodeHarga)}>
+                          <SelectTrigger
+                            className="h-7 w-40 text-xs"
+                            aria-label={`Cara menentukan harga ${t.nama}`}
                           >
-                            <SelectTrigger
-                              className="h-7 w-40 text-xs"
-                              aria-label={`Cara menentukan harga ${t.nama}`}
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="TETAP">Harga tetap</SelectItem>
-                              <SelectItem value="IKUT_TIER">
-                                Ikut tier
-                                {t.markupDefaultPersen
-                                  ? ` (+${formatDesimal(t.markupDefaultPersen)}%)`
-                                  : ''}
-                              </SelectItem>
-                              <SelectItem value="MARKUP">Markup sendiri (%)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="IKUT_TIER">
+                              Ikut tier
+                              {t.markupDefaultPersen
+                                ? ` (+${formatDesimal(t.markupDefaultPersen)}%)`
+                                : ''}
+                            </SelectItem>
+                            <SelectItem value="MARKUP">Markup sendiri (%)</SelectItem>
+                            <SelectItem value="TETAP">Harga tetap (Rp)</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       {m === 'TETAP' && (
                         <FormField
@@ -824,7 +872,7 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
                                 <InputRupiah
                                   {...field}
                                   aria-label={`Harga ${t.nama}`}
-                                  placeholder="Wajib diisi"
+                                  placeholder="Harga Rp"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -857,7 +905,9 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
                         <div className="flex h-9 items-center justify-end rounded-md border border-dashed px-3 text-sm text-slate-500 tabular-nums">
                           {kini?.metode === 'IKUT_TIER'
                             ? formatRupiah(kini.hargaJual)
-                            : 'dihitung saat disimpan'}
+                            : kiraHarga(i, t) !== null
+                              ? `± ${formatRupiah(kiraHarga(i, t) ?? 0)}`
+                              : 'dihitung dari modal saat disimpan'}
                         </div>
                       )}
                       {keterangan && <p className="text-xs text-slate-500">{keterangan}</p>}
@@ -865,9 +915,8 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
                   );
                 })}
                 <p className="text-xs text-slate-500">
-                  Ikut tier dan markup sendiri dihitung dari dasar harga modal lalu dibulatkan ke
-                  atas. Harga {tierAktif.find((t) => t.isDefault)?.nama ?? 'default'} selalu harga
-                  tetap.
+                  Ikut tier = harga modal + markup tier, dibulatkan ke atas. Harga tetap = harga Rp
+                  yang Anda ketik sendiri dan tidak pernah berubah sendiri.
                 </p>
                 <FormField
                   control={form.control}
@@ -877,10 +926,10 @@ function FormBarang({ barang, referensi }: { barang: DetailBarang | null; refere
                       <div className="space-y-1">
                         <FormLabel>Harga otomatis</FormLabel>
                         <FormDescription className="text-xs">
-                          Nyala: harga yang dihitung dari modal (pilihan Tier atau %) ikut naik
-                          sendiri saat harga beli naik. Bila modal turun, harga tidak langsung
-                          turun, tetapi masuk Tinjau Harga untuk diputuskan. Harga Rp (tetap) tidak
-                          pernah berubah sendiri.
+                          Nyala (bawaan): harga yang dihitung dari modal ikut naik sendiri saat
+                          harga beli naik. Bila modal turun, harga tidak langsung turun, tetapi
+                          masuk Tinjau Harga. Matikan bila harga barang ini ingin selalu ditinjau
+                          dulu.
                         </FormDescription>
                       </div>
                       <FormControl>

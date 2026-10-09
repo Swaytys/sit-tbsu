@@ -427,9 +427,10 @@ export function HalamanLabel() {
       {cetak && (
         <AreaCetak
           ukuranKertas={t.gulunganMm ? `${t.gulunganMm}mm auto` : 'A4'}
+          margin={t.margin}
           css={`
             @page {
-              size: ${t.gulunganMm ? `${t.gulunganMm}mm auto` : 'A4'};
+              size: A4;
               margin: ${t.margin};
             }
           `}

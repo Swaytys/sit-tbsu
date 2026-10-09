@@ -141,8 +141,8 @@ export function InputOrderCepat() {
     if (zona !== 'pelanggan') document.getElementById(ID[zona])?.focus();
   }, [zona]);
 
-  function tambah(b: BarisBarang, qty: string) {
-    setIndeksBaris(tr.tambah(b, qty));
+  function tambah(b: BarisBarang, qty: string, idSatuanJual?: number | null) {
+    setIndeksBaris(tr.tambah(b, qty, idSatuanJual));
   }
 
   function pilihPelanggan(p: Pelanggan | null) {
