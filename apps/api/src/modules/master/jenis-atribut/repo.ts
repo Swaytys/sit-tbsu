@@ -2,8 +2,9 @@ import { and, asc, eq, ne, sql } from 'drizzle-orm';
 import type { JenisDimensi, StatusAktif, TipeNilai } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import { barangAtribut, jenisAtribut } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 
-const jumlahBarang = sql<number>`(select count(*)::int from ${barangAtribut} where ${barangAtribut.idJenisAtribut} = ${jenisAtribut.id})`;
+const jumlahBarang = sql<number>`(select count(*)::int from ${barangAtribut} where ${kolomPenuh(barangAtribut.idJenisAtribut)} = ${kolomPenuh(jenisAtribut.id)})`;
 
 const kolom = {
   id: jenisAtribut.id,

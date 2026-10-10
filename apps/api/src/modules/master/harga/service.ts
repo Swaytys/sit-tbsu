@@ -1,6 +1,7 @@
 import {
   formatRupiah,
   hargaMarkup,
+  keQty,
   keTeksPersen,
   marginPersen,
   teksQty,
@@ -65,8 +66,19 @@ export function dasarMarkup(b: DataDasar, modeDasar: KonteksHarga['modeDasar']):
   return modeDasar === 'HPP_RATA2' ? b.hppRata2 : b.hargaBeliTerakhir;
 }
 
-/** Isian harga satu tier: angka = TETAP; markup persen = MARKUP; keduanya kosong = IKUT_TIER. */
-export type InputHarga = { hargaTetap: number | null; markupPersen?: string | null | undefined };
+/**
+ * Isian harga satu tier: angka = TETAP; markup persen = MARKUP; keduanya kosong = IKUT_TIER. `minQty`
+ * (K-097): syarat qty khusus barang; tidak dikirim = tidak diubah.
+ */
+export type InputHarga = {
+  hargaTetap: number | null;
+  markupPersen?: string | null | undefined;
+  minQty?: string | null | undefined;
+};
+
+function keQtyAtauNull(v: string | null): string | null {
+  return v === null ? null : keQty(v);
+}
 
 /** H4: nilai baris harga dari isian. */
 export function nilaiHarga(
@@ -136,7 +148,7 @@ function persenEfektif(
 const persenSama = (a: string | null, b: string | null) =>
   a === null || b === null ? a === b : keTeksPersen(a) === keTeksPersen(b);
 
-type NilaiLog = { metode: MetodeHarga; hargaJual: number; markupPersen?: string };
+type NilaiLog = { metode: MetodeHarga; hargaJual: number; markupPersen?: string; minQty?: string };
 export type PerubahanHarga = {
   idTingkatHarga: number;
   tier: string;
@@ -144,11 +156,17 @@ export type PerubahanHarga = {
   baru: NilaiLog;
 };
 
-function nilaiLog(n: { metode: MetodeHarga; hargaJual: number; markupPersen: string | null }) {
+function nilaiLog(n: {
+  metode: MetodeHarga;
+  hargaJual: number;
+  markupPersen: string | null;
+  minQty?: string | null | undefined;
+}): NilaiLog {
   return {
     metode: n.metode,
     hargaJual: n.hargaJual,
     ...(n.metode === 'MARKUP' && n.markupPersen !== null ? { markupPersen: n.markupPersen } : {}),
+    ...(n.minQty ? { minQty: n.minQty } : {}),
   };
 }
 
@@ -194,7 +212,16 @@ export async function terapkanHargaBarang(
         isian = { hargaTetap: null, markupPersen: barisLama.markupPersen };
       } else continue;
     }
-    const nilai = nilaiHarga(isian, t.markupDefaultPersen, opsi.dasar, opsi.konteks.kelipatan);
+    // K-097: syarat qty khusus barang; tidak dikirim = tetap. Tier default berlaku untuk semua qty.
+    const minQty =
+      isian.minQty === undefined ? (barisLama?.minQty ?? null) : keQtyAtauNull(isian.minQty);
+    if (t.isDefault && minQty !== null) {
+      throw galatHarga(`Harga ${t.nama} berlaku untuk semua qty; kosongkan "mulai qty".`);
+    }
+    const nilai = {
+      ...nilaiHarga(isian, t.markupDefaultPersen, opsi.dasar, opsi.konteks.kelipatan),
+      minQty,
+    };
     // K-094/K-095: harga Rp tetap tier default tidak boleh 0. Harga ikut markup boleh 0 selama harga modal
     // belum diketahui (barang belum bisa dijual); harganya terisi sendiri setelah penerimaan pertama.
     if (t.isDefault && nilai.metode === 'TETAP' && nilai.hargaJual <= 0) {
@@ -205,7 +232,8 @@ export async function terapkanHargaBarang(
         barisLama.metode === nilai.metode &&
         barisLama.hargaTetap === nilai.hargaTetap &&
         barisLama.hargaJual === nilai.hargaJual &&
-        persenSama(barisLama.markupPersen, nilai.markupPersen);
+        persenSama(barisLama.markupPersen, nilai.markupPersen) &&
+        barisLama.minQty === nilai.minQty;
       if (sama && barisLama.dasarMarkupSaatHitung === nilai.dasarMarkupSaatHitung) continue;
       await repo.ubahHarga(tx, barisLama.id, { ...nilai, idPengguna: opsi.idPengguna }, waktu);
       // Hanya dasar saat hitung yang diperbarui (harga hasil pembulatan sama): bukan perubahan harga.
@@ -226,9 +254,10 @@ export async function terapkanHargaBarang(
 
 function labelNilai(n: NilaiLog): string {
   const harga = formatRupiah(n.hargaJual);
-  if (n.metode === 'IKUT_TIER') return `${harga} (ikut tier)`;
-  if (n.metode === 'MARKUP') return `${harga} (markup ${teksQty(n.markupPersen ?? '0')}%)`;
-  return harga;
+  const mulai = n.minQty ? `, mulai qty ${teksQty(n.minQty)}` : '';
+  if (n.metode === 'IKUT_TIER') return `${harga} (ikut tier${mulai})`;
+  if (n.metode === 'MARKUP') return `${harga} (markup ${teksQty(n.markupPersen ?? '0')}%${mulai})`;
+  return mulai ? `${harga} (${mulai.slice(2)})` : harga;
 }
 
 /** Ringkasan perubahan harga untuk log, mis. "Normal Rp 55.000 → Rp 56.000". */
@@ -279,6 +308,7 @@ export async function simpanHargaMassal(
       idTingkatHarga: p.idTingkatHarga,
       hargaTetap: p.hargaTetap,
       markupPersen: p.markupPersen,
+      minQty: p.minQty,
     });
     perBarang.set(p.idBarang, daftar);
   }

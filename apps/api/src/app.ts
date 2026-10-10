@@ -20,6 +20,7 @@ import { returPemasokRoutes } from './modules/persediaan/retur-pemasok/routes';
 import { importRoutes } from './modules/master/import/routes';
 import { jenisAtributRoutes } from './modules/master/jenis-atribut/routes';
 import { kategoriRoutes } from './modules/master/kategori/routes';
+import { golonganPelangganRoutes } from './modules/master/golongan-pelanggan/routes';
 import { merkRoutes } from './modules/master/merk/routes';
 import { pelangganRoutes } from './modules/master/pelanggan/routes';
 import { pemasokRoutes } from './modules/master/pemasok/routes';
@@ -70,6 +71,7 @@ const rute = new Hono<EnvApp>()
   .route('/void', voidRoutes)
   .route('/retur', returRoutes)
   .route('/pelanggan', pelangganRoutes)
+  .route('/golongan-pelanggan', golonganPelangganRoutes)
   .route('/pemasok', pemasokRoutes)
   .route('/pengguna', penggunaRoutes)
   .route('/pengaturan', pengaturanRoutes)

@@ -290,7 +290,6 @@ export type DetailOrder = BarisDaftarOrder & {
   catatan: string | null;
   alasanBatal: string | null;
   idPenjualan: number | null;
-  idTingkatHargaPelanggan: number | null;
   subtotal: number;
   diskonTransaksi: number;
   ongkir: number;

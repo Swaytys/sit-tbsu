@@ -8,7 +8,7 @@ const kolom = {
   kode: tingkatHarga.kode,
   nama: tingkatHarga.nama,
   markupDefaultPersen: tingkatHarga.markupDefaultPersen,
-  saranMinQty: tingkatHarga.saranMinQty,
+  minQty: tingkatHarga.minQty,
   urutan: tingkatHarga.urutan,
   isDefault: tingkatHarga.isDefault,
   statusAktif: tingkatHarga.statusAktif,
@@ -23,16 +23,6 @@ export function daftarTingkatHarga(ex: Executor) {
 
 export async function tingkatHargaById(ex: Executor, id: number) {
   const [baris] = await ex.select(kolom).from(tingkatHarga).where(eq(tingkatHarga.id, id)).limit(1);
-  return baris;
-}
-
-/** Tier aktif dengan id tertentu (untuk validasi pilihan tier pelanggan). */
-export async function tingkatHargaAktif(ex: Executor, id: number) {
-  const [baris] = await ex
-    .select(kolom)
-    .from(tingkatHarga)
-    .where(and(eq(tingkatHarga.id, id), eq(tingkatHarga.statusAktif, 'AKTIF')))
-    .limit(1);
   return baris;
 }
 
@@ -64,7 +54,7 @@ export type NilaiTingkatHarga = {
   kode: string;
   nama: string;
   markupDefaultPersen: string;
-  saranMinQty: string | null;
+  minQty: string | null;
   urutan: number;
 };
 

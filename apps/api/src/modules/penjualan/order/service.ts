@@ -144,7 +144,6 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
     catatan: h.catatan,
     alasanBatal: h.alasanBatal,
     idPenjualan: h.idPenjualan,
-    idTingkatHargaPelanggan: h.idTingkatHargaPelanggan,
     subtotal: h.subtotal,
     diskonTransaksi: h.diskonTransaksi,
     ongkir: h.ongkir,

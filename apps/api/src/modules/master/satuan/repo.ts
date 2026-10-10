@@ -2,6 +2,7 @@ import { and, asc, desc, eq, ne, sql } from 'drizzle-orm';
 import { JENIS_DIMENSI, type JenisDimensi, type StatusAktif } from '@sit/shared';
 import { db, type Executor, type Tx } from '../../../db/client';
 import { barang, barangAtribut, barangSatuanJual, satuan } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 
 /** Urutan dimensi mengikuti daftar enum (PANJANG, LUAS, ..., LAINNYA), bukan abjad. */
 const urutanDimensi = sql`case ${satuan.jenisDimensi} ${sql.join(
@@ -11,9 +12,9 @@ const urutanDimensi = sql`case ${satuan.jenisDimensi} ${sql.join(
 
 /** Pemakaian satuan: satuan dasar barang, satuan atribut barang, satuan jual. */
 const jumlahDipakai = sql<number>`(
-  (select count(*) from ${barang} where ${barang.idSatuanDasar} = ${satuan.id})
-  + (select count(*) from ${barangAtribut} where ${barangAtribut.idSatuan} = ${satuan.id})
-  + (select count(*) from ${barangSatuanJual} where ${barangSatuanJual.idSatuan} = ${satuan.id})
+  (select count(*) from ${barang} where ${kolomPenuh(barang.idSatuanDasar)} = ${kolomPenuh(satuan.id)})
+  + (select count(*) from ${barangAtribut} where ${kolomPenuh(barangAtribut.idSatuan)} = ${kolomPenuh(satuan.id)})
+  + (select count(*) from ${barangSatuanJual} where ${kolomPenuh(barangSatuanJual.idSatuan)} = ${kolomPenuh(satuan.id)})
 )::int`;
 
 const kolom = {

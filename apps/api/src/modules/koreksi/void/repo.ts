@@ -30,13 +30,14 @@ import {
   voidTransaksi,
   voidTransaksiDetail,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 import { kodeSatuanBaris, satuanBaris } from '../../penjualan/satuan-baris';
 import { sekarang } from '../../../lib/waktu';
 
 const pengaju = aliasedTable(pengguna, 'pengaju');
 const namaPenyetuju = sql<string | null>`(select p.nama_pengguna from ${pengguna} p
-  where p.id = ${voidTransaksi.idPenyetuju})`;
+  where p.id = ${kolomPenuh(voidTransaksi.idPenyetuju)})`;
 
 const kolom = {
   id: voidTransaksi.id,

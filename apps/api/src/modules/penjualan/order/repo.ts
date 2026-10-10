@@ -13,15 +13,16 @@ import {
   satuan,
   tingkatHarga,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 import { kodeSatuanBaris, satuanBaris } from '../satuan-baris';
 
 // Subkueri (bukan join kedua ke `pengguna`): Drizzle tidak bisa mengetik dua join ke tabel yang sama.
 const namaKasirProses = sql<string | null>`(select k.nama_pengguna from ${pengguna} k
-  where k.id = ${orderPenjualan.idKasirProses})`;
+  where k.id = ${kolomPenuh(orderPenjualan.idKasirProses)})`;
 
 const jumlahItem = sql<number>`(select count(*)::int from ${orderPenjualanDetail}
-  where ${orderPenjualanDetail.idOrder} = ${orderPenjualan.id})`;
+  where ${kolomPenuh(orderPenjualanDetail.idOrder)} = ${kolomPenuh(orderPenjualan.id)})`;
 
 const kolom = {
   id: orderPenjualan.id,
@@ -32,7 +33,6 @@ const kolom = {
   prioritas: orderPenjualan.prioritas,
   idPelanggan: orderPenjualan.idPelanggan,
   namaPelanggan: pelanggan.namaPelanggan,
-  idTingkatHargaPelanggan: pelanggan.idTingkatHarga,
   namaPembeli: orderPenjualan.namaPembeli,
   idPengguna: orderPenjualan.idPengguna,
   namaPengguna: pengguna.namaPengguna,

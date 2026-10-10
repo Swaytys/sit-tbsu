@@ -18,6 +18,7 @@ import {
   penerimaanBarangDetail,
   satuan,
 } from '../../db/schema';
+import { kolomPenuh } from '../../db/kolom-penuh';
 import type { PenggunaAktif } from '../../lib/konteks';
 import { namaKategori } from './stok-rekap';
 import {
@@ -107,7 +108,7 @@ export async function hitungRiwayatHargaBeli(p: DataRiwayatHargaBeli): Promise<{
         lte(penerimaanBarang.tanggalOperasional, p.sampai),
         // Barang pengganti retur pemasok (RP5, dibayar kompensasi) bukan pembelian baru.
         sql`not exists (select 1 from ${pembayaranPemasok} k
-          where k.id_penerimaan = ${penerimaanBarang.id} and k.metode = 'KOMPENSASI')`,
+          where k.id_penerimaan = ${kolomPenuh(penerimaanBarang.id)} and k.metode = 'KOMPENSASI')`,
         p.idBarang === undefined ? undefined : eq(penerimaanBarangDetail.idBarang, p.idBarang),
         p.idPemasok === undefined ? undefined : eq(penerimaanBarang.idPemasok, p.idPemasok),
         p.idKategori === undefined ? undefined : eq(barang.idKategori, p.idKategori),

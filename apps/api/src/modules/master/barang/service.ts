@@ -81,6 +81,7 @@ function keBaris(
     metode: h.metode,
     hargaTetap: h.hargaTetap,
     hargaJual: h.hargaJual,
+    minQty: h.minQty,
     ...(lihatHpp ? { markupPersen: h.markupPersen, margin: marginPersen(h.hargaJual, dasar) } : {}),
   }));
   const umum: BarisBarang = {

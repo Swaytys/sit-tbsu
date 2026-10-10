@@ -7,6 +7,7 @@ import {
   integer,
   numeric,
   pgTable,
+  primaryKey,
   unique,
   uniqueIndex,
   varchar,
@@ -17,6 +18,7 @@ import {
   JENIS_POTONGAN,
   KEPEMILIKAN,
   METODE_HARGA,
+  SASARAN_PEMBELI,
   SASARAN_PROMO,
   STATUS_AKTIF,
   TIPE_NILAI,
@@ -140,20 +142,42 @@ export const tingkatHarga = pgTable(
     markupDefaultPersen: numeric('markup_default_persen', { precision: 6, scale: 2 })
       .notNull()
       .default(sql`0`),
-    saranMinQty: qty('saran_min_qty'),
     urutan: integer('urutan').notNull().default(0),
     isDefault: boolean('is_default').notNull().default(false),
     statusAktif: statusAktif(),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /**
+     * K-097 (migrasi 0009): qty minimal (satuan dasar) agar tier ini dipakai otomatis; kosong = hanya bila
+     * dipilih manual. Tier default selalu kosong. Bisa diganti per barang (`harga_barang.min_qty`).
+     */
+    minQty: qty('min_qty'),
   },
   () => [
     check('chk_tingkat_harga_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
+    check('chk_tingkat_harga_min_qty', sql`min_qty is null or min_qty > 0`),
     // Tepat satu tier default.
     uniqueIndex('uq_tingkat_harga_default')
       .on(sql`(1)`)
       .where(sql`is_default`),
   ],
+);
+
+/**
+ * K-097 (migrasi 0009): golongan pelanggan (mis. Distributor, Kontraktor, Tukang). Dipakai sasaran promo,
+ * bukan harga jual (harga jual hanya ditentukan qty).
+ */
+export const golonganPelanggan = pgTable(
+  'golongan_pelanggan',
+  {
+    id: kolomId(),
+    nama: varchar('nama', { length: 60 }).notNull().unique('golongan_pelanggan_nama_key'),
+    keterangan: varchar('keterangan', { length: 150 }),
+    statusAktif: statusAktif(),
+    dibuatPada: dibuatPada(),
+    diubahPada: diubahPada(),
+  },
+  () => [check('chk_golongan_pelanggan_status', dalamDaftar('status_aktif', STATUS_AKTIF))],
 );
 
 export const pelanggan = pgTable(
@@ -165,20 +189,22 @@ export const pelanggan = pgTable(
     noHp: varchar('no_hp', { length: 20 }),
     email: varchar('email', { length: 100 }),
     alamat: varchar('alamat', { length: 255 }),
-    idTingkatHarga: kolomRef('id_tingkat_harga'),
     termHari: integer('term_hari').notNull().default(0),
     limitKredit: uang('limit_kredit'),
     keterangan: varchar('keterangan', { length: 150 }),
     statusAktif: statusAktif(),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /** K-097 (migrasi 0009): golongan untuk sasaran promo. */
+    idGolongan: kolomRef('id_golongan'),
   },
   (t) => [
     foreignKey({
-      name: 'pelanggan_id_tingkat_harga_fkey',
-      columns: [t.idTingkatHarga],
-      foreignColumns: [tingkatHarga.id],
+      name: 'pelanggan_id_golongan_fkey',
+      columns: [t.idGolongan],
+      foreignColumns: [golonganPelanggan.id],
     }),
+    index('idx_pelanggan_golongan').on(t.idGolongan),
     check('chk_pelanggan_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
     check('chk_pelanggan_term', sql`term_hari >= 0`),
     check('chk_pelanggan_limit', sql`limit_kredit is null or limit_kredit >= 0`),
@@ -329,8 +355,14 @@ export const hargaBarang = pgTable(
     idPengguna: kolomRef('id_pengguna'),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /**
+     * K-097 (migrasi 0009): qty minimal tier ini khusus barang ini (satuan dasar); kosong = ikut
+     * `tingkat_harga.min_qty`. Hanya pada baris satuan dasar.
+     */
+    minQty: qty('min_qty'),
   },
   (t) => [
+    check('chk_harga_min_qty', sql`min_qty is null or (min_qty > 0 and id_satuan_jual is null)`),
     foreignKey({
       name: 'harga_barang_id_barang_fkey',
       columns: [t.idBarang],
@@ -386,8 +418,28 @@ export const promo = pgTable(
     statusAktif: statusAktif(),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    // K-097 (migrasi 0009): pembeli yang berhak dan syarat belanja kumulatif pelanggan.
+    sasaranPembeli: varchar('sasaran_pembeli', { length: 10, enum: SASARAN_PEMBELI })
+      .notNull()
+      .default('SEMUA'),
+    idGolongan: kolomRef('id_golongan'),
+    /** Belanja pelanggan (neto) dalam `hari_belanja` hari terakhir minimal sekian rupiah. */
+    minBelanjaPelanggan: uang('min_belanja_pelanggan'),
+    hariBelanja: integer('hari_belanja'),
   },
   (t) => [
+    foreignKey({
+      name: 'promo_id_golongan_fkey',
+      columns: [t.idGolongan],
+      foreignColumns: [golonganPelanggan.id],
+    }),
+    check('chk_promo_sasaran_pembeli', dalamDaftar('sasaran_pembeli', SASARAN_PEMBELI)),
+    check('chk_promo_golongan', sql`(sasaran_pembeli = 'GOLONGAN') = (id_golongan is not null)`),
+    check(
+      'chk_promo_belanja_pelanggan',
+      sql`(min_belanja_pelanggan is null and hari_belanja is null)
+        or (min_belanja_pelanggan > 0 and hari_belanja between 1 and 3650)`,
+    ),
     foreignKey({
       name: 'promo_id_kategori_fkey',
       columns: [t.idKategori],
@@ -412,5 +464,28 @@ export const promo = pgTable(
         or (sasaran = 'BARANG' and id_barang is not null and id_kategori is null)`,
     ),
     check('chk_promo_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
+  ],
+);
+
+/** K-097 (migrasi 0009): pelanggan yang berhak atas promo dengan `sasaran_pembeli = PELANGGAN`. */
+export const promoPelanggan = pgTable(
+  'promo_pelanggan',
+  {
+    idPromo: kolomRef('id_promo').notNull(),
+    idPelanggan: kolomRef('id_pelanggan').notNull(),
+  },
+  (t) => [
+    primaryKey({ name: 'promo_pelanggan_pkey', columns: [t.idPromo, t.idPelanggan] }),
+    foreignKey({
+      name: 'promo_pelanggan_id_promo_fkey',
+      columns: [t.idPromo],
+      foreignColumns: [promo.id],
+    }),
+    foreignKey({
+      name: 'promo_pelanggan_id_pelanggan_fkey',
+      columns: [t.idPelanggan],
+      foreignColumns: [pelanggan.id],
+    }),
+    index('idx_promo_pelanggan_pelanggan').on(t.idPelanggan),
   ],
 );

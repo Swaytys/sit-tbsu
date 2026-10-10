@@ -2,14 +2,15 @@ import { and, asc, count, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm';
 import type { Peran, StatusAktif } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import { pengguna, sesiLogin } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 
 /** Jumlah sesi yang masih berlaku (belum dicabut, belum melewati batas absolut). */
 const jumlahSesiAktif = sql<number>`(
   select count(*)::int from ${sesiLogin}
-  where ${sesiLogin.idPengguna} = ${pengguna.id}
-    and ${sesiLogin.dicabutPada} is null
-    and ${sesiLogin.kadaluarsaAbsolut} > now()
+  where ${kolomPenuh(sesiLogin.idPengguna)} = ${kolomPenuh(pengguna.id)}
+    and ${kolomPenuh(sesiLogin.dicabutPada)} is null
+    and ${kolomPenuh(sesiLogin.kadaluarsaAbsolut)} > now()
 )`;
 
 const kolomDaftar = {

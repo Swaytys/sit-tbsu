@@ -64,6 +64,20 @@
       "when": 1791519674239,
       "tag": "0008_harga_otomatis_tier_dipilih",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791603055420,
+      "tag": "0009_golongan_min_qty_promo_pembeli",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791603076780,
+      "tag": "0010_hapus_tier_pelanggan",
+      "breakpoints": true
     }
   ]
 }

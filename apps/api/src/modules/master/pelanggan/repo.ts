@@ -1,7 +1,7 @@
 import { and, asc, count, eq, ilike, or, type SQL } from 'drizzle-orm';
 import type { StatusAktif } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
-import { pelanggan, tingkatHarga } from '../../../db/schema';
+import { golonganPelanggan, pelanggan } from '../../../db/schema';
 import { polaCari } from '../../../lib/paginasi';
 
 const kolom = {
@@ -12,8 +12,8 @@ const kolom = {
   email: pelanggan.email,
   alamat: pelanggan.alamat,
   keterangan: pelanggan.keterangan,
-  idTingkatHarga: pelanggan.idTingkatHarga,
-  namaTingkatHarga: tingkatHarga.nama,
+  idGolongan: pelanggan.idGolongan,
+  namaGolongan: golonganPelanggan.nama,
   termHari: pelanggan.termHari,
   limitKredit: pelanggan.limitKredit,
   statusAktif: pelanggan.statusAktif,
@@ -42,7 +42,7 @@ export async function daftarPelanggan(
   const baris = await ex
     .select(kolom)
     .from(pelanggan)
-    .leftJoin(tingkatHarga, eq(pelanggan.idTingkatHarga, tingkatHarga.id))
+    .leftJoin(golonganPelanggan, eq(pelanggan.idGolongan, golonganPelanggan.id))
     .where(where)
     .orderBy(asc(pelanggan.namaPelanggan), asc(pelanggan.id))
     .limit(p.limit)
@@ -55,7 +55,7 @@ export async function pelangganById(ex: Executor, id: number) {
   const [baris] = await ex
     .select(kolom)
     .from(pelanggan)
-    .leftJoin(tingkatHarga, eq(pelanggan.idTingkatHarga, tingkatHarga.id))
+    .leftJoin(golonganPelanggan, eq(pelanggan.idGolongan, golonganPelanggan.id))
     .where(eq(pelanggan.id, id))
     .limit(1);
   return baris;
@@ -69,7 +69,7 @@ export async function kunciPelanggan(tx: Tx, id: number) {
       email: pelanggan.email,
       alamat: pelanggan.alamat,
       keterangan: pelanggan.keterangan,
-      idTingkatHarga: pelanggan.idTingkatHarga,
+      idGolongan: pelanggan.idGolongan,
       termHari: pelanggan.termHari,
       limitKredit: pelanggan.limitKredit,
       statusAktif: pelanggan.statusAktif,
@@ -87,7 +87,7 @@ export type NilaiPelanggan = {
   email: string | null;
   alamat: string | null;
   keterangan: string | null;
-  idTingkatHarga: number | null;
+  idGolongan: number | null;
   termHari: number;
   limitKredit: number | null;
 };

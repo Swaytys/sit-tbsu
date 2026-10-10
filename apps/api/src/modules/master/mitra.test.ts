@@ -9,7 +9,7 @@ import {
 } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
-import { logAktivitas, pelanggan, pemasok, tingkatHarga } from '../../db/schema';
+import { golonganPelanggan, logAktivitas, pelanggan, pemasok, tingkatHarga } from '../../db/schema';
 
 type Galat = {
   error: { kode: string; pesan: string; detail?: { kolom?: Record<string, string[]> } };
@@ -19,21 +19,22 @@ type Sesi = Awaited<ReturnType<typeof sesiUji>>;
 
 let admin: Sesi;
 let staf: Sesi;
-let tier: { normal: number; grosir: number; lama: number };
+let golongan: { distributor: number; lama: number };
 
 beforeEach(async () => {
   await siapkanDatabaseSistem();
-  await kosongkanTabel(pelanggan, pemasok, tingkatHarga);
+  await kosongkanTabel(pelanggan, pemasok, golonganPelanggan, tingkatHarga);
   await aturKonfigurasi({ term_hari_default: '14' });
+  await db.insert(tingkatHarga).values([
+    { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
+    { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2 },
+    { kode: 'LAMA', nama: 'Lama', urutan: 3, statusAktif: 'NONAKTIF' },
+  ]);
   const baris = await db
-    .insert(tingkatHarga)
-    .values([
-      { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-      { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2 },
-      { kode: 'LAMA', nama: 'Lama', urutan: 3, statusAktif: 'NONAKTIF' },
-    ])
-    .returning({ id: tingkatHarga.id });
-  tier = { normal: baris[0]!.id, grosir: baris[1]!.id, lama: baris[2]!.id };
+    .insert(golonganPelanggan)
+    .values([{ nama: 'Distributor' }, { nama: 'Lama', statusAktif: 'NONAKTIF' }])
+    .returning({ id: golonganPelanggan.id });
+  golongan = { distributor: baris[0]!.id, lama: baris[1]!.id };
   admin = await sesiUji('ADMIN');
   staf = await sesiUji('STAF_PENJUALAN');
 });
@@ -75,11 +76,11 @@ describe('pelanggan', () => {
     expect((await json<{ data: Baris }>(res)).data.kode).toBe('PLG-00001');
   });
 
-  it('pelanggan baru memakai bawaan toko: tier default (null), term dari konfigurasi, tanpa limit', async () => {
+  it('pelanggan baru memakai bawaan toko: tanpa golongan, term dari konfigurasi, tanpa limit', async () => {
     const p = await buat(staf, '/api/pelanggan', PLG);
     expect(p).toMatchObject({
-      idTingkatHarga: null,
-      namaTingkatHarga: null,
+      idGolongan: null,
+      namaGolongan: null,
       termHari: 14,
       limitKredit: null,
       email: null,
@@ -108,23 +109,23 @@ describe('pelanggan', () => {
     );
   });
 
-  it('Admin mengatur tier, term, limit; tier nonaktif ditolak', async () => {
+  it('Admin mengatur golongan (K-097), term, limit; golongan nonaktif ditolak', async () => {
     const p = await buat(admin, '/api/pelanggan', {
       ...PLG,
-      idTingkatHarga: tier.grosir,
+      idGolongan: golongan.distributor,
       termHari: 30,
       limitKredit: 5_000_000,
     });
     expect(p).toMatchObject({
-      idTingkatHarga: tier.grosir,
-      namaTingkatHarga: 'Grosir',
+      idGolongan: golongan.distributor,
+      namaGolongan: 'Distributor',
       termHari: 30,
       limitKredit: 5_000_000,
     });
 
-    const res = await kirim(admin, '/api/pelanggan', { ...PLG, idTingkatHarga: tier.lama });
+    const res = await kirim(admin, '/api/pelanggan', { ...PLG, idGolongan: golongan.lama });
     expect(res.status).toBe(400);
-    expect((await json<Galat>(res)).error.detail?.kolom?.idTingkatHarga).toBeDefined();
+    expect((await json<Galat>(res)).error.detail?.kolom?.idGolongan).toBeDefined();
 
     // Limit kosong dari form = tanpa limit; rupiah pecahan ditolak.
     const ubah = await kirim(admin, `/api/pelanggan/${p.id}`, { ...PLG, limitKredit: '' }, 'PATCH');
@@ -133,9 +134,9 @@ describe('pelanggan', () => {
     expect(pecahan.status).toBe(400);
   });
 
-  it('Staf tidak bisa mengatur tier, term, atau limit kredit (K-059)', async () => {
+  it('Staf tidak bisa mengatur golongan, term, atau limit kredit (K-059)', async () => {
     for (const isian of [
-      { idTingkatHarga: tier.grosir },
+      { idGolongan: golongan.distributor },
       { termHari: 30 },
       { limitKredit: 1_000_000 },
     ]) {
@@ -146,10 +147,10 @@ describe('pelanggan', () => {
     // Nilai yang sama dengan bawaan toko tetap diterima.
     expect((await kirim(staf, '/api/pelanggan', { ...PLG, termHari: 14 })).status).toBe(201);
 
-    // Pelanggan yang diatur Admin: Staf mengubah kontak tanpa menyentuh tier/term/limit.
+    // Pelanggan yang diatur Admin: Staf mengubah kontak tanpa menyentuh golongan/term/limit.
     const p = await buat(admin, '/api/pelanggan', {
       ...PLG,
-      idTingkatHarga: tier.grosir,
+      idGolongan: golongan.distributor,
       termHari: 30,
       limitKredit: 2_000_000,
     });
@@ -157,12 +158,31 @@ describe('pelanggan', () => {
     expect(res.status).toBe(200);
     expect((await json<{ data: Baris }>(res)).data).toMatchObject({
       alamat: 'Jombang',
-      idTingkatHarga: tier.grosir,
+      idGolongan: golongan.distributor,
       termHari: 30,
       limitKredit: 2_000_000,
     });
     const tolak = await kirim(staf, `/api/pelanggan/${p.id}`, { ...PLG, termHari: 0 }, 'PATCH');
     expect(tolak.status).toBe(403);
+  });
+
+  it('K-097: golongan pelanggan dikelola Admin; nama unik; Staf hanya melihat', async () => {
+    const g = await buat(admin, '/api/golongan-pelanggan', { nama: 'Kontraktor' });
+    expect(g).toMatchObject({ nama: 'Kontraktor', statusAktif: 'AKTIF', jumlahPelanggan: 0 });
+    expect((await kirim(admin, '/api/golongan-pelanggan', { nama: 'kontraktor' })).status).toBe(
+      409,
+    );
+    expect((await kirim(staf, '/api/golongan-pelanggan', { nama: 'Tukang' })).status).toBe(403);
+    const daftar = await minta('/api/golongan-pelanggan?status=AKTIF', { cookie: staf.cookie });
+    expect(daftar.status).toBe(200);
+    await buat(admin, '/api/pelanggan', { ...PLG, idGolongan: g.id });
+    const [isi] = (
+      await json<{ data: Baris[] }>(
+        await minta('/api/golongan-pelanggan?status=AKTIF', { cookie: admin.cookie }),
+      )
+    ).data.filter((x) => x.id === g.id);
+    expect(isi).toMatchObject({ jumlahPelanggan: 1 });
+    expect((await logTerakhir('GOLONGAN_PELANGGAN_BUAT'))?.ringkasan).toContain('Kontraktor');
   });
 
   it('log ubah hanya mencatat kolom yang berubah; simpan tanpa perubahan tidak dicatat', async () => {

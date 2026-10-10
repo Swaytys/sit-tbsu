@@ -9,13 +9,13 @@ import { sekarang } from '../../../lib/waktu';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanKodeMaster } from '../../sistem/penomoran';
-import { tingkatHargaAktif } from '../tingkat-harga/repo';
+import { golonganById } from '../golongan-pelanggan/repo';
 import * as repo from './repo';
 
 /** Pelanggan (docs/03 §3.2). Kode `PLG-00001` tetap (N5). Tidak dihapus; dinonaktifkan (K-021). */
 
 type BarisPelanggan = NonNullable<Awaited<ReturnType<typeof repo.pelangganById>>>;
-type NilaiKredit = Pick<repo.NilaiPelanggan, 'idTingkatHarga' | 'termHari' | 'limitKredit'>;
+type NilaiKredit = Pick<repo.NilaiPelanggan, 'idGolongan' | 'termHari' | 'limitKredit'>;
 
 function keRespons(b: BarisPelanggan): Pelanggan {
   return { ...b, dibuatPada: b.dibuatPada.toISOString() };
@@ -32,7 +32,7 @@ async function muat(id: number): Promise<Pelanggan> {
 }
 
 /**
- * Tier default, term, dan limit kredit akhir: dari input bila dikirim, selain itu dari `dasar` (bawaan toko
+ * Golongan (K-097), term, dan limit kredit akhir: dari input bila dikirim, selain itu dari `dasar` (bawaan toko
  * untuk pelanggan baru, nilai lama untuk ubah data). Tanpa izin `master.pelanggan.atur_kredit` nilainya tidak
  * boleh berbeda dari `dasar` (K-059).
  */
@@ -42,29 +42,28 @@ function tentukanKredit(
   izin: ReadonlySet<Izin>,
 ): NilaiKredit {
   const hasil: NilaiKredit = {
-    idTingkatHarga:
-      input.idTingkatHarga === undefined ? dasar.idTingkatHarga : input.idTingkatHarga,
+    idGolongan: input.idGolongan === undefined ? dasar.idGolongan : input.idGolongan,
     termHari: input.termHari ?? dasar.termHari,
     limitKredit: input.limitKredit === undefined ? dasar.limitKredit : input.limitKredit,
   };
   const berubah =
-    hasil.idTingkatHarga !== dasar.idTingkatHarga ||
+    hasil.idGolongan !== dasar.idGolongan ||
     hasil.termHari !== dasar.termHari ||
     hasil.limitKredit !== dasar.limitKredit;
   if (berubah && !izin.has('master.pelanggan.atur_kredit')) {
     throw new AppError(
       'TIDAK_BERIZIN',
-      'Tier harga, term, dan limit kredit pelanggan hanya bisa diatur Admin atau Owner.',
+      'Golongan, term, dan limit kredit pelanggan hanya bisa diatur Admin atau Owner.',
       403,
     );
   }
   return hasil;
 }
 
-async function pastikanTierAktif(tx: Tx, id: number | null): Promise<void> {
-  if (id === null || (await tingkatHargaAktif(tx, id))) return;
-  const pesan = 'Tier harga tidak ditemukan atau sudah nonaktif.';
-  throw new AppError('VALIDASI', pesan, 400, { kolom: { idTingkatHarga: [pesan] } });
+async function pastikanGolonganAktif(tx: Tx, id: number | null): Promise<void> {
+  if (id === null || (await golonganById(tx, id))?.statusAktif === 'AKTIF') return;
+  const pesan = 'Golongan pelanggan tidak ditemukan atau sudah nonaktif.';
+  throw new AppError('VALIDASI', pesan, 400, { kolom: { idGolongan: [pesan] } });
 }
 
 function dataKontak(input: DataPelanggan) {
@@ -94,12 +93,12 @@ export async function tambahPelanggan(
 ): Promise<Pelanggan> {
   const id = await dalamTransaksi(async (tx) => {
     const bawaan: NilaiKredit = {
-      idTingkatHarga: null,
+      idGolongan: null,
       termHari: await ambilAngka('term_hari_default', 0, tx),
       limitKredit: null,
     };
     const kredit = tentukanKredit(input, bawaan, pelaku.izin);
-    await pastikanTierAktif(tx, kredit.idTingkatHarga);
+    await pastikanGolonganAktif(tx, kredit.idGolongan);
 
     const nilai = { ...dataKontak(input), ...kredit, kode: await terbitkanKodeMaster(tx, 'PLG') };
     const idBaru = await repo.tambahPelanggan(tx, nilai);
@@ -127,8 +126,8 @@ export async function ubahPelanggan(
     const lama = await repo.kunciPelanggan(tx, id);
     if (!lama) throw tidakDitemukan();
     const kredit = tentukanKredit(input, lama, pelaku.izin);
-    if (kredit.idTingkatHarga !== lama.idTingkatHarga) {
-      await pastikanTierAktif(tx, kredit.idTingkatHarga);
+    if (kredit.idGolongan !== lama.idGolongan) {
+      await pastikanGolonganAktif(tx, kredit.idGolongan);
     }
 
     const baru = { ...dataKontak(input), ...kredit };

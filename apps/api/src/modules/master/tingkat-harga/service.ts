@@ -20,7 +20,8 @@ import { hitungUlangTier, lengkapiHargaTier, tanggapiPemicuHarga } from '../harg
 import * as repo from './repo';
 
 /**
- * Tingkat harga (tier, docs/06 H1–H2). Dibaca semua peran: namanya tampil di pelanggan, order, dan checkout.
+ * Tingkat harga (tier, docs/06 H1–H2, H8). Dibaca semua peran: namanya tampil di order dan checkout. Tier
+ * dipakai otomatis menurut qty (`min_qty`, K-097), bukan menurut pelanggan.
  * Markup default hanya untuk pemegang `master.barang.lihat_hpp` karena membuka margin toko (docs/06 H12).
  */
 
@@ -48,12 +49,18 @@ async function pastikanKodeBebas(tx: Tx, kode: string, kecualiId?: number): Prom
   }
 }
 
+/** K-097: tier default dipakai semua pembeli yang belum memenuhi syarat qty tier lain. */
+function galatMinQtyDefault(): AppError {
+  const pesan = 'Tier default berlaku untuk semua qty; kosongkan "mulai qty".';
+  return new AppError('VALIDASI', pesan, 400, { kolom: { minQty: [pesan] } });
+}
+
 function nilaiDari(input: DataTingkatHarga): repo.NilaiTingkatHarga {
   return {
     kode: input.kode,
     nama: input.nama,
     markupDefaultPersen: keTeksPersen(input.markupDefaultPersen),
-    saranMinQty: input.saranMinQty === null ? null : keQty(input.saranMinQty),
+    minQty: input.minQty === null ? null : keQty(input.minQty),
     urutan: input.urutan,
   };
 }
@@ -107,13 +114,14 @@ export async function ubahTingkatHarga(
         kode: lama.kode,
         nama: lama.nama,
         markupDefaultPersen: lama.markupDefaultPersen,
-        saranMinQty: lama.saranMinQty,
+        minQty: lama.minQty,
         urutan: lama.urutan,
       },
       baru,
     );
     if (beda.kolom.length === 0) return;
     if (beda.kolom.includes('kode')) await pastikanKodeBebas(tx, baru.kode, id);
+    if (lama.isDefault && baru.minQty !== null) throw galatMinQtyDefault();
     await repo.ubahTingkatHarga(tx, id, baru, sekarang());
 
     let hasil = { ditandai: 0, diterapkan: 0 };

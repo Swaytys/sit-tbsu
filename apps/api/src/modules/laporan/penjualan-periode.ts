@@ -20,6 +20,7 @@ import { and, asc, eq, gte, lte, ne, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { db } from '../../db/client';
 import { pelanggan, pembayaranPenjualan, penjualan, returPenjualan } from '../../db/schema';
+import { kolomPenuh } from '../../db/kolom-penuh';
 import type { PenggunaAktif } from '../../lib/konteks';
 import { angka, KOSONG, SATUAN_RUPIAH, susunDokumen, tanggal, teks, uang } from './umum';
 
@@ -91,8 +92,10 @@ export async function hitungPenjualanPeriode(
       ongkir: penjualan.ongkir,
       totalNeto: penjualan.totalNeto,
       totalVoid: penjualan.totalVoid,
-      metode: sql<string | null>`(select string_agg(distinct ${pembayaranPenjualan.metode}, ',')
-        from ${pembayaranPenjualan} where ${pembayaranPenjualan.idPenjualan} = ${penjualan.id})`,
+      metode: sql<
+        string | null
+      >`(select string_agg(distinct ${kolomPenuh(pembayaranPenjualan.metode)}, ',')
+        from ${pembayaranPenjualan} where ${kolomPenuh(pembayaranPenjualan.idPenjualan)} = ${kolomPenuh(penjualan.id)})`,
     })
     .from(penjualan)
     .leftJoin(pelanggan, eq(pelanggan.id, penjualan.idPelanggan))

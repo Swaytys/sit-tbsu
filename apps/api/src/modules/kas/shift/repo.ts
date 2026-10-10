@@ -12,9 +12,10 @@ import {
   shiftKasir,
   voidTransaksi,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 
 const namaPemeriksa = sql<string | null>`(select p.nama_pengguna from ${pengguna} p
-  where p.id = ${clericalCheck.idPengguna})`;
+  where p.id = ${kolomPenuh(clericalCheck.idPengguna)})`;
 
 const kolom = {
   id: shiftKasir.id,
@@ -132,9 +133,9 @@ export async function komponenKas(ex: Executor, idShift: number) {
 }
 
 const nomorSumber = sql<string | null>`coalesce(
-  (select r.nomor from ${returPenjualan} r where r.id = ${kasShift.idRetur}),
-  (select v.nomor from ${voidTransaksi} v where v.id = ${kasShift.idVoid}),
-  (select b.nomor from ${pembayaranPemasok} b where b.id = ${kasShift.idPembayaranPemasok}))`;
+  (select r.nomor from ${returPenjualan} r where r.id = ${kolomPenuh(kasShift.idRetur)}),
+  (select v.nomor from ${voidTransaksi} v where v.id = ${kolomPenuh(kasShift.idVoid)}),
+  (select b.nomor from ${pembayaranPemasok} b where b.id = ${kolomPenuh(kasShift.idPembayaranPemasok)}))`;
 
 export function daftarKas(ex: Executor, idShift: number) {
   return ex

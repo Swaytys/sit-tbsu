@@ -23,10 +23,11 @@ import {
   pengguna,
   satuan,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 
 const jumlahBaris = sql<number>`(select count(*)::int from ${penerimaanBarangDetail}
-  where ${penerimaanBarangDetail.idPenerimaan} = ${penerimaanBarang.id})`;
+  where ${kolomPenuh(penerimaanBarangDetail.idPenerimaan)} = ${kolomPenuh(penerimaanBarang.id)})`;
 
 const kolom = {
   id: penerimaanBarang.id,

@@ -86,10 +86,10 @@ beforeEach(async () => {
   await siapkanDatabaseSistem();
   m = await siapkanMasterPersediaan();
   await kosongkanTabel(pelanggan, tingkatHarga);
-  // Tier sendiri (tanpa syarat qty) agar tes tidak bergantung pada sisa data tes lain.
+  // Tier sendiri agar tes tidak bergantung pada sisa data tes lain. Grosir mulai qty 2 (K-097).
   await db.insert(tingkatHarga).values([
     { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-    { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2 },
+    { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2, minQty: '2' },
   ]);
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
@@ -121,7 +121,6 @@ beforeEach(async () => {
       namaPelanggan: 'Toko Makmur',
       noHp: '0811',
       alamat: 'Jl. Raya 1',
-      idTingkatHarga: tier.grosir,
     })
     .returning();
   plgGrosir = p!.id;
@@ -179,7 +178,7 @@ describe('order penjualan (docs/05 §3, §6)', () => {
     expect((await hitungUlangCache(db, m.semen)).cocok).toBe(true);
   });
 
-  it('P2/P3/P4/R4 tier bawaan pelanggan, snapshot harga, diskon, total, selisih reservasi', async () => {
+  it('P2/P3/P4/R4 tier menurut qty, snapshot harga, diskon, total, selisih reservasi', async () => {
     const d = await kirim(
       admin,
       '/api/order?kirim=true',
@@ -232,12 +231,12 @@ describe('order penjualan (docs/05 §3, §6)', () => {
   });
 
   it('P3/D2/H9 izin tier, batas diskon per peran, harga manual di bawah modal', async () => {
-    // Staf: hanya tier bawaan.
+    // Staf: tidak boleh memilih tier selain tier default (tier qty otomatis tetap berlaku).
     const tierLain = await galat(
       minta2(
         staf,
         '/api/order',
-        order([{ idBarang: m.semen, qty: '1', idTingkatHarga: tier.normal }], {
+        order([{ idBarang: m.semen, qty: '1', idTingkatHarga: tier.grosir }], {
           idPelanggan: plgGrosir,
         }),
       ),
@@ -391,7 +390,7 @@ describe('order penjualan (docs/05 §3, §6)', () => {
         noAntrean: nomorAntrean(a.nomor),
         status: 'DIPROSES',
         namaKasirProses: kasir.pengguna.namaPengguna,
-        total: 26000,
+        total: 24000, // semen 2 sak memenuhi syarat Grosir (11.000) + pasir 0,5 × 4.000
         ringkasan: [
           { namaBarang: 'Semen Gresik 40 kg', qty: '2.000', kodeSatuan: 'sak' },
           { namaBarang: 'Pasir', qty: '0.500', kodeSatuan: 'sak' },
