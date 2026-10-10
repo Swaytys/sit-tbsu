@@ -183,7 +183,7 @@ describe('order penjualan (docs/05 §3, §6)', () => {
       order(
         [
           { idBarang: m.semen, qty: '2' },
-          { idBarang: m.pasir, qty: '1.5', idTingkatHarga: tier.normal, diskonBaris: 100 },
+          { idBarang: m.pasir, qty: '1.5', diskonBaris: 100 },
         ],
         { idPelanggan: plgGrosir, ongkir: 5000, diskonTransaksiPersen: '10' },
       ),
@@ -195,10 +195,10 @@ describe('order penjualan (docs/05 §3, §6)', () => {
       hargaSatuan: 11000,
       subtotal: 22000,
     });
-    // Nilai belanja 24.000 + 6.000 ≥ 24.000 → Grosir; pasir memakai Normal karena dipilih kasir.
-    expect(pasir).toMatchObject({ hargaSatuan: 4000, diskonBaris: 100, subtotal: 5900 });
-    // subtotal 27.900 − diskon 10% (2.790) + ongkir 5.000
-    expect(d).toMatchObject({ subtotal: 27900, diskonTransaksi: 2790, ongkir: 5000, total: 30110 });
+    // Nilai belanja 24.000 + 6.000 ≥ 24.000 → Grosir untuk semua baris: pasir 1,5 × 3.800 − 100.
+    expect(pasir).toMatchObject({ hargaSatuan: 3800, diskonBaris: 100, subtotal: 5600 });
+    // subtotal 27.600 − diskon 10% (2.760) + ongkir 5.000
+    expect(d).toMatchObject({ subtotal: 27600, diskonTransaksi: 2760, ongkir: 5000, total: 29840 });
 
     // Harga master berubah; order yang sudah dibuat tetap memakai harga lama (P2).
     await db.update(hargaBarang).set({ hargaJual: 11500 }).where(eq(hargaBarang.idBarang, m.semen));
@@ -226,18 +226,8 @@ describe('order penjualan (docs/05 §3, §6)', () => {
     expect(antar.status).toBe(400);
   });
 
-  it('P3/D2/H9 izin tier, batas diskon per peran, harga manual di bawah modal', async () => {
-    // Staf: tidak boleh memilih tier selain tier dasar atau tier transaksi (nilai belanja).
-    const tierLain = await galat(
-      minta2(
-        staf,
-        '/api/order',
-        order([{ idBarang: m.semen, qty: '1', idTingkatHarga: tier.grosir }], {
-          idPelanggan: plgGrosir,
-        }),
-      ),
-    );
-    expect(tierLain.status).toBe(403);
+  it('P3/D2/H9 tier selalu otomatis, batas diskon per peran, harga manual di bawah modal', async () => {
+    // K-099: tier tidak bisa dipilih; belanja di bawah syarat selalu harga tier dasar.
     const biasa = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '1' }]));
     expect(biasa.baris[0]).toMatchObject({ idTingkatHarga: tier.normal, hargaSatuan: 12000 });
 

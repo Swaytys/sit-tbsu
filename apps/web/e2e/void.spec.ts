@@ -59,7 +59,8 @@ test('Kasir mengajukan void item → Admin menyetujui dengan refund tunai → st
     await kasir.getByRole('button', { name: new RegExp(pj.nomor) }).click();
     await kasir.getByLabel(`Void ${nama}`).check();
     await kasir.getByLabel('Alasan void').fill('Salah ketik qty');
-    await kasir.getByRole('button', { name: 'Ajukan void' }).click();
+    await kasir.getByRole('button', { name: 'Lanjut: minta persetujuan' }).click();
+    await kasir.getByRole('button', { name: 'Ajukan saja, tunggu persetujuan' }).click();
     await expect(kasir.getByText(/Void VD-\d{6}-\d{3,} diajukan/)).toBeVisible();
     expect((await api<{ stokFisik: string }>(admin, `/barang/${barang.id}`)).stokFisik).toBe(
       '7.000',

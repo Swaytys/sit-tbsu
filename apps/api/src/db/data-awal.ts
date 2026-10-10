@@ -151,6 +151,18 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     deskripsi: 'Batas diskon Owner (K-012)',
   },
   {
+    kode: 'batas_retur_tanpa_persetujuan',
+    nilai: '0',
+    tipe: 'ANGKA',
+    deskripsi: 'Nilai retur per transaksi tanpa persetujuan atasan, Rp; 0 = selalu butuh (K-099)',
+  },
+  {
+    kode: 'batas_void_tanpa_persetujuan',
+    nilai: '0',
+    tipe: 'ANGKA',
+    deskripsi: 'Nilai void per transaksi tanpa persetujuan atasan, Rp; 0 = selalu butuh (K-099)',
+  },
+  {
     kode: 'term_hari_default',
     nilai: '0',
     tipe: 'ANGKA',
@@ -300,16 +312,27 @@ const JENIS_ATRIBUT: {
   { kode: 'UKURAN_TEKS', nama: 'Ukuran (teks)', tipeNilai: 'TEKS', jenisDimensi: null },
 ];
 
-// Angka markup contoh; Admin mengubahnya dari halaman Pengaturan.
-const TINGKAT_HARGA = [
+/*
+ * Angka markup dan syarat belanja contoh. Tier selain Normal dibuat NONAKTIF: belum dipakai sampai pemilik
+ * memeriksa "Mulai belanja"-nya di Harga Jual › Kelola tier lalu mengaktifkannya (K-099).
+ */
+const TINGKAT_HARGA: (typeof tingkatHarga.$inferInsert)[] = [
   { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-  { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2, isDefault: false },
+  {
+    kode: 'GROSIR',
+    nama: 'Grosir',
+    markupDefaultPersen: '20',
+    urutan: 2,
+    minBelanja: 1_000_000,
+    statusAktif: 'NONAKTIF',
+  },
   {
     kode: 'DISTRIBUTOR',
     nama: 'Distributor',
     markupDefaultPersen: '15',
     urutan: 3,
-    isDefault: false,
+    minBelanja: 5_000_000,
+    statusAktif: 'NONAKTIF',
   },
 ];
 

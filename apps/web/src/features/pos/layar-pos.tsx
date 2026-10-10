@@ -50,6 +50,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { BilahTombol, type Tombol } from './bilah-tombol';
 import { CariBarangPos } from './cari-barang-pos';
 import { CariPelangganPos } from './cari-pelanggan-pos';
@@ -98,8 +99,8 @@ const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
     { kunci: 'Angka', label: 'Ubah qty' },
     { kunci: '%', label: 'Diskon' },
     { kunci: 'S', label: 'Ganti satuan' },
-    { kunci: 'T', label: 'Tier' },
     { kunci: 'P', label: 'Lepas promo' },
+    { kunci: 'M', label: 'Menu baris' },
     { kunci: 'Del', label: 'Hapus' },
     { kunci: 'Ctrl+Z', label: 'Urungkan' },
   ],
@@ -222,6 +223,10 @@ export function LayarPos({
 
   const order = tr.t.order;
   const adaTransaksi = order !== null || tr.t.baris.length > 0;
+  // Keranjang jual langsung (atau perubahan isi order) hanya ada di layar ini: pindah halaman minta konfirmasi.
+  const { dialog: dialogKeluar } = useCegahKeluar(
+    tr.t.baris.length > 0 && (order === null || tr.t.diubah),
+  );
   // PR5: harga, promo, dan total dari API setiap isi berubah; angka lokal hanya cadangan sementara.
   const pratinjau = usePratinjauOrder(
     tr.t.baris.length > 0 ? { idOrder: order?.id ?? null, order: tr.isianOrder(jenis) } : null,
@@ -571,6 +576,14 @@ export function LayarPos({
                 {order.ongkir > 0 && ` · ongkir ${formatRupiah(order.ongkir)}`}
               </div>
             )}
+            {order?.catatan && (
+              <div
+                className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900"
+                data-testid="catatan-order"
+              >
+                <b>Catatan order:</b> {order.catatan}
+              </div>
+            )}
             <PeringatanPiutang idPelanggan={tr.t.pelanggan?.id ?? null} />
           </div>
 
@@ -615,7 +628,6 @@ export function LayarPos({
               baris={tr.t.baris}
               tierBawaan={tr.tierBawaan}
               namaTier={(id) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain'}
-              urutanTier={tierAktif.map((t) => t.id)}
               indeks={Math.min(indeksBaris, Math.max(0, tr.t.baris.length - 1))}
               onIndeks={setIndeksBaris}
               aktif={zona === 'keranjang'}
@@ -627,7 +639,6 @@ export function LayarPos({
               onKeluar={() => setZona('cari')}
               onLanjut={() => setZona('bayar')}
               onFokus={() => setZona('keranjang')}
-              bolehTier={saya.izin.includes('penjualan.tier.ubah')}
               bolehDiskon={saya.izin.includes('penjualan.diskon')}
               bolehLepasPromo={saya.izin.includes('penjualan.checkout')}
               pratinjau={pratinjauBaris}
@@ -782,6 +793,7 @@ export function LayarPos({
           }}
         />
       )}
+      {dialogKeluar}
       {toko && cetak?.jenis === 'struk' && (
         <AreaCetak ukuranKertas={`${toko.lebarStrukMm}mm auto`}>
           <Struk p={cetak.p} toko={toko} />

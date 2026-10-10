@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, unique, varchar } from 'drizzle-orm/pg-core';
 import {
+  CARA_PERSETUJUAN,
   KONDISI_RETUR,
   LINGKUP_VOID,
   METODE_REFUND,
@@ -48,10 +49,13 @@ export const returPenjualan = pgTable(
     rekeningRefund: varchar('rekening_refund', { length: 60 }),
     referensiRefund: varchar('referensi_refund', { length: 60 }),
     idShift: kolomRef('id_shift'),
+    /** Alasan penolakan (DITOLAK) atau pembatalan (DIBATALKAN). */
     alasanPenolakan: varchar('alasan_penolakan', { length: 255 }),
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
-    diubahPada: diubahPada(),
+    diubahPada:
+      diubahPada() /** K-099 (migrasi 0013): cara disetujui; terisi tepat saat DISETUJUI. */,
+    caraPersetujuan: varchar('cara_persetujuan', { length: 12, enum: CARA_PERSETUJUAN }),
   },
   (t) => [
     foreignKey({
@@ -75,6 +79,11 @@ export const returPenjualan = pgTable(
       foreignColumns: [shiftKasir.id],
     }),
     check('chk_retur_status', dalamDaftar('status', STATUS_PERSETUJUAN)),
+    check(
+      'chk_retur_cara',
+      sql`(status = 'DISETUJUI') = (cara_persetujuan is not null)
+        and (cara_persetujuan is null or cara_persetujuan in ('SENDIRI','AKUN_ATASAN','DI_TEMPAT','BATAS_BEBAS'))`,
+    ),
     check('chk_retur_penyelesaian', dalamDaftar('penyelesaian', PENYELESAIAN_RETUR)),
     check(
       'chk_retur_refund',
@@ -165,6 +174,7 @@ export const voidTransaksi = pgTable(
       .notNull()
       .default('MENUNGGU'),
     alasan: varchar('alasan', { length: 255 }).notNull(),
+    /** Alasan penolakan (DITOLAK) atau pembatalan (DIBATALKAN). */
     alasanPenolakan: varchar('alasan_penolakan', { length: 255 }),
     nominalVoid: uang('nominal_void').notNull().default(0),
     nominalRefund: uang('nominal_refund').notNull().default(0),
@@ -172,7 +182,9 @@ export const voidTransaksi = pgTable(
     idShift: kolomRef('id_shift'),
     keterangan: varchar('keterangan', { length: 150 }),
     dibuatPada: dibuatPada(),
-    diubahPada: diubahPada(),
+    diubahPada:
+      diubahPada() /** K-099 (migrasi 0013): cara disetujui; terisi tepat saat DISETUJUI. */,
+    caraPersetujuan: varchar('cara_persetujuan', { length: 12, enum: CARA_PERSETUJUAN }),
   },
   (t) => [
     foreignKey({
@@ -197,6 +209,11 @@ export const voidTransaksi = pgTable(
     }),
     check('chk_void_lingkup', dalamDaftar('lingkup', LINGKUP_VOID)),
     check('chk_void_status', dalamDaftar('status', STATUS_PERSETUJUAN)),
+    check(
+      'chk_void_cara',
+      sql`(status = 'DISETUJUI') = (cara_persetujuan is not null)
+        and (cara_persetujuan is null or cara_persetujuan in ('SENDIRI','AKUN_ATASAN','DI_TEMPAT','BATAS_BEBAS'))`,
+    ),
     check('chk_void_refund', sql`metode_refund is null or metode_refund in ('TUNAI','TRANSFER')`),
     check('chk_void_nominal', sql`nominal_void >= 0 and nominal_refund >= 0`),
     index('idx_void_penjualan').on(t.idPenjualan),

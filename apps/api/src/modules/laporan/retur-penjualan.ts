@@ -64,7 +64,7 @@ export type HasilReturPenjualan = {
   /** REFUND + POTONG_TAGIHAN: mengurangi penjualan. */
   totalMengurangi: number;
   perKondisi: Record<KondisiRetur, number>;
-  perStatusLain: Record<Exclude<StatusPersetujuan, 'DISETUJUI'>, number>;
+  perStatusLain: Record<Exclude<StatusPersetujuan, 'DISETUJUI' | 'DIBATALKAN'>, number>;
 };
 
 export async function hitungReturPenjualan(p: DataReturPenjualan): Promise<HasilReturPenjualan> {
@@ -137,7 +137,8 @@ export async function hitungReturPenjualan(p: DataReturPenjualan): Promise<Hasil
     perStatusLain: { MENUNGGU: 0, DITOLAK: 0 },
   };
   for (const l of lain) {
-    if (l.status !== 'DISETUJUI') hasil.perStatusLain[l.status] = l.n;
+    // Pengajuan yang dibatalkan pengajunya (K-099) tidak dilaporkan: tidak pernah diputuskan.
+    if (l.status === 'MENUNGGU' || l.status === 'DITOLAK') hasil.perStatusLain[l.status] = l.n;
   }
   for (const h of header) {
     const baris = detail

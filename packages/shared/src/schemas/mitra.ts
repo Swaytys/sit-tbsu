@@ -134,7 +134,7 @@ export type TingkatHarga = {
   markupDefaultPersen?: string;
   /**
    * K-098: total nilai belanja transaksi agar tier dipakai otomatis untuk semua barang; `null` = tier dasar,
-   * atau tier yang hanya dipilih manual.
+   * atau tier nonaktif yang syaratnya belum diisi (K-099).
    */
   minBelanja: number | null;
   urutan: number;
@@ -148,7 +148,8 @@ export type TingkatHarga = {
 /** K-098: kapan sebuah tier dipakai, untuk daftar tier, tabel Harga Jual, dan form barang. */
 export function teksSyaratTier(t: Pick<TingkatHarga, 'isDefault' | 'minBelanja'>): string {
   if (t.isDefault) return 'semua transaksi';
+  // Tier aktif selain tier dasar selalu punya syarat belanja (K-099); kosong hanya pada tier nonaktif lama.
   return t.minBelanja === null
-    ? 'hanya bila dipilih kasir'
+    ? 'belum ada syarat belanja'
     : `belanja mulai ${formatRupiah(t.minBelanja)}`;
 }

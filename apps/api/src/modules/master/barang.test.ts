@@ -89,8 +89,20 @@ beforeEach(async () => {
     .insert(tingkatHarga)
     .values([
       { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-      { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2 },
-      { kode: 'DISTRIBUTOR', nama: 'Distributor', markupDefaultPersen: '15', urutan: 3 },
+      {
+        kode: 'GROSIR',
+        nama: 'Grosir',
+        markupDefaultPersen: '20',
+        urutan: 2,
+        minBelanja: 900_000_000,
+      },
+      {
+        kode: 'DISTRIBUTOR',
+        nama: 'Distributor',
+        markupDefaultPersen: '15',
+        urutan: 3,
+        minBelanja: 950_000_000,
+      },
     ])
     .returning();
   const mk = await db
@@ -524,6 +536,7 @@ describe('harga jual dan tier', () => {
       kode: 'member',
       nama: 'Member',
       markupDefaultPersen: '10',
+      minBelanja: 2_000_000,
       urutan: 4,
     });
     expect(res.status).toBe(201);

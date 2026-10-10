@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PindahPenjualan } from './pindah-penjualan';
 
 type Props = { judul: string; onToggleSidebar: () => void };
 
@@ -73,6 +74,7 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
         <Menu className="size-5" />
       </button>
       <span className="flex-1 text-sm font-semibold text-slate-800">{judul}</span>
+      <PindahPenjualan />
       <LoncengNotifikasi />
 
       <DropdownMenu>

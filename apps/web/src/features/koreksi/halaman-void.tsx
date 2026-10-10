@@ -1,4 +1,4 @@
-import { formatRupiah, type BarisVoid, type DataSetujui, type KandidatVoid } from '@sit/shared';
+import { formatRupiah, type BarisVoid, type DataAtasan, type DataSetujui } from '@sit/shared';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -8,9 +8,11 @@ import { pesanGalat } from '@/api/client';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import {
   useAjukanVoid,
+  useBatalVoid,
   useDaftarVoid,
   useKandidatVoid,
   useSetujuiVoid,
+  useSetujuiVoidDiTempat,
   useTolakVoid,
 } from '@/api/penjualan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
@@ -22,7 +24,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
-import { BadgePersetujuan, DialogPutuskan, IsianRefund } from './komponen';
+import {
+  DialogAtasan,
+  DialogBatalPengajuan,
+  DialogPutuskan,
+  IsianRefund,
+  SelStatusKoreksi,
+} from './komponen';
 
 function FormAjukan() {
   const saya = usePengguna();
@@ -30,16 +38,21 @@ function FormAjukan() {
   const [cari, setCari] = useState('');
   const kandidat = useKandidatVoid(useTunda(cari, 300));
   const ajukan = useAjukanVoid();
-  const [pilih, setPilih] = useState<KandidatVoid | null>(null);
+  // Hanya id yang disimpan: isi transaksi selalu diambil dari data terbaru.
+  const [idPilih, setIdPilih] = useState<number | null>(null);
+  const pilih = (kandidat.data ?? []).find((k) => k.id === idPilih) ?? null;
   const [item, setItem] = useState<number[]>([]);
   const [alasan, setAlasan] = useState('');
-  const [refund, setRefund] = useState<DataSetujui>({ metodeRefund: null });
+  const [refund, setRefund] = useState<DataSetujui>({ metodeRefund: 'TUNAI' });
+  const [mintaAtasan, setMintaAtasan] = useState(false);
 
   const normal = pilih?.baris.filter((b) => b.statusItem === 'NORMAL') ?? [];
   const semua = normal.length > 0 && item.length === normal.length;
   const nilai = normal.filter((b) => item.includes(b.id)).reduce((t, b) => t + b.subtotal, 0);
+  const tanpaAtasan = !langsungSetuju && nilai > 0 && nilai <= (pilih?.sisaBatasBebas ?? 0);
+  const langsung = langsungSetuju || tanpaAtasan;
 
-  function kirim() {
+  function kirim(atasan: DataAtasan | null) {
     if (!pilih) return;
     ajukan
       .mutateAsync({
@@ -48,6 +61,7 @@ function FormAjukan() {
         idDetail: semua ? [] : item,
         alasan,
         persetujuan: refund,
+        atasan,
       })
       .then((v) => {
         toast.success(
@@ -55,7 +69,8 @@ function FormAjukan() {
             ? `Void ${v.nomor} disetujui${v.nominalRefund ? `; kembalikan ${formatRupiah(v.nominalRefund)}` : ''}.`
             : `Void ${v.nomor} diajukan; menunggu persetujuan Admin/Owner.`,
         );
-        setPilih(null);
+        setMintaAtasan(false);
+        setIdPilih(null);
         setItem([]);
         setAlasan('');
       })
@@ -82,7 +97,7 @@ function FormAjukan() {
               <button
                 type="button"
                 onClick={() => {
-                  setPilih(k);
+                  setIdPilih(k.id);
                   setItem([]);
                 }}
                 className={cn(
@@ -166,18 +181,42 @@ function FormAjukan() {
                 onChange={(e) => setAlasan(e.target.value)}
               />
             </div>
-            {langsungSetuju && <IsianRefund nilai={refund} onUbah={setRefund} />}
-            <p className="text-xs text-slate-500">
+            <IsianRefund
+              nilai={refund}
+              onUbah={setRefund}
+              labelTunai={langsung ? 'Tunai (laci shift saya)' : 'Tunai'}
+            />
+            <p className="text-xs text-slate-500" data-testid="info-persetujuan">
               {langsungSetuju
                 ? 'Anda berhak menyetujui: void langsung berlaku, stok dikembalikan.'
-                : 'Void perlu persetujuan Admin/Owner. Stok dan uang baru berubah setelah disetujui.'}
+                : tanpaAtasan
+                  ? `Nilai void masih di dalam batas tanpa persetujuan (sisa ${formatRupiah(pilih.sisaBatasBebas)} untuk transaksi ini): void langsung berlaku dan tercatat atas nama Anda.`
+                  : 'Butuh persetujuan Admin/Owner. Atasan bisa menyetujui di layar ini sekarang, atau void diajukan dan menunggu. Stok dan uang baru berubah setelah disetujui.'}
             </p>
             <Button
               disabled={item.length === 0 || alasan.trim().length < 3 || ajukan.isPending}
-              onClick={kirim}
+              onClick={() => (langsung ? kirim(null) : setMintaAtasan(true))}
             >
-              {langsungSetuju ? 'Void sekarang' : 'Ajukan void'}
+              {langsung ? 'Void sekarang' : 'Lanjut: minta persetujuan'}
             </Button>
+            {mintaAtasan && (
+              <DialogAtasan
+                judul={`Persetujuan void ${pilih.nomor}`}
+                ringkasan={
+                  <>
+                    {normal
+                      .filter((b) => item.includes(b.id))
+                      .map((b) => `${b.namaBarang} ${formatDesimal(b.qty)} ${b.kodeSatuan}`)
+                      .join(', ')}{' '}
+                    — <b>{formatRupiah(nilai)}</b>. Alasan: {alasan}.
+                  </>
+                }
+                memproses={ajukan.isPending}
+                onSetujui={kirim}
+                onAjukanSaja={() => kirim(null)}
+                onTutup={() => setMintaAtasan(false)}
+              />
+            )}
           </>
         )}
       </Card>
@@ -186,13 +225,19 @@ function FormAjukan() {
 }
 
 function Daftar({ menunggu }: { menunggu: boolean }) {
-  const bolehPutus = usePengguna().izin.includes('void.setujui');
+  const saya = usePengguna();
+  const bolehPutus = saya.izin.includes('void.setujui');
   const [halaman, setHalaman] = useState(1);
   const perHalaman = useBarisPerHalaman();
   const daftar = useDaftarVoid({ status: menunggu ? 'MENUNGGU' : null, halaman, perHalaman });
   const setujui = useSetujuiVoid();
+  const setujuiDiTempat = useSetujuiVoidDiTempat();
   const tolak = useTolakVoid();
+  const batal = useBatalVoid();
   const [putus, setPutus] = useState<BarisVoid | null>(null);
+  const [diTempat, setDiTempat] = useState<BarisVoid | null>(null);
+  const [refundDiTempat, setRefundDiTempat] = useState<DataSetujui>({ metodeRefund: 'TUNAI' });
+  const [dibatalkan, setDibatalkan] = useState<BarisVoid | null>(null);
   const kolom: KolomTabel<BarisVoid>[] = [
     {
       kunci: 'nomor',
@@ -230,30 +275,49 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
     {
       kunci: 'status',
       judul: 'Status',
-      sel: (v) => (
-        <div>
-          <BadgePersetujuan status={v.status} />
-          {v.namaPenyetuju && <div className="text-xs text-slate-500">{v.namaPenyetuju}</div>}
-          {v.alasanPenolakan && <div className="text-xs text-red-600">{v.alasanPenolakan}</div>}
-        </div>
-      ),
+      sel: (v) => <SelStatusKoreksi {...v} />,
     },
-    ...(menunggu && bolehPutus
+    ...(menunggu
       ? [
           {
             kunci: 'aksi',
             judul: <span className="sr-only">Aksi</span>,
             sel: (v: BarisVoid) => (
-              <Button size="sm" onClick={() => setPutus(v)}>
-                Putuskan
-              </Button>
+              <div className="flex justify-end gap-1.5">
+                {bolehPutus ? (
+                  <Button size="sm" onClick={() => setPutus(v)}>
+                    Putuskan
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={() => setDiTempat(v)}>
+                    Setujui di tempat
+                  </Button>
+                )}
+                {(bolehPutus || v.idPengaju === saya.id) && (
+                  <Button size="sm" variant="outline" onClick={() => setDibatalkan(v)}>
+                    Batalkan
+                  </Button>
+                )}
+              </div>
             ),
           },
         ]
       : []),
   ];
+  const ringkasan = (v: BarisVoid) => (
+    <>
+      {v.baris.map((b) => `${b.namaBarang} ${formatDesimal(b.qtyDasar)}`).join(', ')} —{' '}
+      <b>{formatRupiah(v.nominalVoid)}</b>. Alasan: {v.alasan}. Diajukan {v.namaPengaju}.
+    </>
+  );
   return (
     <Card className="gap-0 overflow-hidden py-0">
+      {menunggu && !bolehPutus && (
+        <p className="border-b bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          Void di bawah menunggu Admin/Owner. <b>Setujui di tempat</b>: atasan mengetik akunnya di
+          layar ini. <b>Batalkan</b>: tarik pengajuan Anda yang salah input, lalu ajukan lagi.
+        </p>
+      )}
       <DataTable
         kolom={kolom}
         data={daftar.data?.data}
@@ -268,13 +332,7 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
       {putus && (
         <DialogPutuskan
           judul={`Void ${putus.nomor} (${putus.nomorPenjualan})`}
-          ringkasan={
-            <>
-              {putus.baris.map((b) => `${b.namaBarang} ${formatDesimal(b.qtyDasar)}`).join(', ')} —{' '}
-              <b>{formatRupiah(putus.nominalVoid)}</b>. Alasan: {putus.alasan}. Diajukan{' '}
-              {putus.namaPengaju}.
-            </>
-          }
+          ringkasan={ringkasan(putus)}
           memproses={setujui.isPending || tolak.isPending}
           onTutup={() => setPutus(null)}
           onSetujui={(json) =>
@@ -299,6 +357,42 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
           }
         />
       )}
+      {diTempat && (
+        <DialogAtasan
+          judul={`Persetujuan void ${diTempat.nomor}`}
+          ringkasan={ringkasan(diTempat)}
+          memproses={setujuiDiTempat.isPending}
+          isianRefund={{ nilai: refundDiTempat, onUbah: setRefundDiTempat }}
+          onTutup={() => setDiTempat(null)}
+          onSetujui={(atasan) =>
+            void setujuiDiTempat
+              .mutateAsync({ id: diTempat.id, json: { ...refundDiTempat, atasan } })
+              .then((v) => {
+                toast.success(
+                  `Void ${v.nomor} disetujui ${v.namaPenyetuju ?? 'atasan'}${v.nominalRefund ? `; kembalikan ${formatRupiah(v.nominalRefund)}` : ''}.`,
+                );
+                setDiTempat(null);
+              })
+              .catch((err: unknown) => toast.error(pesanGalat(err)))
+          }
+        />
+      )}
+      {dibatalkan && (
+        <DialogBatalPengajuan
+          judul={`Batalkan pengajuan void ${dibatalkan.nomor}?`}
+          memproses={batal.isPending}
+          onTutup={() => setDibatalkan(null)}
+          onBatal={(alasan) =>
+            void batal
+              .mutateAsync({ id: dibatalkan.id, alasan })
+              .then((v) => {
+                toast.success(`Pengajuan void ${v.nomor} dibatalkan.`);
+                setDibatalkan(null);
+              })
+              .catch((err: unknown) => toast.error(pesanGalat(err)))
+          }
+        />
+      )}
     </Card>
   );
 }
@@ -306,31 +400,28 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
 /** Transaksi › Void Transaksi (docs/05 §9, mockup Void Transaksi). */
 export function HalamanVoid() {
   const [url, setUrl] = useSearchParams();
-  const bolehPutus = usePengguna().izin.includes('void.setujui');
   const tab = url.get('tab') ?? 'ajukan';
   return (
     <div className="space-y-4 p-6">
       <div>
         <h1 className="text-xl font-semibold text-slate-900">Void Transaksi</h1>
         <p className="text-sm text-slate-500">
-          Batalkan transaksi pada shift yang masih terbuka. Void perlu persetujuan Admin/Owner; stok
-          kembali setelah disetujui.
+          Batalkan transaksi pada shift yang masih terbuka (salah input, pembeli batal). Stok dan
+          uang kembali setelah void disetujui.
         </p>
       </div>
       <Tabs value={tab} onValueChange={(v) => setUrl({ tab: v }, { replace: true })}>
         <TabsList>
           <TabsTrigger value="ajukan">Ajukan void</TabsTrigger>
-          {bolehPutus && <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>}
+          <TabsTrigger value="persetujuan">Menunggu persetujuan</TabsTrigger>
           <TabsTrigger value="riwayat">Riwayat void</TabsTrigger>
         </TabsList>
         <TabsContent value="ajukan">
           <FormAjukan />
         </TabsContent>
-        {bolehPutus && (
-          <TabsContent value="persetujuan">
-            <Daftar menunggu />
-          </TabsContent>
-        )}
+        <TabsContent value="persetujuan">
+          <Daftar menunggu />
+        </TabsContent>
         <TabsContent value="riwayat">
           <Daftar menunggu={false} />
         </TabsContent>

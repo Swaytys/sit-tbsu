@@ -5,6 +5,7 @@ import type {
   DataPembayaran,
   DataRetur,
   DataSetujui,
+  DataSetujuiDiTempat,
   DataSuratJalan,
   DataTutupShift,
   DataVoid,
@@ -463,6 +464,19 @@ export function useSetujuiVoid() {
   );
 }
 
+/** K-099: atasan menyetujui pengajuan MENUNGGU di layar pengaju. */
+export function useSetujuiVoidDiTempat() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujuiDiTempat }) =>
+    ambilData(await api.void[':id']['setujui-di-tempat'].$post({ param: param(id), json })),
+  );
+}
+
+export function useBatalVoid() {
+  return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
+    ambilData(await api.void[':id'].batal.$post({ param: param(id), json: { alasan } })),
+  );
+}
+
 export function useTolakVoid() {
   return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
     ambilData(await api.void[':id'].tolak.$post({ param: param(id), json: { alasan } })),
@@ -505,6 +519,19 @@ export function useAjukanRetur() {
 export function useSetujuiRetur() {
   return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujui }) =>
     ambilData(await api.retur[':id'].setujui.$post({ param: param(id), json })),
+  );
+}
+
+/** K-099: atasan menyetujui pengajuan MENUNGGU di layar pengaju. */
+export function useSetujuiReturDiTempat() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujuiDiTempat }) =>
+    ambilData(await api.retur[':id']['setujui-di-tempat'].$post({ param: param(id), json })),
+  );
+}
+
+export function useBatalRetur() {
+  return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
+    ambilData(await api.retur[':id'].batal.$post({ param: param(id), json: { alasan } })),
   );
 }
 

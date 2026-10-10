@@ -92,6 +92,13 @@
       "when": 1791617679466,
       "tag": "0012_hapus_min_qty",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791633595307,
+      "tag": "0013_tier_otomatis_persetujuan",
+      "breakpoints": true
     }
   ]
 }

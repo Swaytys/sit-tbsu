@@ -739,42 +739,43 @@ export function HalamanPromo() {
             Potongan harga otomatis per baris barang selama periode promo.
           </p>
         </div>
-        <Button onClick={() => setDialog({ promo: null })}>
-          <Plus /> Buat promo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Penjelasan judul="Cara kerja promo">
+            <ButirPenjelasan>
+              <li>
+                Promo adalah potongan harga yang Anda buat sendiri untuk{' '}
+                <b>semua barang, satu kategori, atau satu barang</b>, selama masa promo. Masa promo
+                boleh singkat atau panjang (tanggal selesai jauh).
+              </li>
+              <li>
+                Syarat boleh digabung: minimal qty barang itu, minimal total belanja transaksi,
+                pembeli tertentu (golongan atau pelanggan), dan total belanja pelanggan dalam sekian
+                hari terakhir.
+              </li>
+              <li>
+                <b>Urutan hitung:</b> harga tier lebih dulu (menurut total belanja, diatur di Harga
+                Jual), lalu potongan promo dihitung dari harga tier itu, lalu diskon dari kasir.
+              </li>
+              <li>
+                Satu baris barang hanya mendapat satu promo. Bila beberapa promo cocok, dipakai yang
+                potongannya terbesar.
+              </li>
+              <li>
+                Promo yang membuat harga di bawah modal dilewati otomatis untuk Kasir dan Staf
+                Penjualan. Promo tidak berlaku untuk baris berharga manual.
+              </li>
+              <li>
+                Status <b>Terjadwal</b> = belum mulai, <b>Berjalan</b> = sedang berlaku,{' '}
+                <b>Berakhir</b> = lewat tanggal selesai, <b>Nonaktif</b> = dimatikan. Aturan promo
+                yang sudah dipakai di penjualan dikunci; untuk aturan lain buat promo baru.
+              </li>
+            </ButirPenjelasan>
+          </Penjelasan>
+          <Button onClick={() => setDialog({ promo: null })}>
+            <Plus /> Buat promo
+          </Button>
+        </div>
       </div>
-
-      <Penjelasan kunci="promo" judul="Cara kerja promo">
-        <ButirPenjelasan>
-          <li>
-            Promo adalah potongan harga yang Anda buat sendiri untuk{' '}
-            <b>semua barang, satu kategori, atau satu barang</b>, selama masa promo. Masa promo
-            boleh singkat atau panjang (tanggal selesai jauh).
-          </li>
-          <li>
-            Syarat boleh digabung: minimal qty barang itu, minimal total belanja transaksi, pembeli
-            tertentu (golongan atau pelanggan), dan total belanja pelanggan dalam sekian hari
-            terakhir.
-          </li>
-          <li>
-            <b>Urutan hitung:</b> harga tier lebih dulu (menurut total belanja, diatur di Harga
-            Jual), lalu potongan promo dihitung dari harga tier itu, lalu diskon dari kasir.
-          </li>
-          <li>
-            Satu baris barang hanya mendapat satu promo. Bila beberapa promo cocok, dipakai yang
-            potongannya terbesar.
-          </li>
-          <li>
-            Promo yang membuat harga di bawah modal dilewati otomatis untuk Kasir dan Staf
-            Penjualan. Promo tidak berlaku untuk baris berharga manual.
-          </li>
-          <li>
-            Status <b>Terjadwal</b> = belum mulai, <b>Berjalan</b> = sedang berlaku, <b>Berakhir</b>{' '}
-            = lewat tanggal selesai, <b>Nonaktif</b> = dimatikan. Aturan promo yang sudah dipakai di
-            penjualan dikunci; untuk aturan lain buat promo baru.
-          </li>
-        </ButirPenjelasan>
-      </Penjelasan>
 
       <Card className="gap-0 overflow-hidden py-0">
         <div className="flex items-center gap-3 border-b pr-3">

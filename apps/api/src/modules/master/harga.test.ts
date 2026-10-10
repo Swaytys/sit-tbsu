@@ -65,8 +65,20 @@ beforeEach(async () => {
     .insert(tingkatHarga)
     .values([
       { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-      { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2 },
-      { kode: 'DISTRIBUTOR', nama: 'Distributor', markupDefaultPersen: '15', urutan: 3 },
+      {
+        kode: 'GROSIR',
+        nama: 'Grosir',
+        markupDefaultPersen: '20',
+        urutan: 2,
+        minBelanja: 900_000_000,
+      },
+      {
+        kode: 'DISTRIBUTOR',
+        nama: 'Distributor',
+        markupDefaultPersen: '15',
+        urutan: 3,
+        minBelanja: 950_000_000,
+      },
     ])
     .returning();
   const [p] = await db
@@ -372,7 +384,13 @@ describe('pemicu dasar dan harga otomatis (H5, H7, K-086)', () => {
       kirim(
         admin,
         `/api/tingkat-harga/${ref.grosir}`,
-        { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: markup, urutan: 2 },
+        {
+          kode: 'GROSIR',
+          nama: 'Grosir',
+          markupDefaultPersen: markup,
+          urutan: 2,
+          minBelanja: 900_000_000,
+        },
         'PATCH',
       );
 

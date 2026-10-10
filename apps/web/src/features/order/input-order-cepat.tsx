@@ -61,6 +61,7 @@ const TOMBOL: Record<Zona, Tombol[]> = {
     { kunci: '+ −', label: 'Qty ±1' },
     { kunci: 'Angka', label: 'Ubah qty' },
     { kunci: 'S', label: 'Ganti satuan' },
+    { kunci: 'M', label: 'Menu baris' },
     { kunci: 'Del', label: 'Hapus' },
     { kunci: 'Ctrl+Z', label: 'Urungkan' },
   ],
@@ -155,6 +156,8 @@ export function InputOrderCepat() {
   const [alamat, setAlamat] = useState('');
   const [ongkir, setOngkir] = useState('');
   const [catatanKirim, setCatatanKirim] = useState('');
+  /** Catatan pembuat order untuk kasir (tampil di tiket antrean dan layar kasir, K-099). */
+  const [catatan, setCatatan] = useState('');
   const [terakhir, setTerakhir] = useState<{ no: number; isi: string } | null>(null);
   const antar = jenis === 'PENGANTARAN';
 
@@ -179,6 +182,7 @@ export function InputOrderCepat() {
       namaPembeli: tr.t.pelanggan ? null : tr.t.namaPembeli.trim() || null,
       alamatKirim: antar ? alamat : null,
       catatanKirim: antar ? catatanKirim : null,
+      catatan: catatan.trim() || null,
       ongkir: antar ? Number(ongkir || '0') : 0,
       baris: tr.t.baris.map(keBarisOrder),
     };
@@ -190,6 +194,7 @@ export function InputOrderCepat() {
     setAlamat(d.alamatKirim ?? '');
     setOngkir(d.ongkir ? String(d.ongkir) : '');
     setCatatanKirim(d.catatanKirim ?? '');
+    setCatatan(d.catatan ?? '');
     setIndeksBaris(0);
     setZona('cari');
   }
@@ -287,6 +292,7 @@ export function InputOrderCepat() {
         setAlamat('');
         setOngkir('');
         setCatatanKirim('');
+        setCatatan('');
         setIndeksBaris(0);
         setZona('cari');
         document.getElementById(ID.cari)?.focus();
@@ -303,6 +309,7 @@ export function InputOrderCepat() {
       setAlamat('');
       setOngkir('');
       setCatatanKirim('');
+      setCatatan('');
       setIndeksBaris(0);
       setZona('cari');
       document.getElementById(ID.cari)?.focus();
@@ -447,6 +454,14 @@ export function InputOrderCepat() {
                 />
               </div>
             )}
+            <input
+              value={catatan}
+              onChange={(e) => setCatatan(e.target.value)}
+              maxLength={255}
+              placeholder="Catatan untuk kasir (opsional), mis. pembeli menunggu di depan"
+              aria-label="Catatan untuk kasir"
+              className="h-8 w-full rounded border px-2"
+            />
             <div className="w-full">
               <PeringatanPiutang idPelanggan={tr.t.pelanggan?.id ?? null} />
             </div>
@@ -468,7 +483,6 @@ export function InputOrderCepat() {
             baris={tr.t.baris}
             tierBawaan={tr.tierBawaan}
             namaTier={(id) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain'}
-            urutanTier={tierAktif.map((t) => t.id)}
             indeks={Math.min(indeksBaris, Math.max(0, tr.t.baris.length - 1))}
             onIndeks={setIndeksBaris}
             aktif={zona === 'keranjang'}
@@ -480,7 +494,6 @@ export function InputOrderCepat() {
             onKeluar={() => setZona('cari')}
             onLanjut={() => setZona('kirim')}
             onFokus={() => setZona('keranjang')}
-            bolehTier={saya.izin.includes('penjualan.tier.ubah')}
             bolehDiskon={saya.izin.includes('penjualan.diskon')}
             bolehLepasPromo={saya.izin.includes('penjualan.checkout')}
             pratinjau={pratinjauBaris}

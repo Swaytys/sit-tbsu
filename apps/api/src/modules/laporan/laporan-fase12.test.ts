@@ -24,7 +24,13 @@ beforeEach(async () => {
     .insert(tingkatHarga)
     .values([
       { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', isDefault: true, urutan: 1 },
-      { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '15', urutan: 2 },
+      {
+        kode: 'GROSIR',
+        nama: 'Grosir',
+        markupDefaultPersen: '15',
+        urutan: 2,
+        minBelanja: 900_000_000,
+      },
       {
         kode: 'LAMA',
         nama: 'Tier Lama',

@@ -123,7 +123,7 @@ function keBaris(
 }
 
 /** Atribut per barang untuk tampilan ringkas, mis. { nama: 'Panjang', nilai: '6 m' }. */
-async function atributPerBarang(idBarang: number[]): Promise<Map<number, RingkasAtribut[]>> {
+export async function atributPerBarang(idBarang: number[]): Promise<Map<number, RingkasAtribut[]>> {
   const peta = new Map<number, RingkasAtribut[]>();
   if (idBarang.length === 0) return peta;
   for (const a of await repo.atributBanyak(db, idBarang)) {

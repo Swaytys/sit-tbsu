@@ -52,8 +52,10 @@ const kolom = {
   nominalVoid: voidTransaksi.nominalVoid,
   nominalRefund: voidTransaksi.nominalRefund,
   metodeRefund: voidTransaksi.metodeRefund,
+  idPengaju: voidTransaksi.idPengaju,
   namaPengaju: pengaju.namaPengguna,
   namaPenyetuju,
+  caraPersetujuan: voidTransaksi.caraPersetujuan,
   waktuPersetujuan: voidTransaksi.waktuPersetujuan,
 };
 
@@ -120,6 +122,7 @@ export async function kunci(tx: Tx, id: number) {
       id: voidTransaksi.id,
       nomor: voidTransaksi.nomor,
       idPenjualan: voidTransaksi.idPenjualan,
+      idPengaju: voidTransaksi.idPengaju,
       status: voidTransaksi.status,
       lingkup: voidTransaksi.lingkup,
     })
@@ -128,6 +131,31 @@ export async function kunci(tx: Tx, id: number) {
     .limit(1)
     .for('update');
   return b;
+}
+
+/**
+ * Nilai void yang sedang berjalan (MENUNGGU atau DISETUJUI) per penjualan, untuk batas tanpa persetujuan
+ * (K-099): batas dihitung per transaksi agar tidak diakali dengan memecah void per barang.
+ */
+export async function nilaiBerjalan(
+  ex: Executor,
+  idPenjualan: number[],
+): Promise<Map<number, number>> {
+  if (idPenjualan.length === 0) return new Map();
+  const baris = await ex
+    .select({
+      idPenjualan: voidTransaksi.idPenjualan,
+      nilai: sql<number>`coalesce(sum(${voidTransaksi.nominalVoid}), 0)::bigint`.mapWith(Number),
+    })
+    .from(voidTransaksi)
+    .where(
+      and(
+        inArray(voidTransaksi.idPenjualan, idPenjualan),
+        inArray(voidTransaksi.status, ['MENUNGGU', 'DISETUJUI']),
+      ),
+    )
+    .groupBy(voidTransaksi.idPenjualan);
+  return new Map(baris.map((b) => [b.idPenjualan, b.nilai]));
 }
 
 /** Baris penjualan beserta hpp snapshot (untuk mutasi VOID, V4). */

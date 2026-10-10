@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { MetaHalaman } from '../api';
 import {
+  type CaraPersetujuan,
   KONDISI_RETUR,
   LINGKUP_VOID,
   METODE_REFUND,
@@ -39,6 +40,30 @@ export type DataSetujui = z.output<typeof skemaSetujui>;
 
 export const skemaTolak = z.object({ alasan: skemaAlasan('Alasan penolakan') });
 
+/** K-099: pengajuan yang masih MENUNGGU ditarik pengajunya (tanpa efek). */
+export const skemaBatalKoreksi = z.object({ alasan: skemaAlasan('Alasan pembatalan') });
+
+/**
+ * Persetujuan di tempat (docs/04 §6, K-099): Admin/Owner mengetik akunnya sendiri di layar pengaju. Tidak
+ * membuat sesi; kegagalan dihitung seperti gagal login.
+ */
+export const skemaAtasan = z.object({
+  username: z
+    .string('Nama pengguna atasan wajib diisi.')
+    .trim()
+    .min(1, 'Nama pengguna atasan wajib diisi.')
+    .max(50, 'Nama pengguna maksimal 50 karakter.'),
+  password: z
+    .string('Password atasan wajib diisi.')
+    .min(1, 'Password atasan wajib diisi.')
+    .max(200, 'Password terlalu panjang.'),
+});
+export type DataAtasan = z.output<typeof skemaAtasan>;
+
+/** Menyetujui pengajuan MENUNGGU di tempat: isian refund + akun atasan. */
+export const skemaSetujuiDiTempat = skemaSetujui.extend({ atasan: skemaAtasan });
+export type DataSetujuiDiTempat = z.output<typeof skemaSetujuiDiTempat>;
+
 export const skemaCariKoreksi = skemaHalaman.extend({
   cari: z.string().trim().max(100).optional(),
   status: z.enum(STATUS_PERSETUJUAN).optional(),
@@ -54,8 +79,10 @@ export const skemaVoid = z
     /** ITEM: baris yang di-void (TRANSAKSI: semua baris NORMAL, diisi server). */
     idDetail: z.array(z.number().int().positive()).default([]),
     alasan: skemaAlasan('Alasan void'),
-    /** Dipakai bila pengaju langsung menyetujui (Admin/Owner, K-017). */
+    /** Dipakai bila pengajuan langsung disetujui (pengaju berwenang, di tempat, atau di bawah batas). */
     persetujuan: skemaSetujui.default({ metodeRefund: null }),
+    /** K-099: akun atasan untuk persetujuan di tempat; `null` = tanpa atasan. */
+    atasan: skemaAtasan.nullable().default(null),
   })
   .refine((d) => d.lingkup === 'TRANSAKSI' || d.idDetail.length > 0, {
     message: 'Pilih minimal satu barang yang di-void.',
@@ -75,6 +102,11 @@ export type KandidatVoid = {
   totalNeto: number;
   sisaTagihan: number;
   totalDibayar: number;
+  /**
+   * K-099: nilai void yang masih boleh diproses pengaju tanpa atasan untuk transaksi ini (batas di
+   * Pengaturan dikurangi void sebelumnya); 0 = selalu butuh persetujuan.
+   */
+  sisaBatasBebas: number;
   baris: {
     id: number;
     namaBarang: string;
@@ -98,8 +130,11 @@ export type BarisVoid = {
   nominalVoid: number;
   nominalRefund: number;
   metodeRefund: MetodeRefund | null;
+  idPengaju: number;
   namaPengaju: string;
+  /** Yang memutuskan: penyetuju, penolak, atau pembatal. */
   namaPenyetuju: string | null;
+  caraPersetujuan: CaraPersetujuan | null;
   waktuPersetujuan: string | null;
   baris: { namaBarang: string; qtyDasar: string; kodeSatuan: string; nominal: number }[];
 };
@@ -122,6 +157,8 @@ export const skemaRetur = z.object({
   catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
   baris: z.array(skemaBarisRetur).min(1, 'Isi qty retur minimal satu barang.'),
   persetujuan: skemaSetujui.default({ metodeRefund: null }),
+  /** K-099: akun atasan untuk persetujuan di tempat; `null` = tanpa atasan. */
+  atasan: skemaAtasan.nullable().default(null),
 });
 export type InputRetur = z.input<typeof skemaRetur>;
 export type DataRetur = z.output<typeof skemaRetur>;
@@ -137,15 +174,34 @@ export type KandidatRetur = {
   totalNeto: number;
   sisaTagihan: number;
   dibayarBersih: number;
+  /**
+   * K-099: nilai retur yang masih boleh diproses pengaju tanpa atasan untuk transaksi ini (batas di
+   * Pengaturan dikurangi retur sebelumnya); 0 = selalu butuh persetujuan.
+   */
+  sisaBatasBebas: number;
+  /** Semua qty dalam satuan baris (satuan jual). */
   baris: {
     id: number;
     namaBarang: string;
     kodeSatuan: string;
     qty: string;
-    /** qty − retur − void yang masih bisa diretur. */
+    /** Sudah diretur (retur DISETUJUI). */
+    qtyDiretur: string;
+    /** Sedang diajukan (retur MENUNGGU). */
+    qtyMenunggu: string;
+    /** qty − retur − menunggu − void yang masih bisa diretur. */
     qtyBisaRetur: string;
     hargaSatuanEfektif: number;
     statusItem: StatusItem;
+  }[];
+  /** Retur yang sudah pernah dibuat untuk transaksi ini (terbaru dulu), agar tidak diajukan dua kali. */
+  retur: {
+    id: number;
+    nomor: string;
+    tanggal: string;
+    status: StatusPersetujuan;
+    totalRetur: number;
+    ringkasan: string;
   }[];
 };
 
@@ -161,8 +217,11 @@ export type BarisRetur = {
   penyelesaian: PenyelesaianRetur;
   totalRetur: number;
   metodeRefund: MetodeRefund | null;
+  idPengaju: number;
   namaPengaju: string;
+  /** Yang memutuskan: penyetuju, penolak, atau pembatal. */
   namaPenyetuju: string | null;
+  caraPersetujuan: CaraPersetujuan | null;
   waktuPersetujuan: string | null;
   catatan: string | null;
   baris: {

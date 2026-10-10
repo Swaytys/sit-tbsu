@@ -73,10 +73,15 @@ beforeEach(async () => {
     clericalCheck,
     shiftKasir,
     pelanggan,
+    tingkatHarga,
   );
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
-  const [t] = await db.select().from(tingkatHarga).where(eq(tingkatHarga.kode, 'NORMAL'));
+  // Tier sendiri agar tes tidak bergantung pada sisa data tes lain.
+  const [t] = await db
+    .insert(tingkatHarga)
+    .values({ kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', isDefault: true })
+    .returning();
   await db.insert(hargaBarang).values([
     {
       idBarang: m.semen,

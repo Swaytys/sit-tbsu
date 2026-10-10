@@ -1,10 +1,16 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import { formatRupiah, type DataSetujui, type StatusTransaksi } from '@sit/shared';
+import {
+  formatRupiah,
+  type CaraPersetujuan,
+  type DataSetujui,
+  type StatusTransaksi,
+} from '@sit/shared';
 import type { Tx } from '../../db/client';
 import { penjualan, suratJalan } from '../../db/schema';
 import { AppError } from '../../lib/errors';
 import type { PenggunaAktif } from '../../lib/konteks';
 import { sekarang } from '../../lib/waktu';
+import type { Atasan } from '../auth/service';
 import { catatKas } from '../kas/shift/service';
 import { hitungTagihan, statusPembayaran, type NilaiTagihan } from '../penjualan/pembayaran';
 import { sinkronStatusPengiriman } from '../penjualan/surat-jalan/service';
@@ -14,9 +20,84 @@ import { sinkronStatusPengiriman } from '../penjualan/surat-jalan/service';
  * pembatalan surat jalan yang belum berangkat (S7). Semua di dalam transaksi persetujuan.
  */
 
+/** Siapa yang menyetujui retur/void, dengan cara apa, dan laci siapa yang dipakai (docs/04 §6, K-099). */
+export type Persetujuan = {
+  /** Tercatat sebagai penyetuju dokumen dan pelaku mutasi stok. */
+  idPenyetuju: number;
+  /** Pengguna yang login di perangkat itu: refund tunai keluar dari laci shift-nya. */
+  kasir: PenggunaAktif;
+  cara: CaraPersetujuan;
+  /** Keterangan cara persetujuan untuk ringkasan log. */
+  catatanLog: string;
+};
+
 /**
- * Mencatat refund (T6/V5): TUNAI keluar dari laci shift BUKA milik penyetuju (kas_shift), TRANSFER cukup
- * referensi. Mengembalikan id shift (TUNAI) untuk disimpan di dokumen.
+ * Persetujuan langsung saat mengajukan (docs/04 §6): pengaju berwenang (K-017), atasan menyetujui di tempat,
+ * atau nilai dokumen masih di dalam batas bebas (K-099). `null` = dokumen menunggu persetujuan.
+ */
+export function persetujuanLangsung(p: {
+  pengaju: PenggunaAktif;
+  berwenang: boolean;
+  atasan: Atasan | null;
+  /** Batas tanpa persetujuan (rupiah) bila nilai dokumen masih di dalamnya; selain itu `null`. */
+  batasBebas: number | null;
+}): Persetujuan | null {
+  if (p.berwenang) {
+    return {
+      idPenyetuju: p.pengaju.id,
+      kasir: p.pengaju,
+      cara: 'SENDIRI',
+      catatanLog: ' (diajukan & disetujui sendiri, K-017)',
+    };
+  }
+  if (p.atasan) return persetujuanDiTempat(p.atasan, p.pengaju);
+  if (p.batasBebas !== null) {
+    return {
+      idPenyetuju: p.pengaju.id,
+      kasir: p.pengaju,
+      cara: 'BATAS_BEBAS',
+      catatanLog: ` (tanpa atasan: di bawah batas ${formatRupiah(p.batasBebas)})`,
+    };
+  }
+  return null;
+}
+
+/** Atasan menyetujui di layar pengaju: dokumen atas nama atasan, uang dari laci pengaju. */
+export function persetujuanDiTempat(atasan: Atasan, pengaju: PenggunaAktif): Persetujuan {
+  return {
+    idPenyetuju: atasan.id,
+    kasir: pengaju,
+    cara: 'DI_TEMPAT',
+    catatanLog: ` (disetujui ${atasan.namaPengguna} di tempat, sesi ${pengaju.username})`,
+  };
+}
+
+/** Atasan menyetujui dari akunnya sendiri (tab Persetujuan). */
+export function persetujuanAkunAtasan(penyetuju: PenggunaAktif): Persetujuan {
+  return { idPenyetuju: penyetuju.id, kasir: penyetuju, cara: 'AKUN_ATASAN', catatanLog: '' };
+}
+
+/** K-099: pengajuan MENUNGGU hanya boleh ditarik pengajunya sendiri atau pemegang izin setujui. */
+export function pastikanBolehBatal(
+  dok: { nomor: string; status: string; idPengaju: number },
+  pelaku: PenggunaAktif,
+  berwenang: boolean,
+): void {
+  if (dok.status !== 'MENUNGGU') {
+    throw new AppError(
+      'STATUS_TIDAK_VALID',
+      `${dok.nomor} sudah diputuskan dan tidak bisa dibatalkan. Yang sudah disetujui tidak bisa dibalik.`,
+      409,
+    );
+  }
+  if (dok.idPengaju !== pelaku.id && !berwenang) {
+    throw new AppError('TIDAK_BERIZIN', 'Hanya pengaju yang bisa membatalkan pengajuannya.', 403);
+  }
+}
+
+/**
+ * Mencatat refund (T6/V5): TUNAI keluar dari laci shift BUKA milik `pelaku` (pengguna yang login di perangkat
+ * itu), TRANSFER cukup referensi. Mengembalikan id shift (TUNAI) untuk disimpan di dokumen.
  */
 export async function catatRefund(
   tx: Tx,

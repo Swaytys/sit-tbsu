@@ -149,8 +149,17 @@ export type StatusItem = (typeof STATUS_ITEM)[number];
 
 // --- Retur & void ---
 /** Status persetujuan retur dan void. */
-export const STATUS_PERSETUJUAN = ['MENUNGGU', 'DISETUJUI', 'DITOLAK'] as const;
+/** DIBATALKAN (K-099): pengajuan ditarik sebelum diputuskan; tanpa efek, seperti DITOLAK. */
+export const STATUS_PERSETUJUAN = ['MENUNGGU', 'DISETUJUI', 'DITOLAK', 'DIBATALKAN'] as const;
 export type StatusPersetujuan = (typeof STATUS_PERSETUJUAN)[number];
+
+/**
+ * Cara retur/void disetujui (docs/04 §6, K-099): SENDIRI = pengaju berwenang menyetujui; AKUN_ATASAN = atasan
+ * menyetujui dari akunnya; DI_TEMPAT = atasan mengetik akunnya di layar pengaju; BATAS_BEBAS = nilainya di
+ * bawah batas tanpa persetujuan di Pengaturan.
+ */
+export const CARA_PERSETUJUAN = ['SENDIRI', 'AKUN_ATASAN', 'DI_TEMPAT', 'BATAS_BEBAS'] as const;
+export type CaraPersetujuan = (typeof CARA_PERSETUJUAN)[number];
 
 export const PENYELESAIAN_RETUR = ['REFUND', 'TUKAR_BARANG', 'POTONG_TAGIHAN'] as const;
 export type PenyelesaianRetur = (typeof PENYELESAIAN_RETUR)[number];

@@ -92,6 +92,8 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       checkoutWajibShift: bool(m, 'checkout_wajib_shift', true),
       rekeningTransfer: teks(m, 'rekening_transfer_default', ''),
       rekeningEdc: teks(m, 'rekening_edc_default', ''),
+      batasReturTanpaSetuju: angka(m, 'batas_retur_tanpa_persetujuan', 0),
+      batasVoidTanpaSetuju: angka(m, 'batas_void_tanpa_persetujuan', 0),
       barisPerHalaman: barisPerHalaman(m),
     },
     harga: {
@@ -147,6 +149,8 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     b('checkout_wajib_shift', o.checkoutWajibShift);
     t('rekening_transfer_default', o.rekeningTransfer);
     t('rekening_edc_default', o.rekeningEdc);
+    a('batas_retur_tanpa_persetujuan', o.batasReturTanpaSetuju);
+    a('batas_void_tanpa_persetujuan', o.batasVoidTanpaSetuju);
     a('baris_per_halaman', o.barisPerHalaman);
   }
   if (p.harga) {

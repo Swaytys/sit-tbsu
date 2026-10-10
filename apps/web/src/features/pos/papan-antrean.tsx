@@ -191,6 +191,14 @@ export function PapanAntrean({
                 {pengantaran && t.alamatKirim && (
                   <div className="truncate text-xs text-slate-500">{t.alamatKirim}</div>
                 )}
+                {t.catatan && (
+                  <div
+                    className="mt-0.5 line-clamp-2 rounded bg-amber-50 px-1 text-xs text-amber-900"
+                    title={t.catatan}
+                  >
+                    Catatan: {t.catatan}
+                  </div>
+                )}
                 <ul className="mt-1 space-y-0.5 leading-tight">
                   {t.ringkasan.slice(0, MAKS_BARIS).map((r, j) => (
                     <li key={j} className="flex justify-between gap-2">

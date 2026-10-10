@@ -85,6 +85,12 @@ export const skemaOperasional = z.object({
   /** Rekening bawaan saat kasir memilih transfer/EDC (K-073); boleh kosong. */
   rekeningTransfer: z.string().trim().max(60, 'Rekening maksimal 60 karakter.'),
   rekeningEdc: z.string().trim().max(60, 'Nama mesin EDC maksimal 60 karakter.'),
+  /**
+   * K-099: nilai retur/void per transaksi yang boleh diproses Kasir tanpa persetujuan Admin/Owner
+   * (rupiah; 0 = selalu butuh persetujuan).
+   */
+  batasReturTanpaSetuju: bulat('Batas retur tanpa persetujuan', 0, 1_000_000_000),
+  batasVoidTanpaSetuju: bulat('Batas void tanpa persetujuan', 0, 1_000_000_000),
   barisPerHalaman: z.coerce
     .number('Jumlah baris harus berupa angka.')
     .refine(

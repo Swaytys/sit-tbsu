@@ -55,8 +55,8 @@ test('Staf memakai form order lengkap → antrean → Kasir membuka order di lay
     await staf.getByLabel('Cari barang').press('Enter');
     await staf.getByLabel(`Qty ${nama}`).fill('3');
     await expect(staf.getByTestId('total-order')).toHaveText('Rp 186.000');
-    // Staf tidak berizin mengganti tier atau memberi diskon.
-    await expect(staf.getByLabel(`Tier ${nama}`)).toBeDisabled();
+    // Tier selalu otomatis (tidak ada pilihan tier, K-099); Staf tidak berizin memberi diskon.
+    await expect(staf.getByLabel(`Tier ${nama}`)).toHaveCount(0);
     await expect(staf.getByLabel(`Diskon ${nama}`)).toHaveCount(0);
     await staf.getByRole('button', { name: 'Kirim ke antrean' }).click();
     await expect(staf.getByText(/Order ORD-\d{6}-\d{3,} masuk antrean kasir/)).toBeVisible();

@@ -1,18 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { masukCepat } from './pembantu';
+import { aktifkanTierGrosir, masukCepat } from './pembantu';
 
 // K-098: tier harga dipakai otomatis menurut total nilai belanja transaksi, untuk semua barang.
-// Mengandalkan data seed: tier Normal (harga dasar) dan Grosir (markup 20%). Syarat belanja Grosir diisi di
-// awal tes dan dikosongkan lagi di akhir agar tes lain (yang menghitung dengan harga Normal) tidak terpengaruh.
-
-type Tier = {
-  id: number;
-  kode: string;
-  nama: string;
-  markupDefaultPersen: string;
-  urutan: number;
-  isDefault: boolean;
-};
+// Mengandalkan data seed: tier Normal (harga dasar) dan Grosir (markup 20%, nonaktif). Grosir diaktifkan
+// selama tes dan dipulihkan di akhir agar tes lain (yang menghitung dengan harga Normal) tidak terpengaruh.
 
 async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
   const res = await page.request.fetch(`/api${path}`, {
@@ -31,8 +22,7 @@ test('tier menurut nilai belanja: syarat di Kelola tier, harga Grosir otomatis d
   await masukCepat(page, 'ADMIN');
   const kategori = await api<{ id: number }[]>(page, '/kategori?status=AKTIF');
   const satuan = await api<{ id: number; kode: string }[]>(page, '/satuan?status=AKTIF');
-  const tier = await api<Tier[]>(page, '/tingkat-harga');
-  const grosir = tier.find((t) => t.kode === 'GROSIR')!;
+  const tier = await api<{ id: number; isDefault: boolean }[]>(page, '/tingkat-harga');
   // Modal 10.000: Normal diisi Rp 15.000; Grosir = 10.000 × 1,2 = 12.000.
   const b = await api<{ id: number }>(page, '/barang', 'POST', {
     namaBarang: nama,
@@ -46,6 +36,7 @@ test('tier menurut nilai belanja: syarat di Kelola tier, harga Grosir otomatis d
     baris: [{ idBarang: b.id, qtyFisik: '50', hppSatuan: 10000 }],
   });
   await api(page, `/penyesuaian/${adj.id}/selesai`, 'POST');
+  const grosir = await aktifkanTierGrosir(page, 900_000_000);
 
   try {
     // Kelola tier: Grosir mulai belanja Rp 100.000.
@@ -92,12 +83,6 @@ test('tier menurut nilai belanja: syarat di Kelola tier, harga Grosir otomatis d
       'Harga Grosir berlaku untuk semua barang.',
     );
   } finally {
-    await api(page, `/tingkat-harga/${grosir.id}`, 'PATCH', {
-      kode: grosir.kode,
-      nama: grosir.nama,
-      markupDefaultPersen: grosir.markupDefaultPersen,
-      urutan: grosir.urutan,
-      minBelanja: null,
-    });
+    await grosir.pulihkan();
   }
 });

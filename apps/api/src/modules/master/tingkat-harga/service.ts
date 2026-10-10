@@ -20,7 +20,8 @@ import * as repo from './repo';
 
 /**
  * Tingkat harga (tier, docs/06 H1–H2, H8). Dibaca semua peran: namanya tampil di order dan checkout. Tier
- * dipakai otomatis menurut total nilai belanja transaksi (`min_belanja`, K-098), untuk semua barang.
+ * dipakai otomatis menurut total nilai belanja transaksi (`min_belanja`, K-098), untuk semua barang; tidak
+ * ada tier pilihan manual, sehingga tier aktif selain tier dasar wajib punya syarat belanja (K-099).
  * Markup default hanya untuk pemegang `master.barang.lihat_hpp` karena membuka margin toko (docs/06 H12).
  */
 
@@ -84,6 +85,12 @@ function galatBelanjaTierDasar(): AppError {
   return new AppError('VALIDASI', pesan, 400, { kolom: { minBelanja: [pesan] } });
 }
 
+/** K-099: tier selain tier dasar hanya dipakai otomatis, jadi wajib punya syarat belanja. */
+function galatBelanjaWajib(nama: string): AppError {
+  const pesan = `Isi "Mulai belanja" tier ${nama}: tier dipakai otomatis saat total belanja mencapai angka itu.`;
+  return new AppError('VALIDASI', pesan, 400, { kolom: { minBelanja: [pesan] } });
+}
+
 function nilaiDari(input: DataTingkatHarga): repo.NilaiTingkatHarga {
   return {
     kode: input.kode,
@@ -107,6 +114,7 @@ export async function tambahTingkatHarga(
 ): Promise<TingkatHarga> {
   const id = await dalamTransaksi(async (tx) => {
     const nilai = nilaiDari(input);
+    if (nilai.minBelanja === null) throw galatBelanjaWajib(nilai.nama);
     await pastikanKodeBebas(tx, nilai.kode);
     const idBaru = await repo.tambahTingkatHarga(tx, nilai);
     const jumlah = await lengkapiHargaTier(tx, idBaru, nilai.markupDefaultPersen, pelaku.id);
@@ -151,6 +159,10 @@ export async function ubahTingkatHarga(
     if (beda.kolom.length === 0) return;
     if (beda.kolom.includes('kode')) await pastikanKodeBebas(tx, baru.kode, id);
     if (lama.isDefault && baru.minBelanja !== null) throw galatBelanjaTierDasar();
+    // Tier nonaktif (mis. tier lama tanpa syarat) boleh disimpan dulu; syaratnya wajib saat diaktifkan.
+    if (!lama.isDefault && baru.minBelanja === null && lama.statusAktif === 'AKTIF') {
+      throw galatBelanjaWajib(baru.nama);
+    }
     await repo.ubahTingkatHarga(tx, id, baru, sekarang());
 
     let hasil = { ditandai: 0, diterapkan: 0 };
@@ -199,6 +211,9 @@ export async function ubahStatusTingkatHarga(
         `Tier ${lama.nama} adalah tier dasar dan tidak bisa dinonaktifkan.`,
         409,
       );
+    }
+    if (statusAktif === 'AKTIF' && !lama.isDefault && lama.minBelanja === null) {
+      throw galatBelanjaWajib(lama.nama);
     }
     await repo.ubahTingkatHarga(tx, id, { statusAktif }, sekarang());
     const aktif = statusAktif === 'AKTIF';

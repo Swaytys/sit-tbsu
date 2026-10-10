@@ -75,8 +75,6 @@ type InfoBarang = {
   opsiSatuan: OpsiSatuanBaris[];
 };
 
-const BAWAAN = 'BAWAAN';
-
 function teksQty(v: unknown): string | null {
   const t = typeof v === 'string' ? v.trim().replace(',', '.') : '';
   return POLA_QTY.test(t) ? t : null;
@@ -109,7 +107,6 @@ function qtyGeser(nilai: unknown, arah: 1 | -1): string {
 function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
   const navigasi = useNavigate();
   const pengguna = usePengguna();
-  const bolehTier = pengguna.izin.includes('penjualan.tier.ubah');
   const bolehManual = pengguna.izin.includes('penjualan.harga_manual');
   const bolehDiskon = pengguna.izin.includes('penjualan.diskon');
   const bolehLepasPromo = pengguna.izin.includes('penjualan.checkout');
@@ -168,8 +165,6 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
         idBarang: b.idBarang,
         idSatuanJual: b.idSatuanJual,
         qty: b.qty.includes('.') ? b.qty.replace(/\.?0+$/, '') : b.qty,
-        // K-094: tier otomatis dikirim sebagai null agar API menentukannya lagi (pelanggan / qty).
-        idTingkatHarga: b.hargaManual || !b.tierDipilih ? null : b.idTingkatHarga,
         hargaManual: b.hargaManual,
         hargaSatuan: b.hargaManual ? b.hargaSatuan : null,
         diskonBaris: b.diskonBaris,
@@ -204,8 +199,8 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
     const lama = dokumen?.baris.find(
       (x) => x.idBarang === b.idBarang && x.idSatuanJual === (b.idSatuanJual ?? null),
     );
-    // Perkiraan sebelum pratinjau API tiba; tier otomatis (K-094) ditentukan API.
-    const idTier = b.idTingkatHarga ?? lama?.idTingkatHarga ?? tierBawaan;
+    // Perkiraan sebelum pratinjau API tiba; tier selalu ditentukan API menurut nilai belanja (K-098).
+    const idTier = lama?.idTingkatHarga ?? tierBawaan;
     const idSj = b.idSatuanJual ?? null;
     if (lama && !lama.hargaManual && lama.idTingkatHarga === idTier && lama.idSatuanJual === idSj)
       return lama.hargaSatuan;
@@ -255,7 +250,6 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
             idBarang: b.idBarang,
             idSatuanJual: b.idSatuanJual ?? null,
             qty: teksQty(b.qty) ?? '0',
-            idTingkatHarga: b.hargaManual ? null : (b.idTingkatHarga ?? null),
             hargaManual: b.hargaManual === true,
             hargaSatuan: b.hargaManual && typeof b.hargaSatuan === 'number' ? b.hargaSatuan : null,
             diskonBaris: typeof b.diskonBaris === 'number' ? b.diskonBaris : 0,
@@ -295,7 +289,6 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
       idBarang: b.id,
       idSatuanJual: satuan,
       qty: '1',
-      idTingkatHarga: null,
       hargaManual: false,
       hargaSatuan: null,
       diskonBaris: 0,
@@ -389,8 +382,9 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
             {dokumen ? `Ubah order ${dokumen.nomor}` : 'Buat order baru'}
           </h1>
           <p className="text-sm text-slate-500">
-            Harga mengikuti jumlah beli (harga grosir bila qty memenuhi syarat) dan promo yang
-            berlaku. Barang ditahan (stok tersedia berkurang) setelah order masuk antrean.
+            Harga mengikuti total belanja (tier harga dipakai otomatis saat syaratnya tercapai) dan
+            promo yang berlaku. Barang ditahan (stok tersedia berkurang) setelah order masuk
+            antrean.
           </p>
         </div>
       </div>
@@ -683,61 +677,19 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                             )}
                           />
                         ) : (
-                          <FormField
-                            control={form.control}
-                            name={`baris.${i}.idTingkatHarga`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <Select
-                                  value={
-                                    field.value === null || field.value === undefined
-                                      ? BAWAAN
-                                      : String(field.value)
-                                  }
-                                  onValueChange={(v) =>
-                                    field.onChange(v === BAWAAN ? null : Number(v))
-                                  }
-                                  disabled={!bolehTier}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger
-                                      className="w-full"
-                                      aria-label={`Tier ${inf?.nama ?? i + 1}`}
-                                    >
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {/* K-098: otomatis = tier dasar, atau tier transaksi bila syarat belanja tercapai. */}
-                                    <SelectItem value={BAWAAN}>Otomatis</SelectItem>
-                                    {tierAktif.map((t) => {
-                                      const h = hargaTierBaris(i).find(
-                                        (x) => x.idTingkatHarga === t.id,
-                                      );
-                                      return (
-                                        <SelectItem key={t.id} value={String(t.id)}>
-                                          {t.nama}
-                                          {h ? ` — ${formatRupiah(h.hargaJual)}` : ''}
-                                        </SelectItem>
-                                      );
-                                    })}
-                                  </SelectContent>
-                                </Select>
-                                <div className="text-xs text-slate-500 tabular-nums">
-                                  {harga === null ? 'Harga belum ada' : formatRupiah(harga)}
-                                  {pr?.idTingkatHarga != null && !pr.tierDipilih && (
-                                    <span> · {namaTier(pr.idTingkatHarga)}</span>
-                                  )}
-                                  {pr?.idTingkatHargaSaran != null && (
-                                    <span className="ml-1 text-blue-700">
-                                      · saran {namaTier(pr.idTingkatHargaSaran)}
-                                    </span>
-                                  )}
-                                </div>
-                                <FormMessage />
-                              </FormItem>
+                          // K-099: tier selalu otomatis (total belanja); hanya ditampilkan.
+                          <div className="text-sm tabular-nums">
+                            {harga === null ? (
+                              <span className="text-slate-500">Harga belum ada</span>
+                            ) : (
+                              formatRupiah(harga)
                             )}
-                          />
+                            {pr?.idTingkatHarga != null && pr.idTingkatHarga !== tierBawaan && (
+                              <div className="text-xs text-blue-700">
+                                harga {namaTier(pr.idTingkatHarga)}
+                              </div>
+                            )}
+                          </div>
                         )}
                         {bolehManual && (
                           <label className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
