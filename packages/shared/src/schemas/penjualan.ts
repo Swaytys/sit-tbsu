@@ -22,6 +22,7 @@ import {
   type StatusSuratJalan,
   type StatusTransaksi,
 } from '../enums';
+import type { RingkasAtribut } from './barang';
 import { skemaQtyPositif, skemaTanggal } from './persediaan';
 import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
 
@@ -50,11 +51,9 @@ export const skemaBarisOrder = z
     /** K-091: satuan jual baris; `null` = satuan dasar barang. Qty dan harga dalam satuan ini. */
     idSatuanJual: z.number().int().positive().nullable().default(null),
     /**
-     * null = otomatis: tier transaksi menurut total nilai belanja (P3, H8, K-098). Diisi = tier dipilih
-     * kasir (tombol T).
+     * Harga manual (H9): butuh izin `penjualan.harga_manual`. Selain itu harga selalu otomatis: tier
+     * transaksi menurut total nilai belanja (P3, H8); tier tidak bisa dipilih (K-099).
      */
-    idTingkatHarga: z.number().int().positive().nullable().default(null),
-    /** Harga manual (H9): butuh izin `penjualan.harga_manual`. */
     hargaManual: z.boolean().default(false),
     hargaSatuan: z.preprocess(kosongJadiNull, skemaRupiah.nullable()).default(null),
     /** Diskon baris dalam rupiah, atau persen (diubah ke rupiah oleh API, U4). */
@@ -146,10 +145,8 @@ export type InputPratinjauOrder = z.input<typeof skemaPratinjauOrder>;
 export type BarisPratinjau = {
   idBarang: number;
   idSatuanJual: number | null;
-  /** Tier yang dipakai (hasil otomatis bila tidak dipilih kasir). */
+  /** Tier yang dipakai baris (selalu otomatis, H8); `null` = harga manual. */
   idTingkatHarga: number | null;
-  /** K-094: `false` = tier otomatis. */
-  tierDipilih: boolean;
   hargaSatuan: number;
   /** bulatkanRupiah(qty × harga satuan). */
   bruto: number;
@@ -163,8 +160,6 @@ export type BarisPratinjau = {
   promoDitolak: boolean;
   diskonBaris: number;
   subtotal: number;
-  /** H8: tier pilihan kasir lebih mahal dari tier transaksi (nilai belanja); `null` = tanpa saran. */
-  idTingkatHargaSaran: number | null;
 };
 
 /** K-098: tier harga transaksi menurut total nilai belanja (berlaku untuk semua barang). */
@@ -234,6 +229,8 @@ export type BarisDaftarOrder = {
   noAntrean: number;
   /** Isi order (nama barang & qty) agar order tanpa nama pembeli tetap bisa dikenali (K-073). */
   ringkasan: RingkasBarisOrder[];
+  /** Catatan pembuat order untuk kasir (tampil di tiket antrean dan layar kasir, K-099). */
+  catatan: string | null;
 };
 
 export type RingkasBarisOrder = { namaBarang: string; qty: string; kodeSatuan: string };
@@ -266,8 +263,6 @@ export type BarisDetailOrder = {
   qty: string;
   qtyDasar: string;
   idTingkatHarga: number | null;
-  /** K-094: tier dipilih kasir; `false` = otomatis. */
-  tierDipilih: boolean;
   namaTier: string | null;
   hargaSatuan: number;
   hargaManual: boolean;
@@ -279,6 +274,8 @@ export type BarisDetailOrder = {
   promoNonaktif: boolean;
   subtotal: number;
   catatanItem: string | null;
+  /** Atribut barang untuk tampilan ringkas di daftar barang transaksi (K-099). */
+  ringkasAtribut: RingkasAtribut[];
   /** Stok tersedia untuk order ini (stok tersedia + yang sudah ditahan order ini). */
   stokTersedia: string;
   /** Harga jual barang per tier saat ini untuk satuan baris (pilihan tier di form). */
@@ -298,7 +295,6 @@ export type OpsiSatuanBaris = {
 export type DetailOrder = BarisDaftarOrder & {
   alamatKirim: string | null;
   catatanKirim: string | null;
-  catatan: string | null;
   alasanBatal: string | null;
   idPenjualan: number | null;
   subtotal: number;

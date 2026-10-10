@@ -6,10 +6,18 @@ import {
   tambahQty,
   type BarisPratinjau,
 } from '@sit/shared';
-import { Minus, Plus } from 'lucide-react';
+import { Minus, MoreVertical, Plus } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { InfoPromo } from '@/components/info-promo';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { formatDesimal } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
@@ -28,17 +36,16 @@ type Sunting = { jenis: 'qty' | 'diskon'; nilai: string } | null;
 
 /**
  * Daftar barang transaksi POS (K-073). Keyboard: ↑/↓ pilih baris, + / − ubah qty 1, ketik angka = qty baru
- * (Enter simpan), % = diskon rupiah (berizin), T = pilih tier: otomatis → tier tertentu (berizin, K-094),
- * P = lepas/pasang promo (berizin), S = ganti satuan (satuan dasar ↔ kemasan, K-091),
- * Delete = hapus, Enter = lanjut bayar, Esc/↑ di baris pertama = kembali ke kotak cari. Harga, promo, dan
- * subtotal diambil dari pratinjau API bila sudah tersedia.
+ * (Enter simpan), % = diskon rupiah (berizin), P = lepas/pasang promo (berizin), S = ganti satuan (satuan
+ * dasar ↔ kemasan, K-091), M = menu baris, Delete = hapus, Enter = lanjut bayar, Esc/↑ di baris pertama =
+ * kembali ke kotak cari. Setiap aksi juga ada di menu ⋮ baris untuk pengguna mouse (K-099). Harga, tier,
+ * promo, dan subtotal diambil dari pratinjau API bila sudah tersedia; tier selalu otomatis.
  */
 export function KeranjangPos({
   id,
   baris,
   tierBawaan,
   namaTier,
-  urutanTier,
   indeks,
   onIndeks,
   aktif,
@@ -47,7 +54,6 @@ export function KeranjangPos({
   onKeluar,
   onLanjut,
   onFokus,
-  bolehTier,
   bolehDiskon,
   bolehLepasPromo,
   pratinjau,
@@ -56,8 +62,6 @@ export function KeranjangPos({
   baris: BarisPos[];
   tierBawaan: number | null;
   namaTier: (idTier: number) => string;
-  /** Tier aktif (urut) untuk tombol T. */
-  urutanTier: number[];
   indeks: number;
   onIndeks: (i: number) => void;
   aktif: boolean;
@@ -66,14 +70,17 @@ export function KeranjangPos({
   onKeluar: () => void;
   onLanjut: () => void;
   onFokus: () => void;
-  bolehTier: boolean;
   bolehDiskon: boolean;
   bolehLepasPromo: boolean;
   /** Hasil pratinjau API per baris (`kunciBaris`): harga, promo, subtotal, tier. */
   pratinjau: ReadonlyMap<string, BarisPratinjau>;
 }) {
   const [sunting, setSunting] = useState<Sunting>(null);
+  /** Indeks baris yang menu ⋮-nya terbuka. */
+  const [menu, setMenu] = useState<number | null>(null);
   const wadah = useRef<HTMLDivElement>(null);
+  /** Aksi menu yang membuka isian (qty/diskon): dijalankan setelah menu tertutup agar fokusnya tidak direbut. */
+  const setelahMenu = useRef<(() => void) | null>(null);
   const b = baris[indeks];
 
   useEffect(() => {
@@ -102,14 +109,48 @@ export function KeranjangPos({
 
   /** Qty ±1 (tombol + / − di baris, atau tombol keyboard); qty tidak boleh 0 atau kurang. */
   function ubahQty(i: number, arah: 1 | -1) {
-    const b = baris[i];
-    if (!b) return;
-    const q = arah === 1 ? tambahQty(b.qty, 1) : kurangQty(b.qty, 1);
+    const r = baris[i];
+    if (!r) return;
+    const q = arah === 1 ? tambahQty(r.qty, 1) : kurangQty(r.qty, 1);
     if (bandingQty(q, 0) > 0) onUbah(i, { qty: rapikanQty(q) });
   }
 
+  function mulaiSunting(i: number, jenis: 'qty' | 'diskon', awal?: string) {
+    const r = baris[i];
+    if (!r) return;
+    onIndeks(i);
+    setSunting({
+      jenis,
+      nilai: awal ?? (jenis === 'qty' ? r.qty : r.diskonBaris ? String(r.diskonBaris) : ''),
+    });
+  }
+
+  function gantiSatuan(i: number) {
+    const r = baris[i];
+    const berikut = r && satuanBerikut(r);
+    if (!r || !berikut) return;
+    // K-095: satuan yang sudah punya baris sendiri untuk barang ini tidak dipakai dua kali.
+    const bentrok = baris.some(
+      (x, j) => j !== i && x.idBarang === r.idBarang && x.idSatuanJual === berikut.idSatuanJual,
+    );
+    if (bentrok) toast.info(`${r.nama} dalam ${berikut.satuan} sudah ada di baris lain.`);
+    else onUbah(i, berikut);
+  }
+
+  /** PR5: lepas atau pasang lagi promo baris (hanya bila ada promo atau sedang dilepas). */
+  function bisaAlihPromo(r: BarisPos): boolean {
+    const pr = pratinjau.get(kunciBaris(r.idBarang, r.idSatuanJual));
+    return bolehLepasPromo && (r.tanpaPromo || pr?.idPromo != null);
+  }
+
+  function alihPromo(i: number) {
+    const r = baris[i];
+    if (r && bisaAlihPromo(r)) onUbah(i, { tanpaPromo: !r.tanpaPromo });
+  }
+
   function tombol(e: KeyboardEvent<HTMLDivElement>) {
-    if (sunting) return; // ditangani input sunting
+    // Tombol dari isian sunting, tombol baris, atau menu ⋮ (portal) ditangani elemen itu sendiri.
+    if (e.target !== e.currentTarget) return;
     const akhir = baris.length - 1;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -134,32 +175,19 @@ export function KeranjangPos({
       ubahQty(indeks, -1);
     } else if (/^[\d.,]$/.test(e.key)) {
       e.preventDefault();
-      setSunting({ jenis: 'qty', nilai: e.key });
+      mulaiSunting(indeks, 'qty', e.key);
     } else if (e.key === '%' && bolehDiskon) {
       e.preventDefault();
-      setSunting({ jenis: 'diskon', nilai: b.diskonBaris ? String(b.diskonBaris) : '' });
-    } else if ((e.key === 'p' || e.key === 'P') && bolehLepasPromo) {
+      mulaiSunting(indeks, 'diskon');
+    } else if (e.key === 'p' || e.key === 'P') {
       e.preventDefault();
-      const pr = pratinjau.get(kunciBaris(b.idBarang, b.idSatuanJual));
-      if (b.tanpaPromo || pr?.idPromo != null) onUbah(indeks, { tanpaPromo: !b.tanpaPromo });
+      alihPromo(indeks);
     } else if (e.key === 's' || e.key === 'S') {
       e.preventDefault();
-      const berikut = satuanBerikut(b);
-      // K-095: satuan yang sudah punya baris sendiri untuk barang ini tidak dipakai dua kali.
-      const bentrok =
-        berikut &&
-        baris.some(
-          (x, j) =>
-            j !== indeks && x.idBarang === b.idBarang && x.idSatuanJual === berikut.idSatuanJual,
-        );
-      if (bentrok) toast.info(`${b.nama} dalam ${berikut.satuan} sudah ada di baris lain.`);
-      else if (berikut) onUbah(indeks, berikut);
-    } else if ((e.key === 't' || e.key === 'T') && bolehTier && !b.hargaManual) {
+      gantiSatuan(indeks);
+    } else if (e.key === 'm' || e.key === 'M') {
       e.preventDefault();
-      // Urutan: otomatis (nilai belanja, K-098) → setiap tier → kembali ke otomatis.
-      const pilihan: (number | null)[] = [null, ...urutanTier];
-      const kini = Math.max(0, pilihan.indexOf(b.idTingkatHarga));
-      onUbah(indeks, { idTingkatHarga: pilihan[(kini + 1) % pilihan.length] ?? null });
+      setMenu(indeks);
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       onHapus(indeks);
@@ -189,13 +217,13 @@ export function KeranjangPos({
             {baris.map((r, i) => {
               const pr = pratinjau.get(kunciBaris(r.idBarang, r.idSatuanJual));
               const harga = pr?.hargaSatuan ?? hargaBaris(r, tierBawaan);
-              // K-094: tier yang dipakai API (otomatis dari pelanggan/qty, atau dipilih kasir).
+              // Tier yang dipakai API (otomatis menurut nilai belanja, K-098); tier dasar tidak ditulis.
               const idTier = r.hargaManual
                 ? null
-                : (pr?.idTingkatHarga ?? r.idTingkatHarga ?? r.snapshot?.idTingkatHarga ?? null);
-              const tampilTier =
-                idTier !== null && (idTier !== tierBawaan || r.idTingkatHarga !== null);
+                : (pr?.idTingkatHarga ?? r.snapshot?.idTingkatHarga ?? null);
               const dipilih = aktif && i === indeks;
+              const menyunting = i === indeks ? sunting : null;
+              const berikut = satuanBerikut(r);
               return (
                 <tr
                   key={kunciBaris(r.idBarang, r.idSatuanJual)}
@@ -206,41 +234,52 @@ export function KeranjangPos({
                     onIndeks(i);
                     wadah.current?.focus();
                   }}
-                  className={cn('border-b last:border-0', dipilih && 'bg-blue-50')}
+                  className={cn('group border-b align-top last:border-0', dipilih && 'bg-blue-50')}
                 >
                   <td className="w-6 py-1.5 pl-2 text-xs text-slate-400">{i + 1}</td>
-                  <td className="max-w-0 py-1.5">
-                    <div className="truncate font-medium">{r.nama}</div>
-                    <div className="truncate text-xs text-slate-500">
+                  <td className="py-1.5 pr-2">
+                    {/* Nama panjang tidak dipotong "…": maksimal dua baris, utuh saat baris dipilih/disorot. */}
+                    <div
+                      className={cn(
+                        'font-medium wrap-break-word',
+                        !dipilih && 'line-clamp-2 group-hover:line-clamp-none',
+                      )}
+                      title={r.nama}
+                    >
+                      {r.nama}
+                    </div>
+                    {r.atribut && (
+                      <div
+                        className={cn(
+                          'text-xs text-slate-600',
+                          !dipilih && 'line-clamp-1 group-hover:line-clamp-none',
+                        )}
+                        title={r.atribut}
+                      >
+                        {r.atribut}
+                      </div>
+                    )}
+                    <div className="text-xs text-slate-500">
                       {formatRupiah(harga ?? 0)}
-                      {tampilTier &&
-                        ` · ${namaTier(idTier)}${r.idTingkatHarga === null ? ' otomatis' : ''}`}
+                      {idTier !== null && idTier !== tierBawaan && ` · harga ${namaTier(idTier)}`}
                       {r.hargaManual && ' · harga manual'}
                       {r.diskonBaris > 0 && ` · diskon ${formatRupiah(r.diskonBaris)}`}
-                      {pr?.idTingkatHargaSaran != null && (
-                        <span className="text-blue-700">
-                          {' '}
-                          · saran {namaTier(pr.idTingkatHargaSaran)}
-                          {bolehTier && ' (T)'}
-                        </span>
-                      )}
                     </div>
                     <InfoPromo
                       p={pr}
-                      className="truncate"
                       aksi={
-                        bolehLepasPromo && (pr?.idPromo != null || r.tanpaPromo) ? (
+                        bisaAlihPromo(r) ? (
                           <kbd className="font-mono text-[10px] text-slate-400">P</kbd>
                         ) : null
                       }
                     />
                   </td>
-                  <td className="w-40 py-1.5 text-right font-bold tabular-nums">
-                    {dipilih && sunting?.jenis === 'qty' ? (
+                  <td className="w-40 py-1.5 text-right font-bold whitespace-nowrap tabular-nums">
+                    {menyunting?.jenis === 'qty' ? (
                       <input
                         autoFocus
                         aria-label={`Qty ${r.nama}`}
-                        value={sunting.nilai}
+                        value={menyunting.nilai}
                         inputMode="decimal"
                         onChange={(e) => setSunting({ jenis: 'qty', nilai: e.target.value })}
                         onKeyDown={(e) => {
@@ -258,20 +297,20 @@ export function KeranjangPos({
                     ) : (
                       <>
                         <div className="flex items-center justify-end gap-1">
-                          <TombolQty
+                          <TombolBaris
                             label={`Kurangi 1 ${r.nama}`}
                             disabled={bandingQty(r.qty, 1) <= 0}
                             onClick={() => ubahQty(i, -1)}
                           >
                             <Minus />
-                          </TombolQty>
+                          </TombolBaris>
                           <span>
                             {formatDesimal(r.qty)}{' '}
                             <span className="text-xs font-normal">{r.satuan}</span>
                           </span>
-                          <TombolQty label={`Tambah 1 ${r.nama}`} onClick={() => ubahQty(i, 1)}>
+                          <TombolBaris label={`Tambah 1 ${r.nama}`} onClick={() => ubahQty(i, 1)}>
                             <Plus />
-                          </TombolQty>
+                          </TombolBaris>
                         </div>
                         {qtyDasarBaris(r) !== null && (
                           <div className="text-[11px] font-normal text-slate-500">
@@ -281,13 +320,13 @@ export function KeranjangPos({
                       </>
                     )}
                   </td>
-                  <td className="w-28 py-1.5 pr-2 text-right font-semibold tabular-nums">
-                    {dipilih && sunting?.jenis === 'diskon' ? (
+                  <td className="w-28 py-1.5 text-right font-semibold whitespace-nowrap tabular-nums">
+                    {menyunting?.jenis === 'diskon' ? (
                       <input
                         autoFocus
                         aria-label={`Diskon ${r.nama}`}
                         placeholder="diskon Rp"
-                        value={tampilRibuan(digitSaja(sunting.nilai))}
+                        value={tampilRibuan(digitSaja(menyunting.nilai))}
                         inputMode="numeric"
                         onChange={(e) => setSunting({ jenis: 'diskon', nilai: e.target.value })}
                         onKeyDown={(e) => {
@@ -306,6 +345,71 @@ export function KeranjangPos({
                       formatRupiah(pr?.subtotal ?? subtotalBaris(r, tierBawaan))
                     )}
                   </td>
+                  <td className="w-8 py-1.5 pr-1 text-right">
+                    <DropdownMenu
+                      open={menu === i}
+                      onOpenChange={(buka) => {
+                        if (buka) onIndeks(i);
+                        setMenu(buka ? i : null);
+                      }}
+                    >
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label={`Aksi untuk ${r.nama}`}
+                          title="Aksi baris (M)"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex size-6 items-center justify-center rounded text-slate-500 hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none [&_svg]:size-4"
+                        >
+                          <MoreVertical />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        // Setelah menu ditutup: buka isian yang dipilih, atau kembalikan fokus ke daftar.
+                        onCloseAutoFocus={(e) => {
+                          e.preventDefault();
+                          const aksi = setelahMenu.current;
+                          setelahMenu.current = null;
+                          if (aksi) aksi();
+                          else wadah.current?.focus();
+                        }}
+                      >
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            setelahMenu.current = () => mulaiSunting(i, 'qty');
+                          }}
+                        >
+                          Ubah qty<DropdownMenuShortcut>Angka</DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                        {berikut && (
+                          <DropdownMenuItem onSelect={() => gantiSatuan(i)}>
+                            Ganti satuan ke {berikut.satuan}
+                            <DropdownMenuShortcut>S</DropdownMenuShortcut>
+                          </DropdownMenuItem>
+                        )}
+                        {bolehDiskon && (
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setelahMenu.current = () => mulaiSunting(i, 'diskon');
+                            }}
+                          >
+                            Diskon (Rp)<DropdownMenuShortcut>%</DropdownMenuShortcut>
+                          </DropdownMenuItem>
+                        )}
+                        {bisaAlihPromo(r) && (
+                          <DropdownMenuItem onSelect={() => alihPromo(i)}>
+                            {r.tanpaPromo ? 'Pasang promo lagi' : 'Lepas promo'}
+                            <DropdownMenuShortcut>P</DropdownMenuShortcut>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive" onSelect={() => onHapus(i)}>
+                          Hapus dari daftar<DropdownMenuShortcut>Del</DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
                 </tr>
               );
             })}
@@ -316,8 +420,11 @@ export function KeranjangPos({
   );
 }
 
-/** Tombol kecil qty ±1 di baris; tidak mengambil fokus agar navigasi keyboard tetap di daftar. */
-function TombolQty({
+/**
+ * Tombol kecil di baris (qty ±1). Bisa dicapai dengan Tab; klik mouse tidak memindahkan fokus dari daftar
+ * agar tombol keyboard daftar tetap berlaku.
+ */
+function TombolBaris({
   label,
   disabled,
   onClick,
@@ -331,13 +438,15 @@ function TombolQty({
   return (
     <button
       type="button"
-      tabIndex={-1}
       aria-label={label}
       title={label}
       disabled={disabled}
       onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className="flex size-6 items-center justify-center rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 [&_svg]:size-3"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="flex size-6 items-center justify-center rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none disabled:opacity-40 [&_svg]:size-3"
     >
       {children}
     </button>

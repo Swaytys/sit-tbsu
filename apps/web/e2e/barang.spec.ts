@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { masukCepat, menuUtama } from './pembantu';
+import { aktifkanTierGrosir, masukCepat, menuUtama } from './pembantu';
 
 // Tes ini menambah satu barang uji (lalu menonaktifkannya) di database pengembangan setiap kali jalan.
 // Mengandalkan data seed: kategori Semen, satuan sak/m, atribut Warna/Panjang, tier Normal/Grosir (20%),
-// pembulatan harga 100.
+// pembulatan harga 100. Tier Grosir diaktifkan selama tes (syarat belanja sangat besar) lalu dipulihkan.
 
 /** PNG 1×1 piksel. */
 const PNG = Buffer.from(
@@ -30,6 +30,15 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
     headers: { origin: new URL(page.url()).origin },
   });
   expect(pemasok.ok()).toBe(true);
+  const grosir = await aktifkanTierGrosir(page, 900_000_000);
+  try {
+    await alurBarang(page, nama, penitip);
+  } finally {
+    await grosir.pulihkan();
+  }
+});
+
+async function alurBarang(page: Page, nama: string, penitip: string) {
   await menuUtama(page).getByRole('link', { name: 'Data Barang' }).click();
   await page.getByRole('link', { name: 'Tambah barang' }).click();
   await expect(page.getByRole('heading', { name: 'Tambah barang' })).toBeVisible();
@@ -104,7 +113,12 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
   await expect(page.getByLabel(`Harga Normal ${nama}`, { exact: true })).toHaveValue('55.000');
   await expect(page.getByLabel(`Harga Grosir ${nama}`, { exact: true })).toHaveText('Rp 54.000');
   await expect(page.getByRole('button', { name: `Metode harga Grosir ${nama}` })).toHaveCount(0);
-  await expect(page.getByText('Cara kerja harga jual')).toBeVisible();
+  // Tombol "?" membuka penjelasan halaman.
+  await page.getByRole('button', { name: 'Cara kerja harga jual' }).click();
+  await expect(page.getByRole('dialog', { name: 'Cara kerja harga jual' })).toContainText(
+    'Harga dasar',
+  );
+  await page.getByRole('button', { name: 'Mengerti' }).click();
   await page.getByLabel(`Harga Normal ${nama}`, { exact: true }).fill('57000');
   await page.getByRole('button', { name: 'Simpan perubahan (1)' }).click();
   await expect(page.getByText('Harga 1 barang disimpan (1 harga berubah).')).toBeVisible();
@@ -116,7 +130,7 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
   const barisNormal = dialog.getByRole('row').filter({ hasText: 'Normal' });
   await expect(barisNormal).toContainText('Harga dasar');
   await expect(barisNormal).toContainText('Semua transaksi');
-  await expect(dialog.getByText('Cara kerja tier harga')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Cara kerja tier harga' })).toBeVisible();
   await dialog.getByRole('button', { name: 'Aksi untuk Normal' }).click();
   await expect(page.getByRole('menuitem', { name: 'Ubah' })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: 'Nonaktifkan' })).toHaveCount(0);
@@ -151,7 +165,7 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
     await page.getByRole('menuitem', { name: 'Nonaktifkan' }).click();
     await expect(barisNama.nth(i)).toContainText('Nonaktif');
   }
-});
+}
 
 test('halaman form barang tidak membuat seluruh halaman ikut bergulir melewati tata letak', async ({
   page,

@@ -366,7 +366,7 @@ export const skemaTingkatHargaInput = z.object({
   markupDefaultPersen: skemaPersen,
   /**
    * K-098: total nilai belanja transaksi (rupiah, dihitung dengan harga tier dasar) agar tier dipakai otomatis
-   * untuk semua barang; kosong = hanya pilihan manual. Tier dasar selalu kosong.
+   * untuk semua barang; tier dasar selalu kosong; tier lain wajib terisi selama aktif (K-099).
    */
   minBelanja: z.preprocess(
     (v) => (v === '' || v === undefined ? null : v),

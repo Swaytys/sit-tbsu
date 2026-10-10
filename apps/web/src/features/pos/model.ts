@@ -6,6 +6,7 @@ import {
   type DetailOrder,
   type InputBarisOrder,
   type OpsiSatuanBaris,
+  type RingkasAtribut,
 } from '@sit/shared';
 
 /*
@@ -19,6 +20,8 @@ export type BarisPos = {
   idBarang: number;
   kode: string;
   nama: string;
+  /** Atribut barang, ringkas (mis. "6 m · Abu-abu"); kosong bila tidak ada. */
+  atribut: string;
   /** Kode satuan baris (satuan jual terpilih, atau satuan dasar). */
   satuan: string;
   /** K-091: satuan jual baris; `null` = satuan dasar. */
@@ -28,8 +31,6 @@ export type BarisPos = {
   /** Stok tersedia saat barang dipilih (info), `null` bila tidak diketahui. */
   stokTersedia: string | null;
   qty: string;
-  /** `null` = tier otomatis (tier dasar / nilai belanja, K-098); diisi = dipilih kasir. */
-  idTingkatHarga: number | null;
   hargaManual: boolean;
   /** Harga manual, bila `hargaManual`. */
   hargaSatuan: number | null;
@@ -44,6 +45,11 @@ export type BarisPos = {
   tanpaPromo: boolean;
 };
 
+/** Nilai atribut barang dalam satu baris pendek, mis. "6 m · Abu-abu". */
+export function ringkasAtribut(atribut: RingkasAtribut[]): string {
+  return atribut.map((a) => a.nilai).join(' · ');
+}
+
 export function qtySah(q: string): boolean {
   return POLA_QTY.test(q) && /[1-9]/.test(q);
 }
@@ -54,12 +60,12 @@ export function opsiKini(b: BarisPos): OpsiSatuanBaris | undefined {
 }
 
 /**
- * Harga satuan yang tampil untuk baris sebelum pratinjau API tiba (perkiraan; P2/P3/H9). Tier otomatis
- * (K-094) ditentukan API; perkiraan memakai tier harga janji order, atau tier bawaan.
+ * Harga satuan yang tampil untuk baris sebelum pratinjau API tiba (perkiraan; P2/P3/H9). Tier selalu
+ * ditentukan API menurut nilai belanja (K-098); perkiraan memakai tier harga janji order, atau tier dasar.
  */
 export function hargaBaris(b: BarisPos, tierBawaan: number | null): number | null {
   if (b.hargaManual) return b.hargaSatuan;
-  const tier = b.idTingkatHarga ?? b.snapshot?.idTingkatHarga ?? tierBawaan;
+  const tier = b.snapshot?.idTingkatHarga ?? tierBawaan;
   if (
     b.snapshot &&
     b.snapshot.idTingkatHarga === tier &&
@@ -134,12 +140,12 @@ export function dariBarang(b: BarisBarang, qty: string, pilihSatuan?: number | n
     idBarang: b.id,
     kode: b.kode,
     nama: b.namaBarang,
+    atribut: ringkasAtribut(b.ringkasAtribut),
     satuan: opsi.find((o) => o.idSatuanJual === idSatuanJual)?.kodeSatuan ?? b.kodeSatuan,
     idSatuanJual,
     opsiSatuan: opsi,
     stokTersedia: b.stokTersedia,
     qty,
-    idTingkatHarga: null,
     hargaManual: false,
     hargaSatuan: null,
     snapshot: null,
@@ -153,12 +159,12 @@ export function dariOrder(d: DetailOrder): BarisPos[] {
     idBarang: r.idBarang,
     kode: r.kodeBarang,
     nama: r.namaBarang,
+    atribut: ringkasAtribut(r.ringkasAtribut),
     satuan: r.kodeSatuan,
     idSatuanJual: r.idSatuanJual,
     opsiSatuan: r.opsiSatuan,
     stokTersedia: r.stokTersedia,
     qty: rapikanQty(r.qty),
-    idTingkatHarga: r.hargaManual || !r.tierDipilih ? null : r.idTingkatHarga,
     hargaManual: r.hargaManual,
     hargaSatuan: r.hargaManual ? r.hargaSatuan : null,
     snapshot: r.hargaManual
@@ -179,7 +185,6 @@ export function keBarisOrder(b: BarisPos): InputBarisOrder {
     idBarang: b.idBarang,
     idSatuanJual: b.idSatuanJual,
     qty: b.qty,
-    idTingkatHarga: b.hargaManual ? null : b.idTingkatHarga,
     hargaManual: b.hargaManual,
     hargaSatuan: b.hargaManual ? b.hargaSatuan : null,
     diskonBaris: b.diskonBaris,

@@ -27,7 +27,13 @@ beforeEach(async () => {
   await aturKonfigurasi({ term_hari_default: '14' });
   await db.insert(tingkatHarga).values([
     { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-    { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2 },
+    {
+      kode: 'GROSIR',
+      nama: 'Grosir',
+      markupDefaultPersen: '20',
+      urutan: 2,
+      minBelanja: 900_000_000,
+    },
     { kode: 'LAMA', nama: 'Lama', urutan: 3, statusAktif: 'NONAKTIF' },
   ]);
   const baris = await db

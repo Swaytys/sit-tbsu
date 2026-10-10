@@ -47,7 +47,6 @@ memakai kode di luar daftar gagal typecheck.
 | `penjualan.order.lihat_semua` | Lihat antrean dan riwayat order semua pengguna |
 | `penjualan.order.lepas_paksa` | Melepas kunci order DIPROSES milik kasir lain (R8; K-070) |
 | `penjualan.checkout` | Proses order menjadi penjualan (langsung dan pengantaran) |
-| `penjualan.tier.ubah` | Mengganti tier harga pada baris saat order/checkout |
 | `penjualan.harga_manual` | Mengisi harga di luar tier |
 | `penjualan.diskon` | Memberi diskon baris/transaksi (dibatasi `konfigurasi.batas_diskon_<peran>`) |
 | `penjualan.pembayaran.catat` | Catat pembayaran (termasuk DP, pelunasan, bayar saat terima) |
@@ -132,7 +131,6 @@ memakai kode di luar daftar gagal typecheck.
 | penjualan.order.lihat_semua | | ✓ | ✓ | ✓ |
 | penjualan.order.lepas_paksa | | | ✓ | ✓ |
 | penjualan.checkout | | ✓ | ✓ | ✓ |
-| penjualan.tier.ubah | | ✓ | ✓ | ✓ |
 | penjualan.harga_manual | | | ✓ | ✓ |
 | penjualan.diskon | | ✓ | ✓ | ✓ |
 | penjualan.pembayaran.catat | | ✓ | ✓ | ✓ |
@@ -203,12 +201,35 @@ Field yang **tidak pernah** dikirim API: `password_hash`, `token_hash` sesi, `SE
 
 ## 6. Persetujuan (retur dan void)
 
-- Pengaju dengan izin `*.setujui` (Admin/Owner) → dokumen langsung DISETUJUI, dengan `id_pengaju` = `id_penyetuju`
-  dan dicatat di log (K-017). Ini pilihan sadar untuk toko kecil yang owner-nya juga admin; risikonya adalah
-  tidak ada pemisahan tugas untuk Admin. Owner dapat memantau lewat log dan laporan retur/void.
-- Pengaju tanpa izin `*.setujui` (Kasir) → status MENUNGGU; muncul di tab Persetujuan dan notifikasi Admin/Owner.
-  Penyetuju harus login dengan akunnya sendiri (tidak ada dropdown "diotorisasi oleh", tidak ada PIN di M1).
+Retur dan void hanya berefek (stok, kas, tagihan) setelah DISETUJUI. Ada empat cara disetujui; caranya disimpan
+di `cara_persetujuan` dokumen dan di log (K-017, K-099):
+
+| Cara | Kapan | Tercatat atas nama |
+|---|---|---|
+| `SENDIRI` | Pengaju punya izin `*.setujui` (Admin/Owner): dokumen langsung DISETUJUI (K-017). Pilihan sadar untuk toko kecil yang owner-nya juga admin; risikonya tidak ada pemisahan tugas untuk Admin. | pengaju |
+| `DI_TEMPAT` | Pengaju tanpa izin (Kasir) meminta atasan mengetik **nama pengguna + password atasan sendiri** di layar pengaju, saat mengajukan atau belakangan untuk dokumen MENUNGGU. Untuk toko dengan satu perangkat: kasir tidak perlu keluar dan pembeli langsung dilayani. | atasan |
+| `BATAS_BEBAS` | Nilai dokumen, dijumlah dengan retur (atau void) lain yang MENUNGGU/DISETUJUI atas **penjualan yang sama**, tidak melebihi `konfigurasi.batas_retur_tanpa_persetujuan` / `batas_void_tanpa_persetujuan` (bawaan 0 = selalu butuh atasan). | pengaju |
+| `AKUN_ATASAN` | Selain itu dokumen MENUNGGU; muncul di tab *Menunggu persetujuan* dan notifikasi Admin/Owner, lalu disetujui atasan dari akunnya sendiri. | atasan |
+
+Aturan persetujuan di tempat (K-099):
+
+- Akun atasan diperiksa seperti login (password argon2id, akun aktif, tidak terkunci) dan harus punya izin
+  `*.setujui`. **Tidak ada sesi yang dibuat**, sesi pengaju tidak berubah, password tidak disimpan atau dilog.
+- Kegagalan dihitung seperti gagal login (`login_maks_gagal`, `login_kunci_menit`) dan dicatat
+  `PERSETUJUAN_GAGAL` beserta sesi pengaju, sehingga dialog tidak bisa dipakai menebak password. Pemeriksaan
+  dilakukan di luar transaksi dokumen agar hitungan gagal tidak ikut dibatalkan. Galat memakai HTTP 400/403,
+  bukan 401, agar sesi pengaju tidak dianggap berakhir.
+- Refund tunai keluar dari laci shift **pengguna yang login di perangkat itu** (pengaju pada `DI_TEMPAT` dan
+  `BATAS_BEBAS`; penyetuju pada `AKUN_ATASAN`). Mutasi stok dan `id_penyetuju` atas nama yang menyetujui.
+- Tidak ada PIN terpisah dan tidak ada dropdown "diotorisasi oleh": yang berlaku hanya password akun atasan.
+
+Aturan lain:
+
 - Penyetuju boleh menolak dengan alasan; permintaan tetap tersimpan (append-only).
+- **Batalkan pengajuan (K-099):** dokumen yang masih MENUNGGU boleh ditarik pengajunya (atau pemegang
+  `*.setujui`) dengan alasan → status DIBATALKAN, tanpa efek, log `RETUR_BATAL`/`VOID_BATAL`. Dokumen yang sudah
+  DISETUJUI **tidak bisa diubah atau dibalik**: kekurangan = retur tambahan; kelebihan = penjualan baru. Tidak ada
+  jalur "retur lalu dibatalkan".
 - Void tambahan: hanya untuk penjualan pada shift yang masih terbuka; penjualan yang sudah punya surat jalan
   berstatus DIKIRIM/SELESAI atau sudah punya retur tidak bisa di-void (`STATUS_TIDAK_VALID`).
 
@@ -261,3 +282,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-07 — Menu Retur ke Pemasok dan Hutang Pemasok, tab Stok rusak; melampaui limit kredit memakai `master.pelanggan.atur_kredit` (K-088).
 - 2026-10-07 — Menu Konsinyasi dan Laporan Konsinyasi (`laporan.hutang`) (K-089).
 - 2026-10-07 — Cetak label, Daftar Harga (`laporan.penjualan`), satuan jual (K-090, K-091).
+- 2026-10-10 — §6 persetujuan di tempat, batas tanpa persetujuan, batalkan pengajuan; izin `penjualan.tier.ubah` dihapus (tier selalu otomatis) (K-099).

@@ -27,7 +27,8 @@ import { ambilAngka } from '../sistem/konfigurasi/service';
  * Harga, promo, diskon, dan total baris penjualan (docs/05 P2–P4, docs/06 H8–H9, D1–D5, PR1–PR9). Dipakai
  * order, pratinjau, dan checkout agar aturan harga hanya ada di satu tempat. Urutan: nilai belanja transaksi
  * (harga normal) → tier transaksi (K-098) → per baris: harga (tier / snapshot / manual) → bruto → promo dari
- * harga tier (PR4, PR9; menurut barang dan pembeli) → diskon manual (D3) → subtotal.
+ * harga tier (PR4, PR9; menurut barang dan pembeli) → diskon manual (D3) → subtotal. Tier selalu otomatis:
+ * tidak ada tier pilihan kasir (K-099); pengecualian harga hanya lewat harga manual (H9) atau promo.
  */
 
 export type BarisSiap = {
@@ -39,9 +40,8 @@ export type BarisSiap = {
   faktor: string;
   qty: string;
   qtyDasar: string;
+  /** Tier yang dipakai baris (tier transaksi atau tier dasar, H8); `null` = harga manual. */
   idTingkatHarga: number | null;
-  /** K-094: tier dipilih kasir (tombol T); `false` = otomatis (tier transaksi, K-098). */
-  tierDipilih: boolean;
   hargaSatuan: number;
   hargaManual: boolean;
   /** bulatkanRupiah(qty × harga satuan). */
@@ -62,8 +62,6 @@ export type BarisSiap = {
   diBawahModal: boolean;
   /** Harga tier bawaan sebagai pembanding harga manual (log). */
   hargaPembanding: number | null;
-  /** H8: tier pilihan kasir lebih mahal dari tier transaksi (saran, tidak memaksa). */
-  idTingkatHargaSaran: number | null;
 };
 
 export type HasilHarga = {
@@ -88,8 +86,6 @@ export type HasilHarga = {
 export type BarisLama = {
   idSatuanJual: number | null;
   idTingkatHarga: number | null;
-  /** Tier baris itu dipilih pemegang izin (bukan tier otomatis). */
-  tierDipilih: boolean;
   hargaSatuan: number;
   hargaManual: boolean;
   diskonBaris: number;
@@ -178,7 +174,7 @@ async function dataBarang(tx: Tx, idBarang: number[]) {
 /**
  * H8 (K-098): tier harga transaksi menurut total nilai belanja, berlaku untuk semua barang. Dari tier aktif
  * yang `min_belanja`-nya tercapai dipakai yang syaratnya paling tinggi (syarat sama → markup terkecil); bila
- * tidak ada yang tercapai dipakai tier dasar. Tier tanpa `min_belanja` hanya dipakai bila dipilih manual.
+ * tidak ada yang tercapai dipakai tier dasar. Tier lain tanpa `min_belanja` (hanya mungkin saat nonaktif) tidak ikut.
  * `berikut` = tier terdekat yang belum tercapai beserta kekurangan belanjanya.
  */
 export function pilihTierBelanja(
@@ -237,7 +233,6 @@ export async function hitungBarisJual(
     })
     .from(tingkatHarga)
     .where(eq(tingkatHarga.statusAktif, 'AKTIF'));
-  const idTierAktif = new Set(tierAktif.map((t) => t.id));
   const harga = new Map<string, number>();
   for (const h of await hargaBarangDasar(tx, idBarang)) {
     harga.set(`${h.idBarang}:${h.idTingkatHarga}`, h.hargaJual);
@@ -257,7 +252,6 @@ export async function hitungBarisJual(
   const konteks = await muatKonteksHarga(tx);
   const batas = await batasDiskon(tx, pelaku);
   const bolehDiskon = pelaku.izin.has('penjualan.diskon');
-  const bolehTier = pelaku.izin.has('penjualan.tier.ubah');
   // PR6: pelaku yang boleh menjual di bawah modal (izin harga manual, H9) tidak dibatasi modal.
   const bebasModal = pelaku.izin.has('penjualan.harga_manual');
 
@@ -342,21 +336,6 @@ export async function hitungBarisJual(
   const tahap1 = dasarBaris.map((x, i) => {
     const { b, brg, qty, lama, dasar } = x;
     let idTier: number | null = null;
-    // Tier yang dikirim pelaku tanpa izin ganti tier hanya dianggap pilihan bila melanjutkan pilihan pemegang
-    // izin di order itu. Selain itu: tier di luar aturan ditolak, dan tier yang sama dengan aturan dihitung
-    // otomatis agar tetap mengikuti nilai belanja saat order diubah lagi.
-    let tierDiminta = b.hargaManual ? null : b.idTingkatHarga;
-    const lanjutPilihan =
-      lama?.tierDipilih === true &&
-      lama.idTingkatHarga === tierDiminta &&
-      lama.idSatuanJual === b.idSatuanJual;
-    if (tierDiminta !== null && !bolehTier && !lanjutPilihan) {
-      if (tierDiminta !== idDefault && tierDiminta !== tierBelanja.idTingkatHarga) {
-        throw new AppError('TIDAK_BERIZIN', 'Anda tidak berizin mengganti tier harga.', 403);
-      }
-      tierDiminta = null;
-    }
-    const tierDipilih = tierDiminta !== null;
     let hargaSatuan: number;
     let diBawahModal = false;
     if (b.hargaManual) {
@@ -378,14 +357,11 @@ export async function hitungBarisJual(
         }
       }
     } else {
-      idTier = tierDiminta ?? tierBelanja.idTingkatHarga;
-      if (!idTierAktif.has(idTier))
-        throw galatBaris(i, 'idTingkatHarga', 'Tier harga tidak aktif.');
+      idTier = tierBelanja.idTingkatHarga;
       let hargaTier = hargaTierBaris(b, lama, idTier);
-      // Tier otomatis tidak boleh lebih mahal dari harga normal (mis. harga normal diisi Rp tetap rendah):
+      // Tier transaksi tidak boleh lebih mahal dari harga normal (mis. harga normal diisi Rp tetap rendah):
       // pembeli yang belanjanya lebih besar tidak membayar lebih mahal.
       if (
-        !tierDipilih &&
         idTier !== idDefault &&
         (hargaTier === null || (x.hargaNormal !== null && hargaTier > x.hargaNormal))
       ) {
@@ -405,7 +381,6 @@ export async function hitungBarisJual(
     return {
       ...x,
       idTier,
-      tierDipilih,
       hargaSatuan,
       diBawahModal,
       bruto: subtotalRupiah(qty, hargaSatuan),
@@ -470,17 +445,6 @@ export async function hitungBarisJual(
       throw galatBaris(i, 'diskonBaris', 'Diskon melebihi harga baris.');
     }
 
-    // H8: tier dipilih kasir, padahal tier transaksi (nilai belanja) lebih murah untuk baris ini: disarankan.
-    const hargaTierTransaksi = hargaUntuk(b.idBarang, b.idSatuanJual, tierBelanja.idTingkatHarga);
-    const saran =
-      x.tierDipilih &&
-      x.idTier !== tierBelanja.idTingkatHarga &&
-      hargaTierTransaksi !== undefined &&
-      hargaTierTransaksi > 0 &&
-      hargaTierTransaksi < x.hargaSatuan
-        ? tierBelanja.idTingkatHarga
-        : null;
-
     return {
       idBarang: b.idBarang,
       namaBarang: brg.namaBarang,
@@ -490,7 +454,6 @@ export async function hitungBarisJual(
       qty,
       qtyDasar,
       idTingkatHarga: x.idTier,
-      tierDipilih: x.tierDipilih,
       hargaSatuan: x.hargaSatuan,
       hargaManual: b.hargaManual,
       bruto,
@@ -510,7 +473,6 @@ export async function hitungBarisJual(
       hargaPembanding: b.hargaManual
         ? (hargaUntuk(b.idBarang, b.idSatuanJual, idDefault) ?? null)
         : null,
-      idTingkatHargaSaran: saran,
     };
   });
 

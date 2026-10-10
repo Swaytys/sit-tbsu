@@ -388,5 +388,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
   syarat belanja); tier qty dan promo tidak digabung (K-097).
 - 2026-10-10 — Tier harga menurut total nilai belanja transaksi untuk semua barang; promo dipotong dari harga
   tier; kotak "Cara kerja" di Harga Jual, Kelola tier, dan Promo (K-098).
+- 2026-10-10 — Persetujuan retur/void di tempat dan batas tanpa persetujuan, batalkan pengajuan, sisa retur
+  per baris; tier selalu otomatis; menu baris kasir, catatan order di kasir, pindah layar Alt+1/2/3 (K-099).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).

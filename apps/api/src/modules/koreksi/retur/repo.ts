@@ -47,8 +47,10 @@ const kolom = {
   metodeRefund: returPenjualan.metodeRefund,
   rekeningRefund: returPenjualan.rekeningRefund,
   referensiRefund: returPenjualan.referensiRefund,
+  idPengaju: returPenjualan.idPengaju,
   namaPengaju: pengaju.namaPengguna,
   namaPenyetuju,
+  caraPersetujuan: returPenjualan.caraPersetujuan,
   waktuPersetujuan: returPenjualan.waktuPersetujuan,
   catatan: returPenjualan.catatan,
 };
@@ -91,6 +93,39 @@ export async function byId(ex: Executor, id: number) {
   return b;
 }
 
+/** Semua retur atas sekumpulan penjualan, terbaru dulu (riwayat di form ajukan retur, K-099). */
+export function perPenjualan(ex: Executor, idPenjualan: number[]) {
+  if (idPenjualan.length === 0) return Promise.resolve([]);
+  return dasar(ex)
+    .where(inArray(returPenjualan.idPenjualan, idPenjualan))
+    .orderBy(desc(returPenjualan.tanggal), desc(returPenjualan.id));
+}
+
+/**
+ * Nilai retur yang sedang berjalan (MENUNGGU atau DISETUJUI) per penjualan, untuk batas tanpa persetujuan
+ * (K-099): batas dihitung per transaksi, bukan per dokumen, agar tidak diakali dengan memecah retur.
+ */
+export async function nilaiBerjalan(
+  ex: Executor,
+  idPenjualan: number[],
+): Promise<Map<number, number>> {
+  if (idPenjualan.length === 0) return new Map();
+  const baris = await ex
+    .select({
+      idPenjualan: returPenjualan.idPenjualan,
+      nilai: sql<number>`coalesce(sum(${returPenjualan.totalRetur}), 0)::bigint`.mapWith(Number),
+    })
+    .from(returPenjualan)
+    .where(
+      and(
+        inArray(returPenjualan.idPenjualan, idPenjualan),
+        inArray(returPenjualan.status, ['MENUNGGU', 'DISETUJUI']),
+      ),
+    )
+    .groupBy(returPenjualan.idPenjualan);
+  return new Map(baris.map((b) => [b.idPenjualan, b.nilai]));
+}
+
 export function detail(ex: Executor, idRetur: number[]) {
   if (idRetur.length === 0) return Promise.resolve([]);
   return ex
@@ -124,6 +159,7 @@ export async function kunci(tx: Tx, id: number) {
       id: returPenjualan.id,
       nomor: returPenjualan.nomor,
       idPenjualan: returPenjualan.idPenjualan,
+      idPengaju: returPenjualan.idPengaju,
       status: returPenjualan.status,
       penyelesaian: returPenjualan.penyelesaian,
       metodeRefund: returPenjualan.metodeRefund,

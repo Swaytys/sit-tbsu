@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { InputAngka } from '@/components/input-angka';
+import { InputRupiah } from '@/components/input-rupiah';
 import { Input } from '@/components/ui/input';
 import { KartuBagian } from './bagian';
 import { useSimpanPengaturan } from './use-simpan-pengaturan';
@@ -34,6 +35,8 @@ type KolomAngka = Exclude<
   | 'barisPerHalaman'
   | 'rekeningTransfer'
   | 'rekeningEdc'
+  | 'batasReturTanpaSetuju'
+  | 'batasVoidTanpaSetuju'
 >;
 
 const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: string }[] = [
@@ -206,6 +209,43 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
                 )}
               />
             ))}
+          </div>
+          {/* K-099: batas nilai retur/void yang boleh diproses Kasir tanpa atasan. */}
+          <div className="rounded-lg border p-3">
+            <p className="text-sm font-medium">Retur dan void tanpa persetujuan atasan</p>
+            <p className="text-muted-foreground text-sm">
+              Kasir boleh memproses sendiri retur/void sampai nilai ini per transaksi (retur atau
+              void sebelumnya atas transaksi yang sama ikut dihitung). Di atas nilai ini butuh
+              Admin/Owner, yang bisa menyetujui langsung di layar kasir dengan mengetik akunnya. Isi
+              Rp 0 bila semua retur/void harus disetujui atasan.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-4">
+              {(
+                [
+                  { nama: 'batasReturTanpaSetuju', label: 'Batas retur per transaksi' },
+                  { nama: 'batasVoidTanpaSetuju', label: 'Batas void per transaksi' },
+                ] as const
+              ).map((k) => (
+                <FormField
+                  key={k.nama}
+                  control={form.control}
+                  name={k.nama}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{k.label}</FormLabel>
+                      <FormControl>
+                        <InputRupiah
+                          {...field}
+                          onChange={(v) => field.onChange(v ?? 0)}
+                          placeholder="0 = selalu butuh atasan"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
           </div>
           <Saklar
             control={form.control}

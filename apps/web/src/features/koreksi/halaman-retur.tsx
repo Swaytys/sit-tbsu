@@ -1,10 +1,11 @@
 import {
+  bandingQty,
   formatRupiah,
   subtotalRupiah,
   POLA_QTY,
   type BarisRetur,
+  type DataAtasan,
   type DataSetujui,
-  type KandidatRetur,
   type KondisiRetur,
   type PenyelesaianRetur,
 } from '@sit/shared';
@@ -17,9 +18,11 @@ import { pesanGalat } from '@/api/client';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import {
   useAjukanRetur,
+  useBatalRetur,
   useDaftarRetur,
   useKandidatRetur,
   useSetujuiRetur,
+  useSetujuiReturDiTempat,
   useTolakRetur,
 } from '@/api/penjualan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
@@ -31,7 +34,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
-import { BadgePersetujuan, DialogPutuskan, IsianRefund } from './komponen';
+import {
+  BadgePersetujuan,
+  DialogAtasan,
+  DialogBatalPengajuan,
+  DialogPutuskan,
+  IsianRefund,
+  SelStatusKoreksi,
+} from './komponen';
 
 const ALASAN_CEPAT = [
   'Barang cacat / rusak',
@@ -57,28 +67,46 @@ function qtySah(q: string) {
   return POLA_QTY.test(q) && /[1-9]/.test(q);
 }
 
+const adaQty = (q: string) => /[1-9]/.test(q);
+
+function ringkasBaris(r: BarisRetur) {
+  return r.baris
+    .map((b) => `${b.namaBarang} ${formatDesimal(b.qtyRetur)} ${b.kodeSatuan}`)
+    .join(', ');
+}
+
 function FormAjukan() {
   const langsungSetuju = usePengguna().izin.includes('retur.setujui');
   const [cari, setCari] = useState('');
   const kandidat = useKandidatRetur(useTunda(cari, 300));
   const ajukan = useAjukanRetur();
-  const [pilih, setPilih] = useState<KandidatRetur | null>(null);
+  // Hanya id yang disimpan: isi transaksi (sisa qty, riwayat retur) selalu diambil dari data terbaru.
+  const [idPilih, setIdPilih] = useState<number | null>(null);
+  const pilih = (kandidat.data ?? []).find((k) => k.id === idPilih) ?? null;
   const [isi, setIsi] = useState<Isian>({});
   const [alasan, setAlasan] = useState('');
   const [penyelesaian, setPenyelesaian] = useState<PenyelesaianRetur>('REFUND');
   const [refund, setRefund] = useState<DataSetujui>({ metodeRefund: 'TUNAI' });
   const [catatan, setCatatan] = useState('');
+  const [mintaAtasan, setMintaAtasan] = useState(false);
 
   const baris = (pilih?.baris ?? [])
     .map((b) => ({ b, i: isi[b.id] }))
-    .filter((x) => x.i && qtySah(x.i.qty));
-  const nilai = baris.reduce((t, x) => t + subtotalRupiah(x.i!.qty, x.b.hargaSatuanEfektif), 0);
+    .filter((x) => x.i && qtySah(x.i.qty.replace(',', '.')));
+  const nilai = baris.reduce(
+    (t, x) => t + subtotalRupiah(x.i!.qty.replace(',', '.'), x.b.hargaSatuanEfektif),
+    0,
+  );
+  // Tampilan saja: batas yang berlaku tetap diperiksa API saat dikirim.
+  const melebihi = baris.some((x) => bandingQty(x.i!.qty.replace(',', '.'), x.b.qtyBisaRetur) > 0);
+  const tanpaAtasan = !langsungSetuju && nilai > 0 && nilai <= (pilih?.sisaBatasBebas ?? 0);
+  const langsung = langsungSetuju || tanpaAtasan;
 
   function ubahIsi(id: number, ubah: Partial<Isian[number]>) {
     setIsi((x) => ({ ...x, [id]: { qty: '', kondisi: 'BAIK', ...x[id], ...ubah } }));
   }
 
-  function kirim() {
+  function kirim(atasan: DataAtasan | null) {
     if (!pilih) return;
     ajukan
       .mutateAsync({
@@ -93,6 +121,7 @@ function FormAjukan() {
           keterangan: null,
         })),
         persetujuan: refund,
+        atasan,
       })
       .then((r) => {
         toast.success(
@@ -100,7 +129,8 @@ function FormAjukan() {
             ? `Retur ${r.nomor} disetujui; stok diperbarui.`
             : `Retur ${r.nomor} diajukan; menunggu persetujuan Admin/Owner.`,
         );
-        setPilih(null);
+        // Transaksi tetap terpilih: sisa qty dan riwayat returnya langsung tampil.
+        setMintaAtasan(false);
         setIsi({});
         setAlasan('');
         setCatatan('');
@@ -129,7 +159,7 @@ function FormAjukan() {
               <button
                 type="button"
                 onClick={() => {
-                  setPilih(k);
+                  setIdPilih(k.id);
                   setIsi({});
                 }}
                 className={cn(
@@ -143,6 +173,7 @@ function FormAjukan() {
                 </div>
                 <div className="truncate text-xs text-slate-500">
                   {formatWaktu(k.tanggal)} · {k.namaPembeli ?? 'Pembeli umum'}
+                  {k.retur.length > 0 && ` · ${k.retur.length} retur`}
                 </div>
               </button>
             </li>
@@ -162,43 +193,94 @@ function FormAjukan() {
             <h2 className="font-semibold">
               {pilih.nomor} · {pilih.namaPembeli ?? 'Pembeli umum'}
             </h2>
+            {pilih.retur.length > 0 && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-sm">
+                <div className="font-medium text-amber-900">
+                  Transaksi ini sudah punya {pilih.retur.length} retur
+                </div>
+                <ul className="mt-1 space-y-0.5 text-xs text-slate-700">
+                  {pilih.retur.map((r) => (
+                    <li key={r.id} className="flex flex-wrap items-center gap-x-2">
+                      <span className="font-mono">{r.nomor}</span>
+                      <span>{formatWaktu(r.tanggal)}</span>
+                      <BadgePersetujuan status={r.status} />
+                      <span>{r.ringkasan}</span>
+                      <span className="tabular-nums">{formatRupiah(r.totalRetur)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-xs text-slate-600">
+                  Kolom <b>Sisa</b> di bawah sudah dikurangi retur yang disetujui dan yang masih
+                  menunggu. Retur yang sudah disetujui tidak bisa diubah; yang masih menunggu bisa
+                  dibatalkan di tab Menunggu persetujuan.
+                </p>
+              </div>
+            )}
             <p className="text-xs text-slate-500">
-              Isi qty retur barang yang dikembalikan; biarkan kosong untuk yang tidak diretur.
+              Isi qty retur barang yang dikembalikan (paling banyak sebesar kolom Sisa); biarkan
+              kosong untuk yang tidak diretur.
             </p>
             <table className="w-full text-sm">
               <thead className="text-xs text-slate-500">
                 <tr>
                   <th className="py-1 text-left">Barang</th>
-                  <th className="py-1 text-right">Qty beli</th>
-                  <th className="py-1 text-right">Harga</th>
+                  <th className="px-2 py-1 text-right">Dibeli</th>
+                  <th className="px-2 py-1 text-right">Sudah diretur</th>
+                  <th className="px-2 py-1 text-right">Sisa</th>
+                  <th className="px-2 py-1 text-right">Harga</th>
                   <th className="w-24 py-1 text-right">Qty retur</th>
                   <th className="w-44 py-1">Kondisi</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {pilih.baris.map((b) => {
-                  const bisa = /[1-9]/.test(b.qtyBisaRetur);
+                  const bisa = adaQty(b.qtyBisaRetur);
+                  const diisi = isi[b.id]?.qty.replace(',', '.') ?? '';
+                  const lebih = qtySah(diisi) && bandingQty(diisi, b.qtyBisaRetur) > 0;
                   return (
                     <tr key={b.id} className={bisa ? '' : 'text-slate-400'}>
-                      <td className="py-1.5">{b.namaBarang}</td>
-                      <td className="py-1.5 text-right tabular-nums">
+                      <td className="py-1.5">
+                        {b.namaBarang}
+                        {b.statusItem === 'VOID' && <span className="text-xs"> (void)</span>}
+                      </td>
+                      <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                         {formatDesimal(b.qty)} {b.kodeSatuan}
-                        {b.qtyBisaRetur !== b.qty && (
-                          <div className="text-xs">bisa {formatDesimal(b.qtyBisaRetur)}</div>
+                      </td>
+                      <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
+                        {adaQty(b.qtyDiretur)
+                          ? `${formatDesimal(b.qtyDiretur)} ${b.kodeSatuan}`
+                          : '—'}
+                        {adaQty(b.qtyMenunggu) && (
+                          <div className="text-xs text-amber-700">
+                            + {formatDesimal(b.qtyMenunggu)} menunggu
+                          </div>
                         )}
                       </td>
-                      <td className="py-1.5 text-right tabular-nums">
+                      <td
+                        className="px-2 py-1.5 text-right font-semibold whitespace-nowrap tabular-nums"
+                        data-testid={`sisa-retur-${b.id}`}
+                      >
+                        {bisa ? `${formatDesimal(b.qtyBisaRetur)} ${b.kodeSatuan}` : 'habis'}
+                      </td>
+                      <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                         {formatRupiah(b.hargaSatuanEfektif)}
                       </td>
-                      <td className="py-1.5">
+                      <td className="py-1.5 pl-2">
                         <Input
-                          className="h-8 text-right"
+                          className={cn('h-8 text-right', lebih && 'border-red-500')}
                           inputMode="decimal"
                           disabled={!bisa}
+                          placeholder={bisa ? `maks. ${formatDesimal(b.qtyBisaRetur)}` : ''}
                           aria-label={`Qty retur ${b.namaBarang}`}
+                          aria-invalid={lebih}
                           value={isi[b.id]?.qty ?? ''}
                           onChange={(e) => ubahIsi(b.id, { qty: e.target.value })}
                         />
+                        {lebih && (
+                          <div className="text-right text-xs text-red-600">
+                            maksimal {formatDesimal(b.qtyBisaRetur)}
+                          </div>
+                        )}
                       </td>
                       <td className="py-1.5 pl-2">
                         <select
@@ -279,9 +361,7 @@ function FormAjukan() {
               <IsianRefund
                 nilai={refund}
                 onUbah={setRefund}
-                labelTunai={
-                  langsungSetuju ? 'Tunai (laci shift saya)' : 'Tunai (dari laci penyetuju)'
-                }
+                labelTunai={langsung ? 'Tunai (laci shift saya)' : 'Tunai'}
               />
             )}
             <Input
@@ -299,17 +379,37 @@ function FormAjukan() {
                 {formatRupiah(nilai)}
               </span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500" data-testid="info-persetujuan">
               {langsungSetuju
                 ? 'Anda berhak menyetujui: retur langsung berlaku.'
-                : 'Membutuhkan otorisasi dari Admin/Owner. Stok barang bertambah setelah retur disetujui.'}
+                : tanpaAtasan
+                  ? `Nilai retur masih di dalam batas tanpa persetujuan (sisa ${formatRupiah(pilih.sisaBatasBebas)} untuk transaksi ini): retur langsung berlaku dan tercatat atas nama Anda.`
+                  : 'Butuh persetujuan Admin/Owner. Atasan bisa menyetujui di layar ini sekarang, atau retur diajukan dan menunggu. Stok dan uang baru berubah setelah disetujui.'}
             </p>
             <Button
-              disabled={baris.length === 0 || alasan.trim().length < 3 || ajukan.isPending}
-              onClick={kirim}
+              disabled={
+                baris.length === 0 || melebihi || alasan.trim().length < 3 || ajukan.isPending
+              }
+              onClick={() => (langsung ? kirim(null) : setMintaAtasan(true))}
             >
-              {langsungSetuju ? 'Proses retur' : 'Ajukan retur'}
+              {langsung ? 'Proses retur' : 'Lanjut: minta persetujuan'}
             </Button>
+            {mintaAtasan && (
+              <DialogAtasan
+                judul={`Persetujuan retur ${pilih.nomor}`}
+                ringkasan={
+                  <>
+                    {baris.map((x) => `${x.b.namaBarang} ${x.i!.qty} ${x.b.kodeSatuan}`).join(', ')}{' '}
+                    — <b>{formatRupiah(nilai)}</b>, {LABEL_PENYELESAIAN[penyelesaian].toLowerCase()}
+                    . Alasan: {alasan}.
+                  </>
+                }
+                memproses={ajukan.isPending}
+                onSetujui={kirim}
+                onAjukanSaja={() => kirim(null)}
+                onTutup={() => setMintaAtasan(false)}
+              />
+            )}
           </>
         )}
       </Card>
@@ -318,13 +418,20 @@ function FormAjukan() {
 }
 
 function Daftar({ menunggu }: { menunggu: boolean }) {
-  const bolehPutus = usePengguna().izin.includes('retur.setujui');
+  const saya = usePengguna();
+  const bolehPutus = saya.izin.includes('retur.setujui');
   const [halaman, setHalaman] = useState(1);
   const perHalaman = useBarisPerHalaman();
   const daftar = useDaftarRetur({ status: menunggu ? 'MENUNGGU' : null, halaman, perHalaman });
   const setujui = useSetujuiRetur();
+  const setujuiDiTempat = useSetujuiReturDiTempat();
   const tolak = useTolakRetur();
+  const batal = useBatalRetur();
   const [putus, setPutus] = useState<BarisRetur | null>(null);
+  const [diTempat, setDiTempat] = useState<BarisRetur | null>(null);
+  const [refundDiTempat, setRefundDiTempat] = useState<DataSetujui>({ metodeRefund: null });
+  const [dibatalkan, setDibatalkan] = useState<BarisRetur | null>(null);
+
   const kolom: KolomTabel<BarisRetur>[] = [
     {
       kunci: 'nomor',
@@ -340,10 +447,14 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
     {
       kunci: 'barang',
       judul: 'Barang',
+      className: 'whitespace-normal',
       sel: (r) => (
         <span className="text-xs">
           {r.baris
-            .map((b) => `${b.namaBarang} ${formatDesimal(b.qtyRetur)} (${b.kondisi.toLowerCase()})`)
+            .map(
+              (b) =>
+                `${b.namaBarang} ${formatDesimal(b.qtyRetur)} ${b.kodeSatuan} (${b.kondisi.toLowerCase()})`,
+            )
             .join(', ')}
         </span>
       ),
@@ -364,31 +475,57 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
     {
       kunci: 'status',
       judul: 'Status',
-      sel: (r) => (
-        <div>
-          <BadgePersetujuan status={r.status} />
-          {r.namaPenyetuju && <div className="text-xs text-slate-500">{r.namaPenyetuju}</div>}
-          {r.alasanPenolakan && <div className="text-xs text-red-600">{r.alasanPenolakan}</div>}
-          {r.catatan && <div className="text-xs text-slate-500">{r.catatan}</div>}
-        </div>
-      ),
+      sel: (r) => <SelStatusKoreksi {...r} />,
     },
-    ...(menunggu && bolehPutus
+    ...(menunggu
       ? [
           {
             kunci: 'aksi',
             judul: <span className="sr-only">Aksi</span>,
             sel: (r: BarisRetur) => (
-              <Button size="sm" onClick={() => setPutus(r)}>
-                Putuskan
-              </Button>
+              <div className="flex justify-end gap-1.5">
+                {bolehPutus ? (
+                  <Button size="sm" onClick={() => setPutus(r)}>
+                    Putuskan
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setRefundDiTempat({ metodeRefund: r.metodeRefund });
+                      setDiTempat(r);
+                    }}
+                  >
+                    Setujui di tempat
+                  </Button>
+                )}
+                {(bolehPutus || r.idPengaju === saya.id) && (
+                  <Button size="sm" variant="outline" onClick={() => setDibatalkan(r)}>
+                    Batalkan
+                  </Button>
+                )}
+              </div>
             ),
           },
         ]
       : []),
   ];
+  const ringkasan = (r: BarisRetur) => (
+    <>
+      {ringkasBaris(r)} — <b>{formatRupiah(r.totalRetur)}</b>,{' '}
+      {LABEL_PENYELESAIAN[r.penyelesaian].toLowerCase()}
+      {r.metodeRefund && ` (${r.metodeRefund.toLowerCase()})`}. Alasan: {r.alasan}. Diajukan{' '}
+      {r.namaPengaju}.
+    </>
+  );
   return (
     <Card className="gap-0 overflow-hidden py-0">
+      {menunggu && !bolehPutus && (
+        <p className="border-b bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          Retur di bawah menunggu Admin/Owner. <b>Setujui di tempat</b>: atasan mengetik akunnya di
+          layar ini. <b>Batalkan</b>: tarik pengajuan Anda yang salah input, lalu ajukan lagi.
+        </p>
+      )}
       <DataTable
         kolom={kolom}
         data={daftar.data?.data}
@@ -403,15 +540,7 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
       {putus && (
         <DialogPutuskan
           judul={`Retur ${putus.nomor} (${putus.nomorPenjualan})`}
-          ringkasan={
-            <>
-              {putus.baris.map((b) => `${b.namaBarang} ${formatDesimal(b.qtyRetur)}`).join(', ')} —{' '}
-              <b>{formatRupiah(putus.totalRetur)}</b>,{' '}
-              {LABEL_PENYELESAIAN[putus.penyelesaian].toLowerCase()}
-              {putus.metodeRefund && ` (${putus.metodeRefund.toLowerCase()})`}. Alasan:{' '}
-              {putus.alasan}.
-            </>
-          }
+          ringkasan={ringkasan(putus)}
           memproses={setujui.isPending || tolak.isPending}
           onTutup={() => setPutus(null)}
           onSetujui={(json) =>
@@ -434,6 +563,44 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
           }
         />
       )}
+      {diTempat && (
+        <DialogAtasan
+          judul={`Persetujuan retur ${diTempat.nomor}`}
+          ringkasan={ringkasan(diTempat)}
+          memproses={setujuiDiTempat.isPending}
+          isianRefund={
+            diTempat.penyelesaian === 'REFUND'
+              ? { nilai: refundDiTempat, onUbah: setRefundDiTempat }
+              : undefined
+          }
+          onTutup={() => setDiTempat(null)}
+          onSetujui={(atasan) =>
+            void setujuiDiTempat
+              .mutateAsync({ id: diTempat.id, json: { ...refundDiTempat, atasan } })
+              .then((r) => {
+                toast.success(`Retur ${r.nomor} disetujui ${r.namaPenyetuju ?? 'atasan'}.`);
+                setDiTempat(null);
+              })
+              .catch((err: unknown) => toast.error(pesanGalat(err)))
+          }
+        />
+      )}
+      {dibatalkan && (
+        <DialogBatalPengajuan
+          judul={`Batalkan pengajuan retur ${dibatalkan.nomor}?`}
+          memproses={batal.isPending}
+          onTutup={() => setDibatalkan(null)}
+          onBatal={(alasan) =>
+            void batal
+              .mutateAsync({ id: dibatalkan.id, alasan })
+              .then((r) => {
+                toast.success(`Pengajuan retur ${r.nomor} dibatalkan.`);
+                setDibatalkan(null);
+              })
+              .catch((err: unknown) => toast.error(pesanGalat(err)))
+          }
+        />
+      )}
     </Card>
   );
 }
@@ -441,7 +608,6 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
 /** Transaksi › Retur Penjualan (docs/05 §8, mockup Retur Penjualan). */
 export function HalamanRetur() {
   const [url, setUrl] = useSearchParams();
-  const bolehPutus = usePengguna().izin.includes('retur.setujui');
   const tab = url.get('tab') ?? 'ajukan';
   return (
     <div className="space-y-4 p-6">
@@ -454,17 +620,15 @@ export function HalamanRetur() {
       <Tabs value={tab} onValueChange={(v) => setUrl({ tab: v }, { replace: true })}>
         <TabsList>
           <TabsTrigger value="ajukan">Ajukan retur</TabsTrigger>
-          {bolehPutus && <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>}
+          <TabsTrigger value="persetujuan">Menunggu persetujuan</TabsTrigger>
           <TabsTrigger value="riwayat">Riwayat retur</TabsTrigger>
         </TabsList>
         <TabsContent value="ajukan">
           <FormAjukan />
         </TabsContent>
-        {bolehPutus && (
-          <TabsContent value="persetujuan">
-            <Daftar menunggu />
-          </TabsContent>
-        )}
+        <TabsContent value="persetujuan">
+          <Daftar menunggu />
+        </TabsContent>
         <TabsContent value="riwayat">
           <Daftar menunggu={false} />
         </TabsContent>

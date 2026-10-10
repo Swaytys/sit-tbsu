@@ -578,8 +578,8 @@ function FormBarang({
                       </Select>
                       <FormDescription>
                         {barang?.sudahAdaMutasi
-                          ? 'Dikunci: sudah ada mutasi stok.'
-                          : 'Satuan tempat stok dicatat.'}
+                          ? 'Tidak bisa diganti: barang ini sudah punya catatan stok.'
+                          : 'Satuan terkecil yang dijual; stok dihitung dalam satuan ini.'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -622,7 +622,9 @@ function FormBarang({
                         </SelectContent>
                       </Select>
                       {adaStok && (
-                        <FormDescription>Dikunci selama barang masih punya stok.</FormDescription>
+                        <FormDescription>
+                          Tidak bisa diganti selama barang masih punya stok.
+                        </FormDescription>
                       )}
                       <FormMessage />
                     </FormItem>
@@ -703,10 +705,10 @@ function FormBarang({
                         )}
                         <FormDescription>
                           {barang?.sudahAdaMutasi
-                            ? 'Dikunci: HPP sekarang mengikuti penerimaan.'
+                            ? 'Tidak bisa diubah lagi: sejak ada penerimaan barang, harga modal dihitung dari harga beli.'
                             : modalBelumTahu
-                              ? 'Harga yang ikut markup terisi sendiri setelah penerimaan pertama. Sebelum itu barang belum bisa dijual, kecuali harganya diisi Rp.'
-                              : 'Dasar HPP dan markup sebelum ada penerimaan.'}
+                              ? 'Harga jual akan terisi sendiri dari harga beli saat penerimaan barang pertama dicatat. Bila ingin menetapkan harga jual sekarang, pilih "Harga tetap (Rp)" di kotak Harga jual.'
+                              : 'Harga beli per satuan dasar. Dipakai menghitung harga jual (modal + markup) dan laba sampai ada penerimaan barang.'}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1084,7 +1086,8 @@ function FormBarang({
             </div>
             {barang?.sudahAdaMutasi && (
               <p className="flex items-center gap-1.5 text-xs text-slate-500">
-                <Lock className="size-3" /> Beberapa isian dikunci karena sudah ada mutasi stok.
+                <Lock className="size-3" /> Beberapa isian tidak bisa diubah karena barang ini sudah
+                punya catatan stok (penerimaan, penjualan, atau penyesuaian).
               </p>
             )}
           </div>

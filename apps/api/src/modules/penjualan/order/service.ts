@@ -24,6 +24,7 @@ import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahJam, tambahMenit, tanggalOperasional } from '../../../lib/waktu';
 import { ubahReservasi, type PerubahanReservasi } from '../../persediaan/ledger';
 import { hargaBarangDasar } from '../../master/harga/repo';
+import { atributPerBarang } from '../../master/barang/service';
 import { muatSatuanJual, opsiSatuan } from '../../master/satuan-jual/service';
 import { ambilAngka, ambilTeks } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
@@ -64,6 +65,7 @@ function keRespons(h: Header, basiSebelum: Date, ringkasan: RingkasBarisOrder[])
       h.status === 'MENUNGGU' && h.waktuMasukAntrean !== null && h.waktuMasukAntrean < basiSebelum,
     noAntrean: nomorAntrean(h.nomor),
     ringkasan,
+    catatan: h.catatan,
   };
 }
 
@@ -132,6 +134,7 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
   }
   // K-091: pilihan satuan per baris dan harga tier untuk satuan baris.
   const satuanJual = await muatSatuanJual(db, idBarang);
+  const atribut = await atributPerBarang(idBarang);
   const menahan = h.status === 'MENUNGGU' || h.status === 'DIPROSES';
   return {
     ...keRespons(
@@ -141,7 +144,6 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
     ),
     alamatKirim: h.alamatKirim,
     catatanKirim: h.catatanKirim,
-    catatan: h.catatan,
     alasanBatal: h.alasanBatal,
     idPenjualan: h.idPenjualan,
     subtotal: h.subtotal,
@@ -160,6 +162,7 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
         stokTersedia: keQty(menahan ? tambahQty(r.stokTersedia, r.qtyDasar) : r.stokTersedia),
         hargaTier: opsi.find((o) => o.idSatuanJual === r.idSatuanJual)?.hargaTier ?? [],
         opsiSatuan: opsi,
+        ringkasAtribut: atribut.get(r.idBarang) ?? [],
       };
     }),
   };
@@ -204,7 +207,6 @@ function nilaiDetail(h: HasilHarga) {
     qty: b.qty,
     qtyDasar: b.qtyDasar,
     idTingkatHarga: b.idTingkatHarga,
-    tierDipilih: b.tierDipilih,
     hargaSatuan: b.hargaSatuan,
     hargaManual: b.hargaManual,
     diskonBaris: b.diskonBaris,
@@ -478,7 +480,6 @@ export async function pratinjauOrder(
         idBarang: b.idBarang,
         idSatuanJual: b.idSatuanJual,
         idTingkatHarga: b.idTingkatHarga,
-        tierDipilih: b.tierDipilih,
         hargaSatuan: b.hargaSatuan,
         bruto: b.bruto,
         idPromo: b.idPromo,
@@ -491,7 +492,6 @@ export async function pratinjauOrder(
         promoDitolak: b.promoDitolak,
         diskonBaris: b.diskonBaris,
         subtotal: b.subtotal,
-        idTingkatHargaSaran: b.idTingkatHargaSaran,
       })),
       tierBelanja: harga.tierBelanja,
       totalBruto: harga.totalBruto,

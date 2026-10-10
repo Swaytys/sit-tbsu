@@ -180,8 +180,8 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
                   <InputRupiah {...field} placeholder="mis. 1.000.000" />
                 </FormControl>
                 <FormDescription className="text-xs">
-                  Total belanja satu transaksi agar tier ini dipakai otomatis. Kosongkan bila hanya
-                  boleh dipilih kasir.
+                  Wajib diisi: total belanja satu transaksi agar tier ini dipakai otomatis untuk
+                  semua barang.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -212,43 +212,46 @@ export function DialogTier({ onTutup }: { onTutup: () => void }) {
     <Dialog open onOpenChange={(buka) => !buka && onTutup()}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Kelola tier harga</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            Kelola tier harga
+            <Penjelasan judul="Cara kerja tier harga">
+              <ButirPenjelasan>
+                <li>
+                  <b>Harga dasar</b>
+                  {dasar ? ` (${dasar.nama})` : ''} dipakai semua transaksi. Tier ini selalu ada:
+                  tidak bisa dinonaktifkan atau dipindah ke tier lain, tetapi nama dan markup-nya
+                  boleh diubah.
+                </li>
+                <li>
+                  Tier lain dipakai <b>otomatis untuk semua barang</b> begitu total belanja satu
+                  transaksi mencapai <b>Mulai belanja</b>-nya. Total belanja dihitung dengan harga
+                  dasar, sebelum promo dan diskon. Bila beberapa tier tercapai, dipakai yang syarat
+                  belanjanya paling besar.
+                </li>
+                <li>
+                  <b>Markup</b> = persen keuntungan di atas harga modal. Harga tier = harga modal +
+                  markup, dibulatkan ke atas, dan berlaku untuk semua barang tanpa kecuali.
+                </li>
+                <li>
+                  Setiap tier selain harga dasar wajib punya <b>Mulai belanja</b>. Tier tidak bisa
+                  dipilih sendiri di kasir; pengecualian harga hanya lewat Promo, atau Harga manual
+                  (khusus Admin/Owner, tercatat di log).
+                </li>
+                <li>
+                  Setelah markup diubah, harga yang naik langsung berlaku (barang berharga
+                  otomatis), sedangkan harga yang turun menunggu persetujuan di tab Tinjau Harga.
+                </li>
+                <li>
+                  Potongan promo dihitung dari harga tier. Harga khusus untuk barang, pelanggan,
+                  atau masa tertentu diatur di menu Promo.
+                </li>
+              </ButirPenjelasan>
+            </Penjelasan>
+          </DialogTitle>
           <DialogDescription>
             Tier harga menentukan harga jual semua barang menurut total belanja satu transaksi.
           </DialogDescription>
         </DialogHeader>
-        <Penjelasan kunci="kelola-tier" judul="Cara kerja tier harga">
-          <ButirPenjelasan>
-            <li>
-              <b>Harga dasar</b>
-              {dasar ? ` (${dasar.nama})` : ''} dipakai semua transaksi. Tier ini selalu ada: tidak
-              bisa dinonaktifkan atau dipindah ke tier lain, tetapi nama dan markup-nya boleh
-              diubah.
-            </li>
-            <li>
-              Tier lain dipakai <b>otomatis untuk semua barang</b> begitu total belanja satu
-              transaksi mencapai <b>Mulai belanja</b>-nya. Total belanja dihitung dengan harga
-              dasar, sebelum promo dan diskon. Bila beberapa tier tercapai, dipakai yang syarat
-              belanjanya paling besar.
-            </li>
-            <li>
-              <b>Markup</b> = persen keuntungan di atas harga modal. Harga tier = harga modal +
-              markup, dibulatkan ke atas, dan berlaku untuk semua barang tanpa kecuali.
-            </li>
-            <li>
-              Tier tanpa <b>Mulai belanja</b> tidak pernah otomatis; hanya dipakai bila kasir
-              memilihnya di transaksi.
-            </li>
-            <li>
-              Setelah markup diubah, harga yang naik langsung berlaku (barang berharga otomatis),
-              sedangkan harga yang turun menunggu persetujuan di tab Tinjau Harga.
-            </li>
-            <li>
-              Potongan promo dihitung dari harga tier. Harga khusus untuk barang, pelanggan, atau
-              masa tertentu diatur di menu Promo.
-            </li>
-          </ButirPenjelasan>
-        </Penjelasan>
         <Table>
           <TableHeader>
             <TableRow>

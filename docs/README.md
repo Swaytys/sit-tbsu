@@ -73,7 +73,7 @@ Jangan pakai mode auto-accept.
 | CLAUDE.md | Final v1 | 2026-09-19 |
 | 01-ikhtisar-sistem.md | Final v1 (§5.1 alur cepat order → kasir, K-073; laporan Fase 9) | 2026-10-04 |
 | 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073; dokumen laporan, K-078; deploy & cadangan, K-082–K-084) | 2026-10-04 |
-| 03-skema-database-v3 (.md + .sql) | Final v3.10 (.sql = v3.1 migrasi 0000; v3.2–v3.10 lewat migrasi 0001–0012) | 2026-10-10 |
+| 03-skema-database-v3 (.md + .sql) | Final v3.11 (.sql = v3.1 migrasi 0000; v3.2–v3.11 lewat migrasi 0001–0013) | 2026-10-10 |
 | 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086; menu Fase 10, K-088) | 2026-10-07 |
 | 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH; §14 tukar retur netral, K-079; L6 → H5/H7, K-086; A5 MUSNAH, K-088; V1 setoran, K-089) | 2026-10-07 |
 | 06-harga-piutang-hutang.md | Final v1 (H4–H8, H12, D1–D2, PR3–PR7, HT7 dirinci, K-086–K-087; PT5–PT6, HT2–HT3, RP5, SR4, K-088; KS5–KS6, K-089) | 2026-10-07 |

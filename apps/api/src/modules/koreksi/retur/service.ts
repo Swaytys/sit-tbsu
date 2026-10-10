@@ -11,6 +11,7 @@ import {
   tambahQty,
   type BarisRetur,
   type DaftarRetur,
+  type DataAtasan,
   type DataRetur,
   type DataSetujui,
   type KandidatRetur,
@@ -21,19 +22,34 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tanggalOperasional } from '../../../lib/waktu';
+import { verifikasiAtasan } from '../../auth/service';
 import { catatMutasi } from '../../persediaan/ledger';
 import { hitungTagihan } from '../../penjualan/pembayaran';
 import * as pjRepo from '../../penjualan/penjualan/repo';
+import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
-import { catatRefund, simpanTagihan } from '../umum';
+import {
+  catatRefund,
+  pastikanBolehBatal,
+  persetujuanAkunAtasan,
+  persetujuanDiTempat,
+  persetujuanLangsung,
+  simpanTagihan,
+  type Persetujuan,
+} from '../umum';
 import * as repo from './repo';
 
 /*
- * Retur penjualan (docs/05 §8 T1–T10, docs/04 §6). Pengajuan Kasir → MENUNGGU; Admin/Owner langsung DISETUJUI
- * (K-017). Efek hanya saat DISETUJUI: barang masuk stok (BAIK) atau bucket rusak (RUSAK/CACAT), lalu
- * penyelesaian REFUND / TUKAR_BARANG / POTONG_TAGIHAN.
+ * Retur penjualan (docs/05 §8 T1–T10, docs/04 §6). Pengajuan Kasir → MENUNGGU, kecuali disetujui atasan di
+ * tempat atau nilainya di bawah batas bebas (K-099); Admin/Owner langsung DISETUJUI (K-017). Efek hanya saat
+ * DISETUJUI: barang masuk stok (BAIK) atau bucket rusak (RUSAK/CACAT), lalu penyelesaian REFUND /
+ * TUKAR_BARANG / POTONG_TAGIHAN. Retur yang sudah disetujui tidak bisa diubah atau dibalik; pengajuan yang
+ * masih MENUNGGU bisa dibatalkan pengajunya.
  */
+
+/** K-099: nilai retur per transaksi yang boleh diproses tanpa atasan (0 = selalu butuh persetujuan). */
+const KUNCI_BATAS_BEBAS = 'batas_retur_tanpa_persetujuan';
 
 type Header = NonNullable<Awaited<ReturnType<typeof repo.byId>>>;
 
@@ -96,6 +112,10 @@ export async function kandidatRetur(cari: string): Promise<KandidatRetur[]> {
   )) {
     barisPer.set(b.idPenjualan, [...(barisPer.get(b.idPenjualan) ?? []), b]);
   }
+  const idPj = rows.map((r) => r.id);
+  const batas = await ambilAngka(KUNCI_BATAS_BEBAS, 0);
+  const berjalan = await repo.nilaiBerjalan(db, idPj);
+  const riwayat = await keRespons(await repo.perPenjualan(db, idPj));
   for (const r of rows) {
     const baris = barisPer.get(r.id) ?? [];
     hasil.push({
@@ -108,16 +128,31 @@ export async function kandidatRetur(cari: string): Promise<KandidatRetur[]> {
       totalNeto: r.totalNeto,
       sisaTagihan: r.sisaTagihan ?? 0,
       dibayarBersih: r.totalDibayar - r.totalRefund,
+      sisaBatasBebas: Math.max(0, batas - (berjalan.get(r.id) ?? 0)),
       baris: baris.map((b) => ({
         id: b.id,
         namaBarang: b.namaBarang,
         kodeSatuan: b.kodeSatuan,
         qty: b.qty,
         // K-091: dalam satuan baris (satuan jual), dihitung dari satuan dasar.
+        qtyDiretur: bagiQty(b.qtyReturDasar, b.faktor),
+        qtyMenunggu: bagiQty(b.qtyMenunggu, b.faktor),
         qtyBisaRetur: bagiQty(bisaRetur(b), b.faktor),
         hargaSatuanEfektif: hargaSatuanEfektif(b.subtotal, b.qty),
         statusItem: b.statusItem,
       })),
+      retur: riwayat
+        .filter((x) => x.idPenjualan === r.id)
+        .map((x) => ({
+          id: x.id,
+          nomor: x.nomor,
+          tanggal: x.tanggal,
+          status: x.status,
+          totalRetur: x.totalRetur,
+          ringkasan: x.baris
+            .map((b) => `${b.namaBarang} ${teksQty(b.qtyRetur)} ${b.kodeSatuan}`)
+            .join(', '),
+        })),
     });
   }
   return hasil;
@@ -136,6 +171,12 @@ export async function ajukanRetur(
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<BarisRetur> {
+  const berwenang = pelaku.izin.has('retur.setujui');
+  // Akun atasan diperiksa di luar transaksi dokumen agar hitungan gagalnya tidak ikut dibatalkan.
+  const atasan =
+    !berwenang && input.atasan
+      ? await verifikasiAtasan(input.atasan, 'retur.setujui', pelaku, asal)
+      : null;
   const id = await dalamTransaksi(async (tx) => {
     const pj = await pjRepo.kunciPenjualan(tx, input.idPenjualan);
     if (!pj) throw new AppError('TIDAK_DITEMUKAN', 'Penjualan tidak ditemukan.', 404);
@@ -194,6 +235,15 @@ export async function ajukanRetur(
         409,
       );
     }
+    // K-099: batas bebas dihitung per transaksi (retur sebelumnya ikut dijumlah), sebelum dokumen ini ditulis.
+    const batas = await ambilAngka(KUNCI_BATAS_BEBAS, 0, tx);
+    const berjalan = (await repo.nilaiBerjalan(tx, [pj.id])).get(pj.id) ?? 0;
+    const langsung = persetujuanLangsung({
+      pengaju: pelaku,
+      berwenang,
+      atasan,
+      batasBebas: batas > 0 && berjalan + total <= batas ? batas : null,
+    });
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, 'RTR', tanggal);
     const p = input.persetujuan;
@@ -236,9 +286,9 @@ export async function ajukanRetur(
       ringkasan: `Ajukan retur ${pj.nomor} (${input.penyelesaian.toLowerCase().replace('_', ' ')}): ${isi.length} barang, ${formatRupiah(total)} — ${input.alasan}`,
       ip: asal.ip,
     });
-    if (pelaku.izin.has('retur.setujui')) {
-      const h = await terapkan(tx, idRetur, input.persetujuan, pelaku);
-      await logSetujui(tx, idRetur, nomor, h, pelaku, asal, true);
+    if (langsung) {
+      const h = await terapkan(tx, idRetur, input.persetujuan, langsung);
+      await logSetujui(tx, idRetur, nomor, h, langsung, asal);
     }
     return idRetur;
   });
@@ -246,7 +296,7 @@ export async function ajukanRetur(
 }
 
 /** T4–T8: efek retur yang disetujui, dalam transaksi pemanggil. */
-async function terapkan(tx: Tx, idRetur: number, persetujuan: DataSetujui, pelaku: PenggunaAktif) {
+async function terapkan(tx: Tx, idRetur: number, persetujuan: DataSetujui, oleh: Persetujuan) {
   const r = await repo.kunci(tx, idRetur);
   if (!r) throw new AppError('TIDAK_DITEMUKAN', 'Retur tidak ditemukan.', 404);
   const pj = await pjRepo.kunciPenjualan(tx, r.idPenjualan);
@@ -257,7 +307,7 @@ async function terapkan(tx: Tx, idRetur: number, persetujuan: DataSetujui, pelak
   const tukar = r.penyelesaian === 'TUKAR_BARANG';
   const tanggal = tanggalOperasional();
   const umum = {
-    idPengguna: pelaku.id,
+    idPengguna: oleh.idPenyetuju,
     tanggalOperasional: tanggal,
     keterangan: `Retur ${r.nomor} (${pj.nomor})`,
   };
@@ -334,7 +384,7 @@ async function terapkan(tx: Tx, idRetur: number, persetujuan: DataSetujui, pelak
       idShift = await catatRefund(tx, {
         nominal: refund,
         persetujuan: setuju,
-        pelaku,
+        pelaku: oleh.kasir,
         jenis: 'REFUND_RETUR',
         nomorDokumen: r.nomor,
         nomorPenjualan: pj.nomor,
@@ -350,7 +400,8 @@ async function terapkan(tx: Tx, idRetur: number, persetujuan: DataSetujui, pelak
   const waktu = sekarang();
   await repo.ubahHeader(tx, idRetur, {
     status: 'DISETUJUI',
-    idPenyetuju: pelaku.id,
+    idPenyetuju: oleh.idPenyetuju,
+    caraPersetujuan: oleh.cara,
     waktuPersetujuan: waktu,
     totalRetur: tukar ? dokumen : nilaiRetur,
     ...(r.penyelesaian === 'REFUND'
@@ -372,13 +423,12 @@ async function logSetujui(
   idRetur: number,
   nomor: string,
   h: Awaited<ReturnType<typeof terapkan>>,
-  pelaku: PenggunaAktif,
+  oleh: Persetujuan,
   asal: AsalRequest,
-  otomatis: boolean,
 ) {
   await catatLog(tx, {
     aksi: 'RETUR_SETUJUI',
-    idPengguna: pelaku.id,
+    idPengguna: oleh.idPenyetuju,
     entitas: 'retur_penjualan',
     idEntitas: idRetur,
     nomorDokumen: nomor,
@@ -386,15 +436,15 @@ async function logSetujui(
       `Setujui retur ${nomor} (${h.nomorPenjualan}): ${formatRupiah(h.nilaiRetur)}` +
       (h.tukar ? ', tukar barang' : '') +
       (h.refund > 0 ? `, refund ${formatRupiah(h.refund)}` : '') +
-      (otomatis ? ' (diajukan & disetujui sendiri, K-017)' : ''),
+      oleh.catatanLog,
     ip: asal.ip,
   });
 }
 
-export async function setujuiRetur(
+async function setujui(
   id: number,
   persetujuan: DataSetujui,
-  pelaku: PenggunaAktif,
+  oleh: Persetujuan,
   asal: AsalRequest,
 ): Promise<BarisRetur> {
   await dalamTransaksi(async (tx) => {
@@ -403,8 +453,62 @@ export async function setujuiRetur(
     if (r.status !== 'MENUNGGU') {
       throw new AppError('STATUS_TIDAK_VALID', `Retur ${r.nomor} sudah diputuskan.`, 409);
     }
-    const h = await terapkan(tx, id, persetujuan, pelaku);
-    await logSetujui(tx, id, r.nomor, h, pelaku, asal, false);
+    const h = await terapkan(tx, id, persetujuan, oleh);
+    await logSetujui(tx, id, r.nomor, h, oleh, asal);
+  });
+  return detailRetur(id);
+}
+
+/** Atasan menyetujui dari akunnya sendiri (tab Persetujuan). */
+export function setujuiRetur(
+  id: number,
+  persetujuan: DataSetujui,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<BarisRetur> {
+  return setujui(id, persetujuan, persetujuanAkunAtasan(pelaku), asal);
+}
+
+/** K-099: atasan menyetujui pengajuan MENUNGGU di layar pengaju dengan mengetik akunnya. */
+export async function setujuiReturDiTempat(
+  id: number,
+  persetujuan: DataSetujui,
+  kredensial: DataAtasan,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<BarisRetur> {
+  const atasan = await verifikasiAtasan(kredensial, 'retur.setujui', pelaku, asal);
+  return setujui(id, persetujuan, persetujuanDiTempat(atasan, pelaku), asal);
+}
+
+/** K-099: pengajuan MENUNGGU ditarik (salah input); tanpa efek stok, kas, atau tagihan. */
+export async function batalRetur(
+  id: number,
+  alasan: string,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<BarisRetur> {
+  await dalamTransaksi(async (tx) => {
+    const r = await repo.kunci(tx, id);
+    if (!r) throw new AppError('TIDAK_DITEMUKAN', 'Retur tidak ditemukan.', 404);
+    pastikanBolehBatal(r, pelaku, pelaku.izin.has('retur.setujui'));
+    const waktu = sekarang();
+    await repo.ubahHeader(tx, id, {
+      status: 'DIBATALKAN',
+      alasanPenolakan: alasan,
+      idPenyetuju: pelaku.id,
+      waktuPersetujuan: waktu,
+      diubahPada: waktu,
+    });
+    await catatLog(tx, {
+      aksi: 'RETUR_BATAL',
+      idPengguna: pelaku.id,
+      entitas: 'retur_penjualan',
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      ringkasan: `Batalkan pengajuan retur ${r.nomor}: ${alasan}`,
+      ip: asal.ip,
+    });
   });
   return detailRetur(id);
 }

@@ -21,7 +21,6 @@ const IZIN_KASIR: readonly Izin[] = [
   'penjualan.order.batal',
   'penjualan.order.lihat_semua',
   'penjualan.checkout',
-  'penjualan.tier.ubah',
   'penjualan.diskon',
   'penjualan.pembayaran.catat',
   'penjualan.surat_jalan.kelola',

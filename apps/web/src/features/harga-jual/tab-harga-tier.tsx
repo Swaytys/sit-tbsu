@@ -299,45 +299,46 @@ export function TabHargaTier({ tierAktif }: { tierAktif: TingkatHarga[] }) {
 
   return (
     <div className="space-y-3">
-      <Penjelasan kunci="harga-jual" judul="Cara kerja harga jual">
-        <ButirPenjelasan>
-          <li>
-            <b>Harga dasar</b>
-            {tierDasar ? ` (${tierDasar.nama})` : ''} dipakai semua transaksi dan bisa diatur per
-            barang dengan tiga cara: <b>Rp</b> = harga tetap yang Anda ketik, <b>Tier</b> = harga
-            modal + markup tier, <b>%</b> = harga modal + markup khusus barang itu.
-          </li>
-          {tierLain.length > 0 && (
-            <li>
-              <b>{namaLain}</b>: selalu harga modal + markup tier untuk semua barang, sehingga tidak
-              diketik per barang. Dipakai otomatis saat total belanja satu transaksi mencapai syarat
-              di judul kolom. Markup dan syarat belanja diubah di <b>Kelola tier</b>.
-            </li>
-          )}
-          <li>
-            Bila harga tier sebuah barang lebih mahal dari harga dasarnya (mis. harga dasar diisi Rp
-            rendah), barang itu tetap dijual dengan harga dasar.
-          </li>
-          <li>
-            Sakelar <b>otomatis</b> di bawah nama barang: harga yang dihitung dari modal ikut naik
-            sendiri saat harga beli naik; bila turun, harga baru menunggu persetujuan di tab Tinjau
-            Harga.
-          </li>
-          <li>
-            <b>Margin</b> = bagian keuntungan dari harga jual. Harga markup dibulatkan ke atas
-            sesuai Pengaturan.
-          </li>
-          <li>
-            Harga khusus untuk barang, pelanggan, jumlah beli, atau masa tertentu dibuat di menu{' '}
-            <Link to="/promo" className="font-medium text-blue-700 hover:underline">
-              Promo
-            </Link>
-            ; potongannya dihitung dari harga tier.
-          </li>
-        </ButirPenjelasan>
-      </Penjelasan>
       <div className="flex items-start justify-end gap-4">
         <div className="flex shrink-0 gap-2">
+          <Penjelasan judul="Cara kerja harga jual">
+            <ButirPenjelasan>
+              <li>
+                <b>Harga dasar</b>
+                {tierDasar ? ` (${tierDasar.nama})` : ''} dipakai semua transaksi dan bisa diatur
+                per barang dengan tiga cara: <b>Rp</b> = harga tetap yang Anda ketik, <b>Tier</b> =
+                harga modal + markup tier, <b>%</b> = harga modal + markup khusus barang itu.
+              </li>
+              {tierLain.length > 0 && (
+                <li>
+                  <b>{namaLain}</b>: selalu harga modal + markup tier untuk semua barang, sehingga
+                  tidak diketik per barang. Dipakai otomatis saat total belanja satu transaksi
+                  mencapai syarat di judul kolom. Markup dan syarat belanja diubah di{' '}
+                  <b>Kelola tier</b>.
+                </li>
+              )}
+              <li>
+                Bila harga tier sebuah barang lebih mahal dari harga dasarnya (mis. harga dasar
+                diisi Rp rendah), barang itu tetap dijual dengan harga dasar.
+              </li>
+              <li>
+                Sakelar <b>otomatis</b> di bawah nama barang: harga yang dihitung dari modal ikut
+                naik sendiri saat harga beli naik; bila turun, harga baru menunggu persetujuan di
+                tab Tinjau Harga.
+              </li>
+              <li>
+                <b>Margin</b> = bagian keuntungan dari harga jual. Harga markup dibulatkan ke atas
+                sesuai Pengaturan.
+              </li>
+              <li>
+                Harga khusus untuk barang, pelanggan, jumlah beli, atau masa tertentu dibuat di menu{' '}
+                <Link to="/promo" className="font-medium text-blue-700 hover:underline">
+                  Promo
+                </Link>
+                ; potongannya dihitung dari harga tier.
+              </li>
+            </ButirPenjelasan>
+          </Penjelasan>
           <Button variant="outline" asChild>
             <a
               href={`/api/harga-barang/ekspor?${new URLSearchParams({

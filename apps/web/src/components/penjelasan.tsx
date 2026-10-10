@@ -1,79 +1,66 @@
-import { ChevronDown, Info } from 'lucide-react';
+import { CircleHelp } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
-const AWALAN_KUNCI = 'sit.penjelasan.';
-
-function bacaTerbuka(kunci: string): boolean {
-  try {
-    return localStorage.getItem(AWALAN_KUNCI + kunci) !== 'tutup';
-  } catch {
-    return true;
-  }
-}
-
-function simpanTerbuka(kunci: string, terbuka: boolean): void {
-  try {
-    localStorage.setItem(AWALAN_KUNCI + kunci, terbuka ? 'buka' : 'tutup');
-  } catch {
-    // Penyimpanan diblokir browser: pilihan lipat tidak diingat, tidak masalah.
-  }
-}
-
 /**
- * Kotak "cara kerja" di halaman atau dialog: menjelaskan istilah dan aturan yang tampil di layar itu dengan
- * bahasa pengguna. Terbuka saat pertama dilihat dan bisa dilipat; pilihan lipat hanya preferensi tampilan
- * (localStorage, CLAUDE.md § Jangan), bukan data bisnis.
+ * Tombol "?" yang membuka penjelasan cara kerja sebuah halaman atau dialog: istilah dan aturan yang tampil
+ * di layar itu, dengan bahasa pengguna (K-098; bentuk tombol K-099). Diletakkan di pojok kanan judul halaman
+ * agar tidak memakan tempat. Rencana v2.0.0: setiap halaman punya tombol ini (docs/08 F3).
  */
 export function Penjelasan({
-  kunci,
   judul,
   children,
   className,
 }: {
-  /** Pengenal kotak untuk mengingat pilihan lipat, mis. `harga-jual`. */
-  kunci: string;
+  /** Judul dialog sekaligus keterangan tombol, mis. "Cara kerja harga jual". */
   judul: string;
   children: ReactNode;
   className?: string;
 }) {
-  const [terbuka, setTerbuka] = useState(() => bacaTerbuka(kunci));
-
-  function alih() {
-    simpanTerbuka(kunci, !terbuka);
-    setTerbuka(!terbuka);
-  }
-
+  const [terbuka, setTerbuka] = useState(false);
   return (
-    <section
-      className={cn('rounded-lg border border-blue-100 bg-blue-50/60 text-sm', className)}
-      aria-label={judul}
-    >
-      <button
+    <>
+      <Button
         type="button"
-        onClick={alih}
-        aria-expanded={terbuka}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-slate-800"
+        variant="outline"
+        size="icon"
+        className={cn('shrink-0 rounded-full', className)}
+        aria-label={judul}
+        title={judul}
+        onClick={() => setTerbuka(true)}
       >
-        <Info className="size-4 shrink-0 text-blue-600" />
-        <span className="flex-1">{judul}</span>
-        <span className="text-xs font-normal text-slate-500">
-          {terbuka ? 'Sembunyikan' : 'Tampilkan'}
-        </span>
-        <ChevronDown
-          className={cn('size-4 text-slate-400 transition-transform', terbuka && 'rotate-180')}
-        />
-      </button>
-      {terbuka && (
-        <div className="space-y-1.5 border-t border-blue-100 px-3 py-2.5 leading-relaxed text-slate-700">
-          {children}
-        </div>
-      )}
-    </section>
+        <CircleHelp className="text-blue-600" />
+      </Button>
+      <Dialog open={terbuka} onOpenChange={setTerbuka}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CircleHelp className="size-5 text-blue-600" /> {judul}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Penjelasan istilah dan aturan di layar ini.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm leading-relaxed text-slate-700">{children}</div>
+          <DialogFooter>
+            <Button onClick={() => setTerbuka(false)}>Mengerti</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 /** Daftar butir di dalam `Penjelasan`. */
 export function ButirPenjelasan({ children }: { children: ReactNode }) {
-  return <ul className="list-disc space-y-1 pl-5">{children}</ul>;
+  return <ul className="list-disc space-y-1.5 pl-5">{children}</ul>;
 }

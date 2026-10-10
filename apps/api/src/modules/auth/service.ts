@@ -5,6 +5,7 @@ import {
   izinPeran,
   type InputGantiPassword,
   type InputLogin,
+  type Izin,
   type PenggunaSaya,
   type Peran,
 } from '@sit/shared';
@@ -91,46 +92,53 @@ async function buatSesiLogin(
   return { token, kadaluarsa, pengguna: keSaya(calon) };
 }
 
+type HasilKredensial = { calon: repo.CalonLogin } | { galat: string };
+
 /**
- * Login dengan username + password (docs/02 §8, docs/04 §7). Setiap kegagalan dicatat di log; gagal
- * berturut sebanyak `konfigurasi.login_maks_gagal` mengunci akun selama `login_kunci_menit`.
+ * Memeriksa username + password (docs/04 §7), dipakai login dan persetujuan di tempat. Setiap kegagalan
+ * dicatat di log dengan `aksi`; gagal berturut sebanyak `konfigurasi.login_maks_gagal` mengunci akun selama
+ * `login_kunci_menit`. Mengembalikan pesan galat untuk pengguna, bukan melempar, agar pemanggil memilih
+ * kode HTTP-nya sendiri.
  */
-export async function login(input: InputLogin, asal: AsalRequest): Promise<HasilLogin> {
-  const username = normalisasiUsername(input.username);
+async function periksaKredensial(
+  kredensial: { username: string; password: string },
+  asal: AsalRequest,
+  aksi: 'LOGIN_GAGAL' | 'PERSETUJUAN_GAGAL',
+  konteks = '',
+): Promise<HasilKredensial> {
+  const username = normalisasiUsername(kredensial.username);
   const calon = await repo.penggunaUntukLogin(db, username);
   const waktu = sekarang();
 
   if (!calon) {
-    await verifikasiTiruan(input.password);
+    await verifikasiTiruan(kredensial.password);
     await catatLog(db, {
-      aksi: 'LOGIN_GAGAL',
+      aksi,
       idPengguna: null,
       usernamePercobaan: username,
-      ringkasan: 'Username tidak dikenal',
+      ringkasan: `Username tidak dikenal${konteks}`,
       ip: asal.ip,
     });
-    throw new AppError('BELUM_LOGIN', PESAN_GAGAL_LOGIN, 401);
+    return { galat: PESAN_GAGAL_LOGIN };
   }
 
   const logGagal = (ringkasan: string) => ({
-    aksi: 'LOGIN_GAGAL' as const,
+    aksi,
     idPengguna: calon.id,
     entitas: 'pengguna',
     idEntitas: calon.id,
-    ringkasan,
+    ringkasan: ringkasan + konteks,
     ip: asal.ip,
   });
 
   if (calon.terkunciSampai && calon.terkunciSampai > waktu) {
     await catatLog(db, logGagal('Akun sedang terkunci'));
-    throw new AppError(
-      'BELUM_LOGIN',
-      `Akun terkunci sampai pukul ${jamLokal(calon.terkunciSampai)} karena terlalu banyak percobaan gagal.`,
-      401,
-    );
+    return {
+      galat: `Akun terkunci sampai pukul ${jamLokal(calon.terkunciSampai)} karena terlalu banyak percobaan gagal.`,
+    };
   }
 
-  if (!(await cocokPassword(calon.passwordHash, input.password))) {
+  if (!(await cocokPassword(calon.passwordHash, kredensial.password))) {
     const maks = await ambilAngka('login_maks_gagal', 5);
     const menit = await ambilAngka('login_kunci_menit', 15);
     const terkunciSampai = await dalamTransaksi(async (tx) => {
@@ -142,22 +150,74 @@ export async function login(input: InputLogin, asal: AsalRequest): Promise<Hasil
       );
       return baruDikunci ? hasil : null;
     });
-    if (terkunciSampai) {
-      throw new AppError(
-        'BELUM_LOGIN',
-        `Password salah ${maks} kali berturut-turut. Akun dikunci sampai pukul ${jamLokal(terkunciSampai)}.`,
-        401,
-      );
-    }
-    throw new AppError('BELUM_LOGIN', PESAN_GAGAL_LOGIN, 401);
+    return {
+      galat: terkunciSampai
+        ? `Password salah ${maks} kali berturut-turut. Akun dikunci sampai pukul ${jamLokal(terkunciSampai)}.`
+        : PESAN_GAGAL_LOGIN,
+    };
   }
 
   if (calon.statusAktif !== 'AKTIF') {
     await catatLog(db, logGagal('Akun nonaktif'));
-    throw new AppError('BELUM_LOGIN', 'Akun Anda nonaktif. Hubungi Owner.', 401);
+    return { galat: 'Akun Anda nonaktif. Hubungi Owner.' };
   }
+  return { calon };
+}
 
-  return buatSesiLogin(calon, asal, 'Login berhasil');
+/** Login dengan username + password (docs/02 §8, docs/04 §7). */
+export async function login(input: InputLogin, asal: AsalRequest): Promise<HasilLogin> {
+  const hasil = await periksaKredensial(input, asal, 'LOGIN_GAGAL');
+  if ('galat' in hasil) throw new AppError('BELUM_LOGIN', hasil.galat, 401);
+  return buatSesiLogin(hasil.calon, asal, 'Login berhasil');
+}
+
+/** Atasan yang menyetujui di tempat: cukup identitasnya (tidak punya sesi di perangkat itu). */
+export type Atasan = Pick<PenggunaAktif, 'id' | 'username' | 'namaPengguna' | 'peran'>;
+
+/**
+ * Persetujuan di tempat (docs/04 §6, K-099): Admin/Owner mengetik akunnya sendiri di layar pengaju. Tidak
+ * membuat sesi dan tidak mengubah sesi pengaju. Kegagalan dihitung seperti gagal login (kunci akun) dan dicatat
+ * `PERSETUJUAN_GAGAL`, sehingga dialog ini tidak bisa dipakai menebak password. Dipanggil SEBELUM transaksi
+ * dokumen agar hitungan gagal tidak ikut dibatalkan. Galat memakai 400/403 (bukan 401) supaya sesi pengaju
+ * tidak dianggap berakhir.
+ */
+export async function verifikasiAtasan(
+  kredensial: { username: string; password: string },
+  izin: Izin,
+  pengaju: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<Atasan> {
+  const konteks = ` (persetujuan di tempat, sesi ${pengaju.username})`;
+  const hasil = await periksaKredensial(kredensial, asal, 'PERSETUJUAN_GAGAL', konteks);
+  if ('galat' in hasil) {
+    throw new AppError('VALIDASI', hasil.galat, 400, {
+      kolom: { 'atasan.password': [hasil.galat] },
+    });
+  }
+  const { calon } = hasil;
+  if (!IZIN_PER_PERAN[calon.peran].has(izin)) {
+    await catatLog(db, {
+      aksi: 'PERSETUJUAN_GAGAL',
+      idPengguna: calon.id,
+      entitas: 'pengguna',
+      idEntitas: calon.id,
+      ringkasan: `Akun tidak berwenang menyetujui${konteks}`,
+      ip: asal.ip,
+    });
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      `Akun ${calon.username} tidak berwenang menyetujui. Gunakan akun Admin atau Owner.`,
+      403,
+    );
+  }
+  // Kredensial benar: hitungan gagal dikembalikan ke nol, tanpa mencatat login.
+  await repo.hapusHitunganGagal(db, calon.id);
+  return {
+    id: calon.id,
+    username: calon.username,
+    namaPengguna: calon.namaPengguna,
+    peran: calon.peran,
+  };
 }
 
 /**

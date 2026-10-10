@@ -1,4 +1,5 @@
 import type {
+  CaraPersetujuan,
   JenisMutasi,
   JenisPotongan,
   JenisPenjualan,
@@ -96,6 +97,14 @@ export const LABEL_STATUS_PERSETUJUAN: Record<StatusPersetujuan, string> = {
   MENUNGGU: 'Menunggu',
   DISETUJUI: 'Disetujui',
   DITOLAK: 'Ditolak',
+  DIBATALKAN: 'Dibatalkan',
+};
+
+export const LABEL_CARA_PERSETUJUAN: Record<CaraPersetujuan, string> = {
+  SENDIRI: 'oleh pengaju (berwenang)',
+  AKUN_ATASAN: 'dari akun atasan',
+  DI_TEMPAT: 'atasan, di tempat',
+  BATAS_BEBAS: 'tanpa atasan (di bawah batas)',
 };
 
 export const LABEL_JENIS_POTONGAN: Record<JenisPotongan, string> = {

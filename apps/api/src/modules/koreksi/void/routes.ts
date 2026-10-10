@@ -1,5 +1,13 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaCariKoreksi, skemaIdParam, skemaSetujui, skemaTolak, skemaVoid } from '@sit/shared';
+import {
+  skemaBatalKoreksi,
+  skemaCariKoreksi,
+  skemaIdParam,
+  skemaSetujui,
+  skemaSetujuiDiTempat,
+  skemaTolak,
+  skemaVoid,
+} from '@sit/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { EnvApp } from '../../../lib/konteks';
@@ -7,10 +15,12 @@ import { kaitValidasi } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import {
   ajukanVoid,
+  batalVoid,
   daftarVoid,
   detailVoid,
   kandidatVoid,
   setujuiVoid,
+  setujuiVoidDiTempat,
   tolakVoid,
 } from './service';
 
@@ -45,6 +55,39 @@ export const voidRoutes = new Hono<EnvApp>()
       const data = await setujuiVoid(
         c.req.valid('param').id,
         c.req.valid('json'),
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data }, 200);
+    },
+  )
+  // K-099: pengaju (izin ajukan) memanggil, akun atasan di badan permintaan yang membawa wewenangnya.
+  .post(
+    '/:id/setujui-di-tempat',
+    ajukan,
+    param,
+    zValidator('json', skemaSetujuiDiTempat, kaitValidasi),
+    async (c) => {
+      const { atasan, ...persetujuan } = c.req.valid('json');
+      const data = await setujuiVoidDiTempat(
+        c.req.valid('param').id,
+        persetujuan,
+        atasan,
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data }, 200);
+    },
+  )
+  .post(
+    '/:id/batal',
+    ajukan,
+    param,
+    zValidator('json', skemaBatalKoreksi, kaitValidasi),
+    async (c) => {
+      const data = await batalVoid(
+        c.req.valid('param').id,
+        c.req.valid('json').alasan,
         penggunaWajib(c),
         c.get('asal'),
       );

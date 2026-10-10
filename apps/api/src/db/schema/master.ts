@@ -149,7 +149,7 @@ export const tingkatHarga = pgTable(
     diubahPada: diubahPada(),
     /**
      * K-098 (migrasi 0011): total nilai belanja transaksi (rupiah, dihitung dengan harga tier dasar) agar tier
-     * ini dipakai otomatis untuk semua barang; kosong = hanya bila dipilih manual. Tier dasar selalu kosong.
+     * ini dipakai otomatis untuk semua barang; tier dasar selalu kosong; tier lain wajib terisi selama aktif (K-099).
      */
     minBelanja: uang('min_belanja'),
   },
@@ -158,6 +158,11 @@ export const tingkatHarga = pgTable(
     check(
       'chk_tingkat_harga_min_belanja',
       sql`min_belanja is null or (min_belanja > 0 and not is_default)`,
+    ),
+    // K-099: tier aktif selain tier dasar wajib punya syarat belanja (tidak ada tier pilihan manual).
+    check(
+      'chk_tingkat_harga_aktif_bersyarat',
+      sql`is_default or min_belanja is not null or status_aktif = 'NONAKTIF'`,
     ),
     // Tepat satu tier default.
     uniqueIndex('uq_tingkat_harga_default')

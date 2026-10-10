@@ -69,7 +69,13 @@ beforeEach(async () => {
   ]);
   await db.insert(tingkatHarga).values([
     { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-    { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2 },
+    {
+      kode: 'GROSIR',
+      nama: 'Grosir',
+      markupDefaultPersen: '20',
+      urutan: 2,
+      minBelanja: 900_000_000,
+    },
   ]);
   await db
     .insert(pemasok)

@@ -91,7 +91,7 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 |---|---|
 | P1 | Checkout memakai order (DIPROSES) sebagai sumber baris. Kasir juga bisa "checkout langsung": layar kasir membuat order DRAFT→MENUNGGU→DIPROSES→SELESAI dalam satu transaksi (order tetap tersimpan untuk jejak). |
 | P2 | Harga baris = `harga_barang.harga_jual` untuk tier yang dipilih saat baris ditambahkan (snapshot). Harga yang dijanjikan di order berlaku saat checkout meski master berubah; kasir dapat menekan "Perbarui harga" per baris (log). |
-| P3 | Harga awal baris = tier dasar (`is_default`) untuk semua pembeli; semua baris otomatis memakai tier transaksi bila total nilai belanja mencapai syarat belanja tier itu (docs/06 H8, K-098). Pelanggan dan qty per barang tidak menentukan tier; harga khusus pelanggan, qty, atau barang lewat promo (docs/06 PR2), yang dipotong dari harga tier (PR9). Memilih tier lain secara manual butuh `penjualan.tier.ubah`. Harga manual (`harga_manual = true`, tier null) butuh `penjualan.harga_manual` dan dicatat log dengan harga tier pembanding. |
+| P3 | Harga awal baris = tier dasar (`is_default`) untuk semua pembeli; semua baris otomatis memakai tier transaksi bila total nilai belanja mencapai syarat belanja tier itu (docs/06 H8, K-098). Pelanggan dan qty per barang tidak menentukan tier; harga khusus pelanggan, qty, atau barang lewat promo (docs/06 PR2), yang dipotong dari harga tier (PR9). Tier tidak bisa dipilih manual (K-099). Harga manual (`harga_manual = true`, tier null) butuh `penjualan.harga_manual` dan dicatat log dengan harga tier pembanding. |
 | P4 | Total: `total_bruto = Σ bulatkanRupiah(qty × harga_satuan)`; `total_diskon = Σ diskon_baris + Σ diskon_promo + diskon_transaksi`; `total_neto = total_bruto − total_diskon + ongkir`, minimal 0. Diskon mengikuti docs/06 §2. |
 | P5 | `hpp_saat_transaksi` = `persediaan.hpp_rata2` saat checkout (KONSINYASI: `harga_titip`). Dibaca setelah `FOR UPDATE` di R6. |
 | P6 | LANGSUNG tanpa pelanggan (pembeli umum): wajib LUNAS saat checkout. LANGSUNG dengan pelanggan terdata: boleh DP/BELUM_BAYAR dengan `tanggal_jatuh_tempo` (piutang, docs/06 §4). |
@@ -122,14 +122,14 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 |---|---|
 | T1 | Syarat: penjualan `status_transaksi ∈ {SELESAI, VOID_SEBAGIAN}`; baris `status_item ∈ {NORMAL, RETUR_SEBAGIAN}`; `qty_retur_dasar_baru ≤ qty_dasar − qty_retur_dasar − qty_void_dasar` baris tersebut. Retur atas baris VOID ditolak. |
 | T2 | `harga_satuan_efektif = bulatkanRupiah(subtotal_baris ÷ qty)` (per satuan jual; sudah bersih diskon); `nominal_retur = bulatkanRupiah(qty_retur × harga_satuan_efektif)`; `total_retur = Σ nominal_retur`. |
-| T3 | Persetujuan mengikuti docs/04 §6 (Kasir mengajukan; Admin/Owner menyetujui dari akun sendiri; pengaju Admin/Owner otomatis disetujui). Sebelum DISETUJUI tidak ada efek stok, kas, atau tagihan. |
+| T3 | Persetujuan mengikuti docs/04 §6: pengaju Admin/Owner otomatis disetujui; Kasir mengajukan, lalu disetujui atasan di tempat (akun atasan diketik di layar kasir), dari akun atasan, atau langsung bila nilainya di dalam batas tanpa persetujuan (K-099). Sebelum DISETUJUI tidak ada efek stok, kas, atau tagihan. Daftar kandidat retur menampilkan per baris: dibeli, sudah diretur, sedang menunggu, sisa; serta retur yang sudah pernah dibuat untuk penjualan itu. |
 | T4 | Saat DISETUJUI, per baris detail: kondisi BAIK → `catatMutasi(RETUR_JUAL, masuk qty_retur_dasar, bucket BAIK, hpp = hpp_saat_transaksi)`; kondisi RUSAK/CACAT → `catatMutasi(RETUR_JUAL, masuk, bucket RUSAK, hpp = hpp_saat_transaksi)` (barang masuk bucket rusak, bukan stok jual; halaman bucket rusak Fase 10). Perbarui `penjualan_detail.qty_retur_dasar` dan `status_item` (RETUR bila seluruh qty, selain itu RETUR_SEBAGIAN). |
 | T5 | TUKAR_BARANG: hanya barang yang sama dengan qty pengganti = qty retur (`id_barang_pengganti = id_barang`). Efek: mutasi RETUR_JUAL masuk (T4) lalu `catatMutasi(TUKAR_RETUR, keluar qty_pengganti_dasar, hpp = hpp_rata2 saat itu)`. Tidak mengubah `total_retur`/`total_refund` penjualan (nilai netral). Tukar ke barang lain dilakukan dengan REFUND + penjualan baru. Stok pengganti diperiksa sejak pengajuan; bila kurang, tukar sebagian dan ajukan sisanya sebagai retur lain (K-092). |
 | T6 | REFUND: `total_retur += total_retur_dok`, `total_refund += total_retur_dok`. TUNAI → `kas_shift(REFUND_RETUR, KELUAR, nominal, id_retur)` pada shift BUKA yang dipilih saat menyetujui (`retur.id_shift` wajib); TRANSFER → `rekening_refund`, `referensi_refund` dicatat, tanpa kas_shift. Bila `total_retur_dok > dibayar_bersih` (uang yang bisa dikembalikan lebih kecil), refund dibatasi ke `dibayar_bersih` dan sisanya otomatis menjadi potong tagihan (dicatat di `catatan`). |
 | T7 | POTONG_TAGIHAN: `total_retur += total_retur_dok`; tidak ada uang keluar. Bila `total_retur_dok > tagihan` saat itu, tolak: gunakan REFUND. |
 | T8 | Setelah T6/T7 hitung ulang `status_pembayaran` (P9). |
 | T9 | Retur atas baris barang KONSINYASI dengan kondisi BAIK mengurangi qty yang akan disetor ke pemasok **[M2]** (docs/06 §7). |
-| T10 | DITOLAK: `alasan_penolakan` wajib; tidak ada efek apa pun; dokumen tetap tersimpan. |
+| T10 | DITOLAK: `alasan_penolakan` wajib; tidak ada efek apa pun; dokumen tetap tersimpan. DIBATALKAN (K-099): pengajuan MENUNGGU ditarik pengajunya dengan alasan (disimpan di `alasan_penolakan`); tanpa efek; qty-nya bisa diajukan lagi. Retur DISETUJUI tidak bisa diubah atau dibalik. |
 
 ## 9. Void
 
@@ -137,11 +137,11 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 |---|---|
 | V1 | Syarat: shift asal penjualan (`penjualan.id_shift`) berstatus BUKA, atau `id_shift` null dan `tanggal_operasional` = hari ini; tidak ada retur berstatus MENUNGGU/DISETUJUI atas penjualan itu; tidak ada surat jalan DIKIRIM/SELESAI; `status_transaksi ≠ VOID`. Di luar itu → `STATUS_TIDAK_VALID` dengan saran "gunakan retur". Baris barang titipan yang sudah disetor ke pemasok (`id_penyelesaian_konsinyasi` terisi) tidak bisa di-void (K-089). |
 | V2 | Lingkup ITEM: pilih ≥ 1 baris `status_item = NORMAL`. Lingkup TRANSAKSI: seluruh baris NORMAL (service tetap membuat satu `void_transaksi_detail` per baris). `nominal_void = Σ subtotal baris`. |
-| V3 | Persetujuan mengikuti docs/04 §6. Sebelum DISETUJUI tidak ada efek. |
+| V3 | Persetujuan mengikuti docs/04 §6 (termasuk di tempat dan batas tanpa persetujuan, K-099). Sebelum DISETUJUI tidak ada efek. |
 | V4 | Saat DISETUJUI, per detail: `catatMutasi(VOID, masuk qty_dasar, BAIK, hpp = hpp_saat_transaksi)`; `status_item = VOID`. Header: `total_void += nominal_void`; `status_transaksi` = VOID bila semua baris VOID, selain itu VOID_SEBAGIAN. Surat jalan DIPROSES/DIMUAT → BATAL (S7). Order asal tetap SELESAI. |
 | V5 | Refund: `nominal_refund = max(0, dibayar_bersih − (tagihan_baru))` dengan `tagihan_baru = total_neto − total_void − total_retur` setelah V4. `total_refund += nominal_refund`. TUNAI → `kas_shift(REFUND_VOID, KELUAR, nominal_refund, id_void)` pada shift BUKA yang dipilih saat menyetujui; TRANSFER → referensi dicatat. Hitung ulang `status_pembayaran` (P9). |
 | V6 | Void tidak menghapus pembayaran: baris `pembayaran_penjualan` tetap ada; uang kembali tercatat sebagai `total_refund` dan `kas_shift`. |
-| V7 | DITOLAK: `alasan_penolakan` wajib; tidak ada efek. |
+| V7 | DITOLAK: `alasan_penolakan` wajib; tidak ada efek. DIBATALKAN (K-099): pengajuan MENUNGGU ditarik pengajunya; tidak ada efek. |
 
 ## 10. Shift kasir dan clerical check
 
@@ -216,7 +216,7 @@ Semua total laporan dihitung untuk seluruh periode di server (K-033); paginasi h
 
 ## 16. Aksi log aktivitas
 
-Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK, VOID_AJUKAN/SETUJUI/TOLAK, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086), PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN, PENJUALAN_PROMO_LEPAS (K-087). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN.
+Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, PERSETUJUAN_GAGAL, LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK/BATAL, VOID_AJUKAN/SETUJUI/TOLAK/BATAL, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086), PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN, PENJUALAN_PROMO_LEPAS (K-087). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN.
 
 ## Riwayat
 
@@ -238,3 +238,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-07 — U2: faktor satuan jual (K-091).
 - 2026-10-08 — T5: stok pengganti tukar diperiksa saat pengajuan (K-092).
 - 2026-10-10 — P3: tier transaksi menurut total nilai belanja; promo dipotong dari harga tier (K-098).
+- 2026-10-10 — P3 tier tidak bisa dipilih; T3, T10, V3, V7 persetujuan di tempat, batas tanpa persetujuan, status DIBATALKAN; log RETUR_BATAL, VOID_BATAL, PERSETUJUAN_GAGAL (K-099).
