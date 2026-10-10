@@ -28,8 +28,9 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
 4. **F8** kirim ke antrean. Order mendapat **nomor antrean** dan langsung muncul di layar kasir. Serahkan barang
    ke kasir sambil menyebut isi order (mis. "semen 3 sak, nomor 12").
 5. Stok yang tampil adalah stok **tersedia** (sudah dikurangi order lain yang belum dibayar).
-6. **Harga dan promo otomatis**: harga mengikuti jumlah beli (harga grosir sendiri bila qty memenuhi syarat, mis.
-   Grosir mulai 10 sak). Promo untuk pembeli tertentu terpakai sendiri bila pelanggannya dipilih (**F4**).
+6. **Harga dan promo otomatis**: harga mengikuti total belanja (mis. harga Grosir untuk semua barang begitu total
+   belanja mencapai Rp 1.000.000; di atas total tertulis "Belanja Rp … lagi untuk harga Grosir"). Promo untuk
+   pembeli tertentu terpakai sendiri bila pelanggannya dipilih (**F4**).
    Potongan promo tampil hijau di bawah barang ("Promo … −Rp …"). Anda tidak perlu memilih harga apa pun.
 
 ## Kasir
@@ -46,10 +47,10 @@ Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
 - **Promo** tampil di bawah barang dan total sudah dipotong. Di daftar barang, **P** melepas promo baris itu (mis.
   pembeli menolak) dan **P** lagi memasangnya kembali; pelepasan tercatat di log. Promo yang tampil saat order
   dihitung ulang saat bayar (promo yang sudah berakhir tidak berlaku lagi).
-- **Harga otomatis**: harga menurut jumlah beli; bila qty memenuhi syarat tier yang lebih murah (mis. Grosir mulai
-  10 sak), harga grosir langsung dipakai ("· Grosir otomatis"). Harga grosir dan promo tidak digabung: dipakai yang
-  lebih murah bagi pembeli. Yang berizin bisa menekan **T** untuk memilih tier tertentu (urutan: otomatis →
-  setiap tier).
+- **Harga otomatis**: harga menurut total belanja satu transaksi. Begitu total belanja (dihitung dengan harga
+  Normal) mencapai syarat sebuah tier, semua barang memakai harga tier itu ("· Grosir otomatis"); di atas total
+  tertulis berapa rupiah lagi menuju tier berikutnya. Potongan promo dihitung dari harga tier tersebut. Yang
+  berizin bisa menekan **T** untuk memilih tier tertentu (urutan: otomatis → setiap tier).
 - Barang berkemasan (dus, roll, …): hasil cari menampilkan setiap kemasan sebagai pilihan sendiri, mis.
   "Semen · sak" dan "Semen · dus isi 10 sak" — pilih dengan panah lalu **Enter**. Memindai barcode dus langsung
   memakai dus; **S** di daftar barang mengganti satuan baris. Qty kemasan harus bulat; setengah dus dijual
@@ -101,14 +102,17 @@ Semua tugas kasir, ditambah:
 - **Label barang** (*Data Barang › Cetak label*): pilih barang dan jumlah label, jenis kertas (printer thermal
   58/57/80 mm atau kertas label A4), harga tier, lalu **Cetak**. Barcode di label bisa dipindai di layar kasir. Kertas yang sudah terpakai sebagian: isi
   "Mulai dari label ke-". Cetak dengan skala 100%.
-- **Harga jual** (*Harga Jual*): tiap harga tier — termasuk Normal — bisa **Tier** (harga modal + markup tier;
-  bawaan barang baru), **%** (markup sendiri), atau **Rp** (harga tetap yang Anda ketik). Kolom margin = (harga −
-  dasar modal) ÷ harga. Sakelar **otomatis** di bawah nama barang: nyala (bawaan) = harga markup ikut naik sendiri
+- **Harga jual** (*Harga Jual*): harga dasar (Normal) tiap barang bisa **Tier** (harga modal + markup tier;
+  bawaan barang baru), **%** (markup sendiri), atau **Rp** (harga tetap yang Anda ketik). Harga tier lain (Grosir,
+  Distributor) selalu harga modal + markup tier untuk semua barang dan hanya ditampilkan. Kolom margin = (harga −
+  dasar modal) ÷ harga. Kotak **Cara kerja** di atas tabel menjelaskan istilahnya. Sakelar **otomatis** di bawah nama barang: nyala (bawaan) = harga markup ikut naik sendiri
   saat harga beli naik; matikan bila harga barang itu ingin selalu ditinjau dulu.
-- **Tier harga** (*Harga Jual › Kelola tier*): harga hanya ditentukan jumlah beli. Normal untuk semua pembeli;
-  tier lain (mis. Grosir, Distributor) dipakai otomatis untuk siapa saja bila qty mencapai **Mulai qty** tier itu
-  (kosong = hanya bila dipilih manual). Syaratnya bisa diubah khusus satu barang di form barang (mis. paku Grosir
-  mulai 5 kg). Kasir tidak perlu memilih harga.
+- **Tier harga** (*Harga Jual › Kelola tier*): harga ditentukan total belanja satu transaksi. Tier bertanda
+  **Harga dasar** (Normal) dipakai semua transaksi dan tidak bisa dinonaktifkan. Tier lain (mis. Grosir,
+  Distributor) dipakai otomatis untuk **semua barang** bila total belanja mencapai **Mulai belanja** tier itu
+  (kosong = hanya bila dipilih kasir). Isi **Markup** (persen di atas harga modal) dan **Mulai belanja**; makin
+  besar syarat belanja, markup seharusnya makin kecil (ada peringatan bila terbalik). Kasir tidak perlu memilih
+  harga. Harga khusus satu barang, jumlah beli tertentu, atau pelanggan tertentu dibuat di *Promo*.
 - **Tinjau Harga** (tab di *Harga Jual*): daftar barang yang harga modalnya berubah. **Terapkan** = harga diganti
   usulan (harga Normal ikut diganti hanya bila sakelar "Ganti juga harga Normal" menyala); **Abaikan** = harga
   tidak diubah. Barang dengan **Harga otomatis** (bawaan semua barang) naik sendiri saat harga modal naik; bila
@@ -116,7 +120,8 @@ Semua tugas kasir, ditambah:
 - **Promo** (*Promo*): buat potongan persen atau rupiah per satuan untuk semua barang, satu kategori, atau satu
   barang, dengan masa berlaku dan syarat (minimal qty per baris, minimal total belanja). **Untuk pembeli**: semua
   pembeli, satu golongan pelanggan, atau pelanggan tertentu; bisa juga disyaratkan "pelanggan sudah belanja
-  minimal Rp … dalam … hari terakhir". Promo dihitung dari harga Normal dan tidak digabung dengan harga grosir.
+  minimal Rp … dalam … hari terakhir". Potongan promo dihitung dari harga tier yang berlaku (harga dasar, atau Grosir bila total belanja
+  tercapai), jadi tier dan promo bisa terpakai bersama.
   Satu promo per baris (potongan terbesar). Promo yang sudah terpakai tidak bisa diubah aturannya; nonaktifkan
   lalu buat promo baru.
 - **Pelanggan & pemasok** (*Data Pelanggan*, *Data Pemasok*): golongan (untuk sasaran promo; kelola lewat tombol

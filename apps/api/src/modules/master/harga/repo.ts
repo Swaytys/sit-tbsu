@@ -62,7 +62,6 @@ const kolomHarga = {
   hargaTetap: hargaBarang.hargaTetap,
   hargaJual: hargaBarang.hargaJual,
   dasarMarkupSaatHitung: hargaBarang.dasarMarkupSaatHitung,
-  minQty: hargaBarang.minQty,
 };
 export type BarisHarga = {
   id: number;
@@ -73,8 +72,6 @@ export type BarisHarga = {
   hargaTetap: number | null;
   hargaJual: number;
   dasarMarkupSaatHitung: number | null;
-  /** K-097: syarat qty tier khusus barang ini; `null` = ikut tier. */
-  minQty: string | null;
 };
 
 /** Harga per satuan dasar (satuan jual null) untuk sekumpulan barang. */
@@ -121,8 +118,6 @@ export type NilaiHarga = {
   hargaTetap: number | null;
   hargaJual: number;
   dasarMarkupSaatHitung: number | null;
-  /** K-097: tidak diisi = tidak diubah (baris baru: ikut tier). */
-  minQty?: string | null;
 };
 
 export async function tambahHarga(

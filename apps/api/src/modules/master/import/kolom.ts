@@ -62,15 +62,18 @@ export function kolomImport(ref: ReferensiImport): Kolom[] {
     k('kode_pemasok', 'Pemasok konsinyasi', 'PEMASOK', 'Wajib bila KONSINYASI'),
     k('harga_titip', 'Harga titip', 'RUPIAH', 'Rupiah bulat, wajib bila KONSINYASI'),
     k('keterangan', 'Keterangan', 'TEKS', 'Opsional', { lebar: 24 }),
-    ...tier.map((t) =>
-      k(
-        `harga_${t.kode.toLowerCase()}`,
-        `Harga ${t.nama}`,
-        'RUPIAH',
-        `Rupiah; kosong = ikut markup ${t.nama} dari harga modal`,
-        { ringkas: t.isDefault, lebar: 18 },
+    // K-098: hanya harga tier dasar yang bisa diisi per barang; tier lain selalu markup tier.
+    ...tier
+      .filter((t) => t.isDefault)
+      .map((t) =>
+        k(
+          `harga_${t.kode.toLowerCase()}`,
+          `Harga ${t.nama}`,
+          'RUPIAH',
+          `Rupiah; kosong = ikut markup ${t.nama} dari harga modal`,
+          { ringkas: true, lebar: 18 },
+        ),
       ),
-    ),
     ...jenis.map((j) =>
       k(
         `atribut_${j.kode.toLowerCase()}`,
@@ -104,8 +107,9 @@ const PETUNJUK = [
   '5. Kolom rupiah hanya menerima angka bulat tanpa titik/koma, mis. 41234. Stok minimum boleh desimal.',
   '6. Kode boleh dikosongkan (otomatis BRG-00001, ...). Baris dengan kode yang sudah ada DILEWATI:',
   '   import hanya menambah barang baru, tidak mengubah barang lama.',
-  '7. Harga tier boleh dikosongkan: harganya mengikuti markup tier dari harga modal awal. Bila harga modal',
-  '   juga kosong, barang belum bisa dijual sampai penerimaan pertama. Harga yang diisi menjadi harga tetap.',
+  '7. Harga jual boleh dikosongkan: harganya mengikuti markup dari harga modal awal. Bila harga modal juga',
+  '   kosong, barang belum bisa dijual sampai penerimaan pertama. Harga yang diisi menjadi harga tetap.',
+  '   Harga tier lain (mis. Grosir) selalu dihitung dari markup tier dan tidak diisi di sini.',
   '8. Atribut berdimensi ditulis angka lalu kode satuan, mis. "6 m" atau "12,5 cm".',
   '9. Templat ringkas hanya berisi kolom yang paling sering dipakai; kolom lain boleh ditambahkan dari',
   '   templat lengkap. Kolom yang tidak dikenali saat import diabaikan dan diberi peringatan.',
@@ -270,7 +274,6 @@ function contohBaris(ref: ReferensiImport): Record<string, string | number>[] {
   const satuan = ref.satuan.find((x) => x.statusAktif === 'AKTIF')?.kode ?? 'sak';
   const pemasok = ref.pemasok.find((x) => x.statusAktif === 'AKTIF')?.kode ?? 'PMS-00001';
   const tierDefault = ref.tier.find((t) => t.isDefault);
-  const tierLain = ref.tier.find((t) => !t.isDefault && t.statusAktif === 'AKTIF');
   const atributAngka = ref.jenisAtribut.find((j) => j.tipeNilai === 'ANGKA' && j.jenisDimensi);
   const satuanAtribut = ref.satuan.find((s) => s.jenisDimensi === atributAngka?.jenisDimensi)?.kode;
   const atributTeks = ref.jenisAtribut.find((j) => j.tipeNilai === 'TEKS');
@@ -303,10 +306,6 @@ function contohBaris(ref: ReferensiImport): Record<string, string | number>[] {
   if (tierDefault) {
     a[`harga_${tierDefault.kode.toLowerCase()}`] = 60000;
     b[`harga_${tierDefault.kode.toLowerCase()}`] = 185000;
-  }
-  if (tierLain) {
-    a[`harga_${tierLain.kode.toLowerCase()}`] = '';
-    b[`harga_${tierLain.kode.toLowerCase()}`] = 180000;
   }
   if (atributAngka && satuanAtribut) {
     a[`atribut_${atributAngka.kode.toLowerCase()}`] = `6 ${satuanAtribut}`;

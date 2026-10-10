@@ -8,7 +8,7 @@ const kolom = {
   kode: tingkatHarga.kode,
   nama: tingkatHarga.nama,
   markupDefaultPersen: tingkatHarga.markupDefaultPersen,
-  minQty: tingkatHarga.minQty,
+  minBelanja: tingkatHarga.minBelanja,
   urutan: tingkatHarga.urutan,
   isDefault: tingkatHarga.isDefault,
   statusAktif: tingkatHarga.statusAktif,
@@ -54,7 +54,7 @@ export type NilaiTingkatHarga = {
   kode: string;
   nama: string;
   markupDefaultPersen: string;
-  minQty: string | null;
+  minBelanja: number | null;
   urutan: number;
 };
 

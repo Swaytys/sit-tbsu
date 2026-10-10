@@ -210,6 +210,7 @@ export function barisReservasi(tx: Tx, idOrder: number) {
       idSatuanJual: orderPenjualanDetail.idSatuanJual,
       qtyDasar: orderPenjualanDetail.qtyDasar,
       idTingkatHarga: orderPenjualanDetail.idTingkatHarga,
+      tierDipilih: orderPenjualanDetail.tierDipilih,
       hargaSatuan: orderPenjualanDetail.hargaSatuan,
       hargaManual: orderPenjualanDetail.hargaManual,
       diskonBaris: orderPenjualanDetail.diskonBaris,

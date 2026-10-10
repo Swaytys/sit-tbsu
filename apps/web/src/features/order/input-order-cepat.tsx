@@ -24,6 +24,7 @@ import {
 } from '@/api/penjualan';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
 import { formatDesimal } from '@/lib/format';
+import { InfoTierBelanja } from '@/components/info-tier-belanja';
 import { cn } from '@/lib/utils';
 import { BilahTombol, type Tombol } from '../pos/bilah-tombol';
 import { CariBarangPos } from '../pos/cari-barang-pos';
@@ -485,6 +486,11 @@ export function InputOrderCepat() {
             pratinjau={pratinjauBaris}
           />
 
+          <InfoTierBelanja
+            info={pratinjau.data?.tierBelanja}
+            idTierDasar={tierDefault}
+            namaTier={(id) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain'}
+          />
           <div className="flex items-center gap-3">
             <div className="flex flex-1 items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
               <span className="text-xs tracking-widest text-slate-300 uppercase">

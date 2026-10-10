@@ -26,6 +26,7 @@ import { useDaftarTingkatHarga } from '@/api/mitra';
 import { useDetailOrder, useKirimOrder, usePratinjauOrder, useSimpanOrder } from '@/api/penjualan';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InfoPromo } from '@/components/info-promo';
+import { InfoTierBelanja } from '@/components/info-tier-belanja';
 import { InputRupiah } from '@/components/input-rupiah';
 import { PilihBarang } from '@/components/pilih-barang';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
@@ -192,7 +193,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
   });
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
   const antar = jenis === 'PENGANTARAN';
-  // K-097: harga awal tier default; tier lain dipakai otomatis menurut qty (API).
+  // K-098: harga awal tier dasar; tier lain dipakai otomatis menurut total nilai belanja (API).
   const tierBawaan = tierDefault;
   const dapatDiubahPembuat = !dokumen || dokumen.status === 'DRAFT';
 
@@ -707,7 +708,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {/* K-097: otomatis = tier default, atau tier lebih murah bila syarat qty terpenuhi. */}
+                                    {/* K-098: otomatis = tier dasar, atau tier transaksi bila syarat belanja tercapai. */}
                                     <SelectItem value={BAWAAN}>Otomatis</SelectItem>
                                     {tierAktif.map((t) => {
                                       const h = hargaTierBaris(i).find(
@@ -870,6 +871,11 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                   {formatRupiah(hasil?.total ?? totalPerkiraan)}
                 </span>
               </div>
+              <InfoTierBelanja
+                info={hasil?.tierBelanja}
+                idTierDasar={tierDefault}
+                namaTier={namaTier}
+              />
               <p className="text-xs text-slate-400">
                 {pratinjau.galat && !hasil
                   ? 'Total belum bisa dihitung; periksa isian.'

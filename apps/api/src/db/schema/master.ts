@@ -148,14 +148,17 @@ export const tingkatHarga = pgTable(
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
     /**
-     * K-097 (migrasi 0009): qty minimal (satuan dasar) agar tier ini dipakai otomatis; kosong = hanya bila
-     * dipilih manual. Tier default selalu kosong. Bisa diganti per barang (`harga_barang.min_qty`).
+     * K-098 (migrasi 0011): total nilai belanja transaksi (rupiah, dihitung dengan harga tier dasar) agar tier
+     * ini dipakai otomatis untuk semua barang; kosong = hanya bila dipilih manual. Tier dasar selalu kosong.
      */
-    minQty: qty('min_qty'),
+    minBelanja: uang('min_belanja'),
   },
   () => [
     check('chk_tingkat_harga_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
-    check('chk_tingkat_harga_min_qty', sql`min_qty is null or min_qty > 0`),
+    check(
+      'chk_tingkat_harga_min_belanja',
+      sql`min_belanja is null or (min_belanja > 0 and not is_default)`,
+    ),
     // Tepat satu tier default.
     uniqueIndex('uq_tingkat_harga_default')
       .on(sql`(1)`)
@@ -355,14 +358,8 @@ export const hargaBarang = pgTable(
     idPengguna: kolomRef('id_pengguna'),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
-    /**
-     * K-097 (migrasi 0009): qty minimal tier ini khusus barang ini (satuan dasar); kosong = ikut
-     * `tingkat_harga.min_qty`. Hanya pada baris satuan dasar.
-     */
-    minQty: qty('min_qty'),
   },
   (t) => [
-    check('chk_harga_min_qty', sql`min_qty is null or (min_qty > 0 and id_satuan_jual is null)`),
     foreignKey({
       name: 'harga_barang_id_barang_fkey',
       columns: [t.idBarang],

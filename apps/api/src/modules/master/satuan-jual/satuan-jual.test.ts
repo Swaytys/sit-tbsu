@@ -60,12 +60,19 @@ async function stok(id: number) {
 beforeEach(async () => {
   await siapkanDatabaseSistem();
   m = await siapkanMasterPersediaan();
-  await kosongkanTabel(promo, returPenjualanDetail, returPenjualan, kasShift, shiftKasir);
-  await db
+  // Tier sendiri agar tes tidak bergantung pada sisa data tes lain.
+  await kosongkanTabel(
+    promo,
+    returPenjualanDetail,
+    returPenjualan,
+    kasShift,
+    shiftKasir,
+    tingkatHarga,
+  );
+  const [t] = await db
     .insert(tingkatHarga)
     .values({ kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', isDefault: true })
-    .onConflictDoNothing();
-  const [t] = await db.select().from(tingkatHarga).where(eq(tingkatHarga.kode, 'NORMAL'));
+    .returning();
   idTier = t!.id;
   await db.insert(hargaBarang).values({
     idBarang: m.semen,
@@ -295,6 +302,93 @@ describe('transaksi dengan satuan jual (K-091)', () => {
     });
     expect(lebih.status).toBe(409);
     expect(lebih.pesan).toContain('tersedia');
+  });
+
+  it('K-098: harga kemasan tier lain selalu otomatis; nilai belanja memakai harga Normal kemasan', async () => {
+    const [g] = await db
+      .insert(tingkatHarga)
+      .values({ kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', minBelanja: 1_000_000 })
+      .returning();
+    const grosir = g!.id;
+    await db.insert(hargaBarang).values({
+      idBarang: m.semen,
+      idTingkatHarga: grosir,
+      metode: 'IKUT_TIER',
+      hargaJual: 11_000,
+    });
+
+    // Harga dus Grosir tidak bisa diisi sendiri.
+    const tolak = await galat(
+      admin,
+      `/api/barang/${m.semen}/satuan-jual`,
+      {
+        baris: [
+          {
+            idSatuan: idDus,
+            faktor: '10',
+            hargaTetap: [{ idTingkatHarga: grosir, harga: 100_000 }],
+          },
+        ],
+      },
+      'PUT',
+    );
+    expect(tolak.status).toBe(400);
+    expect(tolak.pesan).toContain('dihitung otomatis dari markup tier');
+
+    const sj = (hargaNormal: number) =>
+      simpanSj([
+        {
+          idSatuan: idDus,
+          faktor: '10',
+          hargaTetap: [{ idTingkatHarga: idTier, harga: hargaNormal }],
+        },
+      ]);
+    const d = await sj(115_000);
+    const idSj = d.satuanJual[0]!.id;
+    expect(d.satuanJual[0]!.harga).toEqual(
+      expect.arrayContaining([
+        { idTingkatHarga: idTier, hargaJual: 115_000, tetap: true },
+        { idTingkatHarga: grosir, hargaJual: 110_000, tetap: false },
+      ]),
+    );
+    const pratinjau = (baris: unknown[]) =>
+      kirim<PratinjauOrder>(kasir, '/api/order/pratinjau', {
+        idOrder: null,
+        order: { jenisPenjualan: 'LANGSUNG', baris },
+      });
+
+    // 8 dus × 115.000 + 5 sak × 12.000 = 980.000: belum Grosir, kurang Rp 20.000.
+    let p = await pratinjau([
+      { idBarang: m.semen, idSatuanJual: idSj, qty: '8' },
+      { idBarang: m.semen, qty: '5' },
+    ]);
+    expect(p.tierBelanja).toEqual({
+      nilaiBelanja: 980_000,
+      idTingkatHarga: idTier,
+      berikut: { idTingkatHarga: grosir, kurang: 20_000 },
+    });
+    expect(p.baris.map((b) => b.hargaSatuan)).toEqual([115_000, 12_000]);
+
+    // 9 dus = 1.035.000 ≥ 1.000.000: Grosir untuk dus dan sak.
+    p = await pratinjau([
+      { idBarang: m.semen, idSatuanJual: idSj, qty: '9' },
+      { idBarang: m.semen, qty: '1' },
+    ]);
+    expect(p.baris.map((b) => [b.idTingkatHarga, b.hargaSatuan])).toEqual([
+      [grosir, 110_000],
+      [grosir, 11_000],
+    ]);
+
+    // Harga Normal dus diisi lebih murah dari Grosir: baris dus tetap Normal, baris sak Grosir.
+    await sj(105_000);
+    p = await pratinjau([
+      { idBarang: m.semen, idSatuanJual: idSj, qty: '10' },
+      { idBarang: m.semen, qty: '1' },
+    ]);
+    expect(p.baris.map((b) => [b.idTingkatHarga, b.hargaSatuan])).toEqual([
+      [idTier, 105_000],
+      [grosir, 11_000],
+    ]);
   });
 
   it('sisa kirim surat jalan dihitung dalam satuan baris', () => {

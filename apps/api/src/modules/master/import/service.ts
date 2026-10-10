@@ -119,14 +119,24 @@ export async function bacaBerkasImport(
   const ws = wb.getWorksheet(NAMA_LEMBAR) ?? wb.worksheets[0];
   if (!ws) throw new AppError('VALIDASI', 'Berkas tidak berisi lembar data.', 400);
 
-  const dikenal = new Map(kolomImport(await referensiImport(db)).map((k) => [k.kunci, k]));
+  const ref = await referensiImport(db);
+  const dikenal = new Map(kolomImport(ref).map((k) => [k.kunci, k]));
+  // K-098: harga tier selain tier dasar tidak diisi per barang (templat lama masih punya kolomnya).
+  const tierLain = new Map(
+    ref.tier.filter((t) => !t.isDefault).map((t) => [`harga_${t.kode.toLowerCase()}`, t.nama]),
+  );
   const indeks = new Map<string, number>();
   const peringatan: string[] = [];
   ws.getRow(1).eachCell((cell, kolom) => {
     const kunci = isiSel(cell.value).teks.toLowerCase();
     if (!kunci) return;
     if (dikenal.has(kunci)) indeks.set(kunci, kolom);
-    else {
+    else if (tierLain.has(kunci)) {
+      peringatan.push(
+        `Kolom "${kunci}" diabaikan: harga ${tierLain.get(kunci)} dihitung otomatis dari markup tier ` +
+          'untuk semua barang.',
+      );
+    } else {
       peringatan.push(
         `Kolom "${kunci}" tidak dikenal (tier/atribut tidak ada atau nonaktif); isinya diabaikan.`,
       );
@@ -263,8 +273,9 @@ function petakan(b: BarisImportMentah, ref: ReferensiImport): Petaan {
     atribut.push({ idJenisAtribut: j.id, nilai: cocok[1] ?? '', idSatuan: sat.id });
   }
 
-  const tierAktif = ref.tier.filter((x) => x.statusAktif === 'AKTIF');
-  const hargaTier = tierAktif.map((x) => ({
+  // K-098: hanya harga tier dasar yang diisi per barang; tier lain dilengkapi service dari markup tier.
+  const tierDasar = ref.tier.filter((x) => x.statusAktif === 'AKTIF' && x.isDefault);
+  const hargaTier = tierDasar.map((x) => ({
     idTingkatHarga: x.id,
     hargaTetap: rupiah(t(`harga_${x.kode.toLowerCase()}`), `Harga ${x.nama}`, pesan),
   }));

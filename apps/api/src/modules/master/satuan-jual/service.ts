@@ -26,8 +26,8 @@ import * as repo from './repo';
 
 /*
  * Satuan jual per barang (Fase 12, docs/06 H11, K-091). Harga satuan jual per tier = harga tetap bila
- * ditetapkan, selain itu bulatkanHarga(harga satuan dasar tier itu × faktor), dihitung saat dibaca sehingga selalu
- * mengikuti harga satuan dasar.
+ * ditetapkan (hanya tier dasar, K-098), selain itu bulatkanHarga(harga satuan dasar tier itu × faktor),
+ * dihitung saat dibaca sehingga selalu mengikuti harga satuan dasar.
  */
 
 const DIMENSI_FISIK: readonly string[] = JENIS_DIMENSI_FISIK;
@@ -37,7 +37,7 @@ export const rapikanFaktor = rapikanDesimal;
 
 async function tierAktif(ex: Executor) {
   return ex
-    .select({ id: tingkatHarga.id })
+    .select({ id: tingkatHarga.id, nama: tingkatHarga.nama, isDefault: tingkatHarga.isDefault })
     .from(tingkatHarga)
     .where(eq(tingkatHarga.statusAktif, 'AKTIF'));
 }
@@ -154,7 +154,7 @@ export async function simpanSatuanJual(
     const hargaDasar = new Map(
       (await hargaBarangDasar(tx, [idBarang])).map((h) => [h.idTingkatHarga, h.hargaJual]),
     );
-    const idTierAktif = new Set((await tierAktif(tx)).map((t) => t.id));
+    const tierPer = new Map((await tierAktif(tx)).map((t) => [t.id, t]));
     const waktu = sekarang();
     const ringkas: string[] = [];
 
@@ -213,9 +213,18 @@ export async function simpanSatuanJual(
         ringkas.push(`${s.kode} (${rapikanFaktor(faktor)} ${dasar.kode}) ditambah`);
       }
       for (const h of b.hargaTetap) {
-        if (!idTierAktif.has(h.idTingkatHarga)) continue;
+        const t = tierPer.get(h.idTingkatHarga);
+        if (!t) continue;
         const sebelum = hargaLama.get(`${idSj}:${h.idTingkatHarga}`) ?? null;
         if (sebelum === h.harga) continue;
+        // K-098: hanya tier dasar yang boleh berharga tetap; tier lain = harga tier satuan dasar × isi.
+        if (h.harga !== null && !t.isDefault) {
+          throw galat(
+            i,
+            'hargaTetap',
+            `Harga ${t.nama} per ${s.kode} dihitung otomatis dari markup tier dan tidak bisa diisi sendiri.`,
+          );
+        }
         if (!pelaku.izin.has('master.harga.kelola')) {
           throw new AppError('TIDAK_BERIZIN', 'Anda tidak berizin mengubah harga jual.', 403);
         }

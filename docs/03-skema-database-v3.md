@@ -101,15 +101,17 @@ tidak dihapus (dinonaktifkan). Baris order/penjualan menyimpan `id_satuan_jual` 
 lain = harga dihitung saat dibaca dari harga satuan dasar × faktor (kolom `harga_jual`-nya tidak dipakai).
 
 **`tingkat_harga`** — master tier. Tepat satu `is_default` (index parsial). `markup_default_persen` dipakai barang
-bermetode IKUT_TIER; `min_qty` (v3.9) = qty minimal agar tier dipakai otomatis (kosong = hanya manual; tier
-default selalu kosong).
+bermetode IKUT_TIER; `min_belanja` (v3.10, `bigint`) = total nilai belanja transaksi agar tier dipakai otomatis
+untuk semua barang (kosong = hanya manual; tier default selalu kosong, CHECK `chk_tingkat_harga_min_belanja`).
+Menggantikan `min_qty` v3.9 (K-098).
 
 **`harga_barang`** — harga jual berlaku per (barang, tier, satuan jual|null). `metode`: `IKUT_TIER` (markup default
 tier), `MARKUP` (markup sendiri), `TETAP` (harga tetap). `harga_jual` selalu terisi (K-010: harga disimpan).
 `dasar_markup_saat_hitung` menyimpan nilai dasar saat `harga_jual` dihitung, sehingga Tinjau Harga bisa menunjukkan
 "dasar berubah dari X ke Y". Service membuat satu baris untuk setiap tier aktif saat barang dibuat (Fase 3: tier
-Normal wajib diisi TETAP; tier lain kosong → IKUT_TIER dihitung dari `harga_modal_awal`). v3.9: `min_qty` = syarat
-qty tier khusus barang ini (hanya baris satuan dasar; kosong = ikut `tingkat_harga.min_qty`).
+Normal wajib diisi TETAP; tier lain kosong → IKUT_TIER dihitung dari `harga_modal_awal`). v3.10 (K-098):
+baris tier selain tier default selalu IKUT_TIER (ditegakkan service; butuh membaca `tingkat_harga`); kolom
+`min_qty` v3.9 dihapus.
 
 **`pelanggan`** — + `term_hari` (jatuh tempo piutang), `limit_kredit` (nullable; ditegakkan M2), `id_golongan`
 (v3.9, sasaran promo; menggantikan `id_tingkat_harga` yang dihapus). `kode` = `PLG-00001`.
@@ -352,7 +354,8 @@ set, kotak (masing-masing basis, faktor 1).
 **`jenis_atribut`** awal: PANJANG, LEBAR, TINGGI, TEBAL, DIAMETER (PANJANG); LUAS (LUAS); VOLUME (VOLUME);
 BERAT (BERAT); DAYA (DAYA); WARNA, BENTUK, TEKSTUR, FUNGSI, UKURAN_TEKS (TEKS).
 
-**`tingkat_harga`**: NORMAL (default, markup 25), GROSIR (markup 20, saran_min_qty null), DISTRIBUTOR (markup 15).
+**`tingkat_harga`**: NORMAL (default, markup 25), GROSIR (markup 20), DISTRIBUTOR (markup 15); `min_belanja` kosong sampai diisi
+pemilik di Harga Jual › Kelola tier.
 Angka markup contoh; Admin mengubahnya.
 
 **`kategori`** awal: Semen, Agregat, Bata & Blok, Besi & Baja, Cat & Pelapis, Keramik, Pipa & Sanitasi, Atap, Kayu,
@@ -431,3 +434,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-08 — v3.7: `penyesuaian_stok_detail.id_penyelesaian_konsinyasi`, `penyelesaian_konsinyasi_detail.qty_ganti_rugi` (migrasi 0007; K-092).
 - 2026-10-10 — v3.9: `golongan_pelanggan`, `pelanggan.id_golongan`, `tingkat_harga.min_qty`, `harga_barang.min_qty`, kolom sasaran pembeli di `promo`, `promo_pelanggan` (migrasi 0009); `pelanggan.id_tingkat_harga` dan `tingkat_harga.saran_min_qty` dihapus (migrasi 0010; K-097).
 - 2026-10-09 — v3.8: `barang.harga_otomatis` bawaan true (barang lama dinyalakan), `order_penjualan_detail.tier_dipilih` (migrasi 0008; K-094).
+- 2026-10-10 — v3.10: `tingkat_harga.min_belanja` + CHECK (migrasi 0011, sekaligus menjadikan baris harga tier selain tier default IKUT_TIER dan menghitung ulang harganya); `tingkat_harga.min_qty` dan `harga_barang.min_qty` dihapus (migrasi 0012; K-098).

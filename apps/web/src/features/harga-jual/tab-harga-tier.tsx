@@ -1,4 +1,4 @@
-import { formatRupiah, type BarisBarang, type TingkatHarga } from '@sit/shared';
+import { formatRupiah, teksSyaratTier, type BarisBarang, type TingkatHarga } from '@sit/shared';
 import { Download, Save, Search, Settings2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -8,6 +8,7 @@ import { useBarisPerHalaman } from '@/api/pengaturan';
 import { useDaftarBarang, useHargaOtomatis, useSimpanHarga } from '@/api/barang';
 import { useDaftarKategori } from '@/api/referensi';
 import { DataTable, type KolomTabel } from '@/components/data-table';
+import { ButirPenjelasan, Penjelasan } from '@/components/penjelasan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -57,7 +58,7 @@ function SelHarga({
   return (
     <div className="flex flex-col items-end gap-0.5">
       <div className="flex items-center gap-1">
-        {/* K-094: tier default juga boleh ikut markup. */}
+        {/* K-094: harga dasar boleh Rp tetap, ikut markup tier, atau markup sendiri. */}
         <PilihMetode
           nilai={isi.metode}
           onUbah={(m) => onUbah(gantiMetode(isi, m, h, t))}
@@ -84,17 +85,56 @@ function SelHarga({
           )}
         </span>
       )}
-      {/* K-097: syarat qty tier (khusus barang ini, atau ikut tier); diubah di form barang. */}
-      {!t.isDefault && (
-        <span
-          className={cn('text-[11px] tabular-nums', h?.minQty ? 'text-blue-700' : 'text-slate-400')}
-        >
-          {h?.minQty
-            ? `mulai ${formatDesimal(h.minQty)} (khusus)`
-            : t.minQty
-              ? `mulai ${formatDesimal(t.minQty)}`
-              : 'hanya manual'}
+    </div>
+  );
+}
+
+/**
+ * K-098: harga tier selain harga dasar selalu harga modal + markup tier, jadi hanya ditampilkan. Barang yang
+ * harga tiernya lebih mahal dari harga dasarnya tetap dijual dengan harga dasar (docs/06 H8).
+ */
+function SelHargaTier({
+  b,
+  t,
+  dasar,
+}: {
+  b: BarisBarang;
+  t: TingkatHarga;
+  dasar: TingkatHarga | undefined;
+}) {
+  const h = b.harga.find((x) => x.idTingkatHarga === t.id);
+  const hDasar = dasar && b.harga.find((x) => x.idTingkatHarga === dasar.id);
+  if (!h || h.hargaJual <= 0) {
+    return <span className="text-xs text-slate-400">belum ada (modal belum diketahui)</span>;
+  }
+  const tidakDipakai =
+    hDasar !== undefined && hDasar.hargaJual > 0 && h.hargaJual > hDasar.hargaJual;
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <span
+        className={cn(
+          'tabular-nums',
+          tidakDipakai ? 'text-slate-400 line-through' : 'text-slate-700',
+        )}
+        aria-label={`Harga ${t.nama} ${b.namaBarang}`}
+      >
+        {formatRupiah(h.hargaJual)}
+      </span>
+      {tidakDipakai ? (
+        <span className="text-[11px] text-amber-700">
+          di atas harga {dasar?.nama}: tidak dipakai
         </span>
+      ) : (
+        h.margin != null && (
+          <span
+            className={cn(
+              'text-[11px] tabular-nums text-slate-400',
+              h.margin < 0 && 'font-medium text-red-600',
+            )}
+          >
+            margin {teksMargin(h.margin)}
+          </span>
+        )
       )}
     </div>
   );
@@ -164,6 +204,8 @@ export function TabHargaTier({ tierAktif }: { tierAktif: TingkatHarga[] }) {
   }
 
   const tampilDasar = daftar.data?.data.some((b) => b.dasarMarkup !== undefined) ?? false;
+  const tierDasar = tierAktif.find((t) => t.isDefault);
+  const tierLain = tierAktif.filter((t) => !t.isDefault);
   const kolom: KolomTabel<BarisBarang>[] = [
     {
       kunci: 'kode',
@@ -199,7 +241,11 @@ export function TabHargaTier({ tierAktif }: { tierAktif: TingkatHarga[] }) {
               </span>
             </label>
             {b.perluTinjauHarga && (
-              <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
+              <Badge
+                variant="outline"
+                className="border-orange-200 bg-orange-50 text-orange-700"
+                title="Harga modal atau markup berubah. Harga usulan menunggu persetujuan di tab Tinjau Harga."
+              >
                 Perlu tinjau
               </Badge>
             )}
@@ -221,34 +267,76 @@ export function TabHargaTier({ tierAktif }: { tierAktif: TingkatHarga[] }) {
     ...tierAktif.map((t) => ({
       kunci: `tier-${t.id}`,
       judul: (
-        <span>
-          {t.nama}
-          {t.markupDefaultPersen && (
-            <span className="ml-1 font-normal normal-case text-slate-400">
-              (+{formatDesimal(t.markupDefaultPersen)}%)
-            </span>
-          )}
+        <span className="inline-flex flex-col items-end leading-tight">
+          <span>
+            {t.nama}
+            {t.markupDefaultPersen && (
+              <span className="ml-1 font-normal normal-case text-slate-400">
+                (+{formatDesimal(t.markupDefaultPersen)}%)
+              </span>
+            )}
+          </span>
+          <span className="text-[11px] font-normal normal-case text-slate-400">
+            {t.isDefault ? 'harga dasar' : teksSyaratTier(t)}
+          </span>
         </span>
       ),
       className: 'text-right',
-      sel: (b: BarisBarang) => (
-        <SelHarga
-          b={b}
-          t={t}
-          ubah={perubahan.get(kunci(b.id, t.id))}
-          onUbah={(isi) => ubahSel(b, t, isi)}
-        />
-      ),
+      sel: (b: BarisBarang) =>
+        t.isDefault ? (
+          <SelHarga
+            b={b}
+            t={t}
+            ubah={perubahan.get(kunci(b.id, t.id))}
+            onUbah={(isi) => ubahSel(b, t, isi)}
+          />
+        ) : (
+          <SelHargaTier b={b} t={t} dasar={tierDasar} />
+        ),
     })),
   ];
+  const namaLain = tierLain.map((t) => t.nama).join(', ');
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-sm text-slate-500">
-          Pilih cara tiap harga: <b>Rp</b> harga tetap, <b>Tier</b> ikut markup tier, atau <b>%</b>{' '}
-          markup sendiri. Harga markup dihitung dari dasar harga modal dan dibulatkan ke atas.
-        </p>
+      <Penjelasan kunci="harga-jual" judul="Cara kerja harga jual">
+        <ButirPenjelasan>
+          <li>
+            <b>Harga dasar</b>
+            {tierDasar ? ` (${tierDasar.nama})` : ''} dipakai semua transaksi dan bisa diatur per
+            barang dengan tiga cara: <b>Rp</b> = harga tetap yang Anda ketik, <b>Tier</b> = harga
+            modal + markup tier, <b>%</b> = harga modal + markup khusus barang itu.
+          </li>
+          {tierLain.length > 0 && (
+            <li>
+              <b>{namaLain}</b>: selalu harga modal + markup tier untuk semua barang, sehingga tidak
+              diketik per barang. Dipakai otomatis saat total belanja satu transaksi mencapai syarat
+              di judul kolom. Markup dan syarat belanja diubah di <b>Kelola tier</b>.
+            </li>
+          )}
+          <li>
+            Bila harga tier sebuah barang lebih mahal dari harga dasarnya (mis. harga dasar diisi Rp
+            rendah), barang itu tetap dijual dengan harga dasar.
+          </li>
+          <li>
+            Sakelar <b>otomatis</b> di bawah nama barang: harga yang dihitung dari modal ikut naik
+            sendiri saat harga beli naik; bila turun, harga baru menunggu persetujuan di tab Tinjau
+            Harga.
+          </li>
+          <li>
+            <b>Margin</b> = bagian keuntungan dari harga jual. Harga markup dibulatkan ke atas
+            sesuai Pengaturan.
+          </li>
+          <li>
+            Harga khusus untuk barang, pelanggan, jumlah beli, atau masa tertentu dibuat di menu{' '}
+            <Link to="/promo" className="font-medium text-blue-700 hover:underline">
+              Promo
+            </Link>
+            ; potongannya dihitung dari harga tier.
+          </li>
+        </ButirPenjelasan>
+      </Penjelasan>
+      <div className="flex items-start justify-end gap-4">
         <div className="flex shrink-0 gap-2">
           <Button variant="outline" asChild>
             <a

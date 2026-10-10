@@ -73,6 +73,10 @@ const WARNA_STATUS: Record<StatusOrder, string> = {
   BATAL: 'border-red-200 bg-red-50 text-red-600',
 };
 
+/** Order basi (docs/05 R7): terlalu lama menunggu di antrean; stoknya masih ditahan. */
+const KETERANGAN_BASI =
+  'Order terlalu lama menunggu di antrean (melewati batas di Pengaturan). Stoknya masih ditahan sampai order diselesaikan atau dibatalkan.';
+
 export function BadgeStatusOrder({ status }: { status: StatusOrder }) {
   return (
     <Badge variant="outline" className={WARNA_STATUS[status]}>
@@ -157,7 +161,11 @@ function KartuOrder({
         <span className="flex items-center gap-1">
           <BadgeStatusOrder status={o.status} />
           {o.basi && (
-            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
+            <Badge
+              variant="outline"
+              className="border-red-200 bg-red-50 text-red-700"
+              title={KETERANGAN_BASI}
+            >
               Basi
             </Badge>
           )}
@@ -268,7 +276,11 @@ function PanelDetail({ id }: { id: number }) {
             <h2 className="text-lg font-bold text-slate-800">Order {d.nomor}</h2>
             <BadgeStatusOrder status={d.status} />
             {d.basi && (
-              <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
+              <Badge
+                variant="outline"
+                className="border-red-200 bg-red-50 text-red-700"
+                title={KETERANGAN_BASI}
+              >
                 Basi
               </Badge>
             )}

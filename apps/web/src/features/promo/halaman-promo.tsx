@@ -26,6 +26,7 @@ import { DataTable, type KolomTabel } from '@/components/data-table';
 import { InputPersen } from '@/components/input-persen';
 import { InputRupiah } from '@/components/input-rupiah';
 import { MenuAksiMaster } from '@/components/menu-aksi-master';
+import { ButirPenjelasan, Penjelasan } from '@/components/penjelasan';
 import { PilihBarang } from '@/components/pilih-barang';
 import { PilihPelanggan } from '@/components/pilih-pelanggan';
 import { BadgeStatusAktif } from '@/components/status-badge';
@@ -176,9 +177,9 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
         <DialogHeader>
           <DialogTitle>{promo ? `Ubah promo ${promo.kode}` : 'Buat promo'}</DialogTitle>
           <DialogDescription>
-            Potongan dari harga Normal per baris barang, selama tanggal mulai sampai selesai. Bila
-            beberapa promo cocok, dipakai potongan terbesar. Promo tidak digabung dengan harga
-            grosir: dipakai yang lebih murah bagi pembeli. Tidak berlaku untuk harga manual.
+            Potongan dihitung dari harga tier yang berlaku pada baris barang (harga dasar, atau tier
+            lain bila syarat belanjanya tercapai), selama tanggal mulai sampai selesai. Bila
+            beberapa promo cocok, dipakai potongan terbesar. Tidak berlaku untuk harga manual.
           </DialogDescription>
         </DialogHeader>
         {terkunci && (
@@ -742,6 +743,38 @@ export function HalamanPromo() {
           <Plus /> Buat promo
         </Button>
       </div>
+
+      <Penjelasan kunci="promo" judul="Cara kerja promo">
+        <ButirPenjelasan>
+          <li>
+            Promo adalah potongan harga yang Anda buat sendiri untuk{' '}
+            <b>semua barang, satu kategori, atau satu barang</b>, selama masa promo. Masa promo
+            boleh singkat atau panjang (tanggal selesai jauh).
+          </li>
+          <li>
+            Syarat boleh digabung: minimal qty barang itu, minimal total belanja transaksi, pembeli
+            tertentu (golongan atau pelanggan), dan total belanja pelanggan dalam sekian hari
+            terakhir.
+          </li>
+          <li>
+            <b>Urutan hitung:</b> harga tier lebih dulu (menurut total belanja, diatur di Harga
+            Jual), lalu potongan promo dihitung dari harga tier itu, lalu diskon dari kasir.
+          </li>
+          <li>
+            Satu baris barang hanya mendapat satu promo. Bila beberapa promo cocok, dipakai yang
+            potongannya terbesar.
+          </li>
+          <li>
+            Promo yang membuat harga di bawah modal dilewati otomatis untuk Kasir dan Staf
+            Penjualan. Promo tidak berlaku untuk baris berharga manual.
+          </li>
+          <li>
+            Status <b>Terjadwal</b> = belum mulai, <b>Berjalan</b> = sedang berlaku, <b>Berakhir</b>{' '}
+            = lewat tanggal selesai, <b>Nonaktif</b> = dimatikan. Aturan promo yang sudah dipakai di
+            penjualan dikunci; untuk aturan lain buat promo baru.
+          </li>
+        </ButirPenjelasan>
+      </Penjelasan>
 
       <Card className="gap-0 overflow-hidden py-0">
         <div className="flex items-center gap-3 border-b pr-3">

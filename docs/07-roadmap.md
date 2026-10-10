@@ -386,5 +386,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-10-09 — Tombol "Simpan draf & order baru" dan tombol qty ±1 di baris barang (K-096).
 - 2026-10-10 — Harga jual hanya menurut qty; harga khusus pembeli lewat promo (golongan, pelanggan tertentu,
   syarat belanja); tier qty dan promo tidak digabung (K-097).
+- 2026-10-10 — Tier harga menurut total nilai belanja transaksi untuk semua barang; promo dipotong dari harga
+  tier; kotak "Cara kerja" di Harga Jual, Kelola tier, dan Promo (K-098).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).

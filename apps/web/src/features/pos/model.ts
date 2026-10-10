@@ -28,7 +28,7 @@ export type BarisPos = {
   /** Stok tersedia saat barang dipilih (info), `null` bila tidak diketahui. */
   stokTersedia: string | null;
   qty: string;
-  /** `null` = tier otomatis (tier default / syarat qty, K-097); diisi = dipilih kasir. */
+  /** `null` = tier otomatis (tier dasar / nilai belanja, K-098); diisi = dipilih kasir. */
   idTingkatHarga: number | null;
   hargaManual: boolean;
   /** Harga manual, bila `hargaManual`. */

@@ -22,8 +22,9 @@ import {
 import { tambahHari, tanggalOperasional } from '../../lib/waktu';
 
 /*
- * Promo (docs/06 §3 PR1–PR7) dan perubahan diskon/tier Fase 9 (D3, H8; K-087). Barang uji dari fixtur
- * persediaan: semen (modal 9.000, Normal 12.000, Grosir 11.000), pasir (modal 3.000, Normal 4.000).
+ * Promo (docs/06 §3 PR1–PR9) dan tier harga transaksi (H8; K-087, K-098). Barang uji dari fixtur persediaan:
+ * semen (modal 9.000, Normal 12.000, Grosir 11.000), pasir (modal 3.000, Normal 4.000, Grosir 4.500 karena
+ * harga Normal-nya diisi Rp tetap di bawah markup Grosir). Grosir berlaku mulai belanja Rp 120.000.
  */
 
 type Sesi = Awaited<ReturnType<typeof sesiUji>>;
@@ -47,7 +48,7 @@ beforeEach(async () => {
     .insert(tingkatHarga)
     .values([
       { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-      { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2, minQty: '10' },
+      { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2, minBelanja: 120_000 },
     ])
     .returning();
   tier = { normal: t[0]!.id, grosir: t[1]!.id };
@@ -58,13 +59,20 @@ beforeEach(async () => {
     hargaTetap: harga,
     hargaJual: harga,
   });
+  // Tier selain tier dasar selalu mengikuti markup tier (K-098); harga jualnya ditulis langsung di sini.
+  const ikutTier = (idBarang: number, idTingkatHarga: number, harga: number) => ({
+    idBarang,
+    idTingkatHarga,
+    metode: 'IKUT_TIER' as const,
+    hargaJual: harga,
+  });
   await db
     .insert(hargaBarang)
     .values([
       tetap(m.semen, tier.normal, 12_000),
-      tetap(m.semen, tier.grosir, 11_000),
+      ikutTier(m.semen, tier.grosir, 11_000),
       tetap(m.pasir, tier.normal, 4_000),
-      tetap(m.pasir, tier.grosir, 4_500),
+      ikutTier(m.pasir, tier.grosir, 4_500),
     ]);
   const [k] = await db.insert(kategori).values({ nama: 'Pasir' }).returning();
   katPasir = k!.id;
@@ -247,7 +255,7 @@ describe('promo di order dan pratinjau (PR1–PR4, PR6)', () => {
       ['Semua 5%', 400],
     ]);
 
-    // Total bruto 132.000 ≥ min belanja; pasir qty 3 ≥ min qty. Tier Normal dipilih (tanpa tier qty).
+    // Total bruto 132.000 ≥ min belanja promo; pasir qty 3 ≥ min qty. Semen: tier Normal dipilih kasir.
     p = await pratinjau(admin, [
       { idBarang: m.semen, qty: '10', idTingkatHarga: tier.normal },
       { idBarang: m.pasir, qty: '3' },
@@ -442,30 +450,53 @@ describe('PR5: lepas promo dan evaluasi ulang saat checkout', () => {
   });
 });
 
-describe('H8 tier otomatis (K-094)', () => {
-  it('qty ≥ syarat tier: tier lebih murah dipakai otomatis, juga untuk Staf; tier mahal tidak', async () => {
-    const baris = async (b: Record<string, unknown>, sesi = staf) =>
-      (await pratinjau(sesi, [b])).baris[0]!;
-    expect(await baris({ idBarang: m.semen, qty: '9' })).toMatchObject({
+describe('H8 tier harga transaksi menurut nilai belanja (K-098)', () => {
+  it('nilai belanja ≥ syarat tier: tier dipakai otomatis untuk semua baris, juga untuk Staf', async () => {
+    // Rp 108.000 < Rp 120.000: harga Normal, dan pratinjau memberi tahu kekurangannya.
+    let p = await pratinjau(staf, [{ idBarang: m.semen, qty: '9' }]);
+    expect(p.baris[0]).toMatchObject({
       idTingkatHarga: tier.normal,
       tierDipilih: false,
       hargaSatuan: 12_000,
     });
-    expect(await baris({ idBarang: m.semen, qty: '10' })).toMatchObject({
+    expect(p.tierBelanja).toEqual({
+      nilaiBelanja: 108_000,
+      idTingkatHarga: tier.normal,
+      berikut: { idTingkatHarga: tier.grosir, kurang: 12_000 },
+    });
+
+    // Tepat Rp 120.000 (dihitung dengan harga Normal): Grosir.
+    p = await pratinjau(staf, [{ idBarang: m.semen, qty: '10' }]);
+    expect(p.baris[0]).toMatchObject({
       idTingkatHarga: tier.grosir,
       tierDipilih: false,
       hargaSatuan: 11_000,
       idTingkatHargaSaran: null,
     });
-    // Grosir 4.500 > Normal 4.000: tetap Normal.
-    expect(await baris({ idBarang: m.pasir, qty: '10' })).toMatchObject({
-      idTingkatHarga: tier.normal,
-      hargaSatuan: 4000,
+    expect(p.tierBelanja).toEqual({
+      nilaiBelanja: 120_000,
+      idTingkatHarga: tier.grosir,
+      berikut: null,
     });
-    // Normal dipilih kasir: tidak diganti otomatis, tetapi Grosir disarankan. Harga manual tanpa saran.
+    expect(p.totalBruto).toBe(110_000);
+
+    // Nilai belanja dihitung dari seluruh keranjang: semen hanya 5 sak pun mendapat harga Grosir.
+    // Pasir: harga Grosir 4.500 lebih mahal dari Normal 4.000, jadi tetap Normal.
+    p = await pratinjau(staf, [
+      { idBarang: m.semen, qty: '5' },
+      { idBarang: m.pasir, qty: '15' },
+    ]);
+    expect(p.tierBelanja).toMatchObject({ nilaiBelanja: 120_000, idTingkatHarga: tier.grosir });
+    expect(p.baris[0]).toMatchObject({ idTingkatHarga: tier.grosir, hargaSatuan: 11_000 });
+    expect(p.baris[1]).toMatchObject({ idTingkatHarga: tier.normal, hargaSatuan: 4000 });
+  });
+
+  it('tier pilihan kasir tidak diganti otomatis tetapi disarankan; tier di luar aturan butuh izin', async () => {
+    // Normal dipilih kasir: tidak diganti otomatis, tetapi Grosir disarankan. Harga manual tanpa saran,
+    // dan dinilai dengan harga Normal-nya (4.000) untuk nilai belanja.
     const dipilih = await pratinjau(admin, [
       { idBarang: m.semen, qty: '10', idTingkatHarga: tier.normal },
-      { idBarang: m.pasir, qty: '10', hargaManual: true, hargaSatuan: 4000 },
+      { idBarang: m.pasir, qty: '10', hargaManual: true, hargaSatuan: 3900 },
     ]);
     expect(dipilih.baris[0]).toMatchObject({
       idTingkatHarga: tier.normal,
@@ -474,9 +505,121 @@ describe('H8 tier otomatis (K-094)', () => {
       idTingkatHargaSaran: tier.grosir,
     });
     expect(dipilih.baris[1]?.idTingkatHargaSaran).toBeNull();
+    expect(dipilih.tierBelanja.nilaiBelanja).toBe(160_000);
+
+    // Belanja kecil dengan harga Grosir: Staf ditolak, Kasir (berizin ganti tier) boleh.
+    const kecil = [{ idBarang: m.semen, qty: '1', idTingkatHarga: tier.grosir }];
+    const tolak = await galat(
+      kirim(staf, '/api/order/pratinjau', { idOrder: null, order: keranjang(kecil) }),
+    );
+    expect(tolak).toMatchObject({ status: 403, kode: 'TIDAK_BERIZIN' });
+    expect((await pratinjau(kasir, kecil)).baris[0]).toMatchObject({
+      idTingkatHarga: tier.grosir,
+      tierDipilih: true,
+      hargaSatuan: 11_000,
+    });
+
+    // Staf mengirim tier yang sama dengan tier transaksi: dihitung otomatis (bukan pilihan), sehingga harga
+    // Grosir tidak bisa ditahan setelah nilai belanja turun.
+    const besar = await kirimData<DetailOrder>(
+      staf,
+      '/api/order?kirim=true',
+      keranjang([{ idBarang: m.semen, qty: '10', idTingkatHarga: tier.grosir }]),
+    );
+    expect(besar.baris[0]).toMatchObject({ idTingkatHarga: tier.grosir, tierDipilih: false });
+    const tahan = await galat(kirim(staf, `/api/order/${besar.id}`, keranjang(kecil), 'PUT'));
+    expect(tahan).toMatchObject({ status: 403, kode: 'TIDAK_BERIZIN' });
+    const turun = await kirimData<DetailOrder>(
+      staf,
+      `/api/order/${besar.id}`,
+      keranjang([{ idBarang: m.semen, qty: '1' }]),
+      'PUT',
+    );
+    expect(turun.baris[0]).toMatchObject({ idTingkatHarga: tier.normal, hargaSatuan: 12_000 });
+
+    // Tier yang dipilih Kasir di order itu tetap sah saat Staf (pembuat order) mengubah qty.
+    const dipilihKasir = await kirimData<DetailOrder>(
+      kasir,
+      `/api/order/${besar.id}`,
+      keranjang(kecil),
+      'PUT',
+    );
+    expect(dipilihKasir.baris[0]).toMatchObject({ idTingkatHarga: tier.grosir, tierDipilih: true });
+    const lanjut = await kirimData<DetailOrder>(
+      staf,
+      `/api/order/${besar.id}`,
+      keranjang([{ idBarang: m.semen, qty: '2', idTingkatHarga: tier.grosir }]),
+      'PUT',
+    );
+    expect(lanjut.baris[0]).toMatchObject({
+      idTingkatHarga: tier.grosir,
+      tierDipilih: true,
+      hargaSatuan: 11_000,
+    });
   });
 
-  it('order menyimpan tier otomatis; qty diubah di bawah syarat kembali ke tier pelanggan', async () => {
+  it('tier tanpa syarat belanja hanya dipakai bila dipilih; syarat sama → markup terkecil; tier dasar tanpa syarat', async () => {
+    const ubahTier = (id: number, isi: Record<string, unknown>) =>
+      kirim(admin, `/api/tingkat-harga/${id}`, isi, 'PATCH');
+    const grosir = { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2 };
+
+    // Tier dasar berlaku untuk semua transaksi: tidak boleh punya syarat belanja.
+    const tolak = await galat(
+      ubahTier(tier.normal, {
+        kode: 'NORMAL',
+        nama: 'Normal',
+        markupDefaultPersen: '25',
+        minBelanja: 50_000,
+        urutan: 1,
+      }),
+    );
+    expect(tolak.status).toBe(400);
+    expect(tolak.pesan).toContain('Tier dasar');
+    expect((await ubahTier(tier.grosir, { ...grosir, minBelanja: 0 })).status).toBe(400);
+
+    // Syarat dikosongkan: Grosir tidak lagi otomatis.
+    expect((await ubahTier(tier.grosir, { ...grosir, minBelanja: null })).status).toBe(200);
+    let p = await pratinjau(staf, [{ idBarang: m.semen, qty: '10' }]);
+    expect(p.baris[0]).toMatchObject({ idTingkatHarga: tier.normal, hargaSatuan: 12_000 });
+    expect(p.tierBelanja).toMatchObject({ idTingkatHarga: tier.normal, berikut: null });
+
+    // Syarat diubah pemilik: langsung berlaku untuk transaksi berikutnya.
+    expect((await ubahTier(tier.grosir, { ...grosir, minBelanja: 50_000 })).status).toBe(200);
+    p = await pratinjau(staf, [{ idBarang: m.semen, qty: '5' }]);
+    expect(p.baris[0]).toMatchObject({ idTingkatHarga: tier.grosir, hargaSatuan: 11_000 });
+
+    // Tangga tier: Distributor mulai Rp 200.000. Rp 120.000 → Grosir, kurang Rp 80.000 ke Distributor.
+    const [dist] = await db
+      .insert(tingkatHarga)
+      .values({
+        kode: 'DISTRIBUTOR',
+        nama: 'Distributor',
+        markupDefaultPersen: '15',
+        urutan: 3,
+        minBelanja: 200_000,
+      })
+      .returning();
+    await db.insert(hargaBarang).values({
+      idBarang: m.semen,
+      idTingkatHarga: dist!.id,
+      metode: 'IKUT_TIER',
+      hargaJual: 10_400,
+    });
+    p = await pratinjau(staf, [{ idBarang: m.semen, qty: '10' }]);
+    expect(p.tierBelanja).toEqual({
+      nilaiBelanja: 120_000,
+      idTingkatHarga: tier.grosir,
+      berikut: { idTingkatHarga: dist!.id, kurang: 80_000 },
+    });
+    p = await pratinjau(staf, [{ idBarang: m.semen, qty: '17' }]);
+    expect(p.baris[0]).toMatchObject({ idTingkatHarga: dist!.id, hargaSatuan: 10_400 });
+    // Dua tier bersyarat sama: yang markup-nya lebih kecil (lebih murah) yang dipakai.
+    await db.update(tingkatHarga).set({ minBelanja: 50_000 }).where(eq(tingkatHarga.id, dist!.id));
+    p = await pratinjau(staf, [{ idBarang: m.semen, qty: '5' }]);
+    expect(p.baris[0]).toMatchObject({ idTingkatHarga: dist!.id, hargaSatuan: 10_400 });
+  });
+
+  it('order menyimpan tier transaksi; nilai belanja turun di bawah syarat kembali ke tier dasar', async () => {
     const o = await kirimData<{ id: number }>(
       staf,
       '/api/order',
@@ -493,49 +636,60 @@ describe('H8 tier otomatis (K-094)', () => {
   });
 });
 
-describe('K-097 harga menurut qty, promo menurut pembeli', () => {
-  it('syarat qty tier bisa diganti per barang; tier default tidak boleh punya syarat qty', async () => {
-    // Semen: Grosir khusus barang ini mulai 5 (tier: mulai 10).
-    await db
-      .update(hargaBarang)
-      .set({ minQty: '5' })
-      .where(and(eq(hargaBarang.idBarang, m.semen), eq(hargaBarang.idTingkatHarga, tier.grosir)));
-    const p = await pratinjau(staf, [
-      { idBarang: m.semen, qty: '5' },
-      { idBarang: m.pasir, qty: '5' },
-    ]);
-    expect(p.baris[0]).toMatchObject({ idTingkatHarga: tier.grosir, hargaSatuan: 11_000 });
-    expect(p.baris[1]).toMatchObject({ idTingkatHarga: tier.normal });
-
-    const tolak = await kirim(
-      admin,
-      `/api/tingkat-harga/${tier.normal}`,
-      { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', minQty: '3', urutan: 1 },
-      'PATCH',
-    );
-    expect(tolak.status).toBe(400);
-  });
-
-  it('harga grosir dan promo tidak digabung: dipakai yang paling murah bagi pembeli', async () => {
-    await buatPromo({ nama: 'Diskon 10%', potonganPersen: '10' });
-    // Qty 10: Normal 12.000 − 10% = 10.800 lebih murah dari Grosir 11.000 → promo.
+describe('PR9 promo di atas harga tier (K-098); promo menurut pembeli (K-097)', () => {
+  it('promo dipotong dari harga tier transaksi; batas modal PR6 tetap berlaku', async () => {
+    const p10 = await buatPromo({ nama: 'Diskon 10%', potonganPersen: '10' });
+    // Belanja Rp 120.000 → Grosir 11.000; promo 10% dari harga Grosir = 1.100 per sak.
     let p = await pratinjau(staf, [{ idBarang: m.semen, qty: '10' }]);
-    expect(p.baris[0]).toMatchObject({
-      idTingkatHarga: tier.normal,
-      hargaSatuan: 12_000,
-      diskonPromo: 12_000,
-      subtotal: 108_000,
-    });
-    // Promo 5%: Normal 11.400 lebih mahal dari Grosir 11.000 → Grosir tanpa promo.
-    await db.update(promo).set({ potonganPersen: '5' });
-    p = await pratinjau(staf, [{ idBarang: m.semen, qty: '10' }]);
     expect(p.baris[0]).toMatchObject({
       idTingkatHarga: tier.grosir,
       hargaSatuan: 11_000,
-      idPromo: null,
-      diskonPromo: 0,
-      subtotal: 110_000,
+      bruto: 110_000,
+      idPromo: p10.id,
+      diskonPromo: 11_000,
+      subtotal: 99_000,
     });
+    // Nilai belanja tidak berkurang oleh promo: tier tetap Grosir.
+    expect(p.tierBelanja).toMatchObject({ nilaiBelanja: 120_000, idTingkatHarga: tier.grosir });
+
+    // Promo 20% dari Grosir = 8.800 < modal 9.000: untuk Staf/Kasir dilewati, promo aman berikutnya dipakai.
+    const p20 = await buatPromo({ nama: 'Diskon 20%', potonganPersen: '20' });
+    p = await pratinjau(staf, [{ idBarang: m.semen, qty: '10' }]);
+    expect(p.baris[0]).toMatchObject({ idPromo: p10.id, diskonPromo: 11_000, promoDitolak: true });
+    // Di harga Normal promo yang sama masih aman (12.000 − 20% = 9.600).
+    p = await pratinjau(staf, [{ idBarang: m.semen, qty: '9' }]);
+    expect(p.baris[0]).toMatchObject({
+      idTingkatHarga: tier.normal,
+      idPromo: p20.id,
+      diskonPromo: 21_600,
+      promoDitolak: false,
+    });
+    // Admin (berizin menjual di bawah modal) tidak dibatasi.
+    p = await pratinjau(admin, [{ idBarang: m.semen, qty: '10' }]);
+    expect(p.baris[0]).toMatchObject({ idPromo: p20.id, diskonPromo: 22_000, subtotal: 88_000 });
+  });
+
+  it('checkout: promo dievaluasi ulang dari harga tier yang tersimpan di order', async () => {
+    const o = await kirimData<DetailOrder>(
+      staf,
+      '/api/order?kirim=true',
+      keranjang([{ idBarang: m.semen, qty: '10' }]),
+    );
+    expect(o.baris[0]).toMatchObject({ idTingkatHarga: tier.grosir, hargaSatuan: 11_000 });
+    expect(o.total).toBe(110_000);
+    const p5 = await buatPromo({ nama: 'Baru 5%', potonganPersen: '5' });
+    await kirimData(kasir, '/api/shift/buka', { modalAwal: 0 });
+    const pj = await kirimData<DetailPenjualan>(kasir, '/api/penjualan/checkout', {
+      idOrder: o.id,
+      pembayaran: [lunas],
+    });
+    expect(pj.baris[0]).toMatchObject({
+      hargaSatuan: 11_000,
+      idPromo: p5.id,
+      diskonPromo: 5500,
+      subtotal: 104_500,
+    });
+    expect(pj).toMatchObject({ totalBruto: 110_000, totalDiskon: 5500, totalNeto: 104_500 });
   });
 
   it('promo untuk golongan, pelanggan tertentu, dan syarat belanja N hari terakhir', async () => {

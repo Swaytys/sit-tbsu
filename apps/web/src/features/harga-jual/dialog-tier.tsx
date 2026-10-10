@@ -1,21 +1,23 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   skemaTingkatHargaInput,
+  teksSyaratTier,
   type DataTingkatHarga,
   type InputTingkatHarga,
   type StatusAktif,
   type TingkatHarga,
 } from '@sit/shared';
-import { Plus } from 'lucide-react';
+import { Plus, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useSimpanTier, useStatusTier } from '@/api/barang';
 import { useDaftarTingkatHarga } from '@/api/mitra';
 import { InputAngka } from '@/components/input-angka';
+import { InputRupiah } from '@/components/input-rupiah';
 import { MenuAksiMaster } from '@/components/menu-aksi-master';
+import { ButirPenjelasan, Penjelasan } from '@/components/penjelasan';
 import { BadgeStatusAktif } from '@/components/status-badge';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -46,6 +48,9 @@ import {
 import { jalankanDenganToast } from '@/lib/aksi';
 import { formatDesimal } from '@/lib/format';
 import { tampilkanGalatForm } from '@/lib/form';
+import { BadgeTierDasar } from './badge-tier-dasar';
+
+const besarAwal = (teks: string) => teks.charAt(0).toUpperCase() + teks.slice(1);
 
 function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: () => void }) {
   const simpan = useSimpanTier();
@@ -55,8 +60,8 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
       kode: tier?.kode ?? '',
       nama: tier?.nama ?? '',
       markupDefaultPersen: tier?.markupDefaultPersen ? formatDesimal(tier.markupDefaultPersen) : '',
+      minBelanja: tier?.minBelanja ?? null,
       urutan: tier?.urutan ?? 0,
-      minQty: tier?.minQty ? formatDesimal(tier.minQty).replaceAll('.', '') : '',
     },
   });
 
@@ -70,7 +75,7 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
         'kode',
         'nama',
         'markupDefaultPersen',
-        'minQty',
+        'minBelanja',
         'urutan',
       ]);
     }
@@ -80,18 +85,24 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
     <Form {...form}>
       <form
         onSubmit={(e) => void form.handleSubmit(kirim)(e)}
-        className="grid grid-cols-5 gap-3 rounded-lg border bg-slate-50 p-3"
+        className="grid grid-cols-6 gap-3 rounded-lg border bg-slate-50 p-3"
         noValidate
       >
+        <p className="col-span-6 text-sm font-medium text-slate-800">
+          {tier ? `Ubah tier ${tier.nama}` : 'Tier baru'}
+        </p>
         <FormField
           control={form.control}
           name="kode"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="col-span-2">
               <FormLabel>Kode</FormLabel>
               <FormControl>
                 <Input className="font-mono uppercase" placeholder="MEMBER" {...field} />
               </FormControl>
+              <FormDescription className="text-xs">
+                Nama singkat tanpa spasi, mis. GROSIR.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -100,53 +111,18 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
           control={form.control}
           name="nama"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="col-span-3">
               <FormLabel>Nama tier</FormLabel>
               <FormControl>
                 <Input placeholder="Member" {...field} />
               </FormControl>
+              <FormDescription className="text-xs">
+                Nama yang tampil di kasir dan struk.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="markupDefaultPersen"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Markup (%)</FormLabel>
-              <FormControl>
-                <Input
-                  inputMode="decimal"
-                  placeholder="20"
-                  {...field}
-                  value={typeof field.value === 'string' ? field.value : ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {!tier?.isDefault && (
-          <FormField
-            control={form.control}
-            name="minQty"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Mulai qty</FormLabel>
-                <FormControl>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="mis. 10"
-                    {...field}
-                    value={typeof field.value === 'string' ? field.value : ''}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
         <FormField
           control={form.control}
           name="urutan"
@@ -156,16 +132,63 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
               <FormControl>
                 <InputAngka {...field} min={0} />
               </FormControl>
+              <FormDescription className="text-xs">Urutan tampil.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <FormDescription className="col-span-5">
-          {tier?.isDefault
-            ? 'Tier default dipakai semua pembeli yang belum memenuhi syarat qty tier lain.'
-            : 'Mulai qty: harga tier ini dipakai otomatis bila pembeli membeli sebanyak itu (satuan dasar). Kosong = hanya bila dipilih manual. Bisa diubah per barang di form barang.'}
-        </FormDescription>
-        <div className="col-span-5 flex justify-end gap-2">
+        <FormField
+          control={form.control}
+          name="markupDefaultPersen"
+          render={({ field }) => (
+            <FormItem className="col-span-3">
+              <FormLabel>Markup (%)</FormLabel>
+              <FormControl>
+                <Input
+                  inputMode="decimal"
+                  placeholder="20"
+                  {...field}
+                  value={typeof field.value === 'string' ? field.value : ''}
+                />
+              </FormControl>
+              <FormDescription className="text-xs">
+                Persen keuntungan di atas harga modal, untuk semua barang.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        {tier?.isDefault ? (
+          <div className="col-span-3 space-y-2">
+            <p className="text-sm font-medium">Berlaku untuk</p>
+            <p className="flex h-9 items-center rounded-md border border-dashed px-3 text-sm text-slate-600">
+              Semua transaksi
+            </p>
+            <p className="text-xs text-slate-500">
+              Harga dasar dipakai sebelum syarat belanja tier lain tercapai, jadi tidak punya syarat
+              belanja.
+            </p>
+          </div>
+        ) : (
+          <FormField
+            control={form.control}
+            name="minBelanja"
+            render={({ field }) => (
+              <FormItem className="col-span-3">
+                <FormLabel>Mulai belanja</FormLabel>
+                <FormControl>
+                  <InputRupiah {...field} placeholder="mis. 1.000.000" />
+                </FormControl>
+                <FormDescription className="text-xs">
+                  Total belanja satu transaksi agar tier ini dipakai otomatis. Kosongkan bila hanya
+                  boleh dipilih kasir.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        <div className="col-span-6 flex justify-end gap-2">
           <Button type="button" variant="outline" size="sm" onClick={onSelesai}>
             Batal
           </Button>
@@ -178,29 +201,61 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
   );
 }
 
-/** Master tingkat harga (docs/06 H1–H2): tambah, ubah markup, nonaktifkan. */
+/** Master tingkat harga (docs/06 H1–H2, H8): tambah, ubah markup dan syarat belanja, nonaktifkan. */
 export function DialogTier({ onTutup }: { onTutup: () => void }) {
   const tier = useDaftarTingkatHarga();
   const ubahStatus = useStatusTier();
   const [edit, setEdit] = useState<{ tier: TingkatHarga | null } | null>(null);
+  const dasar = (tier.data ?? []).find((t) => t.isDefault);
 
   return (
     <Dialog open onOpenChange={(buka) => !buka && onTutup()}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Kelola tier harga</DialogTitle>
           <DialogDescription>
-            Harga jual ditentukan jumlah beli: Normal untuk semua pembeli; tier lain dipakai
-            otomatis bila qty mencapai "mulai qty". Harga khusus pelanggan tertentu diatur di Promo.
+            Tier harga menentukan harga jual semua barang menurut total belanja satu transaksi.
           </DialogDescription>
         </DialogHeader>
+        <Penjelasan kunci="kelola-tier" judul="Cara kerja tier harga">
+          <ButirPenjelasan>
+            <li>
+              <b>Harga dasar</b>
+              {dasar ? ` (${dasar.nama})` : ''} dipakai semua transaksi. Tier ini selalu ada: tidak
+              bisa dinonaktifkan atau dipindah ke tier lain, tetapi nama dan markup-nya boleh
+              diubah.
+            </li>
+            <li>
+              Tier lain dipakai <b>otomatis untuk semua barang</b> begitu total belanja satu
+              transaksi mencapai <b>Mulai belanja</b>-nya. Total belanja dihitung dengan harga
+              dasar, sebelum promo dan diskon. Bila beberapa tier tercapai, dipakai yang syarat
+              belanjanya paling besar.
+            </li>
+            <li>
+              <b>Markup</b> = persen keuntungan di atas harga modal. Harga tier = harga modal +
+              markup, dibulatkan ke atas, dan berlaku untuk semua barang tanpa kecuali.
+            </li>
+            <li>
+              Tier tanpa <b>Mulai belanja</b> tidak pernah otomatis; hanya dipakai bila kasir
+              memilihnya di transaksi.
+            </li>
+            <li>
+              Setelah markup diubah, harga yang naik langsung berlaku (barang berharga otomatis),
+              sedangkan harga yang turun menunggu persetujuan di tab Tinjau Harga.
+            </li>
+            <li>
+              Potongan promo dihitung dari harga tier. Harga khusus untuk barang, pelanggan, atau
+              masa tertentu diatur di menu Promo.
+            </li>
+          </ButirPenjelasan>
+        </Penjelasan>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Kode</TableHead>
               <TableHead>Nama</TableHead>
               <TableHead className="text-right">Markup</TableHead>
-              <TableHead className="text-right">Mulai qty</TableHead>
+              <TableHead>Berlaku untuk</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -209,20 +264,20 @@ export function DialogTier({ onTutup }: { onTutup: () => void }) {
             {(tier.data ?? []).map((t) => (
               <TableRow key={t.id}>
                 <TableCell className="font-mono text-xs">{t.kode}</TableCell>
-                <TableCell>
-                  {t.nama}{' '}
-                  {t.isDefault && (
-                    <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-                      Default
-                    </Badge>
+                <TableCell className="whitespace-normal">
+                  <span className="mr-1.5">{t.nama}</span>
+                  {t.isDefault && <BadgeTierDasar />}
+                  {t.peringatan && (
+                    <p className="mt-1 flex max-w-xs items-start gap-1 text-xs text-amber-700">
+                      <TriangleAlert className="mt-0.5 size-3 shrink-0" />
+                      {t.peringatan}
+                    </p>
                   )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {t.markupDefaultPersen ? `${formatDesimal(t.markupDefaultPersen)}%` : '—'}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {t.isDefault ? 'semua' : t.minQty ? formatDesimal(t.minQty) : 'manual'}
-                </TableCell>
+                <TableCell>{besarAwal(teksSyaratTier(t))}</TableCell>
                 <TableCell>
                   <BadgeStatusAktif status={t.statusAktif} />
                 </TableCell>
@@ -230,6 +285,7 @@ export function DialogTier({ onTutup }: { onTutup: () => void }) {
                   <MenuAksiMaster
                     nama={t.nama}
                     status={t.statusAktif}
+                    bisaNonaktif={!t.isDefault}
                     onUbah={() => setEdit({ tier: t })}
                     onUbahStatus={(statusAktif: StatusAktif) =>
                       void jalankanDenganToast(

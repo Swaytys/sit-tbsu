@@ -46,7 +46,7 @@ export function useTransaksiPos(tierDefault: number | null) {
   const [t, setT] = useState<TransaksiPos>(KOSONG);
   const [cadangan, setCadangan] = useState<TransaksiPos | null>(null);
 
-  // K-097: harga awal selalu tier default; tier lain dipakai otomatis menurut qty (API).
+  // K-098: harga awal selalu tier dasar; tier lain dipakai otomatis menurut total nilai belanja (API).
   const tierBawaan = tierDefault;
 
   function simpanCadangan(pesan: string) {

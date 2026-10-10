@@ -7,8 +7,8 @@ import {
   kunciBaris,
   persenKeRupiah,
   subtotalRupiah,
-  tambahQty,
   type DataOrder,
+  type InfoTierBelanja,
   type SatuanJualBarang,
 } from '@sit/shared';
 import type { Tx } from '../../db/client';
@@ -25,9 +25,9 @@ import { ambilAngka } from '../sistem/konfigurasi/service';
 
 /*
  * Harga, promo, diskon, dan total baris penjualan (docs/05 P2–P4, docs/06 H8–H9, D1–D5, PR1–PR9). Dipakai
- * order, pratinjau, dan checkout agar aturan harga hanya ada di satu tempat. Urutan per baris: harga (tier
- * menurut qty / snapshot / manual) → bruto → promo atas harga normal (PR4, menurut barang dan pembeli) →
- * harga termurah antara tier qty dan normal + promo (K-097) → diskon manual (D3) → subtotal.
+ * order, pratinjau, dan checkout agar aturan harga hanya ada di satu tempat. Urutan: nilai belanja transaksi
+ * (harga normal) → tier transaksi (K-098) → per baris: harga (tier / snapshot / manual) → bruto → promo dari
+ * harga tier (PR4, PR9; menurut barang dan pembeli) → diskon manual (D3) → subtotal.
  */
 
 export type BarisSiap = {
@@ -40,7 +40,7 @@ export type BarisSiap = {
   qty: string;
   qtyDasar: string;
   idTingkatHarga: number | null;
-  /** K-094: tier dipilih kasir (tombol T); `false` = otomatis (syarat qty, K-097). */
+  /** K-094: tier dipilih kasir (tombol T); `false` = otomatis (tier transaksi, K-098). */
   tierDipilih: boolean;
   hargaSatuan: number;
   hargaManual: boolean;
@@ -62,12 +62,14 @@ export type BarisSiap = {
   diBawahModal: boolean;
   /** Harga tier bawaan sebagai pembanding harga manual (log). */
   hargaPembanding: number | null;
-  /** H8: tier pilihan kasir lebih mahal dari tier yang syarat qty-nya terpenuhi (saran, tidak memaksa). */
+  /** H8: tier pilihan kasir lebih mahal dari tier transaksi (saran, tidak memaksa). */
   idTingkatHargaSaran: number | null;
 };
 
 export type HasilHarga = {
   baris: BarisSiap[];
+  /** K-098: tier transaksi menurut total nilai belanja. */
+  tierBelanja: InfoTierBelanja;
   totalBruto: number;
   totalDiskonPromo: number;
   totalDiskonBaris: number;
@@ -86,6 +88,8 @@ export type HasilHarga = {
 export type BarisLama = {
   idSatuanJual: number | null;
   idTingkatHarga: number | null;
+  /** Tier baris itu dipilih pemegang izin (bukan tier otomatis). */
+  tierDipilih: boolean;
   hargaSatuan: number;
   hargaManual: boolean;
   diskonBaris: number;
@@ -126,7 +130,7 @@ function melebihiBatas(diskon: number, dasar: number, batas: number): boolean {
   return diskon * 100 > batas * dasar;
 }
 
-/** Tier default (P3, K-097): harga bawaan semua pembeli sebelum syarat qty tier lain terpenuhi. */
+/** Tier dasar (P3, K-098): harga semua transaksi sebelum nilai belanja tier lain tercapai. */
 export async function tierDefault(tx: Tx): Promise<number> {
   const [d] = await tx
     .select({ id: tingkatHarga.id })
@@ -172,40 +176,40 @@ async function dataBarang(tx: Tx, idBarang: number[]) {
 }
 
 /**
- * H8 (K-094, K-097): tier otomatis baris = yang termurah di antara tier default dan tier aktif yang syarat
- * qty-nya terpenuhi oleh total satuan dasar barang itu. Syarat qty = `harga_barang.min_qty` barang itu, atau
- * `tingkat_harga.min_qty`; tier tanpa syarat qty hanya dipakai bila dipilih manual. Seri → tier qty.
+ * H8 (K-098): tier harga transaksi menurut total nilai belanja, berlaku untuk semua barang. Dari tier aktif
+ * yang `min_belanja`-nya tercapai dipakai yang syaratnya paling tinggi (syarat sama → markup terkecil); bila
+ * tidak ada yang tercapai dipakai tier dasar. Tier tanpa `min_belanja` hanya dipakai bila dipilih manual.
+ * `berikut` = tier terdekat yang belum tercapai beserta kekurangan belanjanya.
  */
-export function pilihTierOtomatis(
+export function pilihTierBelanja(
   idDefault: number,
-  tierAktif: { id: number }[],
-  qtyDasar: string,
-  minQty: (idTier: number) => string | null,
-  hargaTier: (idTier: number) => number | undefined,
-): number {
-  let pilih = { id: idDefault, harga: hargaTier(idDefault) };
-  for (const t of tierAktif) {
-    const syarat = minQty(t.id);
-    if (t.id === idDefault || syarat === null) continue;
-    if (bandingQty(qtyDasar, syarat) < 0) continue;
-    const h = hargaTier(t.id);
-    if (h === undefined || h <= 0) continue;
-    // Seri dengan tier default → tier qty (pembeli memang memenuhi syarat harga itu).
-    if (
-      pilih.harga === undefined ||
-      h < pilih.harga ||
-      (h === pilih.harga && pilih.id === idDefault)
+  tierAktif: { id: number; minBelanja: number | null; markupDefaultPersen: string }[],
+  nilaiBelanja: number,
+): InfoTierBelanja {
+  const bersyarat = tierAktif
+    .flatMap((t) =>
+      t.id === idDefault || t.minBelanja === null
+        ? []
+        : [{ id: t.id, min: t.minBelanja, markup: t.markupDefaultPersen }],
     )
-      pilih = { id: t.id, harga: h };
+    .sort((a, b) => a.min - b.min || bandingQty(b.markup, a.markup));
+  let idTingkatHarga = idDefault;
+  let berikut: InfoTierBelanja['berikut'] = null;
+  for (const t of bersyarat) {
+    if (nilaiBelanja >= t.min) idTingkatHarga = t.id;
+    else {
+      berikut = { idTingkatHarga: t.id, kurang: t.min - nilaiBelanja };
+      break;
+    }
   }
-  return pilih.id;
+  return { nilaiBelanja, idTingkatHarga, berikut };
 }
 
 /**
- * Menghitung baris penjualan dari input: harga tier menurut qty (H8) dan snapshot (P2), promo menurut barang
- * dan pembeli (PR1–PR6, K-097), harga termurah antara tier qty dan harga normal + promo (tidak digabung,
- * K-097), diskon manual (D1–D4), dan total (P4). Memeriksa izin tier/harga manual/diskon/lepas promo untuk
- * nilai yang diubah pelaku. Tidak menulis apa pun.
+ * Menghitung baris penjualan dari input: tier harga transaksi menurut total nilai belanja (H8, K-098) dengan
+ * harga janji order (P2), promo menurut barang dan pembeli yang dipotong dari harga tier (PR1–PR6, PR9),
+ * diskon manual (D1–D4), dan total (P4). Memeriksa izin tier/harga manual/diskon/lepas promo untuk nilai yang
+ * diubah pelaku. Tidak menulis apa pun.
  */
 export async function hitungBarisJual(
   tx: Tx,
@@ -226,19 +230,18 @@ export async function hitungBarisJual(
   const idBarang = input.baris.map((b) => b.idBarang);
   const brgPer = await dataBarang(tx, idBarang);
   const tierAktif = await tx
-    .select({ id: tingkatHarga.id, minQty: tingkatHarga.minQty })
+    .select({
+      id: tingkatHarga.id,
+      minBelanja: tingkatHarga.minBelanja,
+      markupDefaultPersen: tingkatHarga.markupDefaultPersen,
+    })
     .from(tingkatHarga)
     .where(eq(tingkatHarga.statusAktif, 'AKTIF'));
-  const minQtyTier = new Map(tierAktif.map((t) => [t.id, t.minQty]));
+  const idTierAktif = new Set(tierAktif.map((t) => t.id));
   const harga = new Map<string, number>();
-  const minQtyBarang = new Map<string, string>();
   for (const h of await hargaBarangDasar(tx, idBarang)) {
     harga.set(`${h.idBarang}:${h.idTingkatHarga}`, h.hargaJual);
-    if (h.minQty !== null) minQtyBarang.set(`${h.idBarang}:${h.idTingkatHarga}`, h.minQty);
   }
-  /** Syarat qty tier untuk barang: khusus barang itu, atau syarat tier (K-097). */
-  const minQtyUntuk = (idBrg: number, idTier: number) =>
-    minQtyBarang.get(`${idBrg}:${idTier}`) ?? minQtyTier.get(idTier) ?? null;
   // K-091: harga satuan jual per tier (tetap atau otomatis dari satuan dasar × faktor).
   const satuanJual = new Map<number, { idBarang: number; s: SatuanJualBarang }>();
   for (const [idBrg, daftar] of await muatSatuanJual(tx, idBarang)) {
@@ -251,18 +254,10 @@ export async function hitungBarisJual(
   const hargaUntuk = (idBrg: number, idSj: number | null, idTier: number) =>
     harga.get(idSj === null ? `${idBrg}:${idTier}` : `${idSj}#${idTier}`);
   const idDefault = await tierDefault(tx);
-  // K-095: syarat qty tier dihitung dari total satuan dasar barang itu di transaksi (semua baris satuannya).
-  const totalDasar = new Map<number, string>();
-  for (const b of input.baris) {
-    const f = b.idSatuanJual === null ? '1' : (satuanJual.get(b.idSatuanJual)?.s.faktor ?? '1');
-    totalDasar.set(
-      b.idBarang,
-      tambahQty(totalDasar.get(b.idBarang) ?? '0', kaliQty(keQty(b.qty), f)),
-    );
-  }
   const konteks = await muatKonteksHarga(tx);
   const batas = await batasDiskon(tx, pelaku);
   const bolehDiskon = pelaku.izin.has('penjualan.diskon');
+  const bolehTier = pelaku.izin.has('penjualan.tier.ubah');
   // PR6: pelaku yang boleh menjual di bawah modal (izin harga manual, H9) tidak dibatasi modal.
   const bebasModal = pelaku.izin.has('penjualan.harga_manual');
 
@@ -274,19 +269,19 @@ export async function hitungBarisJual(
     b: (typeof input.baris)[number],
     lama: BarisLama | undefined,
     idTier: number,
-  ): { harga: number | null; janji: boolean } => {
+  ): number | null => {
     const janji =
       lama !== undefined &&
       !lama.hargaManual &&
       lama.idTingkatHarga === idTier &&
       lama.idSatuanJual === b.idSatuanJual;
-    if (janji) return { harga: lama.hargaSatuan, janji };
+    if (janji) return lama.hargaSatuan;
     const kini = hargaUntuk(b.idBarang, b.idSatuanJual, idTier);
-    return { harga: kini === undefined || kini <= 0 ? null : kini, janji };
+    return kini === undefined || kini <= 0 ? null : kini;
   };
 
-  // Tahap 1: harga dan bruto setiap baris (tier qty), dan harga normal pembanding promo.
-  const tahap1 = input.baris.map((b, i) => {
+  // Tahap 1: validasi baris, satuan, dan harga normal (tier dasar) setiap baris.
+  const dasarBaris = input.baris.map((b, i) => {
     const brg = brgPer.get(b.idBarang);
     if (!brg) throw galatBaris(i, 'idBarang', 'Barang tidak ditemukan.');
     if (brg.statusAktif !== 'AKTIF') {
@@ -294,7 +289,6 @@ export async function hitungBarisJual(
     }
     const qty = keQty(b.qty);
     const lama = lamaPer.get(kunciBaris(b.idBarang, b.idSatuanJual));
-    const qtyTier = totalDasar.get(b.idBarang) ?? '0';
     let faktor = '1';
     if (b.idSatuanJual !== null) {
       const sj = satuanJual.get(b.idSatuanJual);
@@ -322,12 +316,48 @@ export async function hitungBarisJual(
     if (!/[1-9]/.test(qtyDasar)) {
       throw galatBaris(i, 'qty', 'Qty terlalu kecil untuk satuan ini.');
     }
-    // Dasar modal per satuan baris (H9, PR6): D × faktor.
-    const dasar = subtotalRupiah(faktor, dasarMarkup(brg, konteks.modeDasar));
+    return {
+      b,
+      brg,
+      qty,
+      qtyDasar,
+      faktor,
+      lama,
+      // Dasar modal per satuan baris (H9, PR6): D × faktor.
+      dasar: subtotalRupiah(faktor, dasarMarkup(brg, konteks.modeDasar)),
+      hargaNormal: hargaTierBaris(b, lama, idDefault),
+    };
+  });
+
+  // K-098: nilai belanja = Σ qty × harga normal semua baris (sebelum promo dan diskon), sehingga tier tidak
+  // bergantung pada harga yang dihasilkannya sendiri. Baris harga manual dinilai dengan harga normalnya.
+  const nilaiBelanja = dasarBaris.reduce(
+    (t, x) =>
+      t + subtotalRupiah(x.qty, x.hargaNormal ?? (x.b.hargaManual ? (x.b.hargaSatuan ?? 0) : 0)),
+    0,
+  );
+  const tierBelanja = pilihTierBelanja(idDefault, tierAktif, nilaiBelanja);
+
+  // Tahap 2: tier dan harga setiap baris.
+  const tahap1 = dasarBaris.map((x, i) => {
+    const { b, brg, qty, lama, dasar } = x;
     let idTier: number | null = null;
-    const tierDipilih = !b.hargaManual && b.idTingkatHarga !== null;
+    // Tier yang dikirim pelaku tanpa izin ganti tier hanya dianggap pilihan bila melanjutkan pilihan pemegang
+    // izin di order itu. Selain itu: tier di luar aturan ditolak, dan tier yang sama dengan aturan dihitung
+    // otomatis agar tetap mengikuti nilai belanja saat order diubah lagi.
+    let tierDiminta = b.hargaManual ? null : b.idTingkatHarga;
+    const lanjutPilihan =
+      lama?.tierDipilih === true &&
+      lama.idTingkatHarga === tierDiminta &&
+      lama.idSatuanJual === b.idSatuanJual;
+    if (tierDiminta !== null && !bolehTier && !lanjutPilihan) {
+      if (tierDiminta !== idDefault && tierDiminta !== tierBelanja.idTingkatHarga) {
+        throw new AppError('TIDAK_BERIZIN', 'Anda tidak berizin mengganti tier harga.', 403);
+      }
+      tierDiminta = null;
+    }
+    const tierDipilih = tierDiminta !== null;
     let hargaSatuan: number;
-    let hargaNormal: number | null = null;
     let diBawahModal = false;
     if (b.hargaManual) {
       hargaSatuan = b.hargaSatuan ?? 0;
@@ -348,27 +378,21 @@ export async function hitungBarisJual(
         }
       }
     } else {
-      // K-094/K-097: tanpa pilihan kasir, tier ditentukan otomatis dari qty.
-      idTier =
-        b.idTingkatHarga ??
-        pilihTierOtomatis(
-          idDefault,
-          tierAktif,
-          qtyTier,
-          (t) => minQtyUntuk(b.idBarang, t),
-          (t) => hargaUntuk(b.idBarang, b.idSatuanJual, t),
-        );
-      if (!minQtyTier.has(idTier)) throw galatBaris(i, 'idTingkatHarga', 'Tier harga tidak aktif.');
-      const tier = hargaTierBaris(b, lama, idTier);
+      idTier = tierDiminta ?? tierBelanja.idTingkatHarga;
+      if (!idTierAktif.has(idTier))
+        throw galatBaris(i, 'idTingkatHarga', 'Tier harga tidak aktif.');
+      let hargaTier = hargaTierBaris(b, lama, idTier);
+      // Tier otomatis tidak boleh lebih mahal dari harga normal (mis. harga normal diisi Rp tetap rendah):
+      // pembeli yang belanjanya lebih besar tidak membayar lebih mahal.
       if (
-        tierDipilih &&
+        !tierDipilih &&
         idTier !== idDefault &&
-        !tier.janji &&
-        !pelaku.izin.has('penjualan.tier.ubah')
+        (hargaTier === null || (x.hargaNormal !== null && hargaTier > x.hargaNormal))
       ) {
-        throw new AppError('TIDAK_BERIZIN', 'Anda tidak berizin mengganti tier harga.', 403);
+        idTier = idDefault;
+        hargaTier = x.hargaNormal;
       }
-      if (tier.harga === null) {
+      if (hargaTier === null) {
         throw galatBaris(
           i,
           'idTingkatHarga',
@@ -376,23 +400,13 @@ export async function hitungBarisJual(
             'Catat penerimaan barangnya, atau isi harganya (Rp) di Data Barang.',
         );
       }
-      hargaSatuan = tier.harga;
-      // K-097: pembanding promo = harga normal (tier default) baris ini.
-      hargaNormal = idTier === idDefault ? hargaSatuan : hargaTierBaris(b, lama, idDefault).harga;
+      hargaSatuan = hargaTier;
     }
     return {
-      b,
-      brg,
-      qty,
-      qtyDasar,
-      faktor,
-      lama,
-      dasar,
-      qtyTier,
+      ...x,
       idTier,
       tierDipilih,
       hargaSatuan,
-      hargaNormal,
       diBawahModal,
       bruto: subtotalRupiah(qty, hargaSatuan),
     };
@@ -406,19 +420,16 @@ export async function hitungBarisJual(
     await pembeliPromo(tx, input.idPelanggan),
   );
 
-  // Tahap 2: promo, harga termurah, diskon manual, subtotal, dan saran tier per baris.
+  // Tahap 3: promo (dipotong dari harga tier, PR9), diskon manual, subtotal, dan saran tier per baris.
   const baris: BarisSiap[] = tahap1.map((x, i) => {
-    const { b, brg, qty, qtyDasar, lama } = x;
+    const { b, brg, qty, qtyDasar, lama, bruto } = x;
     const tanpaPromo = b.tanpaPromo;
     if (tanpaPromo !== (lama?.promoNonaktif ?? false) && !pelaku.izin.has('penjualan.checkout')) {
       throw new AppError('TIDAK_BERIZIN', 'Anda tidak berizin melepas atau memasang promo.', 403);
     }
-    // K-097: promo dihitung dari harga normal dan tidak digabung dengan harga tier qty. Tier yang dipilih
-    // kasir selain tier default tidak mendapat promo. Promo tidak berlaku untuk harga manual (K-087).
-    const bisaPromo =
-      !b.hargaManual && x.hargaNormal !== null && (!x.tierDipilih || x.idTier === idDefault);
-    const brutoNormal = x.hargaNormal === null ? 0 : subtotalRupiah(qty, x.hargaNormal);
-    const pilih = !bisaPromo
+    // Promo tidak berlaku untuk harga manual (keputusan pemilik, K-087). Diskon rupiah yang sudah ada
+    // membatasi potongan promo agar subtotal tidak negatif.
+    const pilih = b.hargaManual
       ? { promo: null, potongan: 0, ditolakDiBawahModal: false }
       : pilihPromo(
           kandidat,
@@ -427,22 +438,17 @@ export async function hitungBarisJual(
             idKategori: brg.idKategori,
             qty: qtyDasar,
             qtyHarga: qty,
-            hargaSatuan: x.hargaNormal ?? 0,
-            bruto: brutoNormal,
+            hargaSatuan: x.hargaSatuan,
+            bruto,
             batasBawah: bebasModal ? null : subtotalRupiah(qty, x.dasar),
             ...(b.diskonBarisPersen === null
-              ? { batasPotongan: Math.max(0, brutoNormal - b.diskonBaris) }
+              ? { batasPotongan: Math.max(0, bruto - b.diskonBaris) }
               : {}),
           },
           totalBruto,
           tanggal,
         );
-    // Harga termurah bagi pembeli: harga normal dipotong promo, atau harga tier qty tanpa promo.
-    const promoDipakai =
-      !tanpaPromo && pilih.promo !== null && brutoNormal - pilih.potongan < x.bruto;
-    const idTingkatHarga = promoDipakai ? idDefault : x.idTier;
-    const hargaSatuan = promoDipakai ? (x.hargaNormal ?? 0) : x.hargaSatuan;
-    const bruto = promoDipakai ? brutoNormal : x.bruto;
+    const promoDipakai = !tanpaPromo && pilih.promo !== null;
     const diskonPromo = promoDipakai ? pilih.potongan : 0;
 
     // D1/D3: diskon manual atas subtotal setelah promo; D2 batas peran untuk nilai yang diubah pelaku.
@@ -464,18 +470,16 @@ export async function hitungBarisJual(
       throw galatBaris(i, 'diskonBaris', 'Diskon melebihi harga baris.');
     }
 
-    // H8: tier pilihan kasir, padahal tier lain yang syarat qty-nya terpenuhi lebih murah: disarankan.
-    let saran: { id: number; harga: number } | null = null;
-    if (x.tierDipilih) {
-      for (const t of tierAktif) {
-        const syarat = minQtyUntuk(b.idBarang, t.id);
-        if (t.id === x.idTier || syarat === null) continue;
-        if (bandingQty(x.qtyTier, syarat) < 0) continue;
-        const h = hargaUntuk(b.idBarang, b.idSatuanJual, t.id);
-        if (h === undefined || h <= 0 || h >= x.hargaSatuan) continue;
-        if (!saran || h < saran.harga) saran = { id: t.id, harga: h };
-      }
-    }
+    // H8: tier dipilih kasir, padahal tier transaksi (nilai belanja) lebih murah untuk baris ini: disarankan.
+    const hargaTierTransaksi = hargaUntuk(b.idBarang, b.idSatuanJual, tierBelanja.idTingkatHarga);
+    const saran =
+      x.tierDipilih &&
+      x.idTier !== tierBelanja.idTingkatHarga &&
+      hargaTierTransaksi !== undefined &&
+      hargaTierTransaksi > 0 &&
+      hargaTierTransaksi < x.hargaSatuan
+        ? tierBelanja.idTingkatHarga
+        : null;
 
     return {
       idBarang: b.idBarang,
@@ -485,9 +489,9 @@ export async function hitungBarisJual(
       faktor: x.faktor,
       qty,
       qtyDasar,
-      idTingkatHarga,
+      idTingkatHarga: x.idTier,
       tierDipilih: x.tierDipilih,
-      hargaSatuan,
+      hargaSatuan: x.hargaSatuan,
       hargaManual: b.hargaManual,
       bruto,
       idPromo: promoDipakai ? (pilih.promo?.id ?? null) : null,
@@ -506,7 +510,7 @@ export async function hitungBarisJual(
       hargaPembanding: b.hargaManual
         ? (hargaUntuk(b.idBarang, b.idSatuanJual, idDefault) ?? null)
         : null,
-      idTingkatHargaSaran: saran?.id ?? null,
+      idTingkatHargaSaran: saran,
     };
   });
 
@@ -540,6 +544,7 @@ export async function hitungBarisJual(
   }
   return {
     baris,
+    tierBelanja,
     totalBruto,
     totalDiskonPromo: baris.reduce((t, b) => t + b.diskonPromo, 0),
     totalDiskonBaris: baris.reduce((t, b) => t + b.diskonBaris, 0),
@@ -561,8 +566,6 @@ export type BarisCheckout = {
   qtyDasar: string;
   hargaSatuan: number;
   hargaManual: boolean;
-  /** Tier baris; promo hanya untuk baris harga normal (tier default, K-097). */
-  idTingkatHarga: number | null;
   diskonBaris: number;
   promoNonaktif: boolean;
 };
@@ -577,8 +580,8 @@ export type HasilPromoCheckout = {
 /**
  * PR5: promo dievaluasi ulang dengan tanggal checkout, pelaku checkout (PR6), dan pembeli order (K-097).
  * Harga, diskon manual, dan pelepasan promo yang tersimpan di order dipakai apa adanya (tidak diuji ulang
- * terhadap izin kasir); potongan promo dibatasi agar subtotal tidak negatif. Baris berharga tier qty tidak
- * mendapat promo (tidak digabung, K-097).
+ * terhadap izin kasir); potongan promo dibatasi agar subtotal tidak negatif. Promo dipotong dari harga baris
+ * yang tersimpan (harga tier, PR9).
  */
 export async function hitungPromoCheckout(
   tx: Tx,
@@ -600,11 +603,10 @@ export async function hitungPromoCheckout(
     [...new Set(rows.map((r) => r.idKategori))],
     await pembeliPromo(tx, idPelanggan),
   );
-  const idDefault = await tierDefault(tx);
   return rows.map((r, i) => {
     const b = bruto[i] ?? 0;
     const brg = brgPer.get(r.idBarang);
-    if (r.hargaManual || r.promoNonaktif || r.idTingkatHarga !== idDefault || !brg) {
+    if (r.hargaManual || r.promoNonaktif || !brg) {
       return { idPromo: null, namaPromo: null, diskonPromo: 0, subtotal: b - r.diskonBaris };
     }
     const pilih = pilihPromo(

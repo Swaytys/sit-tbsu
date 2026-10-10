@@ -33,6 +33,7 @@ fitur di sini adalah jalan pintas yang tunduk pada izin yang sama.
 | A8 | **Kotak cari (combobox)** untuk memilih barang/pelanggan/pemasok bila datanya ribuan. | Dropdown pemasok di form barang kini hanya memuat 100 pertama. |
 | A9 | Pintasan keyboard global dan pencarian perintah (Ctrl+K). | |
 | A10 | Batalkan (undo) singkat untuk aksi massal. | |
+| A11 | **(masukan pemilik 2026-10-10) Promo v2**: satu promo untuk **banyak barang pilihan** (bukan hanya semua/satu kategori/satu barang); tabel promo yang bisa **diedit massal** (pilih banyak promo/barang → ubah potongan, masa, syarat); salin promo; syarat tambahan: nilai belanja barang itu (bukan total transaksi), hari/jam tertentu, potongan bertingkat menurut qty. | Dasar saat ini (K-097/K-098): promo per semua/kategori/barang dengan syarat qty, total belanja, pembeli, dan belanja pelanggan N hari; dipotong dari harga tier. Promo bertingkat butuh revisi PR4/PR8. |
 
 ## v2.0.0 — Sprint B: Peran dan hak akses kustom
 
@@ -129,3 +130,4 @@ Usulan dari Fase 7 (laporan):
 - 2026-09-30 — Dibuat dari masukan pemilik setelah Fase 3 (K-062).
 - 2026-10-04 — Sprint D: usulan laporan D-L1–D-L4 dari Fase 7.
 - 2026-10-09 — Sprint F: F6 tata letak POS yang bisa diatur (masukan pemilik).
+- 2026-10-10 — Sprint A: A11 promo v2 (masukan pemilik, K-098).

@@ -19,6 +19,9 @@ async function pilih(page: Page, label: string, opsi: string) {
 test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan di Harga Jual', async ({
   page,
 }) => {
+  // Alur terpanjang (form barang → daftar → Tinjau Harga → Harga Jual → Kelola tier → versi titipan):
+  // batas waktu dilonggarkan agar tidak gagal saat komputer sedang sibuk.
+  test.slow();
   const nama = `Barang E2E ${Date.now()}`;
   const penitip = `Penitip E2E ${Date.now()}`;
   await masukCepat(page, 'ADMIN');
@@ -92,7 +95,7 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
   await expect(page.getByText(/Usulan harga 1 barang diterapkan/)).toBeVisible();
   await expect(barisTinjau).toHaveCount(0);
 
-  // Harga per tier: Grosir sudah 54.000 dan Normal tetap; ubah Grosir menjadi harga tetap.
+  // Harga per tier: Grosir sudah 54.000 dan hanya tampil (selalu markup tier, K-098); harga Normal diubah.
   await page.getByRole('tab', { name: 'Harga per tier' }).click();
   await page.getByLabel('Cari barang', { exact: true }).fill(nama);
   const barisHarga = page.getByRole('row').filter({ hasText: nama });
@@ -100,18 +103,24 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
   await expect(page.getByRole('switch', { name: `Harga otomatis ${nama}` })).not.toBeChecked();
   await expect(page.getByLabel(`Harga Normal ${nama}`, { exact: true })).toHaveValue('55.000');
   await expect(page.getByLabel(`Harga Grosir ${nama}`, { exact: true })).toHaveText('Rp 54.000');
-  await page.getByRole('button', { name: `Metode harga Grosir ${nama}` }).click();
-  await page.getByRole('menuitemradio', { name: 'Harga tetap (Rp)' }).click();
-  await expect(page.getByLabel(`Harga Grosir ${nama}`, { exact: true })).toHaveValue('54.000');
-  await page.getByLabel(`Harga Grosir ${nama}`, { exact: true }).fill('50000');
+  await expect(page.getByRole('button', { name: `Metode harga Grosir ${nama}` })).toHaveCount(0);
+  await expect(page.getByText('Cara kerja harga jual')).toBeVisible();
+  await page.getByLabel(`Harga Normal ${nama}`, { exact: true }).fill('57000');
   await page.getByRole('button', { name: 'Simpan perubahan (1)' }).click();
   await expect(page.getByText('Harga 1 barang disimpan (1 harga berubah).')).toBeVisible();
-  await expect(page.getByLabel(`Harga Grosir ${nama}`, { exact: true })).toHaveValue('50.000');
+  await expect(page.getByLabel(`Harga Normal ${nama}`, { exact: true })).toHaveValue('57.000');
 
-  // Kelola tier: tier default ditandai.
+  // Kelola tier: harga dasar ditandai dan dijelaskan; tidak bisa dinonaktifkan.
   await page.getByRole('button', { name: 'Kelola tier' }).click();
   const dialog = page.getByRole('dialog', { name: 'Kelola tier harga' });
-  await expect(dialog.getByRole('row').filter({ hasText: 'Normal' })).toContainText('Default');
+  const barisNormal = dialog.getByRole('row').filter({ hasText: 'Normal' });
+  await expect(barisNormal).toContainText('Harga dasar');
+  await expect(barisNormal).toContainText('Semua transaksi');
+  await expect(dialog.getByText('Cara kerja tier harga')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Aksi untuk Normal' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Ubah' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Nonaktifkan' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
   await dialog.getByRole('button', { name: 'Tutup' }).first().click();
 
   // K-094: barang yang sama juga dititipkan pemasok: salin dari menu baris Data Barang.

@@ -91,7 +91,7 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 |---|---|
 | P1 | Checkout memakai order (DIPROSES) sebagai sumber baris. Kasir juga bisa "checkout langsung": layar kasir membuat order DRAFT→MENUNGGU→DIPROSES→SELESAI dalam satu transaksi (order tetap tersimpan untuk jejak). |
 | P2 | Harga baris = `harga_barang.harga_jual` untuk tier yang dipilih saat baris ditambahkan (snapshot). Harga yang dijanjikan di order berlaku saat checkout meski master berubah; kasir dapat menekan "Perbarui harga" per baris (log). |
-| P3 | Harga awal baris = tier `is_default` untuk semua pembeli; tier baris otomatis memakai tier qty yang lebih murah bila syaratnya terpenuhi (docs/06 H8, K-094, K-097). Pelanggan tidak menentukan harga; harga khusus pelanggan lewat promo (docs/06 PR2). Memilih tier lain secara manual butuh `penjualan.tier.ubah`. Harga manual (`harga_manual = true`, tier null) butuh `penjualan.harga_manual` dan dicatat log dengan harga tier pembanding. |
+| P3 | Harga awal baris = tier dasar (`is_default`) untuk semua pembeli; semua baris otomatis memakai tier transaksi bila total nilai belanja mencapai syarat belanja tier itu (docs/06 H8, K-098). Pelanggan dan qty per barang tidak menentukan tier; harga khusus pelanggan, qty, atau barang lewat promo (docs/06 PR2), yang dipotong dari harga tier (PR9). Memilih tier lain secara manual butuh `penjualan.tier.ubah`. Harga manual (`harga_manual = true`, tier null) butuh `penjualan.harga_manual` dan dicatat log dengan harga tier pembanding. |
 | P4 | Total: `total_bruto = Σ bulatkanRupiah(qty × harga_satuan)`; `total_diskon = Σ diskon_baris + Σ diskon_promo + diskon_transaksi`; `total_neto = total_bruto − total_diskon + ongkir`, minimal 0. Diskon mengikuti docs/06 §2. |
 | P5 | `hpp_saat_transaksi` = `persediaan.hpp_rata2` saat checkout (KONSINYASI: `harga_titip`). Dibaca setelah `FOR UPDATE` di R6. |
 | P6 | LANGSUNG tanpa pelanggan (pembeli umum): wajib LUNAS saat checkout. LANGSUNG dengan pelanggan terdata: boleh DP/BELUM_BAYAR dengan `tanggal_jatuh_tempo` (piutang, docs/06 §4). |
@@ -237,3 +237,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-07 — V1: baris titipan yang sudah disetor tidak bisa di-void (K-089).
 - 2026-10-07 — U2: faktor satuan jual (K-091).
 - 2026-10-08 — T5: stok pengganti tukar diperiksa saat pengajuan (K-092).
+- 2026-10-10 — P3: tier transaksi menurut total nilai belanja; promo dipotong dari harga tier (K-098).

@@ -155,9 +155,11 @@ describe('templat dan ekspor', () => {
     const ws = wb.getWorksheet('Barang')!;
     const kunci = kunciBaris1(ws);
     expect(kunci).toEqual(
-      expect.arrayContaining(['harga_normal', 'harga_grosir', 'atribut_panjang', 'atribut_warna']),
+      expect.arrayContaining(['harga_normal', 'atribut_panjang', 'atribut_warna']),
     );
     expect(kunci).not.toContain('status');
+    // K-098: harga tier lain selalu markup tier, tidak ada kolomnya.
+    expect(kunci).not.toContain('harga_grosir');
     const kol = (k: string) => ws.getColumn(kunci.indexOf(k) + 1).letter;
     expect(ws.getCell(`${kol('harga_modal_awal')}3`).dataValidation.type).toBe('whole');
     expect(ws.getCell(`${kol('kategori')}3`).dataValidation.type).toBe('list');
@@ -178,7 +180,7 @@ describe('templat dan ekspor', () => {
         nama_barang: 'Pipa',
         kategori: 'Pipa',
         merk: 'Maspion',
-        harga_grosir: 50000,
+        harga_normal: 60000,
       },
     ]);
     expect((await proses('/api/import/barang', await baca(f))).status).toBe(200);
@@ -189,9 +191,9 @@ describe('templat dan ekspor', () => {
     expect(kunci).toContain('status');
     const sel = (baris: number, k: string) => ws.getRow(baris).getCell(kunci.indexOf(k) + 1).value;
     expect(sel(3, 'kode')).toBe('PIPA-1');
-    expect(sel(3, 'harga_grosir')).toBe(50000);
+    expect(sel(3, 'harga_normal')).toBe(60000);
+    expect(kunci).not.toContain('harga_grosir');
     expect(sel(4, 'atribut_panjang')).toBe('12,5 cm');
-    expect(sel(4, 'harga_grosir')).toBeNull(); // ikut tier → kosong
     expect(sel(4, 'merk')).toBe('Gresik');
 
     const bolakBalik = await pratinjau(
@@ -211,6 +213,8 @@ describe('baca, pratinjau, sunting, simpan', () => {
     ws.getCell('A1').value = 'kode';
     const kosong = ws.columnCount + 1;
     ws.getRow(1).getCell(kosong).value = 'harga_member';
+    // Templat lama: kolom harga tier selain tier dasar diabaikan dengan penjelasan (K-098).
+    ws.getRow(1).getCell(kosong + 1).value = 'harga_grosir';
     const kunci = kunciBaris1(ws);
     ws.getRow(3).getCell(kunci.indexOf('nama_barang') + 1).value = 'Paku';
     ws.getRow(3).getCell(kunci.indexOf('stok_minimum') + 1).value = 2.5;
@@ -219,6 +223,9 @@ describe('baca, pratinjau, sunting, simpan', () => {
     expect(hasil.baris.map((b) => b.nomorBaris)).toEqual([3, 5]);
     expect(hasil.baris[0]?.nilai).toEqual({ nama_barang: 'Paku', stok_minimum: '2,5' });
     expect(hasil.peringatan[0]).toContain('harga_member');
+    expect(hasil.peringatan[1]).toBe(
+      'Kolom "harga_grosir" diabaikan: harga Grosir dihitung otomatis dari markup tier untuk semua barang.',
+    );
     expect(hasil.kolom.find((k) => k.kunci === 'kategori')).toMatchObject({
       jenis: 'KATEGORI',
       wajib: true,

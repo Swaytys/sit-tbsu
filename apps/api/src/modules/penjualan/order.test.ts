@@ -86,10 +86,10 @@ beforeEach(async () => {
   await siapkanDatabaseSistem();
   m = await siapkanMasterPersediaan();
   await kosongkanTabel(pelanggan, tingkatHarga);
-  // Tier sendiri agar tes tidak bergantung pada sisa data tes lain. Grosir mulai qty 2 (K-097).
+  // Tier sendiri agar tes tidak bergantung pada sisa data tes lain. Grosir mulai belanja Rp 24.000 (K-098).
   await db.insert(tingkatHarga).values([
     { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-    { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2, minQty: '2' },
+    { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2, minBelanja: 24_000 },
   ]);
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
@@ -99,13 +99,11 @@ beforeEach(async () => {
     normal: t.find((x) => x.kode === 'NORMAL')!.id,
     grosir: t.find((x) => x.kode === 'GROSIR')!.id,
   };
-  const h = (idBarang: number, idTingkatHarga: number, hargaJual: number) => ({
-    idBarang,
-    idTingkatHarga,
-    metode: 'TETAP' as const,
-    hargaTetap: hargaJual,
-    hargaJual,
-  });
+  // Harga Normal diisi Rp; harga Grosir selalu mengikuti markup tier (K-098), nilainya ditulis langsung.
+  const h = (idBarang: number, idTingkatHarga: number, hargaJual: number) =>
+    idTingkatHarga === tier.normal
+      ? { idBarang, idTingkatHarga, metode: 'TETAP' as const, hargaTetap: hargaJual, hargaJual }
+      : { idBarang, idTingkatHarga, metode: 'IKUT_TIER' as const, hargaTetap: null, hargaJual };
   await db
     .insert(hargaBarang)
     .values([
@@ -178,7 +176,7 @@ describe('order penjualan (docs/05 §3, §6)', () => {
     expect((await hitungUlangCache(db, m.semen)).cocok).toBe(true);
   });
 
-  it('P2/P3/P4/R4 tier menurut qty, snapshot harga, diskon, total, selisih reservasi', async () => {
+  it('P2/P3/P4/R4 tier menurut nilai belanja, snapshot harga, diskon, total, selisih reservasi', async () => {
     const d = await kirim(
       admin,
       '/api/order?kirim=true',
@@ -197,15 +195,13 @@ describe('order penjualan (docs/05 §3, §6)', () => {
       hargaSatuan: 11000,
       subtotal: 22000,
     });
+    // Nilai belanja 24.000 + 6.000 ≥ 24.000 → Grosir; pasir memakai Normal karena dipilih kasir.
     expect(pasir).toMatchObject({ hargaSatuan: 4000, diskonBaris: 100, subtotal: 5900 });
     // subtotal 27.900 − diskon 10% (2.790) + ongkir 5.000
     expect(d).toMatchObject({ subtotal: 27900, diskonTransaksi: 2790, ongkir: 5000, total: 30110 });
 
     // Harga master berubah; order yang sudah dibuat tetap memakai harga lama (P2).
-    await db
-      .update(hargaBarang)
-      .set({ hargaJual: 11500, hargaTetap: 11500 })
-      .where(eq(hargaBarang.idBarang, m.semen));
+    await db.update(hargaBarang).set({ hargaJual: 11500 }).where(eq(hargaBarang.idBarang, m.semen));
     const u = await kirim(
       admin,
       `/api/order/${d.id}`,
@@ -231,7 +227,7 @@ describe('order penjualan (docs/05 §3, §6)', () => {
   });
 
   it('P3/D2/H9 izin tier, batas diskon per peran, harga manual di bawah modal', async () => {
-    // Staf: tidak boleh memilih tier selain tier default (tier qty otomatis tetap berlaku).
+    // Staf: tidak boleh memilih tier selain tier dasar atau tier transaksi (nilai belanja).
     const tierLain = await galat(
       minta2(
         staf,
@@ -390,7 +386,7 @@ describe('order penjualan (docs/05 §3, §6)', () => {
         noAntrean: nomorAntrean(a.nomor),
         status: 'DIPROSES',
         namaKasirProses: kasir.pengguna.namaPengguna,
-        total: 24000, // semen 2 sak memenuhi syarat Grosir (11.000) + pasir 0,5 × 4.000
+        total: 23900, // belanja 26.000 ≥ 24.000 → Grosir: semen 2 × 11.000 + pasir 0,5 × 3.800
         ringkasan: [
           { namaBarang: 'Semen Gresik 40 kg', qty: '2.000', kodeSatuan: 'sak' },
           { namaBarang: 'Pasir', qty: '0.500', kodeSatuan: 'sak' },

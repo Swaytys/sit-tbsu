@@ -50,8 +50,8 @@ export const skemaBarisOrder = z
     /** K-091: satuan jual baris; `null` = satuan dasar barang. Qty dan harga dalam satuan ini. */
     idSatuanJual: z.number().int().positive().nullable().default(null),
     /**
-     * null = otomatis: tier pelanggan (atau tier default), atau tier lebih murah yang syarat qty-nya
-     * terpenuhi (P3, H8, K-094). Diisi = tier dipilih kasir (tombol T).
+     * null = otomatis: tier transaksi menurut total nilai belanja (P3, H8, K-098). Diisi = tier dipilih
+     * kasir (tombol T).
      */
     idTingkatHarga: z.number().int().positive().nullable().default(null),
     /** Harga manual (H9): butuh izin `penjualan.harga_manual`. */
@@ -163,12 +163,23 @@ export type BarisPratinjau = {
   promoDitolak: boolean;
   diskonBaris: number;
   subtotal: number;
-  /** H8: tier pilihan kasir lebih mahal dari tier yang syarat qty-nya terpenuhi; `null` = tanpa saran. */
+  /** H8: tier pilihan kasir lebih mahal dari tier transaksi (nilai belanja); `null` = tanpa saran. */
   idTingkatHargaSaran: number | null;
+};
+
+/** K-098: tier harga transaksi menurut total nilai belanja (berlaku untuk semua barang). */
+export type InfoTierBelanja = {
+  /** Σ qty × harga tier dasar seluruh baris, sebelum promo dan diskon. */
+  nilaiBelanja: number;
+  /** Tier yang dipakai otomatis untuk transaksi ini. */
+  idTingkatHarga: number;
+  /** Tier berikutnya yang belum tercapai dan kekurangan belanjanya; `null` = sudah tier tertinggi. */
+  berikut: { idTingkatHarga: number; kurang: number } | null;
 };
 
 export type PratinjauOrder = {
   baris: BarisPratinjau[];
+  tierBelanja: InfoTierBelanja;
   totalBruto: number;
   totalDiskonPromo: number;
   totalDiskonBaris: number;
