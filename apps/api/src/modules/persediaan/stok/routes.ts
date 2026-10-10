@@ -1,8 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaCariMutasi, skemaCariStok, skemaIdParam, skemaKartuStok } from '@sit/shared';
+import { skemaCariMutasi, skemaCariStok, skemaKartuStok } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { stokTertahan } from '../../penjualan/order/service';
 import { daftarMutasi, daftarStok, eksporStok, kartuStok } from './service';
@@ -25,7 +25,7 @@ export const stokRoutes = new Hono<EnvApp>()
   .get(
     '/kartu/:id',
     lihat,
-    zValidator('param', skemaIdParam, kaitValidasi),
+    paramId,
     zValidator('query', skemaKartuStok, kaitValidasi),
     async (c) => {
       const data = await kartuStok(

@@ -1,6 +1,6 @@
 import type { DataJenisAtribut, JenisAtribut, StatusAktif } from '@sit/shared';
 import { db } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { selisih } from '../../../lib/perubahan';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -34,8 +34,7 @@ export async function tambahJenisAtribut(
 ): Promise<JenisAtribut> {
   const id = await dalamTransaksi(async (tx) => {
     if (await repo.kodeDipakai(tx, input.kode)) {
-      const pesan = `Kode atribut "${input.kode}" sudah dipakai.`;
-      throw new AppError('KONFLIK', pesan, 409, { kolom: { kode: [pesan] } });
+      throw galatKolom('kode', `Kode atribut "${input.kode}" sudah dipakai.`, 'KONFLIK');
     }
     const idBaru = await repo.tambahJenisAtribut(tx, input);
     await catatLog(tx, {
@@ -65,8 +64,7 @@ export async function ubahJenisAtribut(
     if (beda.kolom.length === 0) return;
 
     if (beda.kolom.includes('kode') && (await repo.kodeDipakai(tx, input.kode, id))) {
-      const pesan = `Kode atribut "${input.kode}" sudah dipakai.`;
-      throw new AppError('KONFLIK', pesan, 409, { kolom: { kode: [pesan] } });
+      throw galatKolom('kode', `Kode atribut "${input.kode}" sudah dipakai.`, 'KONFLIK');
     }
     const intiBerubah = beda.kolom.includes('tipeNilai') || beda.kolom.includes('jenisDimensi');
     if (intiBerubah && lama.jumlahBarang > 0) {

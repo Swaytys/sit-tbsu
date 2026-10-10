@@ -1,14 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
-import {
-  skemaBukaShift,
-  skemaCariShift,
-  skemaIdParam,
-  skemaKasShift,
-  skemaTutupShift,
-} from '@sit/shared';
+import { skemaBukaShift, skemaCariShift, skemaKasShift, skemaTutupShift } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import {
   bukaShift,
@@ -20,7 +14,6 @@ import {
 } from './service';
 
 const sendiri = requirePermission('kas.shift.kelola_sendiri');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 
 /** Shift kasir & clerical check (docs/05 §10). Akses per shift diperiksa service. */
 export const shiftRoutes = new Hono<EnvApp>()
@@ -36,13 +29,13 @@ export const shiftRoutes = new Hono<EnvApp>()
   .get('/', sendiri, zValidator('query', skemaCariShift, kaitValidasi), async (c) =>
     c.json(await daftarShift(c.req.valid('query'), penggunaWajib(c)), 200),
   )
-  .get('/:id', sendiri, param, async (c) =>
+  .get('/:id', sendiri, paramId, async (c) =>
     c.json({ data: await detailShift(c.req.valid('param').id, penggunaWajib(c)) }, 200),
   )
   .post(
     '/:id/tutup',
     sendiri,
-    param,
+    paramId,
     zValidator('json', skemaTutupShift, kaitValidasi),
     async (c) => {
       const data = await tutupShift(

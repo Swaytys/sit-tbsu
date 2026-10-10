@@ -1,13 +1,12 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaIdParam, skemaKategori, skemaSaringStatus, skemaUbahStatus } from '@sit/shared';
+import { skemaKategori, skemaSaringStatus, skemaUbahStatus } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { daftarKategori, tambahKategori, ubahKategori, ubahStatusKategori } from './service';
 
 const kelola = requirePermission('master.kategori.kelola');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 
 /** Kategori: dibaca semua peran (filter barang), dikelola Admin/Owner (docs/04 §3). */
 export const kategoriRoutes = new Hono<EnvApp>()
@@ -21,7 +20,7 @@ export const kategoriRoutes = new Hono<EnvApp>()
     const data = await tambahKategori(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 201);
   })
-  .patch('/:id', kelola, param, zValidator('json', skemaKategori, kaitValidasi), async (c) => {
+  .patch('/:id', kelola, paramId, zValidator('json', skemaKategori, kaitValidasi), async (c) => {
     const { id } = c.req.valid('param');
     const data = await ubahKategori(id, c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 200);
@@ -29,7 +28,7 @@ export const kategoriRoutes = new Hono<EnvApp>()
   .patch(
     '/:id/status',
     kelola,
-    param,
+    paramId,
     zValidator('json', skemaUbahStatus, kaitValidasi),
     async (c) => {
       const { id } = c.req.valid('param');

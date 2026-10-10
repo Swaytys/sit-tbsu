@@ -7,7 +7,7 @@ import {
   type StatusAktif,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { hashPassword } from '../../../lib/password';
@@ -52,8 +52,7 @@ async function muatDaftar(id: number): Promise<PenggunaDaftar> {
 
 async function pastikanUsernameBebas(tx: Tx, username: string, kecualiId?: number): Promise<void> {
   if (await repo.usernameDipakai(tx, username, kecualiId)) {
-    const pesan = `Username "${username}" sudah dipakai.`;
-    throw new AppError('KONFLIK', pesan, 409, { kolom: { username: [pesan] } });
+    throw galatKolom('username', `Username "${username}" sudah dipakai.`, 'KONFLIK');
   }
 }
 

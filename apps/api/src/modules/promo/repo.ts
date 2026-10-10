@@ -300,13 +300,3 @@ export async function statusSasaran(
           .where(eq(barang.id, p.idBarang));
   return { kategori: k, barang: b };
 }
-
-/** Nama promo untuk tampilan (struk, detail). */
-export function namaPromo(ex: Executor, id: number[]) {
-  if (id.length === 0) return Promise.resolve([]);
-  return ex
-    .select({ id: promo.id, kode: promo.kode, nama: promo.nama })
-    .from(promo)
-    .where(inArray(promo.id, id))
-    .orderBy(asc(promo.id));
-}

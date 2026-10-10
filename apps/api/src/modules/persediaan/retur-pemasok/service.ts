@@ -8,7 +8,7 @@ import {
   type MetaHalaman,
 } from '@sit/shared';
 import { db } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatBaris, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -72,12 +72,6 @@ export async function detailReturPemasok(
   };
 }
 
-function galatBaris(i: number, pesan: string): AppError {
-  return new AppError('VALIDASI', `Baris ${i + 1}: ${pesan}`, 400, {
-    kolom: { [`baris.${i}.idBarang`]: [pesan] },
-  });
-}
-
 export async function simpanReturPemasok(
   input: DataReturPemasok,
   pelaku: PenggunaAktif,
@@ -87,21 +81,21 @@ export async function simpanReturPemasok(
   const id = await dalamTransaksi(async (tx) => {
     const pms = await penerimaanRepo.pemasokAktif(tx, input.idPemasok);
     if (!pms) {
-      const pesan = 'Pemasok tidak ditemukan.';
-      throw new AppError('VALIDASI', pesan, 400, { kolom: { idPemasok: [pesan] } });
+      throw galatKolom('idPemasok', 'Pemasok tidak ditemukan.');
     }
     const titipan = input.penyelesaian === 'PENGEMBALIAN_TITIPAN';
     const idUnik = [...new Set(input.baris.map((b) => b.idBarang))].sort((a, b) => a - b);
     const brg = new Map((await repo.dataBarang(tx, idUnik)).map((b) => [b.id, b]));
     input.baris.forEach((b, i) => {
       const x = brg.get(b.idBarang);
-      if (!x) throw galatBaris(i, 'Barang tidak ditemukan.');
+      if (!x) throw galatBaris(i, 'idBarang', 'Barang tidak ditemukan.');
       if (titipan && (x.kepemilikan !== 'KONSINYASI' || x.idPemasokKonsinyasi !== pms.id)) {
-        throw galatBaris(i, `${x.namaBarang} bukan barang titipan ${pms.nama}.`);
+        throw galatBaris(i, 'idBarang', `${x.namaBarang} bukan barang titipan ${pms.nama}.`);
       }
       if (!titipan && x.kepemilikan === 'KONSINYASI') {
         throw galatBaris(
           i,
+          'idBarang',
           `${x.namaBarang} barang titipan; kembalikan lewat penyelesaian "Pengembalian titipan".`,
         );
       }
@@ -135,8 +129,7 @@ export async function simpanReturPemasok(
       input.idPenerimaan === null ? null : await hutangRepo.kunciPenerimaan(tx, input.idPenerimaan);
     if (input.idPenerimaan !== null) {
       if (!sumber || sumber.idPemasok !== pms.id || sumber.jenis !== 'PEMBELIAN') {
-        const pesan = `Penerimaan asal bukan pembelian dari ${pms.nama}.`;
-        throw new AppError('VALIDASI', pesan, 400, { kolom: { idPenerimaan: [pesan] } });
+        throw galatKolom('idPenerimaan', `Penerimaan asal bukan pembelian dari ${pms.nama}.`);
       }
     }
     if (input.penyelesaian === 'POTONG_HUTANG' && sumber) {

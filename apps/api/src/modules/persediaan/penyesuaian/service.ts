@@ -9,7 +9,7 @@ import {
   type MetaHalaman,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatBaris } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -100,12 +100,6 @@ export async function detailPenyesuaian(id: number): Promise<DetailPenyesuaian> 
       };
     }),
   };
-}
-
-function galatBaris(i: number, kolom: string, pesan: string): AppError {
-  return new AppError('VALIDASI', `Baris ${i + 1}: ${pesan}`, 400, {
-    kolom: { [`baris.${i}.${kolom}`]: [pesan] },
-  });
 }
 
 type BarisLama = Awaited<ReturnType<typeof repo.barisTersimpan>>[number];

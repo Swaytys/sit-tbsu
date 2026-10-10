@@ -1,10 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
 import { skemaUbahPengaturan } from '@sit/shared';
 import { Hono } from 'hono';
-import { bodyLimit } from 'hono/body-limit';
-import { AppError } from '../../../lib/errors';
 import type { EnvApp } from '../../../lib/konteks';
-import { UKURAN_GAMBAR_MAKS } from '../../../lib/penyimpanan';
+import { batasUnggahGambar, berkasKiriman } from '../../../lib/unggah';
 import { kaitValidasi } from '../../../lib/validasi';
 import {
   penggunaWajib,
@@ -21,12 +19,6 @@ import {
 } from './service';
 
 const izin = requirePermission('sistem.pengaturan.kelola');
-const batasUnggah = bodyLimit({
-  maxSize: UKURAN_GAMBAR_MAKS + 64 * 1024,
-  onError: () => {
-    throw new AppError('VALIDASI', 'Ukuran gambar maksimal 2 MB.', 413);
-  },
-});
 
 /**
  * Pengaturan toko — Admin dan Owner (docs/04 §3). Tampilan toko (nama, logo, baris per halaman) dibaca
@@ -47,12 +39,8 @@ export const pengaturanRoutes = new Hono<EnvApp>()
       'X-Content-Type-Options': 'nosniff',
     });
   })
-  .post('/logo', izin, batasUnggah, async (c) => {
-    const body = await c.req.parseBody();
-    if (!(body.berkas instanceof File)) {
-      throw new AppError('VALIDASI', 'Pilih berkas gambar untuk diunggah.', 400);
-    }
-    const isi = new Uint8Array(await body.berkas.arrayBuffer());
+  .post('/logo', izin, batasUnggahGambar, async (c) => {
+    const { isi } = await berkasKiriman(c, 'gambar');
     return c.json({ data: await unggahLogo(isi, penggunaWajib(c), c.get('asal')) }, 200);
   })
   .delete('/logo', izin, async (c) =>

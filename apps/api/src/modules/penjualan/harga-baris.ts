@@ -13,7 +13,7 @@ import {
 } from '@sit/shared';
 import type { Tx } from '../../db/client';
 import { barang, golonganPelanggan, pelanggan, persediaan, tingkatHarga } from '../../db/schema';
-import { AppError } from '../../lib/errors';
+import { AppError, galatBaris } from '../../lib/errors';
 import type { PenggunaAktif } from '../../lib/konteks';
 import { tanggalOperasional } from '../../lib/waktu';
 import { hargaBarangDasar } from '../master/harga/repo';
@@ -101,12 +101,6 @@ export type OpsiHitung = {
   /** Tanggal operasional penentu promo (PR1); bawaan hari ini. */
   tanggal?: string;
 };
-
-function galatBaris(i: number, kolom: string, pesan: string, kode: 'VALIDASI' = 'VALIDASI') {
-  return new AppError(kode, `Baris ${i + 1}: ${pesan}`, 400, {
-    kolom: { [`baris.${i}.${kolom}`]: [pesan] },
-  });
-}
 
 /** Nilai bawaan bila konfigurasi belum ada (sama dengan seed K-012). */
 const BATAS_DISKON_BAWAAN: Record<PenggunaAktif['peran'], number> = {

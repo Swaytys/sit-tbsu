@@ -38,17 +38,6 @@ export async function ambilAngka(kode: string, bawaan: number, ex: Executor = db
   return Number.parseInt(nilai, 10);
 }
 
-export async function ambilBool(
-  kode: string,
-  bawaan: boolean,
-  ex: Executor = db,
-): Promise<boolean> {
-  const nilai = (await muat(ex)).get(kode);
-  if (nilai === 'true') return true;
-  if (nilai === 'false') return false;
-  return bawaan;
-}
-
 /** Semua nilai (untuk halaman Pengaturan). */
 export async function semuaNilai(ex: Executor = db): Promise<ReadonlyMap<string, string | null>> {
   return muat(ex);

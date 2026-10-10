@@ -8,7 +8,7 @@ import {
   type TingkatHarga,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { selisih } from '../../../lib/perubahan';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -74,8 +74,7 @@ async function muat(id: number, izin: ReadonlySet<Izin>): Promise<TingkatHarga> 
 
 async function pastikanKodeBebas(tx: Tx, kode: string, kecualiId?: number): Promise<void> {
   if (await repo.kodeDipakai(tx, kode, kecualiId)) {
-    const pesan = `Kode tier ${kode} sudah dipakai.`;
-    throw new AppError('KONFLIK', pesan, 409, { kolom: { kode: [pesan] } });
+    throw galatKolom('kode', `Kode tier ${kode} sudah dipakai.`, 'KONFLIK');
   }
 }
 
@@ -87,8 +86,10 @@ function galatBelanjaTierDasar(): AppError {
 
 /** K-099: tier selain tier dasar hanya dipakai otomatis, jadi wajib punya syarat belanja. */
 function galatBelanjaWajib(nama: string): AppError {
-  const pesan = `Isi "Mulai belanja" tier ${nama}: tier dipakai otomatis saat total belanja mencapai angka itu.`;
-  return new AppError('VALIDASI', pesan, 400, { kolom: { minBelanja: [pesan] } });
+  return galatKolom(
+    'minBelanja',
+    `Isi "Mulai belanja" tier ${nama}: tier dipakai otomatis saat total belanja mencapai angka itu.`,
+  );
 }
 
 function nilaiDari(input: DataTingkatHarga): repo.NilaiTingkatHarga {

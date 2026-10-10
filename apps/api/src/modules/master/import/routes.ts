@@ -1,34 +1,18 @@
 import { zValidator } from '@hono/zod-validator';
 import { skemaProsesImport } from '@sit/shared';
-import { Hono, type Context } from 'hono';
-import { bodyLimit } from 'hono/body-limit';
+import { Hono } from 'hono';
 import { z } from 'zod';
-import { AppError } from '../../../lib/errors';
-import { headerUnduhan, UKURAN_XLSX_MAKS } from '../../../lib/excel';
+import { headerUnduhan } from '../../../lib/excel';
 import type { EnvApp } from '../../../lib/konteks';
+import { batasUnggahXlsx, berkasKiriman } from '../../../lib/unggah';
 import { kaitValidasi } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { bacaBerkasImport, eksporBarang, prosesImportBarang, templatImport } from './service';
 
 const izin = requirePermission('master.import.jalankan');
-const batasUnggah = bodyLimit({
-  maxSize: UKURAN_XLSX_MAKS + 64 * 1024,
-  onError: () => {
-    throw new AppError('VALIDASI', 'Ukuran berkas Excel maksimal 5 MB.', 413);
-  },
-});
 const skemaJenisTemplat = z.object({
   jenis: z.enum(['ringkas', 'lengkap']).default('ringkas'),
 });
-
-async function berkasKiriman(c: Context<EnvApp>): Promise<{ isi: Uint8Array; nama: string }> {
-  const body = await c.req.parseBody();
-  const berkas = body.berkas;
-  if (!(berkas instanceof File)) {
-    throw new AppError('VALIDASI', 'Pilih berkas Excel (.xlsx) untuk diunggah.', 400);
-  }
-  return { isi: new Uint8Array(await berkas.arrayBuffer()), nama: berkas.name.slice(0, 100) };
-}
 
 /**
  * Import Excel barang (K-056, K-061, K-064): templat, ekspor data, baca berkas, pratinjau, simpan.
@@ -43,8 +27,8 @@ export const importRoutes = new Hono<EnvApp>()
     const { isi, namaBerkas } = await eksporBarang(penggunaWajib(c).izin);
     return c.body(isi, 200, headerUnduhan(namaBerkas));
   })
-  .post('/barang/baca', izin, batasUnggah, async (c) => {
-    const { isi, nama } = await berkasKiriman(c);
+  .post('/barang/baca', izin, batasUnggahXlsx, async (c) => {
+    const { isi, nama } = await berkasKiriman(c, 'xlsx');
     return c.json({ data: await bacaBerkasImport(isi, nama, penggunaWajib(c)) }, 200);
   })
   .post(

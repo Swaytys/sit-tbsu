@@ -1,6 +1,6 @@
 import type { DataPelanggan, Izin, MetaHalaman, Pelanggan, StatusAktif } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { selisih } from '../../../lib/perubahan';
@@ -62,8 +62,7 @@ function tentukanKredit(
 
 async function pastikanGolonganAktif(tx: Tx, id: number | null): Promise<void> {
   if (id === null || (await golonganById(tx, id))?.statusAktif === 'AKTIF') return;
-  const pesan = 'Golongan pelanggan tidak ditemukan atau sudah nonaktif.';
-  throw new AppError('VALIDASI', pesan, 400, { kolom: { idGolongan: [pesan] } });
+  throw galatKolom('idGolongan', 'Golongan pelanggan tidak ditemukan atau sudah nonaktif.');
 }
 
 function dataKontak(input: DataPelanggan) {

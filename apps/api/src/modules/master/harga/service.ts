@@ -15,7 +15,7 @@ import {
   type MetodeHarga,
 } from '@sit/shared';
 import { db, type Executor, type Tx } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -157,7 +157,7 @@ function nilaiLog(n: {
 }
 
 function galatHarga(pesan: string): AppError {
-  return new AppError('VALIDASI', pesan, 400, { kolom: { hargaTier: [pesan] } });
+  return galatKolom('hargaTier', pesan);
 }
 
 /**

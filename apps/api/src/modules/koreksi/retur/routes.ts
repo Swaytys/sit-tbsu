@@ -2,7 +2,6 @@ import { zValidator } from '@hono/zod-validator';
 import {
   skemaBatalKoreksi,
   skemaCariKoreksi,
-  skemaIdParam,
   skemaRetur,
   skemaSetujui,
   skemaSetujuiDiTempat,
@@ -11,7 +10,7 @@ import {
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import {
   ajukanRetur,
@@ -26,7 +25,6 @@ import {
 
 const ajukan = requirePermission('retur.ajukan');
 const setujui = requirePermission('retur.setujui');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 
 /** Retur penjualan (docs/05 §8, docs/04 §6). */
 export const returRoutes = new Hono<EnvApp>()
@@ -39,7 +37,7 @@ export const returRoutes = new Hono<EnvApp>()
   .get('/', ajukan, zValidator('query', skemaCariKoreksi, kaitValidasi), async (c) =>
     c.json(await daftarRetur(c.req.valid('query')), 200),
   )
-  .get('/:id', ajukan, param, async (c) =>
+  .get('/:id', ajukan, paramId, async (c) =>
     c.json({ data: await detailRetur(c.req.valid('param').id) }, 200),
   )
   .post('/', ajukan, zValidator('json', skemaRetur, kaitValidasi), async (c) => {
@@ -49,7 +47,7 @@ export const returRoutes = new Hono<EnvApp>()
   .post(
     '/:id/setujui',
     setujui,
-    param,
+    paramId,
     zValidator('json', skemaSetujui, kaitValidasi),
     async (c) => {
       const data = await setujuiRetur(
@@ -65,7 +63,7 @@ export const returRoutes = new Hono<EnvApp>()
   .post(
     '/:id/setujui-di-tempat',
     ajukan,
-    param,
+    paramId,
     zValidator('json', skemaSetujuiDiTempat, kaitValidasi),
     async (c) => {
       const { atasan, ...persetujuan } = c.req.valid('json');
@@ -82,7 +80,7 @@ export const returRoutes = new Hono<EnvApp>()
   .post(
     '/:id/batal',
     ajukan,
-    param,
+    paramId,
     zValidator('json', skemaBatalKoreksi, kaitValidasi),
     async (c) => {
       const data = await batalRetur(
@@ -94,7 +92,7 @@ export const returRoutes = new Hono<EnvApp>()
       return c.json({ data }, 200);
     },
   )
-  .post('/:id/tolak', setujui, param, zValidator('json', skemaTolak, kaitValidasi), async (c) => {
+  .post('/:id/tolak', setujui, paramId, zValidator('json', skemaTolak, kaitValidasi), async (c) => {
     const data = await tolakRetur(
       c.req.valid('param').id,
       c.req.valid('json').alasan,
