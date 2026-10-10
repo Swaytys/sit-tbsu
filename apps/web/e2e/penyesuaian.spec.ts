@@ -1,18 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { masukCepat, menuUtama } from './pembantu';
+import { api, masukCepat, menuUtama } from './pembantu';
 
 // Tes ini menambah satu barang uji (lalu menonaktifkannya) dan beberapa dokumen penyesuaian
 // di database pengembangan setiap kali jalan.
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data,
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as { data: T }).data;
-}
 
 async function tambahBarang(page: Page, nama: string) {
   await page.getByLabel('Cari barang').click();

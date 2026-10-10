@@ -1,19 +1,9 @@
-import { expect, test, type Page } from '@playwright/test';
-import { aktifkanTierGrosir, masukCepat } from './pembantu';
+import { expect, test } from '@playwright/test';
+import { aktifkanTierGrosir, api, masukCepat } from './pembantu';
 
 // K-098: tier harga dipakai otomatis menurut total nilai belanja transaksi, untuk semua barang.
 // Mengandalkan data seed: tier Normal (harga dasar) dan Grosir (markup 20%, nonaktif). Grosir diaktifkan
 // selama tes dan dipulihkan di akhir agar tes lain (yang menghitung dengan harga Normal) tidak terpengaruh.
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data: data ?? (method === 'GET' ? undefined : {}),
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as { data: T }).data;
-}
 
 test('tier menurut nilai belanja: syarat di Kelola tier, harga Grosir otomatis di kasir', async ({
   page,

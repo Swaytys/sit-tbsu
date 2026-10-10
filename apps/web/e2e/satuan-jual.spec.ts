@@ -1,18 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
-import { masukCepat, menuUtama } from './pembantu';
+import { expect, test } from '@playwright/test';
+import { api, masukCepat, menuUtama } from './pembantu';
 
 // Fase 12 (K-091, K-094): satuan jual (kemasan) per barang. Menambah satu barang uji dengan satuan jual "dus" dan satu
 // penjualan di database pengembangan setiap kali jalan. Shift kasir dibuka bila belum.
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data: data ?? (method === 'GET' ? undefined : {}),
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as { data: T }).data;
-}
 
 test('Admin mengatur satuan jual dus; kasir menjual per dus dengan tombol S dan pindai barcode dus', async ({
   browser,

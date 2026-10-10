@@ -1,20 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
-import { masukCepat, menuUtama } from './pembantu';
+import { expect, test } from '@playwright/test';
+import { api, masukCepat, menuUtama } from './pembantu';
 
 // Fase 11: setoran konsinyasi. Tes menambah satu pemasok, satu barang titipan, penerimaan konsinyasi,
 // penjualan, setoran, dan pembayaran di database pengembangan setiap kali jalan.
-
-type Data<T> = { data: T };
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data,
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as Data<T>).data;
-}
 
 test('Admin membuat setoran konsinyasi dari penjualan titipan lalu melunasinya', async ({
   page,

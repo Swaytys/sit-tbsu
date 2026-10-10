@@ -1,20 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
-import { masukCepat, menuUtama } from './pembantu';
+import { expect, test } from '@playwright/test';
+import { api, masukCepat, menuUtama } from './pembantu';
 
 // Fase 10: hutang pemasok, retur ke pemasok, dan stok rusak. Tes menambah satu pemasok, satu barang uji,
 // penerimaan tempo, penyesuaian, retur, dan pembayaran di database pengembangan setiap kali jalan.
-
-type Data<T> = { data: T };
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data,
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as Data<T>).data;
-}
 
 test('Admin membayar hutang, meretur barang rusak ke pemasok, dan memusnahkan sisanya', async ({
   page,

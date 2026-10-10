@@ -1,18 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
-import { masukCepat } from './pembantu';
+import { expect, test } from '@playwright/test';
+import { api, masukCepat } from './pembantu';
 
 // K-099: catatan order sampai ke kasir, pindah layar dengan Alt+angka, menu ⋮ per baris barang, dan nama
 // barang panjang yang tidak terpotong. Menambah satu barang uji (dinonaktifkan di akhir).
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data: data ?? (method === 'GET' ? undefined : {}),
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as { data: T }).data;
-}
 
 test('catatan order tampil di kasir; Alt+2 pindah layar; menu baris mengubah qty', async ({
   browser,
