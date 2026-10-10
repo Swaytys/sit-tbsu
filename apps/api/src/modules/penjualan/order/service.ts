@@ -493,6 +493,7 @@ export async function pratinjauOrder(
         subtotal: b.subtotal,
         idTingkatHargaSaran: b.idTingkatHargaSaran,
       })),
+      tierBelanja: harga.tierBelanja,
       totalBruto: harga.totalBruto,
       totalDiskonPromo: harga.totalDiskonPromo,
       totalDiskonBaris: harga.totalDiskonBaris,

@@ -78,6 +78,20 @@
       "when": 1791603076780,
       "tag": "0010_hapus_tier_pelanggan",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791617646058,
+      "tag": "0011_tier_min_belanja",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791617679466,
+      "tag": "0012_hapus_min_qty",
+      "breakpoints": true
     }
   ]
 }

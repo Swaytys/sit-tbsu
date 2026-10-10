@@ -33,6 +33,7 @@ import {
   useSiaranAntrean,
 } from '@/api/penjualan';
 import { AreaCetak } from '@/components/area-cetak';
+import { InfoTierBelanja } from '@/components/info-tier-belanja';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InvoiceA4, SuratJalanA4 } from '@/components/dokumen-a4';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
@@ -673,6 +674,11 @@ export function LayarPos({
             </div>
           )}
 
+          <InfoTierBelanja
+            info={pratinjau.data?.tierBelanja}
+            idTierDasar={tierDefault}
+            namaTier={(id) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain'}
+          />
           <div className="flex items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
             <span className="text-xs tracking-widest text-slate-300 uppercase">
               Total

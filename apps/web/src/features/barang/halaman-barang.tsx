@@ -162,12 +162,20 @@ export function HalamanBarang() {
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
             <span>{b.kodeSatuan}</span>
             {b.kepemilikan === 'KONSINYASI' && (
-              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+              <Badge
+                variant="outline"
+                className="border-amber-200 bg-amber-50 text-amber-700"
+                title="Barang titipan pemasok: toko membayar pemasok setelah barang laku."
+              >
                 Konsinyasi
               </Badge>
             )}
             {b.perluTinjauHarga && (
-              <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
+              <Badge
+                variant="outline"
+                className="border-orange-200 bg-orange-50 text-orange-700"
+                title="Harga modal atau markup berubah. Harga usulan menunggu persetujuan di Harga Jual › Tinjau Harga."
+              >
                 Perlu tinjau harga
               </Badge>
             )}

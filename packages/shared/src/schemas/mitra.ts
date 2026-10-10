@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { STATUS_AKTIF, type StatusAktif } from '../enums';
+import { formatRupiah } from '../money';
 import { skemaHalaman, skemaNoHpWajib, skemaRupiah, teksOpsional } from './umum';
 
 /*
@@ -131,9 +132,23 @@ export type TingkatHarga = {
   nama: string;
   /** Hanya untuk pemegang `master.barang.lihat_hpp` (markup membuka margin; docs/06 H12). */
   markupDefaultPersen?: string;
-  /** K-097: qty minimal (satuan dasar) agar tier dipakai otomatis; `null` = hanya pilihan manual. */
-  minQty: string | null;
+  /**
+   * K-098: total nilai belanja transaksi agar tier dipakai otomatis untuk semua barang; `null` = tier dasar,
+   * atau tier yang hanya dipilih manual.
+   */
+  minBelanja: number | null;
   urutan: number;
+  /** Tier dasar: harga semua transaksi sebelum syarat belanja tier lain tercapai (tepat satu, H1). */
   isDefault: boolean;
   statusAktif: StatusAktif;
+  /** Susunan tier janggal (mis. syarat belanja lebih besar tetapi markup lebih besar); bersama markup. */
+  peringatan?: string;
 };
+
+/** K-098: kapan sebuah tier dipakai, untuk daftar tier, tabel Harga Jual, dan form barang. */
+export function teksSyaratTier(t: Pick<TingkatHarga, 'isDefault' | 'minBelanja'>): string {
+  if (t.isDefault) return 'semua transaksi';
+  return t.minBelanja === null
+    ? 'hanya bila dipilih kasir'
+    : `belanja mulai ${formatRupiah(t.minBelanja)}`;
+}

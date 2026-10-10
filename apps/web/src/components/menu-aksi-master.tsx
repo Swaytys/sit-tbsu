@@ -20,12 +20,15 @@ export function MenuAksiMaster({
   onUbah,
   onUbahStatus,
   tambahan,
+  bisaNonaktif = true,
 }: {
   nama: string;
   status: StatusAktif;
   onUbah: () => void;
   onUbahStatus: (status: StatusAktif) => void;
   tambahan?: ReactNode;
+  /** `false` untuk data yang wajib selalu aktif (mis. tier harga dasar): pilihan nonaktif disembunyikan. */
+  bisaNonaktif?: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -39,15 +42,17 @@ export function MenuAksiMaster({
           <Pencil /> Ubah
         </DropdownMenuItem>
         {tambahan}
-        <DropdownMenuSeparator />
-        {status === 'AKTIF' ? (
-          <DropdownMenuItem variant="destructive" onSelect={() => onUbahStatus('NONAKTIF')}>
-            <PowerOff /> Nonaktifkan
-          </DropdownMenuItem>
-        ) : (
+        {(bisaNonaktif || status !== 'AKTIF') && <DropdownMenuSeparator />}
+        {status !== 'AKTIF' ? (
           <DropdownMenuItem onSelect={() => onUbahStatus('AKTIF')}>
             <Power /> Aktifkan kembali
           </DropdownMenuItem>
+        ) : (
+          bisaNonaktif && (
+            <DropdownMenuItem variant="destructive" onSelect={() => onUbahStatus('NONAKTIF')}>
+              <PowerOff /> Nonaktifkan
+            </DropdownMenuItem>
+          )
         )}
       </DropdownMenuContent>
     </DropdownMenu>

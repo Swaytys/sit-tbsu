@@ -176,13 +176,13 @@ describe('metode harga (H4, H12)', () => {
       hargaTier: [{ idTingkatHarga: ref.normal, hargaTetap: 55_000 }],
     });
     const res = await putHarga([
-      { idBarang: b.id, idTingkatHarga: ref.grosir, hargaTetap: null, markupPersen: '18,5' },
+      { idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: null, markupPersen: '18,5' },
     ]);
     expect((await json<{ data: unknown }>(res)).data).toEqual({
       jumlahBarang: 1,
       jumlahPerubahan: 1,
     });
-    expect(await harga(b.id, ref.grosir)).toMatchObject({
+    expect(await harga(b.id, ref.normal)).toMatchObject({
       metode: 'MARKUP',
       markupPersen: '18.50',
       hargaTetap: null,
@@ -190,7 +190,7 @@ describe('metode harga (H4, H12)', () => {
       dasarMarkupSaatHitung: 41_234,
     });
     expect((await logTerakhir('HARGA_UBAH'))?.ringkasan).toContain(
-      'Grosir Rp 49.500 → Rp 48.900 (markup 18,5%)',
+      'Normal Rp 55.000 → Rp 48.900 (markup 18,5%)',
     );
 
     type Detail = { harga: Record<string, unknown>[] };
@@ -198,27 +198,36 @@ describe('metode harga (H4, H12)', () => {
       (await json<{ data: Detail }>(await minta(`/api/barang/${b.id}`, { cookie: sesi.cookie })))
         .data.harga;
     const hargaAdmin = await lihat(admin);
-    expect(hargaAdmin.find((h) => h.idTingkatHarga === ref.grosir)).toMatchObject({
+    expect(hargaAdmin.find((h) => h.idTingkatHarga === ref.normal)).toMatchObject({
       metode: 'MARKUP',
       markupPersen: '18.50',
       margin: 15.68, // (48.900 − 41.234) ÷ 48.900
     });
-    expect(hargaAdmin.find((h) => h.idTingkatHarga === ref.normal)?.margin).toBe(25.03);
+    expect(hargaAdmin.find((h) => h.idTingkatHarga === ref.grosir)?.margin).toBe(16.7);
     for (const h of await lihat(kasir)) {
       expect(h).not.toHaveProperty('markupPersen');
       expect(h).not.toHaveProperty('margin');
     }
   });
 
-  it('harga tetap dan markup sekaligus ditolak; tier default boleh markup, tetapi tidak Rp 0 (K-094)', async () => {
+  it('harga tetap dan markup sekaligus ditolak; tier dasar boleh markup, tetapi tidak Rp 0; tier lain tidak bisa diatur per barang (K-094, K-098)', async () => {
     const b = await buat();
     expect(
       (
         await putHarga([
-          { idBarang: b.id, idTingkatHarga: ref.grosir, hargaTetap: 50_000, markupPersen: '10' },
+          { idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: 50_000, markupPersen: '10' },
         ])
       ).status,
     ).toBe(400);
+    // K-098: Grosir/Distributor selalu markup tier untuk semua barang.
+    for (const isian of [{ hargaTetap: 11_000 }, { hargaTetap: null, markupPersen: '10' }]) {
+      const tolak = await putHarga([{ idBarang: b.id, idTingkatHarga: ref.grosir, ...isian }]);
+      expect(tolak.status).toBe(400);
+      expect((await json<{ error: { pesan: string } }>(tolak)).error.pesan).toContain(
+        'tidak bisa diatur per barang',
+      );
+    }
+    expect(await harga(b.id, ref.grosir)).toMatchObject({ metode: 'IKUT_TIER', hargaJual: 12_000 });
     // Normal ikut markup sendiri 30% dari modal 10.000.
     const res = await putHarga([
       { idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: null, markupPersen: '30' },
@@ -246,10 +255,7 @@ describe('metode harga (H4, H12)', () => {
   it('simpan manual menghitung ulang SEMUA baris markup barang itu dengan D terkini (K-060 #4)', async () => {
     const b = await buat({
       hargaModalAwal: 41_234,
-      hargaTier: [
-        { idTingkatHarga: ref.normal, hargaTetap: 55_000 },
-        { idTingkatHarga: ref.grosir, hargaTetap: null, markupPersen: '18.5' },
-      ],
+      hargaTier: [{ idTingkatHarga: ref.normal, hargaTetap: 55_000 }],
     });
     await ubahBarang(b, { hargaModalAwal: 45_000 });
     expect(await tanda(b.id)).toBe(true);
@@ -262,7 +268,7 @@ describe('metode harga (H4, H12)', () => {
       jumlahBarang: 1,
       jumlahPerubahan: 3,
     });
-    expect(await harga(b.id, ref.grosir)).toMatchObject({ hargaJual: 53_400 }); // 45.000 × 1,185
+    expect(await harga(b.id, ref.grosir)).toMatchObject({ hargaJual: 54_000 }); // 45.000 × 1,2
     expect(await harga(b.id, ref.distributor)).toMatchObject({
       metode: 'IKUT_TIER',
       hargaJual: 51_800, // 45.000 × 1,15 = 51.750
@@ -450,14 +456,6 @@ describe('pemicu dasar dan harga otomatis (H5, H7, K-086)', () => {
   it('pembulatan di Pengaturan berubah: barang berformula ditandai, otomatis dihitung ulang', async () => {
     const biasa = await buat({ hargaModalAwal: 10_100 }); // Grosir 12.200, Distributor 11.700
     const oto = await buat({ hargaModalAwal: 10_100, hargaOtomatis: true });
-    const tetap = await buat({
-      hargaModalAwal: 10_100,
-      hargaTier: [
-        { idTingkatHarga: ref.normal, hargaTetap: 15_000 },
-        { idTingkatHarga: ref.grosir, hargaTetap: 13_000 },
-        { idTingkatHarga: ref.distributor, hargaTetap: 12_500 },
-      ],
-    });
     type Pengaturan = { harga: Record<string, unknown> };
     const p = (
       await json<{ data: Pengaturan }>(await minta('/api/pengaturan', { cookie: admin.cookie }))
@@ -472,7 +470,6 @@ describe('pemicu dasar dan harga otomatis (H5, H7, K-086)', () => {
 
     expect(await tanda(biasa.id)).toBe(true);
     expect((await harga(biasa.id, ref.grosir)).hargaJual).toBe(12_200);
-    expect(await tanda(tetap.id)).toBe(false);
     expect((await harga(oto.id, ref.grosir)).hargaJual).toBe(12_500); // 12.120 → kelipatan 500
     expect((await harga(oto.id, ref.distributor)).hargaJual).toBe(12_000);
     expect(await tanda(oto.id)).toBe(false);
@@ -500,36 +497,29 @@ describe('Tinjau Harga (H6, K-086)', () => {
   const daftar = async (sesi = admin) => minta('/api/harga-barang/tinjau', { cookie: sesi.cookie });
 
   async function siapkan() {
-    const a = await buat({
-      hargaTier: [
-        { idTingkatHarga: ref.normal, hargaTetap: 15_000 },
-        { idTingkatHarga: ref.distributor, hargaTetap: null, markupPersen: '10' },
-      ],
-    });
-    const tetapGrosir = await buat({
-      hargaTier: [
-        { idTingkatHarga: ref.normal, hargaTetap: 15_000 },
-        { idTingkatHarga: ref.grosir, hargaTetap: 13_000 },
-      ],
+    const a = await buat();
+    // Harga Normal memakai markup sendiri 30% (hanya tier dasar yang bisa diatur per barang, K-098).
+    const markupNormal = await buat({
+      hargaTier: [{ idTingkatHarga: ref.normal, hargaTetap: null, markupPersen: '30' }],
     });
     const tenang = await buat();
     const nonaktif = await buat();
     await terimaBerhasil([
       { idBarang: a.id, harga: 12_500 },
-      { idBarang: tetapGrosir.id, harga: 12_500 },
+      { idBarang: markupNormal.id, harga: 12_500 },
       { idBarang: nonaktif.id, harga: 12_500 },
     ]);
     await kirim(admin, `/api/barang/${nonaktif.id}/status`, { statusAktif: 'NONAKTIF' }, 'PATCH');
-    return { a, tetapGrosir, tenang, nonaktif };
+    return { a, markupNormal, tenang, nonaktif };
   }
 
-  it('daftar hanya barang aktif bertanda; usulan per metode, Normal diusulkan, tetap lain tidak', async () => {
-    const { a, tetapGrosir } = await siapkan();
+  it('daftar hanya barang aktif bertanda; usulan per metode, harga Normal tetap ikut diusulkan', async () => {
+    const { a, markupNormal } = await siapkan();
     const res = await daftar();
     expect(res.status).toBe(200);
     const { data, meta } = await json<{ data: BarisTinjau[]; meta: { total: number } }>(res);
     expect(meta.total).toBe(2);
-    expect(data.map((b) => b.id).sort()).toEqual([a.id, tetapGrosir.id].sort());
+    expect(data.map((b) => b.id).sort()).toEqual([a.id, markupNormal.id].sort());
 
     const barisA = data.find((b) => b.id === a.id)!;
     expect(barisA.dasarBaru).toBe(12_500);
@@ -550,21 +540,21 @@ describe('Tinjau Harga (H6, K-086)', () => {
       hargaUsulan: 15_000,
     });
     expect(tierA(ref.distributor)).toMatchObject({
-      metode: 'MARKUP',
-      markupPersen: '10.00',
-      hargaSekarang: 11_000,
-      hargaUsulan: 13_800, // 13.750
+      metode: 'IKUT_TIER',
+      hargaSekarang: 11_500,
+      hargaUsulan: 14_400, // 12.500 × 1,15 = 14.375
     });
-    const barisTetap = data.find((b) => b.id === tetapGrosir.id)!;
-    expect(barisTetap.tier.find((t) => t.idTingkatHarga === ref.grosir)).toMatchObject({
-      metode: 'TETAP',
+    const barisMarkup = data.find((b) => b.id === markupNormal.id)!;
+    expect(barisMarkup.tier.find((t) => t.idTingkatHarga === ref.normal)).toMatchObject({
+      metode: 'MARKUP',
+      markupPersen: '30.00',
       hargaSekarang: 13_000,
-      hargaUsulan: null,
+      hargaUsulan: 16_300, // 12.500 × 1,3 = 16.250
     });
   });
 
   it('terapkan: harga dan dasar diperbarui, tanda lepas, log; tier default opsional', async () => {
-    const { a, tetapGrosir } = await siapkan();
+    const { a, markupNormal } = await siapkan();
     const terapkan = (body: unknown) => kirim(admin, '/api/harga-barang/tinjau/terapkan', body);
 
     let res = await terapkan({
@@ -580,23 +570,30 @@ describe('Tinjau Harga (H6, K-086)', () => {
       hargaJual: 15_000,
       dasarMarkupSaatHitung: 12_500,
     });
-    expect((await harga(a.id, ref.distributor)).hargaJual).toBe(13_800);
+    expect((await harga(a.id, ref.distributor)).hargaJual).toBe(14_400);
     expect(await tanda(a.id)).toBe(false);
     expect((await logTerakhir('HARGA_TINJAU_TERAPKAN', a.id))?.ringkasan).toContain(
       'Grosir Rp 12.000 → Rp 15.000 (ikut tier)',
     );
 
-    res = await terapkan({ barang: [{ idBarang: tetapGrosir.id, dasar: 12_500 }] });
+    // Dengan tier dasar: harga Normal tetap (Rp) diganti usulannya.
+    await terimaBerhasil([{ idBarang: a.id, harga: 13_000 }]);
+    expect((await terapkan({ barang: [{ idBarang: a.id, dasar: 13_000 }] })).status).toBe(200);
+    expect(await harga(a.id, ref.normal)).toMatchObject({
+      metode: 'TETAP',
+      hargaTetap: 16_300, // 13.000 × 1,25 = 16.250
+      hargaJual: 16_300,
+    });
+
+    res = await terapkan({ barang: [{ idBarang: markupNormal.id, dasar: 12_500 }] });
     expect((await json<{ data: unknown }>(res)).data).toEqual({
       jumlahBarang: 1,
-      jumlahPerubahan: 2,
+      jumlahPerubahan: 3,
     });
-    expect(await harga(tetapGrosir.id, ref.normal)).toMatchObject({
-      metode: 'TETAP',
-      hargaTetap: 15_700,
-      hargaJual: 15_700,
+    expect(await harga(markupNormal.id, ref.normal)).toMatchObject({
+      metode: 'MARKUP',
+      hargaJual: 16_300,
     });
-    expect((await harga(tetapGrosir.id, ref.grosir)).hargaJual).toBe(13_000); // tetap tanpa usulan
   });
 
   it('dasar berubah sejak halaman dimuat → 409 tanpa perubahan', async () => {

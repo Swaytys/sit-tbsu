@@ -1,7 +1,6 @@
 import {
   formatRupiah,
   hargaMarkup,
-  keQty,
   keTeksPersen,
   marginPersen,
   teksQty,
@@ -66,19 +65,8 @@ export function dasarMarkup(b: DataDasar, modeDasar: KonteksHarga['modeDasar']):
   return modeDasar === 'HPP_RATA2' ? b.hppRata2 : b.hargaBeliTerakhir;
 }
 
-/**
- * Isian harga satu tier: angka = TETAP; markup persen = MARKUP; keduanya kosong = IKUT_TIER. `minQty`
- * (K-097): syarat qty khusus barang; tidak dikirim = tidak diubah.
- */
-export type InputHarga = {
-  hargaTetap: number | null;
-  markupPersen?: string | null | undefined;
-  minQty?: string | null | undefined;
-};
-
-function keQtyAtauNull(v: string | null): string | null {
-  return v === null ? null : keQty(v);
-}
+/** Isian harga satu tier: angka = TETAP; markup persen = MARKUP; keduanya kosong = IKUT_TIER. */
+export type InputHarga = { hargaTetap: number | null; markupPersen?: string | null | undefined };
 
 /** H4: nilai baris harga dari isian. */
 export function nilaiHarga(
@@ -148,7 +136,7 @@ function persenEfektif(
 const persenSama = (a: string | null, b: string | null) =>
   a === null || b === null ? a === b : keTeksPersen(a) === keTeksPersen(b);
 
-type NilaiLog = { metode: MetodeHarga; hargaJual: number; markupPersen?: string; minQty?: string };
+type NilaiLog = { metode: MetodeHarga; hargaJual: number; markupPersen?: string };
 export type PerubahanHarga = {
   idTingkatHarga: number;
   tier: string;
@@ -160,13 +148,11 @@ function nilaiLog(n: {
   metode: MetodeHarga;
   hargaJual: number;
   markupPersen: string | null;
-  minQty?: string | null | undefined;
 }): NilaiLog {
   return {
     metode: n.metode,
     hargaJual: n.hargaJual,
     ...(n.metode === 'MARKUP' && n.markupPersen !== null ? { markupPersen: n.markupPersen } : {}),
-    ...(n.minQty ? { minQty: n.minQty } : {}),
   };
 }
 
@@ -177,8 +163,9 @@ function galatHarga(pesan: string): AppError {
 /**
  * Menerapkan harga tier untuk satu barang di dalam `tx` (form barang, halaman Harga Jual). Tier yang dikirim
  * diubah; tier aktif yang belum punya baris dilengkapi IKUT_TIER (K-047, H2); baris IKUT_TIER/MARKUP lain
- * dihitung ulang dengan `D` terkini (K-060 #4: menyimpan harga = menerima D terkini). Harga tetap tier
- * default tidak boleh Rp 0 (K-094). Pemanggil mengunci baris barang lebih dulu (urutan kunci K-086).
+ * dihitung ulang dengan `D` terkini (K-060 #4: menyimpan harga = menerima D terkini). Hanya tier dasar yang
+ * boleh TETAP/MARKUP per barang; tier lain selalu markup tier (K-098). Harga tetap tier dasar tidak boleh
+ * Rp 0 (K-094). Pemanggil mengunci baris barang lebih dulu (urutan kunci K-086).
  */
 export async function terapkanHargaBarang(
   tx: Tx,
@@ -207,21 +194,21 @@ export async function terapkanHargaBarang(
     let isian: InputHarga | undefined = masukan.get(t.id);
     if (!isian) {
       if (t.statusAktif !== 'AKTIF') continue;
-      if (!barisLama) isian = { hargaTetap: null };
+      // Tier selain tier dasar selalu dihitung ulang dari markup tier (K-098).
+      if (!barisLama || !t.isDefault) isian = { hargaTetap: null };
       else if (berformula(barisLama.metode)) {
         isian = { hargaTetap: null, markupPersen: barisLama.markupPersen };
       } else continue;
     }
-    // K-097: syarat qty khusus barang; tidak dikirim = tetap. Tier default berlaku untuk semua qty.
-    const minQty =
-      isian.minQty === undefined ? (barisLama?.minQty ?? null) : keQtyAtauNull(isian.minQty);
-    if (t.isDefault && minQty !== null) {
-      throw galatHarga(`Harga ${t.nama} berlaku untuk semua qty; kosongkan "mulai qty".`);
+    // K-098: tier selain tier dasar selalu memakai markup tier untuk semua barang; harga khusus satu
+    // barang dibuat sebagai promo.
+    if (!t.isDefault && (isian.hargaTetap !== null || isian.markupPersen != null)) {
+      throw galatHarga(
+        `Harga ${t.nama} mengikuti markup tier untuk semua barang dan tidak bisa diatur per barang. ` +
+          'Untuk harga khusus satu barang, buat promo.',
+      );
     }
-    const nilai = {
-      ...nilaiHarga(isian, t.markupDefaultPersen, opsi.dasar, opsi.konteks.kelipatan),
-      minQty,
-    };
+    const nilai = nilaiHarga(isian, t.markupDefaultPersen, opsi.dasar, opsi.konteks.kelipatan);
     // K-094/K-095: harga Rp tetap tier default tidak boleh 0. Harga ikut markup boleh 0 selama harga modal
     // belum diketahui (barang belum bisa dijual); harganya terisi sendiri setelah penerimaan pertama.
     if (t.isDefault && nilai.metode === 'TETAP' && nilai.hargaJual <= 0) {
@@ -232,8 +219,7 @@ export async function terapkanHargaBarang(
         barisLama.metode === nilai.metode &&
         barisLama.hargaTetap === nilai.hargaTetap &&
         barisLama.hargaJual === nilai.hargaJual &&
-        persenSama(barisLama.markupPersen, nilai.markupPersen) &&
-        barisLama.minQty === nilai.minQty;
+        persenSama(barisLama.markupPersen, nilai.markupPersen);
       if (sama && barisLama.dasarMarkupSaatHitung === nilai.dasarMarkupSaatHitung) continue;
       await repo.ubahHarga(tx, barisLama.id, { ...nilai, idPengguna: opsi.idPengguna }, waktu);
       // Hanya dasar saat hitung yang diperbarui (harga hasil pembulatan sama): bukan perubahan harga.
@@ -254,10 +240,9 @@ export async function terapkanHargaBarang(
 
 function labelNilai(n: NilaiLog): string {
   const harga = formatRupiah(n.hargaJual);
-  const mulai = n.minQty ? `, mulai qty ${teksQty(n.minQty)}` : '';
-  if (n.metode === 'IKUT_TIER') return `${harga} (ikut tier${mulai})`;
-  if (n.metode === 'MARKUP') return `${harga} (markup ${teksQty(n.markupPersen ?? '0')}%${mulai})`;
-  return mulai ? `${harga} (${mulai.slice(2)})` : harga;
+  if (n.metode === 'IKUT_TIER') return `${harga} (ikut tier)`;
+  if (n.metode === 'MARKUP') return `${harga} (markup ${teksQty(n.markupPersen ?? '0')}%)`;
+  return harga;
 }
 
 /** Ringkasan perubahan harga untuk log, mis. "Normal Rp 55.000 → Rp 56.000". */
@@ -308,7 +293,6 @@ export async function simpanHargaMassal(
       idTingkatHarga: p.idTingkatHarga,
       hargaTetap: p.hargaTetap,
       markupPersen: p.markupPersen,
-      minQty: p.minQty,
     });
     perBarang.set(p.idBarang, daftar);
   }

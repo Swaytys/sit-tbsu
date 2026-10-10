@@ -30,7 +30,8 @@ import { Switch } from '@/components/ui/switch';
 
 /*
  * Satuan jual barang (Fase 12, K-091): satuan alternatif dengan faktor ke satuan dasar, barcode sendiri, satuan
- * bawaan saat dijual, dan harga per tier (otomatis = harga satuan dasar × faktor, atau tetap).
+ * bawaan saat dijual, dan harga per tier (otomatis = harga satuan dasar × faktor; harga dasar boleh diisi tetap,
+ * tier lain selalu otomatis, K-098).
  */
 
 const DIMENSI_FISIK: readonly string[] = JENIS_DIMENSI_FISIK;
@@ -116,8 +117,11 @@ export function KartuSatuanJual({
         barcode: x.barcode,
         isDefaultJual: x.isDefaultJual,
         statusAktif: x.statusAktif,
+        // K-098: hanya harga dasar kemasan yang bisa diisi; tier lain dihitung API.
         hargaTetap: bolehHarga
-          ? tierAktif.map((t) => ({ idTingkatHarga: t.id, harga: x.hargaTetap[t.id] ?? null }))
+          ? tierAktif
+              .filter((t) => t.isDefault)
+              .map((t) => ({ idTingkatHarga: t.id, harga: x.hargaTetap[t.id] ?? null }))
           : [],
       })),
     });
@@ -291,8 +295,8 @@ export function KartuSatuanJual({
 }
 
 /**
- * Harga satuan jual per tier. Kosong = otomatis: harga satuan dasar tier itu × isi (dibulatkan). Tier bawaan
- * tampil; tier lain dilipat agar form tetap ringkas.
+ * Harga satuan jual per tier. Harga dasar: kosong = otomatis (harga satuan dasar × isi, dibulatkan) atau diisi
+ * Rp. Tier lain selalu otomatis dari harga tier satuan dasar × isi dan hanya ditampilkan (K-098).
  */
 function HargaSatuanJual({
   tier,
@@ -338,7 +342,6 @@ function HargaSatuanJual({
   };
   const utama = tier.filter((t) => t.isDefault);
   const lain = tier.filter((t) => !t.isDefault);
-  const adaIsiLain = lain.some((t) => (hargaTetap[t.id] ?? null) !== null);
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-3 items-end gap-3">
@@ -349,12 +352,17 @@ function HargaSatuanJual({
         </p>
       </div>
       {lain.length > 0 && (
-        <details open={adaIsiLain} className="text-sm">
-          <summary className="cursor-pointer text-xs text-blue-700">
-            Harga tier lain ({lain.length})
-          </summary>
-          <div className="mt-2 grid grid-cols-3 gap-3">{lain.map(isian)}</div>
-        </details>
+        <p className="text-xs text-slate-500">
+          Harga tier lain per {kode} dihitung otomatis:{' '}
+          {lain
+            .map((t) => {
+              const d = hargaDasar(t.id);
+              const kiraan = d !== null && sah ? hargaSatuanJual(d, f, KELIPATAN_PERKIRAAN) : null;
+              return `${t.nama} ${kiraan === null ? '—' : `± ${formatRupiah(kiraan)}`}`;
+            })
+            .join(' · ')}
+          . Tidak bisa diisi sendiri; untuk harga khusus, buat promo.
+        </p>
       )}
     </div>
   );

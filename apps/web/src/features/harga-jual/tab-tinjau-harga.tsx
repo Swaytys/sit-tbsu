@@ -176,7 +176,11 @@ export function TabTinjauHarga({ tierAktif }: { tierAktif: TingkatHarga[] }) {
               per {b.kodeSatuan} · {b.namaKategori}
             </span>
             {b.hargaOtomatis && (
-              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+              <Badge
+                variant="outline"
+                className="border-blue-200 bg-blue-50 text-blue-700"
+                title="Harga otomatis: kenaikan diterapkan sendiri. Barang ini menunggu di sini karena harga usulannya turun."
+              >
                 Otomatis
               </Badge>
             )}

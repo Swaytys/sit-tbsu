@@ -3,6 +3,7 @@ import {
   formatRupiah,
   hargaMarkup,
   skemaBarang,
+  teksSyaratTier,
   type DataBarang,
   type DetailBarang,
   type InputBarang,
@@ -138,13 +139,13 @@ const KELIPATAN_PERKIRAAN = 100;
  */
 function nilaiAwal(
   b: DetailBarang | null,
-  tierAktif: TingkatHarga[],
+  tierDasar: TingkatHarga[],
   idPenitip: number | null = null,
   salinan: DetailBarang | null = null,
 ): InputBarang {
   if (!b && salinan) {
     return {
-      ...nilaiAwal(null, tierAktif, idPenitip ?? 0),
+      ...nilaiAwal(null, tierDasar, idPenitip ?? 0),
       namaBarang: salinan.namaBarang,
       idKategori: salinan.idKategori,
       idMerk: salinan.idMerk,
@@ -176,14 +177,12 @@ function nilaiAwal(
       nilai: a.tipeNilai === 'ANGKA' ? a.nilai.replace('.', ',') : a.nilai,
       idSatuan: a.idSatuan,
     })),
-    hargaTier: tierAktif.map((t) => {
+    hargaTier: tierDasar.map((t) => {
       const h = b?.harga.find((x) => x.idTingkatHarga === t.id);
       return {
         idTingkatHarga: t.id,
         hargaTetap: h?.metode === 'TETAP' ? h.hargaTetap : null,
         markupPersen: h?.metode === 'MARKUP' ? rapikanPersen(h.markupPersen) : null,
-        // K-097: syarat qty khusus barang ini; kosong = ikut tier.
-        minQty: h?.minQty ? formatDesimal(h.minQty).replaceAll('.', '') : '',
       };
     }),
     // K-094: barang baru berharga otomatis.
@@ -191,9 +190,9 @@ function nilaiAwal(
   };
 }
 
-/** Metode awal per tier: barang baru = ikut markup tier, termasuk tier default (K-047, K-094). */
-function metodeAwal(b: DetailBarang | null, tierAktif: TingkatHarga[]): MetodeHarga[] {
-  return tierAktif.map(
+/** Metode awal harga dasar: barang baru = ikut markup tier (K-047, K-094). */
+function metodeAwal(b: DetailBarang | null, tierDasar: TingkatHarga[]): MetodeHarga[] {
+  return tierDasar.map(
     (t) => b?.harga.find((x) => x.idTingkatHarga === t.id)?.metode ?? 'IKUT_TIER',
   );
 }
@@ -215,7 +214,10 @@ function FormBarang({
   const bolehKelolaHarga = usePengguna().izin.includes('master.harga.kelola');
   const [url] = useSearchParams();
 
-  const tierAktif = referensi.tier.filter((t) => t.statusAktif === 'AKTIF');
+  // K-098: hanya harga dasar yang diatur per barang; tier lain selalu markup tier (ditampilkan saja).
+  const semuaTierAktif = referensi.tier.filter((t) => t.statusAktif === 'AKTIF');
+  const tierDasar = semuaTierAktif.filter((t) => t.isDefault);
+  const tierLain = semuaTierAktif.filter((t) => !t.isDefault);
   const kategoriPilihan = referensi.kategori.filter(
     (k) => k.statusAktif === 'AKTIF' || k.id === barang?.idKategori,
   );
@@ -248,13 +250,13 @@ function FormBarang({
     resolver: zodResolver(skemaBarang),
     defaultValues: nilaiAwal(
       barang,
-      tierAktif,
+      tierDasar,
       barang ? null : url.has('titipan') ? Number(url.get('titipan')) || 0 : null,
       salinan,
     ),
   });
   // Metode dipilih eksplisit (H4) agar "Tetap" yang dikosongkan tidak diam-diam menjadi "Ikut tier".
-  const [metode, setMetode] = useState<MetodeHarga[]>(() => metodeAwal(barang, tierAktif));
+  const [metode, setMetode] = useState<MetodeHarga[]>(() => metodeAwal(barang, tierDasar));
 
   function ubahMetode(i: number, t: TingkatHarga, m: MetodeHarga) {
     const kini = barang?.harga.find((h) => h.idTingkatHarga === t.id);
@@ -282,7 +284,7 @@ function FormBarang({
   /** Isian wajib sesuai metode (skema Zod tidak tahu metode yang dipilih di layar). */
   function cekMetode(data: DataBarang): boolean {
     let sah = true;
-    tierAktif.forEach((t, i) => {
+    tierDasar.forEach((t, i) => {
       const h = data.hargaTier?.[i];
       if (metode[i] === 'TETAP' && (h?.hargaTetap ?? null) === null) {
         form.setError(`hargaTier.${i}.hargaTetap`, {
@@ -304,13 +306,14 @@ function FormBarang({
   });
   // Perkiraan harga barang baru dari modal (H3/H4) untuk tampilan; nilai final dihitung API.
   const dasarKira = kepemilikan === 'KONSINYASI' ? titipDiisi : modalDiisi;
-  function kiraHarga(i: number, t: TingkatHarga): number | null {
+  function kiraDari(isian: unknown): number | null {
     if (barang || typeof dasarKira !== 'number' || dasarKira <= 0) return null;
-    const isian = metode[i] === 'MARKUP' ? tierDiisi?.[i]?.markupPersen : t.markupDefaultPersen;
     const persen = typeof isian === 'string' ? isian.replace(',', '.') : '';
     if (!/^\d+(\.\d+)?$/.test(persen)) return null;
     return hargaMarkup(dasarKira, persen, KELIPATAN_PERKIRAAN);
   }
+  const kiraHarga = (i: number, t: TingkatHarga) =>
+    kiraDari(metode[i] === 'MARKUP' ? tierDiisi?.[i]?.markupPersen : t.markupDefaultPersen);
   const barisAtribut = atributDiisi ?? [];
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(
     form.formState.isDirty || berkasBaru !== null,
@@ -387,7 +390,7 @@ function FormBarang({
             {barang ? `Ubah barang ${barang.kode}` : 'Tambah barang'}
           </h1>
           <p className="text-sm text-slate-500">
-            {barang ? barang.namaBarang : 'Isi data barang, atribut, dan harga jual per tier.'}
+            {barang ? barang.namaBarang : 'Isi data barang, atribut, dan harga jual.'}
           </p>
         </div>
       </div>
@@ -847,10 +850,10 @@ function FormBarang({
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Harga jual per tier</CardTitle>
+                <CardTitle className="text-base">Harga jual</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {tierAktif.map((t, i) => {
+                {tierDasar.map((t, i) => {
                   const kini = barang?.harga.find((h) => h.idTingkatHarga === t.id);
                   const m = metode[i] ?? 'IKUT_TIER';
                   const kira = m === 'MARKUP' ? kiraHarga(i, t) : null;
@@ -868,7 +871,10 @@ function FormBarang({
                   return (
                     <div key={t.id} className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{t.nama}</span>
+                        <span className="text-sm font-medium">
+                          {t.nama}{' '}
+                          <span className="text-xs font-normal text-slate-500">(harga dasar)</span>
+                        </span>
                         <Select value={m} onValueChange={(v) => ubahMetode(i, t, v as MetodeHarga)}>
                           <SelectTrigger
                             className="h-7 w-40 text-xs"
@@ -937,41 +943,52 @@ function FormBarang({
                         </div>
                       )}
                       {keterangan && <p className="text-xs text-slate-500">{keterangan}</p>}
-                      {!t.isDefault && (
-                        <FormField
-                          control={form.control}
-                          name={`hargaTier.${i}.minQty`}
-                          render={({ field }) => (
-                            <FormItem className="flex items-center gap-2 space-y-0">
-                              <FormLabel className="shrink-0 text-xs font-normal text-slate-600">
-                                Mulai qty
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  inputMode="decimal"
-                                  className="h-7 text-xs"
-                                  aria-label={`Mulai qty ${t.nama}`}
-                                  placeholder={
-                                    t.minQty
-                                      ? `${formatDesimal(t.minQty)} (ikut tier)`
-                                      : 'kosong = hanya manual'
-                                  }
-                                  {...field}
-                                  value={typeof field.value === 'string' ? field.value : ''}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
                     </div>
                   );
                 })}
                 <p className="text-xs text-slate-500">
-                  Ikut tier = harga modal + markup tier, dibulatkan ke atas. Harga tetap = harga Rp
-                  yang Anda ketik sendiri dan tidak pernah berubah sendiri.
+                  Harga dasar dipakai semua transaksi. Ikut tier = harga modal + markup tier,
+                  dibulatkan ke atas. Harga tetap = harga Rp yang Anda ketik sendiri dan tidak
+                  pernah berubah sendiri.
                 </p>
+                {tierLain.length > 0 && (
+                  <div className="space-y-1.5 rounded-md border border-dashed p-3">
+                    <p className="text-xs font-medium text-slate-700">
+                      Harga tier lain (otomatis dari markup tier)
+                    </p>
+                    {tierLain.map((t) => {
+                      const kini = barang?.harga.find((h) => h.idTingkatHarga === t.id);
+                      const kira = kiraDari(t.markupDefaultPersen);
+                      return (
+                        <div key={t.id} className="text-sm">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span>{t.nama}</span>
+                            <span className="whitespace-nowrap text-slate-600 tabular-nums">
+                              {kini
+                                ? kini.hargaJual > 0
+                                  ? formatRupiah(kini.hargaJual)
+                                  : 'belum ada'
+                                : kira !== null
+                                  ? `± ${formatRupiah(kira)}`
+                                  : 'dihitung saat disimpan'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400">
+                            {t.markupDefaultPersen
+                              ? `+${formatDesimal(t.markupDefaultPersen)}% · `
+                              : ''}
+                            {teksSyaratTier(t)}
+                          </p>
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-slate-500">
+                      Berlaku untuk semua barang, jadi tidak diisi per barang. Markup dan syarat
+                      belanja diubah di Harga Jual › Kelola tier. Untuk harga khusus barang ini,
+                      buat promo.
+                    </p>
+                  </div>
+                )}
                 <FormField
                   control={form.control}
                   name="hargaOtomatis"

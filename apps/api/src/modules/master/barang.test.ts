@@ -476,24 +476,35 @@ describe('ubah barang', () => {
 });
 
 describe('harga jual dan tier', () => {
-  it('simpan massal: Kasir ditolak; log HARGA_UBAH; tier default boleh kembali ikut tier', async () => {
+  it('simpan massal: Kasir ditolak; log HARGA_UBAH; tier dasar boleh kembali ikut tier; tier lain tidak bisa diisi (K-098)', async () => {
     const b = await buat(barangBaru());
     const put = (sesi: Sesi, perubahan: unknown[]) =>
       kirim(sesi, '/api/harga-barang', { perubahan }, 'PUT');
 
     expect(
-      (await put(kasir, [{ idBarang: b.id, idTingkatHarga: ref.grosir, hargaTetap: 1 }])).status,
+      (await put(kasir, [{ idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: 1 }])).status,
     ).toBe(403);
 
-    const res = await put(admin, [
+    // K-098: harga Grosir selalu markup tier; satu baris ditolak membatalkan seluruh simpanan.
+    const tolak = await put(admin, [
       { idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: 56_000 },
       { idBarang: b.id, idTingkatHarga: ref.grosir, hargaTetap: 52_000 },
     ]);
+    expect(tolak.status).toBe(400);
+    expect((await galat(tolak)).error.pesan).toContain('Harga Grosir mengikuti markup tier');
+    expect(await hargaTier(b.id, ref.normal)).toMatchObject({ hargaJual: 55_000 });
+
+    const res = await put(admin, [
+      { idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: 56_000 },
+    ]);
     expect((await json<{ data: unknown }>(res)).data).toEqual({
       jumlahBarang: 1,
-      jumlahPerubahan: 2,
+      jumlahPerubahan: 1,
     });
-    expect(await hargaTier(b.id, ref.grosir)).toMatchObject({ metode: 'TETAP', hargaJual: 52_000 });
+    expect(await hargaTier(b.id, ref.grosir)).toMatchObject({
+      metode: 'IKUT_TIER',
+      hargaJual: 49_500,
+    });
     expect((await logTerakhir('HARGA_UBAH'))?.ringkasan).toContain('Normal Rp 55.000 → Rp 56.000');
 
     // K-094: harga Normal dikosongkan = ikut markup tier dari modal.
@@ -528,28 +539,70 @@ describe('harga jual dan tier', () => {
     ).toBe(403);
   });
 
-  it('markup tier berubah menandai barang IKUT_TIER di tier itu (H5); tier default tidak bisa nonaktif (H1)', async () => {
-    const ikut = await buat(barangBaru());
-    const tetap = await buat(
-      barangBaru({
-        namaBarang: 'Harga tetap semua',
-        hargaTier: [
-          { idTingkatHarga: ref.normal, hargaTetap: 55_000 },
-          { idTingkatHarga: ref.grosir, hargaTetap: 53_000 },
-        ],
-      }),
+  it('K-098: peringatan susunan tier untuk pemegang izin modal; tidak menolak simpan', async () => {
+    const ubah = (id: number, isi: Record<string, unknown>) =>
+      kirim(admin, `/api/tingkat-harga/${id}`, isi, 'PATCH');
+    const daftar = async (sesi: Sesi) =>
+      (await json<{ data: Baris[] }>(await minta('/api/tingkat-harga', { cookie: sesi.cookie })))
+        .data;
+    const grosir = { kode: 'GROSIR', nama: 'Grosir', urutan: 2 };
+    const dist = { kode: 'DISTRIBUTOR', nama: 'Distributor', urutan: 3, markupDefaultPersen: '15' };
+
+    // Susunan wajar: Grosir (20%) mulai 1 jt, Distributor (15%) mulai 5 jt.
+    await ubah(ref.grosir, { ...grosir, markupDefaultPersen: '20', minBelanja: 1_000_000 });
+    await ubah(ref.distributor, { ...dist, minBelanja: 5_000_000 });
+    expect((await daftar(admin)).every((t) => t.peringatan === undefined)).toBe(true);
+
+    // Terbalik: Grosir mulai 8 jt padahal markup-nya lebih besar dari Distributor.
+    const res = await ubah(ref.grosir, {
+      ...grosir,
+      markupDefaultPersen: '20',
+      minBelanja: 8_000_000,
+    });
+    expect(res.status).toBe(200);
+    expect((await json<{ data: Baris }>(res)).data.peringatan).toContain(
+      'pembeli yang belanja lebih banyak justru membayar lebih mahal',
     );
+    // Markup tidak lebih kecil dari tier dasar.
+    await ubah(ref.grosir, { ...grosir, markupDefaultPersen: '25', minBelanja: 1_000_000 });
+    const semua = await daftar(admin);
+    expect(semua.find((t) => t.id === ref.grosir)?.peringatan).toBe(
+      'Markup Grosir tidak lebih kecil dari Normal, sehingga harganya tidak lebih murah.',
+    );
+    // Kasir tidak melihat markup maupun peringatan (membuka margin).
+    const kas = (await daftar(kasir)).find((t) => t.id === ref.grosir);
+    expect(kas).toMatchObject({ nama: 'Grosir', minBelanja: 1_000_000 });
+    expect(kas?.markupDefaultPersen).toBeUndefined();
+    expect(kas?.peringatan).toBeUndefined();
+  });
+
+  it('markup tier berubah menandai semua barang di tier itu (H5, K-098); tier dasar tidak bisa nonaktif (H1)', async () => {
+    const ikut = await buat(barangBaru());
+    const lain = await buat(barangBaru({ namaBarang: 'Semen Tiga Roda 40kg' }));
+    // Hanya syarat belanja yang berubah: harga tidak perlu ditinjau.
+    const grosir = { kode: 'GROSIR', nama: 'Grosir', urutan: 2 };
+    const syarat = await kirim(
+      admin,
+      `/api/tingkat-harga/${ref.grosir}`,
+      { ...grosir, markupDefaultPersen: '20', minBelanja: 500_000 },
+      'PATCH',
+    );
+    expect((await json<{ data: Baris }>(syarat)).data).toMatchObject({ minBelanja: 500_000 });
+    expect((await logTerakhir('TIER_UBAH'))?.ringkasan).toBe('Mengubah tier Grosir: minBelanja');
+    let tanda = await db.select({ id: barang.id, t: barang.perluTinjauHarga }).from(barang);
+    expect(tanda.every((x) => !x.t)).toBe(true);
+
     const res = await kirim(
       admin,
       `/api/tingkat-harga/${ref.grosir}`,
-      { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '22,5', urutan: 2 },
+      { ...grosir, markupDefaultPersen: '22,5', minBelanja: 500_000 },
       'PATCH',
     );
     expect(res.status).toBe(200);
-    const tanda = await db.select({ id: barang.id, t: barang.perluTinjauHarga }).from(barang);
+    tanda = await db.select({ id: barang.id, t: barang.perluTinjauHarga }).from(barang);
     expect(tanda.find((x) => x.id === ikut.id)?.t).toBe(true);
-    expect(tanda.find((x) => x.id === tetap.id)?.t).toBe(false);
-    expect((await logTerakhir('TIER_UBAH'))?.ringkasan).toContain('1 barang ditandai');
+    expect(tanda.find((x) => x.id === lain.id)?.t).toBe(true);
+    expect((await logTerakhir('TIER_UBAH'))?.ringkasan).toContain('2 barang ditandai');
 
     const nonaktif = await kirim(
       admin,

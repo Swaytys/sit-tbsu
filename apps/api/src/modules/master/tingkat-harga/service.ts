@@ -1,6 +1,5 @@
 import {
   bandingQty,
-  keQty,
   keTeksPersen,
   teksQty,
   type DataTingkatHarga,
@@ -21,15 +20,44 @@ import * as repo from './repo';
 
 /**
  * Tingkat harga (tier, docs/06 H1–H2, H8). Dibaca semua peran: namanya tampil di order dan checkout. Tier
- * dipakai otomatis menurut qty (`min_qty`, K-097), bukan menurut pelanggan.
+ * dipakai otomatis menurut total nilai belanja transaksi (`min_belanja`, K-098), untuk semua barang.
  * Markup default hanya untuk pemegang `master.barang.lihat_hpp` karena membuka margin toko (docs/06 H12).
  */
 
 type BarisTier = NonNullable<Awaited<ReturnType<typeof repo.tingkatHargaById>>>;
 
-function keRespons(t: BarisTier, izin: ReadonlySet<Izin>): TingkatHarga {
+/**
+ * Peringatan susunan tier (K-098) untuk layar Kelola tier: makin besar syarat belanja, markup seharusnya makin
+ * kecil. Hanya peringatan, bukan penolakan, karena mengubah dua tier satu per satu melewati susunan antara.
+ */
+function peringatanSusunan(t: BarisTier, semua: BarisTier[]): string | null {
+  if (t.isDefault || t.statusAktif !== 'AKTIF') return null;
+  const dasar = semua.find((x) => x.isDefault);
+  if (dasar && bandingQty(t.markupDefaultPersen, dasar.markupDefaultPersen) >= 0) {
+    return `Markup ${t.nama} tidak lebih kecil dari ${dasar.nama}, sehingga harganya tidak lebih murah.`;
+  }
+  const min = t.minBelanja;
+  if (min === null) return null;
+  const lebihMurah = semua.find(
+    (x) =>
+      !x.isDefault &&
+      x.statusAktif === 'AKTIF' &&
+      x.minBelanja !== null &&
+      x.minBelanja < min &&
+      bandingQty(x.markupDefaultPersen, t.markupDefaultPersen) < 0,
+  );
+  return lebihMurah
+    ? `Syarat belanja ${t.nama} lebih besar dari ${lebihMurah.nama}, tetapi markup-nya juga lebih besar: ` +
+        'pembeli yang belanja lebih banyak justru membayar lebih mahal.'
+    : null;
+}
+
+/** Markup dan peringatan susunan membuka margin toko: hanya untuk pemegang `master.barang.lihat_hpp`. */
+function keRespons(t: BarisTier, semua: BarisTier[], izin: ReadonlySet<Izin>): TingkatHarga {
   const { markupDefaultPersen, ...b } = t;
-  return izin.has('master.barang.lihat_hpp') ? { ...b, markupDefaultPersen } : b;
+  if (!izin.has('master.barang.lihat_hpp')) return b;
+  const peringatan = peringatanSusunan(t, semua);
+  return { ...b, markupDefaultPersen, ...(peringatan ? { peringatan } : {}) };
 }
 
 function tidakDitemukan(): AppError {
@@ -37,9 +65,10 @@ function tidakDitemukan(): AppError {
 }
 
 async function muat(id: number, izin: ReadonlySet<Izin>): Promise<TingkatHarga> {
-  const baris = await repo.tingkatHargaById(db, id);
+  const semua = await repo.daftarTingkatHarga(db);
+  const baris = semua.find((t) => t.id === id);
   if (!baris) throw tidakDitemukan();
-  return keRespons(baris, izin);
+  return keRespons(baris, semua, izin);
 }
 
 async function pastikanKodeBebas(tx: Tx, kode: string, kecualiId?: number): Promise<void> {
@@ -49,10 +78,10 @@ async function pastikanKodeBebas(tx: Tx, kode: string, kecualiId?: number): Prom
   }
 }
 
-/** K-097: tier default dipakai semua pembeli yang belum memenuhi syarat qty tier lain. */
-function galatMinQtyDefault(): AppError {
-  const pesan = 'Tier default berlaku untuk semua qty; kosongkan "mulai qty".';
-  return new AppError('VALIDASI', pesan, 400, { kolom: { minQty: [pesan] } });
+/** K-098: tier dasar dipakai semua transaksi yang belum mencapai nilai belanja tier lain. */
+function galatBelanjaTierDasar(): AppError {
+  const pesan = 'Tier dasar berlaku untuk semua transaksi; kosongkan "mulai belanja".';
+  return new AppError('VALIDASI', pesan, 400, { kolom: { minBelanja: [pesan] } });
 }
 
 function nilaiDari(input: DataTingkatHarga): repo.NilaiTingkatHarga {
@@ -60,14 +89,14 @@ function nilaiDari(input: DataTingkatHarga): repo.NilaiTingkatHarga {
     kode: input.kode,
     nama: input.nama,
     markupDefaultPersen: keTeksPersen(input.markupDefaultPersen),
-    minQty: input.minQty === null ? null : keQty(input.minQty),
+    minBelanja: input.minBelanja,
     urutan: input.urutan,
   };
 }
 
 export async function daftarTingkatHarga(izin: ReadonlySet<Izin>): Promise<TingkatHarga[]> {
   const baris = await repo.daftarTingkatHarga(db);
-  return baris.map((t) => keRespons(t, izin));
+  return baris.map((t) => keRespons(t, baris, izin));
 }
 
 /** Tier baru langsung mendapat harga IKUT_TIER untuk semua barang (H2). */
@@ -114,14 +143,14 @@ export async function ubahTingkatHarga(
         kode: lama.kode,
         nama: lama.nama,
         markupDefaultPersen: lama.markupDefaultPersen,
-        minQty: lama.minQty,
+        minBelanja: lama.minBelanja,
         urutan: lama.urutan,
       },
       baru,
     );
     if (beda.kolom.length === 0) return;
     if (beda.kolom.includes('kode')) await pastikanKodeBebas(tx, baru.kode, id);
-    if (lama.isDefault && baru.minQty !== null) throw galatMinQtyDefault();
+    if (lama.isDefault && baru.minBelanja !== null) throw galatBelanjaTierDasar();
     await repo.ubahTingkatHarga(tx, id, baru, sekarang());
 
     let hasil = { ditandai: 0, diterapkan: 0 };
@@ -151,7 +180,7 @@ export async function ubahTingkatHarga(
 }
 
 /**
- * H1: tier default tidak bisa dinonaktifkan. Mengaktifkan kembali melengkapi harga barang baru (H2) dan
+ * H1: tier dasar tidak bisa dinonaktifkan. Mengaktifkan kembali melengkapi harga barang baru (H2) dan
  * menghitung ulang baris IKUT_TIER/MARKUP lama di tier itu dengan D terkini (K-086).
  */
 export async function ubahStatusTingkatHarga(
@@ -167,7 +196,7 @@ export async function ubahStatusTingkatHarga(
     if (statusAktif === 'NONAKTIF' && lama.isDefault) {
       throw new AppError(
         'STATUS_TIDAK_VALID',
-        `Tier ${lama.nama} adalah tier default dan tidak bisa dinonaktifkan.`,
+        `Tier ${lama.nama} adalah tier dasar dan tidak bisa dinonaktifkan.`,
         409,
       );
     }
