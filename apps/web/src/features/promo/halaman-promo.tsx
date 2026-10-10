@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   formatRupiah,
   LABEL_JENIS_POTONGAN,
+  LABEL_SASARAN_PEMBELI,
   LABEL_SASARAN_PROMO,
   LABEL_STATUS_BERLAKU_PROMO,
   skemaPromo,
@@ -12,10 +13,11 @@ import {
   type StatusAktif,
   type StatusBerlakuPromo,
 } from '@sit/shared';
-import { Lock, Plus } from 'lucide-react';
+import { Lock, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
+import { useDaftarGolongan } from '@/api/mitra';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { useDaftarPromo, useSimpanPromo, useStatusPromo } from '@/api/promo';
 import { useDaftarKategori } from '@/api/referensi';
@@ -25,6 +27,7 @@ import { InputPersen } from '@/components/input-persen';
 import { InputRupiah } from '@/components/input-rupiah';
 import { MenuAksiMaster } from '@/components/menu-aksi-master';
 import { PilihBarang } from '@/components/pilih-barang';
+import { PilihPelanggan } from '@/components/pilih-pelanggan';
 import { BadgeStatusAktif } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -79,8 +82,13 @@ function uraianSasaran(p: Promo): string {
 
 function uraianSyarat(p: Promo): string {
   const syarat = [
+    p.sasaranPembeli === 'GOLONGAN' ? `golongan ${p.namaGolongan ?? '—'}` : null,
+    p.sasaranPembeli === 'PELANGGAN' ? `${p.pelanggan.length} pelanggan` : null,
     p.minQty !== null ? `qty ≥ ${formatDesimal(p.minQty)}` : null,
     p.minBelanja !== null ? `belanja ≥ ${formatRupiah(p.minBelanja)}` : null,
+    p.minBelanjaPelanggan !== null
+      ? `belanja ${p.hariBelanja ?? 0} hari ≥ ${formatRupiah(p.minBelanjaPelanggan)}`
+      : null,
   ].filter(Boolean);
   return syarat.length > 0 ? syarat.join(' · ') : '—';
 }
@@ -94,7 +102,12 @@ const WARNA_BERLAKU: Record<StatusBerlakuPromo, string> = {
 function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => void }) {
   const simpan = useSimpanPromo();
   const kategori = useDaftarKategori();
+  const golongan = useDaftarGolongan('AKTIF');
   const terkunci = (promo?.jumlahPemakaian ?? 0) > 0;
+  /** Nama pelanggan berhak yang sudah dipilih (sasaran PELANGGAN). */
+  const [namaPelanggan, setNamaPelanggan] = useState<Map<number, string>>(
+    () => new Map((promo?.pelanggan ?? []).map((p) => [p.id, p.nama])),
+  );
   const [barangDipilih, setBarangDipilih] = useState<string | null>(
     promo?.idBarang ? `${promo.kodeBarang ?? ''} · ${promo.namaBarang ?? ''}` : null,
   );
@@ -114,9 +127,17 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
       minQty: promo?.minQty ? formatDesimal(promo.minQty) : null,
       minBelanja: promo?.minBelanja ?? null,
       keterangan: promo?.keterangan ?? '',
+      sasaranPembeli: promo?.sasaranPembeli ?? 'SEMUA',
+      idGolongan: promo?.idGolongan ?? null,
+      idPelanggan: (promo?.pelanggan ?? []).map((p) => p.id),
+      minBelanjaPelanggan: promo?.minBelanjaPelanggan ?? null,
+      hariBelanja: promo?.hariBelanja ?? null,
     },
   });
-  const [jenis, sasaran] = useWatch({ control: form.control, name: ['jenisPotongan', 'sasaran'] });
+  const [jenis, sasaran, sasaranPembeli, idPelanggan] = useWatch({
+    control: form.control,
+    name: ['jenisPotongan', 'sasaran', 'sasaranPembeli', 'idPelanggan'],
+  });
 
   async function kirim(data: DataPromo) {
     try {
@@ -140,6 +161,11 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
         'minQty',
         'minBelanja',
         'keterangan',
+        'sasaranPembeli',
+        'idGolongan',
+        'idPelanggan',
+        'minBelanjaPelanggan',
+        'hariBelanja',
       ]);
     }
   }
@@ -150,9 +176,9 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
         <DialogHeader>
           <DialogTitle>{promo ? `Ubah promo ${promo.kode}` : 'Buat promo'}</DialogTitle>
           <DialogDescription>
-            Potongan dihitung per baris barang saat order dan saat dibayar di kasir, selama tanggal
-            mulai sampai tanggal selesai (keduanya termasuk). Bila beberapa promo cocok, dipakai
-            potongan terbesar. Tidak berlaku untuk harga manual.
+            Potongan dari harga Normal per baris barang, selama tanggal mulai sampai selesai. Bila
+            beberapa promo cocok, dipakai potongan terbesar. Promo tidak digabung dengan harga
+            grosir: dipakai yang lebih murah bagi pembeli. Tidak berlaku untuk harga manual.
           </DialogDescription>
         </DialogHeader>
         {terkunci && (
@@ -419,6 +445,149 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
                       disabled={terkunci}
                       placeholder="Tanpa syarat"
                       aria-label="Minimal total belanja"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="sasaranPembeli"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Untuk pembeli</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={terkunci}>
+                    <FormControl>
+                      <SelectTrigger aria-label="Sasaran pembeli">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="SEMUA">{LABEL_SASARAN_PEMBELI.SEMUA}</SelectItem>
+                      <SelectItem value="GOLONGAN">{LABEL_SASARAN_PEMBELI.GOLONGAN}</SelectItem>
+                      <SelectItem value="PELANGGAN">{LABEL_SASARAN_PEMBELI.PELANGGAN}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {sasaranPembeli === 'GOLONGAN' && (
+              <FormField
+                control={form.control}
+                name="idGolongan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Golongan pelanggan</FormLabel>
+                    <Select
+                      value={field.value ? String(field.value) : ''}
+                      onValueChange={(v) => field.onChange(Number(v))}
+                      disabled={terkunci}
+                    >
+                      <FormControl>
+                        <SelectTrigger aria-label="Golongan promo">
+                          <SelectValue placeholder="Pilih golongan" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(golongan.data ?? []).map((g) => (
+                          <SelectItem key={g.id} value={String(g.id)}>
+                            {g.nama}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {sasaranPembeli === 'PELANGGAN' && (
+              <FormField
+                control={form.control}
+                name="idPelanggan"
+                render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel>Pelanggan yang berhak</FormLabel>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(idPelanggan ?? []).map((id) => (
+                        <span
+                          key={id}
+                          className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-0.5 text-sm text-blue-800"
+                        >
+                          {namaPelanggan.get(id) ?? `#${id}`}
+                          {!terkunci && (
+                            <button
+                              type="button"
+                              aria-label={`Hapus ${namaPelanggan.get(id) ?? id}`}
+                              onClick={() =>
+                                field.onChange((field.value ?? []).filter((x) => x !== id))
+                              }
+                            >
+                              <X className="size-3" />
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                    {!terkunci && (
+                      <PilihPelanggan
+                        terpilih={null}
+                        label="Tambah pelanggan"
+                        onPilih={(p) => {
+                          if (!p || (field.value ?? []).includes(p.id)) return;
+                          setNamaPelanggan((m) => new Map(m).set(p.id, p.namaPelanggan));
+                          field.onChange([...(field.value ?? []), p.id]);
+                        }}
+                      />
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            <FormField
+              control={form.control}
+              name="minBelanjaPelanggan"
+              render={({ field }) => (
+                <FormItem className="col-start-1">
+                  <FormLabel>Belanja pelanggan minimal (opsional)</FormLabel>
+                  <FormControl>
+                    <InputRupiah
+                      {...field}
+                      disabled={terkunci}
+                      placeholder="Tanpa syarat"
+                      aria-label="Belanja pelanggan minimal"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="hariBelanja"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>dalam … hari terakhir</FormLabel>
+                  <FormControl>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="mis. 30"
+                      disabled={terkunci}
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      value={
+                        typeof field.value === 'number' || typeof field.value === 'string'
+                          ? String(field.value)
+                          : ''
+                      }
+                      onChange={(e) =>
+                        field.onChange(e.target.value === '' ? null : e.target.value)
+                      }
+                      aria-label="Jumlah hari belanja"
                     />
                   </FormControl>
                   <FormMessage />

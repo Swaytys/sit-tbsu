@@ -18,7 +18,7 @@ import {
   type BarisPos,
 } from './model';
 
-export type PelangganPos = { id: number; nama: string; idTier: number | null };
+export type PelangganPos = { id: number; nama: string };
 
 export type TransaksiPos = {
   /** Order antrean yang sedang dibayar; `null` = jual langsung tanpa order. */
@@ -46,7 +46,8 @@ export function useTransaksiPos(tierDefault: number | null) {
   const [t, setT] = useState<TransaksiPos>(KOSONG);
   const [cadangan, setCadangan] = useState<TransaksiPos | null>(null);
 
-  const tierBawaan = t.pelanggan?.idTier ?? t.order?.idTingkatHargaPelanggan ?? tierDefault;
+  // K-097: harga awal selalu tier default; tier lain dipakai otomatis menurut qty (API).
+  const tierBawaan = tierDefault;
 
   function simpanCadangan(pesan: string) {
     const salinan = t;
@@ -73,9 +74,7 @@ export function useTransaksiPos(tierDefault: number | null) {
     setT({
       order: d,
       baris: dariOrder(d),
-      pelanggan: d.idPelanggan
-        ? { id: d.idPelanggan, nama: d.namaPelanggan ?? '', idTier: d.idTingkatHargaPelanggan }
-        : null,
+      pelanggan: d.idPelanggan ? { id: d.idPelanggan, nama: d.namaPelanggan ?? '' } : null,
       namaPembeli: d.namaPembeli ?? '',
       diubah: false,
     });
@@ -119,7 +118,7 @@ export function useTransaksiPos(tierDefault: number | null) {
     setT({
       ...t,
       diubah: true,
-      pelanggan: p ? { id: p.id, nama: p.namaPelanggan, idTier: p.idTingkatHarga } : null,
+      pelanggan: p ? { id: p.id, nama: p.namaPelanggan } : null,
     });
   }
 

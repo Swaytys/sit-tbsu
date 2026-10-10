@@ -84,6 +84,18 @@ function SelHarga({
           )}
         </span>
       )}
+      {/* K-097: syarat qty tier (khusus barang ini, atau ikut tier); diubah di form barang. */}
+      {!t.isDefault && (
+        <span
+          className={cn('text-[11px] tabular-nums', h?.minQty ? 'text-blue-700' : 'text-slate-400')}
+        >
+          {h?.minQty
+            ? `mulai ${formatDesimal(h.minQty)} (khusus)`
+            : t.minQty
+              ? `mulai ${formatDesimal(t.minQty)}`
+              : 'hanya manual'}
+        </span>
+      )}
     </div>
   );
 }

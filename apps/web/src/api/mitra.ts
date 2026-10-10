@@ -1,8 +1,8 @@
-import type { DataPelanggan, DataPemasok, StatusAktif } from '@sit/shared';
+import type { DataGolonganPelanggan, DataPelanggan, DataPemasok, StatusAktif } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, ambilIsi, api } from './client';
 
-/** Mitra: pelanggan dan pemasok (Fase 3), serta daftar tingkat harga untuk pilihan tier. */
+/** Mitra: pelanggan, golongan pelanggan (K-097), dan pemasok (Fase 3), serta daftar tingkat harga. */
 
 export type ParamDaftarMitra = {
   cari: string;
@@ -86,5 +86,35 @@ export function useSimpanPemasok() {
 export function useStatusPemasok() {
   return useMutasi('pemasok', async ({ id, statusAktif }: Status) =>
     ambilData(await api.pemasok[':id'].status.$patch({ param: param(id), json: { statusAktif } })),
+  );
+}
+
+// --- Golongan pelanggan (K-097: sasaran promo) ---
+
+export function useDaftarGolongan(status: StatusAktif | 'SEMUA' = 'SEMUA') {
+  return useQuery({
+    queryKey: ['golongan-pelanggan', status],
+    queryFn: async () => ambilData(await api['golongan-pelanggan'].$get({ query: { status } })),
+  });
+}
+
+export function useSimpanGolongan() {
+  return useMutasi('golongan-pelanggan', async ({ id, json }: Simpan<DataGolonganPelanggan>) =>
+    ambilData(
+      id === undefined
+        ? await api['golongan-pelanggan'].$post({ json })
+        : await api['golongan-pelanggan'][':id'].$patch({ param: param(id), json }),
+    ),
+  );
+}
+
+export function useStatusGolongan() {
+  return useMutasi('golongan-pelanggan', async ({ id, statusAktif }: Status) =>
+    ambilData(
+      await api['golongan-pelanggan'][':id'].status.$patch({
+        param: param(id),
+        json: { statusAktif },
+      }),
+    ),
   );
 }

@@ -119,14 +119,12 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
   const [pelanggan, setPelanggan] = useState<{
     id: number;
     nama: string;
-    idTier: number | null;
     alamat: string | null;
   } | null>(
     dokumen?.idPelanggan
       ? {
           id: dokumen.idPelanggan,
           nama: dokumen.namaPelanggan ?? '',
-          idTier: dokumen.idTingkatHargaPelanggan,
           alamat: dokumen.alamatKirim,
         }
       : null,
@@ -194,7 +192,8 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
   });
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
   const antar = jenis === 'PENGANTARAN';
-  const tierBawaan = pelanggan?.idTier ?? tierDefault;
+  // K-097: harga awal tier default; tier lain dipakai otomatis menurut qty (API).
+  const tierBawaan = tierDefault;
   const dapatDiubahPembuat = !dokumen || dokumen.status === 'DRAFT';
 
   function hargaBaris(i: number): number | null {
@@ -327,9 +326,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
   }
 
   function pilihPelanggan(p: Parameters<Parameters<typeof PilihPelanggan>[0]['onPilih']>[0]) {
-    setPelanggan(
-      p ? { id: p.id, nama: p.namaPelanggan, idTier: p.idTingkatHarga, alamat: p.alamat } : null,
-    );
+    setPelanggan(p ? { id: p.id, nama: p.namaPelanggan, alamat: p.alamat } : null);
     form.setValue('idPelanggan', p?.id ?? null, { shouldDirty: true, shouldValidate: true });
     if (p?.alamat && !form.getValues('alamatKirim')) {
       form.setValue('alamatKirim', p.alamat, { shouldDirty: true });
@@ -391,8 +388,8 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
             {dokumen ? `Ubah order ${dokumen.nomor}` : 'Buat order baru'}
           </h1>
           <p className="text-sm text-slate-500">
-            Harga otomatis mengikuti tier pelanggan dan jumlah beli (harga grosir bila qty memenuhi
-            syarat). Barang ditahan (stok tersedia berkurang) setelah order masuk antrean.
+            Harga mengikuti jumlah beli (harga grosir bila qty memenuhi syarat) dan promo yang
+            berlaku. Barang ditahan (stok tersedia berkurang) setelah order masuk antrean.
           </p>
         </div>
       </div>
@@ -710,7 +707,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {/* K-094: otomatis = tier pelanggan, atau tier lebih murah bila syarat qty terpenuhi. */}
+                                    {/* K-097: otomatis = tier default, atau tier lebih murah bila syarat qty terpenuhi. */}
                                     <SelectItem value={BAWAAN}>Otomatis</SelectItem>
                                     {tierAktif.map((t) => {
                                       const h = hargaTierBaris(i).find(

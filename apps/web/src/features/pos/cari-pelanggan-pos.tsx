@@ -80,8 +80,8 @@ export function CariPelangganPos({
             >
               <span className="font-mono text-xs text-slate-500">{p.kode}</span>{' '}
               <span className="font-medium">{p.namaPelanggan}</span>
-              {p.namaTingkatHarga && (
-                <span className="text-xs text-slate-500"> · {p.namaTingkatHarga}</span>
+              {p.namaGolongan && (
+                <span className="text-xs text-slate-500"> · {p.namaGolongan}</span>
               )}
             </li>
           ))}

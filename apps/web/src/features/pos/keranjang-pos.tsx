@@ -156,7 +156,7 @@ export function KeranjangPos({
       else if (berikut) onUbah(indeks, berikut);
     } else if ((e.key === 't' || e.key === 'T') && bolehTier && !b.hargaManual) {
       e.preventDefault();
-      // Urutan: otomatis (tier pelanggan / syarat qty) → setiap tier → kembali ke otomatis.
+      // Urutan: otomatis (syarat qty, K-097) → setiap tier → kembali ke otomatis.
       const pilihan: (number | null)[] = [null, ...urutanTier];
       const kini = Math.max(0, pilihan.indexOf(b.idTingkatHarga));
       onUbah(indeks, { idTingkatHarga: pilihan[(kini + 1) % pilihan.length] ?? null });

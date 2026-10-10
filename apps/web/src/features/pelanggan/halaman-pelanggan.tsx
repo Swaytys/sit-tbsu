@@ -1,6 +1,7 @@
 import type { Pelanggan, StatusAktif } from '@sit/shared';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { useState } from 'react';
+import { usePengguna } from '@/api/auth';
 import { useDaftarPelanggan, useStatusPelanggan } from '@/api/mitra';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { BilahSaring, type SaringStatus } from '@/components/bilah-saring';
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { jalankanDenganToast } from '@/lib/aksi';
 import { useTunda } from '@/lib/use-tunda';
+import { DialogGolongan } from './dialog-golongan';
 import { DialogPelanggan } from './dialog-pelanggan';
 
 export function HalamanPelanggan() {
@@ -20,6 +22,8 @@ export function HalamanPelanggan() {
   const [status, setStatus] = useState<SaringStatus>('SEMUA');
   const [halaman, setHalaman] = useState(1);
   const [dialog, setDialog] = useState<{ pelanggan: Pelanggan | null } | null>(null);
+  const [dialogGolongan, setDialogGolongan] = useState(false);
+  const bolehGolongan = usePengguna().izin.includes('master.pelanggan.atur_kredit');
 
   const barisPerHalaman = useBarisPerHalaman();
   const daftar = useDaftarPelanggan({
@@ -58,15 +62,15 @@ export function HalamanPelanggan() {
       ),
     },
     {
-      kunci: 'tier',
-      judul: 'Tier',
+      kunci: 'golongan',
+      judul: 'Golongan',
       sel: (p) =>
-        p.namaTingkatHarga ? (
+        p.namaGolongan ? (
           <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-            {p.namaTingkatHarga}
+            {p.namaGolongan}
           </Badge>
         ) : (
-          <span className="text-xs text-slate-400">Default</span>
+          <span className="text-xs text-slate-400">—</span>
         ),
     },
     {
@@ -103,9 +107,16 @@ export function HalamanPelanggan() {
           <h1 className="text-xl font-semibold text-slate-900">Data Pelanggan</h1>
           <p className="text-sm text-slate-500">Kelola daftar pelanggan toko.</p>
         </div>
-        <Button onClick={() => setDialog({ pelanggan: null })}>
-          <Plus /> Tambah pelanggan
-        </Button>
+        <div className="flex gap-2">
+          {bolehGolongan && (
+            <Button variant="outline" onClick={() => setDialogGolongan(true)}>
+              <Users /> Golongan
+            </Button>
+          )}
+          <Button onClick={() => setDialog({ pelanggan: null })}>
+            <Plus /> Tambah pelanggan
+          </Button>
+        </div>
       </div>
 
       <Card className="gap-0 overflow-hidden py-0">
@@ -137,6 +148,7 @@ export function HalamanPelanggan() {
       </Card>
 
       {dialog && <DialogPelanggan pelanggan={dialog.pelanggan} onTutup={() => setDialog(null)} />}
+      {dialogGolongan && <DialogGolongan onTutup={() => setDialogGolongan(false)} />}
     </div>
   );
 }

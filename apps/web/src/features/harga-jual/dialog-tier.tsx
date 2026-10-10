@@ -56,8 +56,7 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
       nama: tier?.nama ?? '',
       markupDefaultPersen: tier?.markupDefaultPersen ? formatDesimal(tier.markupDefaultPersen) : '',
       urutan: tier?.urutan ?? 0,
-      // Saran qty (M2) belum punya isian; nilainya dipertahankan.
-      saranMinQty: tier?.saranMinQty ?? null,
+      minQty: tier?.minQty ? formatDesimal(tier.minQty).replaceAll('.', '') : '',
     },
   });
 
@@ -67,7 +66,13 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
       toast.success(`Tier ${data.nama} disimpan.`);
       onSelesai();
     } catch (err) {
-      tampilkanGalatForm(err, form.setError, ['kode', 'nama', 'markupDefaultPersen', 'urutan']);
+      tampilkanGalatForm(err, form.setError, [
+        'kode',
+        'nama',
+        'markupDefaultPersen',
+        'minQty',
+        'urutan',
+      ]);
     }
   }
 
@@ -75,7 +80,7 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
     <Form {...form}>
       <form
         onSubmit={(e) => void form.handleSubmit(kirim)(e)}
-        className="grid grid-cols-4 gap-3 rounded-lg border bg-slate-50 p-3"
+        className="grid grid-cols-5 gap-3 rounded-lg border bg-slate-50 p-3"
         noValidate
       >
         <FormField
@@ -122,6 +127,26 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
             </FormItem>
           )}
         />
+        {!tier?.isDefault && (
+          <FormField
+            control={form.control}
+            name="minQty"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mulai qty</FormLabel>
+                <FormControl>
+                  <Input
+                    inputMode="decimal"
+                    placeholder="mis. 10"
+                    {...field}
+                    value={typeof field.value === 'string' ? field.value : ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <FormField
           control={form.control}
           name="urutan"
@@ -135,12 +160,12 @@ function FormTier({ tier, onSelesai }: { tier: TingkatHarga | null; onSelesai: (
             </FormItem>
           )}
         />
-        <FormDescription className="col-span-4">
-          {tier
-            ? 'Mengubah markup menandai barang yang harganya ikut tier ini untuk ditinjau; harga belum berubah sampai disimpan.'
-            : 'Tier baru langsung mendapat harga "ikut tier" untuk semua barang.'}
+        <FormDescription className="col-span-5">
+          {tier?.isDefault
+            ? 'Tier default dipakai semua pembeli yang belum memenuhi syarat qty tier lain.'
+            : 'Mulai qty: harga tier ini dipakai otomatis bila pembeli membeli sebanyak itu (satuan dasar). Kosong = hanya bila dipilih manual. Bisa diubah per barang di form barang.'}
         </FormDescription>
-        <div className="col-span-4 flex justify-end gap-2">
+        <div className="col-span-5 flex justify-end gap-2">
           <Button type="button" variant="outline" size="sm" onClick={onSelesai}>
             Batal
           </Button>
@@ -165,7 +190,8 @@ export function DialogTier({ onTutup }: { onTutup: () => void }) {
         <DialogHeader>
           <DialogTitle>Kelola tier harga</DialogTitle>
           <DialogDescription>
-            Tier default wajib diisi harga tetap di setiap barang dan tidak bisa dinonaktifkan.
+            Harga jual ditentukan jumlah beli: Normal untuk semua pembeli; tier lain dipakai
+            otomatis bila qty mencapai "mulai qty". Harga khusus pelanggan tertentu diatur di Promo.
           </DialogDescription>
         </DialogHeader>
         <Table>
@@ -174,6 +200,7 @@ export function DialogTier({ onTutup }: { onTutup: () => void }) {
               <TableHead>Kode</TableHead>
               <TableHead>Nama</TableHead>
               <TableHead className="text-right">Markup</TableHead>
+              <TableHead className="text-right">Mulai qty</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -192,6 +219,9 @@ export function DialogTier({ onTutup }: { onTutup: () => void }) {
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {t.markupDefaultPersen ? `${formatDesimal(t.markupDefaultPersen)}%` : '—'}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {t.isDefault ? 'semua' : t.minQty ? formatDesimal(t.minQty) : 'manual'}
                 </TableCell>
                 <TableCell>
                   <BadgeStatusAktif status={t.statusAktif} />

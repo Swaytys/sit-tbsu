@@ -9,7 +9,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
-import { useDaftarTingkatHarga, useSimpanPelanggan } from '@/api/mitra';
+import { useDaftarGolongan, useSimpanPelanggan } from '@/api/mitra';
 import { InputAngka } from '@/components/input-angka';
 import { InputRupiah } from '@/components/input-rupiah';
 import { Button } from '@/components/ui/button';
@@ -40,14 +40,14 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { tampilkanGalatForm } from '@/lib/form';
 
-const TIER_DEFAULT = 'DEFAULT';
+const TANPA_GOLONGAN = 'TANPA';
 
-/** Ringkasan tier/term/limit untuk pengguna tanpa izin mengaturnya. */
+/** Ringkasan golongan/term/limit untuk pengguna tanpa izin mengaturnya. */
 function ringkasKredit(p: Pelanggan | null): string {
-  if (!p) return 'Pelanggan baru memakai tier default, term bawaan toko, dan tanpa limit kredit.';
-  const tier = p.namaTingkatHarga ?? 'default toko';
+  if (!p) return 'Pelanggan baru: tanpa golongan, term bawaan toko, tanpa limit kredit.';
+  const golongan = p.namaGolongan ?? 'tanpa golongan';
   const limit = p.limitKredit === null ? 'tanpa limit' : `limit ${formatRupiah(p.limitKredit)}`;
-  return `Tier ${tier} · term ${p.termHari} hari · ${limit}.`;
+  return `${golongan} · term ${p.termHari} hari · ${limit}.`;
 }
 
 export function DialogPelanggan({
@@ -59,7 +59,7 @@ export function DialogPelanggan({
 }) {
   const saya = usePengguna();
   const bolehKredit = saya.izin.includes('master.pelanggan.atur_kredit');
-  const tier = useDaftarTingkatHarga();
+  const golongan = useDaftarGolongan();
   const simpan = useSimpanPelanggan();
 
   const form = useForm<InputPelanggan, unknown, DataPelanggan>({
@@ -70,24 +70,23 @@ export function DialogPelanggan({
       email: pelanggan?.email ?? '',
       alamat: pelanggan?.alamat ?? '',
       keterangan: pelanggan?.keterangan ?? '',
-      idTingkatHarga: pelanggan?.idTingkatHarga ?? null,
+      idGolongan: pelanggan?.idGolongan ?? null,
       // Kosong = term bawaan toko (konfigurasi), diisi API.
       termHari: pelanggan?.termHari ?? '',
       limitKredit: pelanggan?.limitKredit ?? null,
     },
   });
 
-  // Tier nonaktif tetap tampil bila sedang dipakai pelanggan ini.
-  const pilihanTier = (tier.data ?? []).filter(
-    (t) => t.statusAktif === 'AKTIF' || t.id === pelanggan?.idTingkatHarga,
+  // Golongan nonaktif tetap tampil bila sedang dipakai pelanggan ini.
+  const pilihanGolongan = (golongan.data ?? []).filter(
+    (g) => g.statusAktif === 'AKTIF' || g.id === pelanggan?.idGolongan,
   );
-  const tierDefault = tier.data?.find((t) => t.isDefault);
 
   async function kirim(data: DataPelanggan) {
     // Tanpa izin: kolom kredit tidak dikirim, sehingga API memakai bawaan / nilai lama (K-059).
     const json: DataPelanggan = bolehKredit
       ? data
-      : { ...data, idTingkatHarga: undefined, termHari: undefined, limitKredit: undefined };
+      : { ...data, idGolongan: undefined, termHari: undefined, limitKredit: undefined };
     try {
       const hasil = await simpan.mutateAsync({ id: pelanggan?.id, json });
       toast.success(
@@ -103,7 +102,7 @@ export function DialogPelanggan({
         'email',
         'alamat',
         'keterangan',
-        'idTingkatHarga',
+        'idGolongan',
         'termHari',
         'limitKredit',
       ]);
@@ -185,34 +184,35 @@ export function DialogPelanggan({
             {bolehKredit ? (
               <fieldset className="col-span-2 grid grid-cols-[1fr_7rem_1fr] gap-4 rounded-lg border p-3">
                 <legend className="px-1 text-xs font-medium text-slate-500">
-                  Harga &amp; kredit
+                  Golongan &amp; kredit
                 </legend>
                 <FormField
                   control={form.control}
-                  name="idTingkatHarga"
+                  name="idGolongan"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tier harga</FormLabel>
+                      <FormLabel>Golongan</FormLabel>
                       <Select
-                        value={field.value == null ? TIER_DEFAULT : String(field.value)}
-                        onValueChange={(v) => field.onChange(v === TIER_DEFAULT ? null : Number(v))}
+                        value={field.value == null ? TANPA_GOLONGAN : String(field.value)}
+                        onValueChange={(v) =>
+                          field.onChange(v === TANPA_GOLONGAN ? null : Number(v))
+                        }
                       >
                         <FormControl>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full" aria-label="Golongan pelanggan">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={TIER_DEFAULT}>
-                            Default ({tierDefault?.nama ?? 'toko'})
-                          </SelectItem>
-                          {pilihanTier.map((t) => (
-                            <SelectItem key={t.id} value={String(t.id)}>
-                              {t.nama}
+                          <SelectItem value={TANPA_GOLONGAN}>Tanpa golongan</SelectItem>
+                          {pilihanGolongan.map((g) => (
+                            <SelectItem key={g.id} value={String(g.id)}>
+                              {g.nama}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormDescription className="text-xs">Untuk sasaran promo.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
