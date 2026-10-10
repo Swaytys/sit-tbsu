@@ -1,4 +1,5 @@
 import Decimal from 'decimal.js';
+import { GalatAngka } from './angka';
 import { JENIS_DIMENSI_FISIK, type JenisDimensi } from './enums';
 
 /*
@@ -11,9 +12,9 @@ export const DESIMAL_QTY = 3;
 const QTY_MAKS = new Decimal('99999999999.999');
 
 function qtyValid(d: Decimal): Decimal {
-  if (!d.isFinite()) throw new RangeError('Kuantitas tidak valid');
+  if (!d.isFinite()) throw new GalatAngka('Kuantitas tidak valid');
   if (d.abs().greaterThan(QTY_MAKS))
-    throw new RangeError(`Kuantitas terlalu besar: ${d.toString()}`);
+    throw new GalatAngka(`Kuantitas terlalu besar: ${d.toString()}`);
   return d;
 }
 

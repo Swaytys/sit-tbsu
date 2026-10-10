@@ -1,5 +1,6 @@
 import './zod-id';
 
+export * from './angka';
 export * from './api';
 export * from './code128';
 export * from './enums';
