@@ -26,9 +26,9 @@ const kosongJadiUndefined = (v: unknown) => (v === '' ? undefined : v);
 const kosongJadiNull = (v: unknown) => (v === '' ? null : v);
 
 /**
- * Tier default, term hari, dan limit kredit hanya boleh diatur pemegang `master.pelanggan.atur_kredit`
- * (K-059). Kolom yang tidak dikirim (`undefined`) berarti: pelanggan baru memakai bawaan toko; ubah data
- * mempertahankan nilai lama.
+ * Term hari dan limit kredit hanya boleh diatur pemegang `master.pelanggan.atur_kredit` (K-059). Kolom yang
+ * tidak dikirim (`undefined`) berarti: pelanggan baru memakai bawaan toko; ubah data mempertahankan nilai lama.
+ * Golongan (K-097) dipakai sasaran promo, bukan harga jual.
  */
 export const skemaPelanggan = z.object({
   namaPelanggan: z
@@ -40,8 +40,8 @@ export const skemaPelanggan = z.object({
   email,
   alamat: teksOpsional(255, 'Alamat maksimal 255 karakter.'),
   keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
-  /** `null` = mengikuti tier default toko. */
-  idTingkatHarga: z.number().int().positive().nullable().optional(),
+  /** Golongan pelanggan untuk sasaran promo (K-097); `null` = tanpa golongan. */
+  idGolongan: z.number().int().positive().nullable().optional(),
   termHari: z.preprocess(
     kosongJadiUndefined,
     z.coerce
@@ -65,13 +65,34 @@ export type Pelanggan = {
   email: string | null;
   alamat: string | null;
   keterangan: string | null;
-  idTingkatHarga: number | null;
-  /** Nama tier default pelanggan; `null` bila mengikuti tier default toko. */
-  namaTingkatHarga: string | null;
+  idGolongan: number | null;
+  namaGolongan: string | null;
   termHari: number;
   limitKredit: number | null;
   statusAktif: StatusAktif;
   dibuatPada: string;
+};
+
+// --- Golongan pelanggan (K-097: sasaran promo) ---
+
+export const skemaGolonganPelanggan = z.object({
+  nama: z
+    .string('Nama golongan wajib diisi.')
+    .trim()
+    .min(1, 'Nama golongan wajib diisi.')
+    .max(60, 'Nama golongan maksimal 60 karakter.'),
+  keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
+});
+export type InputGolonganPelanggan = z.input<typeof skemaGolonganPelanggan>;
+export type DataGolonganPelanggan = z.output<typeof skemaGolonganPelanggan>;
+
+export type GolonganPelanggan = {
+  id: number;
+  nama: string;
+  keterangan: string | null;
+  statusAktif: StatusAktif;
+  /** Pelanggan aktif dalam golongan ini. */
+  jumlahPelanggan: number;
 };
 
 // --- Pemasok ---
@@ -110,7 +131,8 @@ export type TingkatHarga = {
   nama: string;
   /** Hanya untuk pemegang `master.barang.lihat_hpp` (markup membuka margin; docs/06 H12). */
   markupDefaultPersen?: string;
-  saranMinQty: string | null;
+  /** K-097: qty minimal (satuan dasar) agar tier dipakai otomatis; `null` = hanya pilihan manual. */
+  minQty: string | null;
   urutan: number;
   isDefault: boolean;
   statusAktif: StatusAktif;

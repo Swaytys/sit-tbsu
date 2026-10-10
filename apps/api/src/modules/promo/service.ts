@@ -37,8 +37,9 @@ export function statusBerlaku(
 }
 
 type Baris = NonNullable<Awaited<ReturnType<typeof repo.promoById>>>;
+type PelangganPromo = Promo['pelanggan'];
 
-function keRespons(b: Baris, hariIni: string): Promo {
+function keRespons(b: Baris, hariIni: string, pelanggan: PelangganPromo): Promo {
   return {
     id: b.id,
     kode: b.kode,
@@ -58,6 +59,12 @@ function keRespons(b: Baris, hariIni: string): Promo {
     minQty: b.minQty,
     minBelanja: b.minBelanja,
     keterangan: b.keterangan,
+    sasaranPembeli: b.sasaranPembeli,
+    idGolongan: b.idGolongan,
+    namaGolongan: b.namaGolongan,
+    pelanggan,
+    minBelanjaPelanggan: b.minBelanjaPelanggan,
+    hariBelanja: b.hariBelanja,
     statusAktif: b.statusAktif === 'NONAKTIF' ? 'NONAKTIF' : 'AKTIF',
     statusBerlaku: statusBerlaku(b, hariIni),
     jumlahPemakaian: b.jumlahPemakaian,
@@ -83,17 +90,32 @@ export async function daftarPromo(
 ): Promise<{ data: Promo[]; meta: MetaHalaman }> {
   const hariIni = tanggalOperasional();
   const { baris, total } = await repo.daftarPromo(db, { ...p, hariIni, ...batasHalaman(p) });
-  return { data: baris.map((b) => keRespons(b, hariIni)), meta: metaHalaman(total, p) };
+  const pelanggan = await pelangganPer(baris.map((b) => b.id));
+  return {
+    data: baris.map((b) => keRespons(b, hariIni, pelanggan.get(b.id) ?? [])),
+    meta: metaHalaman(total, p),
+  };
 }
 
 function tidakDitemukan(): AppError {
   return new AppError('TIDAK_DITEMUKAN', 'Promo tidak ditemukan.', 404);
 }
 
+/** Pelanggan berhak per promo (K-097). */
+async function pelangganPer(idPromo: number[]): Promise<Map<number, PelangganPromo>> {
+  const peta = new Map<number, PelangganPromo>();
+  for (const r of await repo.pelangganPromo(db, idPromo)) {
+    const daftar = peta.get(r.idPromo) ?? [];
+    daftar.push({ id: r.id, nama: r.nama });
+    peta.set(r.idPromo, daftar);
+  }
+  return peta;
+}
+
 export async function detailPromo(id: number): Promise<Promo> {
   const b = await repo.promoById(db, id);
   if (!b) throw tidakDitemukan();
-  return keRespons(b, tanggalOperasional());
+  return keRespons(b, tanggalOperasional(), (await pelangganPer([id])).get(id) ?? []);
 }
 
 function galatKolom(kolom: string, pesan: string, kode: 'VALIDASI' | 'KONFLIK' = 'VALIDASI') {
@@ -119,7 +141,37 @@ function nilaiDari(input: DataPromo): repo.NilaiPromo {
     minQty: input.minQty === null ? null : keQty(input.minQty),
     minBelanja: input.minBelanja,
     keterangan: input.keterangan ?? null,
+    sasaranPembeli: input.sasaranPembeli,
+    idGolongan: input.sasaranPembeli === 'GOLONGAN' ? input.idGolongan : null,
+    minBelanjaPelanggan: input.minBelanjaPelanggan,
+    hariBelanja: input.minBelanjaPelanggan === null ? null : input.hariBelanja,
   };
+}
+
+/** Pelanggan berhak (urut, tanpa ganda); kosong bila sasaran pembeli bukan PELANGGAN. */
+function pelangganDari(input: DataPromo): number[] {
+  return input.sasaranPembeli === 'PELANGGAN'
+    ? [...new Set(input.idPelanggan)].sort((a, b) => a - b)
+    : [];
+}
+
+/** K-097: golongan dan pelanggan sasaran harus ada dan aktif bila baru dipilih. */
+async function pastikanPembeli(
+  tx: Tx,
+  nilai: repo.NilaiPromo,
+  idPelanggan: number[],
+  lama?: { idGolongan: number | null; idPelanggan: number[] },
+) {
+  const s = await repo.statusPembeli(tx, { idGolongan: nilai.idGolongan ?? null, idPelanggan });
+  if (nilai.idGolongan != null && nilai.idGolongan !== lama?.idGolongan) {
+    if (s.golongan?.status !== 'AKTIF') {
+      throw galatKolom('idGolongan', 'Golongan pelanggan tidak ditemukan atau nonaktif.');
+    }
+  }
+  const baru = idPelanggan.filter((id) => !lama?.idPelanggan.includes(id));
+  if (baru.some((id) => !s.pelangganAktif.has(id))) {
+    throw galatKolom('idPelanggan', 'Ada pelanggan yang tidak ditemukan atau nonaktif.');
+  }
 }
 
 /** Kategori/barang sasaran harus ada dan aktif bila baru dipilih. */
@@ -162,17 +214,20 @@ export async function tambahPromo(
   if (nilai.tanggalSelesai < tanggalOperasional()) {
     throw galatKolom('tanggalSelesai', 'Tanggal selesai sudah lewat.');
   }
+  const idPelanggan = pelangganDari(input);
   const id = await dalamTransaksi(async (tx) => {
     await pastikanSasaran(tx, nilai);
+    await pastikanPembeli(tx, nilai, idPelanggan);
     const kode = await terbitkanKodeMaster(tx, 'PRM');
     const idBaru = await repo.tambahPromo(tx, { ...nilai, kode });
+    await repo.gantiPelangganPromo(tx, idBaru, idPelanggan);
     await catatLog(tx, {
       aksi: 'PROMO_BUAT',
       idPengguna: pelaku.id,
       entitas: 'promo',
       idEntitas: idBaru,
       ringkasan: `Menambah promo ${ringkasPromo(kode, nilai)}`,
-      dataBaru: { kode, ...nilai },
+      dataBaru: { kode, ...nilai, idPelanggan },
       ip: asal.ip,
     });
     return idBaru;
@@ -192,6 +247,11 @@ const KOLOM_ATURAN = [
   'idBarang',
   'minQty',
   'minBelanja',
+  'sasaranPembeli',
+  'idGolongan',
+  'idPelanggan',
+  'minBelanjaPelanggan',
+  'hariBelanja',
 ];
 
 export async function ubahPromo(
@@ -204,6 +264,10 @@ export async function ubahPromo(
     const lama = await repo.kunciPromo(tx, id);
     if (!lama) throw tidakDitemukan();
     const baru = nilaiDari(input);
+    const idPelanggan = pelangganDari(input);
+    const idPelangganLama = (await repo.pelangganPromo(tx, [id]))
+      .map((p) => p.id)
+      .sort((a, b) => a - b);
     const beda = selisih(
       {
         nama: lama.nama,
@@ -219,8 +283,13 @@ export async function ubahPromo(
         minQty: lama.minQty,
         minBelanja: lama.minBelanja,
         keterangan: lama.keterangan,
+        sasaranPembeli: lama.sasaranPembeli,
+        idGolongan: lama.idGolongan,
+        idPelanggan: idPelangganLama.join(','),
+        minBelanjaPelanggan: lama.minBelanjaPelanggan,
+        hariBelanja: lama.hariBelanja,
       },
-      baru,
+      { ...baru, idPelanggan: idPelanggan.join(',') },
     );
     if (beda.kolom.length === 0) return;
     const aturanBerubah = beda.kolom.filter((k) => KOLOM_ATURAN.includes(k));
@@ -234,7 +303,12 @@ export async function ubahPromo(
       );
     }
     await pastikanSasaran(tx, baru, lama);
+    await pastikanPembeli(tx, baru, idPelanggan, {
+      idGolongan: lama.idGolongan,
+      idPelanggan: idPelangganLama,
+    });
     await repo.ubahPromo(tx, id, baru, sekarang());
+    if (beda.kolom.includes('idPelanggan')) await repo.gantiPelangganPromo(tx, id, idPelanggan);
     await catatLog(tx, {
       aksi: 'PROMO_UBAH',
       idPengguna: pelaku.id,

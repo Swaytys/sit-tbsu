@@ -20,7 +20,13 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
   page,
 }) => {
   const nama = `Barang E2E ${Date.now()}`;
+  const penitip = `Penitip E2E ${Date.now()}`;
   await masukCepat(page, 'ADMIN');
+  const pemasok = await page.request.post('/api/pemasok', {
+    data: { namaPemasok: penitip, noHp: '081234567890' },
+    headers: { origin: new URL(page.url()).origin },
+  });
+  expect(pemasok.ok()).toBe(true);
   await menuUtama(page).getByRole('link', { name: 'Data Barang' }).click();
   await page.getByRole('link', { name: 'Tambah barang' }).click();
   await expect(page.getByRole('heading', { name: 'Tambah barang' })).toBeVisible();
@@ -118,7 +124,7 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
   await expect(page.getByLabel('Nama barang')).toHaveValue(nama);
   await expect(page.getByLabel('Nilai atribut 1')).toHaveValue('Abu-abu');
   await page.getByLabel('Pemasok penitip').click();
-  await page.getByRole('option').first().click();
+  await page.getByRole('option', { name: penitip }).click();
   await page.getByLabel('Harga titip').fill('40000');
   await page.getByRole('button', { name: 'Simpan barang' }).click();
   await expect(page.getByText(/ditambahkan \(BRG-\d{5}\)/)).toBeVisible();

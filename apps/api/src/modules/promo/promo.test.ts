@@ -7,6 +7,7 @@ import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import {
   barang,
+  golonganPelanggan,
   hargaBarang,
   kategori,
   logAktivitas,
@@ -41,12 +42,12 @@ const besok = tambahHari(hariIni, 1);
 beforeEach(async () => {
   await siapkanDatabaseSistem();
   m = await siapkanMasterPersediaan();
-  await kosongkanTabel(promo, pelanggan, shiftKasir, tingkatHarga);
+  await kosongkanTabel(promo, pelanggan, golonganPelanggan, shiftKasir, tingkatHarga);
   const t = await db
     .insert(tingkatHarga)
     .values([
       { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', urutan: 1, isDefault: true },
-      { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2, saranMinQty: '10' },
+      { kode: 'GROSIR', nama: 'Grosir', markupDefaultPersen: '20', urutan: 2, minQty: '10' },
     ])
     .returning();
   tier = { normal: t[0]!.id, grosir: t[1]!.id };
@@ -489,5 +490,107 @@ describe('H8 tier otomatis (K-094)', () => {
     });
     const p = await pratinjau(staf, [{ idBarang: m.semen, qty: '5' }], o.id);
     expect(p.baris[0]).toMatchObject({ idTingkatHarga: tier.normal, hargaSatuan: 12_000 });
+  });
+});
+
+describe('K-097 harga menurut qty, promo menurut pembeli', () => {
+  it('syarat qty tier bisa diganti per barang; tier default tidak boleh punya syarat qty', async () => {
+    // Semen: Grosir khusus barang ini mulai 5 (tier: mulai 10).
+    await db
+      .update(hargaBarang)
+      .set({ minQty: '5' })
+      .where(and(eq(hargaBarang.idBarang, m.semen), eq(hargaBarang.idTingkatHarga, tier.grosir)));
+    const p = await pratinjau(staf, [
+      { idBarang: m.semen, qty: '5' },
+      { idBarang: m.pasir, qty: '5' },
+    ]);
+    expect(p.baris[0]).toMatchObject({ idTingkatHarga: tier.grosir, hargaSatuan: 11_000 });
+    expect(p.baris[1]).toMatchObject({ idTingkatHarga: tier.normal });
+
+    const tolak = await kirim(
+      admin,
+      `/api/tingkat-harga/${tier.normal}`,
+      { kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', minQty: '3', urutan: 1 },
+      'PATCH',
+    );
+    expect(tolak.status).toBe(400);
+  });
+
+  it('harga grosir dan promo tidak digabung: dipakai yang paling murah bagi pembeli', async () => {
+    await buatPromo({ nama: 'Diskon 10%', potonganPersen: '10' });
+    // Qty 10: Normal 12.000 − 10% = 10.800 lebih murah dari Grosir 11.000 → promo.
+    let p = await pratinjau(staf, [{ idBarang: m.semen, qty: '10' }]);
+    expect(p.baris[0]).toMatchObject({
+      idTingkatHarga: tier.normal,
+      hargaSatuan: 12_000,
+      diskonPromo: 12_000,
+      subtotal: 108_000,
+    });
+    // Promo 5%: Normal 11.400 lebih mahal dari Grosir 11.000 → Grosir tanpa promo.
+    await db.update(promo).set({ potonganPersen: '5' });
+    p = await pratinjau(staf, [{ idBarang: m.semen, qty: '10' }]);
+    expect(p.baris[0]).toMatchObject({
+      idTingkatHarga: tier.grosir,
+      hargaSatuan: 11_000,
+      idPromo: null,
+      diskonPromo: 0,
+      subtotal: 110_000,
+    });
+  });
+
+  it('promo untuk golongan, pelanggan tertentu, dan syarat belanja N hari terakhir', async () => {
+    const [g] = await db.insert(golonganPelanggan).values({ nama: 'Kontraktor' }).returning();
+    const [kontraktor, langganan, lain] = await db
+      .insert(pelanggan)
+      .values([
+        { kode: 'PLG-80001', namaPelanggan: 'CV Bangun', noHp: '0811', idGolongan: g!.id },
+        { kode: 'PLG-80002', namaPelanggan: 'Pak Budi', noHp: '0812' },
+        { kode: 'PLG-80003', namaPelanggan: 'Bu Sari', noHp: '0813' },
+      ])
+      .returning();
+    await buatPromo({
+      nama: 'Kontraktor 10%',
+      potonganPersen: '10',
+      sasaranPembeli: 'GOLONGAN',
+      idGolongan: g!.id,
+    });
+    await buatPromo({
+      nama: 'Langganan 20%',
+      potonganPersen: '20',
+      sasaranPembeli: 'PELANGGAN',
+      idPelanggan: [langganan!.id],
+    });
+    const harga = async (idPelanggan: number | null) =>
+      (
+        await kirimData<PratinjauOrder>(staf, '/api/order/pratinjau', {
+          idOrder: null,
+          order: keranjang([{ idBarang: m.semen, qty: '1' }], { idPelanggan }),
+        })
+      ).baris[0]!;
+    expect((await harga(null)).idPromo).toBeNull();
+    expect((await harga(kontraktor!.id)).namaPromo).toBe('Kontraktor 10%');
+    expect((await harga(langganan!.id)).namaPromo).toBe('Langganan 20%');
+    expect((await harga(lain!.id)).idPromo).toBeNull();
+
+    // Belanja ≥ Rp 20.000 dalam 30 hari terakhir → 5%.
+    await buatPromo({
+      nama: 'Setia 5%',
+      potonganPersen: '5',
+      minBelanjaPelanggan: 20_000,
+      hariBelanja: 30,
+    });
+    expect((await harga(lain!.id)).idPromo).toBeNull();
+    await kirimData(kasir, '/api/shift/buka', { modalAwal: 0 });
+    await kirimData(kasir, '/api/penjualan/checkout', {
+      order: keranjang([{ idBarang: m.semen, qty: '2' }], { idPelanggan: lain!.id }),
+      pembayaran: [{ metode: 'TUNAI', uangDiterima: 30_000 }],
+    });
+    expect((await harga(lain!.id)).namaPromo).toBe('Setia 5%');
+    // Pembeli umum tidak pernah memenuhi syarat belanja pelanggan.
+    expect((await harga(null)).idPromo).toBeNull();
+
+    // Golongan/pelanggan wajib dipilih sesuai sasaran.
+    const kosong = await kirim(admin, '/api/promo', promoBaru({ sasaranPembeli: 'PELANGGAN' }));
+    expect(kosong.status).toBe(400);
   });
 });

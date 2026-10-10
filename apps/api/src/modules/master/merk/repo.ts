@@ -2,8 +2,9 @@ import { and, asc, eq, ne, sql } from 'drizzle-orm';
 import type { StatusAktif } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import { barang, merk } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 
-const jumlahBarang = sql<number>`(select count(*)::int from ${barang} where ${barang.idMerk} = ${merk.id})`;
+const jumlahBarang = sql<number>`(select count(*)::int from ${barang} where ${kolomPenuh(barang.idMerk)} = ${kolomPenuh(merk.id)})`;
 
 const kolom = {
   id: merk.id,

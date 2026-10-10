@@ -20,7 +20,7 @@ test('Staf menambah pelanggan tanpa mengatur tier; Admin mengatur tier, term, da
   await dialog.getByRole('button', { name: 'Simpan' }).click();
   await expect(dialog.getByText('No. HP wajib diisi.')).toBeVisible();
   await expect(dialog.getByText(/diatur Admin\/Owner/)).toBeVisible();
-  await expect(dialog.getByLabel('Tier harga')).toHaveCount(0);
+  await expect(dialog.getByLabel('Golongan pelanggan')).toHaveCount(0);
 
   await dialog.getByLabel('No. HP').fill('0812 3456 7890');
   await dialog.getByRole('button', { name: 'Simpan' }).click();
@@ -28,18 +28,25 @@ test('Staf menambah pelanggan tanpa mengatur tier; Admin mengatur tier, term, da
 
   await staf.getByLabel('Cari pelanggan').fill(nama);
   const barisStaf = staf.getByRole('row').filter({ hasText: nama });
-  await expect(barisStaf).toContainText('Default');
+  await expect(barisStaf).toBeVisible();
 
-  // 2. Admin mengatur tier Grosir, term 30 hari, limit Rp 5.000.000.
+  // 2. Admin membuat golongan (K-097), lalu mengatur golongan, term 30 hari, limit Rp 5.000.000.
+  const golongan = `Kontraktor ${Date.now()}`;
   const admin = await browser.newPage();
   await masukCepat(admin, 'ADMIN');
   await admin.goto('/pelanggan');
+  await admin.getByRole('button', { name: 'Golongan' }).click();
+  const dGolongan = admin.getByRole('dialog', { name: 'Golongan pelanggan' });
+  await dGolongan.getByPlaceholder('mis. Kontraktor').fill(golongan);
+  await dGolongan.getByRole('button', { name: 'Simpan' }).click();
+  await expect(dGolongan.getByRole('row').filter({ hasText: golongan })).toBeVisible();
+  await admin.keyboard.press('Escape');
   await admin.getByLabel('Cari pelanggan').fill(nama);
   await admin.getByRole('button', { name: `Aksi untuk ${nama}` }).click();
   await admin.getByRole('menuitem', { name: 'Ubah' }).click();
   dialog = admin.getByRole('dialog', { name: /Ubah pelanggan PLG-/ });
-  await dialog.getByLabel('Tier harga').click();
-  await admin.getByRole('option', { name: 'Grosir' }).click();
+  await dialog.getByLabel('Golongan pelanggan').click();
+  await admin.getByRole('option', { name: golongan }).click();
   await dialog.getByLabel('Term (hari)').fill('30');
   await dialog.getByLabel('Limit kredit').fill('5000000');
   await expect(dialog.getByLabel('Limit kredit')).toHaveValue('5.000.000');
@@ -47,7 +54,7 @@ test('Staf menambah pelanggan tanpa mengatur tier; Admin mengatur tier, term, da
   await expect(admin.getByText(`Data ${nama} disimpan.`)).toBeVisible();
 
   const barisAdmin = admin.getByRole('row').filter({ hasText: nama });
-  await expect(barisAdmin).toContainText('Grosir');
+  await expect(barisAdmin).toContainText(golongan);
   await expect(barisAdmin).toContainText('30 hari');
 
   // 3. Staf melihat ringkasan kredit yang diatur Admin, lalu menonaktifkan pelanggan uji.
@@ -55,7 +62,7 @@ test('Staf menambah pelanggan tanpa mengatur tier; Admin mengatur tier, term, da
   await staf.getByLabel('Cari pelanggan').fill(nama);
   await staf.getByRole('button', { name: `Aksi untuk ${nama}` }).click();
   await staf.getByRole('menuitem', { name: 'Ubah' }).click();
-  await expect(staf.getByText(/Tier Grosir · term 30 hari · limit Rp 5\.000\.000/)).toBeVisible();
+  await expect(staf.getByText(`${golongan} · term 30 hari · limit Rp 5.000.000.`)).toBeVisible();
   await staf.keyboard.press('Escape');
   await staf.getByRole('button', { name: `Aksi untuk ${nama}` }).click();
   await staf.getByRole('menuitem', { name: 'Nonaktifkan' }).click();

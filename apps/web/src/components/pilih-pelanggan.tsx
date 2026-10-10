@@ -126,9 +126,7 @@ export function PilihPelanggan({
                 <span className="font-mono text-xs text-slate-500">{p.kode}</span>{' '}
                 <span className="font-medium">{p.namaPelanggan}</span>
               </span>
-              <span className="shrink-0 text-xs text-slate-500">
-                {p.namaTingkatHarga ?? 'Tier default'}
-              </span>
+              <span className="shrink-0 text-xs text-slate-500">{p.namaGolongan ?? ''}</span>
             </li>
           ))}
         </ul>

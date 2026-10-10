@@ -25,12 +25,13 @@ import {
   persediaan,
   satuan,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 
 const penggunaKecuali = aliasedTable(pengguna, 'pengguna_kecuali');
 
 const jumlahBaris = sql<number>`(select count(*)::int from ${penyesuaianStokDetail}
-  where ${penyesuaianStokDetail.idPenyesuaian} = ${penyesuaianStok.id})`;
+  where ${kolomPenuh(penyesuaianStokDetail.idPenyesuaian)} = ${kolomPenuh(penyesuaianStok.id)})`;
 
 const kolom = {
   id: penyesuaianStok.id,

@@ -12,10 +12,11 @@ import {
   returPemasokDetail,
   satuan,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 
 const jumlahBaris = sql<number>`(select count(*)::int from ${returPemasokDetail}
-  where ${returPemasokDetail.idReturPemasok} = ${returPemasok.id})`;
+  where ${kolomPenuh(returPemasokDetail.idReturPemasok)} = ${kolomPenuh(returPemasok.id)})`;
 
 const kolom = {
   id: returPemasok.id,

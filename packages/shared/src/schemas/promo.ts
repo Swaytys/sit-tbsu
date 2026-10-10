@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import {
   JENIS_POTONGAN,
+  SASARAN_PEMBELI,
   SASARAN_PROMO,
   STATUS_AKTIF,
   STATUS_BERLAKU_PROMO,
   type JenisPotongan,
+  type SasaranPembeli,
   type SasaranPromo,
   type StatusAktif,
   type StatusBerlakuPromo,
@@ -59,6 +61,26 @@ export const skemaPromo = z
     /** PR2: syarat total belanja (total bruto transaksi). */
     minBelanja: rupiahPositif('Minimal belanja harus lebih dari 0.').default(null),
     keterangan: teksOpsional(255, 'Keterangan maksimal 255 karakter.'),
+    /** K-097: pembeli yang berhak: semua, satu golongan pelanggan, atau pelanggan tertentu. */
+    sasaranPembeli: z.enum(SASARAN_PEMBELI, 'Sasaran pembeli tidak valid.').default('SEMUA'),
+    idGolongan: z.number().int().positive().nullable().default(null),
+    idPelanggan: z
+      .array(z.number().int().positive())
+      .max(200, 'Maksimal 200 pelanggan per promo.')
+      .default([]),
+    /** K-097: belanja pelanggan (neto) dalam `hariBelanja` hari terakhir minimal sekian rupiah. */
+    minBelanjaPelanggan: rupiahPositif('Belanja minimal harus lebih dari 0.').default(null),
+    hariBelanja: z
+      .preprocess(
+        kosongJadiNull,
+        z.coerce
+          .number('Jumlah hari harus angka.')
+          .int('Jumlah hari harus bilangan bulat.')
+          .min(1, 'Jumlah hari minimal 1.')
+          .max(3650, 'Jumlah hari maksimal 3650.')
+          .nullable(),
+      )
+      .default(null),
   })
   .superRefine((d, ctx) => {
     const masalah = (path: string, message: string) =>
@@ -77,6 +99,18 @@ export const skemaPromo = z
     }
     if (d.sasaran === 'BARANG' && d.idBarang === null) {
       masalah('idBarang', 'Barang wajib dipilih.');
+    }
+    if (d.sasaranPembeli === 'GOLONGAN' && d.idGolongan === null) {
+      masalah('idGolongan', 'Golongan pelanggan wajib dipilih.');
+    }
+    if (d.sasaranPembeli === 'PELANGGAN' && d.idPelanggan.length === 0) {
+      masalah('idPelanggan', 'Pilih minimal satu pelanggan.');
+    }
+    if ((d.minBelanjaPelanggan === null) !== (d.hariBelanja === null)) {
+      masalah(
+        d.minBelanjaPelanggan === null ? 'minBelanjaPelanggan' : 'hariBelanja',
+        'Isi belanja minimal dan jumlah harinya, atau kosongkan keduanya.',
+      );
     }
   });
 export type InputPromo = z.input<typeof skemaPromo>;
@@ -108,6 +142,13 @@ export type Promo = {
   minQty: string | null;
   minBelanja: number | null;
   keterangan: string | null;
+  sasaranPembeli: SasaranPembeli;
+  idGolongan: number | null;
+  namaGolongan: string | null;
+  /** Pelanggan yang berhak (sasaran PELANGGAN). */
+  pelanggan: { id: number; nama: string }[];
+  minBelanjaPelanggan: number | null;
+  hariBelanja: number | null;
   statusAktif: StatusAktif;
   /** PR1, dihitung API dari tanggal operasional hari ini. */
   statusBerlaku: StatusBerlakuPromo;

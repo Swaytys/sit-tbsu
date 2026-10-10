@@ -71,6 +71,15 @@ const bentukHargaTier = z.object({
   idTingkatHarga: idWajib('Tier wajib dipilih.'),
   hargaTetap: skemaRupiah.nullable(),
   markupPersen: skemaPersen.nullable().optional(),
+  /** K-097: syarat qty tier ini khusus barang ini; kosong = ikut tier; tidak dikirim = tidak diubah. */
+  minQty: z
+    .preprocess(
+      (v) => (v === '' ? null : v),
+      skemaQtyTeks('Mulai qty')
+        .refine((v) => /[1-9]/.test(v), 'Mulai qty harus lebih dari 0.')
+        .nullable(),
+    )
+    .optional(),
 });
 
 function cekHargaTier(
@@ -181,6 +190,8 @@ export type HargaTierBarang = {
   markupPersen?: string | null;
   /** H12: (harga jual − D) ÷ harga jual dalam persen, 2 desimal; hanya untuk `master.barang.lihat_hpp`. */
   margin?: number | null;
+  /** K-097: syarat qty tier ini khusus barang ini; `null` = ikut syarat qty tier. */
+  minQty: string | null;
 };
 
 /** Satuan jual barang (K-091) beserta harga per tier yang berlaku (tetap, atau otomatis dari satuan dasar). */
@@ -363,9 +374,12 @@ export const skemaTingkatHargaInput = z.object({
     .min(1, 'Nama tier wajib diisi.')
     .max(50, 'Nama tier maksimal 50 karakter.'),
   markupDefaultPersen: skemaPersen,
-  saranMinQty: z.preprocess(
+  /** K-097: qty minimal agar tier dipakai otomatis; kosong = hanya pilihan manual. */
+  minQty: z.preprocess(
     (v) => (v === '' || v === undefined ? null : v),
-    skemaQtyTeks('Saran qty minimum').nullable(),
+    skemaQtyTeks('Mulai qty')
+      .refine((v) => /[1-9]/.test(v), 'Mulai qty harus lebih dari 0.')
+      .nullable(),
   ),
   urutan: z.coerce
     .number('Urutan harus berupa angka.')

@@ -7,6 +7,7 @@ import type {
   MetodePembayaran,
   PenyelesaianRetur,
   PenyelesaianReturPemasok,
+  SasaranPembeli,
   SasaranPromo,
   StatusBerlakuPromo,
   StatusItem,
@@ -106,6 +107,13 @@ export const LABEL_SASARAN_PROMO: Record<SasaranPromo, string> = {
   SEMUA: 'Semua barang',
   KATEGORI: 'Satu kategori',
   BARANG: 'Satu barang',
+};
+
+/** K-097: pembeli yang berhak atas promo. */
+export const LABEL_SASARAN_PEMBELI: Record<SasaranPembeli, string> = {
+  SEMUA: 'Semua pembeli',
+  GOLONGAN: 'Satu golongan pelanggan',
+  PELANGGAN: 'Pelanggan tertentu',
 };
 
 export const LABEL_STATUS_BERLAKU_PROMO: Record<StatusBerlakuPromo, string> = {

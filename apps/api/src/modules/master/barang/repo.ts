@@ -12,6 +12,7 @@ import {
   persediaan,
   satuan,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 
 const kolom = {
@@ -82,8 +83,8 @@ function syarat(p: SaringBarang): SQL | undefined {
           ilike(barang.barcode, pola),
           ilike(merk.nama, pola),
           // K-091: barcode satuan jual (pindai barcode dus/roll).
-          sql`exists (select 1 from ${barangSatuanJual} where ${barangSatuanJual.idBarang} = ${barang.id}
-            and ${barangSatuanJual.barcode} ilike ${pola})`,
+          sql`exists (select 1 from ${barangSatuanJual} where ${kolomPenuh(barangSatuanJual.idBarang)} = ${kolomPenuh(barang.id)}
+            and ${kolomPenuh(barangSatuanJual.barcode)} ilike ${pola})`,
         )
       : undefined,
   );

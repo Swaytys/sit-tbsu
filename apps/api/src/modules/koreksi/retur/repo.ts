@@ -25,12 +25,13 @@ import {
   returPenjualanDetail,
   satuan,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 import { kodeSatuanBaris, satuanBaris } from '../../penjualan/satuan-baris';
 
 const pengaju = aliasedTable(pengguna, 'pengaju');
 const namaPenyetuju = sql<string | null>`(select p.nama_pengguna from ${pengguna} p
-  where p.id = ${returPenjualan.idPenyetuju})`;
+  where p.id = ${kolomPenuh(returPenjualan.idPenyetuju)})`;
 
 const kolom = {
   id: returPenjualan.id,
@@ -141,7 +142,7 @@ export async function kunci(tx: Tx, id: number) {
 export function barisPenjualan(ex: Executor, idPenjualan: number | number[]) {
   const menunggu = sql<string>`coalesce((select sum(d.qty_retur_dasar) from ${returPenjualanDetail} d
     join ${returPenjualan} r on r.id = d.id_retur
-    where d.id_penjualan_detail = ${penjualanDetail.id} and r.status = 'MENUNGGU'), 0)::text`;
+    where d.id_penjualan_detail = ${kolomPenuh(penjualanDetail.id)} and r.status = 'MENUNGGU'), 0)::text`;
   return ex
     .select({
       id: penjualanDetail.id,

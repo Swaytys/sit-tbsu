@@ -182,6 +182,8 @@ function nilaiAwal(
         idTingkatHarga: t.id,
         hargaTetap: h?.metode === 'TETAP' ? h.hargaTetap : null,
         markupPersen: h?.metode === 'MARKUP' ? rapikanPersen(h.markupPersen) : null,
+        // K-097: syarat qty khusus barang ini; kosong = ikut tier.
+        minQty: h?.minQty ? formatDesimal(h.minQty).replaceAll('.', '') : '',
       };
     }),
     // K-094: barang baru berharga otomatis.
@@ -935,6 +937,34 @@ function FormBarang({
                         </div>
                       )}
                       {keterangan && <p className="text-xs text-slate-500">{keterangan}</p>}
+                      {!t.isDefault && (
+                        <FormField
+                          control={form.control}
+                          name={`hargaTier.${i}.minQty`}
+                          render={({ field }) => (
+                            <FormItem className="flex items-center gap-2 space-y-0">
+                              <FormLabel className="shrink-0 text-xs font-normal text-slate-600">
+                                Mulai qty
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  inputMode="decimal"
+                                  className="h-7 text-xs"
+                                  aria-label={`Mulai qty ${t.nama}`}
+                                  placeholder={
+                                    t.minQty
+                                      ? `${formatDesimal(t.minQty)} (ikut tier)`
+                                      : 'kosong = hanya manual'
+                                  }
+                                  {...field}
+                                  value={typeof field.value === 'string' ? field.value : ''}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                     </div>
                   );
                 })}
