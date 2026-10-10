@@ -219,6 +219,8 @@ Aturan persetujuan di tempat (K-099):
   `PERSETUJUAN_GAGAL` beserta sesi pengaju, sehingga dialog tidak bisa dipakai menebak password. Pemeriksaan
   dilakukan di luar transaksi dokumen agar hitungan gagal tidak ikut dibatalkan. Galat memakai HTTP 400/403,
   bukan 401, agar sesi pengaju tidak dianggap berakhir.
+- Batas laju: 20 percobaan per menit **per pengaju**, berhasil maupun gagal → `TERLALU_BANYAK_PERCOBAAN` (429)
+  tanpa memeriksa password (K-100). Pengajuan tanpa akun atasan tidak ikut dihitung.
 - Refund tunai keluar dari laci shift **pengguna yang login di perangkat itu** (pengaju pada `DI_TEMPAT` dan
   `BATAS_BEBAS`; penyetuju pada `AKUN_ATASAN`). Mutasi stok dan `id_penyetuju` atas nama yang menyetujui.
 - Tidak ada PIN terpisah dan tidak ada dropdown "diotorisasi oleh": yang berlaku hanya password akun atasan.
@@ -241,7 +243,7 @@ Aturan lain:
 | Hash | argon2id (memori 64 MB, iterasi 3, paralel 1) | kode |
 | Idle timeout | 60 menit tanpa request → sesi berakhir | `.env SESSION_IDLE_MENIT` |
 | Batas absolut sesi | 12 jam sejak login | `.env SESSION_ABSOLUT_JAM` |
-| Gagal login | 5 kali berturut → akun dikunci 15 menit; rate limit IP 20 percobaan/menit | `konfigurasi.login_maks_gagal`, `login_kunci_menit` |
+| Gagal login | 5 kali berturut → akun dikunci 15 menit; rate limit IP 20 percobaan/menit (persetujuan di tempat: 20/menit per pengaju, §6) | `konfigurasi.login_maks_gagal`, `login_kunci_menit` |
 | Nonaktifkan pengguna | Semua sesinya dicabut saat itu juga | kode |
 | Reset password | Owner mengisi password baru; pengguna wajib mengganti saat login berikutnya (`wajib_ganti_password`) | kode |
 | Owner terakhir | Tidak bisa dinonaktifkan atau diturunkan perannya bila ia satu-satunya Owner aktif | kode |
@@ -283,3 +285,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-07 — Menu Konsinyasi dan Laporan Konsinyasi (`laporan.hutang`) (K-089).
 - 2026-10-07 — Cetak label, Daftar Harga (`laporan.penjualan`), satuan jual (K-090, K-091).
 - 2026-10-10 — §6 persetujuan di tempat, batas tanpa persetujuan, batalkan pengajuan; izin `penjualan.tier.ubah` dihapus (tier selalu otomatis) (K-099).
+- 2026-10-10 — §6, §7: batas laju persetujuan di tempat 20/menit per pengaju (K-100).
