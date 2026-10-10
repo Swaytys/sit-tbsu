@@ -21,7 +21,7 @@ import type {
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useTunda } from '@/lib/use-tunda';
-import { ambilData, ambilIsi, api } from './client';
+import { ambilData, ambilIsi, api, paramId } from './client';
 
 /** Penjualan (Fase 5): order & antrean. */
 
@@ -75,15 +75,13 @@ function useMutasiOrder<TInput, THasil>(fn: (input: TInput) => Promise<THasil>) 
   });
 }
 
-const param = (id: number) => ({ id: String(id) });
-
 export function useSimpanOrder() {
   return useMutasiOrder(
     async ({ id, json, kirim }: { id?: number; json: DataOrder; kirim: boolean }) =>
       ambilData(
         id === undefined
           ? await api.order.$post({ query: { kirim: kirim ? 'true' : 'false' }, json })
-          : await api.order[':id'].$put({ param: param(id), json }),
+          : await api.order[':id'].$put({ param: paramId(id), json }),
       ),
   );
 }
@@ -114,25 +112,25 @@ export function usePratinjauOrder(input: InputPratinjauOrder | null) {
 
 export function useKirimOrder() {
   return useMutasiOrder(async (id: number) =>
-    ambilData(await api.order[':id'].kirim.$post({ param: param(id) })),
+    ambilData(await api.order[':id'].kirim.$post({ param: paramId(id) })),
   );
 }
 
 export function useProsesOrder() {
   return useMutasiOrder(async (id: number) =>
-    ambilData(await api.order[':id'].proses.$post({ param: param(id) })),
+    ambilData(await api.order[':id'].proses.$post({ param: paramId(id) })),
   );
 }
 
 export function useLepasOrder() {
   return useMutasiOrder(async (id: number) =>
-    ambilData(await api.order[':id'].lepas.$post({ param: param(id) })),
+    ambilData(await api.order[':id'].lepas.$post({ param: paramId(id) })),
   );
 }
 
 export function useBatalOrder() {
   return useMutasiOrder(async ({ id, alasan }: { id: number; alasan: string }) =>
-    ambilData(await api.order[':id'].batal.$post({ param: param(id), json: { alasan } })),
+    ambilData(await api.order[':id'].batal.$post({ param: paramId(id), json: { alasan } })),
   );
 }
 
@@ -186,19 +184,19 @@ export function useBayarPenjualan() {
   return useMutasiPenjualan(
     async ({ id, pembayaran }: { id: number; pembayaran: DataPembayaran }) =>
       ambilData(
-        await api.penjualan[':id'].pembayaran.$post({ param: param(id), json: { pembayaran } }),
+        await api.penjualan[':id'].pembayaran.$post({ param: paramId(id), json: { pembayaran } }),
       ),
   );
 }
 
 export function useTandaiDiambil() {
   return useMutasiPenjualan(async (id: number) =>
-    ambilData(await api.penjualan[':id'].diambil.$post({ param: param(id) })),
+    ambilData(await api.penjualan[':id'].diambil.$post({ param: paramId(id) })),
   );
 }
 
 export async function catatCetakUlang(id: number): Promise<void> {
-  await ambilData(await api.penjualan[':id']['cetak-ulang'].$post({ param: param(id) }));
+  await ambilData(await api.penjualan[':id']['cetak-ulang'].$post({ param: paramId(id) }));
 }
 
 export type ParamDaftarPenjualan = {
@@ -266,7 +264,7 @@ export function useDaftarSuratJalan(p: {
 
 export function useBuatSuratJalan() {
   return useMutasiPenjualan(async ({ id, json }: { id: number; json: DataSuratJalan }) =>
-    ambilData(await api.penjualan[':id']['surat-jalan'].$post({ param: param(id), json })),
+    ambilData(await api.penjualan[':id']['surat-jalan'].$post({ param: paramId(id), json })),
   );
 }
 
@@ -285,7 +283,7 @@ export function useStatusSuratJalan() {
     }) =>
       ambilData(
         await api['surat-jalan'][':id'].status.$post({
-          param: param(id),
+          param: paramId(id),
           json: { status, sopir, kendaraan },
         }),
       ),
@@ -294,7 +292,9 @@ export function useStatusSuratJalan() {
 
 export function useBatalSuratJalan() {
   return useMutasiPenjualan(async ({ id, alasan }: { id: number; alasan: string }) =>
-    ambilData(await api['surat-jalan'][':id'].batal.$post({ param: param(id), json: { alasan } })),
+    ambilData(
+      await api['surat-jalan'][':id'].batal.$post({ param: paramId(id), json: { alasan } }),
+    ),
   );
 }
 
@@ -405,7 +405,7 @@ export function useCatatKas() {
 
 export function useTutupShift() {
   return useMutasiShift(async ({ id, json }: { id: number; json: DataTutupShift }) =>
-    ambilData(await api.shift[':id'].tutup.$post({ param: param(id), json })),
+    ambilData(await api.shift[':id'].tutup.$post({ param: paramId(id), json })),
   );
 }
 
@@ -460,26 +460,26 @@ export function useAjukanVoid() {
 
 export function useSetujuiVoid() {
   return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujui }) =>
-    ambilData(await api.void[':id'].setujui.$post({ param: param(id), json })),
+    ambilData(await api.void[':id'].setujui.$post({ param: paramId(id), json })),
   );
 }
 
 /** K-099: atasan menyetujui pengajuan MENUNGGU di layar pengaju. */
 export function useSetujuiVoidDiTempat() {
   return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujuiDiTempat }) =>
-    ambilData(await api.void[':id']['setujui-di-tempat'].$post({ param: param(id), json })),
+    ambilData(await api.void[':id']['setujui-di-tempat'].$post({ param: paramId(id), json })),
   );
 }
 
 export function useBatalVoid() {
   return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
-    ambilData(await api.void[':id'].batal.$post({ param: param(id), json: { alasan } })),
+    ambilData(await api.void[':id'].batal.$post({ param: paramId(id), json: { alasan } })),
   );
 }
 
 export function useTolakVoid() {
   return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
-    ambilData(await api.void[':id'].tolak.$post({ param: param(id), json: { alasan } })),
+    ambilData(await api.void[':id'].tolak.$post({ param: paramId(id), json: { alasan } })),
   );
 }
 
@@ -518,25 +518,25 @@ export function useAjukanRetur() {
 
 export function useSetujuiRetur() {
   return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujui }) =>
-    ambilData(await api.retur[':id'].setujui.$post({ param: param(id), json })),
+    ambilData(await api.retur[':id'].setujui.$post({ param: paramId(id), json })),
   );
 }
 
 /** K-099: atasan menyetujui pengajuan MENUNGGU di layar pengaju. */
 export function useSetujuiReturDiTempat() {
   return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujuiDiTempat }) =>
-    ambilData(await api.retur[':id']['setujui-di-tempat'].$post({ param: param(id), json })),
+    ambilData(await api.retur[':id']['setujui-di-tempat'].$post({ param: paramId(id), json })),
   );
 }
 
 export function useBatalRetur() {
   return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
-    ambilData(await api.retur[':id'].batal.$post({ param: param(id), json: { alasan } })),
+    ambilData(await api.retur[':id'].batal.$post({ param: paramId(id), json: { alasan } })),
   );
 }
 
 export function useTolakRetur() {
   return useMutasiKoreksi(async ({ id, alasan }: { id: number; alasan: string }) =>
-    ambilData(await api.retur[':id'].tolak.$post({ param: param(id), json: { alasan } })),
+    ambilData(await api.retur[':id'].tolak.$post({ param: paramId(id), json: { alasan } })),
   );
 }

@@ -6,7 +6,7 @@ import type {
   StatusAktif,
 } from '@sit/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ambilData, api } from './client';
+import { ambilData, api, paramId } from './client';
 
 /** Data referensi master: kategori, satuan, jenis atribut (Fase 3). */
 
@@ -58,21 +58,22 @@ function useMutasi<TInput, THasil>(akar: string, fn: (input: TInput) => Promise<
 
 type Simpan<T> = { id?: number; json: T };
 type Status = { id: number; statusAktif: StatusAktif };
-const param = (id: number) => ({ id: String(id) });
 
 export function useSimpanKategori() {
   return useMutasi('kategori', async ({ id, json }: Simpan<DataKategori>) =>
     ambilData(
       id === undefined
         ? await api.kategori.$post({ json })
-        : await api.kategori[':id'].$patch({ param: param(id), json }),
+        : await api.kategori[':id'].$patch({ param: paramId(id), json }),
     ),
   );
 }
 
 export function useStatusKategori() {
   return useMutasi('kategori', async ({ id, statusAktif }: Status) =>
-    ambilData(await api.kategori[':id'].status.$patch({ param: param(id), json: { statusAktif } })),
+    ambilData(
+      await api.kategori[':id'].status.$patch({ param: paramId(id), json: { statusAktif } }),
+    ),
   );
 }
 
@@ -81,14 +82,14 @@ export function useSimpanMerk() {
     ambilData(
       id === undefined
         ? await api.merk.$post({ json })
-        : await api.merk[':id'].$patch({ param: param(id), json }),
+        : await api.merk[':id'].$patch({ param: paramId(id), json }),
     ),
   );
 }
 
 export function useStatusMerk() {
   return useMutasi('merk', async ({ id, statusAktif }: Status) =>
-    ambilData(await api.merk[':id'].status.$patch({ param: param(id), json: { statusAktif } })),
+    ambilData(await api.merk[':id'].status.$patch({ param: paramId(id), json: { statusAktif } })),
   );
 }
 
@@ -97,14 +98,14 @@ export function useSimpanSatuan() {
     ambilData(
       id === undefined
         ? await api.satuan.$post({ json })
-        : await api.satuan[':id'].$patch({ param: param(id), json }),
+        : await api.satuan[':id'].$patch({ param: paramId(id), json }),
     ),
   );
 }
 
 export function useStatusSatuan() {
   return useMutasi('satuan', async ({ id, statusAktif }: Status) =>
-    ambilData(await api.satuan[':id'].status.$patch({ param: param(id), json: { statusAktif } })),
+    ambilData(await api.satuan[':id'].status.$patch({ param: paramId(id), json: { statusAktif } })),
   );
 }
 
@@ -113,7 +114,7 @@ export function useSimpanJenisAtribut() {
     ambilData(
       id === undefined
         ? await api['jenis-atribut'].$post({ json })
-        : await api['jenis-atribut'][':id'].$patch({ param: param(id), json }),
+        : await api['jenis-atribut'][':id'].$patch({ param: paramId(id), json }),
     ),
   );
 }
@@ -121,7 +122,10 @@ export function useSimpanJenisAtribut() {
 export function useStatusJenisAtribut() {
   return useMutasi('jenis-atribut', async ({ id, statusAktif }: Status) =>
     ambilData(
-      await api['jenis-atribut'][':id'].status.$patch({ param: param(id), json: { statusAktif } }),
+      await api['jenis-atribut'][':id'].status.$patch({
+        param: paramId(id),
+        json: { statusAktif },
+      }),
     ),
   );
 }

@@ -1,4 +1,4 @@
-import { formatRupiah } from '@sit/shared';
+import { formatRupiah, LABEL_METODE_PEMBAYARAN_PEMASOK } from '@sit/shared';
 import { ArrowLeft, Printer, Wallet } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
@@ -14,8 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatTanggal, formatWaktu } from '@/lib/format';
 import { BadgeStatusHutang, DialogBayarHutang } from '../hutang/halaman-hutang';
 import { TabelSetoran } from './tabel-setoran';
-
-const LABEL_METODE = { TUNAI: 'Tunai', TRANSFER: 'Transfer', KOMPENSASI: 'Kompensasi retur' };
 
 function Info({ judul, children }: { judul: string; children: ReactNode }) {
   return (
@@ -118,7 +116,8 @@ export function HalamanDetailKonsinyasi() {
                 <div>
                   <div className="font-mono text-xs font-medium">{b.nomor}</div>
                   <div className="text-xs text-slate-500">
-                    {formatWaktu(b.tanggal)} · {b.namaPengguna} · {LABEL_METODE[b.metode]}
+                    {formatWaktu(b.tanggal)} · {b.namaPengguna} ·{' '}
+                    {LABEL_METODE_PEMBAYARAN_PEMASOK[b.metode]}
                     {b.rekening && ` · ${b.rekening}`}
                     {b.referensi && ` · ref ${b.referensi}`}
                   </div>

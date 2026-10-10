@@ -1,6 +1,6 @@
 import type { DataGolonganPelanggan, DataPelanggan, DataPemasok, StatusAktif } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ambilData, ambilIsi, api } from './client';
+import { ambilData, ambilIsi, api, paramId } from './client';
 
 /** Mitra: pelanggan, golongan pelanggan (K-097), dan pemasok (Fase 3), serta daftar tingkat harga. */
 
@@ -53,14 +53,13 @@ function useMutasi<TInput, THasil>(akar: string, fn: (input: TInput) => Promise<
 
 type Simpan<T> = { id?: number; json: T };
 type Status = { id: number; statusAktif: StatusAktif };
-const param = (id: number) => ({ id: String(id) });
 
 export function useSimpanPelanggan() {
   return useMutasi('pelanggan', async ({ id, json }: Simpan<DataPelanggan>) =>
     ambilData(
       id === undefined
         ? await api.pelanggan.$post({ json })
-        : await api.pelanggan[':id'].$patch({ param: param(id), json }),
+        : await api.pelanggan[':id'].$patch({ param: paramId(id), json }),
     ),
   );
 }
@@ -68,7 +67,7 @@ export function useSimpanPelanggan() {
 export function useStatusPelanggan() {
   return useMutasi('pelanggan', async ({ id, statusAktif }: Status) =>
     ambilData(
-      await api.pelanggan[':id'].status.$patch({ param: param(id), json: { statusAktif } }),
+      await api.pelanggan[':id'].status.$patch({ param: paramId(id), json: { statusAktif } }),
     ),
   );
 }
@@ -78,14 +77,16 @@ export function useSimpanPemasok() {
     ambilData(
       id === undefined
         ? await api.pemasok.$post({ json })
-        : await api.pemasok[':id'].$patch({ param: param(id), json }),
+        : await api.pemasok[':id'].$patch({ param: paramId(id), json }),
     ),
   );
 }
 
 export function useStatusPemasok() {
   return useMutasi('pemasok', async ({ id, statusAktif }: Status) =>
-    ambilData(await api.pemasok[':id'].status.$patch({ param: param(id), json: { statusAktif } })),
+    ambilData(
+      await api.pemasok[':id'].status.$patch({ param: paramId(id), json: { statusAktif } }),
+    ),
   );
 }
 
@@ -103,7 +104,7 @@ export function useSimpanGolongan() {
     ambilData(
       id === undefined
         ? await api['golongan-pelanggan'].$post({ json })
-        : await api['golongan-pelanggan'][':id'].$patch({ param: param(id), json }),
+        : await api['golongan-pelanggan'][':id'].$patch({ param: paramId(id), json }),
     ),
   );
 }
@@ -112,7 +113,7 @@ export function useStatusGolongan() {
   return useMutasi('golongan-pelanggan', async ({ id, statusAktif }: Status) =>
     ambilData(
       await api['golongan-pelanggan'][':id'].status.$patch({
-        param: param(id),
+        param: paramId(id),
         json: { statusAktif },
       }),
     ),

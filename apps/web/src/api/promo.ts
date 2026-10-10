@@ -1,6 +1,6 @@
 import type { DataPromo, StatusAktif, StatusBerlakuPromo } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ambilData, ambilIsi, api } from './client';
+import { ambilData, ambilIsi, api, paramId } from './client';
 
 /** Master promo (docs/06 §3, Fase 9). */
 
@@ -44,20 +44,18 @@ function useMutasiPromo<TInput, THasil>(fn: (input: TInput) => Promise<THasil>) 
   });
 }
 
-const param = (id: number) => ({ id: String(id) });
-
 export function useSimpanPromo() {
   return useMutasiPromo(async ({ id, json }: { id?: number; json: DataPromo }) =>
     ambilData(
       id === undefined
         ? await api.promo.$post({ json })
-        : await api.promo[':id'].$patch({ param: param(id), json }),
+        : await api.promo[':id'].$patch({ param: paramId(id), json }),
     ),
   );
 }
 
 export function useStatusPromo() {
   return useMutasiPromo(async ({ id, statusAktif }: { id: number; statusAktif: StatusAktif }) =>
-    ambilData(await api.promo[':id'].status.$patch({ param: param(id), json: { statusAktif } })),
+    ambilData(await api.promo[':id'].status.$patch({ param: paramId(id), json: { statusAktif } })),
   );
 }

@@ -6,6 +6,7 @@ import type {
   JenisPenyesuaian,
   KondisiRetur,
   MetodePembayaran,
+  MetodePembayaranPemasok,
   PenyelesaianRetur,
   PenyelesaianReturPemasok,
   SasaranPembeli,
@@ -66,6 +67,12 @@ export const LABEL_METODE_PEMBAYARAN: Record<MetodePembayaran, string> = {
   TUNAI: 'Tunai',
   TRANSFER: 'Transfer',
   EDC: 'EDC',
+};
+
+export const LABEL_METODE_PEMBAYARAN_PEMASOK: Record<MetodePembayaranPemasok, string> = {
+  TUNAI: 'Tunai',
+  TRANSFER: 'Transfer',
+  KOMPENSASI: 'Kompensasi retur',
 };
 
 export const LABEL_STATUS_TRANSAKSI: Record<StatusTransaksi, string> = {

@@ -1,7 +1,10 @@
-import { formatRupiah, type DetailPenjualan, type TampilanToko } from '@sit/shared';
+import {
+  formatRupiah,
+  LABEL_METODE_PEMBAYARAN,
+  type DetailPenjualan,
+  type TampilanToko,
+} from '@sit/shared';
 import { formatDesimal, formatTanggal, formatWaktu } from '@/lib/format';
-
-const LABEL_METODE = { TUNAI: 'Tunai', TRANSFER: 'Transfer', EDC: 'EDC' } as const;
 
 function Baris({ kiri, kanan, tebal }: { kiri: string; kanan: string; tebal?: boolean }) {
   return (
@@ -70,7 +73,7 @@ export function Struk({ p, toko }: { p: DetailPenjualan; toko: TampilanToko }) {
       {p.pembayaran.map((b) => (
         <Baris
           key={b.id}
-          kiri={LABEL_METODE[b.metode]}
+          kiri={LABEL_METODE_PEMBAYARAN[b.metode]}
           kanan={formatRupiah(b.uangDiterima ?? b.nominal)}
         />
       ))}

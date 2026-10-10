@@ -58,7 +58,7 @@ import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { rapikanPersen, teksMargin } from '../harga-jual/isian-harga';
-import { KartuSatuanJual } from './kartu-satuan-jual';
+import { KartuSatuanJual, KELIPATAN_PERKIRAAN } from './kartu-satuan-jual';
 
 type Referensi = {
   kategori: Kategori[];
@@ -129,8 +129,6 @@ export function HalamanFormBarang() {
 }
 
 const TANPA = 'TANPA';
-/** Pembulatan harga untuk perkiraan di layar; nilai final dihitung API dengan konfigurasi toko. */
-const KELIPATAN_PERKIRAAN = 100;
 
 /**
  * `?titipan=<idPemasok>`: barang baru langsung berkepemilikan titipan pemasok itu (dari halaman Konsinyasi).

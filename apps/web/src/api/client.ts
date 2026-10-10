@@ -5,6 +5,9 @@ import { hc } from 'hono/client';
 /** Klien API bertipe: rute dan bentuk data mengikuti backend (apps/api/src/app.ts). */
 export const api = hc<AppType>('/api');
 
+/** Parameter rute `/:id` untuk klien `hc` (nilai parameter rute selalu teks). */
+export const paramId = (id: number) => ({ id: String(id) });
+
 /** Kesalahan dari API; `message` berisi pesan dari server yang siap ditampilkan. */
 export class GalatApi extends Error {
   constructor(
