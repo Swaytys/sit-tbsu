@@ -8,6 +8,7 @@ import {
   HalamanWajibGantiPassword,
 } from '@/features/auth/halaman-ganti-password';
 import { HalamanLogin } from '@/features/auth/halaman-login';
+import { HalamanGalat } from '@/features/umum/halaman-galat';
 import { HalamanSegera } from '@/features/umum/halaman-segera';
 import { HalamanTidakDitemukan } from '@/features/umum/halaman-tidak-ditemukan';
 import { SEMUA_ITEM_MENU } from '@/lib/menu';
@@ -98,85 +99,124 @@ const muatFormBarang: MuatHalaman = () =>
 const muatFormOrder: MuatHalaman = () =>
   import('@/features/order/halaman-form-order').then((m) => m.HalamanFormOrder);
 
-/** Semua halaman. `handle.judul` tampil di topbar dan judul tab browser. */
+/**
+ * Semua halaman. `handle.judul` tampil di topbar dan judul tab browser. `errorElement` dipasang dua lapis:
+ * galat di satu halaman tampil di dalam kerangka (menu samping tetap bisa dipakai untuk pindah halaman),
+ * sedangkan galat di kerangka, login, atau penjaga rute tampil sebagai halaman penuh.
+ */
 export const router = createBrowserRouter([
-  { path: '/login', element: <HalamanLogin /> },
   {
-    path: '/ganti-password',
-    element: (
-      <WajibLogin bolehWajibGanti>
-        <HalamanWajibGantiPassword />
-      </WajibLogin>
-    ),
-  },
-  {
-    path: '/',
-    element: (
-      <WajibLogin>
-        <Layout />
-      </WajibLogin>
-    ),
+    errorElement: <HalamanGalat />,
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      ...ruteMenu,
-      ruteLazy('barang/import', 'Data Barang', 'master.import.jalankan', () =>
-        import('@/features/barang/halaman-import-barang').then((m) => m.HalamanImportBarang),
-      ),
-      ruteLazy('penerimaan/baru', 'Penerimaan Barang', 'persediaan.penerimaan.kelola', () =>
-        import('@/features/penerimaan/halaman-form-penerimaan').then(
-          (m) => m.HalamanFormPenerimaan,
-        ),
-      ),
-      ruteLazy('penerimaan/:id', 'Penerimaan Barang', 'persediaan.penerimaan.kelola', () =>
-        import('@/features/penerimaan/halaman-detail-penerimaan').then(
-          (m) => m.HalamanDetailPenerimaan,
-        ),
-      ),
-      ruteLazy('konsinyasi/baru', 'Konsinyasi', 'konsinyasi.kelola', () =>
-        import('@/features/konsinyasi/halaman-form-konsinyasi').then(
-          (m) => m.HalamanFormKonsinyasi,
-        ),
-      ),
-      ruteLazy('konsinyasi/:id', 'Konsinyasi', 'konsinyasi.kelola', () =>
-        import('@/features/konsinyasi/halaman-detail-konsinyasi').then(
-          (m) => m.HalamanDetailKonsinyasi,
-        ),
-      ),
-      ruteLazy('retur-pemasok/baru', 'Retur ke Pemasok', 'persediaan.retur_pemasok.kelola', () =>
-        import('@/features/retur-pemasok/halaman-form-retur-pemasok').then(
-          (m) => m.HalamanFormReturPemasok,
-        ),
-      ),
-      ruteLazy('retur-pemasok/:id', 'Retur ke Pemasok', 'persediaan.retur_pemasok.kelola', () =>
-        import('@/features/retur-pemasok/halaman-detail-retur-pemasok').then(
-          (m) => m.HalamanDetailReturPemasok,
-        ),
-      ),
-      ruteLazy(
-        'persediaan/penyesuaian/baru',
-        'Stok Persediaan',
-        'persediaan.penyesuaian.kelola',
-        () => import('@/features/persediaan/halaman-penyesuaian').then((m) => m.HalamanPenyesuaian),
-      ),
-      ruteLazy('persediaan/penyesuaian/:id', 'Stok Persediaan', 'persediaan.stok.lihat', () =>
-        import('@/features/persediaan/halaman-penyesuaian').then((m) => m.HalamanPenyesuaian),
-      ),
-      ruteLazy('penjualan/:id', 'Detail Penjualan', 'penjualan.riwayat.lihat', () =>
-        import('@/features/kasir/halaman-detail-penjualan').then((m) => m.HalamanDetailPenjualan),
-      ),
-      ruteLazy('order/baru', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
-      ruteLazy('order/:id/ubah', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
-      ruteLazy('barang/label', 'Data Barang', 'master.barang.kelola', () =>
-        import('@/features/barang/halaman-label').then((m) => m.HalamanLabel),
-      ),
-      ruteLazy('barang/baru', 'Data Barang', 'master.barang.kelola', muatFormBarang),
-      ruteLazy('barang/:id', 'Data Barang', 'master.barang.kelola', muatFormBarang),
+      { path: '/login', element: <HalamanLogin /> },
       {
-        path: 'akun/password',
-        element: <HalamanGantiPasswordAkun />,
-        handle: { judul: 'Ganti password' },
+        path: '/ganti-password',
+        element: (
+          <WajibLogin bolehWajibGanti>
+            <HalamanWajibGantiPassword />
+          </WajibLogin>
+        ),
       },
-      { path: '*', element: <HalamanTidakDitemukan />, handle: { judul: 'Tidak ditemukan' } },
+      {
+        path: '/',
+        element: (
+          <WajibLogin>
+            <Layout />
+          </WajibLogin>
+        ),
+        children: [
+          {
+            errorElement: <HalamanGalat />,
+            children: [
+              { index: true, element: <Navigate to="/dashboard" replace /> },
+              ...ruteMenu,
+              ruteLazy('barang/import', 'Data Barang', 'master.import.jalankan', () =>
+                import('@/features/barang/halaman-import-barang').then(
+                  (m) => m.HalamanImportBarang,
+                ),
+              ),
+              ruteLazy('penerimaan/baru', 'Penerimaan Barang', 'persediaan.penerimaan.kelola', () =>
+                import('@/features/penerimaan/halaman-form-penerimaan').then(
+                  (m) => m.HalamanFormPenerimaan,
+                ),
+              ),
+              ruteLazy('penerimaan/:id', 'Penerimaan Barang', 'persediaan.penerimaan.kelola', () =>
+                import('@/features/penerimaan/halaman-detail-penerimaan').then(
+                  (m) => m.HalamanDetailPenerimaan,
+                ),
+              ),
+              ruteLazy('konsinyasi/baru', 'Konsinyasi', 'konsinyasi.kelola', () =>
+                import('@/features/konsinyasi/halaman-form-konsinyasi').then(
+                  (m) => m.HalamanFormKonsinyasi,
+                ),
+              ),
+              ruteLazy('konsinyasi/:id', 'Konsinyasi', 'konsinyasi.kelola', () =>
+                import('@/features/konsinyasi/halaman-detail-konsinyasi').then(
+                  (m) => m.HalamanDetailKonsinyasi,
+                ),
+              ),
+              ruteLazy(
+                'retur-pemasok/baru',
+                'Retur ke Pemasok',
+                'persediaan.retur_pemasok.kelola',
+                () =>
+                  import('@/features/retur-pemasok/halaman-form-retur-pemasok').then(
+                    (m) => m.HalamanFormReturPemasok,
+                  ),
+              ),
+              ruteLazy(
+                'retur-pemasok/:id',
+                'Retur ke Pemasok',
+                'persediaan.retur_pemasok.kelola',
+                () =>
+                  import('@/features/retur-pemasok/halaman-detail-retur-pemasok').then(
+                    (m) => m.HalamanDetailReturPemasok,
+                  ),
+              ),
+              ruteLazy(
+                'persediaan/penyesuaian/baru',
+                'Stok Persediaan',
+                'persediaan.penyesuaian.kelola',
+                () =>
+                  import('@/features/persediaan/halaman-penyesuaian').then(
+                    (m) => m.HalamanPenyesuaian,
+                  ),
+              ),
+              ruteLazy(
+                'persediaan/penyesuaian/:id',
+                'Stok Persediaan',
+                'persediaan.stok.lihat',
+                () =>
+                  import('@/features/persediaan/halaman-penyesuaian').then(
+                    (m) => m.HalamanPenyesuaian,
+                  ),
+              ),
+              ruteLazy('penjualan/:id', 'Detail Penjualan', 'penjualan.riwayat.lihat', () =>
+                import('@/features/kasir/halaman-detail-penjualan').then(
+                  (m) => m.HalamanDetailPenjualan,
+                ),
+              ),
+              ruteLazy('order/baru', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
+              ruteLazy('order/:id/ubah', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
+              ruteLazy('barang/label', 'Data Barang', 'master.barang.kelola', () =>
+                import('@/features/barang/halaman-label').then((m) => m.HalamanLabel),
+              ),
+              ruteLazy('barang/baru', 'Data Barang', 'master.barang.kelola', muatFormBarang),
+              ruteLazy('barang/:id', 'Data Barang', 'master.barang.kelola', muatFormBarang),
+              {
+                path: 'akun/password',
+                element: <HalamanGantiPasswordAkun />,
+                handle: { judul: 'Ganti password' },
+              },
+              {
+                path: '*',
+                element: <HalamanTidakDitemukan />,
+                handle: { judul: 'Tidak ditemukan' },
+              },
+            ],
+          },
+        ],
+      },
     ],
   },
 ]);
