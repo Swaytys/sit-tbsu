@@ -94,6 +94,7 @@ Usulan dari Fase 7 (laporan):
 | F1 | **Halaman Pengaturan › Pintasan keyboard**: daftar semua tombol (layar kasir, pengantaran, input order cepat, umum) dan **bisa diganti** per aksi; deteksi bentrok antar-tombol; tombol "kembalikan bawaan". | Disimpan di konfigurasi toko (berlaku semua komputer) atau per pengguna; F1/F6/F7/F10–F12 tidak bisa dipakai (dicadangkan peramban, K-073). |
 | F2 | **Pintasan umum di semua halaman**: urungkan (Ctrl+Z), ulangi (Ctrl+Y / Ctrl+Shift+Z), simpan (Ctrl+S), cari (Ctrl+K), hapus ke "keranjang sampah"/pulihkan, pindah tab halaman, tutup dialog — juga bisa diganti di F1. | Urungkan/ulangi berlaku untuk perubahan yang belum disimpan; dokumen yang sudah tersimpan tetap dikoreksi lewat dokumen baru (CLAUDE.md aturan 3). |
 | F3 | **Panduan tombol yang bisa dibuka/ditutup** kapan saja (mis. tombol `?`) di Order Penjualan, layar kasir, dan pengantaran: ringkasan alur + daftar tombol; pilihan "jangan tampilkan lagi" per pengguna. | Bilah tombol bawah (K-073) tetap ada dan bisa disembunyikan. |
+| F7 | **(masukan pemilik 2026-10-10) Tombol "?" di setiap halaman** sebagai tutor: cara pakai halaman, arti istilah/lencana, dan langkah umum; isi bisa dicari. | Dasarnya sudah ada (komponen `Penjelasan`, K-099) di Harga Jual, Kelola tier, dan Promo; tinggal ditulis untuk halaman lain. Terkait F3 dan tutorial awal Fase 13.4. |
 | F4 | **Pengaturan › Printer**: aktif/nonaktif cetak struk otomatis per komputer kasir, pilih printer struk & printer A4, jumlah salinan, uji cetak. | Peramban tidak bisa memilih printer sendiri; butuh agen cetak lokal kecil (atau ESC/POS lewat Web Serial) — dinilai saat Sprint F. Sampai itu: `scripts/kasir/buka-kasir.cmd` (K-074). |
 | F5 | Laci uang terbuka otomatis saat struk tunai dicetak (perintah ESC/POS lewat printer struk). | Bergantung F4. |
 | F6 | **(masukan pemilik 2026-10-09) Tata letak POS bisa diatur pengguna**: daftar barang, papan antrean, panel bayar, dan hasil cari bisa diperlebar/dipersempit dengan menarik pembatas; ukuran diingat per komputer; tombol "kembalikan tata letak". | Preferensi tampilan (boleh `localStorage`). Cetak senyap & pilihan "tanya dulu/tidak cetak" sudah ada sejak K-095. |
@@ -131,3 +132,4 @@ Usulan dari Fase 7 (laporan):
 - 2026-10-04 — Sprint D: usulan laporan D-L1–D-L4 dari Fase 7.
 - 2026-10-09 — Sprint F: F6 tata letak POS yang bisa diatur (masukan pemilik).
 - 2026-10-10 — Sprint A: A11 promo v2 (masukan pemilik, K-098).
+- 2026-10-10 — Sprint F: F7 tombol "?" di setiap halaman (masukan pemilik, K-099).

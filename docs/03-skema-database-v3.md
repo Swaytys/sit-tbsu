@@ -175,8 +175,8 @@ dikecualikan); baris lembar opname tidak dihapus (K-069).
 terisi) | BATAL (`alasan_batal`). PENGANTARAN wajib pelanggan dan alamat (CHECK). Detail menyimpan tier, harga,
 diskon, dan `qty_dasar` yang ditahan. Detail boleh diubah selama DRAFT/MENUNGGU (service menyesuaikan
 `stok_dipesan`). v3.5: detail juga menyimpan promo baris (`id_promo`, `diskon_promo`) dan `promo_nonaktif` (promo
-dilepas kasir); promo dievaluasi ulang saat checkout (K-087). v3.8: `tier_dipilih` (bawaan false = tier otomatis
-dari pelanggan/qty; true = dipilih kasir, K-094).
+dilepas kasir); promo dievaluasi ulang saat checkout (K-087). v3.8 `tier_dipilih` dihapus di v3.11
+(tier selalu otomatis, K-099).
 
 **`penjualan`** [APPEND] + **`penjualan_detail`** [APPEND] — satu tabel untuk LANGSUNG (nomor `STR`,
 `status_pengambilan` wajib) dan PENGANTARAN (nomor `INV`, `status_pengiriman` wajib, pelanggan dan alamat wajib) —
@@ -199,7 +199,9 @@ Service menolak `nominal > sisa_tagihan`.
 
 ### 3.5 Retur, void
 
-**`retur_penjualan`** + **`retur_penjualan_detail`** [APPEND] — `status` MENUNGGU/DISETUJUI/DITOLAK, `id_pengaju`,
+**`retur_penjualan`** + **`retur_penjualan_detail`** [APPEND] — `status` MENUNGGU/DISETUJUI/DITOLAK/DIBATALKAN
+(v3.11), `cara_persetujuan` SENDIRI/AKUN_ATASAN/DI_TEMPAT/BATAS_BEBAS (v3.11; terisi tepat saat DISETUJUI, CHECK;
+sama untuk `void_transaksi`), `id_pengaju`,
 `id_penyetuju`, `waktu_persetujuan`. `penyelesaian` REFUND (wajib `metode_refund`; tunai memakai `id_shift`),
 TUKAR_BARANG (detail: `id_barang_pengganti` + `qty_pengganti_dasar`, keduanya terisi atau kosong), POTONG_TAGIHAN.
 Detail: `harga_satuan_efektif` = subtotal baris ÷ qty saat retur; `nominal_retur`; `kondisi` BAIK/RUSAK/CACAT.
@@ -346,6 +348,7 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | checkout_wajib_shift | true | pembayaran TUNAI wajib shift terbuka |
 | rekening_transfer_default | (kosong) | rekening bawaan saat kasir memilih transfer (K-073) |
 | rekening_edc_default | (kosong) | mesin EDC bawaan saat kasir memilih EDC (K-073) |
+| batas_retur_tanpa_persetujuan / batas_void_tanpa_persetujuan | 0 / 0 | nilai retur/void per penjualan yang boleh diproses Kasir tanpa atasan, Rp; 0 = selalu butuh persetujuan (K-099) |
 
 **`satuan`** awal: m (basis PANJANG), cm 0.01, mm 0.001, dm 0.1; m² (basis LUAS); m³ (basis VOLUME), L 0.001;
 kg (basis BERAT), g 0.001; W (basis DAYA); JUMLAH: buah, sak, batang, roll, dus, lembar, kaleng, pail, pasang,
@@ -354,8 +357,8 @@ set, kotak (masing-masing basis, faktor 1).
 **`jenis_atribut`** awal: PANJANG, LEBAR, TINGGI, TEBAL, DIAMETER (PANJANG); LUAS (LUAS); VOLUME (VOLUME);
 BERAT (BERAT); DAYA (DAYA); WARNA, BENTUK, TEKSTUR, FUNGSI, UKURAN_TEKS (TEKS).
 
-**`tingkat_harga`**: NORMAL (default, markup 25), GROSIR (markup 20), DISTRIBUTOR (markup 15); `min_belanja` kosong sampai diisi
-pemilik di Harga Jual › Kelola tier.
+**`tingkat_harga`**: NORMAL (default, markup 25), GROSIR (markup 20), DISTRIBUTOR (markup 15); tier selain NORMAL dibuat NONAKTIF dengan
+contoh `min_belanja` (Rp 1.000.000 dan Rp 5.000.000) sampai pemilik memeriksa lalu mengaktifkannya (K-099).
 Angka markup contoh; Admin mengubahnya.
 
 **`kategori`** awal: Semen, Agregat, Bata & Blok, Besi & Baja, Cat & Pelapis, Keramik, Pipa & Sanitasi, Atap, Kayu,
@@ -435,3 +438,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-10 — v3.9: `golongan_pelanggan`, `pelanggan.id_golongan`, `tingkat_harga.min_qty`, `harga_barang.min_qty`, kolom sasaran pembeli di `promo`, `promo_pelanggan` (migrasi 0009); `pelanggan.id_tingkat_harga` dan `tingkat_harga.saran_min_qty` dihapus (migrasi 0010; K-097).
 - 2026-10-09 — v3.8: `barang.harga_otomatis` bawaan true (barang lama dinyalakan), `order_penjualan_detail.tier_dipilih` (migrasi 0008; K-094).
 - 2026-10-10 — v3.10: `tingkat_harga.min_belanja` + CHECK (migrasi 0011, sekaligus menjadikan baris harga tier selain tier default IKUT_TIER dan menghitung ulang harganya); `tingkat_harga.min_qty` dan `harga_barang.min_qty` dihapus (migrasi 0012; K-098).
+- 2026-10-10 — v3.11: `retur_penjualan.cara_persetujuan`, `void_transaksi.cara_persetujuan` + CHECK; status DIBATALKAN; `order_penjualan_detail.tier_dipilih` dihapus; CHECK `chk_tingkat_harga_aktif_bersyarat` (tier aktif tanpa syarat belanja dinonaktifkan migrasi) (migrasi 0013; K-099).
