@@ -101,21 +101,27 @@ tidak dihapus (dinonaktifkan). Baris order/penjualan menyimpan `id_satuan_jual` 
 lain = harga dihitung saat dibaca dari harga satuan dasar × faktor (kolom `harga_jual`-nya tidak dipakai).
 
 **`tingkat_harga`** — master tier. Tepat satu `is_default` (index parsial). `markup_default_persen` dipakai barang
-bermetode IKUT_TIER; `saran_min_qty` untuk saran tier di UI (M2).
+bermetode IKUT_TIER; `min_qty` (v3.9) = qty minimal agar tier dipakai otomatis (kosong = hanya manual; tier
+default selalu kosong).
 
 **`harga_barang`** — harga jual berlaku per (barang, tier, satuan jual|null). `metode`: `IKUT_TIER` (markup default
 tier), `MARKUP` (markup sendiri), `TETAP` (harga tetap). `harga_jual` selalu terisi (K-010: harga disimpan).
 `dasar_markup_saat_hitung` menyimpan nilai dasar saat `harga_jual` dihitung, sehingga Tinjau Harga bisa menunjukkan
 "dasar berubah dari X ke Y". Service membuat satu baris untuk setiap tier aktif saat barang dibuat (Fase 3: tier
-Normal wajib diisi TETAP; tier lain kosong → IKUT_TIER dihitung dari `harga_modal_awal`).
+Normal wajib diisi TETAP; tier lain kosong → IKUT_TIER dihitung dari `harga_modal_awal`). v3.9: `min_qty` = syarat
+qty tier khusus barang ini (hanya baris satuan dasar; kosong = ikut `tingkat_harga.min_qty`).
 
-**`pelanggan`** — + `id_tingkat_harga` (tier default), `term_hari` (jatuh tempo piutang), `limit_kredit` (nullable;
-ditegakkan M2). `kode` = `PLG-00001`.
+**`pelanggan`** — + `term_hari` (jatuh tempo piutang), `limit_kredit` (nullable; ditegakkan M2), `id_golongan`
+(v3.9, sasaran promo; menggantikan `id_tingkat_harga` yang dihapus). `kode` = `PLG-00001`.
+
+**`golongan_pelanggan`** [v3.9] — master golongan (nama unik, status aktif) untuk sasaran promo (K-097).
 
 **`pemasok`** — sama dengan FINAL2 + `kode` = `PMS-00001`.
 
 **`promo`** [M2] — satu baris satu promo; `sasaran` SEMUA/KATEGORI/BARANG dengan CHECK konsistensi; tepat satu jenis
-potongan.
+potongan. v3.9: `sasaran_pembeli` SEMUA/GOLONGAN/PELANGGAN (+ `id_golongan`, CHECK), `min_belanja_pelanggan` dan
+`hari_belanja` (keduanya terisi atau keduanya kosong). **`promo_pelanggan`** (id_promo, id_pelanggan) = pelanggan
+yang berhak untuk sasaran PELANGGAN.
 
 ### 3.3 Persediaan
 
@@ -423,4 +429,5 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-07 — v3.6: `retur_penjualan_detail.id_penyelesaian_konsinyasi` (FK, indeks `idx_retur_detail_ksg`); unique `uq_ksg_detail` menjadi (`id_penyelesaian`, `id_barang`, `harga_titip`) (migrasi 0006; K-089). Urutan kolom promo `order_penjualan_detail` di skema Drizzle disamakan dengan migrasi 0005 (verifikasi skema identik).
 - 2026-10-07 — Fase 12: pemakaian `barang_satuan_jual` dan baris harga satuan jual dirinci (tanpa perubahan struktur; K-091).
 - 2026-10-08 — v3.7: `penyesuaian_stok_detail.id_penyelesaian_konsinyasi`, `penyelesaian_konsinyasi_detail.qty_ganti_rugi` (migrasi 0007; K-092).
+- 2026-10-10 — v3.9: `golongan_pelanggan`, `pelanggan.id_golongan`, `tingkat_harga.min_qty`, `harga_barang.min_qty`, kolom sasaran pembeli di `promo`, `promo_pelanggan` (migrasi 0009); `pelanggan.id_tingkat_harga` dan `tingkat_harga.saran_min_qty` dihapus (migrasi 0010; K-097).
 - 2026-10-09 — v3.8: `barang.harga_otomatis` bawaan true (barang lama dinyalakan), `order_penjualan_detail.tier_dipilih` (migrasi 0008; K-094).

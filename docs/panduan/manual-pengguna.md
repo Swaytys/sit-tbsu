@@ -28,9 +28,9 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
 4. **F8** kirim ke antrean. Order mendapat **nomor antrean** dan langsung muncul di layar kasir. Serahkan barang
    ke kasir sambil menyebut isi order (mis. "semen 3 sak, nomor 12").
 5. Stok yang tampil adalah stok **tersedia** (sudah dikurangi order lain yang belum dibayar).
-6. **Harga dan promo otomatis**: harga mengikuti tier pelanggan, dan berubah ke harga grosir sendiri bila qty
-   memenuhi syarat (mis. Grosir mulai 10 sak). Potongan promo tampil hijau di bawah barang ("Promo … −Rp …") dan
-   total sudah memakai potongan. Anda tidak perlu memilih harga apa pun.
+6. **Harga dan promo otomatis**: harga mengikuti jumlah beli (harga grosir sendiri bila qty memenuhi syarat, mis.
+   Grosir mulai 10 sak). Promo untuk pembeli tertentu terpakai sendiri bila pelanggannya dipilih (**F4**).
+   Potongan promo tampil hijau di bawah barang ("Promo … −Rp …"). Anda tidak perlu memilih harga apa pun.
 
 ## Kasir
 
@@ -46,9 +46,10 @@ Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
 - **Promo** tampil di bawah barang dan total sudah dipotong. Di daftar barang, **P** melepas promo baris itu (mis.
   pembeli menolak) dan **P** lagi memasangnya kembali; pelepasan tercatat di log. Promo yang tampil saat order
   dihitung ulang saat bayar (promo yang sudah berakhir tidak berlaku lagi).
-- **Harga otomatis**: tier pelanggan dipakai otomatis; bila qty memenuhi syarat tier yang lebih murah (mis.
-  Grosir mulai 10 sak), harga grosir langsung dipakai ("· Grosir otomatis"). Yang berizin bisa menekan **T** untuk
-  memilih tier tertentu (urutan: otomatis → setiap tier).
+- **Harga otomatis**: harga menurut jumlah beli; bila qty memenuhi syarat tier yang lebih murah (mis. Grosir mulai
+  10 sak), harga grosir langsung dipakai ("· Grosir otomatis"). Harga grosir dan promo tidak digabung: dipakai yang
+  lebih murah bagi pembeli. Yang berizin bisa menekan **T** untuk memilih tier tertentu (urutan: otomatis →
+  setiap tier).
 - Barang berkemasan (dus, roll, …): hasil cari menampilkan setiap kemasan sebagai pilihan sendiri, mis.
   "Semen · sak" dan "Semen · dus isi 10 sak" — pilih dengan panah lalu **Enter**. Memindai barcode dus langsung
   memakai dus; **S** di daftar barang mengganti satuan baris. Qty kemasan harus bulat; setengah dus dijual
@@ -104,17 +105,22 @@ Semua tugas kasir, ditambah:
   bawaan barang baru), **%** (markup sendiri), atau **Rp** (harga tetap yang Anda ketik). Kolom margin = (harga −
   dasar modal) ÷ harga. Sakelar **otomatis** di bawah nama barang: nyala (bawaan) = harga markup ikut naik sendiri
   saat harga beli naik; matikan bila harga barang itu ingin selalu ditinjau dulu.
-- **Tier harga** (*Harga Jual › Kelola tier*): Normal untuk pembeli umum; tier lain (mis. Grosir, Distributor)
-  dipakai otomatis untuk pelanggan yang diberi tier itu (*Data Pelanggan*), dan untuk siapa saja bila qty
-  mencapai *syarat qty* tier itu. Kasir tidak perlu memilih harga.
+- **Tier harga** (*Harga Jual › Kelola tier*): harga hanya ditentukan jumlah beli. Normal untuk semua pembeli;
+  tier lain (mis. Grosir, Distributor) dipakai otomatis untuk siapa saja bila qty mencapai **Mulai qty** tier itu
+  (kosong = hanya bila dipilih manual). Syaratnya bisa diubah khusus satu barang di form barang (mis. paku Grosir
+  mulai 5 kg). Kasir tidak perlu memilih harga.
 - **Tinjau Harga** (tab di *Harga Jual*): daftar barang yang harga modalnya berubah. **Terapkan** = harga diganti
   usulan (harga Normal ikut diganti hanya bila sakelar "Ganti juga harga Normal" menyala); **Abaikan** = harga
   tidak diubah. Barang dengan **Harga otomatis** (bawaan semua barang) naik sendiri saat harga modal naik; bila
   harga modal turun atau harga Normal Rp tetap jadi di bawah target, barang itu masuk Tinjau Harga.
 - **Promo** (*Promo*): buat potongan persen atau rupiah per satuan untuk semua barang, satu kategori, atau satu
-  barang, dengan masa berlaku dan syarat (minimal qty per baris, minimal total belanja). Satu promo per baris
-  (potongan terbesar). Promo yang sudah terpakai tidak bisa diubah aturannya; nonaktifkan lalu buat promo baru.
-- **Pelanggan & pemasok** (*Data Pelanggan*, *Data Pemasok*): tier harga, term pembayaran, limit.
+  barang, dengan masa berlaku dan syarat (minimal qty per baris, minimal total belanja). **Untuk pembeli**: semua
+  pembeli, satu golongan pelanggan, atau pelanggan tertentu; bisa juga disyaratkan "pelanggan sudah belanja
+  minimal Rp … dalam … hari terakhir". Promo dihitung dari harga Normal dan tidak digabung dengan harga grosir.
+  Satu promo per baris (potongan terbesar). Promo yang sudah terpakai tidak bisa diubah aturannya; nonaktifkan
+  lalu buat promo baru.
+- **Pelanggan & pemasok** (*Data Pelanggan*, *Data Pemasok*): golongan (untuk sasaran promo; kelola lewat tombol
+  **Golongan**), term pembayaran, limit.
 - **Penerimaan barang** (*Persediaan › Penerimaan Barang*): catat barang datang dari pemasok (pembelian tunai/
   tempo atau titipan). Stok dan HPP rata-rata diperbarui otomatis.
 - **Stok** (*Persediaan › Stok Persediaan*): posisi stok, mutasi, kartu stok per barang, stok tertahan, dan
