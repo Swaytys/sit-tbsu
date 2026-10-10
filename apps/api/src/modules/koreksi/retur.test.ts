@@ -9,7 +9,7 @@ import type {
 } from '@sit/shared';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
+import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
 import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
@@ -22,7 +22,6 @@ import {
   returPenjualan,
   returPenjualanDetail,
   shiftKasir,
-  tingkatHarga,
   voidTransaksi,
   voidTransaksiDetail,
 } from '../../db/schema';
@@ -78,26 +77,21 @@ beforeEach(async () => {
     clericalCheck,
     shiftKasir,
     pelanggan,
-    tingkatHarga,
   );
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
-  // Tier sendiri agar tes tidak bergantung pada sisa data tes lain.
-  const [t] = await db
-    .insert(tingkatHarga)
-    .values({ kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', isDefault: true })
-    .returning();
+  const idTier = await siapkanTierNormal();
   await db.insert(hargaBarang).values([
     {
       idBarang: m.semen,
-      idTingkatHarga: t!.id,
+      idTingkatHarga: idTier,
       metode: 'TETAP',
       hargaTetap: 10000,
       hargaJual: 10000,
     },
     {
       idBarang: m.pasir,
-      idTingkatHarga: t!.id,
+      idTingkatHarga: idTier,
       metode: 'TETAP',
       hargaTetap: 3000,
       hargaJual: 3000,

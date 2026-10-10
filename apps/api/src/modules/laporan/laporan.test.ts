@@ -7,7 +7,7 @@ import type {
 import { and, eq, sql } from 'drizzle-orm';
 import ExcelJS from 'exceljs';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
+import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
 import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
@@ -22,7 +22,6 @@ import {
   returPenjualan,
   returPenjualanDetail,
   shiftKasir,
-  tingkatHarga,
   voidTransaksi,
   voidTransaksiDetail,
 } from '../../db/schema';
@@ -102,10 +101,10 @@ beforeAll(async () => {
   hariIni = tanggalOperasional();
   kemarin = tambahHari(hariIni, -1);
 
-  const [t] = await db.select().from(tingkatHarga).where(eq(tingkatHarga.kode, 'NORMAL'));
+  const idTier = await siapkanTierNormal();
   const harga = (idBarang: number, h: number) => ({
     idBarang,
-    idTingkatHarga: t!.id,
+    idTingkatHarga: idTier,
     metode: 'TETAP' as const,
     hargaTetap: h,
     hargaJual: h,

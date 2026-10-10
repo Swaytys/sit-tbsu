@@ -189,8 +189,32 @@ export class AppError extends Error {
 | `KONFLIK` | 409 | Unik terlanggar, data diubah orang lain |
 | `LIMIT_TERLAMPAUI` | 409 | Limit kredit / batas diskon |
 | `WAJIB_GANTI_PASSWORD` | 403 | Pengguna harus mengganti password sebelum memakai fitur lain (K-054) |
-| `TERLALU_BANYAK_PERCOBAAN` | 429 | Rate limit login per IP (K-054) |
+| `TERLALU_BANYAK_PERCOBAAN` | 429 | Rate limit login per IP (K-054) dan persetujuan di tempat per pengaju (K-100) |
 | `INTERNAL` | 500 | Tak terduga; pesan generik ke klien, detail ke log |
+
+Pembuat galat yang dipakai semua modul (K-100), supaya bentuk `detail.kolom` yang dibaca form selalu sama:
+`galatKolom(kolom, pesan, kode = 'VALIDASI')` untuk satu kolom isian dan `galatBaris(i, kolom, pesan)` untuk
+baris ke-`i` dokumen berbaris (pesan diawali "Baris n:", kolom `baris.<i>.<kolom>`). Modul tidak membuat
+versi lokalnya.
+
+Galat yang bukan `AppError` dipetakan `middleware/error-handler.ts` (K-100):
+
+| Sumber | HTTP | Kode | Arti |
+|---|---|---|---|
+| PostgreSQL `23505` | 409 | `KONFLIK` | Dua simpan bersamaan dengan kode yang sama |
+| PostgreSQL `40P01`, `40001`, `55P03` | 409 | `KONFLIK` | Kebuntuan atau menunggu kunci baris terlalu lama; aman diulang |
+| PostgreSQL `57014` | 503 | `INTERNAL` | Pernyataan melewati batas waktu |
+| PostgreSQL `53100`, `53200`, `53300` | 503 | `INTERNAL` | Komputer server kehabisan ruang penyimpanan, memori, atau koneksi database |
+| PostgreSQL `57P01`–`57P03`, `08000`/`08003`/`08006`; Node `ECONNREFUSED`, `ECONNRESET` | 503 | `INTERNAL` | Database sedang dimatikan/dinyalakan atau koneksinya putus |
+| PostgreSQL `23514`, `23503`, `22003`, `22001` | 400 | `VALIDASI` | Aturan database menolak data; dicatat `error` (celah validasi service) |
+| `GalatAngka` (`packages/shared`) | 400 | `VALIDASI` | Hasil hitung melampaui batas rupiah/qty |
+| lainnya | 500 | `INTERNAL` | Tak terduga |
+
+Batas waktu koneksi (`db/client.ts`, K-100): pernyataan 60 detik, menunggu kunci baris 15 detik, transaksi
+menganggur 60 detik, menunggu koneksi dari pool 10 detik. Migrasi dan cadangan memakai koneksi sendiri.
+
+Pola rute yang dipakai bersama (K-100): `paramId` (`lib/validasi.ts`) untuk parameter `/:id`;
+`batasUnggahGambar` / `batasUnggahXlsx` dan `berkasKiriman(c, jenis)` (`lib/unggah.ts`) untuk unggahan.
 
 ## 5. Frontend
 
@@ -215,6 +239,10 @@ export class AppError extends Error {
   (`lib/siaran.ts`) mengirim tanda "berubah" setelah transaksi order/checkout di-commit, lalu layar memuat ulang
   datanya sendiri (tanpa data bisnis di kanal siaran).
 - Pengaturan tampilan (sidebar terbuka, lebar struk terakhir) boleh di `localStorage`; data bisnis tidak.
+- Galat tampilan (K-100): `HalamanGalat` (`features/umum/halaman-galat.tsx`) dipasang sebagai `errorElement`
+  dua lapis di `routes.tsx`: galat di satu halaman tampil di dalam kerangka, galat di kerangka/login tampil
+  penuh. Berkas halaman yang gagal diunduh setelah server diperbarui memicu muat ulang otomatis.
+- Pembantu bersama web (K-100): `paramId` (`api/client.ts`), `qtySah` / `qtyDariIsian` (`lib/qty.ts`).
 
 ## 6. Paket `shared`
 
@@ -245,7 +273,8 @@ dengan aturan pembulatan di docs/06. Tidak ada `parseFloat` pada uang.
 4. Gagal login berulang → penguncian sementara (docs/04). Semua login sukses/gagal masuk log aktivitas.
 5. Rute dijaga `requirePermission('kode.izin')` atau, untuk data milik sendiri (logout, profil, ganti password),
    `requireLogin()`. Server menolak menyala bila ada rute tanpa salah satunya yang tidak terdaftar publik (K-054).
-   `terakhir_aktif` diperbarui paling sering sekali per menit. `SESSION_SECRET` belum dipakai.
+   `terakhir_aktif` diperbarui paling sering sekali per menit. Tidak ada rahasia penanda tangan sesi: token
+   acak hanya disimpan sebagai hash (K-054), sehingga `SESSION_SECRET` dihapus dari `.env` (K-100).
 
 Cookie `SameSite=Lax` + middleware `csrf()` Hono (memeriksa header `Origin`) melindungi dari CSRF. Frontend dan
 API berada di origin yang sama (dev: proxy Vite `/api` → `:3000`; produksi: Hono menyajikan `apps/web/dist`).
@@ -260,8 +289,9 @@ API berada di origin yang sama (dev: proxy Vite `/api` → `:3000`; produksi: Ho
   `pnpm db:migrate`.
 - Migrasi yang sudah di-commit tidak pernah diedit. Kesalahan diperbaiki dengan migrasi baru.
 - Seed (`pnpm db:seed`) idempoten: konfigurasi default, satuan, jenis atribut, tier harga (Normal/Grosir/Distributor),
-  kategori awal, satu akun Owner (`owner` / password dari `.env` `SEED_OWNER_PASSWORD`). Data contoh barang
-  hanya bila `SEED_CONTOH=true` (mulai Fase 3). Baris yang kodenya sudah ada tidak ditimpa.
+  kategori awal, satu akun Owner (`owner` / password dari `.env` `SEED_OWNER_PASSWORD`), dan akun demo per peran
+  hanya saat `NODE_ENV=development`. Tidak ada data contoh barang (`SEED_CONTOH` dihapus, K-100). Baris yang
+  kodenya sudah ada tidak ditimpa.
 - `pnpm db:reset --ya` (hanya dev): kosongkan database `*_dev`, migrasi ulang, seed. Tanpa `--ya` perintah menolak.
 
 ## 10. Testing
@@ -284,14 +314,16 @@ NODE_ENV=development
 PORT=3000
 DATABASE_URL=postgres://sit:sit@localhost:5432/tbsu_dev
 DATABASE_URL_TEST=postgres://sit:sit@localhost:5432/tbsu_test
-SESSION_SECRET=<acak 32+ karakter>
 SESSION_IDLE_MENIT=60
 SESSION_ABSOLUT_JAM=12
 SEED_OWNER_PASSWORD=<ganti>
-SEED_CONTOH=false
 LOG_LEVEL=info
 TZ=UTC
 ```
+
+Variabel produksi (`PORT_HTTP_ALIH`, `LOG_FILE`, `HTTPS_PFX`, `ORIGIN_TAMBAHAN`, `WEB_DIST`) dan cadangan
+(`CADANGAN_*`) tercantum berkomentar di `.env.example`; daftar lengkap beserta validasinya ada di
+`apps/api/src/env.ts`. Variabel yang tidak dikenal diabaikan.
 
 Konfigurasi bisnis (nama toko, prefix nomor, ambang restock, batas umur order, pembulatan, batas diskon per peran)
 tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari halaman Pengaturan).
@@ -313,6 +345,8 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 
 ## Riwayat
 
+- 2026-10-10 — §4: pembuat galat bersama, pemetaan galat database, batas waktu koneksi, pola rute bersama;
+  §5: halaman galat dan pembantu bersama web; §8, §9, §11: `SESSION_SECRET` dan `SEED_CONTOH` dihapus (K-100).
 - 2026-10-04 — §12: deploy diputuskan (komputer toko + Tailscale, HTTPS CA lokal), cadangan restic, log
   berkas (K-082, K-084); header keamanan & batas body (K-083).
 - 2026-09-19 — v1.

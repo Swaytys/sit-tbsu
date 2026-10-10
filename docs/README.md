@@ -72,14 +72,14 @@ Jangan pakai mode auto-accept.
 |---|---|---|
 | CLAUDE.md | Final v1 | 2026-09-19 |
 | 01-ikhtisar-sistem.md | Final v1 (§5.1 alur cepat order → kasir, K-073; laporan Fase 9) | 2026-10-04 |
-| 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073; dokumen laporan, K-078; deploy & cadangan, K-082–K-084) | 2026-10-04 |
+| 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073; dokumen laporan, K-078; deploy & cadangan, K-082–K-084; model galat & pola bersama, K-100) | 2026-10-10 |
 | 03-skema-database-v3 (.md + .sql) | Final v3.11 (.sql = v3.1 migrasi 0000; v3.2–v3.11 lewat migrasi 0001–0013) | 2026-10-10 |
-| 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086; menu Fase 10, K-088) | 2026-10-07 |
+| 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086; menu Fase 10, K-088; persetujuan di tempat, K-099; batas laju, K-100) | 2026-10-10 |
 | 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH; §14 tukar retur netral, K-079; L6 → H5/H7, K-086; A5 MUSNAH, K-088; V1 setoran, K-089) | 2026-10-07 |
 | 06-harga-piutang-hutang.md | Final v1 (H4–H8, H12, D1–D2, PR3–PR7, HT7 dirinci, K-086–K-087; PT5–PT6, HT2–HT3, RP5, SR4, K-088; KS5–KS6, K-089) | 2026-10-07 |
 | 07-roadmap.md | Final v1 (Fase 8 siap uji coba toko; Fase 9–12 selesai, menunggu tinjauan) | 2026-10-07 |
-| 09-keamanan.md | Hidup (checklist OWASP dasar, K-083) | 2026-10-04 |
-| 08-backlog.md | Hidup (v2.0.0, v3.0.0) | 2026-10-04 |
+| 09-keamanan.md | Hidup (checklist OWASP dasar, K-083; review kedua, K-100) | 2026-10-10 |
+| 08-backlog.md | Hidup (v2.0.0, v3.0.0; temuan tinjauan kode D-K1–D-K9) | 2026-10-10 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
 | keputusan/2026-09-19-keputusan-tambahan.md | Final (K-044–K-049) | 2026-09-19 |
 | keputusan/2026-09-29-setup-fase-1.md | Final (K-050–K-053) | 2026-09-29 |
@@ -91,6 +91,17 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-10-04-laporan.md | Final (K-078–K-081) | 2026-10-04 |
 | keputusan/2026-10-04-deploy-cadangan.md | Final (K-082–K-085) | 2026-10-04 |
 | keputusan/2026-10-04-harga-promo.md | Final (K-086–K-087) | 2026-10-05 |
+| keputusan/2026-10-07-hutang-retur-pemasok.md | Final (K-088) | 2026-10-07 |
+| keputusan/2026-10-07-konsinyasi.md | Final (K-089) | 2026-10-07 |
+| keputusan/2026-10-07-label-katalog.md | Final (K-090) | 2026-10-07 |
+| keputusan/2026-10-07-satuan-jual.md | Final (K-091) | 2026-10-07 |
+| keputusan/2026-10-08-tinjauan-pemilik.md | Final (K-092–K-093) | 2026-10-08 |
+| keputusan/2026-10-09-harga-satuan-cetak.md | Final (K-094) | 2026-10-09 |
+| keputusan/2026-10-09-draf-cetak-kemasan.md | Final (K-095–K-096) | 2026-10-09 |
+| keputusan/2026-10-10-harga-qty-promo-pembeli.md | Final (K-097) | 2026-10-10 |
+| keputusan/2026-10-10-tier-nilai-belanja.md | Final (K-098) | 2026-10-10 |
+| keputusan/2026-10-10-persetujuan-ditempat-tier-otomatis.md | Final (K-099) | 2026-10-10 |
+| keputusan/2026-10-10-tinjauan-kode.md | Final (K-100) | 2026-10-10 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |
 | panduan/fase-8-pasang-server.md | Final v1 (server toko Windows, Tailscale, cadangan, pemulihan) | 2026-10-04 |
 | panduan/fase-8-uji-coba.md | Final v1 (persiapan, skenario, daftar temuan) | 2026-10-04 |

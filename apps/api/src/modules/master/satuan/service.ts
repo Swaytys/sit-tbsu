@@ -6,7 +6,7 @@ import {
   type StatusAktif,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { selisih } from '../../../lib/perubahan';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -29,10 +29,6 @@ function tidakDitemukan(): AppError {
   return new AppError('TIDAK_DITEMUKAN', 'Satuan tidak ditemukan.', 404);
 }
 
-function galatKolom(kolom: string, pesan: string, kode: 'KONFLIK' | 'VALIDASI' = 'KONFLIK') {
-  return new AppError(kode, pesan, kode === 'KONFLIK' ? 409 : 400, { kolom: { [kolom]: [pesan] } });
-}
-
 /** Satuan hitung/lainnya selalu basis berfaktor 1. */
 function normalisasi(input: DataSatuan): DataSatuan {
   return DIMENSI_FISIK.includes(input.jenisDimensi)
@@ -42,7 +38,7 @@ function normalisasi(input: DataSatuan): DataSatuan {
 
 async function periksaAturan(tx: Tx, data: DataSatuan, kecualiId?: number): Promise<void> {
   if (await repo.kodeDipakai(tx, data.kode, kecualiId)) {
-    throw galatKolom('kode', `Kode satuan "${data.kode}" sudah dipakai.`);
+    throw galatKolom('kode', `Kode satuan "${data.kode}" sudah dipakai.`, 'KONFLIK');
   }
   if (!DIMENSI_FISIK.includes(data.jenisDimensi)) return;
 
@@ -51,12 +47,14 @@ async function periksaAturan(tx: Tx, data: DataSatuan, kecualiId?: number): Prom
     throw galatKolom(
       'isBasis',
       `Dimensi ${data.jenisDimensi.toLowerCase()} sudah punya satuan basis (${basis.kode}).`,
+      'KONFLIK',
     );
   }
   if (!data.isBasis && !basis) {
     throw galatKolom(
       'isBasis',
       `Dimensi ${data.jenisDimensi.toLowerCase()} belum punya satuan basis; buat satuan basis lebih dulu.`,
+      'KONFLIK',
     );
   }
 }

@@ -1,19 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { masukCepat } from './pembantu';
+import { api, masukCepat } from './pembantu';
 
 // Alur POS K-073 yang dijalankan HANYA dengan keyboard (tanpa klik) untuk Staf & Kasir. Menambah barang,
 // pelanggan, order, dan penjualan uji di database pengembangan (barang/pelanggan dinonaktifkan di akhir).
 // Shift "Demo Kasir" dibuka bila belum.
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data: data ?? (method === 'GET' ? undefined : {}),
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as { data: T }).data;
-}
 
 async function barangUji(page: Page, nama: string, harga: number, stok = '20') {
   const kategori = await api<{ id: number }[]>(page, '/kategori?status=AKTIF');

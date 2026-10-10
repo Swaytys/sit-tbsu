@@ -7,13 +7,13 @@ import {
   formatRupiah,
   skemaOrder,
   subtotalRupiah,
-  POLA_QTY,
   type BarisBarang,
   type DataOrder,
   type DetailOrder,
   type InputOrder,
   type OpsiSatuanBaris,
   type InputPratinjauOrder,
+  persenKeRupiah,
 } from '@sit/shared';
 import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -61,8 +61,9 @@ import {
 } from '@/components/ui/table';
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
+import { qtyDariIsian, qtySah } from '@/lib/qty';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
-import { opsiDariBarang, qtySah, rapikanQty, satuanAwal } from '../pos/model';
+import { opsiDariBarang, rapikanQty, satuanAwal } from '../pos/model';
 
 /** Info tampilan per barang di form (bukan bagian data yang dikirim). */
 type InfoBarang = {
@@ -74,11 +75,6 @@ type InfoBarang = {
   /** Pilihan satuan baris dengan harga per tier (K-091). */
   opsiSatuan: OpsiSatuanBaris[];
 };
-
-function teksQty(v: unknown): string | null {
-  const t = typeof v === 'string' ? v.trim().replace(',', '.') : '';
-  return POLA_QTY.test(t) ? t : null;
-}
 
 /** Order penjualan: buat (`/order/baru`) atau ubah (`/order/:id/ubah`). */
 export function HalamanFormOrder() {
@@ -94,6 +90,20 @@ export function HalamanFormOrder() {
     );
   }
   return <FormOrder key={detail.data?.id ?? 'baru'} dokumen={detail.data ?? null} />;
+}
+
+/**
+ * Perkiraan potongan dari isian persen (koma boleh); isian yang belum sah dihitung nol. Pembulatannya sama
+ * dengan API (U4), nilai final tetap dari API.
+ */
+function potonganPersen(dasar: number, persen: unknown): number {
+  const teks =
+    typeof persen === 'number'
+      ? String(persen)
+      : typeof persen === 'string'
+        ? persen.trim().replace(',', '.')
+        : '';
+  return /^\d{1,3}(\.\d{1,2})?$/.test(teks) ? persenKeRupiah(dasar, teks) : 0;
 }
 
 /** Qty ±1 dari isian teks (koma boleh); isian tidak sah dianggap 0, hasil di bawah 1 tidak diterapkan. */
@@ -216,7 +226,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
   }
 
   function subtotalBaris(i: number): number {
-    const q = teksQty(isi?.[i]?.qty);
+    const q = qtyDariIsian(isi?.[i]?.qty);
     const h = hargaBaris(i);
     if (!q || h === null) return 0;
     const diskon = typeof isi?.[i]?.diskonBaris === 'number' ? isi[i].diskonBaris : 0;
@@ -225,14 +235,15 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
 
   const subtotal = (isi ?? []).reduce((t, _, i) => t + subtotalBaris(i), 0);
   const diskonT = persenTransaksi
-    ? Math.round((subtotal * Number(diskonPersen ?? 0)) / 100)
+    ? potonganPersen(subtotal, diskonPersen)
     : typeof diskonTransaksi === 'number'
       ? diskonTransaksi
       : 0;
   const totalPerkiraan = subtotal - diskonT + (typeof ongkir === 'number' ? ongkir : 0);
 
   // PR5: harga, promo, diskon, saran tier, dan total dari API setiap isi berubah (bila qty sudah sah).
-  const semuaQtySah = (isi ?? []).length > 0 && (isi ?? []).every((b) => teksQty(b.qty) !== null);
+  const semuaQtySah =
+    (isi ?? []).length > 0 && (isi ?? []).every((b) => qtyDariIsian(b.qty) !== null);
   const isianPratinjau: InputPratinjauOrder | null = semuaQtySah
     ? {
         idOrder: dokumen?.id ?? null,
@@ -249,7 +260,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
           baris: (isi ?? []).map((b) => ({
             idBarang: b.idBarang,
             idSatuanJual: b.idSatuanJual ?? null,
-            qty: teksQty(b.qty) ?? '0',
+            qty: qtyDariIsian(b.qty) ?? '0',
             hargaManual: b.hargaManual === true,
             hargaSatuan: b.hargaManual && typeof b.hargaSatuan === 'number' ? b.hargaSatuan : null,
             diskonBaris: typeof b.diskonBaris === 'number' ? b.diskonBaris : 0,

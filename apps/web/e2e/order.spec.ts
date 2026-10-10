@@ -1,18 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
-import { masukCepat, menuUtama } from './pembantu';
+import { api, masukCepat, menuUtama } from './pembantu';
 
 // Tes ini menambah satu barang uji berstok (lalu menonaktifkannya) dan beberapa order di database pengembangan.
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    // POST tanpa isi dikirim sebagai JSON kosong (lihat stok.spec.ts).
-    data: data ?? (method === 'GET' ? undefined : {}),
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as { data: T }).data;
-}
 
 async function siapkanBarang(page: Page, nama: string) {
   const kategori = await api<{ id: number }[]>(page, '/kategori?status=AKTIF');

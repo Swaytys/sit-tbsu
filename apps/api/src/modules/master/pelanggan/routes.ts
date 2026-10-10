@@ -1,13 +1,12 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaCariMitra, skemaIdParam, skemaPelanggan, skemaUbahStatus } from '@sit/shared';
+import { skemaCariMitra, skemaPelanggan, skemaUbahStatus } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { daftarPelanggan, tambahPelanggan, ubahPelanggan, ubahStatusPelanggan } from './service';
 
 const kelola = requirePermission('master.pelanggan.kelola');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 
 /**
  * Pelanggan: dilihat dan dikelola semua peran (docs/04 §3). Tier default, term, dan limit kredit hanya
@@ -24,7 +23,7 @@ export const pelangganRoutes = new Hono<EnvApp>()
     const data = await tambahPelanggan(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 201);
   })
-  .patch('/:id', kelola, param, zValidator('json', skemaPelanggan, kaitValidasi), async (c) => {
+  .patch('/:id', kelola, paramId, zValidator('json', skemaPelanggan, kaitValidasi), async (c) => {
     const { id } = c.req.valid('param');
     const data = await ubahPelanggan(id, c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 200);
@@ -32,7 +31,7 @@ export const pelangganRoutes = new Hono<EnvApp>()
   .patch(
     '/:id/status',
     kelola,
-    param,
+    paramId,
     zValidator('json', skemaUbahStatus, kaitValidasi),
     async (c) => {
       const { id } = c.req.valid('param');

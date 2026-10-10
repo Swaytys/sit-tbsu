@@ -1,13 +1,12 @@
 import { zValidator } from '@hono/zod-validator';
 import {
   skemaCariPenyelesaianKonsinyasi,
-  skemaIdParam,
   skemaPenyelesaianKonsinyasi,
   skemaPratinjauKonsinyasi,
 } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../lib/konteks';
-import { kaitValidasi } from '../../lib/validasi';
+import { kaitValidasi, paramId } from '../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../middleware/require-permission';
 import {
   daftarPenyelesaian,
@@ -31,7 +30,7 @@ export const konsinyasiRoutes = new Hono<EnvApp>()
   .get('/', kelola, zValidator('query', skemaCariPenyelesaianKonsinyasi, kaitValidasi), async (c) =>
     c.json(await daftarPenyelesaian(c.req.valid('query')), 200),
   )
-  .get('/:id', kelola, zValidator('param', skemaIdParam, kaitValidasi), async (c) =>
+  .get('/:id', kelola, paramId, async (c) =>
     c.json({ data: await detailPenyelesaian(c.req.valid('param').id) }, 200),
   )
   .post('/', kelola, zValidator('json', skemaPenyelesaianKonsinyasi, kaitValidasi), async (c) => {

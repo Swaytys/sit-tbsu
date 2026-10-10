@@ -1,15 +1,15 @@
-import { formatRupiah, type DataPembayaran, type MetodePembayaran } from '@sit/shared';
+import {
+  formatRupiah,
+  LABEL_METODE_PEMBAYARAN,
+  type DataPembayaran,
+  type MetodePembayaran,
+} from '@sit/shared';
 import { useState, type KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { digitSaja, tampilRibuan } from './model';
 
 export type ModeBayar = 'langsung' | 'pengantaran' | 'pelunasan';
 
-const LABEL_METODE: Record<MetodePembayaran, string> = {
-  TUNAI: 'Tunai',
-  TRANSFER: 'Transfer',
-  EDC: 'EDC',
-};
 const HURUF_METODE: Record<string, MetodePembayaran> = { t: 'TUNAI', b: 'TRANSFER', e: 'EDC' };
 
 /**
@@ -185,7 +185,7 @@ export function PanelBayarPos({
             <span className="mr-1 font-mono text-xs opacity-60">
               {m === 'TUNAI' ? 'T' : m === 'TRANSFER' ? 'B' : 'E'}
             </span>
-            {LABEL_METODE[m]}
+            {LABEL_METODE_PEMBAYARAN[m]}
           </button>
         ))}
       </div>
@@ -195,7 +195,7 @@ export function PanelBayarPos({
           {daftar.map((p, i) => (
             <li key={i} className="flex justify-between">
               <span>
-                {LABEL_METODE[p.metode]}
+                {LABEL_METODE_PEMBAYARAN[p.metode]}
                 {p.rekening && ` · ${p.rekening}`}
               </span>
               <span className="tabular-nums">{formatRupiah(p.nominal ?? 0)}</span>

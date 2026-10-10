@@ -1,19 +1,9 @@
-import { expect, test, type Page } from '@playwright/test';
-import { masukCepat } from './pembantu';
+import { expect, test } from '@playwright/test';
+import { api, masukCepat } from './pembantu';
 
 // K-093: qty di kotak cari kasir bisa ditulis di belakang nama ("semen*3"), dan F1 menyisipkan "*".
 // K-094: struk berukuran kertas thermal.
 // Menambah satu barang uji di database pengembangan.
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data: data ?? (method === 'GET' ? undefined : {}),
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as { data: T }).data;
-}
 
 test('kasir: "nama*3" dan F1 untuk qty', async ({ page }) => {
   const nama = `Paku Qty E2E ${Date.now()}`;

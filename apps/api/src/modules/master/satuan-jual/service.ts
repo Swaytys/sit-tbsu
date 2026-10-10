@@ -11,7 +11,7 @@ import {
   type SatuanJualBarang,
 } from '@sit/shared';
 import { eq } from 'drizzle-orm';
-import { db, type Executor } from '../../../db/client';
+import type { Executor } from '../../../db/client';
 import { tingkatHarga } from '../../../db/schema';
 import { AppError } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
@@ -267,8 +267,4 @@ export async function simpanSatuanJual(
     }
   });
   return detail(idBarang);
-}
-
-export async function satuanJualPerBarang(idBarang: number[]) {
-  return muatSatuanJual(db, idBarang);
 }

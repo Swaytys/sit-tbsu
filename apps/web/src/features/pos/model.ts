@@ -1,6 +1,5 @@
 import {
   kaliQty,
-  POLA_QTY,
   subtotalRupiah,
   type BarisBarang,
   type DetailOrder,
@@ -8,6 +7,7 @@ import {
   type OpsiSatuanBaris,
   type RingkasAtribut,
 } from '@sit/shared';
+import { qtySah } from '@/lib/qty';
 
 /*
  * Model transaksi layar POS (K-073). Angka di layar hanyalah perkiraan untuk kasir; nilai final selalu dari API
@@ -48,10 +48,6 @@ export type BarisPos = {
 /** Nilai atribut barang dalam satu baris pendek, mis. "6 m · Abu-abu". */
 export function ringkasAtribut(atribut: RingkasAtribut[]): string {
   return atribut.map((a) => a.nilai).join(' · ');
-}
-
-export function qtySah(q: string): boolean {
-  return POLA_QTY.test(q) && /[1-9]/.test(q);
 }
 
 /** Pilihan satuan baris yang sedang dipakai. */

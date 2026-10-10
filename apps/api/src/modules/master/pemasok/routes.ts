@@ -1,13 +1,12 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaCariMitra, skemaIdParam, skemaPemasok, skemaUbahStatus } from '@sit/shared';
+import { skemaCariMitra, skemaPemasok, skemaUbahStatus } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { daftarPemasok, tambahPemasok, ubahPemasok, ubahStatusPemasok } from './service';
 
 const kelola = requirePermission('master.pemasok.kelola');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 
 /** Pemasok: Admin/Owner saja (docs/04 §3, K-019). */
 export const pemasokRoutes = new Hono<EnvApp>()
@@ -21,7 +20,7 @@ export const pemasokRoutes = new Hono<EnvApp>()
     const data = await tambahPemasok(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 201);
   })
-  .patch('/:id', kelola, param, zValidator('json', skemaPemasok, kaitValidasi), async (c) => {
+  .patch('/:id', kelola, paramId, zValidator('json', skemaPemasok, kaitValidasi), async (c) => {
     const { id } = c.req.valid('param');
     const data = await ubahPemasok(id, c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 200);
@@ -29,7 +28,7 @@ export const pemasokRoutes = new Hono<EnvApp>()
   .patch(
     '/:id/status',
     kelola,
-    param,
+    paramId,
     zValidator('json', skemaUbahStatus, kaitValidasi),
     async (c) => {
       const { id } = c.req.valid('param');

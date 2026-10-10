@@ -16,7 +16,7 @@ import {
   type StatusStok,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { bacaGambar, hapusBerkas, simpanGambar } from '../../../lib/penyimpanan';
@@ -214,10 +214,6 @@ export async function detailBarang(id: number, izin: ReadonlySet<Izin>): Promise
 
 // --- Validasi ---
 
-function galatKolom(kode: 'VALIDASI' | 'KONFLIK', kolom: string, pesan: string): AppError {
-  return new AppError(kode, pesan, kode === 'KONFLIK' ? 409 : 400, { kolom: { [kolom]: [pesan] } });
-}
-
 function pastikanBolehHpp(pelaku: PenggunaAktif): void {
   // Form barang memuat harga modal dan harga titip (data sensitif, CLAUDE.md aturan 6).
   if (!pelaku.izin.has('master.barang.lihat_hpp')) {
@@ -233,7 +229,7 @@ function pastikanBolehHpp(pelaku: PenggunaAktif): void {
 async function tentukanKode(tx: Tx, kode: string | undefined, kecualiId?: number): Promise<string> {
   if (kode !== undefined) {
     if (await repo.kodeDipakai(tx, kode, kecualiId)) {
-      throw galatKolom('KONFLIK', 'kode', `Kode ${kode} sudah dipakai barang lain.`);
+      throw galatKolom('kode', `Kode ${kode} sudah dipakai barang lain.`, 'KONFLIK');
     }
     const cocok = POLA_KODE_OTOMATIS.exec(kode);
     if (cocok?.[1]) await sinkronkanKodeMaster(tx, 'BRG', Number.parseInt(cocok[1], 10));
@@ -249,7 +245,7 @@ async function tentukanKode(tx: Tx, kode: string | undefined, kecualiId?: number
 
 async function pastikanBarcodeBebas(tx: Tx, barcode: string | null, kecualiId?: number) {
   if (barcode !== null && (await repo.barcodeDipakai(tx, barcode, kecualiId))) {
-    throw galatKolom('KONFLIK', 'barcode', `Barcode ${barcode} sudah dipakai barang lain.`);
+    throw galatKolom('barcode', `Barcode ${barcode} sudah dipakai barang lain.`, 'KONFLIK');
   }
 }
 
@@ -268,20 +264,20 @@ async function pastikanReferensiAktif(
   const baruDipilih = (k: 'idKategori' | 'idSatuanDasar' | 'idPemasokKonsinyasi' | 'idMerk') =>
     !lama || lama[k] !== nilai[k];
   if (baruDipilih('idKategori') && status.kategori !== 'AKTIF') {
-    throw galatKolom('VALIDASI', 'idKategori', 'Kategori tidak ditemukan atau nonaktif.');
+    throw galatKolom('idKategori', 'Kategori tidak ditemukan atau nonaktif.');
   }
   if (nilai.idMerk !== null && baruDipilih('idMerk') && status.merk !== 'AKTIF') {
-    throw galatKolom('VALIDASI', 'idMerk', 'Merk tidak ditemukan atau nonaktif.');
+    throw galatKolom('idMerk', 'Merk tidak ditemukan atau nonaktif.');
   }
   if (baruDipilih('idSatuanDasar') && status.satuan !== 'AKTIF') {
-    throw galatKolom('VALIDASI', 'idSatuanDasar', 'Satuan tidak ditemukan atau nonaktif.');
+    throw galatKolom('idSatuanDasar', 'Satuan tidak ditemukan atau nonaktif.');
   }
   if (
     nilai.idPemasokKonsinyasi !== null &&
     baruDipilih('idPemasokKonsinyasi') &&
     status.pemasok !== 'AKTIF'
   ) {
-    throw galatKolom('VALIDASI', 'idPemasokKonsinyasi', 'Pemasok tidak ditemukan atau nonaktif.');
+    throw galatKolom('idPemasokKonsinyasi', 'Pemasok tidak ditemukan atau nonaktif.');
   }
 }
 
@@ -305,8 +301,7 @@ async function siapkanAtribut(
   const perSatuan = new Map(satuan.map((s) => [s.id, s]));
 
   return input.map((a, i) => {
-    const galat = (kolom: string, pesan: string) =>
-      galatKolom('VALIDASI', `atribut.${i}.${kolom}`, pesan);
+    const galat = (kolom: string, pesan: string) => galatKolom(`atribut.${i}.${kolom}`, pesan);
     const j = perJenis.get(a.idJenisAtribut);
     if (!j) throw galat('idJenisAtribut', 'Jenis atribut tidak ditemukan.');
     if (j.statusAktif !== 'AKTIF' && !lama.idJenis.has(j.id)) {
@@ -535,25 +530,25 @@ export async function ubahBarang(
     await pastikanReferensiAktif(tx, nilai, lama);
     if (sudahAdaMutasi && beda.kolom.includes('idSatuanDasar')) {
       throw galatKolom(
-        'KONFLIK',
         'idSatuanDasar',
         'Satuan dasar tidak bisa diubah setelah ada mutasi stok.',
+        'KONFLIK',
       );
     }
     if (sudahAdaMutasi && beda.kolom.includes('hargaModalAwal')) {
       throw galatKolom(
-        'KONFLIK',
         'hargaModalAwal',
         'Harga modal awal tidak bisa diubah setelah ada mutasi stok; HPP mengikuti penerimaan.',
+        'KONFLIK',
       );
     }
     // KS1: kepemilikan dikunci selama masih ada stok (baik maupun rusak).
     const adaStok = bandingQty(stok.stokFisik, 0) > 0 || bandingQty(stok.stokRusak, 0) > 0;
     if (beda.kolom.includes('kepemilikan') && adaStok) {
       throw galatKolom(
-        'KONFLIK',
         'kepemilikan',
         'Kepemilikan tidak bisa diubah selama barang masih punya stok.',
+        'KONFLIK',
       );
     }
 

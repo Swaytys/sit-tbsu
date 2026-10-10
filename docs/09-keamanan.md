@@ -27,8 +27,28 @@ Status: ✅ terpenuhi (ada bukti/tes) · ⚠️ diterima dengan catatan · ⏳ m
 | 16 | **Rahasia**: `.env` & kunci sertifikat tidak di-commit; di server hanya bisa dibaca Administrator/SYSTEM | ✅ | `.gitignore`, `pasang-server.ps1` (icacls) |
 | 17 | **Masuk cepat demo** hanya `NODE_ENV=development`, tidak terdaftar di produksi | ✅ | `app.ts`, `RUTE_PUBLIK` |
 | 18 | **Dependensi**: `pnpm audit --prod` bersih | ✅ | uuid (lewat exceljs) dipaksa ≥ 11.1.1. ⚠️ `esbuild` lama di rantai `drizzle-kit` hanya alat pengembangan (tidak berjalan di server produksi) |
-| 19 | **Cadangan** terenkripsi, retensi berjenjang, uji pulih | ⏳ | Fase 8, modul cadangan (K-084) |
+| 19 | **Cadangan** terenkripsi, retensi berjenjang, uji pulih | ✅ | Modul cadangan (K-084): restic terenkripsi, retensi 7/4/12/5, uji pulih otomatis tiap tanggal 1; status di Pengaturan › Cadangan |
 | 20 | **Pembaruan Windows/PostgreSQL/Node** di server toko | ⚠️ | Tanggung jawab operasional: Windows Update otomatis; Node & PostgreSQL diperbarui saat `perbarui-server.ps1` |
+
+## Review kedua — 10 Oktober 2026 (tinjauan kode, K-100)
+
+Seluruh butir review Fase 8 diperiksa ulang terhadap kode saat ini (Fase 9–12 dan K-092–K-099) dan tetap
+terpenuhi; butir 19 (cadangan) kini ✅ (modul cadangan K-084: restic terenkripsi, retensi berjenjang, uji pulih
+bulanan). Butir baru:
+
+| # | Area | Status | Bukti / catatan |
+|---|---|---|---|
+| 21 | **Persetujuan di tempat** (password atasan diketik di layar kasir, K-099): diperiksa seperti login, tanpa sesi baru, password tidak disimpan/dilog, kegagalan mengunci akun dan dicatat | ✅ | `auth/service.ts` `verifikasiAtasan`, tes `koreksi/persetujuan.test.ts` |
+| 22 | **Batas laju pemeriksaan password** di luar login: persetujuan di tempat 20/menit per pengaju | ✅ | `lib/batas-percobaan.ts`, tes "batas laju per pengaju" (K-100) |
+| 23 | **Ketersediaan**: batas waktu pernyataan (60 dtk), kunci (15 dtk), transaksi menganggur (60 dtk); kebuntuan dijawab 409 "coba lagi"; sumber daya habis atau database putus dijawab 503 | ✅ | `db/client.ts`, `middleware/error-handler.ts`, tes `error-handler.test.ts` (K-100) |
+| 24 | **Galat fatal** dicatat ke log berkas sebelum proses keluar; koneksi database terputus tidak mematikan server | ✅ | `index.ts`, `db/client.ts` (K-100) |
+| 25 | **Pesan galat database** tidak pernah sampai ke klien (nama tabel/constraint hanya di log) | ✅ | tes "aturan database menolak data → 400 tanpa membocorkan detail" |
+| 26 | **Tampilan saat galat**: tidak ada jejak kode (stack trace) di layar pengguna | ✅ | `features/umum/halaman-galat.tsx` menggantikan layar galat bawaan React Router |
+| 27 | **Penguncian akun bisa dipicu sengaja** oleh orang yang tahu username | ⚠️ | Diterima: tercatat di log dengan IP/sesi pengaju, kunci 15 menit, Owner bisa membuka. docs/08 D-K6 |
+| 28 | **Berkas Excel**: batas 5 MB berlaku sebelum dibuka (zip bomb) | ⚠️ | Diterima: unggah hanya Admin/Owner. docs/08 D-K5 |
+
+Alat yang dipakai sekali jalan (tidak ditambahkan sebagai dependensi): `pnpm audit`, `knip` (kode mati),
+`madge --circular` (impor melingkar).
 
 ## Cara mengulang review
 
@@ -41,3 +61,4 @@ Status: ✅ terpenuhi (ada bukti/tes) · ⚠️ diterima dengan catatan · ⏳ m
 ## Riwayat
 
 - 2026-10-04 — v1, review Fase 8 (K-083).
+- 2026-10-10 — Review kedua setelah Fase 9–12: butir 21–28 (K-100).

@@ -13,7 +13,7 @@ import {
   type StatusHutang,
 } from '@sit/shared';
 import { db, type Tx } from '../../db/client';
-import { AppError } from '../../lib/errors';
+import { AppError, galatKolom } from '../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { metaHalaman } from '../../lib/paginasi';
 import { dalamTransaksi } from '../../lib/transaksi';
@@ -207,8 +207,7 @@ export async function bayarHutang(
       throw new AppError('STATUS_TIDAK_VALID', `Hutang ${d.nomor} sudah lunas.`, 409);
     }
     if (input.nominal > d.sisa) {
-      const pesan = `Nominal melebihi sisa hutang ${formatRupiah(d.sisa)}.`;
-      throw new AppError('VALIDASI', pesan, 400, { kolom: { nominal: [pesan] } });
+      throw galatKolom('nominal', `Nominal melebihi sisa hutang ${formatRupiah(d.sisa)}.`);
     }
     const shift = input.metode === 'TUNAI' ? await shiftBuka(tx, pelaku.id, true) : null;
     if (input.metode === 'TUNAI' && !shift) {

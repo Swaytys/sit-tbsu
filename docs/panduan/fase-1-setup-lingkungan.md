@@ -229,8 +229,7 @@ Buka http://localhost:5173 → halaman Satuan menampilkan daftar satuan dari dat
 http://localhost:3000/api/health → `{"data":{"status":"ok","db":"ok"}}`. Tekan `Ctrl+C` di terminal untuk berhenti.
 
 8. Salin `.env.example` menjadi `.env` bila Claude belum melakukannya (ia tidak boleh mengisi rahasia untukmu):
-   `SESSION_SECRET` = string acak panjang (ketik sembarang 40 karakter), `SEED_OWNER_PASSWORD` = password Owner
-   awal (nanti diminta ganti saat login pertama).
+   `SEED_OWNER_PASSWORD` = password Owner awal (nanti diminta ganti saat login pertama).
 9. Semua lulus → commit dan merge:
 
 ```powershell

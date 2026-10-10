@@ -1,7 +1,7 @@
 import type { DetailOrder, DetailPenjualan } from '@sit/shared';
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
+import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
 import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
@@ -13,7 +13,6 @@ import {
   pelanggan,
   persediaan,
   shiftKasir,
-  tingkatHarga,
 } from '../../db/schema';
 import { tambahHari, tanggalOperasional } from '../../lib/waktu';
 import { hitungUlangCache } from '../persediaan/ledger';
@@ -71,8 +70,7 @@ beforeEach(async () => {
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
   staf = await sesiUji('STAF_PENJUALAN');
-  const [t] = await db.select().from(tingkatHarga).where(eq(tingkatHarga.kode, 'NORMAL'));
-  tierNormal = t!.id;
+  tierNormal = await siapkanTierNormal();
   await db.insert(hargaBarang).values([
     {
       idBarang: m.semen,

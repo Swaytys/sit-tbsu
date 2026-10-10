@@ -1,8 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaCariPenerimaan, skemaIdParam, skemaPenerimaan } from '@sit/shared';
+import { skemaCariPenerimaan, skemaPenerimaan } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { daftarPenerimaan, detailPenerimaan, simpanPenerimaan } from './service';
 
@@ -13,7 +13,7 @@ export const penerimaanRoutes = new Hono<EnvApp>()
   .get('/', izin, zValidator('query', skemaCariPenerimaan, kaitValidasi), async (c) =>
     c.json(await daftarPenerimaan(c.req.valid('query')), 200),
   )
-  .get('/:id', izin, zValidator('param', skemaIdParam, kaitValidasi), async (c) =>
+  .get('/:id', izin, paramId, async (c) =>
     c.json({ data: await detailPenerimaan(c.req.valid('param').id) }, 200),
   )
   .post('/', izin, zValidator('json', skemaPenerimaan, kaitValidasi), async (c) => {

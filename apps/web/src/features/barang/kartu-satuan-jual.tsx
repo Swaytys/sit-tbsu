@@ -36,7 +36,7 @@ import { Switch } from '@/components/ui/switch';
 
 const DIMENSI_FISIK: readonly string[] = JENIS_DIMENSI_FISIK;
 /** Pembulatan harga untuk perkiraan di layar; nilai final dihitung API dengan konfigurasi toko. */
-const KELIPATAN_PERKIRAAN = 100;
+export const KELIPATAN_PERKIRAAN = 100;
 
 type Isian = {
   kunci: number;

@@ -1,8 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaIdParam, skemaTingkatHargaInput, skemaUbahStatus } from '@sit/shared';
+import { skemaTingkatHargaInput, skemaUbahStatus } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import {
   daftarTingkatHarga,
@@ -12,7 +12,6 @@ import {
 } from './service';
 
 const kelola = requirePermission('master.harga.kelola');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 
 /** Tingkat harga: dibaca semua peran, dikelola pemegang `master.harga.kelola` (docs/04 §3). */
 export const tingkatHargaRoutes = new Hono<EnvApp>()
@@ -26,7 +25,7 @@ export const tingkatHargaRoutes = new Hono<EnvApp>()
   .patch(
     '/:id',
     kelola,
-    param,
+    paramId,
     zValidator('json', skemaTingkatHargaInput, kaitValidasi),
     async (c) => {
       const { id } = c.req.valid('param');
@@ -37,7 +36,7 @@ export const tingkatHargaRoutes = new Hono<EnvApp>()
   .patch(
     '/:id/status',
     kelola,
-    param,
+    paramId,
     zValidator('json', skemaUbahStatus, kaitValidasi),
     async (c) => {
       const { id } = c.req.valid('param');

@@ -1,13 +1,12 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaIdParam, skemaSaringStatus, skemaSatuanInput, skemaUbahStatus } from '@sit/shared';
+import { skemaSaringStatus, skemaSatuanInput, skemaUbahStatus } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { daftarSatuan, tambahSatuan, ubahSatuan, ubahStatusSatuan } from './service';
 
 const kelola = requirePermission('master.satuan.kelola');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 
 // Membaca satuan butuh `master.barang.lihat` (semua peran): nama satuan tampil di barang, order, dan
 // struk (K-054). Mengubah satuan memakai `master.satuan.kelola` (Admin/Owner).
@@ -22,7 +21,7 @@ export const satuanRoutes = new Hono<EnvApp>()
     const data = await tambahSatuan(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 201);
   })
-  .patch('/:id', kelola, param, zValidator('json', skemaSatuanInput, kaitValidasi), async (c) => {
+  .patch('/:id', kelola, paramId, zValidator('json', skemaSatuanInput, kaitValidasi), async (c) => {
     const { id } = c.req.valid('param');
     const data = await ubahSatuan(id, c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 200);
@@ -30,7 +29,7 @@ export const satuanRoutes = new Hono<EnvApp>()
   .patch(
     '/:id/status',
     kelola,
-    param,
+    paramId,
     zValidator('json', skemaUbahStatus, kaitValidasi),
     async (c) => {
       const { id } = c.req.valid('param');

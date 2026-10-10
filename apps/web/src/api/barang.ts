@@ -13,7 +13,7 @@ import type {
   StatusAktif,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ambilData, ambilIsi, api, galatDariRespons } from './client';
+import { ambilData, ambilIsi, api, galatDariRespons, paramId } from './client';
 
 /** Barang, harga jual per tier, dan tingkat harga (Fase 3). */
 
@@ -70,14 +70,12 @@ function useMutasi<TInput, THasil>(akar: string[], fn: (input: TInput) => Promis
   });
 }
 
-const param = (id: number) => ({ id: String(id) });
-
 export function useSimpanBarang() {
   return useMutasi(['barang'], async ({ id, json }: { id?: number; json: DataBarang }) =>
     ambilData(
       id === undefined
         ? await api.barang.$post({ json })
-        : await api.barang[':id'].$patch({ param: param(id), json }),
+        : await api.barang[':id'].$patch({ param: paramId(id), json }),
     ),
   );
 }
@@ -85,7 +83,7 @@ export function useSimpanBarang() {
 /** Simpan satuan jual barang (K-091); harga satuan jual ikut berubah. */
 export function useSimpanSatuanJual() {
   return useMutasi(['barang'], async ({ id, json }: { id: number; json: DataSimpanSatuanJual }) =>
-    ambilData(await api.barang[':id']['satuan-jual'].$put({ param: param(id), json })),
+    ambilData(await api.barang[':id']['satuan-jual'].$put({ param: paramId(id), json })),
   );
 }
 
@@ -93,7 +91,9 @@ export function useStatusBarang() {
   return useMutasi(
     ['barang'],
     async ({ id, statusAktif }: { id: number; statusAktif: StatusAktif }) =>
-      ambilData(await api.barang[':id'].status.$patch({ param: param(id), json: { statusAktif } })),
+      ambilData(
+        await api.barang[':id'].status.$patch({ param: paramId(id), json: { statusAktif } }),
+      ),
   );
 }
 
@@ -110,7 +110,7 @@ export function useUnggahGambar() {
 
 export function useHapusGambar() {
   return useMutasi(['barang'], async (id: number) =>
-    ambilData(await api.barang[':id'].gambar.$delete({ param: param(id) })),
+    ambilData(await api.barang[':id'].gambar.$delete({ param: paramId(id) })),
   );
 }
 
@@ -174,7 +174,7 @@ export function useSimpanTier() {
       ambilData(
         id === undefined
           ? await api['tingkat-harga'].$post({ json })
-          : await api['tingkat-harga'][':id'].$patch({ param: param(id), json }),
+          : await api['tingkat-harga'][':id'].$patch({ param: paramId(id), json }),
       ),
   );
 }
@@ -185,7 +185,7 @@ export function useStatusTier() {
     async ({ id, statusAktif }: { id: number; statusAktif: StatusAktif }) =>
       ambilData(
         await api['tingkat-harga'][':id'].status.$patch({
-          param: param(id),
+          param: paramId(id),
           json: { statusAktif },
         }),
       ),

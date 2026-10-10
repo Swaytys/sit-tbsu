@@ -11,7 +11,8 @@ import {
 } from '@sit/shared';
 import { db } from '../../db/client';
 import { env } from '../../env';
-import { AppError } from '../../lib/errors';
+import { catatPercobaan, type OpsiBatas } from '../../lib/batas-percobaan';
+import { AppError, galatKolom } from '../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { cocokPassword, hashPassword, verifikasiTiruan } from '../../lib/password';
 import { dalamTransaksi } from '../../lib/transaksi';
@@ -57,8 +58,7 @@ export async function pastikanPanjangPassword(password: string, kolom: string): 
     await ambilAngka('password_min', PASSWORD_MIN_DASAR),
   );
   if (password.length < minimal) {
-    const pesan = `Password minimal ${minimal} karakter.`;
-    throw new AppError('VALIDASI', pesan, 400, { kolom: { [kolom]: [pesan] } });
+    throw galatKolom(kolom, `Password minimal ${minimal} karakter.`);
   }
 }
 
@@ -174,6 +174,9 @@ export async function login(input: InputLogin, asal: AsalRequest): Promise<Hasil
 /** Atasan yang menyetujui di tempat: cukup identitasnya (tidak punya sesi di perangkat itu). */
 export type Atasan = Pick<PenggunaAktif, 'id' | 'username' | 'namaPengguna' | 'peran'>;
 
+/** Percobaan persetujuan di tempat: 20 per menit per pengaju (docs/04 §6), berhasil maupun gagal. */
+export const BATAS_PERSETUJUAN_DI_TEMPAT: OpsiBatas = { maks: 20, jendelaDetik: 60 };
+
 /**
  * Persetujuan di tempat (docs/04 §6, K-099): Admin/Owner mengetik akunnya sendiri di layar pengaju. Tidak
  * membuat sesi dan tidak mengubah sesi pengaju. Kegagalan dihitung seperti gagal login (kunci akun) dan dicatat
@@ -187,12 +190,12 @@ export async function verifikasiAtasan(
   pengaju: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<Atasan> {
+  // Batas laju per pengaju, sama seperti login per IP: tebakan password dari sesi kasir tidak bisa beruntun.
+  catatPercobaan(`atasan:${pengaju.id}`, BATAS_PERSETUJUAN_DI_TEMPAT);
   const konteks = ` (persetujuan di tempat, sesi ${pengaju.username})`;
   const hasil = await periksaKredensial(kredensial, asal, 'PERSETUJUAN_GAGAL', konteks);
   if ('galat' in hasil) {
-    throw new AppError('VALIDASI', hasil.galat, 400, {
-      kolom: { 'atasan.password': [hasil.galat] },
-    });
+    throw galatKolom('atasan.password', hasil.galat);
   }
   const { calon } = hasil;
   if (!IZIN_PER_PERAN[calon.peran].has(izin)) {
@@ -296,8 +299,7 @@ export async function gantiPassword(
 ): Promise<PenggunaSaya> {
   const hashLama = await repo.passwordHashPengguna(db, pengguna.id);
   if (!hashLama || !(await cocokPassword(hashLama, input.passwordLama))) {
-    const pesan = 'Password lama salah.';
-    throw new AppError('VALIDASI', pesan, 400, { kolom: { passwordLama: [pesan] } });
+    throw galatKolom('passwordLama', 'Password lama salah.');
   }
   await pastikanPanjangPassword(input.passwordBaru, 'passwordBaru');
   const hashBaru = await hashPassword(input.passwordBaru);

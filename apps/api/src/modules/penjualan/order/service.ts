@@ -18,6 +18,7 @@ import {
 import { db, type Tx } from '../../../db/client';
 import { AppError } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
+import { logger } from '../../../lib/logger';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { siarkan } from '../../../lib/siaran';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -661,16 +662,24 @@ export async function batalOrder(
 /**
  * Job berkala (R7, R8; tiap 15 menit): auto-batal order basi bila `auto_batal_order_basi = true`, dan
  * mengembalikan order DIPROSES tanpa aktivitas lebih dari `batas_kunci_order_menit` ke antrean.
- * Dicatat log tanpa pengguna (aksi sistem).
+ * Dicatat log tanpa pengguna (aksi sistem). Tiap order diproses di transaksinya sendiri; order yang gagal
+ * dicatat lalu dilewati (dicoba lagi pada putaran berikut) supaya tidak menahan order sesudahnya.
  */
 export async function jalankanJobOrder(): Promise<{ dibatalkan: string[]; dilepas: string[] }> {
   const dibatalkan: string[] = [];
   const dilepas: string[] = [];
+  const proses = async (nomor: string, kerja: (tx: Tx) => Promise<void>) => {
+    try {
+      await dalamTransaksi(kerja);
+    } catch (err) {
+      logger.error({ err, nomor }, 'Job order: satu order gagal diproses');
+    }
+  };
   const auto = (await ambilTeks('auto_batal_order_basi', 'false')) === 'true';
   if (auto) {
     const basi = await batasBasi();
     for (const o of await repo.orderBasi(db, basi)) {
-      await dalamTransaksi(async (tx) => {
+      await proses(o.nomor, async (tx) => {
         const h = await repo.kunciOrder(tx, o.id);
         if (h?.status !== 'MENUNGGU') return;
         await lepasDanBatal(tx, o.id, 'KADALUARSA', true);
@@ -688,7 +697,7 @@ export async function jalankanJobOrder(): Promise<{ dibatalkan: string[]; dilepa
   }
   const menit = await ambilAngka('batas_kunci_order_menit', 30);
   for (const o of await repo.kunciKadaluarsa(db, tambahMenit(sekarang(), -menit))) {
-    await dalamTransaksi(async (tx) => {
+    await proses(o.nomor, async (tx) => {
       const h = await repo.kunciOrder(tx, o.id);
       if (h?.status !== 'DIPROSES') return;
       await repo.ubahHeader(tx, o.id, {

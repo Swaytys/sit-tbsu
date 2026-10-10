@@ -9,7 +9,7 @@ import type {
 } from '@sit/shared';
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
+import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
 import {
   PASSWORD_UJI,
   aturKonfigurasi,
@@ -20,6 +20,8 @@ import {
 } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
+import { catatPercobaan } from '../../lib/batas-percobaan';
+import { BATAS_PERSETUJUAN_DI_TEMPAT } from '../auth/service';
 import {
   clericalCheck,
   hargaBarang,
@@ -31,7 +33,6 @@ import {
   returPenjualan,
   returPenjualanDetail,
   shiftKasir,
-  tingkatHarga,
   voidTransaksi,
   voidTransaksiDetail,
 } from '../../db/schema';
@@ -113,7 +114,6 @@ beforeEach(async () => {
     clericalCheck,
     shiftKasir,
     pelanggan,
-    tingkatHarga,
   );
   await aturKonfigurasi({
     batas_retur_tanpa_persetujuan: '0',
@@ -122,14 +122,10 @@ beforeEach(async () => {
   });
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
-  // Tier sendiri agar tes tidak bergantung pada sisa data tes lain.
-  const [t] = await db
-    .insert(tingkatHarga)
-    .values({ kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', isDefault: true })
-    .returning();
+  const idTier = await siapkanTierNormal();
   await db.insert(hargaBarang).values({
     idBarang: m.semen,
-    idTingkatHarga: t!.id,
+    idTingkatHarga: idTier,
     metode: 'TETAP',
     hargaTetap: 10000,
     hargaJual: 10000,
@@ -188,6 +184,19 @@ describe('persetujuan di tempat (K-099)', () => {
     expect(await db.select().from(returPenjualan)).toHaveLength(0);
     // Sesi kasir tidak terpengaruh.
     expect((await minta('/api/auth/saya', { cookie: kasir.cookie })).status).toBe(200);
+  });
+
+  it('batas laju per pengaju: percobaan di atas batas dalam semenit → 429 tanpa memeriksa password', async () => {
+    const pj = await jual('5');
+    for (let i = 0; i < BATAS_PERSETUJUAN_DI_TEMPAT.maks; i++) {
+      catatPercobaan(`atasan:${kasir.pengguna.id}`, BATAS_PERSETUJUAN_DI_TEMPAT);
+    }
+    const g = await galat(kasir, '/api/retur', retur(pj, '1', { atasan: akunAdmin() }));
+    expect(g).toMatchObject({ status: 429, kode: 'TERLALU_BANYAK_PERCOBAAN' });
+    expect(await db.select().from(returPenjualan)).toHaveLength(0);
+    // Batasnya per pengaju: retur tanpa akun atasan tetap bisa diajukan.
+    const r = await kirim<BarisRetur>(kasir, '/api/retur', retur(pj, '1'));
+    expect(r.status).toBe('MENUNGGU');
   });
 
   it('akun yang tidak berwenang (Kasir lain) dan akun nonaktif ditolak', async () => {

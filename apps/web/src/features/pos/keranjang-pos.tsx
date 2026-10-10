@@ -19,12 +19,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatDesimal } from '@/lib/format';
+import { qtySah } from '@/lib/qty';
 import { cn } from '@/lib/utils';
 import {
   digitSaja,
   hargaBaris,
   qtyDasarBaris,
-  qtySah,
   rapikanQty,
   satuanBerikut,
   subtotalBaris,

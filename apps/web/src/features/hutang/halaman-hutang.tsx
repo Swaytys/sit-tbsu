@@ -3,6 +3,7 @@ import {
   formatRupiah,
   KELOMPOK_UMUR,
   LABEL_KELOMPOK_UMUR,
+  LABEL_METODE_PEMBAYARAN_PEMASOK,
   skemaBayarHutang,
   type BarisHutang,
   type DataBayarHutang,
@@ -332,8 +333,6 @@ export function HalamanHutang() {
   );
 }
 
-const LABEL_METODE = { TUNAI: 'Tunai', TRANSFER: 'Transfer', KOMPENSASI: 'Kompensasi retur' };
-
 /** HT2: bayar satu dokumen hutang, sebagian atau lunas. */
 /** Data dokumen yang dibutuhkan dialog bayar (juga dipakai halaman detail setoran konsinyasi). */
 export type DokumenBayar = Pick<
@@ -528,7 +527,8 @@ function DialogRiwayatBayar({ h, onTutup }: { h: BarisHutang; onTutup: () => voi
                 <div>
                   <div className="font-mono text-xs font-medium">{b.nomor}</div>
                   <div className="text-xs text-slate-500">
-                    {formatWaktu(b.tanggal)} · {b.namaPengguna} · {LABEL_METODE[b.metode]}
+                    {formatWaktu(b.tanggal)} · {b.namaPengguna} ·{' '}
+                    {LABEL_METODE_PEMBAYARAN_PEMASOK[b.metode]}
                     {b.rekening && ` · ${b.rekening}`}
                     {b.referensi && ` · ref ${b.referensi}`}
                   </div>

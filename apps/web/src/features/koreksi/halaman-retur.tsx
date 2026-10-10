@@ -2,7 +2,6 @@ import {
   bandingQty,
   formatRupiah,
   subtotalRupiah,
-  POLA_QTY,
   type BarisRetur,
   type DataAtasan,
   type DataSetujui,
@@ -32,6 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDesimal, formatWaktu } from '@/lib/format';
+import { qtySah } from '@/lib/qty';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
 import {
@@ -62,10 +62,6 @@ const LABEL_KONDISI: Record<KondisiRetur, string> = {
 };
 
 type Isian = Record<number, { qty: string; kondisi: KondisiRetur }>;
-
-function qtySah(q: string) {
-  return POLA_QTY.test(q) && /[1-9]/.test(q);
-}
 
 const adaQty = (q: string) => /[1-9]/.test(q);
 

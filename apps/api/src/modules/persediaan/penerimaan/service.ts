@@ -9,7 +9,7 @@ import {
   type StatusHutang,
 } from '@sit/shared';
 import { db } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatBaris, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -72,12 +72,6 @@ export async function detailPenerimaan(id: number): Promise<DetailPenerimaan> {
   };
 }
 
-function galatBaris(i: number, kolom: string, pesan: string): AppError {
-  return new AppError('VALIDASI', `Baris ${i + 1}: ${pesan}`, 400, {
-    kolom: { [`baris.${i}.${kolom}`]: [pesan] },
-  });
-}
-
 /**
  * E1–E4: simpan penerimaan, tulis mutasi PENERIMAAN per baris (HPP L4, harga beli terakhir L6 untuk
  * PEMBELIAN, harga titip untuk KONSINYASI), lalu catat pelunasan bila TUNAI.
@@ -90,16 +84,14 @@ export async function simpanPenerimaan(
   const tanggal = tanggalOperasional();
   if (input.jenis === 'PEMBELIAN' && input.syaratBayar === 'TEMPO') {
     if (!input.tanggalJatuhTempo || input.tanggalJatuhTempo < tanggal) {
-      const pesan = 'Tanggal jatuh tempo tidak boleh sebelum hari ini.';
-      throw new AppError('VALIDASI', pesan, 400, { kolom: { tanggalJatuhTempo: [pesan] } });
+      throw galatKolom('tanggalJatuhTempo', 'Tanggal jatuh tempo tidak boleh sebelum hari ini.');
     }
   }
 
   const id = await dalamTransaksi(async (tx) => {
     const pms = await repo.pemasokAktif(tx, input.idPemasok);
     if (pms?.statusAktif !== 'AKTIF') {
-      const pesan = 'Pemasok tidak ditemukan atau nonaktif.';
-      throw new AppError('VALIDASI', pesan, 400, { kolom: { idPemasok: [pesan] } });
+      throw galatKolom('idPemasok', 'Pemasok tidak ditemukan atau nonaktif.');
     }
     const perBarang = new Map(
       (

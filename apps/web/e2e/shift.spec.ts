@@ -1,18 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
-import { masukCepat, menuUtama } from './pembantu';
+import { expect, test } from '@playwright/test';
+import { api, masukCepat, menuUtama } from './pembantu';
 
 // Shift Demo Kasir yang masih terbuka dari uji lain ditutup dulu (uang fisik 0, keterangan "uji otomatis").
 // Menambah satu barang uji (dinonaktifkan di akhir) dan satu penjualan tunai di database pengembangan.
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data: data ?? (method === 'GET' ? undefined : {}),
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as { data: T }).data;
-}
 
 test(
   'Kasir: buka shift, kasbon, jual tunai, tutup shift blind count dengan selisih',

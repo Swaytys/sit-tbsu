@@ -33,8 +33,6 @@ const skemaEnv = z.object({
   PORT_HTTP_ALIH: z.coerce.number().int().positive().optional(),
   // Log ke berkas (diputar saat server menyala bila > 10 MB, simpan 5 berkas lama). Kosong = stdout.
   LOG_FILE: z.string().min(1).optional(),
-  // Origin lain yang sah untuk permintaan POST/PATCH/DELETE (CSRF), dipisah koma; mis. alamat Tailscale
-  // https://server-toko.tailxxxx.ts.net:8443 saat diakses lewat proxy `tailscale serve`.
   // --- Cadangan data (K-084): restic + pg_dump. Repositori lokal kosong = cadangan belum diatur. ---
   CADANGAN_REPO_LOKAL: z.string().min(1).optional(),
   // Repositori cloud restic, mis. rclone:gdrive:BonsaiUrip-cadangan (butuh rclone terkonfigurasi).
@@ -47,6 +45,8 @@ const skemaEnv = z.object({
   CADANGAN_PG_BIN: z.string().min(1).optional(),
   // Jam cadangan harian (WIB, 0-23).
   CADANGAN_JAM: z.coerce.number().int().min(0).max(23).default(21),
+  // Origin lain yang sah untuk permintaan POST/PATCH/DELETE (CSRF), dipisah koma; mis. alamat Tailscale
+  // https://server-toko.tailxxxx.ts.net:8443 saat diakses lewat proxy `tailscale serve`.
   ORIGIN_TAMBAHAN: z
     .string()
     .default('')

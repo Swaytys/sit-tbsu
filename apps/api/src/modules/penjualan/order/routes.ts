@@ -3,7 +3,6 @@ import {
   skemaBatalOrder,
   skemaCariAntrean,
   skemaCariOrder,
-  skemaIdParam,
   skemaOrder,
   skemaPratinjauOrder,
 } from '@sit/shared';
@@ -12,7 +11,7 @@ import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
 import type { EnvApp } from '../../../lib/konteks';
 import { dengarkan } from '../../../lib/siaran';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import {
   batalOrder,
@@ -29,7 +28,6 @@ import {
 
 const buat = requirePermission('penjualan.order.buat');
 const checkout = requirePermission('penjualan.checkout');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 const opsiKirim = zValidator(
   'query',
   z.object({ kirim: z.enum(['true', 'false']).optional() }),
@@ -75,7 +73,7 @@ export const orderRoutes = new Hono<EnvApp>()
   .get('/', buat, zValidator('query', skemaCariOrder, kaitValidasi), async (c) =>
     c.json(await daftarOrder(c.req.valid('query'), penggunaWajib(c)), 200),
   )
-  .get('/:id', buat, param, async (c) =>
+  .get('/:id', buat, paramId, async (c) =>
     c.json({ data: await detailOrder(c.req.valid('param').id, penggunaWajib(c)) }, 200),
   )
   /** PR5: pratinjau harga/promo/total tanpa menyimpan (layar order & kasir, setiap isi berubah). */
@@ -91,7 +89,7 @@ export const orderRoutes = new Hono<EnvApp>()
     );
     return c.json({ data }, 201);
   })
-  .put('/:id', buat, param, zValidator('json', skemaOrder, kaitValidasi), async (c) => {
+  .put('/:id', buat, paramId, zValidator('json', skemaOrder, kaitValidasi), async (c) => {
     const data = await ubahOrder(
       c.req.valid('param').id,
       c.req.valid('json'),
@@ -100,19 +98,19 @@ export const orderRoutes = new Hono<EnvApp>()
     );
     return c.json({ data }, 200);
   })
-  .post('/:id/kirim', buat, param, async (c) =>
+  .post('/:id/kirim', buat, paramId, async (c) =>
     c.json(
       { data: await kirimOrder(c.req.valid('param').id, penggunaWajib(c), c.get('asal')) },
       200,
     ),
   )
-  .post('/:id/proses', checkout, param, async (c) =>
+  .post('/:id/proses', checkout, paramId, async (c) =>
     c.json(
       { data: await prosesOrder(c.req.valid('param').id, penggunaWajib(c), c.get('asal')) },
       200,
     ),
   )
-  .post('/:id/lepas', checkout, param, async (c) =>
+  .post('/:id/lepas', checkout, paramId, async (c) =>
     c.json(
       { data: await lepasOrder(c.req.valid('param').id, penggunaWajib(c), c.get('asal')) },
       200,
@@ -121,7 +119,7 @@ export const orderRoutes = new Hono<EnvApp>()
   .post(
     '/:id/batal',
     requirePermission('penjualan.order.batal_sendiri'),
-    param,
+    paramId,
     zValidator('json', skemaBatalOrder, kaitValidasi),
     async (c) => {
       const data = await batalOrder(

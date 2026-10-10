@@ -3,7 +3,6 @@ import {
   formatRupiah,
   JENIS_PENYESUAIAN_M1,
   kurangQty,
-  POLA_QTY,
   skemaPenyesuaian,
   subtotalRupiah,
   type BarisBarang,
@@ -60,6 +59,7 @@ import {
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { LABEL_JENIS_PENYESUAIAN } from '@/lib/label';
+import { qtyDariIsian } from '@/lib/qty';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { BadgeStatusPenyesuaian } from './tab-penyesuaian';
 
@@ -86,11 +86,6 @@ function keIsian(nilai: string | null): string {
 function formatSelisih(v: string): string {
   if (!/[1-9]/.test(v)) return '0';
   return v.startsWith('-') ? `−${formatDesimal(v.slice(1))}` : `+${formatDesimal(v)}`;
-}
-
-function teksQty(v: unknown): string | null {
-  const t = typeof v === 'string' ? v.trim().replace(',', '.') : '';
-  return POLA_QTY.test(t) ? t : null;
 }
 
 /** Rute `/persediaan/penyesuaian/baru?jenis=…` dan `/persediaan/penyesuaian/:id`. */
@@ -270,7 +265,7 @@ function FormPenyesuaian({
   }
 
   const jumlahKecuali = isi.filter((b) => b.dikecualikan).length;
-  const jumlahTerisi = isi.filter((b) => !b.dikecualikan && teksQty(b.qtyFisik)).length;
+  const jumlahTerisi = isi.filter((b) => !b.dikecualikan && qtyDariIsian(b.qtyFisik)).length;
 
   async function simpanDraf(data: DataPenyesuaian): Promise<DetailPenyesuaian | null> {
     try {
@@ -333,7 +328,7 @@ function FormPenyesuaian({
   const totalSaldoAwal =
     jenis === 'SALDO_AWAL'
       ? isi.reduce((t, b) => {
-          const q = teksQty(b.qtyFisik);
+          const q = qtyDariIsian(b.qtyFisik);
           return t + (q && typeof b.hppSatuan === 'number' ? subtotalRupiah(q, b.hppSatuan) : 0);
         }, 0)
       : 0;
@@ -487,7 +482,7 @@ function FormPenyesuaian({
                 {baris.fields.map((f, i) => {
                   const inf = info[f.idBarang];
                   const dikecualikan = isi[i]?.dikecualikan === true;
-                  const fisik = dikecualikan ? null : teksQty(isi[i]?.qtyFisik);
+                  const fisik = dikecualikan ? null : qtyDariIsian(isi[i]?.qtyFisik);
                   const selisih =
                     fisik && inf ? kurangQty(kurangQty(fisik, inf.sistem), inf.belum) : null;
                   return (

@@ -1,6 +1,6 @@
 import type { DataKategori, Kategori, StatusAktif } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { selisih } from '../../../lib/perubahan';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -16,8 +16,7 @@ function tidakDitemukan(): AppError {
 
 async function pastikanNamaBebas(tx: Tx, nama: string, kecualiId?: number): Promise<void> {
   if (await repo.namaDipakai(tx, nama, kecualiId)) {
-    const pesan = `Kategori "${nama}" sudah ada.`;
-    throw new AppError('KONFLIK', pesan, 409, { kolom: { nama: [pesan] } });
+    throw galatKolom('nama', `Kategori "${nama}" sudah ada.`, 'KONFLIK');
   }
 }
 

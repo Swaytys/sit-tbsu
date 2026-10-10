@@ -3,7 +3,6 @@ import {
   JENIS_LAPORAN,
   skemaCariInvoiceLaporan,
   skemaCatatCetakLaporan,
-  skemaIdParam,
   skemaLaporanDaftarHarga,
   skemaLaporanHutang,
   skemaLaporanKartuStok,
@@ -22,7 +21,7 @@ import {
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { EnvApp } from '../../lib/konteks';
-import { kaitValidasi } from '../../lib/validasi';
+import { kaitValidasi, paramId } from '../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../middleware/require-permission';
 import { catatCetak, eksporLaporan } from './daftar';
 import { laporanDaftarHarga } from './daftar-harga';
@@ -98,12 +97,8 @@ export const laporanRoutes = new Hono<EnvApp>()
     zValidator('query', skemaCariInvoiceLaporan, kaitValidasi),
     async (c) => c.json({ data: await cariInvoice(c.req.valid('query')) }, 200),
   )
-  .get(
-    '/detail-invoice/:id',
-    penjualan,
-    zValidator('param', skemaIdParam, kaitValidasi),
-    async (c) =>
-      c.json({ data: await laporanDetailInvoice(c.req.valid('param').id, penggunaWajib(c)) }, 200),
+  .get('/detail-invoice/:id', penjualan, paramId, async (c) =>
+    c.json({ data: await laporanDetailInvoice(c.req.valid('param').id, penggunaWajib(c)) }, 200),
   )
   .get(
     '/retur-penjualan',

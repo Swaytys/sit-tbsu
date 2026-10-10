@@ -75,7 +75,26 @@ function berhenti(sinyal: string): void {
   server.close(() => {
     void pool.end().finally(() => process.exit(0));
   });
+  // `server.close` menunggu semua koneksi selesai; koneksi siaran (SSE) dan keep-alive bisa menahannya
+  // beberapa menit. Permintaan biasa selesai jauh sebelum 10 detik; sisanya diputus.
+  setTimeout(() => process.exit(0), 10_000).unref();
 }
 
 process.on('SIGINT', () => berhenti('SIGINT'));
 process.on('SIGTERM', () => berhenti('SIGTERM'));
+
+/**
+ * Galat yang tidak tertangkap di mana pun: keadaan proses tidak lagi bisa dipercaya. Catat ke log (server toko
+ * berjalan tanpa konsol, jadi stderr hilang), lalu keluar dengan kode 1 supaya penjaga `jalankan-server.ps1`
+ * menyalakan server lagi dalam keadaan bersih (K-082). Transaksi database yang sedang berjalan batal sendiri
+ * saat koneksinya putus.
+ */
+function gagalFatal(jenis: string, err: unknown): void {
+  logger.fatal({ err }, `${jenis}: server dihentikan`);
+  // Log ke berkas ditulis asinkron: tunggu sampai tertulis, paling lama 2 detik.
+  setTimeout(() => process.exit(1), 2000).unref();
+  logger.flush(() => process.exit(1));
+}
+
+process.on('uncaughtException', (err) => gagalFatal('uncaughtException', err));
+process.on('unhandledRejection', (alasan) => gagalFatal('unhandledRejection', alasan));

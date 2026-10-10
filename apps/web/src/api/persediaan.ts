@@ -11,7 +11,7 @@ import type {
   StatusStok,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ambilData, ambilIsi, api, galatDariRespons } from './client';
+import { ambilData, ambilIsi, api, galatDariRespons, paramId } from './client';
 
 /** Persediaan (Fase 4): penerimaan barang, penyesuaian, posisi dan kartu stok. */
 
@@ -113,27 +113,25 @@ function useMutasiPersediaan<TInput, THasil>(fn: (input: TInput) => Promise<THas
   });
 }
 
-const param = (id: number) => ({ id: String(id) });
-
 export function useSimpanPenyesuaian() {
   return useMutasiPersediaan(async ({ id, json }: { id?: number; json: DataPenyesuaian }) =>
     ambilData(
       id === undefined
         ? await api.penyesuaian.$post({ json })
-        : await api.penyesuaian[':id'].$put({ param: param(id), json }),
+        : await api.penyesuaian[':id'].$put({ param: paramId(id), json }),
     ),
   );
 }
 
 export function useSelesaikanPenyesuaian() {
   return useMutasiPersediaan(async (id: number) =>
-    ambilData(await api.penyesuaian[':id'].selesai.$post({ param: param(id) })),
+    ambilData(await api.penyesuaian[':id'].selesai.$post({ param: paramId(id) })),
   );
 }
 
 export function useBatalkanPenyesuaian() {
   return useMutasiPersediaan(async (id: number) =>
-    ambilData(await api.penyesuaian[':id'].batal.$post({ param: param(id) })),
+    ambilData(await api.penyesuaian[':id'].batal.$post({ param: paramId(id) })),
   );
 }
 

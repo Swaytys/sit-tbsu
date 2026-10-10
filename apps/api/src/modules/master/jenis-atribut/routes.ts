@@ -1,8 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaIdParam, skemaJenisAtribut, skemaSaringStatus, skemaUbahStatus } from '@sit/shared';
+import { skemaJenisAtribut, skemaSaringStatus, skemaUbahStatus } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import {
   daftarJenisAtribut,
@@ -13,7 +13,6 @@ import {
 
 // Jenis atribut dikelola dengan izin satuan (docs/04 §2: "Kelola satuan, jenis atribut, satuan jual").
 const kelola = requirePermission('master.satuan.kelola');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 
 export const jenisAtributRoutes = new Hono<EnvApp>()
   .get(
@@ -26,15 +25,21 @@ export const jenisAtributRoutes = new Hono<EnvApp>()
     const data = await tambahJenisAtribut(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 201);
   })
-  .patch('/:id', kelola, param, zValidator('json', skemaJenisAtribut, kaitValidasi), async (c) => {
-    const { id } = c.req.valid('param');
-    const data = await ubahJenisAtribut(id, c.req.valid('json'), penggunaWajib(c), c.get('asal'));
-    return c.json({ data }, 200);
-  })
+  .patch(
+    '/:id',
+    kelola,
+    paramId,
+    zValidator('json', skemaJenisAtribut, kaitValidasi),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const data = await ubahJenisAtribut(id, c.req.valid('json'), penggunaWajib(c), c.get('asal'));
+      return c.json({ data }, 200);
+    },
+  )
   .patch(
     '/:id/status',
     kelola,
-    param,
+    paramId,
     zValidator('json', skemaUbahStatus, kaitValidasi),
     async (c) => {
       const { id } = c.req.valid('param');

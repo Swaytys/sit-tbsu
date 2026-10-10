@@ -10,7 +10,7 @@ import {
   type StatusBerlakuPromo,
 } from '@sit/shared';
 import { db, type Tx } from '../../db/client';
-import { AppError } from '../../lib/errors';
+import { AppError, galatKolom } from '../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../lib/paginasi';
 import { selisih } from '../../lib/perubahan';
@@ -116,12 +116,6 @@ export async function detailPromo(id: number): Promise<Promo> {
   const b = await repo.promoById(db, id);
   if (!b) throw tidakDitemukan();
   return keRespons(b, tanggalOperasional(), (await pelangganPer([id])).get(id) ?? []);
-}
-
-function galatKolom(kolom: string, pesan: string, kode: 'VALIDASI' | 'KONFLIK' = 'VALIDASI') {
-  return new AppError(kode, pesan, kode === 'KONFLIK' ? 409 : 400, {
-    kolom: { [kolom]: [pesan] },
-  });
 }
 
 /** Isian → nilai kolom; kolom yang tidak berlaku untuk jenis/sasaran dikosongkan (cermin CHECK DB). */

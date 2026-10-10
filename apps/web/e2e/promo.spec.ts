@@ -1,19 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { masukCepat, menuUtama } from './pembantu';
+import { api, masukCepat, menuUtama } from './pembantu';
 
 // Promo (docs/06 §3, K-087): Admin membuat promo untuk satu barang uji lewat halaman Promo, kasir melihat
 // potongan di keranjang (pratinjau API), melepas/memasang promo dengan tombol P, lalu struk mencetak nama
 // promo. Barang dan promo uji dinonaktifkan di akhir agar tidak memengaruhi tes lain.
-
-async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
-  const res = await page.request.fetch(`/api${path}`, {
-    method,
-    data: data ?? (method === 'GET' ? undefined : {}),
-    headers: { origin: new URL(page.url()).origin },
-  });
-  expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);
-  return ((await res.json()) as { data: T }).data;
-}
 
 async function barangUji(page: Page, nama: string, harga: number) {
   const kategori = await api<{ id: number }[]>(page, '/kategori?status=AKTIF');

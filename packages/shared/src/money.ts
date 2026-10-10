@@ -1,4 +1,5 @@
 import Decimal from 'decimal.js';
+import { GalatAngka } from './angka';
 
 /*
  * Uang = integer rupiah (CLAUDE.md aturan 7, docs/05 §1). Semua hitungan yang melibatkan pecahan
@@ -13,7 +14,7 @@ export type NilaiDesimal = Decimal.Value;
 function keRupiah(d: Decimal): number {
   const n = d.toNumber();
   if (!Number.isSafeInteger(n))
-    throw new RangeError(`Nilai rupiah di luar batas aman: ${d.toString()}`);
+    throw new GalatAngka(`Nilai rupiah di luar batas aman: ${d.toString()}`);
   return n === 0 ? 0 : n; // hindari -0
 }
 

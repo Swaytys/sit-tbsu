@@ -15,7 +15,7 @@ import {
   type RingkasanKonsinyasiPemasok,
 } from '@sit/shared';
 import { db, type Executor } from '../../db/client';
-import { AppError } from '../../lib/errors';
+import { AppError, galatKolom } from '../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../lib/paginasi';
 import { dalamTransaksi } from '../../lib/transaksi';
@@ -113,8 +113,7 @@ async function susunPratinjau(
   periodeSelesai: string,
 ): Promise<{ pratinjau: PratinjauKonsinyasi; setoran: HasilSetoran }> {
   if (periodeSelesai > tanggalOperasional()) {
-    const pesan = 'Tanggal akhir periode tidak boleh melewati hari ini.';
-    throw new AppError('VALIDASI', pesan, 400, { kolom: { periodeSelesai: [pesan] } });
+    throw galatKolom('periodeSelesai', 'Tanggal akhir periode tidak boleh melewati hari ini.');
   }
   const jual = await repo.jualBelumDisetor(ex, pms.id, periodeSelesai);
   const retur = await repo.returBelumDihitung(ex, pms.id, periodeSelesai);
@@ -166,8 +165,7 @@ async function susunPratinjau(
 }
 
 function pemasokTidakAda(): AppError {
-  const pesan = 'Pemasok tidak ditemukan.';
-  return new AppError('VALIDASI', pesan, 400, { kolom: { idPemasok: [pesan] } });
+  return galatKolom('idPemasok', 'Pemasok tidak ditemukan.');
 }
 
 export async function pratinjauKonsinyasi(p: {

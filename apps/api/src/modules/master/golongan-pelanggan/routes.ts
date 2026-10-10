@@ -1,18 +1,12 @@
 import { zValidator } from '@hono/zod-validator';
-import {
-  skemaIdParam,
-  skemaGolonganPelanggan,
-  skemaSaringStatus,
-  skemaUbahStatus,
-} from '@sit/shared';
+import { skemaGolonganPelanggan, skemaSaringStatus, skemaUbahStatus } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
-import { kaitValidasi } from '../../../lib/validasi';
+import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { daftarGolongan, tambahGolongan, ubahGolongan, ubahStatusGolongan } from './service';
 
 const kelola = requirePermission('master.pelanggan.atur_kredit');
-const param = zValidator('param', skemaIdParam, kaitValidasi);
 
 /** Golongan pelanggan (K-097): dibaca pemegang lihat pelanggan, dikelola Admin/Owner (atur pelanggan). */
 export const golonganPelangganRoutes = new Hono<EnvApp>()
@@ -29,7 +23,7 @@ export const golonganPelangganRoutes = new Hono<EnvApp>()
   .patch(
     '/:id',
     kelola,
-    param,
+    paramId,
     zValidator('json', skemaGolonganPelanggan, kaitValidasi),
     async (c) => {
       const { id } = c.req.valid('param');
@@ -40,7 +34,7 @@ export const golonganPelangganRoutes = new Hono<EnvApp>()
   .patch(
     '/:id/status',
     kelola,
-    param,
+    paramId,
     zValidator('json', skemaUbahStatus, kaitValidasi),
     async (c) => {
       const { id } = c.req.valid('param');
