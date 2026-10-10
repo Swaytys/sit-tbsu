@@ -13,6 +13,7 @@ import {
   penyesuaianStokDetail,
   persediaan,
   satuan,
+  tingkatHarga,
 } from '../src/db/schema';
 import { buatPersediaan } from '../src/modules/persediaan/ledger';
 import { dalamTransaksi } from '../src/lib/transaksi';
@@ -91,4 +92,18 @@ export async function siapkanMasterPersediaan() {
     }),
     mati: await buat({ namaBarang: 'Barang lama', statusAktif: 'NONAKTIF' }),
   };
+}
+
+/**
+ * Tier dasar "Normal" untuk tes yang menjual barang; mengembalikan id-nya. Tabel tier dikosongkan dulu supaya
+ * setiap berkas tes membawa datanya sendiri: lulus atau gagal tidak boleh bergantung pada sisa data berkas
+ * tes lain maupun urutan berkas dijalankan.
+ */
+export async function siapkanTierNormal(): Promise<number> {
+  await kosongkanTabel(tingkatHarga);
+  const [t] = await db
+    .insert(tingkatHarga)
+    .values({ kode: 'NORMAL', nama: 'Normal', markupDefaultPersen: '25', isDefault: true })
+    .returning();
+  return t!.id;
 }

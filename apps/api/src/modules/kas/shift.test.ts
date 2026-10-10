@@ -1,18 +1,11 @@
 import type { DaftarShift, DetailOrder, DetailShift, ShiftAktif } from '@sit/shared';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
+import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
 import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
-import {
-  clericalCheck,
-  hargaBarang,
-  kasShift,
-  orderPenjualan,
-  shiftKasir,
-  tingkatHarga,
-} from '../../db/schema';
+import { clericalCheck, hargaBarang, kasShift, orderPenjualan, shiftKasir } from '../../db/schema';
 
 type Sesi = Awaited<ReturnType<typeof sesiUji>>;
 type Galat = { error: { kode: string; pesan: string; detail?: { perluKeterangan?: boolean } } };
@@ -51,10 +44,10 @@ beforeEach(async () => {
   await kosongkanTabel(kasShift, clericalCheck, shiftKasir);
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
-  const [t] = await db.select().from(tingkatHarga).where(eq(tingkatHarga.kode, 'NORMAL'));
+  const idTier = await siapkanTierNormal();
   await db.insert(hargaBarang).values({
     idBarang: m.semen,
-    idTingkatHarga: t!.id,
+    idTingkatHarga: idTier,
     metode: 'TETAP',
     hargaTetap: 10000,
     hargaJual: 10000,
