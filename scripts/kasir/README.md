@@ -29,5 +29,10 @@ otomatis. Login di jendela kasir cukup sekali (sesi mengikuti batas di Pengatura
 - Invoice dan surat jalan pengantaran (A4) tidak dicetak otomatis; tekan **P** (invoice) atau **S** (surat jalan)
   setelah invoice dibuat. Bila jendela kasir ini juga dipakai untuk pengantaran, cetakannya ikut keluar di printer
   bawaan (printer struk) — gunakan peramban biasa (dengan jendela print) di komputer yang punya printer A4.
-- Cetak otomatis bisa dimatikan atau diganti "tanya dulu" di Pengaturan › Profil toko (K-095). Memilih printer
-  dari dalam aplikasi dijadwalkan di v2.0.0 (docs/08-backlog.md, Sprint F).
+- Cetak otomatis bisa dimatikan atau diganti "tanya dulu" di Pengaturan › Struk & printer (K-095).
+- **Cara yang dianjurkan untuk printer struk thermal adalah cetak langsung** (K-103, K-105): struk dikirim
+  sebagai teks tanpa driver dan tanpa jendela cetak, hasilnya tegak dan tajam. Lihat
+  `docs/panduan/printer-struk.md`. Skrip ini tetap berguna untuk printer yang tidak mendukung cetak langsung.
+- Jendela kasir dari skrip ini memakai profil peramban tersendiri. Pengaturan printer (Pengaturan › Struk &
+  printer › Printer struk komputer ini) tersimpan per profil: bila kasir dijalankan lewat skrip ini, kerjakan
+  penyiapan printer **di dalam jendela ini**, bukan di peramban biasa.

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { SaluranPesan } from '../enums';
+import { SALURAN_PESAN, type SaluranPesan } from '../enums';
 
 /*
  * Saluran pesan ke atasan dan kode persetujuan sekali pakai (docs/04 §6, K-102). Toko mengisi token bot
@@ -40,6 +40,8 @@ export type PengaturanSaluran = {
     pengguna: string;
     pengirim: string;
     sandiTerisi: boolean;
+    /** Isian yang masih kosong sehingga email belum bisa dipakai, mis. `['sandi aplikasi']`. */
+    kurang: string[];
   };
   /** Admin/Owner aktif yang sudah bisa menerima kode, untuk memeriksa kesiapan. */
   penerima: { nama: string; saluran: SaluranPesan[] }[];
@@ -66,7 +68,15 @@ export type KontakSaya = {
 /** Cara menghubungkan akun dengan bot Telegram toko: buka tautan, tekan Start, lalu "Periksa". */
 export type TautanTelegram = { bot: string; tautan: string; perintah: string };
 
-export type HasilUjiSaluran = { terkirim: SaluranPesan[]; galat: string[] };
+/** Uji satu saluran ke kontak pengguna yang login (K-105). Selalu pengiriman sungguhan, tidak pernah tiruan. */
+export const skemaUjiSaluran = z.object({ saluran: z.enum(SALURAN_PESAN) });
+
+export type HasilUjiSaluran = {
+  saluran: SaluranPesan;
+  berhasil: boolean;
+  /** Apa yang terjadi dan, bila gagal, langkah berikutnya. */
+  pesan: string;
+};
 
 /** Kode 6 angka yang diketik pengaju setelah diberi tahu atasan. */
 export const skemaKodePersetujuan = z.object({
@@ -83,6 +93,11 @@ export type InfoKodePersetujuan = {
   idPermintaan: number;
   kadaluarsa: string;
   penerima: { nama: string; saluran: SaluranPesan[] }[];
+  /**
+   * Hanya di mode pengembangan: ada saluran yang belum diatur sehingga kodenya tidak benar-benar dikirim
+   * (tercatat di log server saja). Di produksi selalu `false`.
+   */
+  simulasi: boolean;
 };
 
 /** Melampaui limit kredit (PT6): pelanggan dan tagihan baru yang dimintakan persetujuan. */

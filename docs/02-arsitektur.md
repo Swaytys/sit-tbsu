@@ -248,6 +248,10 @@ Pola rute yang dipakai bersama (K-100): `paramId` (`lib/validasi.ts`) untuk para
   `lib/struk-escpos.ts` mengisi strukturnya dari `DetailPenjualan`; `lib/printer-thermal.ts` mengirimnya lewat
   Web Serial (Chrome/Edge) dengan pengaturan per komputer di `localStorage`. Bila tidak aktif atau gagal, struk
   dicetak lewat `AreaCetak` seperti dokumen lain. Notifikasi (toast) disembunyikan di semua cetakan (K-104).
+  Struk langsung selalu potret, font bawaan printer, opsional double-strike; memilih printer lagi mencabut izin
+  port lama; `AreaCetak` gulungan tidak pernah lebih pendek dari lebarnya (K-105).
+- Penyiapan terpandu (K-105): `components/langkah.tsx` (`Langkah`, `KotakHasil`) untuk penyiapan berurutan
+  dengan tanda selesai; dipakai tab Persetujuan dan kartu Printer struk. Aturan menulis petunjuk: K-105 butir 1.
 
 ## 6. Paket `shared`
 
@@ -351,6 +355,7 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 ## Riwayat
 
 - 2026-10-11 — §2 saluran pesan ke atasan dan nodemailer (K-102); §2, §5 struk ESC/POS lewat Web Serial (K-103).
+- 2026-10-11 — §5 penyiapan terpandu, struk potret/tebal, izin port tunggal (K-105).
 - 2026-10-10 — §4: pembuat galat bersama, pemetaan galat database, batas waktu koneksi, pola rute bersama;
   §5: halaman galat dan pembantu bersama web; §8, §9, §11: `SESSION_SECRET` dan `SEED_CONTOH` dihapus (K-100).
 - 2026-10-04 — §12: deploy diputuskan (komputer toko + Tailscale, HTTPS CA lokal), cadangan restic, log

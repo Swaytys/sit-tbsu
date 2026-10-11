@@ -231,7 +231,11 @@ Aturan kode sekali pakai (K-102, menggantikan password atasan di layar kasir dar
   `BATAS_BEBAS`; penyetuju pada `AKUN_ATASAN`). Mutasi stok dan `id_penyetuju` atas nama yang menyetujui.
 - Saluran: token bot Telegram dan akun SMTP diisi di Pengaturan › Persetujuan (`sistem.pengaturan.kelola`);
   nilainya tidak pernah dikembalikan API atau dilog. Email dan Telegram tiap pengguna diatur pemilik akun
-  sendiri di Akun saya; kode tautan Telegram hanya diketahui pemilik akun yang sedang login.
+  sendiri di Akun saya (untuk pengelola pengaturan juga tampil sebagai Langkah 2 di Pengaturan › Persetujuan);
+  kode tautan Telegram hanya diketahui pemilik akun yang sedang login.
+- Uji saluran (`POST /api/saluran/uji`, `sistem.pengaturan.kelola`, K-105): satu saluran per permintaan, ke
+  kontak pengguna yang login saja (tidak bisa mengirim ke alamat lain), selalu pengiriman sungguhan, dan
+  jawabannya menyebut apa yang kurang tanpa memuat token atau sandi.
 - Tanpa internet/saluran: retur/void tetap lewat `AKUN_ATASAN` atau `BATAS_BEBAS`; limit kredit hanya bisa
   dilanjutkan Admin/Owner yang login.
 - **Limit kredit (PT6):** penjualan tetap atas nama kasir; log `PENJUALAN_LIMIT_OVERRIDE` atas nama atasan
@@ -300,3 +304,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-10 — §6, §7: batas laju persetujuan di tempat 20/menit per pengaju (K-100).
 - 2026-10-10 — §6: persetujuan di tempat untuk melampaui limit kredit (K-101).
 - 2026-10-11 — §6: password atasan di layar kasir diganti kode sekali pakai lewat Telegram/email (K-102).
+- 2026-10-11 — §6: uji saluran per jenis (K-105).

@@ -397,5 +397,8 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-10-11 — Tinjauan pemilik: persetujuan dengan kode sekali pakai lewat Telegram/email (K-102); struk
   langsung ke printer thermal ESC/POS dan tab Struk & printer (K-103); pengantaran tanpa order, pelanggan
   bisa diklik, cara bayar tegas, limit kredit bawaan, cetakan tanpa notifikasi (K-104).
+- 2026-10-11 — Perbaikan dari uji pemilik atas K-102/K-103: penyiapan saluran kode dan printer struk menjadi
+  langkah terpandu, uji kirim per saluran yang selalu sungguhan, struk potret dan lebih tebal, panduan rinci
+  dan skrip uji mandiri (K-105).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).

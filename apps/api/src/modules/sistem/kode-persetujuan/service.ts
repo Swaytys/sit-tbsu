@@ -122,7 +122,7 @@ export async function mintaKode(
         `${p.pengaju.namaPengguna} hanya bila Anda setuju. Bila tidak setuju, abaikan pesan ini.`;
       const h = await kirimKePengguna(a, judul, isi);
       await repo.catatSaluran(db, idPermintaan, a.id, h.terkirim.join(','));
-      return { nama: a.namaPengguna, saluran: h.terkirim, galat: h.galat };
+      return { nama: a.namaPengguna, saluran: h.terkirim, tiruan: h.tiruan, galat: h.galat };
     }),
   );
   const sampai = hasil.filter((h) => h.saluran.length > 0);
@@ -151,6 +151,7 @@ export async function mintaKode(
     idPermintaan,
     kadaluarsa: kadaluarsa.toISOString(),
     penerima: sampai.map((h) => ({ nama: h.nama, saluran: h.saluran })),
+    simulasi: sampai.some((h) => h.tiruan.length > 0),
   };
 }
 

@@ -8,7 +8,7 @@ import { formatDesimal, formatTanggal, formatWaktu } from '@/lib/format';
 
 function Baris({ kiri, kanan, tebal }: { kiri: string; kanan: string; tebal?: boolean }) {
   return (
-    <div className={`flex justify-between gap-2 ${tebal ? 'font-bold' : ''}`}>
+    <div className={`flex justify-between gap-2 ${tebal ? 'text-[13px]' : ''}`}>
       <span>{kiri}</span>
       <span className="tabular-nums">{kanan}</span>
     </div>
@@ -17,12 +17,17 @@ function Baris({ kiri, kanan, tebal }: { kiri: string; kanan: string; tebal?: bo
 
 const Garis = () => <div className="my-1 border-t border-dashed border-black" />;
 
-/** Struk thermal penjualan langsung (docs/05 P14): lebar 58/80 mm sesuai pengaturan. */
+/**
+ * Struk thermal penjualan langsung (docs/05 P14): lebar 58/80 mm sesuai pengaturan. Dipakai untuk pratinjau
+ * dan cetak lewat jendela cetak peramban. Seluruh huruf tebal dan hitam penuh: driver printer thermal
+ * mengubah halaman menjadi gambar titik, sehingga huruf tipis keluar pudar/putus-putus (K-105). Baris
+ * penting (TOTAL, sisa tagihan) dibedakan dengan ukuran huruf.
+ */
 export function Struk({ p, toko }: { p: DetailPenjualan; toko: TampilanToko }) {
   const kembalian = p.pembayaran.reduce((t, b) => t + b.kembalian, 0);
   return (
     <div
-      className="bg-white p-2 font-mono text-[11px] leading-tight text-black"
+      className="bg-white p-2 font-mono text-[11px] leading-tight font-bold text-black"
       style={{ width: `${toko.lebarStrukMm}mm` }}
       data-testid="struk"
     >

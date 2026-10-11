@@ -94,14 +94,30 @@ export function barisKiriKanan(kiri: string, kanan: string, lebar: number): stri
 
 export type OpsiTeksStruk = { tebal?: boolean; tengah?: boolean; besar?: boolean };
 
+export type OpsiStrukEscPos = {
+  /**
+   * Cetak lebih hitam (K-105): tiap titik dicetak dua kali (double-strike). Untuk printer kecil bertenaga
+   * baterai yang hasilnya pudar. Sedikit lebih lambat.
+   */
+  pekat?: boolean;
+};
+
 /** Penyusun satu dokumen struk. Setiap metode mengembalikan `this` agar bisa dirangkai. */
 export class StrukEscPos {
   private readonly isi: number[] = [];
 
   /** `lebar` = karakter per baris pada ukuran huruf biasa. */
-  constructor(readonly lebar: number) {
+  constructor(
+    readonly lebar: number,
+    opsi: OpsiStrukEscPos = {},
+  ) {
     // ESC @ : kembalikan printer ke keadaan awal (membuang format sisa cetakan sebelumnya).
     this.isi.push(ESC, 0x40);
+    // Selalu tegak (potret) dengan huruf bawaan printer: ESC V 0 mematikan putaran 90 derajat yang mungkin
+    // tersisa dari aplikasi lain, ESC M 0 memilih font A (12x24 titik, paling tajam).
+    this.isi.push(ESC, 0x56, 0, ESC, 0x4d, 0);
+    // ESC G n : double-strike. Tidak ikut dimatikan oleh ESC E 0 di akhir tiap baris.
+    this.isi.push(ESC, 0x47, opsi.pekat ? 1 : 0);
   }
 
   private mentah(...byte: number[]): this {

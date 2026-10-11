@@ -49,7 +49,8 @@ bulanan). Butir baru:
 | 29 | **Rahasia saluran pesan** (token bot Telegram, sandi SMTP) disimpan di `konfigurasi`, tidak pernah dikembalikan API maupun ditulis ke log; ikut terenkripsi di cadangan | ✅ | tes `sistem/saluran.test.ts` |
 | 30 | **Tautan Telegram** hanya bisa dibuat pemilik akun yang login (kode tautan 10 menit); chat lain tidak bisa ditempelkan ke akun atasan | ✅ | `sistem/saluran/service.ts` |
 | 31 | **Kode persetujuan bisa disebutkan atasan tanpa membaca rinciannya** (kelalaian manusia) | ⚠️ | Diterima: pesan memuat rincian dan peringatan; tiap persetujuan tercatat atas nama pemilik kode |
-| 32 | **Cetak langsung (Web Serial)**: izin port diberikan pengguna per komputer; yang dikirim hanya isi struk | ✅ | `lib/printer-thermal.ts` (K-103) |
+| 32 | **Cetak langsung (Web Serial)**: izin port diberikan pengguna per komputer; yang dikirim hanya isi struk; memilih printer lagi mencabut izin port lama | ✅ | `lib/printer-thermal.ts` (K-103, K-105) |
+| 33 | **Uji saluran dan skrip uji mandiri** tidak membocorkan rahasia: jawaban uji hanya memuat pesan galat yang sudah disaring (tanpa token/sandi); `scripts/uji/*.py` meminta rahasia saat dijalankan dan tidak menyimpannya | ✅ | `sistem/saluran/service.ts` `ujiSaluran`, tes "uji per saluran" (K-105) |
 
 Alat yang dipakai sekali jalan (tidak ditambahkan sebagai dependensi): `pnpm audit`, `knip` (kode mati),
 `madge --circular` (impor melingkar).
@@ -67,3 +68,4 @@ Alat yang dipakai sekali jalan (tidak ditambahkan sebagai dependensi): `pnpm aud
 - 2026-10-04 — v1, review Fase 8 (K-083).
 - 2026-10-10 — Review kedua setelah Fase 9–12: butir 21–28 (K-100).
 - 2026-10-11 — Butir 21–22 diperbarui dan 29–32 ditambahkan: kode sekali pakai, rahasia saluran, cetak langsung (K-102, K-103).
+- 2026-10-11 — Butir 32 diperbarui dan 33 ditambahkan (K-105).

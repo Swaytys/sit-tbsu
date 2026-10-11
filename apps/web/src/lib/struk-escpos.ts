@@ -20,9 +20,9 @@ const angka = (n: number) => formatRupiah(n).replace('Rp ', '');
 export function strukKeEscPos(
   p: DetailPenjualan,
   toko: TampilanToko,
-  opsi: { lebar: number; potong: boolean; bukaLaci: boolean },
+  opsi: { lebar: number; pekat: boolean; potong: boolean; bukaLaci: boolean },
 ): Uint8Array {
-  const s = new StrukEscPos(opsi.lebar);
+  const s = new StrukEscPos(opsi.lebar, { pekat: opsi.pekat });
   if (toko.strukTampilkanNama) s.teks(toko.namaToko, { tengah: true, tebal: true, besar: true });
   s.teks(toko.namaBadanUsaha, { tengah: true });
   if (toko.alamatToko) s.teks(toko.alamatToko, { tengah: true });
@@ -86,26 +86,31 @@ export function cetakStrukLangsung(
   return kirimKePrinter(
     strukKeEscPos(p, toko, {
       lebar: lebarStrukKini(toko),
+      pekat: atur.pekat,
       potong: atur.potong,
       bukaLaci: atur.bukaLaci && tunai && !opsi.cetakUlang,
     }),
   );
 }
 
-/** Halaman uji: memeriksa sambungan, lebar baris, huruf tebal/besar, dan pemotong. */
+/** Halaman uji: memeriksa sambungan, lebar baris, huruf tebal/besar, kepekatan, dan pemotong. */
 export function cetakUjiLangsung(toko: TampilanToko): Promise<void> {
   const atur = bacaPengaturanPrinter();
   const lebar = lebarStrukKini(toko);
-  const s = new StrukEscPos(lebar)
+  const s = new StrukEscPos(lebar, { pekat: atur.pekat })
     .teks(toko.namaToko, { tengah: true, tebal: true, besar: true })
     .teks('UJI CETAK STRUK', { tengah: true, tebal: true })
     .garis()
     .teks(`${lebar} karakter per baris. Baris angka di bawah harus pas satu baris, tidak turun.`)
     .teks('1234567890'.repeat(Math.ceil(lebar / 10)).slice(0, lebar))
     .garis()
-    .kiriKanan('Semen 40 kg  2 sak x 55.000', '110.000')
+    .teks(`Cetak tebal: ${atur.pekat ? 'NYALA' : 'MATI'}`)
+    // Sama dengan susunan baris barang pada struk sungguhan: nama, lalu rincian menjorok dan jumlah di kanan.
+    .teks('Semen Gresik 40 kg')
+    .kiriKanan('  2 sak x 55.000', '110.000')
     .kiriKanan('TOTAL', 'Rp 110.000', { tebal: true })
     .garis()
+    .teks('Bila semua baris di atas terbaca jelas dan tegak, printer siap dipakai.')
     .teks(formatWaktu(new Date().toISOString()), { tengah: true })
     .maju(4);
   if (atur.potong) s.potong();
