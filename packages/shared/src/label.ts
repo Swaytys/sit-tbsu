@@ -110,7 +110,7 @@ export const LABEL_STATUS_PERSETUJUAN: Record<StatusPersetujuan, string> = {
 export const LABEL_CARA_PERSETUJUAN: Record<CaraPersetujuan, string> = {
   SENDIRI: 'oleh pengaju (berwenang)',
   AKUN_ATASAN: 'dari akun atasan',
-  DI_TEMPAT: 'atasan, di tempat',
+  DI_TEMPAT: 'kode atasan',
   BATAS_BEBAS: 'tanpa atasan (di bawah batas)',
 };
 

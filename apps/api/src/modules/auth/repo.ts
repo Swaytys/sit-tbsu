@@ -49,14 +49,6 @@ export async function catatGagalLogin(
   return baris?.terkunciSampai ?? null;
 }
 
-/** Kredensial terbukti benar tanpa login (persetujuan di tempat): hitungan gagal kembali ke nol. */
-export async function hapusHitunganGagal(ex: Executor, idPengguna: number): Promise<void> {
-  await ex
-    .update(pengguna)
-    .set({ gagalLoginBerturut: 0, terkunciSampai: null })
-    .where(eq(pengguna.id, idPengguna));
-}
-
 export async function catatLoginSukses(tx: Tx, idPengguna: number, waktu: Date): Promise<void> {
   await tx
     .update(pengguna)

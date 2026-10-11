@@ -251,6 +251,9 @@ catalogs:
     lucide-react:
       specifier: 1.47.0
       version: 1.47.0
+    nodemailer:
+      specifier: 10.0.14
+      version: 10.0.14
     pg:
       specifier: 8.23.0
       version: 8.23.0
@@ -379,6 +382,9 @@ importers:
       hono:
         specifier: 'catalog:'
         version: 4.13.8
+      nodemailer:
+        specifier: 'catalog:'
+        version: 10.0.14
       pg:
         specifier: 'catalog:'
         version: 8.23.0
@@ -3299,6 +3305,10 @@ packages:
   node-releases@2.0.57:
     resolution: {integrity: sha512-kQK9LGGFiHtrWiNhZtA7Qbw17AQz+dmsEKODRIVTXA9+e5MS/2gZEBhYJt13GrAz5/IOZKddH/0Z3TP/Zgo+yw==}
     engines: {node: '>=18'}
+
+  nodemailer@10.0.14:
+    resolution: {integrity: sha512-eJoLFKg55fesSlzUekmfOv/SBXh4KUYT8oiQc2RLP0tfG0rbNMJBK7wgHJwXTJwqyKlSJMz9UzDZ4v+aHEvo8g==}
+    engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -6333,6 +6343,8 @@ snapshots:
   node-gyp-build@4.8.4: {}
 
   node-releases@2.0.57: {}
+
+  nodemailer@10.0.14: {}
 
   normalize-path@3.0.0: {}
 

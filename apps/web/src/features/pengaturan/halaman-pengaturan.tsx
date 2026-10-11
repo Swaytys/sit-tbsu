@@ -12,8 +12,10 @@ import { FormOperasional } from './form-operasional';
 import { FormPenomoran } from './form-penomoran';
 import { FormProfil } from './form-profil';
 import { KartuLogo } from './kartu-logo';
+import { KartuPrinterStruk } from './kartu-printer-struk';
 import { TabCadangan } from './tab-cadangan';
 import { TabLog } from './tab-log';
+import { TabPersetujuan } from './tab-persetujuan';
 
 /**
  * Pengaturan sistem (Admin, Owner). Tab "Log Aktivitas" bila `sistem.log.lihat`, tab "Cadangan" bila
@@ -52,10 +54,12 @@ export function HalamanPengaturan() {
         <Tabs value={tab} onValueChange={(v) => setUrl({ tab: v }, { replace: true })}>
           <TabsList>
             <TabsTrigger value="profil">Profil toko</TabsTrigger>
+            <TabsTrigger value="struk">Struk &amp; printer</TabsTrigger>
             <TabsTrigger value="penomoran">Penomoran</TabsTrigger>
             <TabsTrigger value="operasional">Operasional</TabsTrigger>
             <TabsTrigger value="harga">Harga &amp; diskon</TabsTrigger>
             <TabsTrigger value="keamanan">Keamanan</TabsTrigger>
+            <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>
             {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
           </TabsList>
@@ -63,6 +67,12 @@ export function HalamanPengaturan() {
             <div className="space-y-4">
               <FormProfil pengaturan={pengaturan.data} />
               <KartuLogo />
+            </div>
+          </TabsContent>
+          <TabsContent value="struk">
+            <div className="space-y-4">
+              <FormProfil pengaturan={pengaturan.data} bagian="struk" />
+              <KartuPrinterStruk />
             </div>
           </TabsContent>
           <TabsContent value="penomoran">
@@ -76,6 +86,9 @@ export function HalamanPengaturan() {
           </TabsContent>
           <TabsContent value="keamanan">
             <FormKeamanan pengaturan={pengaturan.data} />
+          </TabsContent>
+          <TabsContent value="persetujuan">
+            <TabPersetujuan />
           </TabsContent>
           {bolehCadangan && (
             <TabsContent value="cadangan">

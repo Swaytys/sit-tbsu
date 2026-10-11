@@ -1,4 +1,4 @@
-import { formatRupiah, type BarisVoid, type DataAtasan, type DataSetujui } from '@sit/shared';
+import { formatRupiah, type BarisVoid, type DataSetujui } from '@sit/shared';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -12,10 +12,8 @@ import {
   useDaftarVoid,
   useKandidatVoid,
   useSetujuiVoid,
-  useSetujuiVoidDiTempat,
   useTolakVoid,
 } from '@/api/penjualan';
-import { DialogAtasan } from '@/components/dialog-atasan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -25,7 +23,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
-import { DialogBatalPengajuan, DialogPutuskan, IsianRefund, SelStatusKoreksi } from './komponen';
+import {
+  DialogBatalPengajuan,
+  DialogKodeKoreksi,
+  DialogPutuskan,
+  IsianRefund,
+  SelStatusKoreksi,
+} from './komponen';
 
 function FormAjukan() {
   const saya = usePengguna();
@@ -39,7 +43,8 @@ function FormAjukan() {
   const [item, setItem] = useState<number[]>([]);
   const [alasan, setAlasan] = useState('');
   const [refund, setRefund] = useState<DataSetujui>({ metodeRefund: 'TUNAI' });
-  const [mintaAtasan, setMintaAtasan] = useState(false);
+  /** Void yang baru diajukan dan menunggu: langsung ditawari persetujuan dengan kode atasan (K-102). */
+  const [kodeUntuk, setKodeUntuk] = useState<{ dok: BarisVoid; refund: DataSetujui } | null>(null);
 
   const normal = pilih?.baris.filter((b) => b.statusItem === 'NORMAL') ?? [];
   const semua = normal.length > 0 && item.length === normal.length;
@@ -47,7 +52,7 @@ function FormAjukan() {
   const tanpaAtasan = !langsungSetuju && nilai > 0 && nilai <= (pilih?.sisaBatasBebas ?? 0);
   const langsung = langsungSetuju || tanpaAtasan;
 
-  function kirim(atasan: DataAtasan | null) {
+  function kirim() {
     if (!pilih) return;
     ajukan
       .mutateAsync({
@@ -56,7 +61,6 @@ function FormAjukan() {
         idDetail: semua ? [] : item,
         alasan,
         persetujuan: refund,
-        atasan,
       })
       .then((v) => {
         toast.success(
@@ -64,7 +68,7 @@ function FormAjukan() {
             ? `Void ${v.nomor} disetujui${v.nominalRefund ? `; kembalikan ${formatRupiah(v.nominalRefund)}` : ''}.`
             : `Void ${v.nomor} diajukan; menunggu persetujuan Admin/Owner.`,
         );
-        setMintaAtasan(false);
+        if (v.status === 'MENUNGGU') setKodeUntuk({ dok: v, refund });
         setIdPilih(null);
         setItem([]);
         setAlasan('');
@@ -186,35 +190,35 @@ function FormAjukan() {
                 ? 'Anda berhak menyetujui: void langsung berlaku, stok dikembalikan.'
                 : tanpaAtasan
                   ? `Nilai void masih di dalam batas tanpa persetujuan (sisa ${formatRupiah(pilih.sisaBatasBebas)} untuk transaksi ini): void langsung berlaku dan tercatat atas nama Anda.`
-                  : 'Butuh persetujuan Admin/Owner. Atasan bisa menyetujui di layar ini sekarang, atau void diajukan dan menunggu. Stok dan uang baru berubah setelah disetujui.'}
+                  : 'Butuh persetujuan Admin/Owner. Setelah diajukan, Anda bisa meminta kode sekali pakai yang dikirim ke atasan, atau menunggu atasan menyetujui dari akunnya. Stok dan uang baru berubah setelah disetujui.'}
             </p>
             <Button
               disabled={item.length === 0 || alasan.trim().length < 3 || ajukan.isPending}
-              onClick={() => (langsung ? kirim(null) : setMintaAtasan(true))}
+              onClick={kirim}
             >
-              {langsung ? 'Void sekarang' : 'Lanjut: minta persetujuan'}
+              {langsung ? 'Void sekarang' : 'Ajukan & minta persetujuan'}
             </Button>
-            {mintaAtasan && (
-              <DialogAtasan
-                judul={`Persetujuan void ${pilih.nomor}`}
-                ringkasan={
-                  <>
-                    {normal
-                      .filter((b) => item.includes(b.id))
-                      .map((b) => `${b.namaBarang} ${formatDesimal(b.qty)} ${b.kodeSatuan}`)
-                      .join(', ')}{' '}
-                    — <b>{formatRupiah(nilai)}</b>. Alasan: {alasan}.
-                  </>
-                }
-                memproses={ajukan.isPending}
-                onSetujui={kirim}
-                onAjukanSaja={() => kirim(null)}
-                onTutup={() => setMintaAtasan(false)}
-              />
-            )}
           </>
         )}
       </Card>
+      {kodeUntuk && (
+        <DialogKodeKoreksi
+          jenis="void"
+          dok={kodeUntuk.dok}
+          ringkasan={
+            <>
+              {kodeUntuk.dok.baris
+                .map((b) => `${b.namaBarang} ${formatDesimal(b.qtyDasar)} ${b.kodeSatuan}`)
+                .join(', ')}{' '}
+              — <b>{formatRupiah(kodeUntuk.dok.nominalVoid)}</b>. Alasan: {kodeUntuk.dok.alasan}.
+            </>
+          }
+          refundAwal={kodeUntuk.refund}
+          tampilRefund={false}
+          labelTutup="Nanti saja, tunggu persetujuan"
+          onTutup={() => setKodeUntuk(null)}
+        />
+      )}
     </div>
   );
 }
@@ -226,12 +230,10 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
   const perHalaman = useBarisPerHalaman();
   const daftar = useDaftarVoid({ status: menunggu ? 'MENUNGGU' : null, halaman, perHalaman });
   const setujui = useSetujuiVoid();
-  const setujuiDiTempat = useSetujuiVoidDiTempat();
   const tolak = useTolakVoid();
   const batal = useBatalVoid();
   const [putus, setPutus] = useState<BarisVoid | null>(null);
   const [diTempat, setDiTempat] = useState<BarisVoid | null>(null);
-  const [refundDiTempat, setRefundDiTempat] = useState<DataSetujui>({ metodeRefund: 'TUNAI' });
   const [dibatalkan, setDibatalkan] = useState<BarisVoid | null>(null);
   const kolom: KolomTabel<BarisVoid>[] = [
     {
@@ -284,9 +286,11 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
                     Putuskan
                   </Button>
                 ) : (
-                  <Button size="sm" onClick={() => setDiTempat(v)}>
-                    Setujui di tempat
-                  </Button>
+                  v.idPengaju === saya.id && (
+                    <Button size="sm" onClick={() => setDiTempat(v)}>
+                      Setujui dengan kode
+                    </Button>
+                  )
                 )}
                 {(bolehPutus || v.idPengaju === saya.id) && (
                   <Button size="sm" variant="outline" onClick={() => setDibatalkan(v)}>
@@ -309,8 +313,9 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
     <Card className="gap-0 overflow-hidden py-0">
       {menunggu && !bolehPutus && (
         <p className="border-b bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          Void di bawah menunggu Admin/Owner. <b>Setujui di tempat</b>: atasan mengetik akunnya di
-          layar ini. <b>Batalkan</b>: tarik pengajuan Anda yang salah input, lalu ajukan lagi.
+          Void di bawah menunggu Admin/Owner. <b>Setujui dengan kode</b>: sistem mengirim kode
+          sekali pakai ke atasan, lalu Anda mengetik kode yang disebutkan atasan. <b>Batalkan</b>:
+          tarik pengajuan Anda yang salah input, lalu ajukan lagi.
         </p>
       )}
       <DataTable
@@ -353,29 +358,14 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
         />
       )}
       {diTempat && (
-        <DialogAtasan
-          judul={`Persetujuan void ${diTempat.nomor}`}
+        <DialogKodeKoreksi
+          jenis="void"
+          dok={diTempat}
           ringkasan={ringkasan(diTempat)}
-          memproses={setujuiDiTempat.isPending}
+          refundAwal={{ metodeRefund: 'TUNAI' }}
+          tampilRefund
           onTutup={() => setDiTempat(null)}
-          onSetujui={(atasan) =>
-            void setujuiDiTempat
-              .mutateAsync({ id: diTempat.id, json: { ...refundDiTempat, atasan } })
-              .then((v) => {
-                toast.success(
-                  `Void ${v.nomor} disetujui ${v.namaPenyetuju ?? 'atasan'}${v.nominalRefund ? `; kembalikan ${formatRupiah(v.nominalRefund)}` : ''}.`,
-                );
-                setDiTempat(null);
-              })
-              .catch((err: unknown) => toast.error(pesanGalat(err)))
-          }
-        >
-          <IsianRefund
-            nilai={refundDiTempat}
-            onUbah={setRefundDiTempat}
-            labelTunai="Tunai (laci shift kasir ini)"
-          />
-        </DialogAtasan>
+        />
       )}
       {dibatalkan && (
         <DialogBatalPengajuan

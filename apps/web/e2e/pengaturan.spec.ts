@@ -3,6 +3,9 @@ import { masukCepat, menuUtama } from './pembantu';
 
 /** Ubah footer struk lalu kembalikan nilai asli (database pengembangan tidak berubah). */
 async function ubahFooterLaluKembalikan(page: Page) {
+  // Isi dan cara cetak struk ada di tab Struk & printer (K-103).
+  await page.getByRole('tab', { name: 'Struk & printer' }).click();
+  await expect(page.getByRole('heading', { name: 'Printer struk komputer ini' })).toBeVisible();
   const footer = page.getByLabel('Teks penutup struk');
   const asli = await footer.inputValue();
   const baru = `Terima kasih (uji ${Date.now()})`;

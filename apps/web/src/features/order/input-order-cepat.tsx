@@ -26,6 +26,7 @@ import { PeringatanPiutang } from '@/components/peringatan-piutang';
 import { formatDesimal } from '@/lib/format';
 import { InfoTierBelanja } from '@/components/info-tier-belanja';
 import { cn } from '@/lib/utils';
+import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
 import { BilahTombol, type Tombol } from '../pos/bilah-tombol';
 import { CariBarangPos } from '../pos/cari-barang-pos';
 import { CariPelangganPos } from '../pos/cari-pelanggan-pos';
@@ -159,6 +160,7 @@ export function InputOrderCepat() {
   /** Catatan pembuat order untuk kasir (tampil di tiket antrean dan layar kasir, K-099). */
   const [catatan, setCatatan] = useState('');
   const [terakhir, setTerakhir] = useState<{ no: number; isi: string } | null>(null);
+  const [pelangganBaru, setPelangganBaru] = useState(false);
   const antar = jenis === 'PENGANTARAN';
 
   useEffect(() => {
@@ -404,16 +406,27 @@ export function InputOrderCepat() {
               <div className="min-w-64 flex-1" id={ID.pelanggan}>
                 <CariPelangganPos
                   id="order-cari-pelanggan"
+                  wajib={antar}
                   onPilih={pilihPelanggan}
+                  onTambahBaru={() => setPelangganBaru(true)}
                   onEsc={() => setZona('cari')}
                 />
               </div>
             ) : (
               <>
-                <span className="text-slate-500">
-                  <kbd className="font-mono text-xs">F4</kbd> Pelanggan:
-                </span>
-                <span className="font-medium">{tr.t.pelanggan?.nama ?? 'Pembeli umum'}</span>
+                <button
+                  type="button"
+                  onClick={() => setZona('pelanggan')}
+                  title="Pilih atau ganti pelanggan (F4)"
+                  className="rounded border border-dashed border-slate-300 px-2 py-0.5 text-left hover:border-blue-500 hover:bg-blue-50"
+                >
+                  <span className="text-slate-500">
+                    <kbd className="font-mono text-xs">F4</kbd> Pelanggan:
+                  </span>{' '}
+                  <span className="font-medium">
+                    {tr.t.pelanggan?.nama ?? (antar ? 'pilih pelanggan' : 'Pembeli umum')}
+                  </span>
+                </button>
                 {!tr.t.pelanggan && !antar && (
                   <input
                     value={tr.t.namaPembeli}
@@ -576,6 +589,13 @@ export function InputOrderCepat() {
         />
       </div>
       <BilahTombol daftar={tombol} />
+      {pelangganBaru && (
+        <DialogPelanggan
+          pelanggan={null}
+          onTutup={() => setPelangganBaru(false)}
+          onTersimpan={pilihPelanggan}
+        />
+      )}
     </div>
   );
 }

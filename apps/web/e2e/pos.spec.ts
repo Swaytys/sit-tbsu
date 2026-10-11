@@ -254,6 +254,7 @@ test('Pengantaran: order → invoice DP transfer → surat jalan semua barang, h
     await kasir.keyboard.press('Enter');
     await expect(kasir.getByTestId('total-pos')).toHaveText('Rp 500.000');
     await expect(kasir.getByLabel('Bayar')).toBeFocused();
+    await kasir.keyboard.press('u'); // DP: sebagian sekarang, sisanya piutang
     await kasir.keyboard.press('b'); // transfer
     await kasir.keyboard.type('200000');
     await kasir.keyboard.press('Tab');

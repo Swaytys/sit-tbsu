@@ -20,12 +20,16 @@ import {
 
 export type PelangganPos = { id: number; nama: string };
 
+/** Isian pengiriman (pengantaran): dari order antrean, atau diisi di layar untuk pengantaran tanpa order. */
+export type KirimPos = { alamat: string; catatan: string; ongkir: number };
+
 export type TransaksiPos = {
   /** Order antrean yang sedang dibayar; `null` = jual langsung tanpa order. */
   order: DetailOrder | null;
   baris: BarisPos[];
   pelanggan: PelangganPos | null;
   namaPembeli: string;
+  kirim: KirimPos;
   /** Isi/pelanggan berbeda dari order asal (checkout mengirim isi baru, R4/K-073). */
   diubah: boolean;
 };
@@ -35,6 +39,7 @@ const KOSONG: TransaksiPos = {
   baris: [],
   pelanggan: null,
   namaPembeli: '',
+  kirim: { alamat: '', catatan: '', ongkir: 0 },
   diubah: false,
 };
 
@@ -76,6 +81,7 @@ export function useTransaksiPos(tierDefault: number | null) {
       baris: dariOrder(d),
       pelanggan: d.idPelanggan ? { id: d.idPelanggan, nama: d.namaPelanggan ?? '' } : null,
       namaPembeli: d.namaPembeli ?? '',
+      kirim: { alamat: d.alamatKirim ?? '', catatan: d.catatanKirim ?? '', ongkir: d.ongkir },
       diubah: false,
     });
     setCadangan(null);
@@ -114,12 +120,21 @@ export function useTransaksiPos(tierDefault: number | null) {
     setT({ ...t, diubah: true, baris: t.baris.filter((_, j) => j !== i) });
   }
 
-  function aturPelanggan(p: Pelanggan | null) {
+  /** `isiAlamat`: alamat kirim yang masih kosong diisi alamat pelanggan (pengantaran). */
+  function aturPelanggan(p: Pelanggan | null, isiAlamat = false) {
     setT({
       ...t,
       diubah: true,
       pelanggan: p ? { id: p.id, nama: p.namaPelanggan } : null,
+      kirim:
+        isiAlamat && p?.alamat && !t.kirim.alamat.trim()
+          ? { ...t.kirim, alamat: p.alamat }
+          : t.kirim,
     });
+  }
+
+  function aturKirim(ubahan: Partial<KirimPos>) {
+    setT({ ...t, diubah: true, kirim: { ...t.kirim, ...ubahan } });
   }
 
   function aturNamaPembeli(nama: string) {
@@ -139,7 +154,7 @@ export function useTransaksiPos(tierDefault: number | null) {
       ? t.order.total
       : t.baris.reduce((s, b) => s + subtotalBaris(b, tierBawaan), 0) -
         (t.order?.diskonTransaksi ?? 0) +
-        (t.order?.ongkir ?? 0);
+        t.kirim.ongkir;
 
   /** Isi order untuk API (dibuat baru, atau menggantikan isi order asal). */
   function isianOrder(jenis: JenisPenjualan): InputOrder {
@@ -148,9 +163,9 @@ export function useTransaksiPos(tierDefault: number | null) {
       idPelanggan: t.pelanggan?.id ?? null,
       namaPembeli: t.pelanggan ? null : t.namaPembeli.trim() || null,
       prioritas: t.order?.prioritas ?? 'NORMAL',
-      alamatKirim: t.order?.alamatKirim ?? null,
-      catatanKirim: t.order?.catatanKirim ?? null,
-      ongkir: t.order?.ongkir ?? 0,
+      alamatKirim: t.kirim.alamat.trim() || null,
+      catatanKirim: t.kirim.catatan.trim() || null,
+      ongkir: t.kirim.ongkir,
       diskonTransaksi: t.order?.diskonTransaksi ?? 0,
       catatan: t.order?.catatan ?? null,
       baris: t.baris.map(keBarisOrder),
@@ -166,6 +181,7 @@ export function useTransaksiPos(tierDefault: number | null) {
     ubah,
     hapus,
     aturPelanggan,
+    aturKirim,
     aturNamaPembeli,
     kosongkan,
     urungkan,

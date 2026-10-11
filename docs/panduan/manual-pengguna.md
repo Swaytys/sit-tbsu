@@ -66,29 +66,41 @@ Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
 - Hasil cari menampilkan nama, atribut singkat, satuan, harga, dan stok; info lengkap (kode, merk, atribut)
   muncul di bawah daftar untuk barang yang disorot.
 - **F8** bayar → ketik uang yang diterima → **Enter**. Kembalian tampil besar; struk tercetak otomatis di kertas
-  thermal (lebar 57/58/80 mm diatur di *Pengaturan › Profil toko*; panjang struk mengikuti isinya). Di pengaturan
-  yang sama: **Langsung cetak**, **Tanya dulu**, atau **Tidak dicetak**; tombol *Cetak struk* juga ada di layar
-  hasil. Agar tanpa jendela pratinjau, buka kasir lewat pintasan `buka-kasir` (lihat panduan server).
+  thermal. Di *Pengaturan › Struk & printer*: lebar kertas 57/58/80 mm, **Langsung cetak** / **Tanya dulu** /
+  **Tidak dicetak**; tombol *Cetak struk* juga ada di layar hasil.
+- **Struk tanpa jendela cetak:** buka aplikasi dengan **Chrome atau Edge**, lalu di *Pengaturan › Struk &
+  printer › Printer struk komputer ini* tekan **Pilih printer…** (printer Bluetooth harus sudah dipasangkan di
+  Windows; ia tampil sebagai *Standard Serial over Bluetooth (COM…)*), coba **Uji cetak**, lalu nyalakan **Cetak
+  struk langsung ke printer thermal**. Cukup sekali per komputer kasir. Bila baris angka pada uji cetak turun
+  baris, ubah *Karakter per baris*. Bila printer mati saat menjual, penjualan tetap tersimpan dan muncul tombol
+  **Jendela cetak**.
+- **Pembeli terdata boleh belum lunas.** Pilih pelanggan (F4 atau klik nama pelanggan), lalu pilih cara bayar:
+  **Lunas** (L), **DP** (U: ketik uang muka, sisanya jadi piutang), atau **Bayar nanti** (N: seluruhnya piutang).
 - Barang belum diambil pembeli: tandai *belum diambil*; konfirmasi saat diambil.
 
-**Penjualan pengantaran** (*Transaksi › Penjualan Pengantaran*): pilih order pengantaran → bayar penuh / DP /
-bayar saat barang diterima → **P** cetak invoice, **S** buat surat jalan & cetak. Status surat jalan dimajukan
-saat dimuat, dikirim, dan diterima.
+**Penjualan pengantaran** (*Transaksi › Penjualan Pengantaran*): pilih order pengantaran dari antrean, **atau
+buat langsung di halaman ini**: klik *Pelanggan* (atau F4) → pilih pelanggan (atau **Pelanggan baru**) → isi
+alamat kirim dan ongkir → tambah barang. Pelanggan pengantaran wajib punya No. HP. Lalu pilih cara bayar:
+**Lunas** (L), **DP** (U), **Bayar nanti** (N), atau **Saat terima** (S: ditagih saat barang diterima) → **Buat
+invoice** → **P** cetak invoice, **S** buat surat jalan & cetak. Status surat jalan dimajukan saat dimuat,
+dikirim, dan diterima.
 
 **Piutang** (*Transaksi › Piutang*): daftar tagihan belum lunas dan jatuh temponya; **Terima pembayaran** untuk
 pelunasan.
 
 **Salah transaksi:**
 - *Void Transaksi* — membatalkan barang/transaksi **di shift yang masih buka** dan belum dikirim/diretur. Isi
-  alasan → **Lanjut: minta persetujuan**.
+  alasan → **Ajukan & minta persetujuan**.
 - *Retur Penjualan* — barang dikembalikan pembeli (sudah lewat shift atau sudah dikirim). Cari nomor struk;
   tabel menunjukkan **Dibeli**, **Sudah diretur**, dan **Sisa** tiap barang, dan retur sebelumnya atas struk itu.
   Isi qty (paling banyak sebesar Sisa), kondisi (baik/rusak/cacat), alasan, penyelesaian (uang kembali / tukar
-  barang sama / potong tagihan) → **Lanjut: minta persetujuan**.
-- **Persetujuan retur/void**: muncul dialog *Persetujuan atasan*. Bila Admin/Owner ada di toko, ia mengetik
-  **nama pengguna dan password-nya sendiri** di layar Anda → **Setujui sekarang** (Anda tidak perlu keluar;
-  tercatat atas nama atasan; uang kembali dari laci shift Anda). Bila tidak ada atasan: **Ajukan saja, tunggu
-  persetujuan**. Retur/void bernilai kecil (batas di Pengaturan) langsung jadi tanpa dialog.
+  barang sama / potong tagihan) → **Ajukan & minta persetujuan**.
+- **Persetujuan retur/void**: setelah diajukan muncul dialog *Persetujuan*. Tekan **Kirim kode ke atasan**:
+  Admin/Owner menerima pesan Telegram/email berisi rincian permintaan dan **kode 6 angka**. Hubungi atasan; bila
+  setuju ia menyebutkan kodenya → ketik → **Setujui dengan kode** (tercatat atas nama atasan; uang kembali dari
+  laci shift Anda). Kode berlaku 10 menit, sekali pakai. Belum bisa menghubungi atasan: **Nanti saja, tunggu
+  persetujuan**, lalu lanjutkan dari tab *Menunggu persetujuan* → **Setujui dengan kode**. Retur/void bernilai
+  kecil (batas di Pengaturan) langsung jadi tanpa dialog. Anda tidak pernah diminta password atasan.
 - **Salah input?** Selama masih *Menunggu*, buka tab **Menunggu persetujuan** → **Batalkan** (isi alasan), lalu
   ajukan lagi. Yang sudah *Disetujui* tidak bisa dibatalkan: kurang → retur tambahan; lebih → catat penjualan
   baru.
@@ -166,13 +178,19 @@ Semua tugas kasir, ditambah:
   sudah dikurangkan) → **Simpan setoran** → **Cetak nota setoran** untuk pemasok → **Bayar** (transfer atau tunai
   dari laci). Barang titipan yang tidak laku dikembalikan lewat *Retur ke Pemasok › Pengembalian titipan*.
 - **Limit kredit**: bila penjualan tidak lunas membuat piutang pelanggan melewati limitnya, Admin/Owner melihat
-  dialog **Setujui & lanjutkan**. Kasir melihat dialog **Persetujuan atasan**: Admin/Owner mengetik nama pengguna
-  dan password-nya sendiri di layar kasir (kasir tidak perlu keluar), atau kasir menutup dialog dan menerima
-  pembayaran lebih dulu. Persetujuan tercatat di log atas nama atasan.
+  dialog **Setujui & lanjutkan**. Kasir melihat dialog *Limit kredit terlampaui*: **Kirim kode ke atasan**, lalu
+  ketik kode yang disebutkan atasan; atau tutup dialog dan terima pembayaran lebih dulu. Persetujuan tercatat di
+  log atas nama atasan. Limit pelanggan baru terisi dari **limit bawaan** (centang *Jadikan limit ini bawaan* di
+  form tambah pelanggan).
+- **Menerima kode persetujuan (Admin/Owner)**: buka menu akun (kanan atas) › **Akun saya** → isi **Email** dan/atau
+  **Hubungkan Telegram** (buka bot toko, tekan Start, lalu Periksa). Saat kasir meminta persetujuan, Anda menerima
+  pesan berisi rinciannya dan sebuah kode. **Sebutkan kode ke kasir hanya bila setuju**; bila tidak, abaikan.
+  Owner/Admin menyiapkan salurannya sekali di *Pengaturan › Persetujuan* (token bot Telegram dari @BotFather,
+  atau akun Gmail dengan sandi aplikasi); petunjuknya ada di tombol **?** pada tab itu.
 - **Persetujuan**: tab *Menunggu persetujuan* di *Retur Penjualan* dan *Void Transaksi* (juga dari lonceng).
   Periksa alasan, pilih cara pengembalian uang, **Setujui** atau **Tolak** dengan alasan. Di toko dengan satu
-  komputer Anda tidak perlu ganti akun: ketik akun Anda di dialog *Persetujuan atasan* di layar kasir. Kolom
-  Status di riwayat menulis siapa yang menyetujui dan caranya. **Batas tanpa persetujuan** diatur di
+  komputer, atau saat Anda tidak di toko, Anda tidak perlu ganti akun: cukup sebutkan kode yang Anda terima ke
+  kasir (lihat *Menerima kode persetujuan*). Kolom Status di riwayat menulis siapa yang menyetujui dan caranya. **Batas tanpa persetujuan** diatur di
   *Pengaturan › Operasional* (Rp 0 = semua retur/void harus disetujui atasan).
 - **Laporan lengkap**: stok rekap, kartu stok, stok minimum, nilai persediaan (termasuk informasi barang rusak),
   riwayat harga beli (bandingkan harga antarpemasok), promo, gross profit (laba kotor), hutang usaha, umur

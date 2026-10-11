@@ -42,6 +42,8 @@ import {
 } from '@/components/ui/table';
 import { formatDesimal, formatTanggal, formatWaktu } from '@/lib/format';
 import { LABEL_STATUS_PENGAMBILAN, LABEL_STATUS_PENGIRIMAN } from '@/lib/label';
+import { cetakLangsungAktif } from '@/lib/printer-thermal';
+import { cetakStrukLangsung } from '@/lib/struk-escpos';
 import { PanelSuratJalan } from '../pengantaran/panel-surat-jalan';
 import { PanelBayarPos } from '../pos/panel-bayar-pos';
 
@@ -140,7 +142,19 @@ export function HalamanDetailPenjualan() {
   function cetakUlang() {
     if (!p) return;
     void catatCetakUlang(p.id)
-      .then(() => setCetak(langsung ? 'struk' : 'invoice'))
+      .then(() => {
+        // K-103: struk langsung ke printer thermal komputer ini bila dinyalakan; invoice tetap A4.
+        if (langsung && toko && cetakLangsungAktif()) {
+          return cetakStrukLangsung(p, toko, { cetakUlang: true }).catch((err: unknown) => {
+            toast.error(
+              `Struk tidak tercetak: ${err instanceof Error ? err.message : 'printer bermasalah.'}`,
+              { action: { label: 'Jendela cetak', onClick: () => setCetak('struk') } },
+            );
+          });
+        }
+        setCetak(langsung ? 'struk' : 'invoice');
+        return undefined;
+      })
       .catch((err: unknown) => toast.error(pesanGalat(err)));
   }
 

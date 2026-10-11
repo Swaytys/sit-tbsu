@@ -16,7 +16,7 @@ import {
   type TiketAntrean,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
-import { AppError } from '../../../lib/errors';
+import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { logger } from '../../../lib/logger';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
@@ -181,6 +181,13 @@ async function validasiPelanggan(tx: Tx, input: DataOrder) {
     throw new AppError('VALIDASI', `Pelanggan ${p.namaPelanggan} nonaktif.`, 400, {
       kolom: { idPelanggan: ['Pelanggan nonaktif.'] },
     });
+  }
+  // R10 (K-104): barang diantar, jadi pembelinya harus bisa dihubungi.
+  if (input.jenisPenjualan === 'PENGANTARAN' && !p.noHp?.trim()) {
+    throw galatKolom(
+      'idPelanggan',
+      `${p.namaPelanggan} belum punya No. HP. Lengkapi di Data Pelanggan sebelum membuat pengantaran.`,
+    );
   }
 }
 

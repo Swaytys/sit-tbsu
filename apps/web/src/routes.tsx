@@ -206,7 +206,7 @@ export const router = createBrowserRouter([
               {
                 path: 'akun/password',
                 element: <HalamanGantiPasswordAkun />,
-                handle: { judul: 'Ganti password' },
+                handle: { judul: 'Akun saya' },
               },
               {
                 path: '*',

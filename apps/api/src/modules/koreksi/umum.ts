@@ -10,10 +10,10 @@ import { penjualan, suratJalan } from '../../db/schema';
 import { AppError } from '../../lib/errors';
 import type { PenggunaAktif } from '../../lib/konteks';
 import { sekarang } from '../../lib/waktu';
-import type { Atasan } from '../auth/service';
 import { catatKas } from '../kas/shift/service';
 import { hitungTagihan, statusPembayaran, type NilaiTagihan } from '../penjualan/pembayaran';
 import { sinkronStatusPengiriman } from '../penjualan/surat-jalan/service';
+import type { Atasan } from '../sistem/kode-persetujuan/service';
 
 /*
  * Bagian bersama void dan retur (docs/05 §8–§9): refund ke pembeli, pembaruan cache tagihan (P9), dan
@@ -32,13 +32,12 @@ export type Persetujuan = {
 };
 
 /**
- * Persetujuan langsung saat mengajukan (docs/04 §6): pengaju berwenang (K-017), atasan menyetujui di tempat,
- * atau nilai dokumen masih di dalam batas bebas (K-099). `null` = dokumen menunggu persetujuan.
+ * Persetujuan langsung saat mengajukan (docs/04 §6): pengaju berwenang (K-017) atau nilai dokumen masih di
+ * dalam batas bebas (K-099). `null` = dokumen menunggu persetujuan (akun atasan atau kode sekali pakai).
  */
 export function persetujuanLangsung(p: {
   pengaju: PenggunaAktif;
   berwenang: boolean;
-  atasan: Atasan | null;
   /** Batas tanpa persetujuan (rupiah) bila nilai dokumen masih di dalamnya; selain itu `null`. */
   batasBebas: number | null;
 }): Persetujuan | null {
@@ -50,7 +49,6 @@ export function persetujuanLangsung(p: {
       catatanLog: ' (diajukan & disetujui sendiri, K-017)',
     };
   }
-  if (p.atasan) return persetujuanDiTempat(p.atasan, p.pengaju);
   if (p.batasBebas !== null) {
     return {
       idPenyetuju: p.pengaju.id,
@@ -62,19 +60,39 @@ export function persetujuanLangsung(p: {
   return null;
 }
 
-/** Atasan menyetujui di layar pengaju: dokumen atas nama atasan, uang dari laci pengaju. */
+/**
+ * Atasan menyetujui di layar pengaju lewat kode sekali pakai miliknya (K-102): dokumen atas nama atasan,
+ * uang dari laci pengaju.
+ */
 export function persetujuanDiTempat(atasan: Atasan, pengaju: PenggunaAktif): Persetujuan {
   return {
     idPenyetuju: atasan.id,
     kasir: pengaju,
     cara: 'DI_TEMPAT',
-    catatanLog: ` (disetujui ${atasan.namaPengguna} di tempat, sesi ${pengaju.username})`,
+    catatanLog: ` (disetujui ${atasan.namaPengguna} di tempat dengan kode sekali pakai, sesi ${pengaju.username})`,
   };
 }
 
 /** Atasan menyetujui dari akunnya sendiri (tab Persetujuan). */
 export function persetujuanAkunAtasan(penyetuju: PenggunaAktif): Persetujuan {
   return { idPenyetuju: penyetuju.id, kasir: penyetuju, cara: 'AKUN_ATASAN', catatanLog: '' };
+}
+
+/** K-102: kode persetujuan hanya bisa diminta pengaju atas pengajuannya sendiri yang masih menunggu. */
+export function pastikanBolehMintaKode(
+  dok: { nomor: string; status: string; idPengaju: number },
+  pelaku: PenggunaAktif,
+): void {
+  if (dok.status !== 'MENUNGGU') {
+    throw new AppError('STATUS_TIDAK_VALID', `${dok.nomor} sudah diputuskan.`, 409);
+  }
+  if (dok.idPengaju !== pelaku.id) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Kode persetujuan hanya bisa diminta oleh pengaju dokumen itu.',
+      403,
+    );
+  }
 }
 
 /** K-099: pengajuan MENUNGGU hanya boleh ditarik pengajunya sendiri atau pemegang izin setujui. */

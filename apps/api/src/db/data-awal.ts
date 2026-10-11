@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import {
   KODE_DOKUMEN,
   USERNAME_DEMO,
@@ -167,6 +167,12 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     nilai: '0',
     tipe: 'ANGKA',
     deskripsi: 'Term piutang pelanggan baru (hari)',
+  },
+  {
+    kode: 'limit_kredit_default',
+    nilai: '',
+    tipe: 'ANGKA',
+    deskripsi: 'Limit kredit pelanggan baru, Rp; kosong = tanpa limit (K-104)',
   },
   {
     kode: 'login_maks_gagal',
@@ -450,6 +456,14 @@ export async function isiDataAwal(
           wajibGantiPassword: false,
         });
         if (baru) baruPengguna++;
+      }
+      // K-102: akun demo punya email contoh agar alur kode persetujuan bisa dicoba; di pengembangan tanpa
+      // SMTP, pesannya hanya masuk kotak keluar uji (tidak ada email yang benar-benar terkirim).
+      for (const peran of Object.keys(USERNAME_DEMO) as Peran[]) {
+        await tx
+          .update(pengguna)
+          .set({ email: `${USERNAME_DEMO[peran]}@contoh.test` })
+          .where(and(eq(pengguna.username, USERNAME_DEMO[peran]), isNull(pengguna.email)));
       }
     }
 

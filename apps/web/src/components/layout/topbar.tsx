@@ -98,7 +98,7 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => void navigate('/akun/password')}>
-            <KeyRound /> Ganti password
+            <KeyRound /> Akun saya
           </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onSelect={() => logout.mutate()}>
             <LogOut /> Keluar

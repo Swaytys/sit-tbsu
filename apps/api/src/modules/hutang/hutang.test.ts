@@ -4,11 +4,20 @@ import type {
   DetailPenjualan,
   DetailReturPemasok,
   DokumenLaporan,
+  InfoKodePersetujuan,
 } from '@sit/shared';
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
-import { PASSWORD_UJI, json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import {
+  beriEmail,
+  json,
+  kodeTerkirim,
+  minta,
+  pesanTerkirim,
+  sesiUji,
+  siapkanDatabaseSistem,
+} from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import {
@@ -434,41 +443,47 @@ describe('limit kredit pelanggan (PT6) dan umur piutang (PT5)', () => {
     expect(tolak).toMatchObject({ status: 409, kode: 'LIMIT_TERLAMPAUI' });
     expect(tolak.pesan).toContain('piutang berjalan Rp 24.000');
     expect(tolak.detail).toMatchObject({ bolehLanjut: false });
-    // K-101: Kasir meminta atasan mengetik akunnya di layar kasir. Password salah → 400, tidak ada penjualan.
+    // K-102: Kasir meminta kode sekali pakai; atasan membaca limit, piutang berjalan, dan tagihan baru.
+    await beriEmail(admin.pengguna.id);
+    const namaAdmin = admin.pengguna.namaPengguna;
+    const mintaKode = (tagihanBaru: number) =>
+      minta('/api/penjualan/limit-kredit/minta-kode', {
+        method: 'POST',
+        cookie: kasir.cookie,
+        body: { idPelanggan: p!.id, tagihanBaru },
+      });
+    // Tagihan yang tidak melewati limit tidak butuh kode.
+    expect((await mintaKode(1000)).status).toBe(400);
+    const info = (await json<{ data: InfoKodePersetujuan }>(await mintaKode(12_000))).data;
+    expect(info.penerima).toEqual([{ nama: namaAdmin, saluran: ['EMAIL'] }]);
+    expect(pesanTerkirim(namaAdmin)).toContain('CV. Kredit');
+    expect(pesanTerkirim(namaAdmin)).toContain('piutang berjalan Rp 24.000');
+    expect(pesanTerkirim(namaAdmin)).toContain('tagihan baru Rp 12.000');
+    const kode = { idPermintaan: info.idPermintaan, kode: kodeTerkirim(namaAdmin) };
+
+    // Kode salah → 400, tidak ada penjualan baru.
     const jumlahSebelum = (await db.select().from(penjualan)).length;
     const salah = await galat(
       jual(kasir, '1', {
-        atasan: { username: admin.pengguna.username, password: 'tebakan-salah' },
+        kodeLimit: { ...kode, kode: kode.kode === '000000' ? '111111' : '000000' },
       }),
     );
     expect(salah).toMatchObject({ status: 400, kode: 'VALIDASI' });
+    // Kode disetujui untuk tagihan baru Rp 12.000: tagihan Rp 24.000 tidak bisa menumpang kode itu.
+    const lebih = await galat(jual(kasir, '2', { kodeLimit: kode }));
+    expect(lebih).toMatchObject({ status: 409, kode: 'LIMIT_TERLAMPAUI' });
+    expect(lebih.pesan).toContain('Minta kode baru');
     expect(await db.select().from(penjualan)).toHaveLength(jumlahSebelum);
-    // Akun yang tidak memegang izin atur kredit (Kasir lain) tidak bisa menyetujui.
-    const kasir2 = await sesiUji('KASIR');
-    const bukanAtasan = await galat(
-      jual(kasir, '1', {
-        atasan: { username: kasir2.pengguna.username, password: PASSWORD_UJI },
-      }),
-    );
-    expect(bukanAtasan).toMatchObject({ status: 403, kode: 'TIDAK_BERIZIN' });
-    // Akun Admin yang benar → penjualan jadi atas nama Kasir, izin limit tercatat atas nama Admin.
-    const diTempat = await jual(kasir, '1', {
-      atasan: { username: admin.pengguna.username, password: PASSWORD_UJI },
-    });
-    expect(diTempat.status).toBe(201);
-    const pjDiTempat = (await json<{ data: DetailPenjualan }>(diTempat)).data;
-    const logDiTempat = await logTerakhir('PENJUALAN_LIMIT_OVERRIDE');
-    expect(logDiTempat).toMatchObject({
-      nomorDokumen: pjDiTempat.nomor,
-      idPengguna: admin.pengguna.id,
-    });
-    expect(logDiTempat?.ringkasan).toContain(`di tempat, sesi ${kasir.pengguna.username}`);
-    expect(JSON.stringify(logDiTempat)).not.toContain(PASSWORD_UJI);
-    // Sesi Kasir tidak berubah.
-    const saya = await minta('/api/auth/saya', { cookie: kasir.cookie });
-    expect((await json<{ data: { username: string } }>(saya)).data.username).toBe(
-      kasir.pengguna.username,
-    );
+
+    // Kode yang benar untuk tagihan yang disetujui → penjualan atas nama Kasir, izin atas nama Admin.
+    const denganKode = await jual(kasir, '1', { kodeLimit: kode });
+    expect(denganKode.status).toBe(201);
+    const pjKode = (await json<{ data: DetailPenjualan }>(denganKode)).data;
+    const logKode = await logTerakhir('PENJUALAN_LIMIT_OVERRIDE');
+    expect(logKode).toMatchObject({ nomorDokumen: pjKode.nomor, idPengguna: admin.pengguna.id });
+    expect(logKode?.ringkasan).toContain(`kode sekali pakai, sesi ${kasir.pengguna.username}`);
+    // Sekali pakai: penjualan berikutnya butuh kode baru.
+    expect((await galat(jual(kasir, '1', { kodeLimit: kode }))).status).toBe(400);
     await kirim(admin, '/api/shift/buka', { modalAwal: 0 });
     expect((await galat(jual(admin, '1'))).detail).toMatchObject({ bolehLanjut: true });
     const lanjut = await jual(admin, '1', { setujuLimit: true });

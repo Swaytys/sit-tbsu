@@ -57,6 +57,7 @@ catatMutasi(tx, {
 | R7 | **Order basi**: MENUNGGU dengan `waktu_masuk_antrean` lebih tua dari `konfigurasi.batas_umur_order_jam` (default 24). Ditandai di antrean, masuk notifikasi, dan tampil di tab "Stok Tertahan" (per barang: daftar order penahan, qty, umur). Bila `konfigurasi.auto_batal_order_basi = true`, job tiap 15 menit membatalkan order basi dengan `alasan_batal = 'KADALUARSA'` dan mencatat log. |
 | R8 | Kunci DIPROSES: kasir lain tidak bisa membuka order yang sedang DIPROSES. Kasir pemegang kunci bisa melepaskannya (kembali MENUNGGU). Admin/Owner bisa memaksa lepas (log). Order DIPROSES lebih lama dari `konfigurasi.batas_kunci_order_menit` (default 30) otomatis kembali MENUNGGU oleh job yang sama dengan R7. |
 | R9 | Order PENGANTARAN wajib pelanggan dan alamat kirim (CHECK DB). Order LANGSUNG boleh tanpa pelanggan; `nama_pembeli` opsional untuk label ("Tukang Bp. Joko"). |
+| R10 | Pelanggan order PENGANTARAN wajib punya No. HP (barang diantar, pembelinya harus bisa dihubungi); diperiksa saat order dibuat atau diubah. Penjualan pengantaran boleh dibuat langsung di halaman Penjualan Pengantaran tanpa order dari Order Penjualan (K-104). |
 
 ## 4. Penomoran dokumen
 
@@ -216,7 +217,7 @@ Semua total laporan dihitung untuk seluruh periode di server (K-033); paginasi h
 
 ## 16. Aksi log aktivitas
 
-Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, PERSETUJUAN_GAGAL, LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK/BATAL, VOID_AJUKAN/SETUJUI/TOLAK/BATAL, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086), PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN, PENJUALAN_PROMO_LEPAS (K-087). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN.
+Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, PERSETUJUAN_GAGAL, PERSETUJUAN_KODE_KIRIM, AKUN_KONTAK_UBAH (K-102), LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK/BATAL, VOID_AJUKAN/SETUJUI/TOLAK/BATAL, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086), PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN, PENJUALAN_PROMO_LEPAS (K-087). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN.
 
 ## Riwayat
 
@@ -239,3 +240,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-08 — T5: stok pengganti tukar diperiksa saat pengajuan (K-092).
 - 2026-10-10 — P3: tier transaksi menurut total nilai belanja; promo dipotong dari harga tier (K-098).
 - 2026-10-10 — P3 tier tidak bisa dipilih; T3, T10, V3, V7 persetujuan di tempat, batas tanpa persetujuan, status DIBATALKAN; log RETUR_BATAL, VOID_BATAL, PERSETUJUAN_GAGAL (K-099).
+- 2026-10-11 — R10 pelanggan pengantaran wajib No. HP, pengantaran tanpa order (K-104); log PERSETUJUAN_KODE_KIRIM, AKUN_KONTAK_UBAH (K-102).

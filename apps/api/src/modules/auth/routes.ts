@@ -7,6 +7,7 @@ import type { EnvApp } from '../../lib/konteks';
 import { kaitValidasi } from '../../lib/validasi';
 import { batasPercobaanLogin } from '../../middleware/batas-percobaan';
 import { penggunaWajib, requireLogin } from '../../middleware/require-permission';
+import { kotakKeluarUji } from '../sistem/saluran/service';
 import { gantiPassword, keSaya, login, logout, masukCepat, type HasilLogin } from './service';
 import { NAMA_COOKIE_SESI } from './token';
 
@@ -51,13 +52,17 @@ export const authRoutes = new Hono<EnvApp>()
  * Masuk cepat per peran dengan akun demo. HANYA dipasang saat NODE_ENV=development (K-021), sehingga
  * rute ini tidak ada di produksi. Service juga menolak bila bukan mode pengembangan.
  */
-export const authDevRoutes = new Hono<EnvApp>().post(
-  '/masuk-cepat',
-  batasPercobaanLogin,
-  zValidator('json', skemaMasukCepat, kaitValidasi),
-  async (c) => {
-    const hasil = await masukCepat(c.req.valid('json').peran, c.get('asal'));
-    pasangCookieSesi(c, hasil);
-    return c.json({ data: hasil.pengguna }, 200);
-  },
-);
+export const authDevRoutes = new Hono<EnvApp>()
+  .post(
+    '/masuk-cepat',
+    batasPercobaanLogin,
+    zValidator('json', skemaMasukCepat, kaitValidasi),
+    async (c) => {
+      const hasil = await masukCepat(c.req.valid('json').peran, c.get('asal'));
+      pasangCookieSesi(c, hasil);
+      return c.json({ data: hasil.pengguna }, 200);
+    },
+  )
+  // Kotak keluar uji (K-102): pesan kode persetujuan yang "terkirim" selama pengembangan, untuk mencoba
+  // alurnya tanpa bot Telegram atau akun email sungguhan dan untuk tes e2e. Tidak ada di produksi.
+  .get('/pesan-uji', requireLogin(), (c) => c.json({ data: kotakKeluarUji() }, 200));

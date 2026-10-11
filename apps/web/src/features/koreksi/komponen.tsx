@@ -7,6 +7,15 @@ import {
   type StatusPersetujuan,
 } from '@sit/shared';
 import { useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
+import { pesanGalat } from '@/api/client';
+import {
+  useMintaKodeRetur,
+  useMintaKodeVoid,
+  useSetujuiReturKode,
+  useSetujuiVoidKode,
+} from '@/api/penjualan';
+import { DialogKodeAtasan } from '@/components/dialog-kode-atasan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -201,6 +210,61 @@ export function DialogPutuskan({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Persetujuan satu pengajuan retur/void MENUNGGU dengan kode sekali pakai dari atasan (K-102). Hanya untuk
+ * pengaju dokumen itu. `refundAwal` = pilihan refund saat mengajukan; bisa diubah sebelum disetujui.
+ */
+export function DialogKodeKoreksi({
+  jenis,
+  dok,
+  ringkasan,
+  refundAwal,
+  tampilRefund,
+  labelTutup,
+  onTutup,
+}: {
+  jenis: 'retur' | 'void';
+  dok: { id: number; nomor: string };
+  ringkasan: ReactNode;
+  refundAwal: DataSetujui;
+  tampilRefund: boolean;
+  labelTutup?: string;
+  onTutup: () => void;
+}) {
+  const mintaRetur = useMintaKodeRetur();
+  const mintaVoid = useMintaKodeVoid();
+  const setujuiRetur = useSetujuiReturKode();
+  const setujuiVoid = useSetujuiVoidKode();
+  const [refund, setRefund] = useState<DataSetujui>(refundAwal);
+  const minta = jenis === 'retur' ? mintaRetur : mintaVoid;
+  const setujui = jenis === 'retur' ? setujuiRetur : setujuiVoid;
+  return (
+    <DialogKodeAtasan
+      judul={`Persetujuan ${jenis} ${dok.nomor}`}
+      ringkasan={ringkasan}
+      mintaKode={() => minta.mutateAsync(dok.id)}
+      memproses={setujui.isPending}
+      labelTutup={labelTutup}
+      onTutup={onTutup}
+      onSetujui={(kode) =>
+        void setujui
+          .mutateAsync({ id: dok.id, json: { ...refund, kode } })
+          .then((d) => {
+            toast.success(
+              `${jenis === 'retur' ? 'Retur' : 'Void'} ${d.nomor} disetujui ${d.namaPenyetuju ?? 'atasan'}; stok diperbarui.`,
+            );
+            onTutup();
+          })
+          .catch((err: unknown) => toast.error(pesanGalat(err)))
+      }
+    >
+      {tampilRefund && (
+        <IsianRefund nilai={refund} onUbah={setRefund} labelTunai="Tunai (laci shift kasir ini)" />
+      )}
+    </DialogKodeAtasan>
   );
 }
 

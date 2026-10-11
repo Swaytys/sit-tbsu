@@ -1,11 +1,22 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, pgTable, unique, varchar } from 'drizzle-orm/pg-core';
+import {
+  char,
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  unique,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import {
   CARA_PERSETUJUAN,
+  JENIS_KODE_PERSETUJUAN,
   KONDISI_RETUR,
   LINGKUP_VOID,
   METODE_REFUND,
   PENYELESAIAN_RETUR,
+  STATUS_KODE_PERSETUJUAN,
   STATUS_PERSETUJUAN,
 } from '@sit/shared';
 import { shiftKasir } from './kas';
@@ -21,7 +32,7 @@ import {
   timestamptz,
   uang,
 } from './kolom';
-import { barang } from './master';
+import { barang, pelanggan } from './master';
 import { penjualan, penjualanDetail } from './penjualan';
 import { pengguna } from './sistem';
 
@@ -251,5 +262,104 @@ export const voidTransaksiDetail = pgTable(
     unique('uq_void_detail').on(t.idVoid, t.idPenjualanDetail),
     check('chk_void_detail', sql`qty_dasar > 0 and nominal >= 0`),
     index('idx_void_detail_penjualan_detail').on(t.idPenjualanDetail),
+  ],
+);
+
+// Bagian KODE PERSETUJUAN (K-102, migrasi 0014).
+
+/**
+ * Permintaan kode sekali pakai kepada atasan untuk menyetujui retur, void, atau melampaui limit kredit dari
+ * layar pengaju (docs/04 §6). [APPEND] kecuali `status`, `gagal`, `id_penyetuju`, `diputus_pada`.
+ * `nilai` = nilai dokumen; untuk limit kredit = tagihan baru tertinggi yang disetujui.
+ */
+export const permintaanPersetujuan = pgTable(
+  'permintaan_persetujuan',
+  {
+    id: kolomId(),
+    jenis: varchar('jenis', { length: 15, enum: JENIS_KODE_PERSETUJUAN }).notNull(),
+    idPengaju: kolomRef('id_pengaju').notNull(),
+    idRetur: kolomRef('id_retur'),
+    idVoid: kolomRef('id_void'),
+    idPelanggan: kolomRef('id_pelanggan'),
+    nilai: uang('nilai').notNull(),
+    /** Isi pesan yang dikirim ke atasan (tanpa kode). */
+    ringkasan: varchar('ringkasan', { length: 500 }).notNull(),
+    status: varchar('status', { length: 10, enum: STATUS_KODE_PERSETUJUAN })
+      .notNull()
+      .default('MENUNGGU'),
+    /** Jumlah salah ketik kode; mencapai batas → GAGAL. */
+    gagal: integer('gagal').notNull().default(0),
+    kadaluarsaPada: timestamptz('kadaluarsa_pada').notNull(),
+    /** Atasan pemilik kode yang dipakai (terisi saat DIPAKAI). */
+    idPenyetuju: kolomRef('id_penyetuju'),
+    diputusPada: timestamptz('diputus_pada'),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'permintaan_persetujuan_id_pengaju_fkey',
+      columns: [t.idPengaju],
+      foreignColumns: [pengguna.id],
+    }),
+    foreignKey({
+      name: 'permintaan_persetujuan_id_retur_fkey',
+      columns: [t.idRetur],
+      foreignColumns: [returPenjualan.id],
+    }),
+    foreignKey({
+      name: 'permintaan_persetujuan_id_void_fkey',
+      columns: [t.idVoid],
+      foreignColumns: [voidTransaksi.id],
+    }),
+    foreignKey({
+      name: 'permintaan_persetujuan_id_pelanggan_fkey',
+      columns: [t.idPelanggan],
+      foreignColumns: [pelanggan.id],
+    }),
+    foreignKey({
+      name: 'permintaan_persetujuan_id_penyetuju_fkey',
+      columns: [t.idPenyetuju],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_permintaan_persetujuan_jenis', dalamDaftar('jenis', JENIS_KODE_PERSETUJUAN)),
+    check('chk_permintaan_persetujuan_status', dalamDaftar('status', STATUS_KODE_PERSETUJUAN)),
+    check(
+      'chk_permintaan_persetujuan_rujukan',
+      sql`(jenis = 'RETUR' and id_retur is not null) or (jenis = 'VOID' and id_void is not null) or (jenis = 'LIMIT_KREDIT' and id_pelanggan is not null)`,
+    ),
+    check('chk_permintaan_persetujuan_nilai', sql`nilai >= 0 and gagal >= 0`),
+    index('idx_permintaan_persetujuan_pengaju').on(t.idPengaju, t.status),
+    index('idx_permintaan_persetujuan_retur').on(t.idRetur),
+    index('idx_permintaan_persetujuan_void').on(t.idVoid),
+  ],
+);
+
+/**
+ * Satu kode per atasan penerima, sehingga kode yang dipakai menunjukkan siapa yang menyetujui. Yang disimpan
+ * hanya hash kodenya. [APPEND] kecuali `saluran` (hasil pengiriman, diisi sesaat setelah dibuat).
+ */
+export const kodePersetujuan = pgTable(
+  'kode_persetujuan',
+  {
+    id: kolomId(),
+    idPermintaan: kolomRef('id_permintaan').notNull(),
+    idAtasan: kolomRef('id_atasan').notNull(),
+    kodeHash: char('kode_hash', { length: 64 }).notNull(),
+    /** Saluran yang berhasil mengirim, dipisah koma (mis. `TELEGRAM,EMAIL`); kosong = tidak terkirim. */
+    saluran: varchar('saluran', { length: 30 }).notNull().default(''),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'kode_persetujuan_id_permintaan_fkey',
+      columns: [t.idPermintaan],
+      foreignColumns: [permintaanPersetujuan.id],
+    }),
+    foreignKey({
+      name: 'kode_persetujuan_id_atasan_fkey',
+      columns: [t.idAtasan],
+      foreignColumns: [pengguna.id],
+    }),
+    unique('uq_kode_persetujuan_atasan').on(t.idPermintaan, t.idAtasan),
   ],
 );

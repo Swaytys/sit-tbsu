@@ -97,6 +97,56 @@ describe('pelanggan', () => {
     expect(log?.ringkasan).toContain('PLG-00001');
   });
 
+  it('K-104: limit kredit bawaan diatur dari form tambah pelanggan dan dipakai pelanggan berikutnya', async () => {
+    const bawaan = async (sesi: Sesi) =>
+      (await json<{ data: unknown }>(await minta('/api/pelanggan/bawaan', { cookie: sesi.cookie })))
+        .data;
+    expect(await bawaan(staf)).toEqual({ termHari: 14, limitKredit: null });
+
+    // Staf tidak bisa mengubah bawaan (limit berbeda dari bawaan = mengatur kredit).
+    const tolak = await kirim(staf, '/api/pelanggan', {
+      namaPelanggan: 'Toko Coba',
+      noHp: '081234567890',
+      limitKredit: 2_000_000,
+      jadikanLimitBawaan: true,
+    });
+    expect(tolak.status).toBe(403);
+    expect(await bawaan(admin)).toMatchObject({ limitKredit: null });
+
+    // Admin menambah pelanggan dengan limit Rp 2.000.000 dan mencentang "jadikan bawaan".
+    const a = await buat(admin, '/api/pelanggan', {
+      namaPelanggan: 'Toko Satu',
+      noHp: '081234567891',
+      limitKredit: 2_000_000,
+      jadikanLimitBawaan: true,
+    });
+    expect(a.limitKredit).toBe(2_000_000);
+    expect(await bawaan(staf)).toEqual({ termHari: 14, limitKredit: 2_000_000 });
+    expect((await logTerakhir('PENGATURAN_UBAH'))?.ringkasan).toContain('limit_kredit_default');
+
+    // Pelanggan berikutnya dari Staf (tidak mengirim limit) memakai bawaan baru.
+    const b = await buat(staf, '/api/pelanggan', {
+      namaPelanggan: 'Toko Dua',
+      noHp: '081234567892',
+    });
+    expect(b.limitKredit).toBe(2_000_000);
+    // Tanpa centang, limit lain tidak mengubah bawaan.
+    await buat(admin, '/api/pelanggan', {
+      namaPelanggan: 'Toko Tiga',
+      noHp: '081234567893',
+      limitKredit: 500_000,
+    });
+    expect(await bawaan(admin)).toMatchObject({ limitKredit: 2_000_000 });
+    // Kosong + centang = kembali tanpa limit.
+    await buat(admin, '/api/pelanggan', {
+      namaPelanggan: 'Toko Empat',
+      noHp: '081234567894',
+      limitKredit: null,
+      jadikanLimitBawaan: true,
+    });
+    expect(await bawaan(admin)).toMatchObject({ limitKredit: null });
+  });
+
   it('No. HP wajib dan formatnya diperiksa (K-056)', async () => {
     for (const [noHp, pesan] of [
       [undefined, 'wajib'],

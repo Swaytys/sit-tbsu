@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { api, masukCepat, menuUtama } from './pembantu';
+import { api, kodePersetujuan, masukCepat, menuUtama } from './pembantu';
 
-// K-101: penjualan tidak lunas yang melampaui limit kredit pelanggan. Kasir tidak punya izin melanjutkan;
-// Admin mengetik akunnya di layar kasir (persetujuan di tempat) tanpa kasir keluar. Menambah barang, pelanggan,
+// K-101/K-102: penjualan tidak lunas yang melampaui limit kredit pelanggan. Kasir tidak punya izin melanjutkan;
+// kasir meminta kode sekali pakai yang dikirim ke Admin/Owner, lalu mengetiknya. Menambah barang, pelanggan,
 // dan invoice uji di database pengembangan (barang & pelanggan dinonaktifkan di akhir).
-test('Limit kredit terlampaui: Admin menyetujui di layar Kasir (K-101)', async ({ browser }) => {
-  const password = process.env.SEED_OWNER_PASSWORD;
-  test.skip(!password, 'SEED_OWNER_PASSWORD tidak ada di .env');
+test('Limit kredit terlampaui: kode sekali pakai dari Admin di layar Kasir (K-102)', async ({
+  browser,
+}) => {
   const kode = Date.now();
   const admin = await browser.newPage();
   await masukCepat(admin, 'ADMIN');
@@ -59,6 +59,7 @@ test('Limit kredit terlampaui: Admin menyetujui di layar Kasir (K-101)', async (
     await kasir.keyboard.type(String(o.noAntrean));
     await kasir.keyboard.press('Enter');
     await expect(kasir.getByTestId('total-pos')).toHaveText('Rp 500.000');
+    await kasir.keyboard.press('u'); // DP: sebagian sekarang, sisanya piutang
     await kasir.keyboard.press('b');
     await kasir.keyboard.type('200000');
     await kasir.keyboard.press('Tab');
@@ -68,15 +69,18 @@ test('Limit kredit terlampaui: Admin menyetujui di layar Kasir (K-101)', async (
     const dialog = kasir.getByRole('dialog', { name: 'Limit kredit terlampaui' });
     await expect(dialog).toContainText('limit Rp 100.000');
     await expect(dialog).toContainText('tagihan baru Rp 300.000');
-    // Password salah: dialog tetap terbuka, belum ada invoice.
-    await dialog.getByLabel('Nama pengguna atasan').fill('demo.admin');
-    await dialog.getByLabel('Password atasan').fill('bukan-password-ini');
-    await dialog.getByRole('button', { name: 'Setujui sekarang' }).click();
-    await expect(kasir.getByText('Username atau password salah.').first()).toBeVisible();
+    await dialog.getByRole('button', { name: 'Kirim kode ke atasan' }).click();
+    await expect(dialog.getByTestId('penerima-kode')).toContainText('Demo Admin');
+    const kodeAtasan = await kodePersetujuan(kasir, 'Demo Admin');
+    // Kode salah: dialog tetap terbuka, belum ada invoice.
+    const isian = dialog.getByLabel('Kode dari atasan (6 angka)');
+    await isian.fill(kodeAtasan === '000000' ? '111111' : '000000');
+    await dialog.getByRole('button', { name: 'Setujui dengan kode' }).click();
+    await expect(kasir.getByText('Kode salah. Sisa percobaan: 4.').first()).toBeVisible();
     await expect(dialog).toBeVisible();
 
-    await dialog.getByLabel('Password atasan').fill(password!);
-    await dialog.getByRole('button', { name: 'Setujui sekarang' }).click();
+    await isian.fill(kodeAtasan);
+    await dialog.getByRole('button', { name: 'Setujui dengan kode' }).click();
     await expect(kasir.getByTestId('hasil-transaksi')).toContainText('sisa Rp 300.000');
     await expect(dialog).toHaveCount(0);
     // Kasir tetap login sebagai dirinya sendiri.

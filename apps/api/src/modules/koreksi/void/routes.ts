@@ -3,7 +3,7 @@ import {
   skemaBatalKoreksi,
   skemaCariKoreksi,
   skemaSetujui,
-  skemaSetujuiDiTempat,
+  skemaSetujuiKode,
   skemaTolak,
   skemaVoid,
 } from '@sit/shared';
@@ -19,7 +19,8 @@ import {
   detailVoid,
   kandidatVoid,
   setujuiVoid,
-  setujuiVoidDiTempat,
+  mintaKodeVoid,
+  setujuiVoidDenganKode,
   tolakVoid,
 } from './service';
 
@@ -59,18 +60,22 @@ export const voidRoutes = new Hono<EnvApp>()
       return c.json({ data }, 200);
     },
   )
-  // K-099: pengaju (izin ajukan) memanggil, akun atasan di badan permintaan yang membawa wewenangnya.
+  // K-102: pengaju (izin ajukan) meminta kode untuk atasan, lalu mengetik kode yang disebutkan atasan.
+  .post('/:id/minta-kode', ajukan, paramId, async (c) => {
+    const data = await mintaKodeVoid(c.req.valid('param').id, penggunaWajib(c), c.get('asal'));
+    return c.json({ data }, 200);
+  })
   .post(
-    '/:id/setujui-di-tempat',
+    '/:id/setujui-kode',
     ajukan,
     paramId,
-    zValidator('json', skemaSetujuiDiTempat, kaitValidasi),
+    zValidator('json', skemaSetujuiKode, kaitValidasi),
     async (c) => {
-      const { atasan, ...persetujuan } = c.req.valid('json');
-      const data = await setujuiVoidDiTempat(
+      const { kode, ...persetujuan } = c.req.valid('json');
+      const data = await setujuiVoidDenganKode(
         c.req.valid('param').id,
         persetujuan,
-        atasan,
+        kode,
         penggunaWajib(c),
         c.get('asal'),
       );

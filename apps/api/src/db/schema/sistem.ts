@@ -75,6 +75,9 @@ export const pengguna = pgTable(
     loginTerakhir: timestamptz('login_terakhir'),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /** K-102 (migrasi 0014): tujuan kode persetujuan sekali pakai. Keduanya boleh kosong. */
+    email: varchar('email', { length: 120 }),
+    telegramChatId: varchar('telegram_chat_id', { length: 20 }),
   },
   () => [
     check('chk_pengguna_peran', dalamDaftar('peran', PERAN)),

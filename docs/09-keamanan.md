@@ -38,14 +38,18 @@ bulanan). Butir baru:
 
 | # | Area | Status | Bukti / catatan |
 |---|---|---|---|
-| 21 | **Persetujuan di tempat** (password atasan diketik di layar kasir, K-099): diperiksa seperti login, tanpa sesi baru, password tidak disimpan/dilog, kegagalan mengunci akun dan dicatat | ✅ | `auth/service.ts` `verifikasiAtasan`, tes `koreksi/persetujuan.test.ts` |
-| 22 | **Batas laju pemeriksaan password** di luar login: persetujuan di tempat 20/menit per pengaju | ✅ | `lib/batas-percobaan.ts`, tes "batas laju per pengaju" (K-100) |
+| 21 | **Persetujuan dari layar kasir** memakai kode sekali pakai yang dikirim ke atasan (K-102), bukan password atasan: terikat satu dokumen/pelanggan + nilai dan satu pengaju, 10 menit, sekali pakai, 5 salah ketik = batal, hanya hash yang disimpan, tidak pernah dilog, wewenang atasan diperiksa saat dipakai | ✅ | `sistem/kode-persetujuan`, tes `koreksi/persetujuan.test.ts`, `hutang.test.ts` |
+| 22 | **Batas laju**: login 20/menit per IP; permintaan kode persetujuan 5 per 5 menit per pengaju | ✅ | `lib/batas-percobaan.ts`, tes "batas laju" |
 | 23 | **Ketersediaan**: batas waktu pernyataan (60 dtk), kunci (15 dtk), transaksi menganggur (60 dtk); kebuntuan dijawab 409 "coba lagi"; sumber daya habis atau database putus dijawab 503 | ✅ | `db/client.ts`, `middleware/error-handler.ts`, tes `error-handler.test.ts` (K-100) |
 | 24 | **Galat fatal** dicatat ke log berkas sebelum proses keluar; koneksi database terputus tidak mematikan server | ✅ | `index.ts`, `db/client.ts` (K-100) |
 | 25 | **Pesan galat database** tidak pernah sampai ke klien (nama tabel/constraint hanya di log) | ✅ | tes "aturan database menolak data → 400 tanpa membocorkan detail" |
 | 26 | **Tampilan saat galat**: tidak ada jejak kode (stack trace) di layar pengguna | ✅ | `features/umum/halaman-galat.tsx` menggantikan layar galat bawaan React Router |
 | 27 | **Penguncian akun bisa dipicu sengaja** oleh orang yang tahu username | ⚠️ | Diterima: tercatat di log dengan IP/sesi pengaju, kunci 15 menit, Owner bisa membuka. docs/08 D-K6 |
 | 28 | **Berkas Excel**: batas 5 MB berlaku sebelum dibuka (zip bomb) | ⚠️ | Diterima: unggah hanya Admin/Owner. docs/08 D-K5 |
+| 29 | **Rahasia saluran pesan** (token bot Telegram, sandi SMTP) disimpan di `konfigurasi`, tidak pernah dikembalikan API maupun ditulis ke log; ikut terenkripsi di cadangan | ✅ | tes `sistem/saluran.test.ts` |
+| 30 | **Tautan Telegram** hanya bisa dibuat pemilik akun yang login (kode tautan 10 menit); chat lain tidak bisa ditempelkan ke akun atasan | ✅ | `sistem/saluran/service.ts` |
+| 31 | **Kode persetujuan bisa disebutkan atasan tanpa membaca rinciannya** (kelalaian manusia) | ⚠️ | Diterima: pesan memuat rincian dan peringatan; tiap persetujuan tercatat atas nama pemilik kode |
+| 32 | **Cetak langsung (Web Serial)**: izin port diberikan pengguna per komputer; yang dikirim hanya isi struk | ✅ | `lib/printer-thermal.ts` (K-103) |
 
 Alat yang dipakai sekali jalan (tidak ditambahkan sebagai dependensi): `pnpm audit`, `knip` (kode mati),
 `madge --circular` (impor melingkar).
@@ -62,3 +66,4 @@ Alat yang dipakai sekali jalan (tidak ditambahkan sebagai dependensi): `pnpm aud
 
 - 2026-10-04 — v1, review Fase 8 (K-083).
 - 2026-10-10 — Review kedua setelah Fase 9–12: butir 21–28 (K-100).
+- 2026-10-11 — Butir 21–22 diperbarui dan 29–32 ditambahkan: kode sekali pakai, rahasia saluran, cetak langsung (K-102, K-103).

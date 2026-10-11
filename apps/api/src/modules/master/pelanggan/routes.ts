@@ -4,7 +4,13 @@ import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
 import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
-import { daftarPelanggan, tambahPelanggan, ubahPelanggan, ubahStatusPelanggan } from './service';
+import {
+  bawaanPelanggan,
+  daftarPelanggan,
+  tambahPelanggan,
+  ubahPelanggan,
+  ubahStatusPelanggan,
+} from './service';
 
 const kelola = requirePermission('master.pelanggan.kelola');
 
@@ -19,6 +25,8 @@ export const pelangganRoutes = new Hono<EnvApp>()
     zValidator('query', skemaCariMitra, kaitValidasi),
     async (c) => c.json(await daftarPelanggan(c.req.valid('query')), 200),
   )
+  // Term dan limit kredit yang diisikan untuk pelanggan baru (form tambah pelanggan, K-104).
+  .get('/bawaan', kelola, async (c) => c.json({ data: await bawaanPelanggan() }, 200))
   .post('/', kelola, zValidator('json', skemaPelanggan, kaitValidasi), async (c) => {
     const data = await tambahPelanggan(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 201);
