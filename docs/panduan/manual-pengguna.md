@@ -68,12 +68,14 @@ Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
 - **F8** bayar → ketik uang yang diterima → **Enter**. Kembalian tampil besar; struk tercetak otomatis di kertas
   thermal. Di *Pengaturan › Struk & printer*: lebar kertas 57/58/80 mm, **Langsung cetak** / **Tanya dulu** /
   **Tidak dicetak**; tombol *Cetak struk* juga ada di layar hasil.
-- **Struk tanpa jendela cetak:** buka aplikasi dengan **Chrome atau Edge**, lalu di *Pengaturan › Struk &
-  printer › Printer struk komputer ini* tekan **Pilih printer…** (printer Bluetooth harus sudah dipasangkan di
-  Windows; ia tampil sebagai *Standard Serial over Bluetooth (COM…)*), coba **Uji cetak**, lalu nyalakan **Cetak
-  struk langsung ke printer thermal**. Cukup sekali per komputer kasir. Bila baris angka pada uji cetak turun
-  baris, ubah *Karakter per baris*. Bila printer mati saat menjual, penjualan tetap tersimpan dan muncul tombol
-  **Jendela cetak**.
+- **Struk tanpa jendela cetak:** buka aplikasi dengan **Chrome atau Edge** di komputer kasir, lalu di
+  *Pengaturan › Struk & printer › Printer struk komputer ini* kerjakan lima langkah berurutan sampai semuanya
+  bercentang hijau: (1) pasangkan printer Bluetooth di Windows, (2) **Pilih printer…** (pilih baris *SPP slave* /
+  *Spp1* / nama printer; jangan *EM7455* atau *Bluetooth Peripheral Device*), (3) lebar kertas (58 mm = 32
+  karakter), (4) **Uji cetak** lalu jawab pertanyaan "apa yang keluar dari printer?", (5) nyalakan **Cetak struk
+  langsung ke printer thermal**. Cukup sekali per komputer kasir. Bila printer mati saat menjual, penjualan
+  tetap tersimpan dan muncul tombol **Jendela cetak**. Panduan lengkap dan daftar masalah:
+  `docs/panduan/printer-struk.md`.
 - **Pembeli terdata boleh belum lunas.** Pilih pelanggan (F4 atau klik nama pelanggan), lalu pilih cara bayar:
   **Lunas** (L), **DP** (U: ketik uang muka, sisanya jadi piutang), atau **Bayar nanti** (N: seluruhnya piutang).
 - Barang belum diambil pembeli: tandai *belum diambil*; konfirmasi saat diambil.
@@ -185,8 +187,10 @@ Semua tugas kasir, ditambah:
 - **Menerima kode persetujuan (Admin/Owner)**: buka menu akun (kanan atas) › **Akun saya** → isi **Email** dan/atau
   **Hubungkan Telegram** (buka bot toko, tekan Start, lalu Periksa). Saat kasir meminta persetujuan, Anda menerima
   pesan berisi rinciannya dan sebuah kode. **Sebutkan kode ke kasir hanya bila setuju**; bila tidak, abaikan.
-  Owner/Admin menyiapkan salurannya sekali di *Pengaturan › Persetujuan* (token bot Telegram dari @BotFather,
-  atau akun Gmail dengan sandi aplikasi); petunjuknya ada di tombol **?** pada tab itu.
+  Owner/Admin menyiapkan salurannya sekali di *Pengaturan › Persetujuan*: tiap saluran (Telegram, Email) punya
+  tiga langkah bernomor (akun pengirim toko, kontak Anda, kirim pesan uji) yang berubah menjadi centang hijau
+  saat beres. Tombol uji tiap saluran mengirim pesan sungguhan dan menyebut apa yang kurang bila gagal. Panduan
+  lengkap (membuat bot, sandi aplikasi Gmail, daftar masalah): `docs/panduan/kode-persetujuan-telegram-email.md`.
 - **Persetujuan**: tab *Menunggu persetujuan* di *Retur Penjualan* dan *Void Transaksi* (juga dari lonceng).
   Periksa alasan, pilih cara pengembalian uang, **Setujui** atau **Tolak** dengan alasan. Di toko dengan satu
   komputer, atau saat Anda tidak di toko, Anda tidak perlu ganti akun: cukup sebutkan kode yang Anda terima ke

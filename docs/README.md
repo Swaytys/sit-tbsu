@@ -103,8 +103,10 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-10-10-persetujuan-ditempat-tier-otomatis.md | Final (K-099) | 2026-10-10 |
 | keputusan/2026-10-10-tinjauan-kode.md | Final (K-100) | 2026-10-10 |
 | keputusan/2026-10-10-limit-kredit-ditempat.md | Final (K-101; diganti K-102) | 2026-10-10 |
-| keputusan/2026-10-11-tinjauan-pemilik.md | Final (K-102–K-104) | 2026-10-11 |
+| keputusan/2026-10-11-tinjauan-pemilik.md | Final (K-102–K-105) | 2026-10-11 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |
 | panduan/fase-8-pasang-server.md | Final v1 (server toko Windows, Tailscale, cadangan, pemulihan) | 2026-10-04 |
 | panduan/fase-8-uji-coba.md | Final v1 (persiapan, skenario, daftar temuan) | 2026-10-04 |
-| panduan/manual-pengguna.md | Final v1 (per peran) | 2026-10-04 |
+| panduan/manual-pengguna.md | Final v1 (per peran) | 2026-10-11 |
+| panduan/kode-persetujuan-telegram-email.md | Final v1 (bot Telegram, sandi aplikasi Gmail, penjelasan teknis, uji mandiri; K-105) | 2026-10-11 |
+| panduan/printer-struk.md | Final v1 (printer thermal Bluetooth/USB, cetak langsung, pemecahan masalah; K-105) | 2026-10-11 |

@@ -150,3 +150,78 @@ mencetak logo sebagai raster sekarang (menambah kerumitan untuk hal yang belum d
 *Ditolak:* mewajibkan email pelanggan (banyak pembeli bahan bangunan tidak punya email; pemilik memilih No. HP
 dan alamat); menebak cara bayar dari angka yang diketik (uang tunai yang kurang bisa berarti salah ketik atau
 DP; kasir yang memutuskan).
+
+---
+
+### K-105 — Penyiapan terpandu: saluran kode dan printer struk; aturan menulis petunjuk
+
+**Status:** melengkapi K-102 dan K-103 (cara menyiapkannya); tidak mengubah aturan bisnis maupun skema.
+
+**Latar:** pemilik mencoba K-102 dan K-103 dan menemui empat hal: (a) petunjuk menyambungkan bot Telegram dan
+email terlalu ringkas; (b) tombol "Kirim pesan uji ke saya" ternyata menguji email, dan melaporkan terkirim
+padahal email belum diatur; (c) pemilih printer menampilkan banyak port tanpa keterangan, sehingga yang
+terpilih modem laptop (EM7455); (d) struk yang dicetak lewat driver keluar menyamping, pudar, dan berantakan.
+Printer toko: EPPOS RPP02, thermal 58 mm, Bluetooth SPP, Windows 11.
+
+**Keputusan:**
+
+1. **(pemilik) Aturan menulis petunjuk, berlaku seterusnya.** Setiap petunjuk, bantuan ("?"), dan panduan
+   ditulis sampai tidak menyisakan pertanyaan: langkah bernomor berurutan; tiap langkah menyebut di mana
+   mengeklik, apa yang diketik, dan **hasil yang benar**; tiap kegagalan menyebut penyebab dan langkah
+   berikutnya; istilah yang belum dikenal dijelaskan di tempat. Ringkas bukan tujuan untuk teks bantuan.
+2. **Penyiapan berurutan dengan tanda selesai.** Tab Persetujuan dan kartu Printer struk disusun sebagai
+   langkah bernomor (komponen `Langkah`): lingkaran nomor berubah menjadi centang hijau saat langkahnya beres,
+   sehingga terlihat apa yang belum dikerjakan. Hasil uji tampil menetap di layar (`KotakHasil`), bukan toast.
+3. **Uji saluran dipisah dan jujur.** `POST /api/saluran/uji` menerima `{ saluran }` dan menguji **satu**
+   saluran ke kontak pengguna yang login. Selalu pengiriman sungguhan (juga di mode pengembangan; hanya tes
+   otomatis yang tidak menyentuh jaringan), dan jawabannya menyebut tepat apa yang kurang: token kosong, akun
+   belum dihubungkan ke bot, isian akun pengirim yang kosong, alamat penerima kosong, atau pesan galat dari
+   Telegram/SMTP beserta artinya.
+4. **Simulasi di mode pengembangan diberi tahu.** Di luar produksi, saluran yang belum diatur tetap ditirukan
+   (dibutuhkan tes e2e), tetapi dialog kasir kini menampilkan catatan bahwa kode untuk saluran itu tidak
+   benar-benar dikirim (`InfoKodePersetujuan.simulasi`).
+5. **Kontak penerima bisa diisi dari tab Persetujuan.** "Hubungkan Telegram saya" dan alamat email penerima
+   (sebelumnya hanya di Akun saya) tampil sebagai Langkah 2 tiap saluran untuk akun yang sedang login; Akun
+   saya tetap ada untuk atasan lain. Kode tautan Telegram boleh dikirim sebagai pesan biasa (tidak harus
+   `/start KODE`), ada tombol salin, dan pesannya menjelaskan aturan Telegram (bot tidak boleh mengirim pesan
+   ke orang yang belum menekan Start).
+6. **Email:** status menyebut isian yang kosong (`email.kurang`); tiap saluran punya tombol simpan sendiri;
+   spasi pada sandi aplikasi Google dibuang saat disimpan; galat SMTP diterjemahkan (ditolak login vs. tidak
+   bisa dihubungi). Petunjuk membuat Sandi aplikasi Gmail ditulis langkah demi langkah.
+7. **Printer:** kartu menjadi lima langkah (pasangkan di Windows, pilih port, lebar kertas, uji cetak, nyalakan).
+   - Petunjuk memilih port menyebut nama yang benar dan yang salah, serta cara pasti lewat tab *Port COM*
+     Windows. Perangkat USB yang dikenali sebagai modem/adaptor (`BUKAN_PRINTER`, menurut USB vendor id)
+     ditolak dengan peringatan.
+   - Memilih printer lagi **mencabut izin port lama** (`SerialPort.forget()`): port COM tidak punya ciri
+     pembeda, jadi tanpa ini pilihan yang salah bisa terpakai lagi setelah halaman dimuat ulang.
+   - Setelah uji cetak terkirim, aplikasi **menanyakan apa yang keluar** (tercetak / tidak keluar / huruf acak
+     / baris turun / pudar) dan memberi saran sesuai jawabannya. Peramban tidak bisa mengetahui apakah kertas
+     benar-benar keluar, jadi kepastian hanya bisa datang dari pengguna.
+   - Lebar kertas dipilih tegas per komputer (58 mm = 32 karakter) alih-alih "Otomatis".
+   - Batas tunggu membuka port 15 detik (sambungan Bluetooth dibuat saat port dibuka) dan jeda sebelum port
+     ditutup agar ekor struk tidak terpotong.
+8. **Hasil cetak:** struk ESC/POS selalu potret (`ESC V 0`), memakai font A bawaan printer (`ESC M 0`), dan
+   bisa dicetak lebih tebal (`ESC G 1`, double-strike; pilihan "Cetak lebih tebal", bawaan nyala). Struk lewat
+   jendela cetak peramban (cadangan): seluruh huruf tebal, dan tinggi halaman tidak pernah lebih kecil dari
+   lebarnya supaya driver tidak menganggapnya lanskap.
+9. **Panduan dan alat uji mandiri:** `docs/panduan/kode-persetujuan-telegram-email.md` (termasuk penjelasan
+   teknis penautan akun lewat `getUpdates` dan uji dengan curl) dan `docs/panduan/printer-struk.md`;
+   `scripts/uji/uji-telegram.py` dan `scripts/uji/uji-gmail.py` menguji token bot dan sandi aplikasi tanpa
+   aplikasi (rahasia diketik saat dijalankan, tidak disimpan).
+
+*Alasan:* penyiapan ini dikerjakan sekali oleh orang yang bukan teknisi, tanpa pendamping. Petunjuk yang
+ringkas memindahkan pekerjaan ke pemilik (menebak, lalu bertanya lagi). Uji yang melaporkan "terkirim" padahal
+tidak, lebih buruk daripada tidak ada uji.
+
+*Ditolak:*
+- **Menyaring pemilih port hanya ke perangkat Bluetooth** (`filters: [{ bluetoothServiceClassId }]`). Pada
+  Windows, printer SPP yang dipasangkan tampil sebagai port COM biasa tanpa tanda Bluetooth, sehingga saringan
+  itu bisa menyembunyikan printernya dan menampilkan daftar kosong.
+- **Menampilkan nama/nomor COM port yang terpilih.** Web Serial tidak memberikannya kepada halaman; yang ada
+  hanya USB vendor/product id. Di aplikasi desktop (Fase 13.1) printer bisa dipilih menurut namanya.
+- **Mencoba semua port satu per satu secara otomatis.** Mengirim data ke perangkat yang bukan printer (modem)
+  tanpa sepengetahuan pengguna, dan tetap butuh pengguna untuk memastikan kertas keluar.
+- **Mematikan simulasi di mode pengembangan.** Tes e2e persetujuan bergantung padanya; cukup diberi tanda.
+- **Cetak senyap lewat driver Windows dari peramban biasa.** Peramban selalu menampilkan jendela cetak; jalur
+  tanpa jendela hanya ESC/POS langsung (K-103) atau `--kiosk-printing` (K-074), atau aplikasi desktop Fase 13.
+
