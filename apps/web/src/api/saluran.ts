@@ -1,4 +1,4 @@
-import type { DataKontakSaya, DataPengaturanSaluran } from '@sit/shared';
+import type { DataKontakSaya, DataPengaturanSaluran, SaluranPesan } from '@sit/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, api } from './client';
 
@@ -26,9 +26,12 @@ export function useUbahPengaturanSaluran() {
   });
 }
 
-/** Kirim pesan uji ke kontak pengguna yang sedang login. */
+/** Kirim pesan uji lewat SATU saluran ke kontak pengguna yang sedang login (selalu pengiriman sungguhan). */
 export function useUjiSaluran() {
-  return useMutation({ mutationFn: async () => ambilData(await api.saluran.uji.$post()) });
+  return useMutation({
+    mutationFn: async (saluran: SaluranPesan) =>
+      ambilData(await api.saluran.uji.$post({ json: { saluran } })),
+  });
 }
 
 export function useKontakSaya() {

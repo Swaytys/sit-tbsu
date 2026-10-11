@@ -31,6 +31,12 @@ async function panggil<T>(token: string, metode: string, isi: Record<string, unk
   }
   const j = (await res.json().catch(() => null)) as Jawaban<T> | null;
   if (!j?.ok) {
+    if (res.status === 409) {
+      // getUpdates ditolak bila bot yang sama dipakai program lain (webhook aktif atau pembaca pesan lain).
+      throw new GalatTelegram(
+        'Bot ini sedang dipakai program lain, jadi pesan masuknya tidak bisa dibaca. Buat bot baru khusus toko di @BotFather (/newbot) dan isi tokennya di Pengaturan › Persetujuan.',
+      );
+    }
     throw new GalatTelegram(
       res.status === 401 || res.status === 404
         ? 'Token bot Telegram tidak dikenal.'

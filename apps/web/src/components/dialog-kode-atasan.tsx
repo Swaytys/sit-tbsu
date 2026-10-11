@@ -101,6 +101,13 @@ export function DialogKodeAtasan({
               </b>
               . Berlaku sampai pukul {formatWaktu(info.kadaluarsa).slice(11)}, sekali pakai.
             </p>
+            {info.simulasi && (
+              <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+                Mode pengembangan: ada saluran yang belum diatur di Pengaturan › Persetujuan, jadi
+                kode untuk saluran itu <b>tidak benar-benar dikirim</b> (hanya tercatat di log
+                server). Di komputer toko, saluran yang belum diatur tidak dipakai sama sekali.
+              </p>
+            )}
             <div className="flex items-end gap-2">
               <div className="flex-1 space-y-1">
                 <Label htmlFor="kode-atasan">Kode dari atasan (6 angka)</Label>

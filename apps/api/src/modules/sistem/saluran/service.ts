@@ -88,6 +88,13 @@ export type PenerimaPesan = {
   telegramChatId: string | null;
 };
 
+export type HasilKirim = {
+  terkirim: SaluranPesan[];
+  /** Bagian dari `terkirim` yang hanya tiruan (saluran belum diatur, di luar produksi). */
+  tiruan: SaluranPesan[];
+  galat: string[];
+};
+
 /**
  * Mengirim satu pesan ke semua saluran yang dimiliki penerima. Mengembalikan saluran yang berhasil dan
  * alasan gagal (aman ditampilkan). Tidak melempar.
@@ -96,11 +103,12 @@ export async function kirimKePengguna(
   p: PenerimaPesan,
   judul: string,
   isi: string,
-): Promise<HasilUjiSaluran> {
+): Promise<HasilKirim> {
   const s = await muatSaluran();
   const sungguhan = env.NODE_ENV !== 'test';
   const simulasi = env.NODE_ENV !== 'production';
   const terkirim: SaluranPesan[] = [];
+  const tiruan: SaluranPesan[] = [];
   const galat: string[] = [];
   const catat = (saluran: SaluranPesan) => {
     terkirim.push(saluran);
@@ -127,6 +135,7 @@ export async function kirimKePengguna(
       if (env.NODE_ENV === 'development') {
         logger.info({ kepada: p.namaPengguna, saluran, judul }, `Pesan (simulasi):\n${isi}`);
       }
+      tiruan.push(saluran);
       catat(saluran);
     } else {
       galat.push(belumDiatur);
@@ -152,7 +161,7 @@ export async function kirimKePengguna(
       'Akun email toko (SMTP) belum diatur.',
     );
   }
-  return { terkirim, galat };
+  return { terkirim, tiruan, galat };
 }
 
 /** Pengguna aktif pemegang `izin` yang punya kontak, selain `kecualiId` (pengaju sendiri). */
@@ -201,6 +210,7 @@ export async function bacaPengaturanSaluran(): Promise<PengaturanSaluran> {
       pengguna,
       pengirim,
       sandiTerisi: sandi !== '',
+      kurang: await kurangEmail(),
     },
     penerima: atasan.map((p) => ({
       nama: p.namaPengguna,
@@ -226,7 +236,11 @@ export async function ubahPengaturanSaluran(
   // Rahasia: kosong = tidak diubah.
   if (input.hapusTelegram) baru.set(KUNCI.token, '');
   else if (input.telegramToken) baru.set(KUNCI.token, input.telegramToken);
-  if (input.smtpSandi) baru.set(KUNCI.sandi, input.smtpSandi);
+  // Sandi aplikasi Google ditampilkan sebagai 4 kelompok huruf berspasi; spasinya bukan bagian sandi.
+  if (input.smtpSandi) {
+    const rapat = input.smtpSandi.replace(/\s+/g, '');
+    baru.set(KUNCI.sandi, /^[a-z]{16}$/i.test(rapat) ? rapat : input.smtpSandi);
+  }
 
   const token = baru.get(KUNCI.token);
   if (token && env.NODE_ENV !== 'test') {
@@ -266,21 +280,81 @@ export async function ubahPengaturanSaluran(
   return bacaPengaturanSaluran();
 }
 
-/** Mengirim pesan uji ke kontak pengguna itu sendiri. */
-export async function ujiSaluran(pelaku: PenggunaAktif): Promise<HasilUjiSaluran> {
-  const p = await repo.kontakPengguna(db, pelaku.id);
-  if (!p || (!p.email && !p.telegramChatId)) {
-    throw new AppError(
-      'VALIDASI',
-      'Akun Anda belum punya email atau Telegram. Isi dulu di menu Akun saya.',
-      400,
+/**
+ * Uji SATU saluran ke kontak pengguna yang login (K-105). Selalu pengiriman sungguhan (tidak pernah tiruan,
+ * juga di mode pengembangan), dan jawabannya menyebut tepat apa yang kurang serta langkah berikutnya.
+ */
+export async function ujiSaluran(
+  pelaku: PenggunaAktif,
+  saluran: SaluranPesan,
+): Promise<HasilUjiSaluran> {
+  const [p, s] = await Promise.all([repo.kontakPengguna(db, pelaku.id), muatSaluran()]);
+  const gagal = (pesan: string): HasilUjiSaluran => ({ saluran, berhasil: false, pesan });
+  const judul = 'BonsaiUrip: pesan uji';
+  const isi = `Halo ${pelaku.namaPengguna}, ini pesan uji. Kode persetujuan dari kasir akan dikirim ke sini.`;
+
+  if (saluran === 'TELEGRAM') {
+    if (s.telegramToken === '') {
+      return gagal('Token bot belum diisi. Isi token dari @BotFather lalu tekan Simpan token.');
+    }
+    if (!p?.telegramChatId) {
+      return gagal(
+        `Bot sudah aktif, tetapi akun ${pelaku.namaPengguna} belum dihubungkan ke bot itu. ` +
+          'Kerjakan Langkah 2 (Hubungkan Telegram saya) dulu: bot hanya boleh mengirim pesan ke orang yang sudah menekan Start.',
+      );
+    }
+    if (env.NODE_ENV === 'test') return { saluran, berhasil: true, pesan: 'Terkirim (tes).' };
+    try {
+      await kirimTelegram(s.telegramToken, p.telegramChatId, `${judul}\n\n${isi}`);
+    } catch (err) {
+      return gagal(
+        `${err instanceof Error ? err.message : 'Pengiriman gagal.'} ` +
+          'Bila Anda pernah menghapus percakapan atau memblokir bot, putuskan lalu hubungkan lagi.',
+      );
+    }
+    return {
+      saluran,
+      berhasil: true,
+      pesan: 'Pesan uji terkirim. Buka Telegram Anda dan lihat percakapan dengan bot toko.',
+    };
+  }
+
+  if (s.smtp === null) {
+    return gagal(
+      `Akun email pengirim belum lengkap (${(await kurangEmail()).join(', ')} masih kosong). ` +
+        'Lengkapi Langkah 1 lalu tekan Simpan akun email.',
     );
   }
-  return kirimKePengguna(
-    p,
-    'BonsaiUrip: uji saluran persetujuan',
-    `Halo ${p.namaPengguna}, pesan ini menandakan kode persetujuan akan sampai ke sini.`,
-  );
+  if (!p?.email) {
+    return gagal(
+      `Akun ${pelaku.namaPengguna} belum punya alamat email penerima. Isi di Langkah 2 lalu tekan Simpan.`,
+    );
+  }
+  if (env.NODE_ENV === 'test') return { saluran, berhasil: true, pesan: 'Terkirim (tes).' };
+  try {
+    await kirimEmail(s.smtp, { kepada: p.email, judul, isi });
+  } catch (err) {
+    return gagal(err instanceof Error ? err.message : 'Pengiriman gagal.');
+  }
+  return {
+    saluran,
+    berhasil: true,
+    pesan: `Email uji terkirim ke ${p.email}. Periksa kotak masuk; bila tidak ada, lihat folder Spam.`,
+  };
+}
+
+/** Isian akun email pengirim yang masih kosong. */
+async function kurangEmail(): Promise<string[]> {
+  const [host, pengguna, sandi] = await Promise.all([
+    ambilTeks(KUNCI.host, ''),
+    ambilTeks(KUNCI.pengguna, ''),
+    ambilTeks(KUNCI.sandi, ''),
+  ]);
+  return [
+    ...(host.trim() === '' ? ['server'] : []),
+    ...(pengguna.trim() === '' ? ['nama pengguna'] : []),
+    ...(sandi === '' ? ['sandi aplikasi'] : []),
+  ];
 }
 
 // --- Kontak pengguna sendiri ---
@@ -370,7 +444,8 @@ export async function periksaTautanTelegram(
   let chatSaya: string | null = null;
   for (const m of masuk) {
     offsetTelegram = Math.max(offsetTelegram, m.idPembaruan + 1);
-    const kode = /^\/start\s+([0-9A-F]{10})$/i.exec(m.teks.trim())?.[1]?.toUpperCase();
+    // "/start KODE" (dari tautan atau tombol Start) atau kodenya saja (bila Start sudah pernah ditekan).
+    const kode = /(?:^|\s)([0-9A-F]{10})$/i.exec(m.teks.trim())?.[1]?.toUpperCase();
     const t = kode ? tautan.get(kode) : undefined;
     if (!kode || !t || t.kadaluarsa < kini) continue;
     tautan.delete(kode);
@@ -381,7 +456,7 @@ export async function periksaTautanTelegram(
   if (!chatSaya) {
     throw new AppError(
       'VALIDASI',
-      'Pesan Start belum terbaca. Buka tautannya di Telegram, tekan Start, lalu periksa lagi.',
+      'Pesan dari Anda belum terbaca bot. Di Telegram, buka bot toko lalu kirim kode tautannya (langkah b), tunggu beberapa detik, lalu tekan Periksa lagi.',
       400,
     );
   }

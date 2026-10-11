@@ -123,12 +123,39 @@ describe('kontak saya', () => {
     expect(kosong.email).toBeNull();
   });
 
-  it('pesan uji dikirim ke kontak sendiri; tanpa kontak ditolak', async () => {
-    expect((await kirim(admin, '/api/saluran/uji')).status).toBe(400);
+  it('uji per saluran menyebut tepat apa yang kurang, dan tidak pernah berpura-pura terkirim', async () => {
+    const uji = (saluran: string) =>
+      data<HasilUjiSaluran>(kirim(admin, '/api/saluran/uji', { saluran }));
+    expect((await kirim(admin, '/api/saluran/uji', {})).status).toBe(400);
+    expect((await kirim(kasir, '/api/saluran/uji', { saluran: 'EMAIL' })).status).toBe(403);
+
+    // Telegram: token dulu, lalu akun harus dihubungkan.
+    expect(await uji('TELEGRAM')).toMatchObject({ berhasil: false });
+    expect((await uji('TELEGRAM')).pesan).toContain('Token bot belum diisi');
+    await data(kirim(admin, '/api/saluran', { ...smtp, telegramToken: TOKEN }, 'PATCH'));
+    const belumHubung = await uji('TELEGRAM');
+    expect(belumHubung.berhasil).toBe(false);
+    expect(belumHubung.pesan).toContain('belum dihubungkan');
+    await db
+      .update(pengguna)
+      .set({ telegramChatId: '12345' })
+      .where(eq(pengguna.id, admin.pengguna.id));
+    expect(await uji('TELEGRAM')).toMatchObject({ saluran: 'TELEGRAM', berhasil: true });
+
+    // Email: akun pengirim harus lengkap (sandi aplikasi), lalu alamat penerima milik akun sendiri.
+    const tanpaSandi = await uji('EMAIL');
+    expect(tanpaSandi.berhasil).toBe(false);
+    expect(tanpaSandi.pesan).toContain('sandi aplikasi');
+    const p = await data<PengaturanSaluran>(minta('/api/saluran', { cookie: admin.cookie }));
+    expect(p.email).toMatchObject({ terpasang: false, kurang: ['sandi aplikasi'] });
+    await data(kirim(admin, '/api/saluran', { ...smtp, smtpSandi: SANDI }, 'PATCH'));
+    const tanpaAlamat = await uji('EMAIL');
+    expect(tanpaAlamat.berhasil).toBe(false);
+    expect(tanpaAlamat.pesan).toContain('belum punya alamat email');
     await data(kirim(admin, '/api/saluran/saya', { email: 'admin@contoh.test' }, 'PATCH'));
-    const h = await data<HasilUjiSaluran>(kirim(admin, '/api/saluran/uji'));
-    expect(h.terkirim).toEqual(['EMAIL']);
-    expect(pesanTerkirim(admin.pengguna.namaPengguna)).toContain('kode persetujuan');
+    expect(await uji('EMAIL')).toMatchObject({ saluran: 'EMAIL', berhasil: true });
+    // Uji saluran tidak memakai kotak keluar tiruan.
+    expect(pesanTerkirim(admin.pengguna.namaPengguna)).toBe('');
   });
 
   it('tautan Telegram butuh bot toko; kodenya milik akun yang memintanya', async () => {

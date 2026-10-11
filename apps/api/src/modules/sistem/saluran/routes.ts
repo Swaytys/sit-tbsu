@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaKontakSaya, skemaPengaturanSaluran } from '@sit/shared';
+import { skemaKontakSaya, skemaPengaturanSaluran, skemaUjiSaluran } from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
 import { kaitValidasi } from '../../../lib/validasi';
@@ -31,7 +31,9 @@ export const saluranRoutes = new Hono<EnvApp>()
     const data = await ubahPengaturanSaluran(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 200);
   })
-  .post('/uji', kelola, async (c) => c.json({ data: await ujiSaluran(penggunaWajib(c)) }, 200))
+  .post('/uji', kelola, zValidator('json', skemaUjiSaluran, kaitValidasi), async (c) =>
+    c.json({ data: await ujiSaluran(penggunaWajib(c), c.req.valid('json').saluran) }, 200),
+  )
   .get('/saya', requireLogin(), async (c) =>
     c.json({ data: await kontakSaya(penggunaWajib(c)) }, 200),
   )
