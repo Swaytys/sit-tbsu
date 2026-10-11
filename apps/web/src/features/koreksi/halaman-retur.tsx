@@ -24,6 +24,7 @@ import {
   useSetujuiReturDiTempat,
   useTolakRetur,
 } from '@/api/penjualan';
+import { DialogAtasan } from '@/components/dialog-atasan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -36,7 +37,6 @@ import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
 import {
   BadgePersetujuan,
-  DialogAtasan,
   DialogBatalPengajuan,
   DialogPutuskan,
   IsianRefund,
@@ -564,11 +564,6 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
           judul={`Persetujuan retur ${diTempat.nomor}`}
           ringkasan={ringkasan(diTempat)}
           memproses={setujuiDiTempat.isPending}
-          isianRefund={
-            diTempat.penyelesaian === 'REFUND'
-              ? { nilai: refundDiTempat, onUbah: setRefundDiTempat }
-              : undefined
-          }
           onTutup={() => setDiTempat(null)}
           onSetujui={(atasan) =>
             void setujuiDiTempat
@@ -579,7 +574,15 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
               })
               .catch((err: unknown) => toast.error(pesanGalat(err)))
           }
-        />
+        >
+          {diTempat.penyelesaian === 'REFUND' && (
+            <IsianRefund
+              nilai={refundDiTempat}
+              onUbah={setRefundDiTempat}
+              labelTunai="Tunai (laci shift kasir ini)"
+            />
+          )}
+        </DialogAtasan>
       )}
       {dibatalkan && (
         <DialogBatalPengajuan

@@ -23,6 +23,7 @@ import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { siarkan } from '../../../lib/siaran';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahHari, tanggalOperasional } from '../../../lib/waktu';
+import { verifikasiAtasan } from '../../auth/service';
 import { shiftBuka } from '../../kas/shift/service';
 import { hargaBarangDasar } from '../../master/harga/repo';
 import { catatMutasi, kunciPersediaan, ubahReservasi } from '../../persediaan/ledger';
@@ -266,6 +267,12 @@ export async function checkout(
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<DetailPenjualan> {
+  const bolehLimit = pelaku.izin.has('master.pelanggan.atur_kredit');
+  // PT6 (K-101): akun atasan diperiksa di luar transaksi agar hitungan gagalnya tidak ikut dibatalkan.
+  const atasanLimit =
+    !bolehLimit && input.atasan
+      ? await verifikasiAtasan(input.atasan, 'master.pelanggan.atur_kredit', pelaku, asal)
+      : null;
   const id = await dalamTransaksi(async (tx) => {
     // PR5: tanggal checkout yang menentukan promo.
     const tanggal = tanggalOperasional();
@@ -384,14 +391,16 @@ export async function checkout(
       );
     }
     if (hasil.statusPembayaran !== 'LUNAS' && h.idPelanggan !== null) {
-      // PT6: limit kredit pelanggan; pemegang `master.pelanggan.atur_kredit` boleh melanjutkan (K-088).
+      // PT6: limit kredit pelanggan; pemegang `master.pelanggan.atur_kredit` boleh melanjutkan (K-088),
+      // dari akunnya sendiri atau dengan mengetik akunnya di layar kasir (K-101).
       const kredit = await repo.posisiKredit(tx, h.idPelanggan, pj.id);
       const tagihanBaru = hitungTagihan(hasil).sisa;
       if (kredit.limit !== null && kredit.piutangBerjalan + tagihanBaru > kredit.limit) {
         const rinci =
           `limit ${formatRupiah(kredit.limit)}, piutang berjalan ${formatRupiah(kredit.piutangBerjalan)}, ` +
           `tagihan baru ${formatRupiah(tagihanBaru)}`;
-        if (!input.setujuLimit || !pelaku.izin.has('master.pelanggan.atur_kredit')) {
+        const penyetuju = bolehLimit && input.setujuLimit ? pelaku : atasanLimit;
+        if (!penyetuju) {
           throw new AppError(
             'LIMIT_TERLAMPAUI',
             `Limit kredit ${kredit.nama} terlampaui: ${rinci}.`,
@@ -400,17 +409,19 @@ export async function checkout(
               limit: kredit.limit,
               piutangBerjalan: kredit.piutangBerjalan,
               tagihanBaru,
-              bolehLanjut: pelaku.izin.has('master.pelanggan.atur_kredit'),
+              bolehLanjut: bolehLimit,
             },
           );
         }
         await catatLog(tx, {
           aksi: 'PENJUALAN_LIMIT_OVERRIDE',
-          idPengguna: pelaku.id,
+          idPengguna: penyetuju.id,
           entitas: 'penjualan',
           idEntitas: pj.id,
           nomorDokumen: nomor,
-          ringkasan: `Melewati limit kredit ${kredit.nama} pada ${nomor}: ${rinci}`,
+          ringkasan:
+            `Melewati limit kredit ${kredit.nama} pada ${nomor}: ${rinci}` +
+            (atasanLimit ? ` (disetujui di tempat, sesi ${pelaku.username})` : ''),
           ip: asal.ip,
         });
       }

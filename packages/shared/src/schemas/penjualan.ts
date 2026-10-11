@@ -23,6 +23,7 @@ import {
   type StatusTransaksi,
 } from '../enums';
 import type { RingkasAtribut } from './barang';
+import { skemaAtasan } from './koreksi';
 import { skemaQtyPositif, skemaTanggal } from './persediaan';
 import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
 
@@ -390,6 +391,11 @@ export const skemaCheckout = z
     perbaruiHarga: z.array(z.number().int().positive()).default([]),
     /** PT6: lanjut walau limit kredit terlampaui (butuh `master.pelanggan.atur_kredit`, dicatat log). */
     setujuLimit: z.boolean().default(false),
+    /**
+     * PT6 (K-101): akun Admin/Owner yang menyetujui di tempat untuk melampaui limit kredit, bila pengguna yang
+     * login tidak memegang `master.pelanggan.atur_kredit` (docs/04 §6). Tidak membuat sesi.
+     */
+    atasan: skemaAtasan.nullable().default(null),
   })
   .refine((d) => d.idOrder !== null || d.order !== null, {
     message: 'Pilih order dari antrean atau isi keranjang.',

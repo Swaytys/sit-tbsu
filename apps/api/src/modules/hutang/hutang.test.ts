@@ -8,7 +8,7 @@ import type {
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
-import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import { PASSWORD_UJI, json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import {
@@ -18,6 +18,7 @@ import {
   mutasiPersediaan,
   pelanggan,
   penerimaanBarang,
+  penjualan,
   persediaan,
   returPemasok,
   returPemasokDetail,
@@ -433,6 +434,41 @@ describe('limit kredit pelanggan (PT6) dan umur piutang (PT5)', () => {
     expect(tolak).toMatchObject({ status: 409, kode: 'LIMIT_TERLAMPAUI' });
     expect(tolak.pesan).toContain('piutang berjalan Rp 24.000');
     expect(tolak.detail).toMatchObject({ bolehLanjut: false });
+    // K-101: Kasir meminta atasan mengetik akunnya di layar kasir. Password salah → 400, tidak ada penjualan.
+    const jumlahSebelum = (await db.select().from(penjualan)).length;
+    const salah = await galat(
+      jual(kasir, '1', {
+        atasan: { username: admin.pengguna.username, password: 'tebakan-salah' },
+      }),
+    );
+    expect(salah).toMatchObject({ status: 400, kode: 'VALIDASI' });
+    expect(await db.select().from(penjualan)).toHaveLength(jumlahSebelum);
+    // Akun yang tidak memegang izin atur kredit (Kasir lain) tidak bisa menyetujui.
+    const kasir2 = await sesiUji('KASIR');
+    const bukanAtasan = await galat(
+      jual(kasir, '1', {
+        atasan: { username: kasir2.pengguna.username, password: PASSWORD_UJI },
+      }),
+    );
+    expect(bukanAtasan).toMatchObject({ status: 403, kode: 'TIDAK_BERIZIN' });
+    // Akun Admin yang benar → penjualan jadi atas nama Kasir, izin limit tercatat atas nama Admin.
+    const diTempat = await jual(kasir, '1', {
+      atasan: { username: admin.pengguna.username, password: PASSWORD_UJI },
+    });
+    expect(diTempat.status).toBe(201);
+    const pjDiTempat = (await json<{ data: DetailPenjualan }>(diTempat)).data;
+    const logDiTempat = await logTerakhir('PENJUALAN_LIMIT_OVERRIDE');
+    expect(logDiTempat).toMatchObject({
+      nomorDokumen: pjDiTempat.nomor,
+      idPengguna: admin.pengguna.id,
+    });
+    expect(logDiTempat?.ringkasan).toContain(`di tempat, sesi ${kasir.pengguna.username}`);
+    expect(JSON.stringify(logDiTempat)).not.toContain(PASSWORD_UJI);
+    // Sesi Kasir tidak berubah.
+    const saya = await minta('/api/auth/saya', { cookie: kasir.cookie });
+    expect((await json<{ data: { username: string } }>(saya)).data.username).toBe(
+      kasir.pengguna.username,
+    );
     await kirim(admin, '/api/shift/buka', { modalAwal: 0 });
     expect((await galat(jual(admin, '1'))).detail).toMatchObject({ bolehLanjut: true });
     const lanjut = await jual(admin, '1', { setujuLimit: true });
