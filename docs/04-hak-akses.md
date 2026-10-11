@@ -199,7 +199,7 @@ Field berikut hanya dikirim API bila pemanggil punya `master.barang.lihat_hpp` (
 
 Field yang **tidak pernah** dikirim API: `password_hash`, `token_hash` sesi, `SESSION_SECRET`.
 
-## 6. Persetujuan (retur dan void)
+## 6. Persetujuan (retur, void, dan limit kredit)
 
 Retur dan void hanya berefek (stok, kas, tagihan) setelah DISETUJUI. Ada empat cara disetujui; caranya disimpan
 di `cara_persetujuan` dokumen dan di log (K-017, K-099):
@@ -224,6 +224,11 @@ Aturan persetujuan di tempat (K-099):
 - Refund tunai keluar dari laci shift **pengguna yang login di perangkat itu** (pengaju pada `DI_TEMPAT` dan
   `BATAS_BEBAS`; penyetuju pada `AKUN_ATASAN`). Mutasi stok dan `id_penyetuju` atas nama yang menyetujui.
 - Tidak ada PIN terpisah dan tidak ada dropdown "diotorisasi oleh": yang berlaku hanya password akun atasan.
+- **Limit kredit (PT6, K-101):** persetujuan di tempat juga dipakai saat checkout tidak lunas melampaui limit
+  kredit pelanggan dan pengguna yang login tidak memegang `master.pelanggan.atur_kredit`. Aturan di atas
+  berlaku sama; izin yang diperiksa pada akun atasan adalah `master.pelanggan.atur_kredit`. Penjualan tetap
+  atas nama kasir; log `PENJUALAN_LIMIT_OVERRIDE` atas nama atasan. Tidak ada status MENUNGGU: tanpa
+  persetujuan, penjualan tidak tersimpan.
 
 Aturan lain:
 
@@ -286,3 +291,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-07 — Cetak label, Daftar Harga (`laporan.penjualan`), satuan jual (K-090, K-091).
 - 2026-10-10 — §6 persetujuan di tempat, batas tanpa persetujuan, batalkan pengajuan; izin `penjualan.tier.ubah` dihapus (tier selalu otomatis) (K-099).
 - 2026-10-10 — §6, §7: batas laju persetujuan di tempat 20/menit per pengaju (K-100).
+- 2026-10-10 — §6: persetujuan di tempat untuk melampaui limit kredit (K-101).

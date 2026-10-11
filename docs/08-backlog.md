@@ -81,7 +81,7 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 | # | Temuan | Catatan |
 |---|---|---|
 | D-K1 | **Komponen layar yang terlalu besar**: form barang (±1.100 baris), form order (±870), penyesuaian stok (±840), form promo (±830), layar POS (±810). Dipecah menjadi bagian form + hook saat komponen itu berikutnya diubah. | Tidak ada cacat fungsi; biayanya di keterbacaan dan risiko saat mengubah. Jangan dipecah tanpa alasan fungsi (risiko regresi). |
-| D-K2 | **(butuh keputusan pemilik) Melampaui limit kredit dengan persetujuan di tempat.** Sekarang hanya pengguna yang sedang login dan memegang `master.pelanggan.atur_kredit` yang bisa melanjutkan; di toko satu perangkat kasir harus keluar dulu. Usulan: dialog *Persetujuan atasan* yang sama dengan retur/void (K-099). | Mengubah PT6 (docs/06) dan docs/04 §6; butuh persetujuan pemilik. |
+| D-K2 | **(selesai, K-101) Melampaui limit kredit dengan persetujuan di tempat.** Sebelumnya hanya pengguna yang sedang login dan memegang `master.pelanggan.atur_kredit` yang bisa melanjutkan; di toko satu perangkat kasir harus keluar dulu. Kini kasir memakai dialog *Persetujuan atasan* yang sama dengan retur/void. | Disetujui pemilik 2026-10-10; PT6 (docs/06) dan docs/04 §6 diperbarui. |
 | D-K3 | **Daftar hutang dihitung di memori**: `daftarHutang` dan `hutangJatuhTempo` memuat semua hutang yang belum lunas lalu menyaring dan memotong halaman di server aplikasi. | Aman sampai ribuan dokumen terbuka; pindahkan saringan, halaman, dan ringkasan ke SQL bila hutang terbuka > ±5.000 dokumen. |
 | D-K4 | **Cookie sesi `Secure` mengikuti `NODE_ENV=production`.** Untuk aplikasi desktop (Fase 13) yang membuka `http://localhost`, peramban modern menganggap localhost aman, tetapi perlu diuji di pembungkus desktop yang dipakai. | Dikerjakan bersama Fase 13.1. |
 | D-K5 | **Berkas Excel raksasa setelah dibuka (zip bomb)**: batas 5 MB berlaku untuk berkas terkompresi. | Hanya Admin/Owner yang bisa mengunggah; batasi jumlah baris/lembar saat membaca bila import dibuka untuk peran lain. |
@@ -148,3 +148,4 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 - 2026-10-10 — Sprint A: A11 promo v2 (masukan pemilik, K-098).
 - 2026-10-10 — Sprint F: F7 tombol "?" di setiap halaman (masukan pemilik, K-099).
 - 2026-10-10 — Sprint D: temuan tinjauan kode D-K1–D-K9 (K-100).
+- 2026-10-10 — D-K2 dikerjakan (K-101, disetujui pemilik).

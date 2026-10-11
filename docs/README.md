@@ -74,7 +74,7 @@ Jangan pakai mode auto-accept.
 | 01-ikhtisar-sistem.md | Final v1 (§5.1 alur cepat order → kasir, K-073; laporan Fase 9) | 2026-10-04 |
 | 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073; dokumen laporan, K-078; deploy & cadangan, K-082–K-084; model galat & pola bersama, K-100) | 2026-10-10 |
 | 03-skema-database-v3 (.md + .sql) | Final v3.11 (.sql = v3.1 migrasi 0000; v3.2–v3.11 lewat migrasi 0001–0013) | 2026-10-10 |
-| 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086; menu Fase 10, K-088; persetujuan di tempat, K-099; batas laju, K-100) | 2026-10-10 |
+| 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086; menu Fase 10, K-088; persetujuan di tempat, K-099; batas laju, K-100; limit kredit di tempat, K-101) | 2026-10-10 |
 | 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH; §14 tukar retur netral, K-079; L6 → H5/H7, K-086; A5 MUSNAH, K-088; V1 setoran, K-089) | 2026-10-07 |
 | 06-harga-piutang-hutang.md | Final v1 (H4–H8, H12, D1–D2, PR3–PR7, HT7 dirinci, K-086–K-087; PT5–PT6, HT2–HT3, RP5, SR4, K-088; KS5–KS6, K-089) | 2026-10-07 |
 | 07-roadmap.md | Final v1 (Fase 8 siap uji coba toko; Fase 9–12 selesai, menunggu tinjauan) | 2026-10-07 |
@@ -102,6 +102,7 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-10-10-tier-nilai-belanja.md | Final (K-098) | 2026-10-10 |
 | keputusan/2026-10-10-persetujuan-ditempat-tier-otomatis.md | Final (K-099) | 2026-10-10 |
 | keputusan/2026-10-10-tinjauan-kode.md | Final (K-100) | 2026-10-10 |
+| keputusan/2026-10-10-limit-kredit-ditempat.md | Final (K-101) | 2026-10-10 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |
 | panduan/fase-8-pasang-server.md | Final v1 (server toko Windows, Tailscale, cadangan, pemulihan) | 2026-10-04 |
 | panduan/fase-8-uji-coba.md | Final v1 (persiapan, skenario, daftar temuan) | 2026-10-04 |

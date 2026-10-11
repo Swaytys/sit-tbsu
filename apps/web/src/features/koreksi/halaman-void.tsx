@@ -15,6 +15,7 @@ import {
   useSetujuiVoidDiTempat,
   useTolakVoid,
 } from '@/api/penjualan';
+import { DialogAtasan } from '@/components/dialog-atasan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -24,13 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
-import {
-  DialogAtasan,
-  DialogBatalPengajuan,
-  DialogPutuskan,
-  IsianRefund,
-  SelStatusKoreksi,
-} from './komponen';
+import { DialogBatalPengajuan, DialogPutuskan, IsianRefund, SelStatusKoreksi } from './komponen';
 
 function FormAjukan() {
   const saya = usePengguna();
@@ -362,7 +357,6 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
           judul={`Persetujuan void ${diTempat.nomor}`}
           ringkasan={ringkasan(diTempat)}
           memproses={setujuiDiTempat.isPending}
-          isianRefund={{ nilai: refundDiTempat, onUbah: setRefundDiTempat }}
           onTutup={() => setDiTempat(null)}
           onSetujui={(atasan) =>
             void setujuiDiTempat
@@ -375,7 +369,13 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
               })
               .catch((err: unknown) => toast.error(pesanGalat(err)))
           }
-        />
+        >
+          <IsianRefund
+            nilai={refundDiTempat}
+            onUbah={setRefundDiTempat}
+            labelTunai="Tunai (laci shift kasir ini)"
+          />
+        </DialogAtasan>
       )}
       {dibatalkan && (
         <DialogBatalPengajuan

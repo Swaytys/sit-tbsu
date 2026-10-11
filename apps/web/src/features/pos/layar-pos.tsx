@@ -34,6 +34,7 @@ import {
 } from '@/api/penjualan';
 import { AreaCetak } from '@/components/area-cetak';
 import { InfoTierBelanja } from '@/components/info-tier-belanja';
+import { DialogAtasan } from '@/components/dialog-atasan';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InvoiceA4, SuratJalanA4 } from '@/components/dokumen-a4';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
@@ -220,6 +221,10 @@ export function LayarPos({
   const [sedangProses, setSedangProses] = useState(false);
   // PT6: checkout ditolak karena limit kredit; pemegang izin atur kredit boleh melanjutkan.
   const [limit, setLimit] = useState<{ data: DataCheckout; pesan: string } | null>(null);
+  // K-101: pengguna tanpa izin itu meminta atasan mengetik akunnya di sini (persetujuan di tempat).
+  const [limitAtasan, setLimitAtasan] = useState<{ data: DataCheckout; pesan: string } | null>(
+    null,
+  );
 
   const order = tr.t.order;
   const adaTransaksi = order !== null || tr.t.baris.length > 0;
@@ -384,6 +389,7 @@ export function LayarPos({
       .mutateAsync(data)
       .then((p) => {
         setHasil(p);
+        setLimitAtasan(null);
         // K-074/K-095: struk penjualan langsung mengikuti Pengaturan (langsung cetak, tanya dulu, atau tidak);
         // invoice pengantaran hanya bila diminta (P).
         setStrukTercetak(false);
@@ -412,7 +418,11 @@ export function LayarPos({
             setLimit({ data, pesan });
             return;
           }
-          toast.error(`${pesan} Minta Admin/Owner menyetujui, atau terima pembayaran lebih dulu.`);
+          if (!bolehLanjut && !data.atasan) {
+            setLimitAtasan({ data, pesan });
+            return;
+          }
+          toast.error(pesan);
           return;
         }
         toast.error(pesan);
@@ -784,6 +794,23 @@ export function LayarPos({
           if (limit) await kirimCheckout({ ...limit.data, setujuLimit: true });
         }}
       />
+      {limitAtasan && (
+        <DialogAtasan
+          judul="Limit kredit terlampaui"
+          ringkasan={
+            <>
+              <p>{limitAtasan.pesan}</p>
+              <p className="mt-1 text-slate-500">
+                Atasan bisa menyetujui di sini, atau batalkan lalu terima pembayaran lebih dulu.
+              </p>
+            </>
+          }
+          memproses={checkout.isPending}
+          onTutup={() => setLimitAtasan(null)}
+          // Akun atasan hanya ikut dalam permintaan ini; tidak disimpan di keadaan layar.
+          onSetujui={(atasan) => void kirimCheckout({ ...limitAtasan.data, atasan })}
+        />
+      )}
       {tampilDialogShift && (
         <DialogBukaShift
           onTutup={() => {
