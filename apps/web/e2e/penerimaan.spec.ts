@@ -48,6 +48,11 @@ test(
     await expect(page.getByRole('heading', { name: /Penerimaan RCV-/ })).toBeVisible();
     await expect(page.getByText('BUKTI PENERIMAAN BARANG')).toBeVisible();
     await expect(page.getByText('Lunas').first()).toBeVisible();
+    // Bukti penerimaan dicetak dari halaman ini: notifikasi yang masih tampil tidak boleh ikut tercetak.
+    await page.emulateMedia({ media: 'print' });
+    await expect(page.getByText(/Penerimaan RCV-\d{6}-\d{3,} disimpan/)).toBeHidden();
+    await expect(page.getByText('BUKTI PENERIMAAN BARANG')).toBeVisible();
+    await page.emulateMedia({ media: 'screen' });
     const nomor = (await page
       .getByRole('heading', { name: /Penerimaan RCV-/ })
       .textContent())!.replace('Penerimaan ', '');

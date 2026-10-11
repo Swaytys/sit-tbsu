@@ -76,7 +76,12 @@
   pointer-events: none;
 }
 @media print {
-  body:has(.area-cetak) > *:not(.area-cetak) {
+  /* Kelas `ada-area-cetak` dipasang AreaCetak; tidak memakai :has() agar berlaku juga di peramban lama. */
+  html.ada-area-cetak body > *:not(.area-cetak) {
+    display: none !important;
+  }
+  /* Notifikasi (toast) tidak pernah ikut tercetak, juga di halaman yang dicetak di tempat (tanpa AreaCetak). */
+  [data-sonner-toaster] {
     display: none !important;
   }
   .area-cetak {
