@@ -393,5 +393,6 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 - 2026-10-10 — Tinjauan menyeluruh kualitas kode di branch `chore/tinjauan-kode`: pengerasan (galat database,
   batas waktu koneksi, batas laju persetujuan, halaman galat) dan satu sumber untuk pola berulang; tanpa
   perubahan aturan bisnis (K-100).
+- 2026-10-10 — Melampaui limit kredit pelanggan dengan persetujuan atasan di layar kasir (K-101).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).

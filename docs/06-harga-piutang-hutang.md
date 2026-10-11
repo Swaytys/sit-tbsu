@@ -55,7 +55,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | PT3 | Halaman Piutang: daftar per penjualan (pelanggan, nomor, tanggal, jatuh tempo, sisa, status), filter pelanggan/terlambat, total; tombol "Terima pembayaran" membuka form pembayaran PELUNASAN (P8). Ringkasan per pelanggan: total sisa, jumlah invoice, terlama. |
 | PT4 | Terlambat = `tanggal_jatuh_tempo < hari ini`. Notifikasi H-3 dan terlambat (ST2). |
 | PT5 | **[M2 Fase 10] Umur piutang**: kelompok menurut hari lewat jatuh tempo: belum jatuh tempo (≤ 0 hari, termasuk jatuh tempo hari ini), 1–30, 31–60, 61–90, > 90 hari (K-088). Laporan piutang menampilkan ringkasan umur dan per pelanggan. |
-| PT6 | **[M2 Fase 10] Limit kredit**: bila `pelanggan.limit_kredit` terisi, saat checkout tidak lunas: `piutang_berjalan + sisa_tagihan_baru > limit_kredit` → `LIMIT_TERLAMPAUI` menyebut limit dan piutang berjalan. Pemegang `master.pelanggan.atur_kredit` (Admin/Owner) dapat melanjutkan dengan konfirmasi (`setujuLimit`, log `PENJUALAN_LIMIT_OVERRIDE`; K-088). |
+| PT6 | **[M2 Fase 10] Limit kredit**: bila `pelanggan.limit_kredit` terisi, saat checkout tidak lunas: `piutang_berjalan + sisa_tagihan_baru > limit_kredit` → `LIMIT_TERLAMPAUI` menyebut limit dan piutang berjalan. Pemegang `master.pelanggan.atur_kredit` (Admin/Owner) dapat melanjutkan dengan konfirmasi (`setujuLimit`, log `PENJUALAN_LIMIT_OVERRIDE`; K-088). Pengguna tanpa izin itu (Kasir) dapat melanjutkan bila Admin/Owner mengetik akunnya di layar kasir (`atasan`, persetujuan di tempat docs/04 §6); log atas nama atasan dan menyebut sesi kasir (K-101). |
 | PT7 | Pelanggan dengan piutang terlambat tidak diblokir otomatis; UI menampilkan peringatan di layar order/checkout. |
 | PT8 | Retur POTONG_TAGIHAN mengurangi piutang (T7); refund tidak. |
 
@@ -136,3 +136,4 @@ Konfigurasi: `dasar_markup`, `pembulatan_harga`, `batas_diskon_persen_<PERAN>`, 
 - 2026-10-10 — H8: tier selalu otomatis, tier aktif wajib bersyarat belanja, izin ganti tier dihapus (K-099).
 - 2026-10-09 — H2/H11: harga modal boleh belum diketahui (harga markup Rp 0 = belum bisa dijual sampai
   penerimaan pertama); satu barang beberapa baris beda satuan (K-095).
+- 2026-10-10 — PT6: melampaui limit kredit dengan persetujuan atasan di tempat (K-101, keputusan pemilik).

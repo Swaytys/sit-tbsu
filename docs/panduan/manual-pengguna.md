@@ -165,8 +165,10 @@ Semua tugas kasir, ditambah:
   tetapi belum disetor. **Buat setoran** → pilih tanggal akhir → periksa pratinjau (retur pelanggan
   sudah dikurangkan) → **Simpan setoran** → **Cetak nota setoran** untuk pemasok → **Bayar** (transfer atau tunai
   dari laci). Barang titipan yang tidak laku dikembalikan lewat *Retur ke Pemasok › Pengembalian titipan*.
-- **Limit kredit**: bila penjualan tidak lunas membuat piutang pelanggan melewati limitnya, kasir ditolak. Admin/
-  Owner melihat dialog **Setujui & lanjutkan**; persetujuan tercatat di log.
+- **Limit kredit**: bila penjualan tidak lunas membuat piutang pelanggan melewati limitnya, Admin/Owner melihat
+  dialog **Setujui & lanjutkan**. Kasir melihat dialog **Persetujuan atasan**: Admin/Owner mengetik nama pengguna
+  dan password-nya sendiri di layar kasir (kasir tidak perlu keluar), atau kasir menutup dialog dan menerima
+  pembayaran lebih dulu. Persetujuan tercatat di log atas nama atasan.
 - **Persetujuan**: tab *Menunggu persetujuan* di *Retur Penjualan* dan *Void Transaksi* (juga dari lonceng).
   Periksa alasan, pilih cara pengembalian uang, **Setujui** atau **Tolak** dengan alasan. Di toko dengan satu
   komputer Anda tidak perlu ganti akun: ketik akun Anda di dialog *Persetujuan atasan* di layar kasir. Kolom
