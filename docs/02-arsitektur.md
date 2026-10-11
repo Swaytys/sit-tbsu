@@ -29,7 +29,8 @@ transaksi, tes otomatis, dan bisa dipindah dari satu PC toko ke VPS tanpa menuli
 | Tes | Vitest (unit + service dengan DB uji), Playwright (e2e) | Aturan bisnis diuji terhadap DB sungguhan |
 | Kualitas | ESLint (typescript-eslint), Prettier, husky + lint-staged | Format dan lint otomatis sebelum commit |
 | Excel | `exceljs` (ekspor & import) | Ekspor laporan, import master barang |
-| Cetak | HTML + CSS `@media print` / `@page` | Struk thermal 58/80 mm, invoice A4, surat jalan A4 lewat browser |
+| Cetak | HTML + CSS `@media print` / `@page`; struk thermal juga ESC/POS lewat Web Serial (K-103) | Invoice, surat jalan, laporan A4 lewat jendela cetak; struk bisa langsung ke printer thermal tanpa jendela cetak |
+| Pesan ke atasan | Bot API Telegram (`fetch`) + `nodemailer` (SMTP) | Kode persetujuan sekali pakai (K-102) |
 
 ### Versi terkunci (K-050)
 
@@ -42,7 +43,7 @@ React Hook Form 7 · Vitest 5 · Playwright 1.63 · ESLint 10 · pino 10 · argo
 
 TypeScript 7 belum dipakai karena typescript-eslint belum mendukungnya (K-050). Paket fase berikutnya
 (decimal.js, date-fns, exceljs, sonner) dipin saat pertama dipasang: decimal.js 10.6.0 dan exceljs 4.4.0 di
-Fase 3 (K-058, K-061).
+Fase 3 (K-058, K-061); nodemailer 10.0.14 untuk email kode persetujuan (K-102).
 
 Aturan: semua versi dipin eksak (tanpa `^`); versi baru dipilih bila sudah berumur ≥ 7 hari. Upgrade dilakukan
 sadar, satu paket per commit, dengan tes lulus.
@@ -243,6 +244,10 @@ Pola rute yang dipakai bersama (K-100): `paramId` (`lib/validasi.ts`) untuk para
   dua lapis di `routes.tsx`: galat di satu halaman tampil di dalam kerangka, galat di kerangka/login tampil
   penuh. Berkas halaman yang gagal diunduh setelah server diperbarui memicu muat ulang otomatis.
 - Pembantu bersama web (K-100): `paramId` (`api/client.ts`), `qtySah` / `qtyDariIsian` (`lib/qty.ts`).
+- Struk thermal langsung (K-103): `packages/shared/src/escpos.ts` menyusun byte ESC/POS (murni, diuji);
+  `lib/struk-escpos.ts` mengisi strukturnya dari `DetailPenjualan`; `lib/printer-thermal.ts` mengirimnya lewat
+  Web Serial (Chrome/Edge) dengan pengaturan per komputer di `localStorage`. Bila tidak aktif atau gagal, struk
+  dicetak lewat `AreaCetak` seperti dokumen lain. Notifikasi (toast) disembunyikan di semua cetakan (K-104).
 
 ## 6. Paket `shared`
 
@@ -345,6 +350,7 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 
 ## Riwayat
 
+- 2026-10-11 — §2 saluran pesan ke atasan dan nodemailer (K-102); §2, §5 struk ESC/POS lewat Web Serial (K-103).
 - 2026-10-10 — §4: pembuat galat bersama, pemetaan galat database, batas waktu koneksi, pola rute bersama;
   §5: halaman galat dan pembantu bersama web; §8, §9, §11: `SESSION_SECRET` dan `SEED_CONTOH` dihapus (K-100).
 - 2026-10-04 — §12: deploy diputuskan (komputer toko + Tailscale, HTTPS CA lokal), cadangan restic, log

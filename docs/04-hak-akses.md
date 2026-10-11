@@ -207,28 +207,35 @@ di `cara_persetujuan` dokumen dan di log (K-017, K-099):
 | Cara | Kapan | Tercatat atas nama |
 |---|---|---|
 | `SENDIRI` | Pengaju punya izin `*.setujui` (Admin/Owner): dokumen langsung DISETUJUI (K-017). Pilihan sadar untuk toko kecil yang owner-nya juga admin; risikonya tidak ada pemisahan tugas untuk Admin. | pengaju |
-| `DI_TEMPAT` | Pengaju tanpa izin (Kasir) meminta atasan mengetik **nama pengguna + password atasan sendiri** di layar pengaju, saat mengajukan atau belakangan untuk dokumen MENUNGGU. Untuk toko dengan satu perangkat: kasir tidak perlu keluar dan pembeli langsung dilayani. | atasan |
+| `DI_TEMPAT` | Pengaju tanpa izin (Kasir) meminta **kode sekali pakai** yang dikirim sistem ke Telegram/email tiap Admin/Owner, lalu mengetik kode yang disebutkan atasan (K-102). Untuk toko satu perangkat dan atasan yang tidak di tempat: kasir tidak perlu keluar dan tidak ada password atasan yang diketik di komputer kasir. | atasan pemilik kode |
 | `BATAS_BEBAS` | Nilai dokumen, dijumlah dengan retur (atau void) lain yang MENUNGGU/DISETUJUI atas **penjualan yang sama**, tidak melebihi `konfigurasi.batas_retur_tanpa_persetujuan` / `batas_void_tanpa_persetujuan` (bawaan 0 = selalu butuh atasan). | pengaju |
 | `AKUN_ATASAN` | Selain itu dokumen MENUNGGU; muncul di tab *Menunggu persetujuan* dan notifikasi Admin/Owner, lalu disetujui atasan dari akunnya sendiri. | atasan |
 
-Aturan persetujuan di tempat (K-099):
+Aturan kode sekali pakai (K-102, menggantikan password atasan di layar kasir dari K-099/K-101):
 
-- Akun atasan diperiksa seperti login (password argon2id, akun aktif, tidak terkunci) dan harus punya izin
-  `*.setujui`. **Tidak ada sesi yang dibuat**, sesi pengaju tidak berubah, password tidak disimpan atau dilog.
-- Kegagalan dihitung seperti gagal login (`login_maks_gagal`, `login_kunci_menit`) dan dicatat
-  `PERSETUJUAN_GAGAL` beserta sesi pengaju, sehingga dialog tidak bisa dipakai menebak password. Pemeriksaan
-  dilakukan di luar transaksi dokumen agar hitungan gagal tidak ikut dibatalkan. Galat memakai HTTP 400/403,
-  bukan 401, agar sesi pengaju tidak dianggap berakhir.
-- Batas laju: 20 percobaan per menit **per pengaju**, berhasil maupun gagal → `TERLALU_BANYAK_PERCOBAAN` (429)
-  tanpa memeriksa password (K-100). Pengajuan tanpa akun atasan tidak ikut dihitung.
+- Retur/void diajukan dulu (MENUNGGU); pengaju lalu meminta kode. Isi pesan untuk atasan disusun server dari
+  dokumen tersimpan: pengaju, nomor, barang, nilai, alasan. Untuk limit kredit: pelanggan, limit, piutang
+  berjalan, dan tagihan baru (dibaca dari database, bukan dari teks kiriman peramban).
+- Tiap atasan yang berwenang (izin `retur.setujui` / `void.setujui` / `master.pelanggan.atur_kredit`) dan punya
+  kontak (Telegram terhubung atau email) menerima **kode 6 angka yang berbeda**; kode yang dipakai menentukan
+  `id_penyetuju`. Pengaju sendiri tidak pernah menjadi penerima.
+- Kode terikat pada satu dokumen (atau satu pelanggan + nilai tagihan baru: checkout menolak bila tagihannya
+  lebih besar), hanya bisa diminta dan dipakai pengaju itu, berlaku 10 menit, sekali pakai; meminta kode baru
+  membatalkan yang lama; 5 kali salah ketik membatalkan kode (tiap salah ketik `PERSETUJUAN_GAGAL`).
+- Permintaan kode: paling banyak 5 per 5 menit per pengaju → `TERLALU_BANYAK_PERCOBAAN` (429). Pengiriman
+  dicatat `PERSETUJUAN_KODE_KIRIM` (kepada siapa, lewat apa; tanpa kodenya).
+- Hanya hash kode yang disimpan. Wewenang atasan diperiksa lagi saat kode dipakai. Kode ditandai terpakai di
+  transaksi yang sama dengan persetujuannya. Galat memakai HTTP 400/409, bukan 401, agar sesi pengaju tidak
+  dianggap berakhir.
 - Refund tunai keluar dari laci shift **pengguna yang login di perangkat itu** (pengaju pada `DI_TEMPAT` dan
   `BATAS_BEBAS`; penyetuju pada `AKUN_ATASAN`). Mutasi stok dan `id_penyetuju` atas nama yang menyetujui.
-- Tidak ada PIN terpisah dan tidak ada dropdown "diotorisasi oleh": yang berlaku hanya password akun atasan.
-- **Limit kredit (PT6, K-101):** persetujuan di tempat juga dipakai saat checkout tidak lunas melampaui limit
-  kredit pelanggan dan pengguna yang login tidak memegang `master.pelanggan.atur_kredit`. Aturan di atas
-  berlaku sama; izin yang diperiksa pada akun atasan adalah `master.pelanggan.atur_kredit`. Penjualan tetap
-  atas nama kasir; log `PENJUALAN_LIMIT_OVERRIDE` atas nama atasan. Tidak ada status MENUNGGU: tanpa
-  persetujuan, penjualan tidak tersimpan.
+- Saluran: token bot Telegram dan akun SMTP diisi di Pengaturan › Persetujuan (`sistem.pengaturan.kelola`);
+  nilainya tidak pernah dikembalikan API atau dilog. Email dan Telegram tiap pengguna diatur pemilik akun
+  sendiri di Akun saya; kode tautan Telegram hanya diketahui pemilik akun yang sedang login.
+- Tanpa internet/saluran: retur/void tetap lewat `AKUN_ATASAN` atau `BATAS_BEBAS`; limit kredit hanya bisa
+  dilanjutkan Admin/Owner yang login.
+- **Limit kredit (PT6):** penjualan tetap atas nama kasir; log `PENJUALAN_LIMIT_OVERRIDE` atas nama atasan
+  pemilik kode. Tidak ada status MENUNGGU: tanpa persetujuan, penjualan tidak tersimpan.
 
 Aturan lain:
 
@@ -292,3 +299,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-10 — §6 persetujuan di tempat, batas tanpa persetujuan, batalkan pengajuan; izin `penjualan.tier.ubah` dihapus (tier selalu otomatis) (K-099).
 - 2026-10-10 — §6, §7: batas laju persetujuan di tempat 20/menit per pengaju (K-100).
 - 2026-10-10 — §6: persetujuan di tempat untuk melampaui limit kredit (K-101).
+- 2026-10-11 — §6: password atasan di layar kasir diganti kode sekali pakai lewat Telegram/email (K-102).

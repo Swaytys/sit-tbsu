@@ -52,7 +52,8 @@ Tanda: **[APPEND]** append-only · **[M2]** dipakai UI mulai M2 (tabel sudah ada
 dokumennya. Tidak ada nomor ganda; nomor bisa berlubang bila transaksi dibatalkan (diterima).
 
 **`pengguna`** — akun. `peran` menentukan izin lewat `roles.ts`. Kolom keamanan: `wajib_ganti_password`,
-`gagal_login_berturut`, `terkunci_sampai`. `kode` = `USR-00001`.
+`gagal_login_berturut`, `terkunci_sampai`. `kode` = `USR-00001`. v3.12: `email` dan `telegram_chat_id` (keduanya
+boleh kosong) = tujuan kode persetujuan sekali pakai; diisi pemilik akun sendiri (K-102).
 
 **`sesi_login`** [APPEND] — token disimpan sebagai `sha256` (kolom `token_hash`); cookie berisi token mentah.
 `kadaluarsa_absolut` dan `terakhir_aktif` untuk batas absolut dan idle. Logout = isi `dicabut_pada`.
@@ -206,6 +207,16 @@ sama untuk `void_transaksi`), `id_pengaju`,
 TUKAR_BARANG (detail: `id_barang_pengganti` + `qty_pengganti_dasar`, keduanya terisi atau kosong), POTONG_TAGIHAN.
 Detail: `harga_satuan_efektif` = subtotal baris ÷ qty saat retur; `nominal_retur`; `kondisi` BAIK/RUSAK/CACAT.
 Efek stok dan kas hanya saat DISETUJUI (docs/05).
+
+**`permintaan_persetujuan`** + **`kode_persetujuan`** (v3.12, K-102) — kode sekali pakai yang dikirim ke atasan
+untuk menyetujui retur, void, atau melampaui limit kredit dari layar pengaju. Permintaan: `jenis`
+RETUR/VOID/LIMIT_KREDIT, `id_pengaju`, rujukan (`id_retur` / `id_void` / `id_pelanggan`, CHECK sesuai jenis),
+`nilai` (nilai dokumen; untuk limit kredit = tagihan baru tertinggi yang disetujui), `ringkasan` (isi pesan
+untuk atasan), `status` MENUNGGU/DIPAKAI/GAGAL/DIGANTI, `gagal` (hitungan salah ketik), `kadaluarsa_pada`,
+`id_penyetuju` + `diputus_pada` (terisi saat DIPAKAI). [APPEND] kecuali kolom status tersebut. Kode: satu baris
+per atasan penerima (`id_atasan`, unik per permintaan), `kode_hash` (sha256; kode aslinya tidak disimpan),
+`saluran` (yang berhasil mengirim, mis. `TELEGRAM,EMAIL`). Dipakai di transaksi yang sama dengan dokumen yang
+disetujuinya.
 
 **`void_transaksi`** + **`void_transaksi_detail`** [APPEND] — `lingkup` TRANSAKSI/ITEM; untuk TRANSAKSI, service tetap
 membuat satu baris detail per item sehingga ledger selalu merujuk detail. `nominal_void` (nilai barang),
@@ -439,3 +450,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-09 — v3.8: `barang.harga_otomatis` bawaan true (barang lama dinyalakan), `order_penjualan_detail.tier_dipilih` (migrasi 0008; K-094).
 - 2026-10-10 — v3.10: `tingkat_harga.min_belanja` + CHECK (migrasi 0011, sekaligus menjadikan baris harga tier selain tier default IKUT_TIER dan menghitung ulang harganya); `tingkat_harga.min_qty` dan `harga_barang.min_qty` dihapus (migrasi 0012; K-098).
 - 2026-10-10 — v3.11: `retur_penjualan.cara_persetujuan`, `void_transaksi.cara_persetujuan` + CHECK; status DIBATALKAN; `order_penjualan_detail.tier_dipilih` dihapus; CHECK `chk_tingkat_harga_aktif_bersyarat` (tier aktif tanpa syarat belanja dinonaktifkan migrasi) (migrasi 0013; K-099).
+- 2026-10-11 — v3.12: tabel `permintaan_persetujuan`, `kode_persetujuan`; `pengguna.email`, `pengguna.telegram_chat_id` (migrasi 0014; K-102). Kunci konfigurasi baru: `telegram_bot_token`, `smtp_host`, `smtp_port`, `smtp_pengguna`, `smtp_sandi`, `email_pengirim` (rahasia, tidak dikembalikan API; K-102), `limit_kredit_default` (K-104).

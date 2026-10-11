@@ -89,6 +89,8 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 | D-K7 | `esbuild` lama di rantai `drizzle-kit` (hanya alat pengembangan). | Hilang saat `drizzle-kit` diperbarui; tidak berjalan di server toko. |
 | D-K8 | Kolom kunci asing sekunder (yang tidak dipakai menyaring daftar atau laporan) tidak punya indeks sendiri; kolom utama (header, barang, pelanggan, kasir, shift, tanggal) sudah berindeks. | Tidak terasa pada skala toko; tambah indeks berdasarkan `EXPLAIN` saat uji beban Sprint D. |
 | D-K9 | **Memori komputer server.** Saat diuji di komputer 7,7 GB yang memorinya hampir penuh, PostgreSQL sekali menjawab `out of memory`. Aplikasi kini menjawab 503 dengan pesan yang menyebut sebabnya, tetapi akar masalahnya di perangkat. | Server toko (dan komputer untuk versi desktop, Fase 13): RAM minimal 8 GB dengan aplikasi lain ditutup, disarankan 16 GB; tulis di panduan pasang. |
+| D-K10 | **Persetujuan dengan membalas pesan** (atasan menekan Setuju/Tolak di Telegram, tanpa menyebutkan kode ke kasir) dan pemberitahuan pengajuan retur/void yang menunggu ke Telegram/email atasan. | Butuh server yang terus membaca pesan masuk bot; cocok setelah server online (v3). Dasarnya (bot, kontak atasan, K-102) sudah ada. |
+| D-K11 | **Kode persetujuan lewat WhatsApp.** | Ditawarkan dan tidak dipilih pemilik (K-102): jalur resmi butuh verifikasi bisnis Meta dan templat berbayar; gateway tidak resmi berisiko blokir. Saluran baru cukup ditambahkan di `sistem/saluran`. |
 
 ---
 
@@ -109,8 +111,8 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 | F2 | **Pintasan umum di semua halaman**: urungkan (Ctrl+Z), ulangi (Ctrl+Y / Ctrl+Shift+Z), simpan (Ctrl+S), cari (Ctrl+K), hapus ke "keranjang sampah"/pulihkan, pindah tab halaman, tutup dialog — juga bisa diganti di F1. | Urungkan/ulangi berlaku untuk perubahan yang belum disimpan; dokumen yang sudah tersimpan tetap dikoreksi lewat dokumen baru (CLAUDE.md aturan 3). |
 | F3 | **Panduan tombol yang bisa dibuka/ditutup** kapan saja (mis. tombol `?`) di Order Penjualan, layar kasir, dan pengantaran: ringkasan alur + daftar tombol; pilihan "jangan tampilkan lagi" per pengguna. | Bilah tombol bawah (K-073) tetap ada dan bisa disembunyikan. |
 | F7 | **(masukan pemilik 2026-10-10) Tombol "?" di setiap halaman** sebagai tutor: cara pakai halaman, arti istilah/lencana, dan langkah umum; isi bisa dicari. | Dasarnya sudah ada (komponen `Penjelasan`, K-099) di Harga Jual, Kelola tier, dan Promo; tinggal ditulis untuk halaman lain. Terkait F3 dan tutorial awal Fase 13.4. |
-| F4 | **Pengaturan › Printer**: aktif/nonaktif cetak struk otomatis per komputer kasir, pilih printer struk & printer A4, jumlah salinan, uji cetak. | Peramban tidak bisa memilih printer sendiri; butuh agen cetak lokal kecil (atau ESC/POS lewat Web Serial) — dinilai saat Sprint F. Sampai itu: `scripts/kasir/buka-kasir.cmd` (K-074). |
-| F5 | Laci uang terbuka otomatis saat struk tunai dicetak (perintah ESC/POS lewat printer struk). | Bergantung F4. |
+| F4 | **(sebagian selesai, K-103: struk langsung ke printer thermal ESC/POS, pilih printer, uji cetak; sisa: pilih printer A4, jumlah salinan, logo di struk langsung)** **Pengaturan › Printer**: aktif/nonaktif cetak struk otomatis per komputer kasir, pilih printer struk & printer A4, jumlah salinan, uji cetak. | Peramban tidak bisa memilih printer sendiri; butuh agen cetak lokal kecil (atau ESC/POS lewat Web Serial) — dinilai saat Sprint F. Sampai itu: `scripts/kasir/buka-kasir.cmd` (K-074). |
+| F5 | **(selesai, K-103)** Laci uang terbuka otomatis saat struk tunai dicetak (perintah ESC/POS lewat printer struk). | Bergantung F4. |
 | F6 | **(masukan pemilik 2026-10-09) Tata letak POS bisa diatur pengguna**: daftar barang, papan antrean, panel bayar, dan hasil cari bisa diperlebar/dipersempit dengan menarik pembatas; ukuran diingat per komputer; tombol "kembalikan tata letak". | Preferensi tampilan (boleh `localStorage`). Cetak senyap & pilihan "tanya dulu/tidak cetak" sudah ada sejak K-095. |
 
 ## v3.0.0 — Pembukuan dan skala
@@ -149,3 +151,4 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 - 2026-10-10 — Sprint F: F7 tombol "?" di setiap halaman (masukan pemilik, K-099).
 - 2026-10-10 — Sprint D: temuan tinjauan kode D-K1–D-K9 (K-100).
 - 2026-10-10 — D-K2 dikerjakan (K-101, disetujui pemilik).
+- 2026-10-11 — F4 sebagian dan F5 selesai (K-103); D-K10, D-K11 dari K-102.

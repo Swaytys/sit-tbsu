@@ -394,5 +394,8 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
   batas waktu koneksi, batas laju persetujuan, halaman galat) dan satu sumber untuk pola berulang; tanpa
   perubahan aturan bisnis (K-100).
 - 2026-10-10 — Melampaui limit kredit pelanggan dengan persetujuan atasan di layar kasir (K-101).
+- 2026-10-11 — Tinjauan pemilik: persetujuan dengan kode sekali pakai lewat Telegram/email (K-102); struk
+  langsung ke printer thermal ESC/POS dan tab Struk & printer (K-103); pengantaran tanpa order, pelanggan
+  bisa diklik, cara bayar tegas, limit kredit bawaan, cetakan tanpa notifikasi (K-104).
 - 2026-09-19 — v1. Kepemilikan barang dan penerimaan konsinyasi dimasukkan ke M1 (Fase 3–4) karena toko sering
   memakai konsinyasi (K-029).
