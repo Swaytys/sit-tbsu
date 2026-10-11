@@ -224,6 +224,32 @@ describe('order penjualan (docs/05 §3, §6)', () => {
       ),
     );
     expect(antar.status).toBe(400);
+
+    // R10 (K-104): pelanggan pengantaran harus punya No. HP; penjualan langsung tidak terikat aturan ini.
+    await db.update(pelanggan).set({ noHp: null }).where(eq(pelanggan.id, plgGrosir));
+    const antarData = {
+      jenisPenjualan: 'PENGANTARAN',
+      idPelanggan: plgGrosir,
+      alamatKirim: 'Jl. A',
+    };
+    const tanpaHp = await galat(
+      minta2(admin, '/api/order', order([{ idBarang: m.semen, qty: '1' }], antarData)),
+    );
+    expect(tanpaHp).toMatchObject({ status: 400, kode: 'VALIDASI' });
+    expect(tanpaHp.pesan).toContain('belum punya No. HP');
+    const langsung = await minta2(
+      admin,
+      '/api/order',
+      order([{ idBarang: m.semen, qty: '1' }], { idPelanggan: plgGrosir }),
+    );
+    expect(langsung.status).toBe(201);
+    await db.update(pelanggan).set({ noHp: '0811' }).where(eq(pelanggan.id, plgGrosir));
+    const adaHp = await minta2(
+      admin,
+      '/api/order',
+      order([{ idBarang: m.semen, qty: '1' }], antarData),
+    );
+    expect(adaHp.status).toBe(201);
   });
 
   it('P3/D2/H9 tier selalu otomatis, batas diskon per peran, harga manual di bawah modal', async () => {

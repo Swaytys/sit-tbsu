@@ -52,7 +52,12 @@ function ringkasKredit(p: Pelanggan | null): string {
   return `${golongan} · term ${p.termHari} hari · ${limit}.`;
 }
 
-export function DialogPelanggan(p: { pelanggan: Pelanggan | null; onTutup: () => void }) {
+export function DialogPelanggan(p: {
+  pelanggan: Pelanggan | null;
+  onTutup: () => void;
+  /** Dipanggil setelah tersimpan, mis. layar kasir langsung memakai pelanggan yang baru dibuat. */
+  onTersimpan?: (p: Pelanggan) => void;
+}) {
   // Pelanggan baru: term dan limit bawaan toko dimuat dulu supaya langsung terisi di form (K-104).
   const bawaan = useBawaanPelanggan(p.pelanggan === null);
   if (p.pelanggan === null && bawaan.isLoading) return null;
@@ -63,10 +68,12 @@ function IsiDialogPelanggan({
   pelanggan,
   bawaan,
   onTutup,
+  onTersimpan,
 }: {
   pelanggan: Pelanggan | null;
   bawaan: BawaanPelanggan | null;
   onTutup: () => void;
+  onTersimpan?: (p: Pelanggan) => void;
 }) {
   const saya = usePengguna();
   const bolehKredit = saya.izin.includes('master.pelanggan.atur_kredit');
@@ -112,6 +119,7 @@ function IsiDialogPelanggan({
           ? `Data ${hasil.namaPelanggan} disimpan.`
           : `Pelanggan ${hasil.namaPelanggan} ditambahkan (${hasil.kode}).`,
       );
+      onTersimpan?.(hasil);
       onTutup();
     } catch (err) {
       tampilkanGalatForm(err, form.setError, [

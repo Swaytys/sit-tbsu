@@ -10,6 +10,7 @@ import {
   type DetailPenjualan,
   type InputCheckout,
   type JenisPenjualan,
+  type Pelanggan,
   type TiketAntrean,
 } from '@sit/shared';
 import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent } from 'react';
@@ -52,6 +53,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
+import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
 import { BilahTombol, type Tombol } from './bilah-tombol';
 import { CariBarangPos } from './cari-barang-pos';
 import { CariPelangganPos } from './cari-pelanggan-pos';
@@ -110,6 +112,7 @@ const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
     { kunci: 'Enter', label: 'Bayar' },
     { kunci: 'T/B/E', label: 'Tunai/Transfer/EDC' },
     { kunci: 'C', label: 'Campuran' },
+    { kunci: 'L/U/N', label: 'Lunas/DP/Bayar nanti (pelanggan)' },
   ],
   pelanggan: [
     { kunci: 'Enter', label: 'Pilih (kosong = umum)' },
@@ -219,6 +222,7 @@ export function LayarPos({
   const [dialogShift, setDialogShift] = useState(false);
   const [shiftDitunda, setShiftDitunda] = useState(false);
   const [sedangProses, setSedangProses] = useState(false);
+  const [pelangganBaru, setPelangganBaru] = useState(false);
   // PT6: checkout ditolak karena limit kredit; pemegang izin atur kredit boleh melanjutkan.
   const [limit, setLimit] = useState<{ data: DataCheckout; pesan: string } | null>(null);
   // K-101: pengguna tanpa izin itu meminta atasan mengetik akunnya di sini (persetujuan di tempat).
@@ -349,20 +353,37 @@ export function LayarPos({
     }
   }
 
-  function tambahBarang(b: BarisBarang, qty: string, idSatuanJual?: number | null) {
-    if (pengantaran && !order) {
-      toast.error('Pilih order pengantaran dari antrean dulu (F3).');
+  /** K-104: pengantaran tanpa order boleh, asal pelanggannya sudah dipilih (barang diantar ke siapa). */
+  function butuhPelangganAntar(): boolean {
+    if (!pengantaran || tr.t.pelanggan) return false;
+    toast.error('Pilih pelanggan dulu (F4), atau pilih order dari antrean (F3).');
+    setZona('pelanggan');
+    return true;
+  }
+
+  function pilihPelanggan(p: Pelanggan | null) {
+    if (pengantaran && !p) {
+      toast.error('Pengantaran wajib pelanggan terdata.');
       return;
     }
+    if (pengantaran && p && !p.noHp?.trim()) {
+      toast.error(
+        `${p.namaPelanggan} belum punya No. HP. Lengkapi di Data Pelanggan sebelum pengantaran.`,
+      );
+      return;
+    }
+    tr.aturPelanggan(p, pengantaran);
+    setZona(tr.t.baris.length > 0 ? 'bayar' : 'cari');
+  }
+
+  function tambahBarang(b: BarisBarang, qty: string, idSatuanJual?: number | null) {
+    if (butuhPelangganAntar()) return;
     setHasil(null);
     setIndeksBaris(tr.tambah(b, qty, idSatuanJual));
   }
 
   function bayar(pembayaran: DataPembayaran[]) {
-    if (pengantaran && !order) {
-      toast.error('Pilih order pengantaran dari antrean dulu (F3).');
-      return;
-    }
+    if (butuhPelangganAntar()) return;
     if (tr.t.baris.length === 0) {
       toast.error('Belum ada barang.');
       return;
@@ -515,7 +536,7 @@ export function LayarPos({
             indeks={indeksAman}
             onIndeks={setIndeksTiket}
             onProses={(t) => void prosesTiket(t)}
-            onKeluar={() => setZona(pengantaran ? 'bayar' : 'cari')}
+            onKeluar={() => setZona(pengantaran && order ? 'bayar' : 'cari')}
             onFokus={() => setZona('antrean')}
             aktif={zona === 'antrean'}
             idTransaksi={order?.id ?? null}
@@ -536,7 +557,7 @@ export function LayarPos({
                     <span className="font-mono text-xs text-slate-500">{order.nomor}</span>
                   </>
                 ) : pengantaran ? (
-                  'Pilih order pengantaran (F3)'
+                  'Pengantaran baru tanpa order'
                 ) : (
                   'Jual langsung tanpa order'
                 )}
@@ -551,23 +572,33 @@ export function LayarPos({
               <div className="mt-1" id={ID.pelanggan}>
                 <CariPelangganPos
                   id="pos-cari-pelanggan"
-                  onPilih={(p) => {
-                    if (pengantaran && !p) {
-                      toast.error('Pengantaran wajib pelanggan.');
-                      return;
-                    }
-                    tr.aturPelanggan(p);
-                    setZona('bayar');
-                  }}
-                  onEsc={() => setZona('bayar')}
+                  wajib={pengantaran}
+                  onPilih={pilihPelanggan}
+                  onTambahBaru={() => setPelangganBaru(true)}
+                  onEsc={() => setZona(tr.t.baris.length > 0 ? 'bayar' : 'cari')}
                 />
               </div>
             ) : (
               <div className="mt-1 flex items-center gap-2 text-sm">
-                <span className="text-slate-500">
-                  Pelanggan <kbd className="font-mono text-xs">F4</kbd>:
-                </span>
-                <span className="font-medium">{tr.t.pelanggan?.nama ?? 'Pembeli umum'}</span>
+                <button
+                  type="button"
+                  onClick={() => setZona('pelanggan')}
+                  title="Pilih atau ganti pelanggan (F4)"
+                  className={cn(
+                    'rounded border border-dashed px-2 py-0.5 text-left hover:border-blue-500 hover:bg-blue-50',
+                    pengantaran && !tr.t.pelanggan
+                      ? 'border-blue-500 bg-blue-50 text-blue-800'
+                      : 'border-slate-300',
+                  )}
+                >
+                  <span className="text-slate-500">
+                    Pelanggan <kbd className="font-mono text-xs">F4</kbd>:
+                  </span>{' '}
+                  <span className="font-medium">
+                    {tr.t.pelanggan?.nama ??
+                      (pengantaran ? 'klik untuk memilih pelanggan' : 'Pembeli umum')}
+                  </span>
+                </button>
                 {!tr.t.pelanggan && !pengantaran && (
                   <input
                     value={tr.t.namaPembeli}
@@ -580,10 +611,37 @@ export function LayarPos({
                 )}
               </div>
             )}
-            {pengantaran && order && (
-              <div className="mt-0.5 truncate text-xs text-slate-500">
-                Kirim ke {order.alamatKirim}
-                {order.ongkir > 0 && ` · ongkir ${formatRupiah(order.ongkir)}`}
+            {pengantaran && (order !== null || tr.t.pelanggan !== null) && (
+              <div className="mt-1.5 grid grid-cols-6 gap-1.5 text-xs">
+                <input
+                  value={tr.t.kirim.alamat}
+                  onChange={(e) => tr.aturKirim({ alamat: e.target.value })}
+                  maxLength={255}
+                  placeholder="Alamat kirim (wajib)"
+                  aria-label="Alamat kirim"
+                  className={cn(
+                    'col-span-3 h-7 rounded border px-2',
+                    !tr.t.kirim.alamat.trim() && 'border-amber-400 bg-amber-50',
+                  )}
+                />
+                <input
+                  value={tampilRibuan(tr.t.kirim.ongkir ? String(tr.t.kirim.ongkir) : '')}
+                  onChange={(e) =>
+                    tr.aturKirim({ ongkir: Number(digitSaja(e.target.value) || '0') })
+                  }
+                  inputMode="numeric"
+                  placeholder="Ongkir"
+                  aria-label="Ongkos kirim"
+                  className="h-7 rounded border px-2 text-right"
+                />
+                <input
+                  value={tr.t.kirim.catatan}
+                  onChange={(e) => tr.aturKirim({ catatan: e.target.value })}
+                  maxLength={255}
+                  placeholder="Catatan kirim"
+                  aria-label="Catatan kirim"
+                  className="col-span-2 h-7 rounded border px-2"
+                />
               </div>
             )}
             {order?.catatan && (
@@ -718,19 +776,6 @@ export function LayarPos({
             </span>
           </div>
 
-          {tr.t.pelanggan && (
-            <label className="flex items-center justify-between gap-2 text-xs text-slate-600">
-              Jatuh tempo bila belum lunas (kosong = sesuai term pelanggan)
-              <input
-                type="date"
-                value={jatuhTempo}
-                onChange={(e) => setJatuhTempo(e.target.value)}
-                aria-label="Tanggal jatuh tempo"
-                className="h-7 rounded border px-1"
-              />
-            </label>
-          )}
-
           <PanelBayarPos
             key={kunciPanel}
             id={ID.bayar}
@@ -744,8 +789,9 @@ export function LayarPos({
             nonaktif={!adaTransaksi || tr.t.baris.length === 0}
             ditinggal={ditinggal}
             onDitinggal={setDitinggal}
-            bayarSaatTerima={bayarSaatTerima}
             onBayarSaatTerima={setBayarSaatTerima}
+            jatuhTempo={jatuhTempo}
+            onJatuhTempo={setJatuhTempo}
             labelBayar={pengantaran ? 'Buat invoice' : 'Bayar & cetak'}
             onBayar={bayar}
             onFokus={() => setZona('bayar')}
@@ -809,6 +855,13 @@ export function LayarPos({
           onTutup={() => setLimitAtasan(null)}
           // Akun atasan hanya ikut dalam permintaan ini; tidak disimpan di keadaan layar.
           onSetujui={(atasan) => void kirimCheckout({ ...limitAtasan.data, atasan })}
+        />
+      )}
+      {pelangganBaru && (
+        <DialogPelanggan
+          pelanggan={null}
+          onTutup={() => setPelangganBaru(false)}
+          onTersimpan={pilihPelanggan}
         />
       )}
       {tampilDialogShift && (

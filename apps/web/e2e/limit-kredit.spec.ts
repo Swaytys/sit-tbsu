@@ -59,6 +59,7 @@ test('Limit kredit terlampaui: Admin menyetujui di layar Kasir (K-101)', async (
     await kasir.keyboard.type(String(o.noAntrean));
     await kasir.keyboard.press('Enter');
     await expect(kasir.getByTestId('total-pos')).toHaveText('Rp 500.000');
+    await kasir.keyboard.press('u'); // DP: sebagian sekarang, sisanya piutang
     await kasir.keyboard.press('b');
     await kasir.keyboard.type('200000');
     await kasir.keyboard.press('Tab');

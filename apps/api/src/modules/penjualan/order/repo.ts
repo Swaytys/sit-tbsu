@@ -272,6 +272,7 @@ export async function pelangganUntukOrder(ex: Executor, id: number) {
     .select({
       id: pelanggan.id,
       namaPelanggan: pelanggan.namaPelanggan,
+      noHp: pelanggan.noHp,
       statusAktif: pelanggan.statusAktif,
     })
     .from(pelanggan)
