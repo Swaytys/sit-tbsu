@@ -74,3 +74,14 @@ export async function aktifkanTierGrosir(page: Page, minBelanja: number) {
     },
   };
 }
+
+/**
+ * Kode persetujuan sekali pakai terbaru yang dikirim ke `nama` (K-102). Di mode pengembangan pesan untuk
+ * atasan juga masuk kotak keluar uji (`GET /api/auth/pesan-uji`), sehingga tes tidak butuh Telegram/email.
+ */
+export async function kodePersetujuan(page: Page, nama: string): Promise<string> {
+  const pesan = await api<{ kepada: string; isi: string }[]>(page, '/auth/pesan-uji');
+  const kode = /Kode: (\d{6})/.exec(pesan.find((x) => x.kepada === nama)?.isi ?? '')?.[1];
+  if (!kode) throw new Error(`Tidak ada kode persetujuan untuk ${nama}; jalankan pnpm db:seed.`);
+  return kode;
+}

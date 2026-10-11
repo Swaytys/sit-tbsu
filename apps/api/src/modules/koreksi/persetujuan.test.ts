@@ -3,6 +3,7 @@ import type {
   BarisVoid,
   DetailPenjualan,
   DetailShift,
+  InfoKodePersetujuan,
   KandidatRetur,
   KandidatVoid,
   ShiftAktif,
@@ -11,17 +12,19 @@ import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
 import {
-  PASSWORD_UJI,
   aturKonfigurasi,
+  beriEmail,
   json,
+  kodeTerkirim,
   minta,
+  pesanTerkirim,
   sesiUji,
   siapkanDatabaseSistem,
 } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import { catatPercobaan } from '../../lib/batas-percobaan';
-import { BATAS_PERSETUJUAN_DI_TEMPAT } from '../auth/service';
+import { BATAS_MINTA_KODE } from '../sistem/kode-persetujuan/service';
 import {
   clericalCheck,
   hargaBarang,
@@ -29,6 +32,7 @@ import {
   logAktivitas,
   pelanggan,
   pengguna,
+  permintaanPersetujuan,
   persediaan,
   returPenjualan,
   returPenjualanDetail,
@@ -38,8 +42,8 @@ import {
 } from '../../db/schema';
 
 /*
- * Persetujuan retur/void (docs/04 §6, K-099): atasan menyetujui di tempat dengan mengetik akunnya di layar
- * kasir, batas nilai tanpa persetujuan, dan pembatalan pengajuan yang masih menunggu.
+ * Persetujuan retur/void (docs/04 §6, K-099, K-102): kode sekali pakai yang dikirim ke atasan, batas nilai
+ * tanpa persetujuan, dan pembatalan pengajuan yang masih menunggu.
  * Semen Rp 10.000/sak (stok 20). Kasir punya shift terbuka (modal 100.000); Admin tidak membuka shift.
  */
 
@@ -100,8 +104,6 @@ async function logTerakhir(aksi: string) {
     .limit(1);
   return b;
 }
-const akunAdmin = () => ({ username: admin.pengguna.username, password: PASSWORD_UJI });
-
 beforeEach(async () => {
   await siapkanDatabaseSistem();
   m = await siapkanMasterPersediaan();
@@ -121,6 +123,8 @@ beforeEach(async () => {
     login_maks_gagal: '3',
   });
   admin = await sesiUji('ADMIN');
+  // Admin punya email, jadi bisa menerima kode persetujuan (di tes: kotak keluar uji).
+  await beriEmail(admin.pengguna.id);
   kasir = await sesiUji('KASIR');
   const idTier = await siapkanTierNormal();
   await db.insert(hargaBarang).values({
@@ -138,118 +142,200 @@ beforeEach(async () => {
   await kirim(kasir, '/api/shift/buka', { modalAwal: 100000 });
 });
 
-describe('persetujuan di tempat (K-099)', () => {
-  it('retur: atasan mengetik akunnya di layar kasir → langsung disetujui atas nama atasan, uang dari laci kasir', async () => {
+describe('kode persetujuan sekali pakai (K-102)', () => {
+  /** Kasir mengajukan retur (MENUNGGU) lalu meminta kode untuk atasan. */
+  async function returMenunggu(qty = '2') {
     const pj = await jual('5');
-    const r = await kirim<BarisRetur>(kasir, '/api/retur', retur(pj, '2', { atasan: akunAdmin() }));
-    expect(r).toMatchObject({
+    const r = await kirim<BarisRetur>(kasir, '/api/retur', retur(pj, qty));
+    expect(r).toMatchObject({ status: 'MENUNGGU', caraPersetujuan: null });
+    return r;
+  }
+  const mintaKode = (sesi: Sesi, path: string) =>
+    kirim<InfoKodePersetujuan>(sesi, `${path}/minta-kode`);
+
+  it('retur: tiap atasan menerima kodenya sendiri berisi rincian retur; kode Admin menyetujui atas nama Admin', async () => {
+    const owner = await sesiUji('OWNER');
+    await beriEmail(owner.pengguna.id);
+    const r = await returMenunggu();
+    const info = await mintaKode(kasir, `/api/retur/${r.id}`);
+    expect(info.penerima).toEqual([
+      { nama: admin.pengguna.namaPengguna, saluran: ['EMAIL'] },
+      { nama: owner.pengguna.namaPengguna, saluran: ['EMAIL'] },
+    ]);
+    // Atasan membaca apa yang ia setujui: nomor, barang, nilai, alasan, dan siapa pengajunya.
+    const pesan = pesanTerkirim(admin.pengguna.namaPengguna);
+    expect(pesan).toContain(r.nomor);
+    expect(pesan).toContain('Rp 20.000');
+    expect(pesan).toContain('Kelebihan beli');
+    expect(pesan).toContain(kasir.pengguna.namaPengguna);
+    const kodeAdmin = kodeTerkirim(admin.pengguna.namaPengguna);
+    expect(kodeTerkirim(owner.pengguna.namaPengguna)).not.toBe(kodeAdmin);
+    // Sebelum kode dipakai tidak ada yang berubah.
+    expect(await stokSemen()).toBe('15.000');
+
+    const ok = await kirim<BarisRetur>(kasir, `/api/retur/${r.id}/setujui-kode`, {
+      metodeRefund: 'TUNAI',
+      kode: { idPermintaan: info.idPermintaan, kode: kodeAdmin },
+    });
+    expect(ok).toMatchObject({
       status: 'DISETUJUI',
       caraPersetujuan: 'DI_TEMPAT',
       namaPengaju: kasir.pengguna.namaPengguna,
       namaPenyetuju: admin.pengguna.namaPengguna,
-      totalRetur: 20000,
     });
     expect(await stokSemen()).toBe('17.000');
     // Admin tidak punya shift: refund tunai keluar dari laci kasir yang sedang login.
     expect(await kasKasir()).toEqual([['REFUND_RETUR', 20000]]);
     const log = await logTerakhir('RETUR_SETUJUI');
     expect(log?.idPengguna).toBe(admin.pengguna.id);
-    expect(log?.ringkasan).toContain(`di tempat, sesi ${kasir.pengguna.username}`);
-    // Tidak ada sesi baru untuk atasan, dan sesi kasir tetap milik kasir.
+    expect(log?.ringkasan).toContain(`kode sekali pakai, sesi ${kasir.pengguna.username}`);
+    expect((await logTerakhir('PERSETUJUAN_KODE_KIRIM'))?.idPengguna).toBe(kasir.pengguna.id);
+    // Kodenya tidak pernah tercatat di log, dan tidak ada sesi baru untuk atasan.
+    const semuaLog = JSON.stringify(await db.select().from(logAktivitas));
+    expect(semuaLog).not.toContain(kodeAdmin);
     const saya = await ambil<{ username: string }>(kasir, '/api/auth/saya');
     expect(saya.username).toBe(kasir.pengguna.username);
   });
 
-  it('password salah: 400 (bukan 401), dokumen tidak dibuat, dicatat, dan akun atasan terkunci seperti gagal login', async () => {
-    const pj = await jual('5');
-    const salah = retur(pj, '1', {
-      atasan: { username: admin.pengguna.username, password: 'tebakan-salah' },
+  it('kode sekali pakai: tidak bisa dipakai lagi, dan tidak berlaku untuk dokumen lain', async () => {
+    const r1 = await returMenunggu('1');
+    const info = await mintaKode(kasir, `/api/retur/${r1.id}`);
+    const kode = {
+      idPermintaan: info.idPermintaan,
+      kode: kodeTerkirim(admin.pengguna.namaPengguna),
+    };
+    const pj2 = await jual('3');
+    const r2 = await kirim<BarisRetur>(kasir, '/api/retur', retur(pj2, '1'));
+    // Kode untuk retur pertama ditolak pada retur kedua (tanpa menambah hitungan salah ketik retur pertama).
+    const lain = await galat(kasir, `/api/retur/${r2.id}/setujui-kode`, {
+      metodeRefund: 'TUNAI',
+      kode,
     });
-    const g = await galat(kasir, '/api/retur', salah);
-    expect(g).toMatchObject({ status: 400, kode: 'VALIDASI' });
-    expect(g.pesan).toBe('Username atau password salah.');
-    expect(await db.select().from(returPenjualan)).toHaveLength(0);
-    const log = await logTerakhir('PERSETUJUAN_GAGAL');
-    expect(log?.idPengguna).toBe(admin.pengguna.id);
-    expect(log?.ringkasan).toContain(`sesi ${kasir.pengguna.username}`);
-    expect(JSON.stringify(log)).not.toContain('tebakan-salah');
+    expect(lain).toMatchObject({ status: 400, kode: 'VALIDASI' });
+    expect(lain.pesan).toContain('tidak berlaku');
 
-    // Percobaan ke-3 mengunci akun atasan; sesudahnya password benar pun ditolak.
-    await galat(kasir, '/api/retur', salah);
-    const kunci = await galat(kasir, '/api/retur', salah);
-    expect(kunci.pesan).toContain('Akun dikunci sampai');
-    const terkunci = await galat(kasir, '/api/retur', retur(pj, '1', { atasan: akunAdmin() }));
-    expect(terkunci).toMatchObject({ status: 400 });
-    expect(terkunci.pesan).toContain('Akun terkunci');
-    expect(await db.select().from(returPenjualan)).toHaveLength(0);
-    // Sesi kasir tidak terpengaruh.
+    await kirim(kasir, `/api/retur/${r1.id}/setujui-kode`, { metodeRefund: 'TUNAI', kode });
+    const [m1] = await db.select().from(permintaanPersetujuan);
+    expect(m1).toMatchObject({ status: 'DIPAKAI', idPenyetuju: admin.pengguna.id });
+    // Retur kedua masih menunggu; kode yang sudah dipakai tidak bisa menyetujuinya.
+    expect((await ambil<BarisRetur>(kasir, `/api/retur/${r2.id}`)).status).toBe('MENUNGGU');
+  });
+
+  it('salah ketik dihitung dan dicatat; 5 kali salah membatalkan kode, kode yang benar pun ditolak', async () => {
+    const r = await returMenunggu();
+    const info = await mintaKode(kasir, `/api/retur/${r.id}`);
+    const benar = kodeTerkirim(admin.pengguna.namaPengguna);
+    const salah = benar === '000000' ? '111111' : '000000';
+    const coba = (kode: string) =>
+      galat(kasir, `/api/retur/${r.id}/setujui-kode`, {
+        metodeRefund: 'TUNAI',
+        kode: { idPermintaan: info.idPermintaan, kode },
+      });
+    const g1 = await coba(salah);
+    expect(g1).toMatchObject({ status: 400, kode: 'VALIDASI' });
+    expect(g1.pesan).toBe('Kode salah. Sisa percobaan: 4.');
+    expect((await logTerakhir('PERSETUJUAN_GAGAL'))?.idPengguna).toBe(kasir.pengguna.id);
+    for (let i = 0; i < 3; i++) await coba(salah);
+    expect((await coba(salah)).pesan).toContain('kode dibatalkan');
+    expect((await coba(benar)).pesan).toContain('tidak berlaku');
+    expect((await ambil<BarisRetur>(kasir, `/api/retur/${r.id}`)).status).toBe('MENUNGGU');
+    expect(await stokSemen()).toBe('15.000');
+    // Sesi kasir tidak terpengaruh (galat 400, bukan 401).
     expect((await minta('/api/auth/saya', { cookie: kasir.cookie })).status).toBe(200);
   });
 
-  it('batas laju per pengaju: percobaan di atas batas dalam semenit → 429 tanpa memeriksa password', async () => {
-    const pj = await jual('5');
-    for (let i = 0; i < BATAS_PERSETUJUAN_DI_TEMPAT.maks; i++) {
-      catatPercobaan(`atasan:${kasir.pengguna.id}`, BATAS_PERSETUJUAN_DI_TEMPAT);
-    }
-    const g = await galat(kasir, '/api/retur', retur(pj, '1', { atasan: akunAdmin() }));
-    expect(g).toMatchObject({ status: 429, kode: 'TERLALU_BANYAK_PERCOBAAN' });
-    expect(await db.select().from(returPenjualan)).toHaveLength(0);
-    // Batasnya per pengaju: retur tanpa akun atasan tetap bisa diajukan.
-    const r = await kirim<BarisRetur>(kasir, '/api/retur', retur(pj, '1'));
-    expect(r.status).toBe('MENUNGGU');
+  it('kode kadaluarsa ditolak; meminta kode baru menggantikan kode lama', async () => {
+    const r = await returMenunggu();
+    const lama = await mintaKode(kasir, `/api/retur/${r.id}`);
+    const kodeLama = kodeTerkirim(admin.pengguna.namaPengguna);
+    const setujui = (idPermintaan: number, kode: string) =>
+      minta(`/api/retur/${r.id}/setujui-kode`, {
+        method: 'POST',
+        cookie: kasir.cookie,
+        body: { metodeRefund: 'TUNAI', kode: { idPermintaan, kode } },
+      });
+
+    const baru = await mintaKode(kasir, `/api/retur/${r.id}`);
+    const kodeBaru = kodeTerkirim(admin.pengguna.namaPengguna);
+    // Kode lama sudah diganti.
+    expect((await setujui(lama.idPermintaan, kodeLama)).status).toBe(400);
+    // Kode baru yang sudah lewat waktunya juga ditolak.
+    await db
+      .update(permintaanPersetujuan)
+      .set({ kadaluarsaPada: new Date(Date.now() - 1000) })
+      .where(eq(permintaanPersetujuan.id, baru.idPermintaan));
+    expect((await setujui(baru.idPermintaan, kodeBaru)).status).toBe(400);
+    expect((await ambil<BarisRetur>(kasir, `/api/retur/${r.id}`)).status).toBe('MENUNGGU');
   });
 
-  it('akun yang tidak berwenang (Kasir lain) dan akun nonaktif ditolak', async () => {
-    const pj = await jual('5');
+  it('hanya pengaju yang bisa meminta dan memakai kode; hanya atasan berwenang dan berkontak yang menerima', async () => {
     const kasir2 = await sesiUji('KASIR');
-    const bukanAtasan = await galat(
-      kasir,
-      '/api/retur',
-      retur(pj, '1', {
-        atasan: { username: kasir2.pengguna.username, password: PASSWORD_UJI },
-      }),
-    );
-    expect(bukanAtasan).toMatchObject({ status: 403, kode: 'TIDAK_BERIZIN' });
-    expect(bukanAtasan.pesan).toContain('tidak berwenang menyetujui');
+    await beriEmail(kasir2.pengguna.id); // Kasir beremail bukan atasan: tidak menerima kode.
+    const r = await returMenunggu();
+    expect((await galat(kasir2, `/api/retur/${r.id}/minta-kode`)).status).toBe(403);
+    const info = await mintaKode(kasir, `/api/retur/${r.id}`);
+    expect(info.penerima.map((x) => x.nama)).toEqual([admin.pengguna.namaPengguna]);
+    // Kode yang benar pun tidak bisa dipakai kasir lain.
+    const olehLain = await galat(kasir2, `/api/retur/${r.id}/setujui-kode`, {
+      metodeRefund: 'TUNAI',
+      kode: {
+        idPermintaan: info.idPermintaan,
+        kode: kodeTerkirim(admin.pengguna.namaPengguna),
+      },
+    });
+    expect(olehLain.status).toBe(400);
+    // Kasir tetap tidak bisa menyetujui tanpa kode.
+    expect((await galat(kasir, `/api/retur/${r.id}/setujui`, {})).status).toBe(403);
+    expect((await galat(kasir, `/api/retur/${r.id}/setujui-kode`, {})).status).toBe(400);
 
+    // Atasan dinonaktifkan setelah kode dikirim: kodenya tidak lagi berwenang.
     await db
       .update(pengguna)
       .set({ statusAktif: 'NONAKTIF' })
       .where(eq(pengguna.id, admin.pengguna.id));
-    const nonaktif = await galat(kasir, '/api/retur', retur(pj, '1', { atasan: akunAdmin() }));
-    expect(nonaktif.status).toBe(400);
-    expect(nonaktif.pesan).toContain('nonaktif');
-    expect(await db.select().from(returPenjualan)).toHaveLength(0);
+    const nonaktif = await galat(kasir, `/api/retur/${r.id}/setujui-kode`, {
+      metodeRefund: 'TUNAI',
+      kode: {
+        idPermintaan: info.idPermintaan,
+        kode: kodeTerkirim(admin.pengguna.namaPengguna),
+      },
+    });
+    expect(nonaktif.pesan).toContain('tidak lagi berwenang');
+    // Tanpa satu pun atasan yang bisa dihubungi, kode tidak bisa diminta.
+    const kosong = await galat(kasir, `/api/retur/${r.id}/minta-kode`);
+    expect(kosong).toMatchObject({ status: 409, kode: 'KONFLIK' });
+    expect(kosong.pesan).toContain('Belum ada Admin/Owner');
   });
 
-  it('pengajuan MENUNGGU disetujui di tempat belakangan; Kasir tanpa akun atasan tetap tidak bisa menyetujui', async () => {
-    const pj = await jual('5');
-    const r = await kirim<BarisRetur>(kasir, '/api/retur', retur(pj, '2'));
-    expect(r).toMatchObject({ status: 'MENUNGGU', caraPersetujuan: null });
-    expect((await galat(kasir, `/api/retur/${r.id}/setujui`, {})).status).toBe(403);
-    expect((await galat(kasir, `/api/retur/${r.id}/setujui-di-tempat`, {})).status).toBe(400);
-
-    const ok = await kirim<BarisRetur>(kasir, `/api/retur/${r.id}/setujui-di-tempat`, {
-      atasan: akunAdmin(),
-    });
-    expect(ok).toMatchObject({
-      status: 'DISETUJUI',
-      caraPersetujuan: 'DI_TEMPAT',
-      namaPenyetuju: admin.pengguna.namaPengguna,
-    });
-    expect(await kasKasir()).toEqual([['REFUND_RETUR', 20000]]);
+  it('batas laju: permintaan kode ke-6 dalam 5 menit ditolak 429 dan tidak mengirim pesan', async () => {
+    const r = await returMenunggu();
+    for (let i = 0; i < BATAS_MINTA_KODE.maks; i++) {
+      catatPercobaan(`minta-kode:${kasir.pengguna.id}`, BATAS_MINTA_KODE);
+    }
+    const g = await galat(kasir, `/api/retur/${r.id}/minta-kode`);
+    expect(g).toMatchObject({ status: 429, kode: 'TERLALU_BANYAK_PERCOBAAN' });
+    expect(pesanTerkirim(admin.pengguna.namaPengguna)).toBe('');
   });
 
-  it('void: disetujui di tempat; stok kembali dan refund dari laci kasir', async () => {
+  it('void: kode menyetujui; stok kembali dan refund dari laci kasir', async () => {
     const pj = await jual('3');
     const v = await kirim<BarisVoid>(kasir, '/api/void', {
       idPenjualan: pj.id,
       lingkup: 'TRANSAKSI',
       alasan: 'Salah input barang',
       persetujuan: { metodeRefund: 'TUNAI' },
-      atasan: akunAdmin(),
     });
-    expect(v).toMatchObject({
+    expect(v.status).toBe('MENUNGGU');
+    const info = await mintaKode(kasir, `/api/void/${v.id}`);
+    expect(pesanTerkirim(admin.pengguna.namaPengguna)).toContain(v.nomor);
+    const ok = await kirim<BarisVoid>(kasir, `/api/void/${v.id}/setujui-kode`, {
+      metodeRefund: 'TUNAI',
+      kode: {
+        idPermintaan: info.idPermintaan,
+        kode: kodeTerkirim(admin.pengguna.namaPengguna),
+      },
+    });
+    expect(ok).toMatchObject({
       status: 'DISETUJUI',
       caraPersetujuan: 'DI_TEMPAT',
       namaPenyetuju: admin.pengguna.namaPengguna,
@@ -353,11 +439,15 @@ describe('batalkan pengajuan (K-099)', () => {
     expect(k?.baris[0]).toMatchObject({ qtyMenunggu: '0.000', qtyBisaRetur: '5.000' });
 
     // Diajukan ulang dengan qty benar lalu disetujui: retur yang sudah disetujui tidak bisa dibatalkan.
-    const r2 = await kirim<BarisRetur>(
-      kasir,
-      '/api/retur',
-      retur(pj, '3', { atasan: akunAdmin() }),
-    );
+    const r2m = await kirim<BarisRetur>(kasir, '/api/retur', retur(pj, '3'));
+    const info = await kirim<InfoKodePersetujuan>(kasir, `/api/retur/${r2m.id}/minta-kode`);
+    const r2 = await kirim<BarisRetur>(kasir, `/api/retur/${r2m.id}/setujui-kode`, {
+      metodeRefund: 'TUNAI',
+      kode: {
+        idPermintaan: info.idPermintaan,
+        kode: kodeTerkirim(admin.pengguna.namaPengguna),
+      },
+    });
     for (const sesi of [kasir, admin]) {
       const g = await galat(sesi, `/api/retur/${r2.id}/batal`, { alasan: 'ingin dibalik' });
       expect(g).toMatchObject({ status: 409, kode: 'STATUS_TIDAK_VALID' });

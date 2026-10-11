@@ -27,6 +27,7 @@ export * from './schemas/penjualan';
 export * from './schemas/persediaan';
 export * from './schemas/promo';
 export * from './schemas/referensi';
+export * from './schemas/saluran';
 export * from './schemas/satuan';
 export * from './schemas/umum';
 export * from './tanggal';

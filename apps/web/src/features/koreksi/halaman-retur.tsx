@@ -3,7 +3,6 @@ import {
   formatRupiah,
   subtotalRupiah,
   type BarisRetur,
-  type DataAtasan,
   type DataSetujui,
   type KondisiRetur,
   type PenyelesaianRetur,
@@ -21,10 +20,8 @@ import {
   useDaftarRetur,
   useKandidatRetur,
   useSetujuiRetur,
-  useSetujuiReturDiTempat,
   useTolakRetur,
 } from '@/api/penjualan';
-import { DialogAtasan } from '@/components/dialog-atasan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -38,6 +35,7 @@ import { cn } from '@/lib/utils';
 import {
   BadgePersetujuan,
   DialogBatalPengajuan,
+  DialogKodeKoreksi,
   DialogPutuskan,
   IsianRefund,
   SelStatusKoreksi,
@@ -84,7 +82,8 @@ function FormAjukan() {
   const [penyelesaian, setPenyelesaian] = useState<PenyelesaianRetur>('REFUND');
   const [refund, setRefund] = useState<DataSetujui>({ metodeRefund: 'TUNAI' });
   const [catatan, setCatatan] = useState('');
-  const [mintaAtasan, setMintaAtasan] = useState(false);
+  /** Retur yang baru diajukan dan menunggu: langsung ditawari persetujuan dengan kode atasan (K-102). */
+  const [kodeUntuk, setKodeUntuk] = useState<{ dok: BarisRetur; refund: DataSetujui } | null>(null);
 
   const baris = (pilih?.baris ?? [])
     .map((b) => ({ b, i: isi[b.id] }))
@@ -102,7 +101,7 @@ function FormAjukan() {
     setIsi((x) => ({ ...x, [id]: { qty: '', kondisi: 'BAIK', ...x[id], ...ubah } }));
   }
 
-  function kirim(atasan: DataAtasan | null) {
+  function kirim() {
     if (!pilih) return;
     ajukan
       .mutateAsync({
@@ -117,7 +116,6 @@ function FormAjukan() {
           keterangan: null,
         })),
         persetujuan: refund,
-        atasan,
       })
       .then((r) => {
         toast.success(
@@ -125,8 +123,8 @@ function FormAjukan() {
             ? `Retur ${r.nomor} disetujui; stok diperbarui.`
             : `Retur ${r.nomor} diajukan; menunggu persetujuan Admin/Owner.`,
         );
+        if (r.status === 'MENUNGGU') setKodeUntuk({ dok: r, refund });
         // Transaksi tetap terpilih: sisa qty dan riwayat returnya langsung tampil.
-        setMintaAtasan(false);
         setIsi({});
         setAlasan('');
         setCatatan('');
@@ -380,30 +378,34 @@ function FormAjukan() {
                 ? 'Anda berhak menyetujui: retur langsung berlaku.'
                 : tanpaAtasan
                   ? `Nilai retur masih di dalam batas tanpa persetujuan (sisa ${formatRupiah(pilih.sisaBatasBebas)} untuk transaksi ini): retur langsung berlaku dan tercatat atas nama Anda.`
-                  : 'Butuh persetujuan Admin/Owner. Atasan bisa menyetujui di layar ini sekarang, atau retur diajukan dan menunggu. Stok dan uang baru berubah setelah disetujui.'}
+                  : 'Butuh persetujuan Admin/Owner. Setelah diajukan, Anda bisa meminta kode sekali pakai yang dikirim ke atasan, atau menunggu atasan menyetujui dari akunnya. Stok dan uang baru berubah setelah disetujui.'}
             </p>
             <Button
               disabled={
                 baris.length === 0 || melebihi || alasan.trim().length < 3 || ajukan.isPending
               }
-              onClick={() => (langsung ? kirim(null) : setMintaAtasan(true))}
+              onClick={kirim}
             >
-              {langsung ? 'Proses retur' : 'Lanjut: minta persetujuan'}
+              {langsung ? 'Proses retur' : 'Ajukan & minta persetujuan'}
             </Button>
-            {mintaAtasan && (
-              <DialogAtasan
-                judul={`Persetujuan retur ${pilih.nomor}`}
+            {kodeUntuk && (
+              <DialogKodeKoreksi
+                jenis="retur"
+                dok={kodeUntuk.dok}
                 ringkasan={
                   <>
-                    {baris.map((x) => `${x.b.namaBarang} ${x.i!.qty} ${x.b.kodeSatuan}`).join(', ')}{' '}
-                    — <b>{formatRupiah(nilai)}</b>, {LABEL_PENYELESAIAN[penyelesaian].toLowerCase()}
-                    . Alasan: {alasan}.
+                    {kodeUntuk.dok.baris
+                      .map((b) => `${b.namaBarang} ${formatDesimal(b.qtyRetur)} ${b.kodeSatuan}`)
+                      .join(', ')}{' '}
+                    — <b>{formatRupiah(kodeUntuk.dok.totalRetur)}</b>,{' '}
+                    {LABEL_PENYELESAIAN[kodeUntuk.dok.penyelesaian].toLowerCase()}. Alasan:{' '}
+                    {kodeUntuk.dok.alasan}.
                   </>
                 }
-                memproses={ajukan.isPending}
-                onSetujui={kirim}
-                onAjukanSaja={() => kirim(null)}
-                onTutup={() => setMintaAtasan(false)}
+                refundAwal={kodeUntuk.refund}
+                tampilRefund={false}
+                labelTutup="Nanti saja, tunggu persetujuan"
+                onTutup={() => setKodeUntuk(null)}
               />
             )}
           </>
@@ -420,12 +422,10 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
   const perHalaman = useBarisPerHalaman();
   const daftar = useDaftarRetur({ status: menunggu ? 'MENUNGGU' : null, halaman, perHalaman });
   const setujui = useSetujuiRetur();
-  const setujuiDiTempat = useSetujuiReturDiTempat();
   const tolak = useTolakRetur();
   const batal = useBatalRetur();
   const [putus, setPutus] = useState<BarisRetur | null>(null);
   const [diTempat, setDiTempat] = useState<BarisRetur | null>(null);
-  const [refundDiTempat, setRefundDiTempat] = useState<DataSetujui>({ metodeRefund: null });
   const [dibatalkan, setDibatalkan] = useState<BarisRetur | null>(null);
 
   const kolom: KolomTabel<BarisRetur>[] = [
@@ -485,15 +485,11 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
                     Putuskan
                   </Button>
                 ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setRefundDiTempat({ metodeRefund: r.metodeRefund });
-                      setDiTempat(r);
-                    }}
-                  >
-                    Setujui di tempat
-                  </Button>
+                  r.idPengaju === saya.id && (
+                    <Button size="sm" onClick={() => setDiTempat(r)}>
+                      Setujui dengan kode
+                    </Button>
+                  )
                 )}
                 {(bolehPutus || r.idPengaju === saya.id) && (
                   <Button size="sm" variant="outline" onClick={() => setDibatalkan(r)}>
@@ -518,8 +514,9 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
     <Card className="gap-0 overflow-hidden py-0">
       {menunggu && !bolehPutus && (
         <p className="border-b bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          Retur di bawah menunggu Admin/Owner. <b>Setujui di tempat</b>: atasan mengetik akunnya di
-          layar ini. <b>Batalkan</b>: tarik pengajuan Anda yang salah input, lalu ajukan lagi.
+          Retur di bawah menunggu Admin/Owner. <b>Setujui dengan kode</b>: sistem mengirim kode
+          sekali pakai ke atasan, lalu Anda mengetik kode yang disebutkan atasan. <b>Batalkan</b>:
+          tarik pengajuan Anda yang salah input, lalu ajukan lagi.
         </p>
       )}
       <DataTable
@@ -560,29 +557,14 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
         />
       )}
       {diTempat && (
-        <DialogAtasan
-          judul={`Persetujuan retur ${diTempat.nomor}`}
+        <DialogKodeKoreksi
+          jenis="retur"
+          dok={diTempat}
           ringkasan={ringkasan(diTempat)}
-          memproses={setujuiDiTempat.isPending}
+          refundAwal={{ metodeRefund: diTempat.metodeRefund }}
+          tampilRefund={diTempat.penyelesaian === 'REFUND'}
           onTutup={() => setDiTempat(null)}
-          onSetujui={(atasan) =>
-            void setujuiDiTempat
-              .mutateAsync({ id: diTempat.id, json: { ...refundDiTempat, atasan } })
-              .then((r) => {
-                toast.success(`Retur ${r.nomor} disetujui ${r.namaPenyetuju ?? 'atasan'}.`);
-                setDiTempat(null);
-              })
-              .catch((err: unknown) => toast.error(pesanGalat(err)))
-          }
-        >
-          {diTempat.penyelesaian === 'REFUND' && (
-            <IsianRefund
-              nilai={refundDiTempat}
-              onUbah={setRefundDiTempat}
-              labelTunai="Tunai (laci shift kasir ini)"
-            />
-          )}
-        </DialogAtasan>
+        />
       )}
       {dibatalkan && (
         <DialogBatalPengajuan

@@ -155,11 +155,27 @@ export type StatusPersetujuan = (typeof STATUS_PERSETUJUAN)[number];
 
 /**
  * Cara retur/void disetujui (docs/04 §6, K-099): SENDIRI = pengaju berwenang menyetujui; AKUN_ATASAN = atasan
- * menyetujui dari akunnya; DI_TEMPAT = atasan mengetik akunnya di layar pengaju; BATAS_BEBAS = nilainya di
- * bawah batas tanpa persetujuan di Pengaturan.
+ * menyetujui dari akunnya; DI_TEMPAT = disetujui di layar pengaju dengan kode sekali pakai milik atasan
+ * (K-102; sebelumnya password atasan, K-099); BATAS_BEBAS = nilainya di bawah batas tanpa persetujuan di
+ * Pengaturan.
  */
 export const CARA_PERSETUJUAN = ['SENDIRI', 'AKUN_ATASAN', 'DI_TEMPAT', 'BATAS_BEBAS'] as const;
 export type CaraPersetujuan = (typeof CARA_PERSETUJUAN)[number];
+
+/**
+ * K-102: kode sekali pakai yang dikirim ke atasan (docs/04 §6). Jenis = tindakan yang dimintakan
+ * persetujuan; status DIGANTI = pengaju meminta kode baru untuk hal yang sama, GAGAL = terlalu banyak salah
+ * ketik atau pesannya tidak terkirim.
+ */
+export const JENIS_KODE_PERSETUJUAN = ['RETUR', 'VOID', 'LIMIT_KREDIT'] as const;
+export type JenisKodePersetujuan = (typeof JENIS_KODE_PERSETUJUAN)[number];
+
+export const STATUS_KODE_PERSETUJUAN = ['MENUNGGU', 'DIPAKAI', 'GAGAL', 'DIGANTI'] as const;
+export type StatusKodePersetujuan = (typeof STATUS_KODE_PERSETUJUAN)[number];
+
+/** Saluran pengiriman pesan ke atasan. */
+export const SALURAN_PESAN = ['TELEGRAM', 'EMAIL'] as const;
+export type SaluranPesan = (typeof SALURAN_PESAN)[number];
 
 export const PENYELESAIAN_RETUR = ['REFUND', 'TUKAR_BARANG', 'POTONG_TAGIHAN'] as const;
 export type PenyelesaianRetur = (typeof PENYELESAIAN_RETUR)[number];

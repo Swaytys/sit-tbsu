@@ -5,13 +5,11 @@ import {
   izinPeran,
   type InputGantiPassword,
   type InputLogin,
-  type Izin,
   type PenggunaSaya,
   type Peran,
 } from '@sit/shared';
 import { db } from '../../db/client';
 import { env } from '../../env';
-import { catatPercobaan, type OpsiBatas } from '../../lib/batas-percobaan';
 import { AppError, galatKolom } from '../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { cocokPassword, hashPassword, verifikasiTiruan } from '../../lib/password';
@@ -103,8 +101,6 @@ type HasilKredensial = { calon: repo.CalonLogin } | { galat: string };
 async function periksaKredensial(
   kredensial: { username: string; password: string },
   asal: AsalRequest,
-  aksi: 'LOGIN_GAGAL' | 'PERSETUJUAN_GAGAL',
-  konteks = '',
 ): Promise<HasilKredensial> {
   const username = normalisasiUsername(kredensial.username);
   const calon = await repo.penggunaUntukLogin(db, username);
@@ -113,21 +109,21 @@ async function periksaKredensial(
   if (!calon) {
     await verifikasiTiruan(kredensial.password);
     await catatLog(db, {
-      aksi,
+      aksi: 'LOGIN_GAGAL',
       idPengguna: null,
       usernamePercobaan: username,
-      ringkasan: `Username tidak dikenal${konteks}`,
+      ringkasan: 'Username tidak dikenal',
       ip: asal.ip,
     });
     return { galat: PESAN_GAGAL_LOGIN };
   }
 
   const logGagal = (ringkasan: string) => ({
-    aksi,
+    aksi: 'LOGIN_GAGAL' as const,
     idPengguna: calon.id,
     entitas: 'pengguna',
     idEntitas: calon.id,
-    ringkasan: ringkasan + konteks,
+    ringkasan,
     ip: asal.ip,
   });
 
@@ -166,61 +162,9 @@ async function periksaKredensial(
 
 /** Login dengan username + password (docs/02 §8, docs/04 §7). */
 export async function login(input: InputLogin, asal: AsalRequest): Promise<HasilLogin> {
-  const hasil = await periksaKredensial(input, asal, 'LOGIN_GAGAL');
+  const hasil = await periksaKredensial(input, asal);
   if ('galat' in hasil) throw new AppError('BELUM_LOGIN', hasil.galat, 401);
   return buatSesiLogin(hasil.calon, asal, 'Login berhasil');
-}
-
-/** Atasan yang menyetujui di tempat: cukup identitasnya (tidak punya sesi di perangkat itu). */
-export type Atasan = Pick<PenggunaAktif, 'id' | 'username' | 'namaPengguna' | 'peran'>;
-
-/** Percobaan persetujuan di tempat: 20 per menit per pengaju (docs/04 §6), berhasil maupun gagal. */
-export const BATAS_PERSETUJUAN_DI_TEMPAT: OpsiBatas = { maks: 20, jendelaDetik: 60 };
-
-/**
- * Persetujuan di tempat (docs/04 §6, K-099): Admin/Owner mengetik akunnya sendiri di layar pengaju. Tidak
- * membuat sesi dan tidak mengubah sesi pengaju. Kegagalan dihitung seperti gagal login (kunci akun) dan dicatat
- * `PERSETUJUAN_GAGAL`, sehingga dialog ini tidak bisa dipakai menebak password. Dipanggil SEBELUM transaksi
- * dokumen agar hitungan gagal tidak ikut dibatalkan. Galat memakai 400/403 (bukan 401) supaya sesi pengaju
- * tidak dianggap berakhir.
- */
-export async function verifikasiAtasan(
-  kredensial: { username: string; password: string },
-  izin: Izin,
-  pengaju: PenggunaAktif,
-  asal: AsalRequest,
-): Promise<Atasan> {
-  // Batas laju per pengaju, sama seperti login per IP: tebakan password dari sesi kasir tidak bisa beruntun.
-  catatPercobaan(`atasan:${pengaju.id}`, BATAS_PERSETUJUAN_DI_TEMPAT);
-  const konteks = ` (persetujuan di tempat, sesi ${pengaju.username})`;
-  const hasil = await periksaKredensial(kredensial, asal, 'PERSETUJUAN_GAGAL', konteks);
-  if ('galat' in hasil) {
-    throw galatKolom('atasan.password', hasil.galat);
-  }
-  const { calon } = hasil;
-  if (!IZIN_PER_PERAN[calon.peran].has(izin)) {
-    await catatLog(db, {
-      aksi: 'PERSETUJUAN_GAGAL',
-      idPengguna: calon.id,
-      entitas: 'pengguna',
-      idEntitas: calon.id,
-      ringkasan: `Akun tidak berwenang menyetujui${konteks}`,
-      ip: asal.ip,
-    });
-    throw new AppError(
-      'TIDAK_BERIZIN',
-      `Akun ${calon.username} tidak berwenang menyetujui. Gunakan akun Admin atau Owner.`,
-      403,
-    );
-  }
-  // Kredensial benar: hitungan gagal dikembalikan ke nol, tanpa mencatat login.
-  await repo.hapusHitunganGagal(db, calon.id);
-  return {
-    id: calon.id,
-    username: calon.username,
-    namaPengguna: calon.namaPengguna,
-    peran: calon.peran,
-  };
 }
 
 /**

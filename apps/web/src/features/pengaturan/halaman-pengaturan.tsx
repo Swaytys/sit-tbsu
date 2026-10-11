@@ -14,6 +14,7 @@ import { FormProfil } from './form-profil';
 import { KartuLogo } from './kartu-logo';
 import { TabCadangan } from './tab-cadangan';
 import { TabLog } from './tab-log';
+import { TabPersetujuan } from './tab-persetujuan';
 
 /**
  * Pengaturan sistem (Admin, Owner). Tab "Log Aktivitas" bila `sistem.log.lihat`, tab "Cadangan" bila
@@ -56,6 +57,7 @@ export function HalamanPengaturan() {
             <TabsTrigger value="operasional">Operasional</TabsTrigger>
             <TabsTrigger value="harga">Harga &amp; diskon</TabsTrigger>
             <TabsTrigger value="keamanan">Keamanan</TabsTrigger>
+            <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>
             {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
           </TabsList>
@@ -76,6 +78,9 @@ export function HalamanPengaturan() {
           </TabsContent>
           <TabsContent value="keamanan">
             <FormKeamanan pengaturan={pengaturan.data} />
+          </TabsContent>
+          <TabsContent value="persetujuan">
+            <TabPersetujuan />
           </TabsContent>
           {bolehCadangan && (
             <TabsContent value="cadangan">

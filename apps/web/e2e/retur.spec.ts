@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { api, masukCepat, menuUtama } from './pembantu';
+import { api, kodePersetujuan, masukCepat, menuUtama } from './pembantu';
 
 // Menambah satu barang uji (dinonaktifkan di akhir) dan satu penjualan + retur di database pengembangan.
 
@@ -52,8 +52,8 @@ test('Kasir mengajukan retur refund tunai → Admin menyetujui → stok barang k
     await kasir.getByRole('button', { name: 'Tunai', exact: true }).click();
     await expect(kasir.getByTestId('nilai-retur')).toHaveText('Rp 18.000');
     // Kasir butuh persetujuan: dialog atasan muncul; di sini retur diajukan dulu tanpa atasan.
-    await kasir.getByRole('button', { name: 'Lanjut: minta persetujuan' }).click();
-    await kasir.getByRole('button', { name: 'Ajukan saja, tunggu persetujuan' }).click();
+    await kasir.getByRole('button', { name: 'Ajukan & minta persetujuan' }).click();
+    await kasir.getByRole('button', { name: 'Nanti saja, tunggu persetujuan' }).click();
     await expect(kasir.getByText(/Retur \S+ diajukan/)).toBeVisible();
     // Transaksi tetap terpilih: sisa yang bisa diretur dan riwayat returnya langsung tampil.
     await expect(kasir.getByText('Transaksi ini sudah punya 1 retur')).toBeVisible();
@@ -77,11 +77,9 @@ test('Kasir mengajukan retur refund tunai → Admin menyetujui → stok barang k
   }
 });
 
-test('Retur disetujui atasan di tempat: Admin mengetik akunnya di layar Kasir (K-099)', async ({
+test('Retur disetujui dengan kode sekali pakai dari atasan di layar Kasir (K-102)', async ({
   browser,
 }) => {
-  const password = process.env.SEED_OWNER_PASSWORD;
-  test.skip(!password, 'SEED_OWNER_PASSWORD tidak ada di .env');
   const nama = `Engsel Setuju E2E ${Date.now()}`;
   const admin = await browser.newPage();
   await masukCepat(admin, 'ADMIN');
@@ -116,26 +114,30 @@ test('Retur disetujui atasan di tempat: Admin mengetik akunnya di layar Kasir (K
     await kasir.getByLabel(`Qty retur ${nama}`).fill('4');
     await kasir.getByRole('button', { name: 'Barang cacat / rusak' }).click();
     await expect(kasir.getByText('maksimal 3')).toBeVisible();
-    await expect(kasir.getByRole('button', { name: 'Lanjut: minta persetujuan' })).toBeDisabled();
+    await expect(kasir.getByRole('button', { name: 'Ajukan & minta persetujuan' })).toBeDisabled();
     await kasir.getByLabel(`Qty retur ${nama}`).fill('1');
-    await kasir.getByRole('button', { name: 'Lanjut: minta persetujuan' }).click();
+    await kasir.getByRole('button', { name: 'Ajukan & minta persetujuan' }).click();
 
+    // Retur tersimpan menunggu; kasir meminta kode yang dikirim ke atasan, lalu mengetiknya.
     const dialog = kasir.getByRole('dialog');
-    await dialog.getByLabel('Nama pengguna atasan').fill('demo.admin');
-    await dialog.getByLabel('Password atasan').fill('bukan-password-ini');
-    await dialog.getByRole('button', { name: 'Setujui sekarang' }).click();
-    await expect(kasir.getByText('Username atau password salah.')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Kirim kode ke atasan' }).click();
+    await expect(dialog.getByTestId('penerima-kode')).toContainText('Demo Admin');
+    const kode = await kodePersetujuan(kasir, 'Demo Admin');
+    const isian = dialog.getByLabel('Kode dari atasan (6 angka)');
+    await isian.fill(kode === '000000' ? '111111' : '000000');
+    await dialog.getByRole('button', { name: 'Setujui dengan kode' }).click();
+    await expect(kasir.getByText('Kode salah. Sisa percobaan: 4.').first()).toBeVisible();
     await expect(dialog).toBeVisible();
-    await dialog.getByLabel('Password atasan').fill(password ?? '');
-    await dialog.getByRole('button', { name: 'Setujui sekarang' }).click();
+    await isian.fill(kode);
+    await dialog.getByRole('button', { name: 'Setujui dengan kode' }).click();
     await expect(kasir.getByText(/Retur \S+ disetujui/)).toBeVisible();
     expect((await api<{ stokFisik: string }>(admin, `/barang/${barang.id}`)).stokFisik).toBe(
       '8.000',
     );
-    // Kasir tetap login sebagai dirinya; riwayat mencatat atasan yang menyetujui di tempat.
+    // Kasir tetap login sebagai dirinya; riwayat mencatat atasan pemilik kode.
     await kasir.getByRole('tab', { name: 'Riwayat retur' }).click();
     const baris = kasir.getByRole('row').filter({ hasText: pj.nomor });
-    await expect(baris).toContainText('Demo Admin (atasan, di tempat)');
+    await expect(baris).toContainText('Demo Admin (kode atasan)');
     await expect(kasir.getByRole('button', { name: 'Menu pengguna' })).toContainText('Kasir');
   } finally {
     await api(admin, `/barang/${barang.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });

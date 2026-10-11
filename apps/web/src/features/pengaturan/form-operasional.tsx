@@ -216,8 +216,8 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
             <p className="text-muted-foreground text-sm">
               Kasir boleh memproses sendiri retur/void sampai nilai ini per transaksi (retur atau
               void sebelumnya atas transaksi yang sama ikut dihitung). Di atas nilai ini butuh
-              Admin/Owner, yang bisa menyetujui langsung di layar kasir dengan mengetik akunnya. Isi
-              Rp 0 bila semua retur/void harus disetujui atasan.
+              Admin/Owner: lewat kode sekali pakai yang dikirim ke atasan (tab Persetujuan) atau
+              dari akun atasan sendiri. Isi Rp 0 bila semua retur/void harus disetujui atasan.
             </p>
             <div className="mt-3 grid grid-cols-2 gap-4">
               {(

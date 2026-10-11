@@ -43,6 +43,7 @@ import { healthRoutes } from './modules/sistem/health/routes';
 import { logRoutes } from './modules/sistem/log/routes';
 import { notifikasiRoutes } from './modules/sistem/notifikasi/routes';
 import { pengaturanRoutes } from './modules/sistem/pengaturan/routes';
+import { saluranRoutes } from './modules/sistem/saluran/routes';
 
 /** Semua rute di bawah /api. Tipenya dipakai klien RPC web: `hc<AppType>('/api')`. */
 const rute = new Hono<EnvApp>()
@@ -75,6 +76,7 @@ const rute = new Hono<EnvApp>()
   .route('/pemasok', pemasokRoutes)
   .route('/pengguna', penggunaRoutes)
   .route('/pengaturan', pengaturanRoutes)
+  .route('/saluran', saluranRoutes)
   .route('/log-aktivitas', logRoutes)
   .route('/notifikasi', notifikasiRoutes)
   .route('/dashboard', dashboardRoutes)

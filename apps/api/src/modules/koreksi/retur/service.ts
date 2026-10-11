@@ -2,6 +2,7 @@ import {
   bagiQty,
   bandingQty,
   formatRupiah,
+  LABEL_PENYELESAIAN_RETUR,
   kaliQty,
   hargaSatuanEfektif,
   keQty,
@@ -11,9 +12,10 @@ import {
   tambahQty,
   type BarisRetur,
   type DaftarRetur,
-  type DataAtasan,
+  type DataKodePersetujuan,
   type DataRetur,
   type DataSetujui,
+  type InfoKodePersetujuan,
   type KandidatRetur,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
@@ -22,16 +24,22 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tanggalOperasional } from '../../../lib/waktu';
-import { verifikasiAtasan } from '../../auth/service';
 import { catatMutasi } from '../../persediaan/ledger';
 import { hitungTagihan } from '../../penjualan/pembayaran';
 import * as pjRepo from '../../penjualan/penjualan/repo';
+import {
+  mintaKode,
+  pakaiKode,
+  periksaKode,
+  type KodeSah,
+} from '../../sistem/kode-persetujuan/service';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import {
   catatRefund,
   pastikanBolehBatal,
+  pastikanBolehMintaKode,
   persetujuanAkunAtasan,
   persetujuanDiTempat,
   persetujuanLangsung,
@@ -172,11 +180,6 @@ export async function ajukanRetur(
   asal: AsalRequest,
 ): Promise<BarisRetur> {
   const berwenang = pelaku.izin.has('retur.setujui');
-  // Akun atasan diperiksa di luar transaksi dokumen agar hitungan gagalnya tidak ikut dibatalkan.
-  const atasan =
-    !berwenang && input.atasan
-      ? await verifikasiAtasan(input.atasan, 'retur.setujui', pelaku, asal)
-      : null;
   const id = await dalamTransaksi(async (tx) => {
     const pj = await pjRepo.kunciPenjualan(tx, input.idPenjualan);
     if (!pj) throw new AppError('TIDAK_DITEMUKAN', 'Penjualan tidak ditemukan.', 404);
@@ -241,7 +244,6 @@ export async function ajukanRetur(
     const langsung = persetujuanLangsung({
       pengaju: pelaku,
       berwenang,
-      atasan,
       batasBebas: batas > 0 && berjalan + total <= batas ? batas : null,
     });
     const tanggal = tanggalOperasional();
@@ -446,6 +448,7 @@ async function setujui(
   persetujuan: DataSetujui,
   oleh: Persetujuan,
   asal: AsalRequest,
+  kode?: KodeSah,
 ): Promise<BarisRetur> {
   await dalamTransaksi(async (tx) => {
     const r = await repo.kunci(tx, id);
@@ -453,6 +456,8 @@ async function setujui(
     if (r.status !== 'MENUNGGU') {
       throw new AppError('STATUS_TIDAK_VALID', `Retur ${r.nomor} sudah diputuskan.`, 409);
     }
+    // Kode sekali pakai hangus bersama persetujuannya (batal bersama bila transaksi gagal).
+    if (kode) await pakaiKode(tx, kode);
     const h = await terapkan(tx, id, persetujuan, oleh);
     await logSetujui(tx, id, r.nomor, h, oleh, asal);
   });
@@ -469,16 +474,57 @@ export function setujuiRetur(
   return setujui(id, persetujuan, persetujuanAkunAtasan(pelaku), asal);
 }
 
-/** K-099: atasan menyetujui pengajuan MENUNGGU di layar pengaju dengan mengetik akunnya. */
-export async function setujuiReturDiTempat(
+/**
+ * K-102: mengirim kode sekali pakai ke Admin/Owner untuk pengajuan MENUNGGU milik pengaju. Isi pesan disusun
+ * dari dokumen yang tersimpan, jadi atasan membaca persis apa yang akan ia setujui.
+ */
+export async function mintaKodeRetur(
+  id: number,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<InfoKodePersetujuan> {
+  const r = await detailRetur(id);
+  pastikanBolehMintaKode(r, pelaku);
+  const barang = r.baris
+    .map((b) => `${b.namaBarang} ${teksQty(b.qtyRetur)} ${b.kodeSatuan}`)
+    .join(', ');
+  return mintaKode(
+    {
+      jenis: 'RETUR',
+      izin: 'retur.setujui',
+      pengaju: pelaku,
+      rujukan: { idRetur: id },
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      nilai: r.totalRetur,
+      ringkasan:
+        `Retur ${r.nomor} atas ${r.nomorPenjualan}: ${barang}. ` +
+        `Nilai ${formatRupiah(r.totalRetur)}, ${LABEL_PENYELESAIAN_RETUR[r.penyelesaian].toLowerCase()}. ` +
+        `Alasan: ${r.alasan}.`,
+    },
+    asal,
+  );
+}
+
+/** K-102: pengaju mengetik kode dari atasan; retur disetujui atas nama pemilik kode itu. */
+export async function setujuiReturDenganKode(
   id: number,
   persetujuan: DataSetujui,
-  kredensial: DataAtasan,
+  kode: DataKodePersetujuan,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<BarisRetur> {
-  const atasan = await verifikasiAtasan(kredensial, 'retur.setujui', pelaku, asal);
-  return setujui(id, persetujuan, persetujuanDiTempat(atasan, pelaku), asal);
+  const sah = await periksaKode(
+    {
+      ...kode,
+      jenis: 'RETUR',
+      izin: 'retur.setujui',
+      pengaju: pelaku,
+      cocok: (m) => m.idRetur === id,
+    },
+    asal,
+  );
+  return setujui(id, persetujuan, persetujuanDiTempat(sah.atasan, pelaku), asal, sah);
 }
 
 /** K-099: pengajuan MENUNGGU ditarik (salah input); tanpa efek stok, kas, atau tagihan. */

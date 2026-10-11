@@ -5,8 +5,10 @@ import {
   subtotalRupiah,
   type BarisDaftarPenjualan,
   type DataCheckout,
+  type DataMintaKodeLimit,
   type DataPembayaran,
   type DetailPenjualan,
+  type InfoKodePersetujuan,
   type Izin,
   type MetaHalaman,
 } from '@sit/shared';
@@ -23,10 +25,10 @@ import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { siarkan } from '../../../lib/siaran';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahHari, tanggalOperasional } from '../../../lib/waktu';
-import { verifikasiAtasan } from '../../auth/service';
 import { shiftBuka } from '../../kas/shift/service';
 import { hargaBarangDasar } from '../../master/harga/repo';
 import { catatMutasi, kunciPersediaan, ubahReservasi } from '../../persediaan/ledger';
+import { mintaKode, pakaiKode, periksaKode } from '../../sistem/kode-persetujuan/service';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
@@ -255,6 +257,43 @@ async function selaraskanOrder(
   }
 }
 
+/**
+ * PT6 (K-102): Kasir meminta kode sekali pakai kepada Admin/Owner untuk penjualan tidak lunas yang melewati
+ * limit kredit. Limit dan piutang berjalan dibaca dari database; `tagihanBaru` adalah batas atas yang
+ * disetujui (checkout menolak bila tagihannya ternyata lebih besar).
+ */
+export async function mintaKodeLimit(
+  input: DataMintaKodeLimit,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<InfoKodePersetujuan> {
+  const kredit = await dalamTransaksi((tx) => repo.posisiKredit(tx, input.idPelanggan, 0));
+  if (kredit.limit === null || kredit.piutangBerjalan + input.tagihanBaru <= kredit.limit) {
+    throw new AppError(
+      'VALIDASI',
+      'Penjualan ini tidak melewati limit kredit pelanggan; kode tidak diperlukan.',
+      400,
+    );
+  }
+  return mintaKode(
+    {
+      jenis: 'LIMIT_KREDIT',
+      izin: 'master.pelanggan.atur_kredit',
+      pengaju: pelaku,
+      rujukan: { idPelanggan: input.idPelanggan },
+      idEntitas: input.idPelanggan,
+      nomorDokumen: null,
+      nilai: input.tagihanBaru,
+      ringkasan:
+        `Penjualan tidak lunas untuk ${kredit.nama} melewati limit kredit: ` +
+        `limit ${formatRupiah(kredit.limit)}, piutang berjalan ${formatRupiah(kredit.piutangBerjalan)}, ` +
+        `tagihan baru ${formatRupiah(input.tagihanBaru)} ` +
+        `(piutang menjadi ${formatRupiah(kredit.piutangBerjalan + input.tagihanBaru)}).`,
+    },
+    asal,
+  );
+}
+
 /** P7: jatuh tempo bawaan = tanggal operasional + term pelanggan (term 0 → + jatuh_tempo_default_hari). */
 async function jatuhTempoBawaan(tx: Tx, idPelanggan: number, tanggal: string): Promise<string> {
   const term = await repo.termPelanggan(tx, idPelanggan);
@@ -268,10 +307,20 @@ export async function checkout(
   asal: AsalRequest,
 ): Promise<DetailPenjualan> {
   const bolehLimit = pelaku.izin.has('master.pelanggan.atur_kredit');
-  // PT6 (K-101): akun atasan diperiksa di luar transaksi agar hitungan gagalnya tidak ikut dibatalkan.
-  const atasanLimit =
-    !bolehLimit && input.atasan
-      ? await verifikasiAtasan(input.atasan, 'master.pelanggan.atur_kredit', pelaku, asal)
+  // PT6 (K-102): kode sekali pakai dari atasan diperiksa di luar transaksi agar hitungan salah ketiknya
+  // tidak ikut dibatalkan; baru dianggap terpakai di dalam transaksi penjualan ini.
+  const kodeLimit =
+    !bolehLimit && input.kodeLimit
+      ? await periksaKode(
+          {
+            ...input.kodeLimit,
+            jenis: 'LIMIT_KREDIT',
+            izin: 'master.pelanggan.atur_kredit',
+            pengaju: pelaku,
+            cocok: () => true,
+          },
+          asal,
+        )
       : null;
   const id = await dalamTransaksi(async (tx) => {
     // PR5: tanggal checkout yang menentukan promo.
@@ -392,14 +441,33 @@ export async function checkout(
     }
     if (hasil.statusPembayaran !== 'LUNAS' && h.idPelanggan !== null) {
       // PT6: limit kredit pelanggan; pemegang `master.pelanggan.atur_kredit` boleh melanjutkan (K-088),
-      // dari akunnya sendiri atau dengan mengetik akunnya di layar kasir (K-101).
+      // dari akunnya sendiri, atau lewat kode sekali pakai yang dikirim kepadanya (K-102).
       const kredit = await repo.posisiKredit(tx, h.idPelanggan, pj.id);
       const tagihanBaru = hitungTagihan(hasil).sisa;
       if (kredit.limit !== null && kredit.piutangBerjalan + tagihanBaru > kredit.limit) {
         const rinci =
           `limit ${formatRupiah(kredit.limit)}, piutang berjalan ${formatRupiah(kredit.piutangBerjalan)}, ` +
           `tagihan baru ${formatRupiah(tagihanBaru)}`;
-        const penyetuju = bolehLimit && input.setujuLimit ? pelaku : atasanLimit;
+        // Kode berlaku untuk pelanggan itu dan tagihan baru paling banyak sebesar yang dibaca atasan.
+        const kodeCocok =
+          kodeLimit !== null &&
+          kodeLimit.permintaan.idPelanggan === h.idPelanggan &&
+          tagihanBaru <= kodeLimit.permintaan.nilai;
+        if (kodeLimit && !kodeCocok) {
+          throw new AppError(
+            'LIMIT_TERLAMPAUI',
+            `Kode itu disetujui untuk tagihan baru sampai ${formatRupiah(kodeLimit.permintaan.nilai)}; ` +
+              `sekarang ${formatRupiah(tagihanBaru)} (${kredit.nama}). Minta kode baru.`,
+            409,
+            {
+              limit: kredit.limit,
+              piutangBerjalan: kredit.piutangBerjalan,
+              tagihanBaru,
+              bolehLanjut: false,
+            },
+          );
+        }
+        const penyetuju = bolehLimit && input.setujuLimit ? pelaku : (kodeLimit?.atasan ?? null);
         if (!penyetuju) {
           throw new AppError(
             'LIMIT_TERLAMPAUI',
@@ -413,6 +481,7 @@ export async function checkout(
             },
           );
         }
+        if (kodeLimit && penyetuju !== pelaku) await pakaiKode(tx, kodeLimit);
         await catatLog(tx, {
           aksi: 'PENJUALAN_LIMIT_OVERRIDE',
           idPengguna: penyetuju.id,
@@ -421,7 +490,7 @@ export async function checkout(
           nomorDokumen: nomor,
           ringkasan:
             `Melewati limit kredit ${kredit.nama} pada ${nomor}: ${rinci}` +
-            (atasanLimit ? ` (disetujui di tempat, sesi ${pelaku.username})` : ''),
+            (kodeLimit ? ` (kode sekali pakai, sesi ${pelaku.username})` : ''),
           ip: asal.ip,
         });
       }

@@ -26,6 +26,7 @@ import {
   useBukaShift,
   useBuatSuratJalan,
   useCheckout,
+  useMintaKodeLimit,
   useLepasOrder,
   usePapanAntrean,
   usePratinjauOrder,
@@ -35,7 +36,7 @@ import {
 } from '@/api/penjualan';
 import { AreaCetak } from '@/components/area-cetak';
 import { InfoTierBelanja } from '@/components/info-tier-belanja';
-import { DialogAtasan } from '@/components/dialog-atasan';
+import { DialogKodeAtasan } from '@/components/dialog-kode-atasan';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InvoiceA4, SuratJalanA4 } from '@/components/dokumen-a4';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
@@ -225,10 +226,14 @@ export function LayarPos({
   const [pelangganBaru, setPelangganBaru] = useState(false);
   // PT6: checkout ditolak karena limit kredit; pemegang izin atur kredit boleh melanjutkan.
   const [limit, setLimit] = useState<{ data: DataCheckout; pesan: string } | null>(null);
-  // K-101: pengguna tanpa izin itu meminta atasan mengetik akunnya di sini (persetujuan di tempat).
-  const [limitAtasan, setLimitAtasan] = useState<{ data: DataCheckout; pesan: string } | null>(
-    null,
-  );
+  // K-102: pengguna tanpa izin itu meminta kode sekali pakai yang dikirim ke atasan.
+  const [limitAtasan, setLimitAtasan] = useState<{
+    data: DataCheckout;
+    pesan: string;
+    idPelanggan: number;
+    tagihanBaru: number;
+  } | null>(null);
+  const mintaKodeLimit = useMintaKodeLimit();
 
   const order = tr.t.order;
   const adaTransaksi = order !== null || tr.t.baris.length > 0;
@@ -439,8 +444,17 @@ export function LayarPos({
             setLimit({ data, pesan });
             return;
           }
-          if (!bolehLanjut && !data.atasan) {
-            setLimitAtasan({ data, pesan });
+          const rinci = err.detail as { tagihanBaru?: unknown } | null;
+          const idPelanggan = tr.t.pelanggan?.id;
+          if (!bolehLanjut && idPelanggan && typeof rinci?.tagihanBaru === 'number') {
+            // Kode untuk tagihan yang lebih kecil: dialog tetap terbuka dengan angka terbaru.
+            if (data.kodeLimit) toast.error(pesan);
+            setLimitAtasan({
+              data: { ...data, kodeLimit: null },
+              pesan,
+              idPelanggan,
+              tagihanBaru: rinci.tagihanBaru,
+            });
             return;
           }
           toast.error(pesan);
@@ -841,20 +855,25 @@ export function LayarPos({
         }}
       />
       {limitAtasan && (
-        <DialogAtasan
+        <DialogKodeAtasan
           judul="Limit kredit terlampaui"
           ringkasan={
             <>
               <p>{limitAtasan.pesan}</p>
               <p className="mt-1 text-slate-500">
-                Atasan bisa menyetujui di sini, atau batalkan lalu terima pembayaran lebih dulu.
+                Minta kode ke atasan, atau batalkan lalu terima pembayaran lebih dulu.
               </p>
             </>
           }
+          mintaKode={() =>
+            mintaKodeLimit.mutateAsync({
+              idPelanggan: limitAtasan.idPelanggan,
+              tagihanBaru: limitAtasan.tagihanBaru,
+            })
+          }
           memproses={checkout.isPending}
           onTutup={() => setLimitAtasan(null)}
-          // Akun atasan hanya ikut dalam permintaan ini; tidak disimpan di keadaan layar.
-          onSetujui={(atasan) => void kirimCheckout({ ...limitAtasan.data, atasan })}
+          onSetujui={(kodeLimit) => void kirimCheckout({ ...limitAtasan.data, kodeLimit })}
         />
       )}
       {pelangganBaru && (

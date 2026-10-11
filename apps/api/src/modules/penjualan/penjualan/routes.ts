@@ -3,6 +3,7 @@ import {
   skemaBayarPenjualan,
   skemaCariPenjualan,
   skemaCheckout,
+  skemaMintaKodeLimit,
   skemaSuratJalan,
 } from '@sit/shared';
 import { Hono } from 'hono';
@@ -16,6 +17,7 @@ import {
   checkout,
   daftarPenjualan,
   detailPenjualan,
+  mintaKodeLimit,
   tandaiDiambil,
 } from './service';
 
@@ -34,6 +36,16 @@ export const penjualanRoutes = new Hono<EnvApp>()
     const data = await checkout(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 201);
   })
+  // PT6 (K-102): kode sekali pakai untuk melampaui limit kredit, dikirim ke Admin/Owner.
+  .post(
+    '/limit-kredit/minta-kode',
+    kasir,
+    zValidator('json', skemaMintaKodeLimit, kaitValidasi),
+    async (c) => {
+      const data = await mintaKodeLimit(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
+      return c.json({ data }, 200);
+    },
+  )
   .post(
     '/:id/pembayaran',
     requirePermission('penjualan.pembayaran.catat'),

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
 import { Card } from '@/components/ui/card';
 import { FormGantiPassword } from './form-ganti-password';
+import { KartuKontakPersetujuan } from './kartu-kontak-persetujuan';
 
 /** Layar wajib ganti password (akun baru atau password direset Owner; docs/04 §7). */
 export function HalamanWajibGantiPassword() {
@@ -38,18 +39,32 @@ export function HalamanWajibGantiPassword() {
   );
 }
 
-/** Ganti password atas kemauan sendiri, dari menu pengguna di topbar. */
+/**
+ * Akun saya, dari menu pengguna di topbar: ganti password, dan untuk pengguna yang berwenang menyetujui
+ * (Admin/Owner) kontak penerima kode persetujuan (K-102).
+ */
 export function HalamanGantiPasswordAkun() {
   const navigate = useNavigate();
+  const pengguna = usePengguna();
+  const penyetuju = (
+    ['retur.setujui', 'void.setujui', 'master.pelanggan.atur_kredit'] as const
+  ).some((i) => pengguna.izin.includes(i));
   return (
-    <div className="max-w-md space-y-4 p-6">
+    <div className="max-w-xl space-y-4 p-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Ganti password</h1>
+        <h1 className="text-xl font-semibold text-slate-900">Akun saya</h1>
         <p className="text-sm text-slate-500">
-          Setelah diganti, sesi login Anda di perangkat lain akan diakhiri.
+          {pengguna.namaPengguna} · {pengguna.username}
         </p>
       </div>
-      <Card className="p-6">
+      {penyetuju && <KartuKontakPersetujuan />}
+      <Card className="gap-4 p-6">
+        <div>
+          <h2 className="font-semibold text-slate-900">Ganti password</h2>
+          <p className="text-sm text-slate-500">
+            Setelah diganti, sesi login Anda di perangkat lain akan diakhiri.
+          </p>
+        </div>
         <FormGantiPassword onBerhasil={() => void navigate('/dashboard')} />
       </Card>
     </div>

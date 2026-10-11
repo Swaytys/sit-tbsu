@@ -4,7 +4,7 @@ import {
   skemaCariKoreksi,
   skemaRetur,
   skemaSetujui,
-  skemaSetujuiDiTempat,
+  skemaSetujuiKode,
   skemaTolak,
 } from '@sit/shared';
 import { Hono } from 'hono';
@@ -18,8 +18,9 @@ import {
   daftarRetur,
   detailRetur,
   kandidatRetur,
+  mintaKodeRetur,
   setujuiRetur,
-  setujuiReturDiTempat,
+  setujuiReturDenganKode,
   tolakRetur,
 } from './service';
 
@@ -59,18 +60,23 @@ export const returRoutes = new Hono<EnvApp>()
       return c.json({ data }, 200);
     },
   )
-  // K-099: pengaju (izin ajukan) memanggil, akun atasan di badan permintaan yang membawa wewenangnya.
+  // K-102: pengaju (izin ajukan) meminta kode untuk atasan, lalu mengetik kode yang disebutkan atasan.
+  // Wewenangnya dibawa kode itu, bukan sesi pengaju.
+  .post('/:id/minta-kode', ajukan, paramId, async (c) => {
+    const data = await mintaKodeRetur(c.req.valid('param').id, penggunaWajib(c), c.get('asal'));
+    return c.json({ data }, 200);
+  })
   .post(
-    '/:id/setujui-di-tempat',
+    '/:id/setujui-kode',
     ajukan,
     paramId,
-    zValidator('json', skemaSetujuiDiTempat, kaitValidasi),
+    zValidator('json', skemaSetujuiKode, kaitValidasi),
     async (c) => {
-      const { atasan, ...persetujuan } = c.req.valid('json');
-      const data = await setujuiReturDiTempat(
+      const { kode, ...persetujuan } = c.req.valid('json');
+      const data = await setujuiReturDenganKode(
         c.req.valid('param').id,
         persetujuan,
-        atasan,
+        kode,
         penggunaWajib(c),
         c.get('asal'),
       );

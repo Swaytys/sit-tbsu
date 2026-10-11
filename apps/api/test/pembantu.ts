@@ -1,5 +1,5 @@
 import type { Peran, StatusAktif } from '@sit/shared';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { app } from '../src/app';
 import { db } from '../src/db/client';
 import { konfigurasi, logAktivitas, pengguna, penghitungNomor, sesiLogin } from '../src/db/schema';
@@ -7,6 +7,7 @@ import { resetBatasPercobaan } from '../src/lib/batas-percobaan';
 import { hashPassword } from '../src/lib/password';
 import { NAMA_COOKIE_SESI } from '../src/modules/auth/token';
 import { invalidasiKonfigurasi } from '../src/modules/sistem/konfigurasi/service';
+import { kosongkanKotakKeluar, kotakKeluarUji } from '../src/modules/sistem/saluran/service';
 import { kosongkanTabel } from './reset';
 
 export const PASSWORD_UJI = 'rahasia-uji-123';
@@ -19,6 +20,7 @@ export async function siapkanDatabaseSistem(): Promise<void> {
   await kosongkanTabel(pengguna, sesiLogin, logAktivitas, penghitungNomor, konfigurasi);
   invalidasiKonfigurasi();
   resetBatasPercobaan();
+  kosongkanKotakKeluar();
 }
 
 /** Mengisi/menimpa nilai konfigurasi untuk tes (cache ikut dikosongkan). */
@@ -117,4 +119,25 @@ export async function json<T = { data?: unknown; error?: { kode: string; pesan: 
   res: Response,
 ): Promise<T> {
   return (await res.json()) as T;
+}
+
+/** Mengisi email pengguna uji, sehingga ia bisa menerima kode persetujuan (K-102). */
+export async function beriEmail(idPengguna: number, email = `uji${idPengguna}@contoh.test`) {
+  await db.update(pengguna).set({ email }).where(eq(pengguna.id, idPengguna));
+}
+
+/**
+ * Kode persetujuan terbaru yang "dikirim" ke pengguna bernama `nama`. Di tes, pesan tidak pernah keluar ke
+ * jaringan: semuanya masuk kotak keluar uji.
+ */
+export function kodeTerkirim(nama: string): string {
+  const pesan = kotakKeluarUji().find((x) => x.kepada === nama);
+  const kode = /Kode: (\d{6})/.exec(pesan?.isi ?? '')?.[1];
+  if (!kode) throw new Error(`Tidak ada kode persetujuan untuk ${nama}`);
+  return kode;
+}
+
+/** Isi pesan terbaru untuk `nama` (untuk memeriksa apa yang dibaca atasan). */
+export function pesanTerkirim(nama: string): string {
+  return kotakKeluarUji().find((x) => x.kepada === nama)?.isi ?? '';
 }

@@ -1,10 +1,12 @@
 import {
   formatRupiah,
+  teksQty,
   type BarisVoid,
   type DaftarVoid,
-  type DataAtasan,
+  type DataKodePersetujuan,
   type DataSetujui,
   type DataVoid,
+  type InfoKodePersetujuan,
   type KandidatVoid,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
@@ -13,10 +15,15 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tanggalOperasional } from '../../../lib/waktu';
-import { verifikasiAtasan } from '../../auth/service';
 import { catatMutasi } from '../../persediaan/ledger';
 import { hitungTagihan } from '../../penjualan/pembayaran';
 import * as pjRepo from '../../penjualan/penjualan/repo';
+import {
+  mintaKode,
+  pakaiKode,
+  periksaKode,
+  type KodeSah,
+} from '../../sistem/kode-persetujuan/service';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
@@ -25,6 +32,7 @@ import {
   catatRefund,
   kelebihanBayar,
   pastikanBolehBatal,
+  pastikanBolehMintaKode,
   persetujuanAkunAtasan,
   persetujuanDiTempat,
   persetujuanLangsung,
@@ -272,11 +280,6 @@ export async function ajukanVoid(
   asal: AsalRequest,
 ): Promise<BarisVoid> {
   const berwenang = pelaku.izin.has('void.setujui');
-  // Akun atasan diperiksa di luar transaksi dokumen agar hitungan gagalnya tidak ikut dibatalkan.
-  const atasan =
-    !berwenang && input.atasan
-      ? await verifikasiAtasan(input.atasan, 'void.setujui', pelaku, asal)
-      : null;
   const id = await dalamTransaksi(async (tx) => {
     const pj = await pjRepo.kunciPenjualan(tx, input.idPenjualan);
     if (!pj) throw new AppError('TIDAK_DITEMUKAN', 'Penjualan tidak ditemukan.', 404);
@@ -315,7 +318,6 @@ export async function ajukanVoid(
     const langsung = persetujuanLangsung({
       pengaju: pelaku,
       berwenang,
-      atasan,
       batasBebas: batas > 0 && berjalan + nominal <= batas ? batas : null,
     });
     const nomor = await terbitkanNomor(tx, 'VD', tanggalOperasional());
@@ -383,6 +385,7 @@ async function setujui(
   persetujuan: DataSetujui,
   oleh: Persetujuan,
   asal: AsalRequest,
+  kode?: KodeSah,
 ): Promise<BarisVoid> {
   await dalamTransaksi(async (tx) => {
     const v = await repo.kunci(tx, id);
@@ -390,6 +393,8 @@ async function setujui(
     if (v.status !== 'MENUNGGU') {
       throw new AppError('STATUS_TIDAK_VALID', `Void ${v.nomor} sudah diputuskan.`, 409);
     }
+    // Kode sekali pakai hangus bersama persetujuannya (batal bersama bila transaksi gagal).
+    if (kode) await pakaiKode(tx, kode);
     const h = await terapkan(tx, id, v.nomor, persetujuan, oleh);
     await logSetujui(tx, id, v.nomor, h, oleh, asal);
   });
@@ -406,16 +411,54 @@ export function setujuiVoid(
   return setujui(id, persetujuan, persetujuanAkunAtasan(pelaku), asal);
 }
 
-/** K-099: atasan menyetujui pengajuan MENUNGGU di layar pengaju dengan mengetik akunnya. */
-export async function setujuiVoidDiTempat(
+/** K-102: mengirim kode sekali pakai ke Admin/Owner untuk pengajuan MENUNGGU milik pengaju. */
+export async function mintaKodeVoid(
+  id: number,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<InfoKodePersetujuan> {
+  const v = await detailVoid(id);
+  pastikanBolehMintaKode(v, pelaku);
+  const barang = v.baris
+    .map((b) => `${b.namaBarang} ${teksQty(b.qtyDasar)} ${b.kodeSatuan}`)
+    .join(', ');
+  return mintaKode(
+    {
+      jenis: 'VOID',
+      izin: 'void.setujui',
+      pengaju: pelaku,
+      rujukan: { idVoid: id },
+      idEntitas: id,
+      nomorDokumen: v.nomor,
+      nilai: v.nominalVoid,
+      ringkasan:
+        `Void ${v.nomor} atas ${v.nomorPenjualan} ` +
+        `(${v.lingkup === 'TRANSAKSI' ? 'seluruh transaksi' : 'sebagian barang'}): ${barang}. ` +
+        `Nilai ${formatRupiah(v.nominalVoid)}. Alasan: ${v.alasan}.`,
+    },
+    asal,
+  );
+}
+
+/** K-102: pengaju mengetik kode dari atasan; void disetujui atas nama pemilik kode itu. */
+export async function setujuiVoidDenganKode(
   id: number,
   persetujuan: DataSetujui,
-  kredensial: DataAtasan,
+  kode: DataKodePersetujuan,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<BarisVoid> {
-  const atasan = await verifikasiAtasan(kredensial, 'void.setujui', pelaku, asal);
-  return setujui(id, persetujuan, persetujuanDiTempat(atasan, pelaku), asal);
+  const sah = await periksaKode(
+    {
+      ...kode,
+      jenis: 'VOID',
+      izin: 'void.setujui',
+      pengaju: pelaku,
+      cocok: (m) => m.idVoid === id,
+    },
+    asal,
+  );
+  return setujui(id, persetujuan, persetujuanDiTempat(sah.atasan, pelaku), asal, sah);
 }
 
 /** K-099: pengajuan MENUNGGU ditarik (salah input); tanpa efek stok, kas, atau tagihan. */

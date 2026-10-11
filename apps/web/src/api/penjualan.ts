@@ -4,8 +4,9 @@ import type {
   DataOrder,
   DataPembayaran,
   DataRetur,
+  DataMintaKodeLimit,
   DataSetujui,
-  DataSetujuiDiTempat,
+  DataSetujuiKode,
   DataSuratJalan,
   DataTutupShift,
   DataVoid,
@@ -464,10 +465,18 @@ export function useSetujuiVoid() {
   );
 }
 
-/** K-099: atasan menyetujui pengajuan MENUNGGU di layar pengaju. */
-export function useSetujuiVoidDiTempat() {
-  return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujuiDiTempat }) =>
-    ambilData(await api.void[':id']['setujui-di-tempat'].$post({ param: paramId(id), json })),
+/** K-102: kirim kode sekali pakai ke atasan untuk pengajuan void MENUNGGU milik pengaju. */
+export function useMintaKodeVoid() {
+  return useMutation({
+    mutationFn: async (id: number) =>
+      ambilData(await api.void[':id']['minta-kode'].$post({ param: paramId(id) })),
+  });
+}
+
+/** K-102: pengaju mengetik kode dari atasan; void disetujui atas nama pemilik kode. */
+export function useSetujuiVoidKode() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujuiKode }) =>
+    ambilData(await api.void[':id']['setujui-kode'].$post({ param: paramId(id), json })),
   );
 }
 
@@ -522,11 +531,27 @@ export function useSetujuiRetur() {
   );
 }
 
-/** K-099: atasan menyetujui pengajuan MENUNGGU di layar pengaju. */
-export function useSetujuiReturDiTempat() {
-  return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujuiDiTempat }) =>
-    ambilData(await api.retur[':id']['setujui-di-tempat'].$post({ param: paramId(id), json })),
+/** K-102: kirim kode sekali pakai ke atasan untuk pengajuan retur MENUNGGU milik pengaju. */
+export function useMintaKodeRetur() {
+  return useMutation({
+    mutationFn: async (id: number) =>
+      ambilData(await api.retur[':id']['minta-kode'].$post({ param: paramId(id) })),
+  });
+}
+
+/** K-102: pengaju mengetik kode dari atasan; retur disetujui atas nama pemilik kode. */
+export function useSetujuiReturKode() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: DataSetujuiKode }) =>
+    ambilData(await api.retur[':id']['setujui-kode'].$post({ param: paramId(id), json })),
   );
+}
+
+/** PT6 (K-102): kirim kode sekali pakai ke atasan untuk melampaui limit kredit pelanggan. */
+export function useMintaKodeLimit() {
+  return useMutation({
+    mutationFn: async (json: DataMintaKodeLimit) =>
+      ambilData(await api.penjualan['limit-kredit']['minta-kode'].$post({ json })),
+  });
 }
 
 export function useBatalRetur() {

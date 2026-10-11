@@ -17,6 +17,7 @@ import {
   type StatusTransaksi,
 } from '../enums';
 import { skemaQtyPositif } from './persediaan';
+import { skemaKodePersetujuan } from './saluran';
 import { skemaHalaman, teksOpsional } from './umum';
 
 /*
@@ -44,25 +45,11 @@ export const skemaTolak = z.object({ alasan: skemaAlasan('Alasan penolakan') });
 export const skemaBatalKoreksi = z.object({ alasan: skemaAlasan('Alasan pembatalan') });
 
 /**
- * Persetujuan di tempat (docs/04 §6, K-099): Admin/Owner mengetik akunnya sendiri di layar pengaju. Tidak
- * membuat sesi; kegagalan dihitung seperti gagal login.
+ * Menyetujui pengajuan MENUNGGU dari layar pengaju dengan kode sekali pakai yang dikirim ke atasan
+ * (docs/04 §6, K-102): isian refund + kode.
  */
-export const skemaAtasan = z.object({
-  username: z
-    .string('Nama pengguna atasan wajib diisi.')
-    .trim()
-    .min(1, 'Nama pengguna atasan wajib diisi.')
-    .max(50, 'Nama pengguna maksimal 50 karakter.'),
-  password: z
-    .string('Password atasan wajib diisi.')
-    .min(1, 'Password atasan wajib diisi.')
-    .max(200, 'Password terlalu panjang.'),
-});
-export type DataAtasan = z.output<typeof skemaAtasan>;
-
-/** Menyetujui pengajuan MENUNGGU di tempat: isian refund + akun atasan. */
-export const skemaSetujuiDiTempat = skemaSetujui.extend({ atasan: skemaAtasan });
-export type DataSetujuiDiTempat = z.output<typeof skemaSetujuiDiTempat>;
+export const skemaSetujuiKode = skemaSetujui.extend({ kode: skemaKodePersetujuan });
+export type DataSetujuiKode = z.output<typeof skemaSetujuiKode>;
 
 export const skemaCariKoreksi = skemaHalaman.extend({
   cari: z.string().trim().max(100).optional(),
@@ -81,8 +68,6 @@ export const skemaVoid = z
     alasan: skemaAlasan('Alasan void'),
     /** Dipakai bila pengajuan langsung disetujui (pengaju berwenang, di tempat, atau di bawah batas). */
     persetujuan: skemaSetujui.default({ metodeRefund: null }),
-    /** K-099: akun atasan untuk persetujuan di tempat; `null` = tanpa atasan. */
-    atasan: skemaAtasan.nullable().default(null),
   })
   .refine((d) => d.lingkup === 'TRANSAKSI' || d.idDetail.length > 0, {
     message: 'Pilih minimal satu barang yang di-void.',
@@ -157,8 +142,6 @@ export const skemaRetur = z.object({
   catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
   baris: z.array(skemaBarisRetur).min(1, 'Isi qty retur minimal satu barang.'),
   persetujuan: skemaSetujui.default({ metodeRefund: null }),
-  /** K-099: akun atasan untuk persetujuan di tempat; `null` = tanpa atasan. */
-  atasan: skemaAtasan.nullable().default(null),
 });
 export type InputRetur = z.input<typeof skemaRetur>;
 export type DataRetur = z.output<typeof skemaRetur>;
