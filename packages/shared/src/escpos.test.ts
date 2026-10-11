@@ -66,7 +66,12 @@ describe('ESC/POS struk', () => {
       .potong()
       .bukaLaci()
       .selesai();
-    expect([...b.slice(0, 2)]).toEqual([0x1b, 0x40]);
+    // ESC @ (reset), ESC V 0 (tegak/potret), ESC M 0 (font A), ESC G 0 (tanpa double-strike).
+    expect([...b.slice(0, 11)]).toEqual([0x1b, 0x40, 0x1b, 0x56, 0, 0x1b, 0x4d, 0, 0x1b, 0x47, 0]);
+    // Cetak tebal: double-strike menyala sejak awal dan tidak pernah dimatikan di tengah dokumen.
+    const pekat = [...new StrukEscPos(32, { pekat: true }).teks('A', { tebal: true }).selesai()];
+    expect(pekat.slice(8, 11)).toEqual([0x1b, 0x47, 1]);
+    expect(pekat.join(',').includes('27,71,0')).toBe(false);
     const baris = barisTercetak(b);
     expect(baris[0]).toBe('BonsaiUrip');
     expect(baris).toContain('-'.repeat(32));

@@ -46,7 +46,14 @@ export function AreaCetak({
   // Diukur sebelum browser menggambar, sehingga ukuran kertas sudah benar saat window.print() dipanggil.
   useLayoutEffect(() => {
     if (lebarGulungan === undefined || !isi.current) return;
-    setTinggiMm(Math.ceil(isi.current.getBoundingClientRect().height / PX_PER_MM) + 1);
+    // Kertas tidak pernah lebih pendek dari lebarnya: halaman yang lebih lebar daripada tingginya dianggap
+    // lanskap oleh peramban/driver, dan struk pendek lalu tercetak menyamping (K-105).
+    setTinggiMm(
+      Math.max(
+        Math.ceil(isi.current.getBoundingClientRect().height / PX_PER_MM) + 1,
+        Math.ceil(Number(lebarGulungan)) + 20,
+      ),
+    );
   }, [lebarGulungan, children]);
 
   if (lebarGulungan !== undefined) {
