@@ -1,13 +1,21 @@
-import type { DataPelanggan, Izin, MetaHalaman, Pelanggan, StatusAktif } from '@sit/shared';
-import { db, type Tx } from '../../../db/client';
+import type {
+  BawaanPelanggan,
+  DataPelanggan,
+  Izin,
+  MetaHalaman,
+  Pelanggan,
+  StatusAktif,
+} from '@sit/shared';
+import { db, type Executor, type Tx } from '../../../db/client';
 import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { selisih } from '../../../lib/perubahan';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang } from '../../../lib/waktu';
-import { ambilAngka } from '../../sistem/konfigurasi/service';
+import { ambilAngka, ambilTeks, invalidasiKonfigurasi } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
+import { simpanKonfigurasi } from '../../sistem/pengaturan/repo';
 import { terbitkanKodeMaster } from '../../sistem/penomoran';
 import { golonganById } from '../golongan-pelanggan/repo';
 import * as repo from './repo';
@@ -85,34 +93,63 @@ export async function daftarPelanggan(p: {
   return { data: baris.map(keRespons), meta: metaHalaman(total, p) };
 }
 
+const KUNCI_LIMIT_BAWAAN = 'limit_kredit_default';
+
+/** Term dan limit kredit yang diisikan untuk pelanggan baru; limit kosong di konfigurasi = tanpa limit. */
+export async function bawaanPelanggan(ex: Executor = db): Promise<BawaanPelanggan> {
+  const limit = (await ambilTeks(KUNCI_LIMIT_BAWAAN, '', ex)).trim();
+  return {
+    termHari: await ambilAngka('term_hari_default', 0, ex),
+    limitKredit: /^\d+$/.test(limit) ? Number(limit) : null,
+  };
+}
+
 export async function tambahPelanggan(
   input: DataPelanggan,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<Pelanggan> {
-  const id = await dalamTransaksi(async (tx) => {
-    const bawaan: NilaiKredit = {
-      idGolongan: null,
-      termHari: await ambilAngka('term_hari_default', 0, tx),
-      limitKredit: null,
-    };
-    const kredit = tentukanKredit(input, bawaan, pelaku.izin);
-    await pastikanGolonganAktif(tx, kredit.idGolongan);
+  let bawaanBerubah = false;
+  try {
+    const id = await dalamTransaksi(async (tx) => {
+      const dasar = await bawaanPelanggan(tx);
+      const kredit = tentukanKredit(input, { idGolongan: null, ...dasar }, pelaku.izin);
+      await pastikanGolonganAktif(tx, kredit.idGolongan);
 
-    const nilai = { ...dataKontak(input), ...kredit, kode: await terbitkanKodeMaster(tx, 'PLG') };
-    const idBaru = await repo.tambahPelanggan(tx, nilai);
-    await catatLog(tx, {
-      aksi: 'PELANGGAN_BUAT',
-      idPengguna: pelaku.id,
-      entitas: 'pelanggan',
-      idEntitas: idBaru,
-      ringkasan: `Menambah pelanggan ${nilai.kode} ${nilai.namaPelanggan}`,
-      dataBaru: nilai,
-      ip: asal.ip,
+      // K-104: limit isian ini menjadi bawaan pelanggan berikutnya (kosong = tanpa limit).
+      if (input.jadikanLimitBawaan && kredit.limitKredit !== dasar.limitKredit) {
+        const nilai = kredit.limitKredit === null ? '' : String(kredit.limitKredit);
+        await simpanKonfigurasi(tx, { kode: KUNCI_LIMIT_BAWAAN, nilai, tipe: 'ANGKA' }, sekarang());
+        bawaanBerubah = true;
+        await catatLog(tx, {
+          aksi: 'PENGATURAN_UBAH',
+          idPengguna: pelaku.id,
+          entitas: 'konfigurasi',
+          ringkasan: `Mengubah pengaturan: ${KUNCI_LIMIT_BAWAAN} (dari form tambah pelanggan)`,
+          dataLama: { [KUNCI_LIMIT_BAWAAN]: dasar.limitKredit },
+          dataBaru: { [KUNCI_LIMIT_BAWAAN]: kredit.limitKredit },
+          ip: asal.ip,
+        });
+      }
+
+      const nilai = { ...dataKontak(input), ...kredit, kode: await terbitkanKodeMaster(tx, 'PLG') };
+      const idBaru = await repo.tambahPelanggan(tx, nilai);
+      await catatLog(tx, {
+        aksi: 'PELANGGAN_BUAT',
+        idPengguna: pelaku.id,
+        entitas: 'pelanggan',
+        idEntitas: idBaru,
+        ringkasan: `Menambah pelanggan ${nilai.kode} ${nilai.namaPelanggan}`,
+        dataBaru: nilai,
+        ip: asal.ip,
+      });
+      return idBaru;
     });
-    return idBaru;
-  });
-  return muat(id);
+    return await muat(id);
+  } finally {
+    // Cache konfigurasi dibuang juga bila transaksi batal (isi cache tidak boleh mendahului database).
+    if (bawaanBerubah) invalidasiKonfigurasi();
+  }
 }
 
 export async function ubahPelanggan(

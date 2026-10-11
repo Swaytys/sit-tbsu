@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   formatRupiah,
   skemaPelanggan,
+  type BawaanPelanggan,
   type DataPelanggan,
   type InputPelanggan,
   type Pelanggan,
@@ -9,10 +10,11 @@ import {
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
-import { useDaftarGolongan, useSimpanPelanggan } from '@/api/mitra';
+import { useBawaanPelanggan, useDaftarGolongan, useSimpanPelanggan } from '@/api/mitra';
 import { InputAngka } from '@/components/input-angka';
 import { InputRupiah } from '@/components/input-rupiah';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -50,11 +52,20 @@ function ringkasKredit(p: Pelanggan | null): string {
   return `${golongan} · term ${p.termHari} hari · ${limit}.`;
 }
 
-export function DialogPelanggan({
+export function DialogPelanggan(p: { pelanggan: Pelanggan | null; onTutup: () => void }) {
+  // Pelanggan baru: term dan limit bawaan toko dimuat dulu supaya langsung terisi di form (K-104).
+  const bawaan = useBawaanPelanggan(p.pelanggan === null);
+  if (p.pelanggan === null && bawaan.isLoading) return null;
+  return <IsiDialogPelanggan {...p} bawaan={bawaan.data ?? null} />;
+}
+
+function IsiDialogPelanggan({
   pelanggan,
+  bawaan,
   onTutup,
 }: {
   pelanggan: Pelanggan | null;
+  bawaan: BawaanPelanggan | null;
   onTutup: () => void;
 }) {
   const saya = usePengguna();
@@ -73,7 +84,8 @@ export function DialogPelanggan({
       idGolongan: pelanggan?.idGolongan ?? null,
       // Kosong = term bawaan toko (konfigurasi), diisi API.
       termHari: pelanggan?.termHari ?? '',
-      limitKredit: pelanggan?.limitKredit ?? null,
+      limitKredit: pelanggan ? pelanggan.limitKredit : (bawaan?.limitKredit ?? null),
+      jadikanLimitBawaan: false,
     },
   });
 
@@ -86,7 +98,13 @@ export function DialogPelanggan({
     // Tanpa izin: kolom kredit tidak dikirim, sehingga API memakai bawaan / nilai lama (K-059).
     const json: DataPelanggan = bolehKredit
       ? data
-      : { ...data, idGolongan: undefined, termHari: undefined, limitKredit: undefined };
+      : {
+          ...data,
+          idGolongan: undefined,
+          termHari: undefined,
+          limitKredit: undefined,
+          jadikanLimitBawaan: undefined,
+        };
     try {
       const hasil = await simpan.mutateAsync({ id: pelanggan?.id, json });
       toast.success(
@@ -243,9 +261,37 @@ export function DialogPelanggan({
                     </FormItem>
                   )}
                 />
+                {!pelanggan && (
+                  <FormField
+                    control={form.control}
+                    name="jadikanLimitBawaan"
+                    render={({ field }) => (
+                      <FormItem className="col-span-3 flex-row items-start gap-2">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value === true}
+                            onCheckedChange={(v) => field.onChange(v === true)}
+                          />
+                        </FormControl>
+                        <div className="space-y-0.5">
+                          <FormLabel className="font-normal">
+                            Jadikan limit ini bawaan untuk pelanggan baru berikutnya
+                          </FormLabel>
+                          <FormDescription className="text-xs">
+                            Bawaan sekarang:{' '}
+                            {bawaan?.limitKredit == null
+                              ? 'tanpa limit'
+                              : formatRupiah(bawaan.limitKredit)}
+                            . Kosongkan limit lalu centang untuk kembali ke tanpa limit.
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormDescription className="col-span-3">
-                  Term = jatuh tempo piutang sejak tanggal transaksi. Limit kredit disimpan dulu;
-                  pemeriksaannya saat checkout menyusul di tahap berikutnya.
+                  Term = jatuh tempo piutang sejak tanggal transaksi. Penjualan tidak lunas yang
+                  membuat piutang pelanggan melewati limit butuh persetujuan Admin/Owner.
                 </FormDescription>
               </fieldset>
             ) : (

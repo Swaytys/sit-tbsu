@@ -26,6 +26,16 @@ export function useDaftarPelanggan(p: ParamDaftarMitra) {
   });
 }
 
+/** Term dan limit kredit bawaan pelanggan baru (K-104); dimuat saat form tambah pelanggan dibuka. */
+export function useBawaanPelanggan(aktif: boolean) {
+  return useQuery({
+    queryKey: ['pelanggan', 'bawaan'],
+    queryFn: async () => ambilData(await api.pelanggan.bawaan.$get()),
+    enabled: aktif,
+    staleTime: 0,
+  });
+}
+
 export function useDaftarPemasok(p: ParamDaftarMitra) {
   return useQuery({
     queryKey: ['pemasok', p],

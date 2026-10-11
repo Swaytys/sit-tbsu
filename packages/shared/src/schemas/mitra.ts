@@ -54,9 +54,17 @@ export const skemaPelanggan = z.object({
   ),
   /** `null` = tanpa limit. Disimpan saja; ditegakkan di M2 (docs/06 PT6). */
   limitKredit: z.preprocess(kosongJadiNull, skemaRupiah.nullable().optional()),
+  /**
+   * K-104: saat menambah pelanggan, simpan `limitKredit` isian ini sebagai limit bawaan pelanggan baru
+   * (`konfigurasi.limit_kredit_default`; kosong = tanpa limit). Butuh `master.pelanggan.atur_kredit`.
+   */
+  jadikanLimitBawaan: z.boolean().optional(),
 });
 export type InputPelanggan = z.input<typeof skemaPelanggan>;
 export type DataPelanggan = z.output<typeof skemaPelanggan>;
+
+/** Nilai kredit yang diisikan otomatis untuk pelanggan baru (Pengaturan dan K-104). */
+export type BawaanPelanggan = { termHari: number; limitKredit: number | null };
 
 export type Pelanggan = {
   id: number;

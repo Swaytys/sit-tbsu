@@ -169,6 +169,12 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     deskripsi: 'Term piutang pelanggan baru (hari)',
   },
   {
+    kode: 'limit_kredit_default',
+    nilai: '',
+    tipe: 'ANGKA',
+    deskripsi: 'Limit kredit pelanggan baru, Rp; kosong = tanpa limit (K-104)',
+  },
+  {
     kode: 'login_maks_gagal',
     nilai: '5',
     tipe: 'ANGKA',
