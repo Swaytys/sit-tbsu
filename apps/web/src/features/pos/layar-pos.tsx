@@ -52,6 +52,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { cetakLangsungAktif } from '@/lib/printer-thermal';
+import { cetakStrukLangsung } from '@/lib/struk-escpos';
 import { cn } from '@/lib/utils';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
@@ -215,8 +217,21 @@ export function LayarPos({
   /** Cetak struk; cetakan kedua dan seterusnya dicatat sebagai cetak ulang (log). */
   function cetakStruk(p: DetailPenjualan, ulang: boolean) {
     if (ulang) void catatCetakUlang(p.id).catch(() => undefined);
-    setCetak({ jenis: 'struk', p });
     setStrukTercetak(true);
+    // K-103: langsung ke printer thermal komputer ini (tanpa jendela cetak) bila dinyalakan.
+    if (toko && cetakLangsungAktif()) {
+      void cetakStrukLangsung(p, toko, { cetakUlang: ulang }).catch((err: unknown) =>
+        toast.error(
+          `Struk tidak tercetak: ${err instanceof Error ? err.message : 'printer bermasalah.'}`,
+          {
+            duration: 10000,
+            action: { label: 'Jendela cetak', onClick: () => setCetak({ jenis: 'struk', p }) },
+          },
+        ),
+      );
+      return;
+    }
+    setCetak({ jenis: 'struk', p });
   }
   const [cetak, setCetak] = useState<Cetakan>(null);
   const [kunciPanel, setKunciPanel] = useState(0);

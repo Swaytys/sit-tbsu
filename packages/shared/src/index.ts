@@ -4,6 +4,7 @@ export * from './angka';
 export * from './api';
 export * from './code128';
 export * from './enums';
+export * from './escpos';
 export * from './label';
 export * from './log';
 export * from './money';

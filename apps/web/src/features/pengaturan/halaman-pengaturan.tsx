@@ -12,6 +12,7 @@ import { FormOperasional } from './form-operasional';
 import { FormPenomoran } from './form-penomoran';
 import { FormProfil } from './form-profil';
 import { KartuLogo } from './kartu-logo';
+import { KartuPrinterStruk } from './kartu-printer-struk';
 import { TabCadangan } from './tab-cadangan';
 import { TabLog } from './tab-log';
 import { TabPersetujuan } from './tab-persetujuan';
@@ -53,6 +54,7 @@ export function HalamanPengaturan() {
         <Tabs value={tab} onValueChange={(v) => setUrl({ tab: v }, { replace: true })}>
           <TabsList>
             <TabsTrigger value="profil">Profil toko</TabsTrigger>
+            <TabsTrigger value="struk">Struk &amp; printer</TabsTrigger>
             <TabsTrigger value="penomoran">Penomoran</TabsTrigger>
             <TabsTrigger value="operasional">Operasional</TabsTrigger>
             <TabsTrigger value="harga">Harga &amp; diskon</TabsTrigger>
@@ -65,6 +67,12 @@ export function HalamanPengaturan() {
             <div className="space-y-4">
               <FormProfil pengaturan={pengaturan.data} />
               <KartuLogo />
+            </div>
+          </TabsContent>
+          <TabsContent value="struk">
+            <div className="space-y-4">
+              <FormProfil pengaturan={pengaturan.data} bagian="struk" />
+              <KartuPrinterStruk />
             </div>
           </TabsContent>
           <TabsContent value="penomoran">
