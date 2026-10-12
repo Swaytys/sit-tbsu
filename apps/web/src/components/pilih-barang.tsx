@@ -8,13 +8,13 @@ import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
 
 /**
- * Kotak cari barang (kode, nama, barcode, merk) dengan daftar hasil; bisa dipakai penuh dengan keyboard:
+ * Kotak cari barang (kode, nama, barcode, merk, kategori, atribut; K-108) dengan daftar hasil; bisa dipakai penuh dengan keyboard:
  * ketik → ↑/↓ → Enter memilih, Esc menutup. Hanya barang AKTIF.
  */
 export function PilihBarang({
   onPilih,
   saring,
-  placeholder = 'Cari barang (kode, nama, barcode)…',
+  placeholder = 'Cari barang (nama, kode, barcode, merk, kategori, atribut)…',
   label = 'Cari barang',
   disabled,
   idInput,

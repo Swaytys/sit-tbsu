@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { STATUS_AKTIF, type StatusAktif } from '../enums';
 import { formatRupiah } from '../money';
+import { skemaKodePersetujuan } from './saluran';
 import { skemaHalaman, skemaNoHpWajib, skemaRupiah, teksOpsional } from './umum';
 
 /*
@@ -63,6 +64,47 @@ export const skemaPelanggan = z.object({
 export type InputPelanggan = z.input<typeof skemaPelanggan>;
 export type DataPelanggan = z.output<typeof skemaPelanggan>;
 
+/*
+ * K-107: mengubah data pelanggan yang sudah ada, menonaktifkan, atau mengaktifkannya kembali oleh pengguna
+ * tanpa `master.pelanggan.atur_kredit` (Kasir, Staf Penjualan) butuh kode sekali pakai dari Admin/Owner.
+ * Menambah pelanggan baru tidak butuh kode. `kodeAtasan` diabaikan untuk pemegang izin itu.
+ */
+export const skemaUbahPelanggan = skemaPelanggan.extend({
+  kodeAtasan: skemaKodePersetujuan.nullable().optional(),
+});
+export type DataUbahPelanggan = z.output<typeof skemaUbahPelanggan>;
+
+export const skemaStatusPelanggan = z.object({
+  statusAktif: z.enum(STATUS_AKTIF),
+  kodeAtasan: skemaKodePersetujuan.nullable().optional(),
+});
+export type DataStatusPelanggan = z.output<typeof skemaStatusPelanggan>;
+
+/** Permintaan kode untuk SATU perubahan; kode hanya berlaku untuk perubahan yang persis sama. */
+export const skemaMintaKodePelanggan = z.discriminatedUnion('aksi', [
+  z.object({ aksi: z.literal('UBAH'), data: skemaPelanggan }),
+  z.object({ aksi: z.literal('STATUS'), statusAktif: z.enum(STATUS_AKTIF) }),
+]);
+export type DataMintaKodePelanggan = z.output<typeof skemaMintaKodePelanggan>;
+
+/**
+ * Posisi kredit pelanggan saat ini (K-107), dihitung dari penjualan yang belum lunas (bukan VOID). Tampil di
+ * Data Pelanggan agar limit, tagihan berjalan, dan keterlambatan terlihat tanpa membuka halaman Piutang.
+ */
+export type PosisiKreditPelanggan = {
+  /** Jumlah sisa tagihan semua nota yang belum lunas. */
+  piutang: number;
+  jumlahNota: number;
+  /** `limitKredit − piutang`; `null` = tanpa limit; negatif = sudah melewati limit. */
+  sisaLimit: number | null;
+  /** Jatuh tempo paling awal di antara nota yang belum lunas (`YYYY-MM-DD`). */
+  jatuhTempoTerdekat: string | null;
+  /** Selisih hari dari jatuh tempo terdekat ke hari ini: negatif = sudah lewat (terlambat). */
+  hariKeJatuhTempo: number | null;
+  /** Sisa tagihan nota yang sudah lewat jatuh tempo. */
+  piutangTerlambat: number;
+};
+
 /** Nilai kredit yang diisikan otomatis untuk pelanggan baru (Pengaturan dan K-104). */
 export type BawaanPelanggan = { termHari: number; limitKredit: number | null };
 
@@ -80,6 +122,7 @@ export type Pelanggan = {
   limitKredit: number | null;
   statusAktif: StatusAktif;
   dibuatPada: string;
+  kredit: PosisiKreditPelanggan;
 };
 
 // --- Golongan pelanggan (K-097: sasaran promo) ---

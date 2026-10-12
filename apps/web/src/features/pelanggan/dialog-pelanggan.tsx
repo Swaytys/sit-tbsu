@@ -7,10 +7,18 @@ import {
   type InputPelanggan,
   type Pelanggan,
 } from '@sit/shared';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
-import { useBawaanPelanggan, useDaftarGolongan, useSimpanPelanggan } from '@/api/mitra';
+import { pesanGalat } from '@/api/client';
+import {
+  useBawaanPelanggan,
+  useDaftarGolongan,
+  useMintaKodePelanggan,
+  useSimpanPelanggan,
+} from '@/api/mitra';
+import { DialogKodeAtasan } from '@/components/dialog-kode-atasan';
 import { InputAngka } from '@/components/input-angka';
 import { InputRupiah } from '@/components/input-rupiah';
 import { Button } from '@/components/ui/button';
@@ -79,6 +87,10 @@ function IsiDialogPelanggan({
   const bolehKredit = saya.izin.includes('master.pelanggan.atur_kredit');
   const golongan = useDaftarGolongan();
   const simpan = useSimpanPelanggan();
+  const mintaKode = useMintaKodePelanggan();
+  // K-107: mengubah pelanggan yang sudah ada tanpa izin atur kredit butuh kode sekali pakai dari atasan.
+  const butuhKode = pelanggan !== null && !bolehKredit;
+  const [menungguKode, setMenungguKode] = useState<DataPelanggan | null>(null);
 
   const form = useForm<InputPelanggan, unknown, DataPelanggan>({
     resolver: zodResolver(skemaPelanggan),
@@ -96,6 +108,9 @@ function IsiDialogPelanggan({
     },
   });
 
+  // Dibaca saat render agar react-hook-form memperbaruinya (formState hanya melacak yang dibaca di render).
+  const adaPerubahan = form.formState.isDirty;
+
   // Golongan nonaktif tetap tampil bila sedang dipakai pelanggan ini.
   const pilihanGolongan = (golongan.data ?? []).filter(
     (g) => g.statusAktif === 'AKTIF' || g.id === pelanggan?.idGolongan,
@@ -112,6 +127,14 @@ function IsiDialogPelanggan({
           limitKredit: undefined,
           jadikanLimitBawaan: undefined,
         };
+    if (butuhKode) {
+      if (!adaPerubahan) {
+        onTutup();
+        return;
+      }
+      setMenungguKode(json);
+      return;
+    }
     try {
       const hasil = await simpan.mutateAsync({ id: pelanggan?.id, json });
       toast.success(
@@ -327,17 +350,74 @@ function IsiDialogPelanggan({
                 </FormItem>
               )}
             />
+            {butuhKode && (
+              <p className="col-span-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+                Mengubah data pelanggan yang sudah ada butuh persetujuan Admin/Owner. Setelah
+                menekan tombol di bawah, sistem mengirim kode sekali pakai beserta rincian perubahan
+                ke atasan; ketik kode yang disebutkan atasan untuk menyimpan.
+              </p>
+            )}
             <DialogFooter className="col-span-2">
               <Button type="button" variant="outline" onClick={onTutup}>
                 Batal
               </Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Menyimpan…' : 'Simpan'}
+                {form.formState.isSubmitting
+                  ? 'Menyimpan…'
+                  : butuhKode
+                    ? 'Simpan dengan persetujuan…'
+                    : 'Simpan'}
               </Button>
             </DialogFooter>
           </form>
         </Form>
+        {menungguKode && pelanggan && (
+          <DialogKodeAtasan
+            judul="Persetujuan perubahan data pelanggan"
+            ringkasan={
+              <>
+                Perubahan data <b>{pelanggan.namaPelanggan}</b> ({pelanggan.kode}):
+                <ul className="mt-1 list-disc pl-5">
+                  {PERUBAHAN.filter(([k]) => (pelanggan[k] ?? '') !== (menungguKode[k] ?? '')).map(
+                    ([k, label]) => (
+                      <li key={k}>
+                        {label}: {pelanggan[k] || '(kosong)'} → {menungguKode[k] || '(kosong)'}
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </>
+            }
+            mintaKode={() =>
+              mintaKode.mutateAsync({
+                id: pelanggan.id,
+                json: { aksi: 'UBAH', data: menungguKode },
+              })
+            }
+            memproses={simpan.isPending}
+            onTutup={() => setMenungguKode(null)}
+            onSetujui={(kodeAtasan) =>
+              void simpan
+                .mutateAsync({ id: pelanggan.id, json: menungguKode, kodeAtasan })
+                .then((hasil) => {
+                  toast.success(`Data ${hasil.namaPelanggan} disimpan.`);
+                  onTersimpan?.(hasil);
+                  onTutup();
+                })
+                .catch((err: unknown) => toast.error(pesanGalat(err)))
+            }
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
 }
+
+/** Kolom yang bisa diubah tanpa izin atur kredit, untuk ringkasan di dialog kode. */
+const PERUBAHAN = [
+  ['namaPelanggan', 'Nama'],
+  ['noHp', 'No. HP'],
+  ['email', 'Email'],
+  ['alamat', 'Alamat'],
+  ['keterangan', 'Keterangan'],
+] as const;

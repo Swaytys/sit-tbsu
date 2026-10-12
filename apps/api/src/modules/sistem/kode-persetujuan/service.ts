@@ -36,6 +36,7 @@ const LABEL: Record<JenisKodePersetujuan, { nama: string; entitas: string }> = {
   RETUR: { nama: 'retur', entitas: 'retur_penjualan' },
   VOID: { nama: 'void', entitas: 'void_transaksi' },
   LIMIT_KREDIT: { nama: 'melewati limit kredit', entitas: 'pelanggan' },
+  UBAH_PELANGGAN: { nama: 'perubahan data pelanggan', entitas: 'pelanggan' },
 };
 
 function hashKode(idPermintaan: number, idAtasan: number, kode: string): string {
@@ -67,6 +68,8 @@ export async function mintaKode(
     nomorDokumen: string | null;
     nilai: number;
     ringkasan: string;
+    /** Sidik isian yang disetujui (jenis yang menyetujui sebuah isian, K-107); kosong untuk jenis lain. */
+    sidik?: string;
   },
   asal: AsalRequest,
 ): Promise<InfoKodePersetujuan> {
@@ -98,6 +101,7 @@ export async function mintaKode(
       idPelanggan: p.rujukan.idPelanggan ?? null,
       nilai: p.nilai,
       ringkasan: p.ringkasan.slice(0, 500),
+      sidik: p.sidik ?? null,
       kadaluarsaPada: kadaluarsa,
     });
     await repo.tambahKode(

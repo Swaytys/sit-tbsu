@@ -1,4 +1,4 @@
-import type { DaftarPiutang, DetailPenjualan, Notifikasi } from '@sit/shared';
+import type { DaftarPiutang, DetailPenjualan, Notifikasi, Pelanggan } from '@sit/shared';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
@@ -110,6 +110,24 @@ describe('piutang (docs/06 PT1–PT4)', () => {
     expect(d.data).toHaveLength(1);
     expect(d.data[0]).toMatchObject({ nomor: lama.nomor, terlambat: true, hariTerlambat: 5 });
     expect(d.ringkasan).toMatchObject({ jumlahTerlambat: 1, totalTerlambat: 15000 });
+
+    // K-107: Data Pelanggan menampilkan posisi kredit yang sama (tagihan berjalan, sisa limit, jatuh tempo).
+    await db.update(pelanggan).set({ limitKredit: 20000 }).where(eq(pelanggan.id, plgA));
+    const daftar = (await ambil<{ data: Pelanggan[] }>(kasir, '/api/pelanggan')).data;
+    expect(daftar.find((p) => p.id === plgA)?.kredit).toEqual({
+      piutang: 15000,
+      jumlahNota: 1,
+      sisaLimit: 5000,
+      jatuhTempoTerdekat: tambahHari(tanggalOperasional(), -5),
+      hariKeJatuhTempo: -5,
+      piutangTerlambat: 15000,
+    });
+    expect(daftar.find((p) => p.id === plgB)?.kredit).toMatchObject({
+      piutang: 10000,
+      sisaLimit: null,
+      hariKeJatuhTempo: 2,
+      piutangTerlambat: 0,
+    });
 
     const notif = (await ambil<{ data: Notifikasi[] }>(kasir, '/api/notifikasi')).data;
     expect(notif.find((n) => n.jenis === 'PIUTANG_TERLAMBAT')?.jumlah).toBe(1);

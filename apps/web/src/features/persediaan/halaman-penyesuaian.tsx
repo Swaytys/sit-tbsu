@@ -438,7 +438,7 @@ function FormPenyesuaian({
                 hanyaRusak={jenis === 'MUSNAH'}
                 placeholder={
                   jenis === 'MUSNAH'
-                    ? 'Cari barang yang punya stok rusak (kode, nama, barcode)…'
+                    ? 'Cari barang yang punya stok rusak (nama, kode, barcode, atribut)…'
                     : undefined
                 }
               />

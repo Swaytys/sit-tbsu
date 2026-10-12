@@ -1,4 +1,5 @@
 import type { MiddlewareHandler } from 'hono';
+import { env } from '../env';
 import { catatPercobaan, type OpsiBatas } from '../lib/batas-percobaan';
 import type { EnvApp } from '../lib/konteks';
 
@@ -13,5 +14,11 @@ function batasPercobaan(opsi: OpsiBatas): MiddlewareHandler<EnvApp> {
   };
 }
 
-/** Percobaan login: 20 per menit per IP (docs/04 §7). */
-export const batasPercobaanLogin = batasPercobaan({ maks: 20, jendelaDetik: 60 });
+/**
+ * Percobaan login: 20 per menit per IP (docs/04 §7). Di luar produksi angkanya bisa dinaikkan lewat
+ * `LOGIN_MAKS_PER_MENIT` untuk server tes e2e; di produksi selalu 20.
+ */
+export const batasPercobaanLogin = batasPercobaan({
+  maks: env.NODE_ENV === 'production' ? 20 : env.LOGIN_MAKS_PER_MENIT,
+  jendelaDetik: 60,
+});

@@ -167,7 +167,7 @@ export type CaraPersetujuan = (typeof CARA_PERSETUJUAN)[number];
  * persetujuan; status DIGANTI = pengaju meminta kode baru untuk hal yang sama, GAGAL = terlalu banyak salah
  * ketik atau pesannya tidak terkirim.
  */
-export const JENIS_KODE_PERSETUJUAN = ['RETUR', 'VOID', 'LIMIT_KREDIT'] as const;
+export const JENIS_KODE_PERSETUJUAN = ['RETUR', 'VOID', 'LIMIT_KREDIT', 'UBAH_PELANGGAN'] as const;
 export type JenisKodePersetujuan = (typeof JENIS_KODE_PERSETUJUAN)[number];
 
 export const STATUS_KODE_PERSETUJUAN = ['MENUNGGU', 'DIPAKAI', 'GAGAL', 'DIGANTI'] as const;

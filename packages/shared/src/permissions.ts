@@ -16,8 +16,10 @@ export const DAFTAR_IZIN = {
   'master.harga.kelola': 'Ubah harga jual per tier per barang; kelola master tier',
   'master.harga.tinjau': '(M2) Terapkan usulan harga dari markup',
   'master.pelanggan.lihat': 'Lihat pelanggan',
-  'master.pelanggan.kelola': 'Tambah/ubah/nonaktifkan pelanggan',
-  'master.pelanggan.atur_kredit': 'Atur golongan, term hari, dan limit kredit pelanggan',
+  'master.pelanggan.kelola':
+    'Tambah pelanggan; ubah/nonaktifkan pelanggan dengan kode persetujuan atasan',
+  'master.pelanggan.atur_kredit':
+    'Atur golongan, term hari, dan limit kredit; ubah/nonaktifkan pelanggan tanpa kode; menyetujui perubahan pelanggan',
   'master.pemasok.lihat': 'Lihat pemasok',
   'master.pemasok.kelola': 'Tambah/ubah/nonaktifkan pemasok',
   'master.import.jalankan': 'Import Excel barang / saldo awal',

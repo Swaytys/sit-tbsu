@@ -480,6 +480,33 @@ describe('ubah barang', () => {
     expect((await cari('perluTinjau=true')).data.map((x) => x.id)).toEqual([b.id]);
     expect((await cari(`idMerk=${ref.maspion}`)).data.map((x) => x.namaMerk)).toEqual(['Maspion']);
 
+    // K-108: tiap kata dicari sendiri-sendiri dan semuanya harus cocok, termasuk di kategori dan atribut.
+    const pipa = await buat(
+      barangBaru({
+        namaBarang: 'Pipa Air',
+        atribut: [
+          { idJenisAtribut: ref.panjang, nilai: '12,5', idSatuan: ref.cm },
+          { idJenisAtribut: ref.warna, nilai: 'Abu-abu' },
+        ],
+      }),
+    );
+    const nama = async (q: string) =>
+      (await cari(`cari=${encodeURIComponent(q)}`)).data.map((x) => x.namaBarang);
+    expect(await nama('abu')).toEqual(['Pipa Air']); // nilai atribut teks
+    expect(await nama('pipa abu-abu')).toEqual(['Pipa Air']); // nama + atribut
+    expect(await nama('12,5 cm')).toEqual(['Pipa Air']); // nilai angka + satuan atribut
+    expect(await nama('12.5cm')).toEqual(['Pipa Air']); // digabung tanpa spasi
+    expect(await nama('warna abu')).toEqual(['Pipa Air']); // nama jenis atribut
+    expect(await nama('pipa merah')).toEqual([]); // semua kata harus cocok
+    expect(await nama('pipa pvc')).toEqual(['Pipa PVC 3/4']);
+    const sKategori = (await cari('cari=semen')).data;
+    expect(sKategori.map((x) => x.id)).toContain(pipa.id); // nama kategori ("Semen") ikut dicari
+    // Yang cocok lewat namanya tampil di atas yang hanya cocok lewat kategori.
+    expect(sKategori[0]?.namaBarang).toMatch(/^Semen/);
+    expect(sKategori.at(-1)?.namaBarang).not.toMatch(/^Semen/);
+    // Angka dicocokkan utuh pada atribut: "2" tidak menemukan atribut 12,5.
+    expect(await nama('air 2')).toEqual([]);
+
     // Merk nonaktif tidak bisa dipilih untuk barang.
     const res = await kirim(admin, '/api/barang', barangBaru({ idMerk: ref.merkLama }));
     expect(res.status).toBe(400);

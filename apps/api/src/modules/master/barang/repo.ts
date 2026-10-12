@@ -67,8 +67,73 @@ export type SaringBarang = {
   kepemilikan?: Kepemilikan | undefined;
 };
 
+/** Paling banyak sekian kata dipakai dari kotak cari (sisanya diabaikan). */
+const MAKS_KATA_CARI = 8;
+
+/**
+ * Satu kata cari cocok dengan atribut barang (K-108): nilai teks (mis. warna "putih"), nama jenis atribut
+ * (mis. "diameter"), nilai angka yang sama (mis. "40" atau "0,5"), kode satuannya (mis. "kg"), atau
+ * gabungannya tanpa spasi (mis. "40kg").
+ */
+function cocokAtribut(kata: string): SQL {
+  const pola = polaCari(kata);
+  // Pola tanpa "%" di kedua ujung: seluruh nilai harus sama (tetap tidak peka huruf besar/kecil).
+  const persis = pola.slice(1, -1);
+  const angka = /^\d+(?:[.,]\d+)?$/.test(kata) ? kata.replace(',', '.') : null;
+  const nilaiAngka = sql`(${kolomPenuh(barangAtribut.nilaiAngka)}::double precision)::text`;
+  return sql`exists (select 1 from ${barangAtribut}
+    inner join ${jenisAtribut} on ${kolomPenuh(jenisAtribut.id)} = ${kolomPenuh(barangAtribut.idJenisAtribut)}
+    left join ${satuan} as satuan_atribut on satuan_atribut.id = ${kolomPenuh(barangAtribut.idSatuan)}
+    where ${kolomPenuh(barangAtribut.idBarang)} = ${kolomPenuh(barang.id)} and (
+      ${kolomPenuh(barangAtribut.nilaiTeks)} ilike ${pola}
+      or ${kolomPenuh(jenisAtribut.nama)} ilike ${pola}
+      or satuan_atribut.kode ilike ${persis}
+      or concat(${nilaiAngka}, satuan_atribut.kode) ilike ${persis.replace(',', '.')}
+      ${angka === null ? sql`` : sql`or ${kolomPenuh(barangAtribut.nilaiAngka)} = ${angka}::numeric`}
+    ))`;
+}
+
+/**
+ * Kotak cari dipecah per kata; SEMUA kata harus cocok, masing-masing boleh di kolom yang berbeda: kode,
+ * nama, barcode, merk, kategori, barcode satuan jual, atau atribut. Jadi "pipa 3 inch putih" menemukan pipa
+ * yang atribut ukurannya 3 inch dan warnanya putih, walau kata-kata itu tidak ada di nama barang (K-108).
+ */
+function cocokCari(cari: string): SQL[] {
+  return kataCari(cari).map((kata) => {
+    const pola = polaCari(kata);
+    return or(
+      ilike(barang.kode, pola),
+      ilike(barang.namaBarang, pola),
+      ilike(barang.barcode, pola),
+      ilike(merk.nama, pola),
+      ilike(kategori.nama, pola),
+      // K-091: barcode satuan jual (pindai barcode dus/roll).
+      sql`exists (select 1 from ${barangSatuanJual} where ${kolomPenuh(barangSatuanJual.idBarang)} = ${kolomPenuh(barang.id)}
+            and ${kolomPenuh(barangSatuanJual.barcode)} ilike ${pola})`,
+      cocokAtribut(kata),
+    ) as SQL;
+  });
+}
+
+/** Kata-kata kotak cari yang dipakai (paling banyak `MAKS_KATA_CARI`). */
+function kataCari(cari: string): string[] {
+  return cari.split(/\s+/).filter(Boolean).slice(0, MAKS_KATA_CARI);
+}
+
+/**
+ * Urutan relevansi hasil cari: jumlah kata yang TIDAK ditemukan di nama, kode, atau barcode barang (makin
+ * kecil makin atas). Barang yang cocok lewat namanya tampil di atas barang yang hanya cocok lewat kategori,
+ * merk, atau atribut; tanpa ini "semen" menaruh semua barang berkategori Semen di atas "Semen Gresik".
+ */
+function urutanRelevan(cari: string): SQL {
+  const bagian = kataCari(cari).map((kata) => {
+    const pola = polaCari(kata);
+    return sql`case when ${barang.namaBarang} ilike ${pola} or ${barang.kode} ilike ${pola} or ${barang.barcode} ilike ${pola} then 0 else 1 end`;
+  });
+  return sql.join(bagian, sql` + `);
+}
+
 function syarat(p: SaringBarang): SQL | undefined {
-  const pola = p.cari ? polaCari(p.cari) : undefined;
   return and(
     p.status === 'SEMUA' ? undefined : eq(barang.statusAktif, p.status),
     p.idKategori === undefined ? undefined : eq(barang.idKategori, p.idKategori),
@@ -76,17 +141,7 @@ function syarat(p: SaringBarang): SQL | undefined {
     p.perluTinjau === undefined ? undefined : eq(barang.perluTinjauHarga, p.perluTinjau),
     p.adaRusak ? gt(persediaan.stokRusak, '0') : undefined,
     p.kepemilikan === undefined ? undefined : eq(barang.kepemilikan, p.kepemilikan),
-    pola
-      ? or(
-          ilike(barang.kode, pola),
-          ilike(barang.namaBarang, pola),
-          ilike(barang.barcode, pola),
-          ilike(merk.nama, pola),
-          // K-091: barcode satuan jual (pindai barcode dus/roll).
-          sql`exists (select 1 from ${barangSatuanJual} where ${kolomPenuh(barangSatuanJual.idBarang)} = ${kolomPenuh(barang.id)}
-            and ${kolomPenuh(barangSatuanJual.barcode)} ilike ${pola})`,
-        )
-      : undefined,
+    ...(p.cari ? cocokCari(p.cari) : []),
   );
 }
 
@@ -97,12 +152,17 @@ export async function daftarBarang(
   const where = syarat(p);
   const baris = await dasarQuery(ex)
     .where(where)
-    .orderBy(asc(barang.namaBarang), asc(barang.id))
+    .orderBy(
+      ...(p.cari && kataCari(p.cari).length > 0 ? [urutanRelevan(p.cari)] : []),
+      asc(barang.namaBarang),
+      asc(barang.id),
+    )
     .limit(p.limit)
     .offset(p.offset);
   const [hitung] = await ex
     .select({ total: count() })
     .from(barang)
+    .innerJoin(kategori, eq(kategori.id, barang.idKategori))
     .innerJoin(persediaan, eq(persediaan.idBarang, barang.id))
     .leftJoin(merk, eq(merk.id, barang.idMerk))
     .where(where);
