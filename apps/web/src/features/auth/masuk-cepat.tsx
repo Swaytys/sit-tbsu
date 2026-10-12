@@ -2,7 +2,7 @@ import { LABEL_PERAN, USERNAME_DEMO, type PenggunaSaya, type Peran } from '@sit/
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { kunciAuth } from '@/api/auth';
+import { gantiPengguna } from '@/api/auth';
 import { ambilData, pesanGalat } from '@/api/client';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +39,7 @@ export function MasukCepat({ onBerhasil }: { onBerhasil: () => void }) {
   async function masuk(peran: Peran) {
     setMemproses(peran);
     try {
-      qc.setQueryData(kunciAuth.saya, await masukCepat(peran));
+      gantiPengguna(qc, await masukCepat(peran));
       onBerhasil();
     } catch (err) {
       toast.error(pesanGalat(err));

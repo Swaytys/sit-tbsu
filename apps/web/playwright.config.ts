@@ -8,6 +8,8 @@ if (existsSync(berkasEnv)) process.loadEnvFile(berkasEnv);
 // Tes e2e membutuhkan `pnpm dev` sedang berjalan dan `pnpm db:seed` (akun demo) sudah dijalankan.
 export default defineConfig({
   testDir: './e2e',
+  // Menonaktifkan sementara tier harga selain tier dasar, dan memulihkannya setelah tes (K-106).
+  globalSetup: './e2e/penyiapan-global.ts',
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],

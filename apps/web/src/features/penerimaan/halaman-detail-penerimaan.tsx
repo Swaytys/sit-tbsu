@@ -47,7 +47,7 @@ export function HalamanDetailPenerimaan() {
 
   return (
     <div className="space-y-4 p-6 print:p-0">
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon-sm" asChild>
             <Link to="/penerimaan" aria-label="Kembali ke riwayat penerimaan">

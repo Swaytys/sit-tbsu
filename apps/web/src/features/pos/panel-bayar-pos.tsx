@@ -4,6 +4,7 @@ import {
   type DataPembayaran,
   type MetodePembayaran,
 } from '@sit/shared';
+import { X } from 'lucide-react';
 import { useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { digitSaja, tampilRibuan } from './model';
@@ -35,6 +36,12 @@ const tahanFokus = (e: MouseEvent) => e.preventDefault();
  * ditinggal (langsung). Bila pembeli boleh belum lunas, kasir memilih cara bayar secara tegas (K-104):
  * L lunas, U DP, N bayar nanti, S saat terima (pengantaran). Semua pilihan juga bisa diklik. Nominal final
  * dihitung server (nominal kosong = lunasi).
+ *
+ * Bayar campuran (K-106) = satu tagihan dibayar dengan lebih dari satu cara (mis. transfer Rp 300.000 + tunai
+ * sisanya). Alurnya: pilih cara bayar bagian pertama, ketik nominalnya, tekan C (bagian itu masuk daftar dan
+ * sisa tagihan berkurang), ulangi untuk bagian berikutnya, lalu Enter pada bagian terakhir. Tiap bagian di
+ * daftar bisa dihapus (tombol silang, atau Backspace saat kotak bayar kosong) selama belum dibayar. Pesan
+ * galat selalu tampil tepat di bawah kotak bayar, tidak di bagian bawah panel yang bisa tergulung.
  */
 export function PanelBayarPos({
   id,
@@ -184,11 +191,15 @@ export function PanelBayarPos({
   function campuran() {
     if (tanpaBayar) return;
     if (angka === null || angka === 0) {
-      setGalat('Ketik nominal bagian pertama dulu, lalu C.');
+      setGalat(
+        `Bayar campuran: ketik dulu nominal bagian ${daftar.length + 1} (lebih kecil dari ${formatRupiah(sisa)}) di kotak di atas, lalu tekan C lagi. Bagian itu masuk daftar dan Anda mengisi bagian berikutnya.`,
+      );
       return;
     }
     if (angka >= sisa) {
-      setGalat('Nominal sudah menutup sisa; tekan Enter untuk bayar.');
+      setGalat(
+        `Nominal itu sudah menutup sisa ${formatRupiah(sisa)}, jadi tidak perlu dipecah lagi: tekan Enter untuk membayar.`,
+      );
       return;
     }
     const e = entriKini();
@@ -196,6 +207,11 @@ export function PanelBayarPos({
     setDaftar((d) => [...d, { ...e, nominal: angka, uangDiterima: tunai ? angka : null }]);
     setDigit('');
     gantiMetode(tunai ? 'TRANSFER' : 'TUNAI');
+  }
+
+  function hapusBagian(i: number) {
+    setDaftar((d) => d.filter((_, n) => n !== i));
+    setGalat('');
   }
 
   function tombol(e: KeyboardEvent<HTMLInputElement>) {
@@ -207,6 +223,10 @@ export function PanelBayarPos({
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onEsc();
+    } else if (e.key === 'Backspace' && digit === '' && daftar.length > 0) {
+      // Kotak bayar kosong: Backspace membuang bagian campuran terakhir.
+      e.preventDefault();
+      hapusBagian(daftar.length - 1);
     } else if (e.ctrlKey || e.altKey || e.metaKey) {
       return;
     } else if (rencanaHuruf && pilihanRencana.some((r) => r.nilai === rencanaHuruf)) {
@@ -226,8 +246,15 @@ export function PanelBayarPos({
     }
   }
 
+  const campur = daftar.length > 0;
   const petunjukKosong =
-    rencana === 'DP' ? 'jumlah DP' : tunai ? 'kosong = uang pas' : 'kosong = lunas';
+    rencana === 'DP'
+      ? 'jumlah DP'
+      : campur
+        ? `kosong = lunasi sisa ${formatRupiah(sisa)}`
+        : tunai
+          ? 'kosong = uang pas'
+          : 'kosong = lunas';
   const labelTombol =
     rencana === 'LUNAS' || mode === 'pengantaran' ? labelBayar : 'Simpan sebagai piutang';
 
@@ -287,24 +314,62 @@ export function PanelBayarPos({
         </div>
       )}
 
-      {daftar.length > 0 && (
-        <ul className="rounded-md bg-slate-50 px-2 py-1 text-sm">
-          {daftar.map((p, i) => (
-            <li key={i} className="flex justify-between">
-              <span>
-                {LABEL_METODE_PEMBAYARAN[p.metode]}
-                {p.rekening && ` · ${p.rekening}`}
-              </span>
-              <span className="tabular-nums">{formatRupiah(p.nominal ?? 0)}</span>
-            </li>
-          ))}
-        </ul>
+      {campur && (
+        <div
+          className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1.5 text-sm"
+          data-testid="bayar-campuran"
+        >
+          <div className="mb-1 flex items-center justify-between text-xs font-semibold text-blue-900">
+            <span>Bayar campuran: bagian yang sudah dicatat</span>
+            <button
+              type="button"
+              tabIndex={-1}
+              onMouseDown={tahanFokus}
+              onClick={() => {
+                setDaftar([]);
+                setGalat('');
+              }}
+              className="font-medium text-red-600 hover:underline"
+            >
+              Hapus semua
+            </button>
+          </div>
+          <ul className="space-y-0.5">
+            {daftar.map((p, i) => (
+              <li key={i} className="flex items-center gap-2">
+                <span className="w-4 text-xs text-slate-500 tabular-nums">{i + 1}.</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {LABEL_METODE_PEMBAYARAN[p.metode]}
+                  {p.rekening && ` · ${p.rekening}`}
+                </span>
+                <span className="font-semibold tabular-nums">{formatRupiah(p.nominal ?? 0)}</span>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onMouseDown={tahanFokus}
+                  onClick={() => hapusBagian(i)}
+                  aria-label={`Hapus bagian ${i + 1}`}
+                  title="Hapus bagian ini"
+                  className="rounded p-0.5 text-slate-500 hover:bg-red-100 hover:text-red-600"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-1 flex justify-between border-t border-blue-200 pt-1 text-xs">
+            <span className="text-slate-600">
+              Sudah dicatat {formatRupiah(sudah)} dari {formatRupiah(total)}
+            </span>
+            <span className="font-bold text-blue-900">Sisa {formatRupiah(sisa)}</span>
+          </div>
+        </div>
       )}
 
       <label className="text-xs font-semibold text-slate-600" htmlFor={id}>
         {tanpaBayar
           ? 'Tidak ada pembayaran sekarang (ketik angka untuk mengubahnya menjadi DP)'
-          : `${tunai ? 'Uang diterima' : 'Nominal'} (${petunjukKosong})`}
+          : `${campur ? `Bagian ${daftar.length + 1}: ` : ''}${tunai ? 'Uang diterima' : 'Nominal'} (${petunjukKosong})`}
       </label>
       <input
         id={id}
@@ -358,6 +423,15 @@ export function PanelBayarPos({
             className="h-8 rounded-md border px-2 text-sm"
           />
         </div>
+      )}
+
+      {galat && (
+        <p
+          className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-sm font-semibold text-red-700"
+          role="alert"
+        >
+          {galat}
+        </p>
       )}
 
       {/* Kembalian hanya ada pada pembayaran penuh; DP diterima sebesar jumlahnya. */}
@@ -423,14 +497,15 @@ export function PanelBayarPos({
             onClick={campuran}
             className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-500"
           >
-            <kbd className="font-mono font-bold">C</kbd> bayar campuran
+            <kbd className="font-mono font-bold">C</kbd>{' '}
+            {campur ? 'tambah bagian lagi' : 'bayar campuran (lebih dari satu cara bayar)'}
           </button>
+          {campur && (
+            <span className="px-1.5 py-0.5 text-slate-400">
+              <kbd className="font-mono font-bold">Backspace</kbd> hapus bagian terakhir
+            </span>
+          )}
         </div>
-      )}
-      {galat && (
-        <p className="text-sm font-semibold text-red-600" role="alert">
-          {galat}
-        </p>
       )}
       <button
         type="button"

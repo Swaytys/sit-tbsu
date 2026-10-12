@@ -45,7 +45,7 @@ test('Kasir mengajukan retur refund tunai → Admin menyetujui → stok barang k
 
     await menuUtama(kasir).getByRole('link', { name: 'Retur Penjualan' }).click();
     await expect(kasir.getByRole('heading', { name: 'Retur Penjualan' })).toBeVisible();
-    await kasir.getByLabel('Nomor invoice / struk').fill(pj.nomor);
+    await kasir.getByLabel('Pilih transaksi yang diretur').fill(pj.nomor);
     await kasir.getByRole('button', { name: new RegExp(pj.nomor) }).click();
     await kasir.getByLabel(`Qty retur ${nama}`).fill('2');
     await kasir.getByRole('button', { name: 'Kelebihan beli / sisa proyek' }).click();
@@ -108,7 +108,7 @@ test('Retur disetujui dengan kode sekali pakai dari atasan di layar Kasir (K-102
     });
 
     await kasir.goto('/retur');
-    await kasir.getByLabel('Nomor invoice / struk').fill(pj.nomor);
+    await kasir.getByLabel('Pilih transaksi yang diretur').fill(pj.nomor);
     await kasir.getByRole('button', { name: new RegExp(pj.nomor) }).click();
     // Qty melebihi sisa ditandai dan tombol proses dimatikan.
     await kasir.getByLabel(`Qty retur ${nama}`).fill('4');

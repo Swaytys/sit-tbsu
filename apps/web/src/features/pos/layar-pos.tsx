@@ -14,7 +14,7 @@ import {
   type TiketAntrean,
 } from '@sit/shared';
 import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent } from 'react';
-import { Printer } from 'lucide-react';
+import { Printer, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
@@ -86,7 +86,7 @@ const TOMBOL_UMUM: Tombol[] = [
   { kunci: 'F3', label: 'Antrean' },
   { kunci: 'F4', label: 'Pelanggan' },
   { kunci: 'F8', label: 'Bayar' },
-  { kunci: 'F9', label: 'Batal' },
+  { kunci: 'F9', label: 'Mulai dari awal' },
 ];
 
 const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
@@ -239,6 +239,8 @@ export function LayarPos({
   const [shiftDitunda, setShiftDitunda] = useState(false);
   const [sedangProses, setSedangProses] = useState(false);
   const [pelangganBaru, setPelangganBaru] = useState(false);
+  /** K-106: F9 / tombol "Mulai dari awal" selalu bertanya dulu, supaya tidak terpencet tanpa sengaja. */
+  const [tanyaUlang, setTanyaUlang] = useState(false);
   // PT6: checkout ditolak karena limit kredit; pemegang izin atur kredit boleh melanjutkan.
   const [limit, setLimit] = useState<{ data: DataCheckout; pesan: string } | null>(null);
   // K-102: pengguna tanpa izin itu meminta kode sekali pakai yang dikirim ke atasan.
@@ -371,6 +373,14 @@ export function LayarPos({
       mulaiBaru();
       setZona('cari');
     }
+  }
+
+  function mintaMulaiDariAwal() {
+    if (!adaTransaksi) {
+      toast.info('Layar sudah kosong; belum ada yang perlu diulang.');
+      return;
+    }
+    setTanyaUlang(true);
   }
 
   /** K-104: pengantaran tanpa order boleh, asal pelanggannya sudah dipilih (barang diantar ke siapa). */
@@ -509,7 +519,7 @@ export function LayarPos({
       F3: () => setZona('antrean'),
       F4: () => setZona('pelanggan'),
       F8: () => setZona('bayar'),
-      F9: () => void batal(),
+      F9: () => mintaMulaiDariAwal(),
     };
     const f = aksi[e.key];
     if (f) {
@@ -591,11 +601,24 @@ export function LayarPos({
                   'Jual langsung tanpa order'
                 )}
               </span>
-              {order?.diskonTransaksi ? (
-                <span className="text-xs text-slate-500">
-                  diskon {formatRupiah(order.diskonTransaksi)}
-                </span>
-              ) : null}
+              <span className="flex items-center gap-2">
+                {order?.diskonTransaksi ? (
+                  <span className="text-xs text-slate-500">
+                    diskon {formatRupiah(order.diskonTransaksi)}
+                  </span>
+                ) : null}
+                {adaTransaksi && (
+                  <button
+                    type="button"
+                    onClick={mintaMulaiDariAwal}
+                    title="Kosongkan layar ini dan mulai dari awal (F9). Akan ditanya dulu."
+                    className="flex items-center gap-1 rounded border border-slate-300 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <RotateCcw className="size-3" /> Mulai dari awal
+                    <kbd className="font-mono opacity-60">F9</kbd>
+                  </button>
+                )}
+              </span>
             </div>
             {zona === 'pelanggan' ? (
               <div className="mt-1" id={ID.pelanggan}>
@@ -908,6 +931,39 @@ export function LayarPos({
         />
       )}
       {dialogKeluar}
+      <DialogKonfirmasi
+        terbuka={tanyaUlang}
+        onTutup={() => setTanyaUlang(false)}
+        judul="Mulai dari awal?"
+        pesan={
+          order ? (
+            <>
+              <p>
+                Antrean <b>{order.noAntrean}</b> dikembalikan ke daftar antrean.{' '}
+                <b>Order tidak dihapus</b> dan bisa diproses lagi kapan saja.
+              </p>
+              <p className="mt-1">
+                Perubahan barang, pelanggan, dan isian pembayaran yang belum dibayar di layar ini
+                dibuang.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Daftar barang, pelanggan{pengantaran ? ', alamat kirim,' : ''} dan isian pembayaran
+                di layar ini dikosongkan, seperti layar yang baru dibuka.
+              </p>
+              <p className="mt-1">
+                Belum ada yang tersimpan, jadi tidak ada penjualan yang terhapus. Bila berubah
+                pikiran, tekan Ctrl+Z untuk mengembalikan daftar barangnya.
+              </p>
+            </>
+          )
+        }
+        labelKonfirmasi="Ya, mulai dari awal"
+        bahaya
+        onKonfirmasi={batal}
+      />
       {toko && cetak?.jenis === 'struk' && (
         <AreaCetak ukuranKertas={`${toko.lebarStrukMm}mm auto`}>
           <Struk p={cetak.p} toko={toko} />

@@ -102,12 +102,12 @@ export function HalamanPelanggan() {
 
   return (
     <div className="space-y-4 p-6">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-80">
           <h1 className="text-xl font-semibold text-slate-900">Data Pelanggan</h1>
           <p className="text-sm text-slate-500">Kelola daftar pelanggan toko.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {bolehGolongan && (
             <Button variant="outline" onClick={() => setDialogGolongan(true)}>
               <Users /> Golongan

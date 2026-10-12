@@ -65,8 +65,10 @@ test('order penjualan: isian tidak hilang saat pindah halaman (draf); F9 membuan
   await expect(keranjang).toContainText(nama);
   await expect(total).toHaveText('Rp 18.000');
 
-  // F9: draf dibuang (dibatalkan) dan tidak dibuka lagi.
+  // F9: ditanya dulu (K-106); setelah dikonfirmasi draf dibuang (dibatalkan) dan tidak dibuka lagi.
   await page.keyboard.press('F9');
+  await expect(page.getByRole('alertdialog', { name: 'Mulai dari awal?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Ya, mulai dari awal' }).click();
   await expect(page.getByText('Draf dibuang.')).toBeVisible();
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'Cari barang' })).toBeVisible();

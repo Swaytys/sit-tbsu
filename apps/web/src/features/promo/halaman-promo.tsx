@@ -243,7 +243,7 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
                   <FormLabel>Jenis potongan</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange} disabled={terkunci}>
                     <FormControl>
-                      <SelectTrigger aria-label="Jenis potongan">
+                      <SelectTrigger className="w-full" aria-label="Jenis potongan">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
@@ -325,7 +325,7 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
                   <FormLabel>Berlaku untuk</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange} disabled={terkunci}>
                     <FormControl>
-                      <SelectTrigger aria-label="Sasaran promo">
+                      <SelectTrigger className="w-full" aria-label="Sasaran promo">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
@@ -352,7 +352,7 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
                       disabled={terkunci}
                     >
                       <FormControl>
-                        <SelectTrigger aria-label="Kategori promo">
+                        <SelectTrigger className="w-full" aria-label="Kategori promo">
                           <SelectValue placeholder="Pilih kategori" />
                         </SelectTrigger>
                       </FormControl>
@@ -460,7 +460,7 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
                   <FormLabel>Untuk pembeli</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange} disabled={terkunci}>
                     <FormControl>
-                      <SelectTrigger aria-label="Sasaran pembeli">
+                      <SelectTrigger className="w-full" aria-label="Sasaran pembeli">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
@@ -487,7 +487,7 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
                       disabled={terkunci}
                     >
                       <FormControl>
-                        <SelectTrigger aria-label="Golongan promo">
+                        <SelectTrigger className="w-full" aria-label="Golongan promo">
                           <SelectValue placeholder="Pilih golongan" />
                         </SelectTrigger>
                       </FormControl>
@@ -732,14 +732,14 @@ export function HalamanPromo() {
 
   return (
     <div className="space-y-4 p-6">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-80">
           <h1 className="text-xl font-semibold text-slate-900">Promo</h1>
           <p className="text-sm text-slate-500">
             Potongan harga otomatis per baris barang selama periode promo.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Penjelasan judul="Cara kerja promo">
             <ButirPenjelasan>
               <li>

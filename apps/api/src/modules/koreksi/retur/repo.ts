@@ -208,9 +208,12 @@ export function barisPenjualan(ex: Executor, idPenjualan: number | number[]) {
     .orderBy(asc(penjualanDetail.id));
 }
 
-/** Kandidat retur (T1): penjualan SELESAI/VOID_SEBAGIAN yang dicari nomor/pembeli. */
+/**
+ * Kandidat retur (T1): penjualan SELESAI/VOID_SEBAGIAN yang dicari nomor/pembeli; tanpa kata cari = 20
+ * transaksi terbaru, supaya pembeli yang baru saja bertransaksi bisa langsung dipilih (K-106).
+ */
 export function kandidat(ex: Executor, cari: string) {
-  const pola = polaCari(cari);
+  const pola = cari ? polaCari(cari) : undefined;
   return ex
     .select({
       id: penjualan.id,
@@ -231,11 +234,13 @@ export function kandidat(ex: Executor, cari: string) {
     .where(
       and(
         inArray(penjualan.statusTransaksi, ['SELESAI', 'VOID_SEBAGIAN']),
-        or(
-          ilike(penjualan.nomor, pola),
-          ilike(penjualan.namaPembeli, pola),
-          ilike(pelanggan.namaPelanggan, pola),
-        ),
+        pola
+          ? or(
+              ilike(penjualan.nomor, pola),
+              ilike(penjualan.namaPembeli, pola),
+              ilike(pelanggan.namaPelanggan, pola),
+            )
+          : undefined,
       ),
     )
     .orderBy(desc(penjualan.tanggal))

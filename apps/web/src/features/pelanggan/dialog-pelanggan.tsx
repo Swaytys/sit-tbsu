@@ -274,7 +274,7 @@ function IsiDialogPelanggan({
                     control={form.control}
                     name="jadikanLimitBawaan"
                     render={({ field }) => (
-                      <FormItem className="col-span-3 flex-row items-start gap-2">
+                      <FormItem className="col-span-3 flex items-start gap-2">
                         <FormControl>
                           <Checkbox
                             checked={field.value === true}

@@ -88,8 +88,8 @@ export function HalamanReturPemasok() {
 
   return (
     <div className="space-y-4 p-6">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-80">
           <h1 className="text-xl font-semibold text-slate-900">Retur ke Pemasok</h1>
           <p className="text-sm text-slate-500">
             Barang dikembalikan ke pemasok mengurangi stok dengan nilai HPP rata-rata; diselesaikan

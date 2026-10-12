@@ -72,7 +72,9 @@ function FormItem({ className, ...props }: React.ComponentProps<'div'>) {
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div data-slot="form-item" className={cn('grid gap-2', className)} {...props} />
+      {/* content-start: di dalam baris grid, item yang lebih pendek (tanpa keterangan) tidak meregangkan
+          label dan kotak isiannya ke bawah, sehingga label dan kotak sebaris tetap sejajar (K-106). */}
+      <div data-slot="form-item" className={cn('grid content-start gap-2', className)} {...props} />
     </FormItemContext.Provider>
   );
 }
