@@ -1,4 +1,11 @@
-import type { DataGolonganPelanggan, DataPelanggan, DataPemasok, StatusAktif } from '@sit/shared';
+import type {
+  DataGolonganPelanggan,
+  DataKodePersetujuan,
+  DataMintaKodePelanggan,
+  DataPelanggan,
+  DataPemasok,
+  StatusAktif,
+} from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, ambilIsi, api, paramId } from './client';
 
@@ -64,22 +71,41 @@ function useMutasi<TInput, THasil>(akar: string, fn: (input: TInput) => Promise<
 type Simpan<T> = { id?: number; json: T };
 type Status = { id: number; statusAktif: StatusAktif };
 
+/** `kodeAtasan`: kode sekali pakai dari Admin/Owner, wajib bila pengubahnya tanpa izin atur kredit (K-107). */
+type KodeAtasan = { kodeAtasan?: DataKodePersetujuan | null };
+
 export function useSimpanPelanggan() {
-  return useMutasi('pelanggan', async ({ id, json }: Simpan<DataPelanggan>) =>
-    ambilData(
-      id === undefined
-        ? await api.pelanggan.$post({ json })
-        : await api.pelanggan[':id'].$patch({ param: paramId(id), json }),
-    ),
+  return useMutasi(
+    'pelanggan',
+    async ({ id, json, kodeAtasan }: Simpan<DataPelanggan> & KodeAtasan) =>
+      ambilData(
+        id === undefined
+          ? await api.pelanggan.$post({ json })
+          : await api.pelanggan[':id'].$patch({
+              param: paramId(id),
+              json: { ...json, kodeAtasan: kodeAtasan ?? null },
+            }),
+      ),
   );
 }
 
 export function useStatusPelanggan() {
-  return useMutasi('pelanggan', async ({ id, statusAktif }: Status) =>
+  return useMutasi('pelanggan', async ({ id, statusAktif, kodeAtasan }: Status & KodeAtasan) =>
     ambilData(
-      await api.pelanggan[':id'].status.$patch({ param: paramId(id), json: { statusAktif } }),
+      await api.pelanggan[':id'].status.$patch({
+        param: paramId(id),
+        json: { statusAktif, kodeAtasan: kodeAtasan ?? null },
+      }),
     ),
   );
+}
+
+/** Meminta kode sekali pakai ke Admin/Owner untuk satu perubahan data/status pelanggan (K-107). */
+export function useMintaKodePelanggan() {
+  return useMutation({
+    mutationFn: async ({ id, json }: { id: number; json: DataMintaKodePelanggan }) =>
+      ambilData(await api.pelanggan[':id']['minta-kode'].$post({ param: paramId(id), json })),
+  });
 }
 
 export function useSimpanPemasok() {

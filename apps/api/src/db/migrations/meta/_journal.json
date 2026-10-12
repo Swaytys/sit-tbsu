@@ -106,6 +106,13 @@
       "when": 1791695595377,
       "tag": "0014_kode_persetujuan",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791813995235,
+      "tag": "0015_persetujuan_ubah_pelanggan",
+      "breakpoints": true
     }
   ]
 }

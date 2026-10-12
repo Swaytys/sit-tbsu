@@ -1,7 +1,7 @@
-import { and, asc, count, eq, ilike, or, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, ilike, inArray, isNotNull, ne, or, sql, type SQL } from 'drizzle-orm';
 import type { StatusAktif } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
-import { golonganPelanggan, pelanggan } from '../../../db/schema';
+import { golonganPelanggan, pelanggan, penjualan } from '../../../db/schema';
 import { polaCari } from '../../../lib/paginasi';
 
 const kolom = {
@@ -61,9 +61,40 @@ export async function pelangganById(ex: Executor, id: number) {
   return baris;
 }
 
+/**
+ * Posisi kredit per pelanggan (K-107) dari penjualan yang belum lunas dan bukan VOID: jumlah sisa tagihan,
+ * jumlah nota, jatuh tempo paling awal, dan sisa tagihan yang sudah lewat jatuh tempo per `hariIni`.
+ * Pelanggan tanpa piutang tidak ada di hasil.
+ */
+export function posisiKreditBanyak(ex: Executor, idPelanggan: number[], hariIni: string) {
+  const lewat = sql`${penjualan.tanggalJatuhTempo} < ${hariIni}::date`;
+  return ex
+    .select({
+      idPelanggan: sql<number>`${penjualan.idPelanggan}`.mapWith(Number),
+      piutang: sql<number>`coalesce(sum(${penjualan.sisaTagihan}), 0)::bigint`.mapWith(Number),
+      jumlahNota: count(),
+      jatuhTempoTerdekat: sql<string | null>`min(${penjualan.tanggalJatuhTempo})::text`,
+      piutangTerlambat:
+        sql<number>`coalesce(sum(${penjualan.sisaTagihan}) filter (where ${lewat}), 0)::bigint`.mapWith(
+          Number,
+        ),
+    })
+    .from(penjualan)
+    .where(
+      and(
+        isNotNull(penjualan.idPelanggan),
+        inArray(penjualan.idPelanggan, idPelanggan.length > 0 ? idPelanggan : [0]),
+        ne(penjualan.statusTransaksi, 'VOID'),
+        ne(penjualan.statusPembayaran, 'LUNAS'),
+      ),
+    )
+    .groupBy(penjualan.idPelanggan);
+}
+
 export async function kunciPelanggan(tx: Tx, id: number) {
   const [baris] = await tx
     .select({
+      kode: pelanggan.kode,
       namaPelanggan: pelanggan.namaPelanggan,
       noHp: pelanggan.noHp,
       email: pelanggan.email,

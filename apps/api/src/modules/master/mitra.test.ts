@@ -1,9 +1,13 @@
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { InfoKodePersetujuan } from '@sit/shared';
 import {
   aturKonfigurasi,
+  beriEmail,
   json,
+  kodeTerkirim,
   minta,
+  pesanTerkirim,
   sesiUji,
   siapkanDatabaseSistem,
 } from '../../../test/pembantu';
@@ -210,7 +214,36 @@ describe('pelanggan', () => {
       termHari: 30,
       limitKredit: 2_000_000,
     });
-    const res = await kirim(staf, `/api/pelanggan/${p.id}`, { ...PLG, alamat: 'Jombang' }, 'PATCH');
+    // K-107: perubahan data pelanggan yang sudah ada oleh Staf butuh kode atasan.
+    const ubah = { ...PLG, alamat: 'Jombang' };
+    const tanpaKode = await kirim(staf, `/api/pelanggan/${p.id}`, ubah, 'PATCH');
+    expect(tanpaKode.status).toBe(403);
+    expect((await json<Galat>(tanpaKode)).error.pesan).toContain('kode persetujuan');
+    // Simpan tanpa perubahan tidak butuh kode (dan tidak mengubah apa pun).
+    expect((await kirim(staf, `/api/pelanggan/${p.id}`, PLG, 'PATCH')).status).toBe(200);
+
+    await beriEmail(admin.pengguna.id);
+    const minta1 = await kirim(staf, `/api/pelanggan/${p.id}/minta-kode`, {
+      aksi: 'UBAH',
+      data: ubah,
+    });
+    expect(minta1.status).toBe(200);
+    const info = (await json<{ data: InfoKodePersetujuan }>(minta1)).data;
+    // Atasan membaca apa yang berubah, dari data tersimpan dan isian yang akan disimpan.
+    expect(pesanTerkirim(admin.pengguna.namaPengguna)).toContain('Alamat: (kosong) -> Jombang');
+    const kodeAtasan = {
+      idPermintaan: info.idPermintaan,
+      kode: kodeTerkirim(admin.pengguna.namaPengguna),
+    };
+    // Kode hanya berlaku untuk isian yang tertulis di pesan: isian lain ditolak dan kodenya tetap utuh.
+    const lain = await kirim(
+      staf,
+      `/api/pelanggan/${p.id}`,
+      { ...PLG, alamat: 'Surabaya', kodeAtasan },
+      'PATCH',
+    );
+    expect(lain.status).toBe(400);
+    const res = await kirim(staf, `/api/pelanggan/${p.id}`, { ...ubah, kodeAtasan }, 'PATCH');
     expect(res.status).toBe(200);
     expect((await json<{ data: Baris }>(res)).data).toMatchObject({
       alamat: 'Jombang',
@@ -218,6 +251,21 @@ describe('pelanggan', () => {
       termHari: 30,
       limitKredit: 2_000_000,
     });
+    expect((await logTerakhir('PELANGGAN_UBAH'))?.ringkasan).toContain(
+      `disetujui ${admin.pengguna.namaPengguna} lewat kode`,
+    );
+    // Sekali pakai: kode yang sama tidak bisa dipakai untuk perubahan berikutnya.
+    const ulang = await kirim(
+      staf,
+      `/api/pelanggan/${p.id}`,
+      { ...PLG, alamat: 'Jombang kota', kodeAtasan },
+      'PATCH',
+    );
+    expect(ulang.status).toBe(400);
+    // Tidak ada yang berubah → tidak ada kode yang dikirim.
+    expect(
+      (await kirim(staf, `/api/pelanggan/${p.id}/minta-kode`, { aksi: 'UBAH', data: ubah })).status,
+    ).toBe(400);
     const tolak = await kirim(staf, `/api/pelanggan/${p.id}`, { ...PLG, termHari: 0 }, 'PATCH');
     expect(tolak.status).toBe(403);
   });
@@ -280,16 +328,62 @@ describe('pelanggan', () => {
   it('nonaktifkan dan aktifkan kembali tercatat di log; data tidak dihapus', async () => {
     const p = await buat(staf, '/api/pelanggan', PLG);
     const res = await kirim(
-      staf,
+      admin,
       `/api/pelanggan/${p.id}/status`,
       { statusAktif: 'NONAKTIF' },
       'PATCH',
     );
     expect((await json<{ data: Baris }>(res)).data.statusAktif).toBe('NONAKTIF');
     expect((await logTerakhir('PELANGGAN_NONAKTIF'))?.idEntitas).toBe(p.id);
-    await kirim(staf, `/api/pelanggan/${p.id}/status`, { statusAktif: 'AKTIF' }, 'PATCH');
+    await kirim(admin, `/api/pelanggan/${p.id}/status`, { statusAktif: 'AKTIF' }, 'PATCH');
     expect((await logTerakhir('PELANGGAN_AKTIFKAN'))?.idEntitas).toBe(p.id);
     expect(await db.select().from(pelanggan)).toHaveLength(1);
+  });
+
+  it('K-107: Staf/Kasir menonaktifkan atau mengaktifkan pelanggan hanya dengan kode atasan', async () => {
+    const p = await buat(staf, '/api/pelanggan', PLG);
+    const status = (statusAktif: string, kodeAtasan?: unknown) =>
+      kirim(staf, `/api/pelanggan/${p.id}/status`, { statusAktif, kodeAtasan }, 'PATCH');
+    expect((await status('NONAKTIF')).status).toBe(403);
+    // Belum ada atasan yang bisa menerima kode → permintaan ditolak dengan petunjuk.
+    const belumAda = await kirim(staf, `/api/pelanggan/${p.id}/minta-kode`, {
+      aksi: 'STATUS',
+      statusAktif: 'NONAKTIF',
+    });
+    expect(belumAda.status).toBe(409);
+
+    await beriEmail(admin.pengguna.id);
+    const info = (
+      await json<{ data: InfoKodePersetujuan }>(
+        await kirim(staf, `/api/pelanggan/${p.id}/minta-kode`, {
+          aksi: 'STATUS',
+          statusAktif: 'NONAKTIF',
+        }),
+      )
+    ).data;
+    expect(pesanTerkirim(admin.pengguna.namaPengguna)).toContain('Nonaktifkan pelanggan');
+    const kodeAtasan = {
+      idPermintaan: info.idPermintaan,
+      kode: kodeTerkirim(admin.pengguna.namaPengguna),
+    };
+    // Kode "nonaktifkan" tidak bisa dipakai untuk mengubah data pelanggan itu.
+    expect(
+      (
+        await kirim(
+          staf,
+          `/api/pelanggan/${p.id}`,
+          { ...PLG, alamat: 'Jombang', kodeAtasan },
+          'PATCH',
+        )
+      ).status,
+    ).toBe(400);
+    const res = await status('NONAKTIF', kodeAtasan);
+    expect(res.status).toBe(200);
+    expect((await json<{ data: Baris }>(res)).data.statusAktif).toBe('NONAKTIF');
+    expect((await logTerakhir('PELANGGAN_NONAKTIF'))?.ringkasan).toContain('lewat kode');
+    // Mengaktifkan kembali juga butuh kode baru.
+    expect((await status('AKTIF', kodeAtasan)).status).toBe(400);
+    expect((await status('AKTIF')).status).toBe(403);
   });
 });
 

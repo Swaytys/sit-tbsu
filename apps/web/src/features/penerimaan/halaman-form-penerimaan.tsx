@@ -370,7 +370,7 @@ export function HalamanFormPenerimaan() {
                     ? idPemasok
                       ? 'Cari barang titipan pemasok ini…'
                       : 'Pilih pemasok dulu'
-                    : 'Cari barang yang diterima (kode, nama, barcode)… lalu Enter'
+                    : 'Cari barang yang diterima (nama, kode, barcode, atribut)… lalu Enter'
                 }
               />
               {konsinyasi && idPemasok && (

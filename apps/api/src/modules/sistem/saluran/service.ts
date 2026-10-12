@@ -105,8 +105,9 @@ export async function kirimKePengguna(
   isi: string,
 ): Promise<HasilKirim> {
   const s = await muatSaluran();
-  const sungguhan = env.NODE_ENV !== 'test';
   const simulasi = env.NODE_ENV !== 'production';
+  // Tes otomatis, dan server e2e (SALURAN_TIRUAN, hanya di luar produksi), tidak pernah menyentuh jaringan.
+  const sungguhan = env.NODE_ENV !== 'test' && !(simulasi && env.SALURAN_TIRUAN);
   const terkirim: SaluranPesan[] = [];
   const tiruan: SaluranPesan[] = [];
   const galat: string[] = [];

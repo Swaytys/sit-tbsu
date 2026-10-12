@@ -1,10 +1,16 @@
-import type {
-  BawaanPelanggan,
-  DataPelanggan,
-  Izin,
-  MetaHalaman,
-  Pelanggan,
-  StatusAktif,
+import { createHash } from 'node:crypto';
+import {
+  formatRupiah,
+  type BawaanPelanggan,
+  type DataKodePersetujuan,
+  type DataMintaKodePelanggan,
+  type DataPelanggan,
+  type InfoKodePersetujuan,
+  type Izin,
+  type MetaHalaman,
+  type Pelanggan,
+  type PosisiKreditPelanggan,
+  type StatusAktif,
 } from '@sit/shared';
 import { db, type Executor, type Tx } from '../../../db/client';
 import { AppError, galatKolom } from '../../../lib/errors';
@@ -12,7 +18,13 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { selisih } from '../../../lib/perubahan';
 import { dalamTransaksi } from '../../../lib/transaksi';
-import { sekarang } from '../../../lib/waktu';
+import { sekarang, tanggalOperasional } from '../../../lib/waktu';
+import {
+  mintaKode,
+  pakaiKode,
+  periksaKode,
+  type KodeSah,
+} from '../../sistem/kode-persetujuan/service';
 import { ambilAngka, ambilTeks, invalidasiKonfigurasi } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { simpanKonfigurasi } from '../../sistem/pengaturan/repo';
@@ -25,8 +37,51 @@ import * as repo from './repo';
 type BarisPelanggan = NonNullable<Awaited<ReturnType<typeof repo.pelangganById>>>;
 type NilaiKredit = Pick<repo.NilaiPelanggan, 'idGolongan' | 'termHari' | 'limitKredit'>;
 
-function keRespons(b: BarisPelanggan): Pelanggan {
-  return { ...b, dibuatPada: b.dibuatPada.toISOString() };
+type BarisKredit = Awaited<ReturnType<typeof repo.posisiKreditBanyak>>[number];
+
+const MS_PER_HARI = 24 * 60 * 60 * 1000;
+
+/** Selisih hari kalender dari `hariIni` ke `tanggal` (keduanya `YYYY-MM-DD`); negatif = sudah lewat. */
+function hariMenuju(tanggal: string, hariIni: string): number {
+  return Math.round(
+    (Date.parse(`${tanggal}T00:00:00Z`) - Date.parse(`${hariIni}T00:00:00Z`)) / MS_PER_HARI,
+  );
+}
+
+function posisiKredit(
+  limitKredit: number | null,
+  k: BarisKredit | undefined,
+  hariIni: string,
+): PosisiKreditPelanggan {
+  const piutang = k?.piutang ?? 0;
+  const jatuhTempo = k?.jatuhTempoTerdekat ?? null;
+  return {
+    piutang,
+    jumlahNota: k?.jumlahNota ?? 0,
+    sisaLimit: limitKredit === null ? null : limitKredit - piutang,
+    jatuhTempoTerdekat: jatuhTempo,
+    hariKeJatuhTempo: jatuhTempo === null ? null : hariMenuju(jatuhTempo, hariIni),
+    piutangTerlambat: k?.piutangTerlambat ?? 0,
+  };
+}
+
+/** Baris pelanggan + posisi kreditnya (dihitung dari penjualan yang belum lunas). */
+async function keRespons(ex: Executor, baris: BarisPelanggan[]): Promise<Pelanggan[]> {
+  const hariIni = tanggalOperasional();
+  const kredit = new Map(
+    (
+      await repo.posisiKreditBanyak(
+        ex,
+        baris.map((b) => b.id),
+        hariIni,
+      )
+    ).map((k) => [k.idPelanggan, k]),
+  );
+  return baris.map((b) => ({
+    ...b,
+    dibuatPada: b.dibuatPada.toISOString(),
+    kredit: posisiKredit(b.limitKredit, kredit.get(b.id), hariIni),
+  }));
 }
 
 function tidakDitemukan(): AppError {
@@ -36,7 +91,9 @@ function tidakDitemukan(): AppError {
 async function muat(id: number): Promise<Pelanggan> {
   const baris = await repo.pelangganById(db, id);
   if (!baris) throw tidakDitemukan();
-  return keRespons(baris);
+  const [hasil] = await keRespons(db, [baris]);
+  if (!hasil) throw tidakDitemukan();
+  return hasil;
 }
 
 /**
@@ -90,7 +147,7 @@ export async function daftarPelanggan(p: {
   perHalaman: number;
 }): Promise<{ data: Pelanggan[]; meta: MetaHalaman }> {
   const { baris, total } = await repo.daftarPelanggan(db, { ...p, ...batasHalaman(p) });
-  return { data: baris.map(keRespons), meta: metaHalaman(total, p) };
+  return { data: await keRespons(db, baris), meta: metaHalaman(total, p) };
 }
 
 const KUNCI_LIMIT_BAWAAN = 'limit_kredit_default';
@@ -152,12 +209,148 @@ export async function tambahPelanggan(
   }
 }
 
+// --- K-107: perubahan oleh pengguna tanpa `master.pelanggan.atur_kredit` butuh kode atasan ---
+
+const IZIN_ATASAN: Izin = 'master.pelanggan.atur_kredit';
+
+const LABEL_KOLOM: Record<string, string> = {
+  namaPelanggan: 'Nama',
+  noHp: 'No. HP',
+  email: 'Email',
+  alamat: 'Alamat',
+  keterangan: 'Keterangan',
+};
+
+type Perubahan =
+  | { aksi: 'UBAH'; data: ReturnType<typeof dataKontak> }
+  | { aksi: 'STATUS'; statusAktif: StatusAktif };
+
+/**
+ * Sidik satu perubahan: kode atasan hanya berlaku untuk pelanggan dan isian yang persis sama dengan yang
+ * tertulis di pesan untuk atasan, sehingga kode tidak bisa dipakai untuk perubahan lain.
+ */
+function sidikPerubahan(id: number, p: Perubahan): string {
+  const isi =
+    p.aksi === 'UBAH'
+      ? [
+          'UBAH',
+          id,
+          p.data.namaPelanggan,
+          p.data.noHp,
+          p.data.email,
+          p.data.alamat,
+          p.data.keterangan,
+        ]
+      : ['STATUS', id, p.statusAktif];
+  return createHash('sha256').update(JSON.stringify(isi)).digest('hex');
+}
+
+function butuhKode(): AppError {
+  return new AppError(
+    'TIDAK_BERIZIN',
+    'Mengubah atau menonaktifkan pelanggan yang sudah ada butuh kode persetujuan Admin/Owner.',
+    403,
+  );
+}
+
+/** Memeriksa kode atasan untuk `perubahan` (di transaksinya sendiri, agar salah ketik tetap terhitung). */
+async function kodeSahUntuk(
+  id: number,
+  perubahan: Perubahan,
+  kode: DataKodePersetujuan | null,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<KodeSah> {
+  if (!kode) throw butuhKode();
+  const sidik = sidikPerubahan(id, perubahan);
+  return periksaKode(
+    {
+      idPermintaan: kode.idPermintaan,
+      kode: kode.kode,
+      jenis: 'UBAH_PELANGGAN',
+      izin: IZIN_ATASAN,
+      pengaju: pelaku,
+      cocok: (m) => m.idPelanggan === id && m.sidik === sidik,
+    },
+    asal,
+  );
+}
+
+/**
+ * Mengirim kode sekali pakai ke Admin/Owner untuk satu perubahan data atau status pelanggan (K-107). Isi
+ * pesan disusun dari data di database dan isian yang akan disimpan, karena itulah yang dibaca atasan.
+ */
+export async function mintaKodePelanggan(
+  id: number,
+  input: DataMintaKodePelanggan,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<InfoKodePersetujuan> {
+  const kini = await muat(id);
+  let perubahan: Perubahan;
+  let ringkasan: string;
+  const siapa = `${kini.kode} ${kini.namaPelanggan}`;
+  if (input.aksi === 'UBAH') {
+    // Golongan, term, dan limit tidak ikut: tanpa izin atur kredit, kolom itu memang tidak bisa diubah.
+    const data = dataKontak(input.data);
+    const beda = selisih(kini, data);
+    if (beda.kolom.length === 0) {
+      throw new AppError('VALIDASI', 'Tidak ada data yang berubah, jadi tidak perlu kode.', 400);
+    }
+    perubahan = { aksi: 'UBAH', data };
+    ringkasan =
+      `Ubah data pelanggan ${siapa}:\n` +
+      beda.kolom
+        .map((k) => {
+          const dulu = beda.dataLama[k];
+          const jadi = beda.dataBaru[k];
+          const teks = (v: unknown) => (typeof v === 'string' && v !== '' ? v : '(kosong)');
+          return `- ${LABEL_KOLOM[k] ?? k}: ${teks(dulu)} -> ${teks(jadi)}`;
+        })
+        .join('\n');
+  } else {
+    if (kini.statusAktif === input.statusAktif) {
+      throw new AppError('VALIDASI', 'Status pelanggan sudah seperti itu.', 400);
+    }
+    perubahan = { aksi: 'STATUS', statusAktif: input.statusAktif };
+    ringkasan =
+      `${input.statusAktif === 'AKTIF' ? 'Aktifkan kembali' : 'Nonaktifkan'} pelanggan ${siapa}.\n` +
+      `Piutang berjalan: ${formatRupiah(kini.kredit.piutang)} (${kini.kredit.jumlahNota} nota).`;
+  }
+  return mintaKode(
+    {
+      jenis: 'UBAH_PELANGGAN',
+      izin: IZIN_ATASAN,
+      pengaju: pelaku,
+      rujukan: { idPelanggan: id },
+      idEntitas: id,
+      nomorDokumen: null,
+      nilai: 0,
+      ringkasan,
+      sidik: sidikPerubahan(id, perubahan),
+    },
+    asal,
+  );
+}
+
 export async function ubahPelanggan(
   id: number,
   input: DataPelanggan,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
+  kode: DataKodePersetujuan | null = null,
 ): Promise<Pelanggan> {
+  const langsung = pelaku.izin.has(IZIN_ATASAN);
+  // K-107: tanpa izin atasan, perubahan nyata harus disertai kode yang sah untuk isian yang sama.
+  let sah: KodeSah | null = null;
+  if (!langsung) {
+    const kini = await repo.pelangganById(db, id);
+    if (!kini) throw tidakDitemukan();
+    const data = dataKontak(input);
+    if (selisih(kini, data).kolom.length > 0) {
+      sah = await kodeSahUntuk(id, { aksi: 'UBAH', data }, kode, pelaku, asal);
+    }
+  }
   await dalamTransaksi(async (tx) => {
     const lama = await repo.kunciPelanggan(tx, id);
     if (!lama) throw tidakDitemukan();
@@ -169,13 +362,20 @@ export async function ubahPelanggan(
     const baru = { ...dataKontak(input), ...kredit };
     const beda = selisih(lama, baru);
     if (beda.kolom.length === 0) return;
+    if (!langsung) {
+      // Data berubah di antara pemeriksaan dan penguncian: kodenya tidak lagi untuk keadaan ini.
+      if (!sah) throw butuhKode();
+      await pakaiKode(tx, sah);
+    }
     await repo.ubahPelanggan(tx, id, baru, sekarang());
     await catatLog(tx, {
       aksi: 'PELANGGAN_UBAH',
       idPengguna: pelaku.id,
       entitas: 'pelanggan',
       idEntitas: id,
-      ringkasan: `Mengubah pelanggan ${lama.namaPelanggan}: ${beda.kolom.join(', ')}`,
+      ringkasan:
+        `Mengubah pelanggan ${lama.namaPelanggan}: ${beda.kolom.join(', ')}` +
+        (sah ? ` (disetujui ${sah.atasan.namaPengguna} lewat kode)` : ''),
       dataLama: beda.dataLama,
       dataBaru: beda.dataBaru,
       ip: asal.ip,
@@ -189,18 +389,34 @@ export async function ubahStatusPelanggan(
   statusAktif: StatusAktif,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
+  kode: DataKodePersetujuan | null = null,
 ): Promise<Pelanggan> {
+  const langsung = pelaku.izin.has(IZIN_ATASAN);
+  let sah: KodeSah | null = null;
+  if (!langsung) {
+    const kini = await repo.pelangganById(db, id);
+    if (!kini) throw tidakDitemukan();
+    if (kini.statusAktif !== statusAktif) {
+      sah = await kodeSahUntuk(id, { aksi: 'STATUS', statusAktif }, kode, pelaku, asal);
+    }
+  }
   await dalamTransaksi(async (tx) => {
     const lama = await repo.kunciPelanggan(tx, id);
     if (!lama) throw tidakDitemukan();
     if (lama.statusAktif === statusAktif) return;
+    if (!langsung) {
+      if (!sah) throw butuhKode();
+      await pakaiKode(tx, sah);
+    }
     await repo.ubahPelanggan(tx, id, { statusAktif }, sekarang());
     await catatLog(tx, {
       aksi: statusAktif === 'AKTIF' ? 'PELANGGAN_AKTIFKAN' : 'PELANGGAN_NONAKTIF',
       idPengguna: pelaku.id,
       entitas: 'pelanggan',
       idEntitas: id,
-      ringkasan: `${statusAktif === 'AKTIF' ? 'Mengaktifkan' : 'Menonaktifkan'} pelanggan ${lama.namaPelanggan}`,
+      ringkasan:
+        `${statusAktif === 'AKTIF' ? 'Mengaktifkan' : 'Menonaktifkan'} pelanggan ${lama.namaPelanggan}` +
+        (sah ? ` (disetujui ${sah.atasan.namaPengguna} lewat kode)` : ''),
       dataLama: { statusAktif: lama.statusAktif },
       dataBaru: { statusAktif },
       ip: asal.ip,

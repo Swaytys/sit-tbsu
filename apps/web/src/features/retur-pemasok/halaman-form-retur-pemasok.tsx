@@ -406,7 +406,7 @@ export function HalamanFormReturPemasok() {
                     ? idPemasok
                       ? 'Cari barang titipan pemasok ini…'
                       : 'Pilih pemasok dulu'
-                    : 'Cari barang yang dikembalikan (kode, nama, barcode)… lalu Enter'
+                    : 'Cari barang yang dikembalikan (nama, kode, barcode, atribut)… lalu Enter'
                 }
               />
               {form.formState.errors.baris?.message && (

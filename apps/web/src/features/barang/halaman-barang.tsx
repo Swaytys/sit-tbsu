@@ -327,7 +327,7 @@ export function HalamanBarang() {
             setStatus(v);
             setHalaman(1);
           }}
-          placeholder="Cari kode, nama, barcode, atau merk…"
+          placeholder="Cari nama, kode, barcode, merk, kategori, atau atribut…"
           label="Cari barang"
           tampilStatus={saring.tampil('status')}
         >

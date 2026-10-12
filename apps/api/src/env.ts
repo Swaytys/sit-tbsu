@@ -45,6 +45,16 @@ const skemaEnv = z.object({
   CADANGAN_PG_BIN: z.string().min(1).optional(),
   // Jam cadangan harian (WIB, 0-23).
   CADANGAN_JAM: z.coerce.number().int().min(0).max(23).default(21),
+  // Hanya di luar produksi: pesan ke atasan (kode persetujuan) tidak pernah benar-benar dikirim walau bot
+  // Telegram/SMTP sudah diatur; semuanya masuk kotak keluar uji. Dipakai server untuk tes e2e, supaya
+  // menjalankan tes tidak membanjiri Telegram/email pemilik akun demo (K-107).
+  SALURAN_TIRUAN: z
+    .enum(['0', '1'])
+    .default('0')
+    .transform((v) => v === '1'),
+  // Hanya di luar produksi: batas percobaan login per menit per IP (bawaan 20, docs/04 §7). Tes e2e login
+  // puluhan kali dalam semenit dari satu alamat, sehingga server tesnya memakai angka yang lebih besar.
+  LOGIN_MAKS_PER_MENIT: z.coerce.number().int().positive().default(20),
   // Origin lain yang sah untuk permintaan POST/PATCH/DELETE (CSRF), dipisah koma; mis. alamat Tailscale
   // https://server-toko.tailxxxx.ts.net:8443 saat diakses lewat proxy `tailscale serve`.
   ORIGIN_TAMBAHAN: z

@@ -284,6 +284,11 @@ export const permintaanPersetujuan = pgTable(
     nilai: uang('nilai').notNull(),
     /** Isi pesan yang dikirim ke atasan (tanpa kode). */
     ringkasan: varchar('ringkasan', { length: 500 }).notNull(),
+    /**
+     * Sidik (SHA-256) isi yang dimintakan persetujuan, untuk jenis yang menyetujui sebuah ISIAN (mis.
+     * UBAH_PELANGGAN): kode hanya berlaku bila isian yang dikirim saat memakainya persis sama (K-107).
+     */
+    sidik: varchar('sidik', { length: 64 }),
     status: varchar('status', { length: 10, enum: STATUS_KODE_PERSETUJUAN })
       .notNull()
       .default('MENUNGGU'),
@@ -325,7 +330,7 @@ export const permintaanPersetujuan = pgTable(
     check('chk_permintaan_persetujuan_status', dalamDaftar('status', STATUS_KODE_PERSETUJUAN)),
     check(
       'chk_permintaan_persetujuan_rujukan',
-      sql`(jenis = 'RETUR' and id_retur is not null) or (jenis = 'VOID' and id_void is not null) or (jenis = 'LIMIT_KREDIT' and id_pelanggan is not null)`,
+      sql`(jenis = 'RETUR' and id_retur is not null) or (jenis = 'VOID' and id_void is not null) or (jenis in ('LIMIT_KREDIT', 'UBAH_PELANGGAN') and id_pelanggan is not null)`,
     ),
     check('chk_permintaan_persetujuan_nilai', sql`nilai >= 0 and gagal >= 0`),
     index('idx_permintaan_persetujuan_pengaju').on(t.idPengaju, t.status),

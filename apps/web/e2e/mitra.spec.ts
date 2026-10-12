@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { masukCepat, menuUtama } from './pembantu';
+import { kodePersetujuan, masukCepat, menuUtama } from './pembantu';
 
 // Tes ini menambah pelanggan/pemasok uji (lalu menonaktifkannya) di database pengembangan setiap kali jalan.
 
@@ -53,19 +53,46 @@ test('Staf menambah pelanggan tanpa mengatur tier; Admin mengatur tier, term, da
   await dialog.getByRole('button', { name: 'Simpan' }).click();
   await expect(admin.getByText(`Data ${nama} disimpan.`)).toBeVisible();
 
+  // Kolom kredit (K-107): limit, tagihan berjalan, sisa limit.
   const barisAdmin = admin.getByRole('row').filter({ hasText: nama });
   await expect(barisAdmin).toContainText(golongan);
   await expect(barisAdmin).toContainText('30 hari');
+  await expect(barisAdmin).toContainText('Rp 5.000.000');
+  await expect(barisAdmin).toContainText('tidak ada');
 
-  // 3. Staf melihat ringkasan kredit yang diatur Admin, lalu menonaktifkan pelanggan uji.
+  // 3. Staf melihat ringkasan kredit yang diatur Admin. Mengubah data pelanggan yang sudah ada dan
+  //    menonaktifkannya butuh kode sekali pakai dari Admin/Owner (K-107).
   await staf.reload();
   await staf.getByLabel('Cari pelanggan').fill(nama);
   await staf.getByRole('button', { name: `Aksi untuk ${nama}` }).click();
   await staf.getByRole('menuitem', { name: 'Ubah' }).click();
-  await expect(staf.getByText(`${golongan} · term 30 hari · limit Rp 5.000.000.`)).toBeVisible();
-  await staf.keyboard.press('Escape');
+  dialog = staf.getByRole('dialog', { name: /Ubah pelanggan PLG-/ });
+  await expect(dialog.getByText(`${golongan} · term 30 hari · limit Rp 5.000.000.`)).toBeVisible();
+  await dialog.getByLabel('Alamat').fill('Jl. Uji E2E 7');
+  await dialog.getByRole('button', { name: 'Simpan dengan persetujuan…' }).click();
+  let kode = staf.getByRole('dialog', { name: 'Persetujuan perubahan data pelanggan' });
+  await expect(kode).toContainText('Alamat: (kosong) → Jl. Uji E2E 7');
+  await kode.getByRole('button', { name: 'Kirim kode ke atasan' }).click();
+  await expect(kode.getByTestId('penerima-kode')).toContainText('Demo Admin');
+  await kode.getByLabel('Kode dari atasan (6 angka)').fill('000000');
+  await kode.getByRole('button', { name: 'Setujui dengan kode' }).click();
+  await expect(staf.getByText(/Kode salah\. Sisa percobaan: 4\./)).toBeVisible();
+  await kode
+    .getByLabel('Kode dari atasan (6 angka)')
+    .fill(await kodePersetujuan(staf, 'Demo Admin'));
+  await kode.getByRole('button', { name: 'Setujui dengan kode' }).click();
+  await expect(staf.getByText(`Data ${nama} disimpan.`)).toBeVisible();
+  await expect(barisStaf).toContainText('Jl. Uji E2E 7');
+
   await staf.getByRole('button', { name: `Aksi untuk ${nama}` }).click();
   await staf.getByRole('menuitem', { name: 'Nonaktifkan' }).click();
+  kode = staf.getByRole('dialog', { name: 'Persetujuan menonaktifkan pelanggan' });
+  await kode.getByRole('button', { name: 'Kirim kode ke atasan' }).click();
+  await expect(kode.getByTestId('penerima-kode')).toContainText('Demo Admin');
+  await kode
+    .getByLabel('Kode dari atasan (6 angka)')
+    .fill(await kodePersetujuan(staf, 'Demo Admin'));
+  await kode.getByRole('button', { name: 'Setujui dengan kode' }).click();
   await expect(barisStaf).toContainText('Nonaktif');
 });
 

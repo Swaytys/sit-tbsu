@@ -68,3 +68,87 @@ masing-masing, jadi diperbaiki di akarnya, bukan per halaman.
   Ctrl+Z tetap ada sebagai lapis kedua.
 - **Mengubah data tier pemilik secara permanen untuk tes**, atau menulis ulang tiap tes agar kebal tier:
   penyiapan global lebih kecil dan memulihkan keadaan semula.
+
+---
+
+### K-107 — Data Pelanggan: posisi kredit di daftar; ubah/nonaktif oleh Kasir/Staf butuh kode atasan
+
+**Status:** mengubah docs/04 §3 dan §6 (arti izin `master.pelanggan.kelola` dan `master.pelanggan.atur_kredit`),
+docs/03 (kolom `permintaan_persetujuan.sidik`, jenis `UBAH_PELANGGAN`; migrasi 0015).
+
+**Keputusan:**
+
+1. **(pemilik) Kasir dan Staf Penjualan tidak lagi bisa mengubah atau menonaktifkan pelanggan sendiri.**
+   - **Menambah pelanggan baru tetap bebas** (dibutuhkan saat melayani pembeli baru, mis. pengantaran).
+   - **Mengubah data pelanggan yang sudah ada, menonaktifkan, atau mengaktifkannya kembali** oleh pengguna
+     tanpa `master.pelanggan.atur_kredit` butuh **kode sekali pakai dari Admin/Owner**, dengan mekanisme
+     K-102: pengguna menekan *Simpan dengan persetujuan…*, sistem mengirim kode ke Telegram/email tiap
+     Admin/Owner beserta **rincian perubahannya** (kolom, nilai lama → nilai baru; atau "Nonaktifkan
+     pelanggan X, piutang berjalan Rp …"), atasan yang setuju menyebutkan kodenya.
+   - Golongan, term, dan limit kredit tetap hanya bisa diatur Admin/Owner (K-059), tanpa jalur kode.
+   - Admin/Owner mengubah langsung seperti sebelumnya.
+2. **Kode terikat pada isian.** Permintaan menyimpan sidik (SHA-256) dari pelanggan + isian yang dimintakan
+   (`permintaan_persetujuan.sidik`). Saat kode dipakai, sidik isian yang dikirim harus sama: kode untuk
+   "ubah alamat menjadi A" tidak bisa dipakai untuk "ubah alamat menjadi B" atau untuk menonaktifkan. Sifat
+   lain sama dengan K-102 (10 menit, sekali pakai, 5 kali salah ketik, hanya untuk pengaju). Log perubahan
+   mencatat pengubah dan atasan pemilik kode.
+3. **Tidak ada izin baru.** Pemegang `master.pelanggan.atur_kredit` (Admin, Owner) = yang boleh mengubah
+   langsung dan yang kodenya sah. Keterangan kedua izin di daftar izin diperbarui.
+4. **(pemilik) Kolom Data Pelanggan diperkaya** dengan posisi kredit yang dihitung server dari penjualan
+   belum lunas (bukan VOID): **limit kredit dan sisanya**, **tagihan berjalan** (jumlah dan banyaknya nota),
+   **jatuh tempo terdekat** dengan jaraknya ("5 hari lagi", "jatuh tempo hari ini", "terlambat 3 hari"), dan
+   status aktif. `Pelanggan.kredit` ikut di semua jawaban API pelanggan. Tombol "?" menjelaskan tiap kolom.
+5. **Server tes e2e tidak pernah mengirim pesan sungguhan.** Sejak pemilik mengisi bot Telegram dan SMTP di
+   database pengembangan, tiap tes persetujuan mengirim kode ke Telegram/email pemilik. `SALURAN_TIRUAN=1`
+   (hanya di luar produksi) membuat semua pesan kode masuk kotak keluar uji saja. `LOGIN_MAKS_PER_MENIT`
+   (juga hanya di luar produksi) menaikkan batas login untuk server tes, yang login puluhan kali semenit.
+
+*Alasan:* limit sudah terlindungi, tetapi menonaktifkan pelanggan (sehingga tidak bisa bertransaksi) atau
+mengganti kontaknya juga bisa disalahgunakan atau dilakukan tanpa sengaja. Kode sekali pakai sudah dikenal
+kasir dan atasan dari retur/void, dan tidak butuh atasan berada di toko.
+
+*Ditolak:*
+- **Hanya Admin/Owner yang boleh mengubah (tanpa kode):** ditawarkan; pemilik memilih jalur kode supaya
+  kasir tetap bisa memperbaiki kontak pelanggan saat atasan tidak di tempat.
+- **Menambah pelanggan baru juga pakai kode:** ditawarkan dan tidak dipilih; kasir akan sering tertahan.
+- **Antrean "usulan perubahan" yang disetujui belakangan:** butuh layar dan status baru; perubahan kontak
+  biasanya dibutuhkan saat itu juga.
+- **Kode yang menyetujui "pelanggan X" tanpa mengikat isinya:** kode bisa dipakai untuk perubahan yang
+  berbeda dari yang dibaca atasan.
+
+---
+
+### K-108 — Pencarian barang lewat atribut dan kategori; katalog bergambar dijadwalkan v2.0.0
+
+**Status:** mengubah perilaku `GET /api/barang?cari=` (dipakai semua kotak cari barang) dan kotak cari layar
+Order Penjualan, Penjualan Langsung, dan Penjualan Pengantaran. Tidak mengubah skema.
+
+**Keputusan:**
+
+1. **(pemilik) Atribut dan kategori ikut dicari.** Kotak cari dipecah per kata; **semua kata harus cocok**,
+   masing-masing boleh di kolom berbeda: nama, kode, barcode, merk, **kategori**, barcode satuan jual, atau
+   **atribut** (nilai teks seperti warna, nama jenis atribut, nilai angka yang sama, kode satuannya, atau
+   gabungannya seperti `40kg`). Contoh: `pipa 3 inch putih`, `cat 5 kg`, `besi 12 mm`. Angka pada atribut
+   dicocokkan utuh ("2" tidak menemukan 12,5); koma desimal diterima.
+2. **Urutan relevansi.** Barang yang cocok lewat nama/kode/barcode tampil di atas barang yang hanya cocok
+   lewat kategori, merk, atau atribut. Tanpa ini kata "semen" menaruh semua barang berkategori Semen di atas
+   "Semen Gresik", dan Enter cepat bisa menambah barang yang salah.
+3. **Saring kategori dan daftar tanpa mengetik.** Di samping kotak cari ada pilihan kategori dan tombol
+   **Daftar** (atau Alt+↓): daftar barang tampil urut nama (30 pertama) dan bisa diklik, atau disorot dengan
+   panah lalu Enter. Enter pada kotak kosong tanpa memindah sorotan tetap berarti "lanjut bayar/kirim".
+4. **Foto kecil di hasil cari**, dan foto lebih besar untuk barang yang disorot. Memakai gambar barang yang
+   sudah ada, dimuat malas (`loading="lazy"`), paling banyak 8 hasil saat mencari dan 30 saat menjelajah.
+5. **(pemilik) Katalog bergambar dijadwalkan v2.0.0** (docs/08 F8): kisi kartu barang dengan foto besar,
+   kategori, atribut, harga per satuan, stok, dan tanda promo; bisa dicari dan disaring di dalamnya; dibuka
+   dari kotak bergaris putus-putus di area "Belum ada barang". Pencarian cepat tetap ada: dua cara untuk dua
+   kebiasaan (cepat dengan keyboard, nyaman dengan gambar).
+
+*Alasan:* atribut dan kategori yang sudah susah payah diisi tidak berguna bila tidak bisa dicari. Katalog
+bergambar butuh gambar kecil (thumbnail) buatan server supaya tidak berat, jadi dikerjakan sebagai satu
+pekerjaan tersendiri.
+
+*Ditolak:*
+- **Satu frasa utuh seperti sebelumnya:** "semen 40" hanya cocok bila tertulis persis berurutan di nama.
+- **Mencocokkan angka atribut sebagai potongan teks:** "2" akan menemukan 12, 20, 2,5, dan seterusnya.
+- **Membuat katalog sekarang dengan gambar asli (sampai 2 MB per gambar):** puluhan gambar besar sekaligus
+  membuat layar kasir tersendat di jaringan toko.
