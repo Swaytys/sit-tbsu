@@ -110,7 +110,6 @@ function bisaRetur(b: {
 }
 
 export async function kandidatRetur(cari: string): Promise<KandidatRetur[]> {
-  if (!cari.trim()) return [];
   const rows = await repo.kandidat(db, cari.trim());
   const hasil: KandidatRetur[] = [];
   const barisPer = new Map<number, Awaited<ReturnType<typeof repo.barisPenjualan>>>();

@@ -496,7 +496,6 @@ export function useKandidatRetur(cari: string) {
   return useQuery({
     queryKey: ['koreksi', 'retur', 'kandidat', cari],
     queryFn: async () => ambilData(await api.retur.kandidat.$get({ query: { cari } })),
-    enabled: cari.trim().length > 0,
   });
 }
 

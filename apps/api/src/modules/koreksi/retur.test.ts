@@ -178,6 +178,9 @@ describe('retur penjualan (docs/05 §8)', () => {
       hargaSatuanEfektif: 9000,
       qtyBisaRetur: '3.000',
     });
+    // K-106: tanpa kata cari = transaksi terbaru (yang baru dijual ada paling atas), beserta sisa tagihannya.
+    const terbaru = await ambil<KandidatRetur[]>(admin, '/api/retur/kandidat');
+    expect(terbaru[0]).toMatchObject({ id: pj.id, sisaTagihan: 17000 });
 
     const tukar = await kirim<BarisRetur>(admin, '/api/retur', {
       idPenjualan: pj.id,

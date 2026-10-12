@@ -37,14 +37,14 @@ export function HalamanKonsinyasi() {
   const tab: Tab = TAB.find((t) => t === diminta) ?? 'posisi';
   return (
     <div className="space-y-4 p-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-80">
           <h1 className="text-xl font-semibold text-slate-900">Konsinyasi (barang titipan)</h1>
           <p className="text-sm text-slate-500">
             Barang milik pemasok yang dititipkan untuk dijual. Toko hanya membayar yang laku.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild>
             <Link to="/barang/baru?titipan=">
               <PackagePlus /> Daftarkan barang titipan

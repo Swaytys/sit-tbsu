@@ -203,8 +203,8 @@ export function HalamanPengguna() {
 
   return (
     <div className="space-y-4 p-6">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-80">
           <div className="mb-0.5 flex items-center gap-2">
             <h1 className="text-xl font-semibold text-slate-900">Data Pengguna</h1>
             <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-700">

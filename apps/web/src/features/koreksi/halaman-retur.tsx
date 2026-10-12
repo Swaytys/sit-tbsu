@@ -49,7 +49,7 @@ const ALASAN_CEPAT = [
 
 const LABEL_PENYELESAIAN: Record<PenyelesaianRetur, string> = {
   REFUND: 'Uang dikembalikan',
-  TUKAR_BARANG: 'Tukar barang sama',
+  TUKAR_BARANG: 'Tukar barang sama (tukar guling)',
   POTONG_TAGIHAN: 'Potong tagihan',
 };
 
@@ -77,6 +77,8 @@ function FormAjukan() {
   // Hanya id yang disimpan: isi transaksi (sisa qty, riwayat retur) selalu diambil dari data terbaru.
   const [idPilih, setIdPilih] = useState<number | null>(null);
   const pilih = (kandidat.data ?? []).find((k) => k.id === idPilih) ?? null;
+  // T7: potong tagihan hanya mengurangi sisa tagihan transaksi itu sendiri; tanpa tagihan tidak ditawarkan.
+  const adaTagihan = (pilih?.sisaTagihan ?? 0) > 0;
   const [isi, setIsi] = useState<Isian>({});
   const [alasan, setAlasan] = useState('');
   const [penyelesaian, setPenyelesaian] = useState<PenyelesaianRetur>('REFUND');
@@ -94,6 +96,8 @@ function FormAjukan() {
   );
   // Tampilan saja: batas yang berlaku tetap diperiksa API saat dikirim.
   const melebihi = baris.some((x) => bandingQty(x.i!.qty.replace(',', '.'), x.b.qtyBisaRetur) > 0);
+  const lebihDariTagihan =
+    penyelesaian === 'POTONG_TAGIHAN' && pilih !== null && nilai > pilih.sisaTagihan;
   const tanpaAtasan = !langsungSetuju && nilai > 0 && nilai <= (pilih?.sisaBatasBebas ?? 0);
   const langsung = langsungSetuju || tanpaAtasan;
 
@@ -135,7 +139,7 @@ function FormAjukan() {
   return (
     <div className="grid grid-cols-[22rem_1fr] gap-4">
       <Card className="gap-2 p-3">
-        <Label htmlFor="cari-retur">Nomor invoice / struk</Label>
+        <Label htmlFor="cari-retur">Pilih transaksi yang diretur</Label>
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400" />
           <Input
@@ -147,6 +151,11 @@ function FormAjukan() {
             autoFocus
           />
         </div>
+        <p className="text-xs text-slate-500">
+          {cari.trim()
+            ? 'Hasil pencarian (paling banyak 20).'
+            : '20 transaksi terbaru. Ketik nomor struk/invoice atau nama pembeli untuk mencari yang lebih lama.'}
+        </p>
         <ul className="max-h-[480px] space-y-1.5 overflow-auto">
           {(kandidat.data ?? []).map((k) => (
             <li key={k.id}>
@@ -155,6 +164,9 @@ function FormAjukan() {
                 onClick={() => {
                   setIdPilih(k.id);
                   setIsi({});
+                  // Pilihan yang tidak berlaku untuk transaksi ini tidak dibawa dari transaksi sebelumnya.
+                  if (k.sisaTagihan <= 0)
+                    setPenyelesaian((p) => (p === 'POTONG_TAGIHAN' ? 'REFUND' : p));
                 }}
                 className={cn(
                   'w-full rounded-md border p-2 text-left text-sm',
@@ -169,24 +181,41 @@ function FormAjukan() {
                   {formatWaktu(k.tanggal)} · {k.namaPembeli ?? 'Pembeli umum'}
                   {k.retur.length > 0 && ` · ${k.retur.length} retur`}
                 </div>
+                {k.sisaTagihan > 0 && (
+                  <div className="text-xs font-medium text-amber-700">
+                    Belum lunas: sisa tagihan {formatRupiah(k.sisaTagihan)}
+                  </div>
+                )}
               </button>
             </li>
           ))}
-          {cari && kandidat.data?.length === 0 && (
-            <li className="text-sm text-slate-500">Tidak ditemukan.</li>
+          {kandidat.data?.length === 0 && (
+            <li className="text-sm text-slate-500">
+              {cari.trim() ? 'Tidak ditemukan.' : 'Belum ada penjualan yang bisa diretur.'}
+            </li>
           )}
         </ul>
       </Card>
       <Card className="gap-3 p-4">
         {!pilih ? (
           <p className="text-sm text-slate-500">
-            Masukkan nomor invoice atau struk di sebelah kiri untuk memulai retur.
+            Klik transaksi di daftar sebelah kiri untuk memulai retur. Daftar itu menampilkan
+            transaksi terbaru; transaksi lama dicari dengan nomor struk/invoice atau nama pembeli.
           </p>
         ) : (
           <>
             <h2 className="font-semibold">
               {pilih.nomor} · {pilih.namaPembeli ?? 'Pembeli umum'}
             </h2>
+            <p className="text-sm text-slate-600" data-testid="tagihan-retur">
+              Total {formatRupiah(pilih.totalNeto)} · sudah dibayar{' '}
+              {formatRupiah(pilih.dibayarBersih)} ·{' '}
+              {adaTagihan ? (
+                <b className="text-amber-700">sisa tagihan {formatRupiah(pilih.sisaTagihan)}</b>
+              ) : (
+                <b className="text-emerald-700">lunas (tidak ada tagihan)</b>
+              )}
+            </p>
             {pilih.retur.length > 0 && (
               <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-sm">
                 <div className="font-medium text-amber-900">
@@ -327,8 +356,14 @@ function FormAjukan() {
             </div>
             <div className="space-y-1">
               <Label>Tipe penyelesaian</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['REFUND', 'TUKAR_BARANG', 'POTONG_TAGIHAN'] as const).map((p) => (
+              <div className={cn('grid gap-2', adaTagihan ? 'grid-cols-3' : 'grid-cols-2')}>
+                {(
+                  [
+                    'REFUND',
+                    'TUKAR_BARANG',
+                    ...(adaTagihan ? (['POTONG_TAGIHAN'] as const) : []),
+                  ] as const
+                ).map((p) => (
                   <button
                     key={p}
                     type="button"
@@ -349,8 +384,18 @@ function FormAjukan() {
               Kondisi baik kembali ke stok jual; rusak/cacat masuk stok rusak (tidak dijual lagi,
               diselesaikan di Stok Persediaan › Stok rusak).
               {penyelesaian === 'TUKAR_BARANG' &&
-                ' Tukar mengambil barang pengganti dari stok baik; bila stok kurang, tukar sebagian lalu ajukan sisanya sebagai uang kembali atau potong tagihan.'}
+                ' Tukar guling = barang yang dikembalikan diganti barang yang sama dengan jumlah yang sama, tanpa uang berpindah. Pengganti diambil dari stok baik; bila stok kurang, tukar sebagian lalu ajukan sisanya sebagai uang kembali.'}
+              {penyelesaian === 'POTONG_TAGIHAN' &&
+                ` Potong tagihan = nilai retur mengurangi sisa tagihan transaksi ini (${formatRupiah(pilih.sisaTagihan)}), tanpa uang keluar.`}
+              {!adaTagihan && ' Potong tagihan tidak ditawarkan karena transaksi ini sudah lunas.'}
             </p>
+            {lebihDariTagihan && (
+              <p className="text-sm font-medium text-red-600" role="alert">
+                Nilai retur {formatRupiah(nilai)} lebih besar dari sisa tagihan{' '}
+                {formatRupiah(pilih.sisaTagihan)}. Pilih &quot;Uang dikembalikan&quot;: bagian yang
+                melebihi uang yang sudah dibayar otomatis memotong tagihan.
+              </p>
+            )}
             {penyelesaian === 'REFUND' && (
               <IsianRefund
                 nilai={refund}
@@ -382,7 +427,11 @@ function FormAjukan() {
             </p>
             <Button
               disabled={
-                baris.length === 0 || melebihi || alasan.trim().length < 3 || ajukan.isPending
+                baris.length === 0 ||
+                melebihi ||
+                lebihDariTagihan ||
+                alasan.trim().length < 3 ||
+                ajukan.isPending
               }
               onClick={kirim}
             >

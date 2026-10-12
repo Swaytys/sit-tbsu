@@ -6,7 +6,7 @@ import {
   JENIS_LAPORAN,
   type JenisLaporan,
 } from '@sit/shared';
-import { Download, FileText, Printer, RefreshCw } from 'lucide-react';
+import { ChevronRight, Download, FileText, Printer, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useSearchParams } from 'react-router';
 import { usePengguna } from '@/api/auth';
@@ -22,6 +22,17 @@ import { DokumenLaporanFormal } from './dokumen-laporan';
 import { teksCss } from './format-laporan';
 import { paramAwal, periksaParam } from './param';
 import { SaringLaporan } from './saring-laporan';
+
+const KUNCI_GRUP = 'tbsu:laporan-grup-tertutup';
+
+function bacaGrupTertutup(): string[] {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(KUNCI_GRUP) ?? '[]');
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 /** Kunci URL yang hanya untuk tampilan (nama barang/pelanggan terpilih), tidak dikirim ke API. */
 const TAMPILAN = (k: string) => k.startsWith('_') || k === 'laporan';
@@ -91,6 +102,20 @@ export function HalamanLaporan() {
     return () => clearTimeout(t);
   }, [mencetak]);
 
+  // Kelompok laporan yang ditutup pengguna (preferensi tampilan per komputer).
+  const [tertutup, setTertutup] = useState<string[]>(bacaGrupTertutup);
+  function alihGrup(g: string) {
+    setTertutup((lama) => {
+      const baru = lama.includes(g) ? lama.filter((x) => x !== g) : [...lama, g];
+      try {
+        localStorage.setItem(KUNCI_GRUP, JSON.stringify(baru));
+      } catch {
+        // Penyimpanan peramban diblokir: pilihan hanya berlaku sampai halaman dimuat ulang.
+      }
+      return baru;
+    });
+  }
+
   function pilihLaporan(k: JenisLaporan) {
     setUrl({ laporan: k, ...paramAwal(k) });
   }
@@ -128,31 +153,60 @@ export function HalamanLaporan() {
           <div className="flex items-center gap-2 border-b bg-slate-50 px-4 py-3 text-sm font-bold tracking-wide text-slate-800 uppercase">
             <FileText className="size-4 text-blue-600" /> Daftar Laporan
           </div>
-          <nav className="space-y-3 p-2" aria-label="Daftar laporan">
+          <nav className="space-y-1 p-2" aria-label="Daftar laporan">
             {(Object.keys(GRUP_LAPORAN) as (keyof typeof GRUP_LAPORAN)[]).map((g) => {
               const isi = tersedia.filter((l) => l.grup === g);
               if (isi.length === 0) return null;
+              const terbuka = !tertutup.includes(g);
+              const memuatPilihan = isi.some((l) => l.kode === kode);
               return (
                 <div key={g}>
-                  <div className="px-2 py-1 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-                    {GRUP_LAPORAN[g]}
-                  </div>
-                  {isi.map((l) => (
-                    <button
-                      key={l.kode}
-                      type="button"
-                      onClick={() => pilihLaporan(l.kode)}
-                      aria-current={kode === l.kode ? 'page' : undefined}
+                  <button
+                    type="button"
+                    onClick={() => alihGrup(g)}
+                    aria-expanded={terbuka}
+                    aria-controls={`grup-laporan-${g}`}
+                    title={terbuka ? 'Tutup kelompok ini' : 'Buka kelompok ini'}
+                    className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-bold tracking-wider text-slate-600 uppercase hover:bg-slate-50"
+                  >
+                    <ChevronRight
                       className={cn(
-                        'w-full rounded-md px-2 py-1.5 text-left text-sm',
-                        kode === l.kode
-                          ? 'bg-blue-50 font-semibold text-blue-700'
-                          : 'text-slate-700 hover:bg-slate-50',
+                        'size-3.5 shrink-0 transition-transform',
+                        terbuka && 'rotate-90',
                       )}
+                    />
+                    <span className="flex-1">{GRUP_LAPORAN[g]}</span>
+                    {/* Kelompok tertutup tetap menunjukkan bahwa laporan yang sedang dibuka ada di dalamnya. */}
+                    {!terbuka && memuatPilihan && (
+                      <span className="size-1.5 rounded-full bg-blue-600" aria-hidden />
+                    )}
+                    <span className="font-medium tracking-normal text-slate-400 normal-case">
+                      {isi.length}
+                    </span>
+                  </button>
+                  {terbuka && (
+                    <div
+                      id={`grup-laporan-${g}`}
+                      className="mt-0.5 mb-1.5 ml-3.5 space-y-0.5 border-l border-slate-200 pl-2"
                     >
-                      {l.nama}
-                    </button>
-                  ))}
+                      {isi.map((l) => (
+                        <button
+                          key={l.kode}
+                          type="button"
+                          onClick={() => pilihLaporan(l.kode)}
+                          aria-current={kode === l.kode ? 'page' : undefined}
+                          className={cn(
+                            'w-full rounded-md px-2 py-1.5 text-left text-sm',
+                            kode === l.kode
+                              ? 'bg-blue-50 font-semibold text-blue-700'
+                              : 'text-slate-700 hover:bg-slate-50',
+                          )}
+                        >
+                          {l.nama}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -161,12 +215,12 @@ export function HalamanLaporan() {
       </aside>
 
       <div className="min-w-0 flex-1 space-y-3">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+          <div className="min-w-0 flex-1 basis-80">
             <h1 className="text-xl font-semibold text-slate-900">{infoLaporan(kode).judul}</h1>
             <p className="text-sm text-slate-500">{infoLaporan(kode).deskripsi}</p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={() => void dokumen.refetch()}

@@ -1,5 +1,5 @@
 import type { InputGantiPassword, InputLogin, PenggunaSaya } from '@sit/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { ambilData, api, GalatApi } from './client';
 
 export const kunciAuth = {
@@ -30,11 +30,21 @@ export function usePengguna(): PenggunaSaya {
   return data;
 }
 
+/**
+ * Mengganti pengguna yang login di peramban ini. Data yang dimuat untuk akun sebelumnya (kontak, shift,
+ * notifikasi, daftar yang disaring izin) dibuang lebih dulu: tanpa ini, berpindah akun tanpa menekan Keluar
+ * (masuk cepat, atau login lagi setelah sesi berakhir) menampilkan data akun lama sampai kadaluarsa (K-106).
+ */
+export function gantiPengguna(qc: QueryClient, pengguna: PenggunaSaya): void {
+  qc.removeQueries({ predicate: (q) => q.queryKey[0] !== kunciAuth.saya[0] });
+  qc.setQueryData(kunciAuth.saya, pengguna);
+}
+
 export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: InputLogin) => ambilData(await api.auth.login.$post({ json: input })),
-    onSuccess: (pengguna) => qc.setQueryData(kunciAuth.saya, pengguna),
+    onSuccess: (pengguna) => gantiPengguna(qc, pengguna),
   });
 }
 

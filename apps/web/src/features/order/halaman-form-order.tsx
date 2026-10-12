@@ -15,7 +15,7 @@ import {
   type InputPratinjauOrder,
   persenKeRupiah,
 } from '@sit/shared';
-import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -152,6 +152,7 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
     ),
   );
   const [persenTransaksi, setPersenTransaksi] = useState(false);
+  const [tanyaUlang, setTanyaUlang] = useState(false);
   const [konfirmasiModal, setKonfirmasiModal] = useState<{
     data: DataOrder;
     kirim: boolean;
@@ -848,6 +849,17 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
           </Card>
 
           <div className="flex justify-end gap-2">
+            {!dokumen && form.formState.isDirty && (
+              <Button
+                type="button"
+                variant="outline"
+                className="mr-auto text-slate-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700"
+                disabled={sedangKirim}
+                onClick={() => setTanyaUlang(true)}
+              >
+                <RotateCcw /> Mulai dari awal
+              </Button>
+            )}
             {dapatDiubahPembuat && (
               <Button
                 type="button"
@@ -869,6 +881,21 @@ function FormOrder({ dokumen }: { dokumen: DetailOrder | null }) {
         </form>
       </Form>
       {dialogKeluar}
+      <DialogKonfirmasi
+        terbuka={tanyaUlang}
+        onTutup={() => setTanyaUlang(false)}
+        judul="Mulai dari awal?"
+        pesan="Jenis penjualan, pelanggan, alamat kirim, diskon, catatan, dan semua baris barang pada form ini dikosongkan, seperti form yang baru dibuka. Order ini belum disimpan, jadi tidak ada order yang terhapus."
+        labelKonfirmasi="Ya, mulai dari awal"
+        bahaya
+        onKonfirmasi={() => {
+          form.reset();
+          setPelanggan(null);
+          setInfo({});
+          setPersenTransaksi(false);
+          return Promise.resolve();
+        }}
+      />
       <DialogKonfirmasi
         terbuka={konfirmasiModal !== null}
         onTutup={() => setKonfirmasiModal(null)}

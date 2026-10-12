@@ -9,6 +9,7 @@ import {
   type Pelanggan,
   type StatusOrder,
 } from '@sit/shared';
+import { RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
@@ -22,6 +23,7 @@ import {
   useSimpanOrder,
   useSiaranAntrean,
 } from '@/api/penjualan';
+import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
 import { formatDesimal } from '@/lib/format';
 import { InfoTierBelanja } from '@/components/info-tier-belanja';
@@ -161,6 +163,7 @@ export function InputOrderCepat() {
   const [catatan, setCatatan] = useState('');
   const [terakhir, setTerakhir] = useState<{ no: number; isi: string } | null>(null);
   const [pelangganBaru, setPelangganBaru] = useState(false);
+  const [tanyaUlang, setTanyaUlang] = useState(false);
   const antar = jenis === 'PENGANTARAN';
 
   useEffect(() => {
@@ -204,7 +207,7 @@ export function InputOrderCepat() {
   async function lanjutDraf(id: number, diam = false) {
     if (id === idDraf) return;
     if (tr.t.baris.length > 0) {
-      if (!diam) toast.info('Kirim atau kosongkan (F9) order yang sedang diisi dulu.');
+      if (!diam) toast.info('Kirim order yang sedang diisi, atau mulai dari awal (F9), dulu.');
       return;
     }
     const d = await ambilData(await api.order[':id'].$get({ param: { id: String(id) } }));
@@ -302,6 +305,48 @@ export function InputOrderCepat() {
       .catch((err: unknown) => toast.error(pesanGalat(err)));
   }
 
+  const adaIsian =
+    tr.t.baris.length > 0 ||
+    tr.t.pelanggan !== null ||
+    tr.t.namaPembeli.trim() !== '' ||
+    alamat !== '' ||
+    ongkir !== '' ||
+    catatanKirim !== '' ||
+    catatan !== '';
+
+  /** K-106: F9 / tombol "Mulai dari awal" selalu bertanya dulu, supaya tidak terpencet tanpa sengaja. */
+  function mintaMulaiDariAwal() {
+    if (!adaIsian) {
+      toast.info('Form sudah kosong; belum ada yang perlu diulang.');
+      return;
+    }
+    setTanyaUlang(true);
+  }
+
+  /** Mengosongkan seluruh isian order di layar ini; draf yang sedang diisi dibuang (dibatalkan). */
+  async function mulaiDariAwal() {
+    if (idDraf !== null) {
+      // Draf yang dikosongkan dibatalkan agar tidak dibuka lagi.
+      try {
+        await batalOrder.mutateAsync({ id: idDraf, alasan: 'Draf dikosongkan sebelum dikirim' });
+        toast.info('Draf dibuang.');
+      } catch (err) {
+        toast.error(pesanGalat(err));
+        throw err;
+      }
+      tr.kosongkan(false);
+    } else {
+      tr.kosongkan(true);
+    }
+    setJenis('LANGSUNG');
+    setAlamat('');
+    setOngkir('');
+    setCatatanKirim('');
+    setCatatan('');
+    setIndeksBaris(0);
+    setZona('cari');
+  }
+
   /** Isian sekarang disimpan sebagai draf (tidak menahan stok), lalu form kosong untuk pembeli berikutnya. */
   function orderBaru() {
     if (simpan.isPending || tr.t.baris.length === 0) return;
@@ -352,18 +397,7 @@ export function InputOrderCepat() {
       kirim();
     } else if (e.key === 'F9') {
       e.preventDefault();
-      if (idDraf !== null) {
-        // Draf yang dikosongkan dibatalkan agar tidak dibuka lagi.
-        const id = idDraf;
-        batalOrder
-          .mutateAsync({ id, alasan: 'Draf dikosongkan sebelum dikirim' })
-          .then(() => toast.info('Draf dibuang.'))
-          .catch((err: unknown) => toast.error(pesanGalat(err)));
-        tr.kosongkan(false);
-      } else {
-        tr.kosongkan(true);
-      }
-      setZona('cari');
+      mintaMulaiDariAwal();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && tr.adaCadangan) {
       const el = document.activeElement;
       if (el instanceof HTMLInputElement && el.value) return;
@@ -383,7 +417,7 @@ export function InputOrderCepat() {
     { kunci: 'F4', label: 'Pelanggan' },
     { kunci: 'F3', label: antar ? 'Ubah ke langsung' : 'Ubah ke pengantaran' },
     { kunci: 'F8', label: 'Kirim ke antrean' },
-    { kunci: 'F9', label: 'Kosongkan' },
+    { kunci: 'F9', label: 'Mulai dari awal' },
     ...TOMBOL[zona],
   ];
 
@@ -534,6 +568,17 @@ export function InputOrderCepat() {
                 {formatRupiah(total)}
               </span>
             </div>
+            {adaIsian && (
+              <button
+                type="button"
+                onClick={mintaMulaiDariAwal}
+                title="Kosongkan seluruh isian order ini dan mulai dari awal (F9). Akan ditanya dulu."
+                className="flex h-12 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700"
+              >
+                <RotateCcw className="size-4" /> Mulai dari awal
+                <kbd className="font-mono text-xs opacity-60">F9</kbd>
+              </button>
+            )}
             {tr.t.baris.length > 0 && (
               <button
                 type="button"
@@ -589,6 +634,27 @@ export function InputOrderCepat() {
         />
       </div>
       <BilahTombol daftar={tombol} />
+      <DialogKonfirmasi
+        terbuka={tanyaUlang}
+        onTutup={() => setTanyaUlang(false)}
+        judul="Mulai dari awal?"
+        pesan={
+          <>
+            <p>
+              Barang, pelanggan, alamat kirim, ongkir, dan catatan pada order yang sedang diisi ini
+              dikosongkan, seperti form yang baru dibuka.
+            </p>
+            <p className="mt-1">
+              {idDraf !== null
+                ? 'Order ini masih berupa draf (belum masuk antrean kasir), jadi drafnya ikut dibuang. Order lain yang sudah dikirim ke antrean tidak terpengaruh.'
+                : 'Order ini belum dikirim ke antrean, jadi tidak ada order yang terhapus. Bila berubah pikiran, tekan Ctrl+Z untuk mengembalikan daftar barangnya.'}
+            </p>
+          </>
+        }
+        labelKonfirmasi="Ya, mulai dari awal"
+        bahaya
+        onKonfirmasi={mulaiDariAwal}
+      />
       {pelangganBaru && (
         <DialogPelanggan
           pelanggan={null}
