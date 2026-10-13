@@ -8,12 +8,12 @@ test('halaman yang gagal diunduh: muat ulang otomatis sekali, lalu halaman galat
   page,
 }) => {
   await masukCepat(page, 'ADMIN');
-  const berkasPromo = '**/halaman-promo.tsx*';
-  await page.route(berkasPromo, (rute) => rute.abort());
+  const berkasHalaman = '**/halaman-pelanggan.tsx*';
+  await page.route(berkasHalaman, (rute) => rute.abort());
 
   // Pindah halaman lewat menu tidak memuat ulang dokumen, jadi `load` berikutnya = muat ulang otomatis.
   const muatUlangOtomatis = page.waitForEvent('load');
-  await menuUtama(page).getByRole('link', { name: 'Promo', exact: true }).click();
+  await menuUtama(page).getByRole('link', { name: 'Data Pelanggan', exact: true }).click();
   await muatUlangOtomatis;
 
   await expect(page.getByRole('heading', { name: 'Aplikasi baru saja diperbarui' })).toBeVisible();
@@ -21,7 +21,7 @@ test('halaman yang gagal diunduh: muat ulang otomatis sekali, lalu halaman galat
   // Menu samping tetap ada: pengguna bisa pindah ke halaman lain tanpa memuat ulang.
   await expect(menuUtama(page).getByRole('link', { name: 'Dashboard' })).toBeVisible();
 
-  await page.unroute(berkasPromo);
+  await page.unroute(berkasHalaman);
   await page.getByRole('button', { name: 'Muat ulang' }).click();
-  await expect(page.getByRole('heading', { name: 'Promo', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Data Pelanggan', exact: true })).toBeVisible();
 });

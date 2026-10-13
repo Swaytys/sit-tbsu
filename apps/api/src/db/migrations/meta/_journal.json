@@ -113,6 +113,27 @@
       "when": 1791813995235,
       "tag": "0015_persetujuan_ubah_pelanggan",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791815903891,
+      "tag": "0016_jadwal_shift",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791816401336,
+      "tag": "0017_anggaran_promo",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791816814846,
+      "tag": "0018_rekening_verifikasi",
+      "breakpoints": true
     }
   ]
 }

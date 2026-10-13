@@ -26,8 +26,12 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 10 | Hutang pemasok, retur pemasok, stok rusak | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 11 | Konsinyasi | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 12 | Multi-satuan jual dan label (akhir M2) | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
+| 13 | Aplikasi desktop (versi build) | Belum (lingkup menunggu konfirmasi pemilik) | — |
 
 Nilai status: Belum · Aktif · Berjalan (sebagian branch merge) · Selesai · Ditunda.
+
+Tinjauan pemilik atas Fase 9–12 berjalan 8–12 Oktober 2026 dan menghasilkan K-092–K-112; ringkasan seluruh
+keputusan ada di `10-ringkasan-keputusan.md`.
 
 ---
 
@@ -359,6 +363,27 @@ baris; stok/HPP/laba memakai qty dasar. Tes `satuan-jual.test.ts` dan e2e `satua
 
 ---
 
+## Sesudah M2
+
+### Fase 13 — Aplikasi desktop (versi build)
+
+**Status: belum aktif.** Rencana awal sudah dipaparkan kepada pemilik (aplikasi desktop yang membungkus aplikasi
+web beserta databasenya, cadangan berkala, tutorial awal, manual pengguna). Lingkup dan urutan sub-fasenya
+diputuskan bersama pemilik sebelum fase ini diaktifkan dan dicatat sebagai keputusan baru, karena mengubah
+sebagian K-001 (bentuk aplikasi: web).
+
+Syarat yang **sudah tercatat** dari keputusan sebelumnya dan wajib masuk rencana fase ini:
+
+- **13.1 Cetak.** Pengaturan *printer per jenis dokumen* (struk, label, invoice/surat jalan, laporan) dan cetak
+  tanpa jendela cetak untuk semuanya (K-112). Printer dipilih menurut namanya, bukan nomor port (K-105).
+  Penyusun perintah ESC/POS dari K-103 dipakai ulang.
+- Cookie sesi pada `http://localhost` diuji di pembungkus desktop yang dipakai (docs/08 D-K4).
+- Kebutuhan memori komputer ditulis di panduan pasang: minimal 8 GB, disarankan 16 GB (docs/08 D-K9).
+- **13.4 Tutorial awal** disusun bersama tombol "?" tiap halaman (docs/08 F7) dan mengikuti aturan menulis
+  petunjuk K-105 butir 1.
+
+---
+
 ## Cara memperbarui dokumen ini
 
 Di akhir fase: ubah status, isi tanggal, tambahkan catatan singkat di bawah fase (apa yang menyimpang dari rencana
@@ -366,6 +391,14 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-10-12 — Tinjauan pemilik gelombang 1: data akun lama dibuang saat login, judul halaman dan form
+  dirapikan, keterangan tier menonjol, pohon laporan, retur, bayar campuran, "Mulai dari awal" (K-106).
+- 2026-10-12 — Gelombang 2: posisi kredit di Data Pelanggan, ubah/nonaktif pelanggan oleh Kasir/Staf dengan
+  kode atasan (K-107); cari barang lewat atribut dan kategori, tombol Daftar, foto kecil (K-108).
+- 2026-10-12 — Gelombang 3: shift terlewat mengunci, jadwal shift, pengingat (K-109); promo di Pengaturan
+  dengan anggaran dan batas per pembeli (K-110); rekening toko, QRIS, cek uang non-tunai (K-111); printer per
+  jenis dokumen dicatat sebagai syarat Fase 13.1 (K-112). Bagian "Sesudah M2" ditambahkan.
+- 2026-10-12 — `10-ringkasan-keputusan.md` dibuat (ringkasan K-001 s.d. K-112).
 - 2026-09-19 — Fase 0 selesai (Batch 1–3 diserahkan); Fase 1 diaktifkan.
 - 2026-09-29 — Fase 1 selesai (catatan di bawah Fase 1; K-050–K-053). Fase 2 ditambah tugas K-051.
 - 2026-09-30 — Fase 3 diaktifkan; `feat/03-referensi` (kategori, satuan, jenis atribut) di-merge (K-056–K-058).

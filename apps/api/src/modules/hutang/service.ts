@@ -18,7 +18,7 @@ import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { metaHalaman } from '../../lib/paginasi';
 import { dalamTransaksi } from '../../lib/transaksi';
 import { sekarang, tambahHari, tanggalOperasional } from '../../lib/waktu';
-import { catatKas, shiftBuka } from '../kas/shift/service';
+import { catatKas, shiftUntukCatat } from '../kas/shift/service';
 import { tambahPembayaran } from '../persediaan/penerimaan/repo';
 import { catatLog } from '../sistem/log-aktivitas';
 import { terbitkanNomor } from '../sistem/penomoran';
@@ -209,7 +209,7 @@ export async function bayarHutang(
     if (input.nominal > d.sisa) {
       throw galatKolom('nominal', `Nominal melebihi sisa hutang ${formatRupiah(d.sisa)}.`);
     }
-    const shift = input.metode === 'TUNAI' ? await shiftBuka(tx, pelaku.id, true) : null;
+    const shift = input.metode === 'TUNAI' ? await shiftUntukCatat(tx, pelaku.id) : null;
     if (input.metode === 'TUNAI' && !shift) {
       throw new AppError(
         'KONFLIK',

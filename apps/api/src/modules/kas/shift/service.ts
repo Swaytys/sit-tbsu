@@ -10,6 +10,7 @@ import {
   type HasilClerical,
   type JenisKasShift,
   type ShiftAktif,
+  type WaktuShift,
 } from '@sit/shared';
 import { db, type Executor, type Tx } from '../../../db/client';
 import { shiftKasir } from '../../../db/schema';
@@ -18,16 +19,40 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { siarkan } from '../../../lib/siaran';
 import { dalamTransaksi } from '../../../lib/transaksi';
-import { sekarang, tanggalOperasional } from '../../../lib/waktu';
+import { logger } from '../../../lib/logger';
+import { jamLokal, saatLokal, sekarang, tanggalOperasional } from '../../../lib/waktu';
+import { ambilTeks } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
+import { kirimKePengguna, penerimaBerizin } from '../../sistem/saluran/service';
 import * as repo from './repo';
 
 /*
  * Shift kasir dan clerical check (docs/05 §10, K1–K8; K-018). Semua uang tunai (pembayaran, refund, kas lain)
  * terikat ke shift BUKA milik pencatatnya. Tutup shift = blind count: kasir menginput uang fisik, server
  * menghitung saldo sistem (K5) lalu menyimpan clerical check; angka sistem baru tampil setelah tutup (K4).
+ *
+ * K-109 (K9–K11): shift dari hari operasional sebelumnya yang belum ditutup mengunci pencatatan pemiliknya
+ * sampai ditutup; jadwal buka/tutup toko dibekukan ke shift saat dibuka; atasan diingatkan bila ada shift
+ * yang lewat jam tutup atau lewat hari.
  */
+
+const tglId = (t: string) => `${t.slice(8, 10)}/${t.slice(5, 7)}/${t.slice(0, 4)}`;
+
+/** K10: keadaan waktu shift BUKA pada saat `kini`. */
+export function waktuShift(
+  s: { tanggalOperasional: string; jadwalBuka: string | null; jadwalTutup: string | null },
+  kini: Date = sekarang(),
+): WaktuShift {
+  const batas = s.jadwalTutup ? saatLokal(s.tanggalOperasional, s.jadwalTutup) : null;
+  return {
+    jadwalBuka: s.jadwalBuka,
+    jadwalTutup: s.jadwalTutup,
+    batasTutup: batas?.toISOString() ?? null,
+    lewatJadwal: batas !== null && kini >= batas,
+    terlewat: s.tanggalOperasional < tanggalOperasional(kini),
+  };
+}
 
 /**
  * Shift BUKA milik pengguna, atau `null`. `kunci`: FOR SHARE, dipakai saat mencatat uang ke shift itu agar
@@ -41,6 +66,8 @@ export async function shiftBuka(ex: Executor | Tx, idPengguna: number, kunci = f
       tanggalOperasional: shiftKasir.tanggalOperasional,
       waktuBuka: shiftKasir.waktuBuka,
       modalAwal: shiftKasir.modalAwal,
+      jadwalBuka: shiftKasir.jadwalBuka,
+      jadwalTutup: shiftKasir.jadwalTutup,
     })
     .from(shiftKasir)
     .where(and(eq(shiftKasir.idKasir, idPengguna), eq(shiftKasir.status, 'BUKA')))
@@ -49,8 +76,27 @@ export async function shiftBuka(ex: Executor | Tx, idPengguna: number, kunci = f
   return s ?? null;
 }
 
+/**
+ * K9: shift BUKA milik pengguna untuk MENCATAT penjualan atau uang (dikunci FOR SHARE), atau `null` bila
+ * tidak punya. Shift dari hari operasional sebelumnya ditolak: pemiliknya harus menutupnya dulu (hitung
+ * uang di laci), supaya satu shift tidak memuat transaksi beberapa hari dan selisih kas tidak tertunda.
+ */
+export async function shiftUntukCatat(tx: Tx, idPengguna: number) {
+  const s = await shiftBuka(tx, idPengguna, true);
+  if (s && s.tanggalOperasional < tanggalOperasional()) {
+    throw new AppError(
+      'KONFLIK',
+      `Shift ${s.nomor} tanggal ${tglId(s.tanggalOperasional)} belum ditutup. Tutup shift itu dulu di menu ` +
+        'Shift & Clerical Check (hitung uang di laci), lalu buka shift baru untuk hari ini.',
+      409,
+      { shiftTerlewat: { id: s.id, nomor: s.nomor } },
+    );
+  }
+  return s;
+}
+
 function keAktif(s: NonNullable<Awaited<ReturnType<typeof shiftBuka>>>): ShiftAktif {
-  return { ...s, waktuBuka: s.waktuBuka.toISOString() };
+  return { ...s, waktuBuka: s.waktuBuka.toISOString(), ...waktuShift(s) };
 }
 
 export async function shiftSaya(pelaku: PenggunaAktif): Promise<ShiftAktif | null> {
@@ -75,9 +121,19 @@ export async function bukaShift(
     }
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, 'SHF', tanggal);
+    // K10: jadwal toko dibekukan ke shift ini; perubahan pengaturan berlaku untuk shift berikutnya.
+    const jadwalBuka = (await ambilTeks('shift_jam_buka', '', tx)) || null;
+    const jadwalTutup = (await ambilTeks('shift_jam_tutup', '', tx)) || null;
     const [s] = await tx
       .insert(shiftKasir)
-      .values({ nomor, idKasir: pelaku.id, tanggalOperasional: tanggal, modalAwal })
+      .values({
+        nomor,
+        idKasir: pelaku.id,
+        tanggalOperasional: tanggal,
+        modalAwal,
+        jadwalBuka,
+        jadwalTutup,
+      })
       .returning({ id: shiftKasir.id });
     await catatLog(tx, {
       aksi: 'SHIFT_BUKA',
@@ -110,7 +166,7 @@ export async function catatKas(
     idPembayaranPemasok?: number;
   },
 ): Promise<{ idShift: number; nomorShift: string }> {
-  const s = await shiftBuka(tx, k.pelaku.id, true);
+  const s = await shiftUntukCatat(tx, k.pelaku.id);
   if (!s) {
     throw new AppError(
       'KONFLIK',
@@ -162,17 +218,24 @@ function keBaris(b: Baris): BarisShift {
     modalAwal: b.modalAwal,
     status: b.status,
     clerical,
+    waktu: b.status === 'BUKA' ? waktuShift(b) : null,
   };
 }
 
 /** K8: semua shift untuk `kas.shift.lihat_semua`; kasir hanya shift miliknya. */
 export async function daftarShift(
-  p: repo.SaringShift & { halaman: number; perHalaman: number },
+  p: Omit<repo.SaringShift, 'perluDitutup'> & {
+    perluDitutup?: boolean | undefined;
+    halaman: number;
+    perHalaman: number;
+  },
   pelaku: PenggunaAktif,
 ): Promise<DaftarShift> {
   const semua = pelaku.izin.has('kas.shift.lihat_semua');
+  const kini = sekarang();
   const { baris, total } = await repo.daftar(db, {
     ...p,
+    perluDitutup: p.perluDitutup ? { hariIni: tanggalOperasional(kini), kini } : undefined,
     idKasir: semua ? p.idKasir : pelaku.id,
     ...batasHalaman(p),
   });
@@ -291,4 +354,40 @@ export async function tutupShift(
   });
   if (orderDilepas > 0) siarkan('antrean');
   return detailShift(id, pelaku);
+}
+
+/** K11: jumlah shift BUKA yang lewat jam tutup atau lewat hari (notifikasi atasan). */
+export async function jumlahShiftPerluDitutup(): Promise<number> {
+  const kini = sekarang();
+  return repo.jumlahPerluDitutup(db, tanggalOperasional(kini), kini);
+}
+
+/**
+ * K11: mengingatkan pemegang `kas.shift.lihat_semua` lewat Telegram/email tentang shift yang lewat jam
+ * tutup atau lewat hari. Tiap shift diingatkan paling banyak sekali sehari. Dipanggil berkala oleh server;
+ * mengembalikan jumlah shift yang diingatkan.
+ */
+export async function ingatkanShiftPerluDitutup(): Promise<number> {
+  const kini = sekarang();
+  const hariIni = tanggalOperasional(kini);
+  const daftar = await repo.perluDiingatkan(db, hariIni, kini);
+  if (daftar.length === 0) return 0;
+  const penerima = await penerimaBerizin('kas.shift.lihat_semua', 0);
+  for (const s of daftar) {
+    const sebab =
+      s.tanggalOperasional < hariIni
+        ? `belum ditutup sejak ${tglId(s.tanggalOperasional)}; kasir itu tidak bisa mencatat penjualan sampai shiftnya ditutup`
+        : `sudah melewati jam tutup ${s.jadwalTutup ?? ''}`;
+    const isi =
+      `Shift ${s.nomor} milik ${s.namaKasir} (dibuka ${tglId(s.tanggalOperasional)} pukul ${jamLokal(s.waktuBuka)}) ${sebab}.\n\n` +
+      'Minta kasir menghitung uang di laci lalu menutup shift di menu Shift & Clerical Check. ' +
+      'Admin/Owner juga bisa menutupnya dari tab Semua shift (klik nomor shift, isi hasil hitung uang).';
+    for (const p of penerima) {
+      const h = await kirimKePengguna(p, 'BonsaiUrip: shift perlu ditutup', isi);
+      if (h.galat.length > 0)
+        logger.warn({ shift: s.nomor, galat: h.galat }, 'Pengingat shift gagal');
+    }
+    await repo.tandaiDiingatkan(db, s.id, kini);
+  }
+  return daftar.length;
 }

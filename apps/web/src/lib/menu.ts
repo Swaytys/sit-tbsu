@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Package,
   PackageX,
-  Percent,
   Ruler,
   Settings,
   ShoppingCart,
@@ -171,7 +170,6 @@ export const MENU: EntriMenu[] = [
     ikon: FileText,
     izin: ['laporan.penjualan', 'laporan.persediaan'],
   },
-  { jenis: 'item', path: '/promo', label: 'Promo', ikon: Percent, izin: 'promo.kelola' },
   {
     jenis: 'item',
     path: '/pengaturan',

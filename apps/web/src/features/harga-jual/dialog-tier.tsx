@@ -243,7 +243,7 @@ export function DialogTier({ onTutup }: { onTutup: () => void }) {
                 </li>
                 <li>
                   Potongan promo dihitung dari harga tier. Harga khusus untuk barang, pelanggan,
-                  atau masa tertentu diatur di menu Promo.
+                  atau masa tertentu diatur di Pengaturan › Promo.
                 </li>
               </ButirPenjelasan>
             </Penjelasan>

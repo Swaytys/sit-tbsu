@@ -81,6 +81,12 @@ export const skemaPromo = z
           .nullable(),
       )
       .default(null),
+    /**
+     * K-110: anggaran promo (jumlah seluruh potongan yang boleh diberikan; kosong = tanpa batas) dan potongan
+     * paling banyak untuk satu pembeli (kosong = tanpa batas).
+     */
+    anggaran: rupiahPositif('Anggaran promo harus lebih dari 0.').default(null),
+    maksPerPembeli: rupiahPositif('Batas per pembeli harus lebih dari 0.').default(null),
   })
   .superRefine((d, ctx) => {
     const masalah = (path: string, message: string) =>
@@ -105,6 +111,12 @@ export const skemaPromo = z
     }
     if (d.sasaranPembeli === 'PELANGGAN' && d.idPelanggan.length === 0) {
       masalah('idPelanggan', 'Pilih minimal satu pelanggan.');
+    }
+    if (d.anggaran !== null && d.maksPerPembeli !== null && d.maksPerPembeli >= d.anggaran) {
+      masalah(
+        'maksPerPembeli',
+        'Batas per pembeli harus lebih kecil dari anggaran promo, supaya satu pembeli tidak menghabiskan seluruh anggaran.',
+      );
     }
     if ((d.minBelanjaPelanggan === null) !== (d.hariBelanja === null)) {
       masalah(
@@ -154,4 +166,11 @@ export type Promo = {
   statusBerlaku: StatusBerlakuPromo;
   /** Baris penjualan (bukan void) yang memakai promo ini; promo terpakai tidak bisa diubah aturannya. */
   jumlahPemakaian: number;
+  /** K-110: anggaran dan batas per pembeli (`null` = tanpa batas). */
+  anggaran: number | null;
+  maksPerPembeli: number | null;
+  /** Jumlah potongan promo ini yang sudah diberikan (baris penjualan bukan void). */
+  totalDiskon: number;
+  /** `anggaran − totalDiskon`, tidak kurang dari 0; `null` bila tanpa anggaran. */
+  sisaAnggaran: number | null;
 };

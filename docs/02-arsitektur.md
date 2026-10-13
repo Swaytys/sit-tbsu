@@ -90,7 +90,7 @@ sit-tbsu/
 │   │   │   │   ├── penjualan/    order/ checkout/ pembayaran/ surat-jalan/ piutang/
 │   │   │   │   ├── retur/
 │   │   │   │   ├── void/
-│   │   │   │   ├── kas/          shift/ kas-shift/ clerical/
+│   │   │   │   ├── kas/          shift/ kas-shift/ clerical/ rekening/ nontunai/ (K-111)
 │   │   │   │   ├── laporan/      satu file per laporan + ekspor
 │   │   │   │   ├── dashboard/
 │   │   │   │   └── (M2) harga/ promo/ hutang/ konsinyasi/
@@ -252,6 +252,16 @@ Pola rute yang dipakai bersama (K-100): `paramId` (`lib/validasi.ts`) untuk para
   port lama; `AreaCetak` gulungan tidak pernah lebih pendek dari lebarnya (K-105).
 - Penyiapan terpandu (K-105): `components/langkah.tsx` (`Langkah`, `KotakHasil`) untuk penyiapan berurutan
   dengan tanda selesai; dipakai tab Persetujuan dan kartu Printer struk. Aturan menulis petunjuk: K-105 butir 1.
+- Ganti akun (K-106): `gantiPengguna(qc, pengguna)` di `api/auth.ts` mengosongkan seluruh cache TanStack Query
+  sebelum memasang pengguna baru; dipanggil login dan masuk cepat. Tanpa itu data akun sebelumnya (profil,
+  kontak penerima kode) masih tampil sampai dimuat ulang.
+- Tata letak bersama (K-106): kepala halaman memakai `flex flex-wrap items-start justify-between gap-x-4 gap-y-2`
+  dengan blok judul `min-w-0 flex-1 basis-80` (tombol turun ke baris berikut saat jendela sempit); `FormItem`
+  (`components/ui/form.tsx`) memakai `content-start` sehingga label dan isian sejajar di kisi mana pun.
+- Komponen bersama baru: `InfoTierBelanja` (keterangan tier belanja, K-106), `PeringatanShift` di `Layout`
+  (pengingat jam tutup dan shift terlewat, K-109), `BadgeVerifikasi` (hasil cek uang non-tunai, K-111).
+- Cari barang transaksi (K-108): `features/pos/cari-barang-pos.tsx` (pilihan kategori, tombol Daftar, foto
+  kecil); pencarian per kata dan urutan relevansinya dihitung API (`master/barang/repo.ts`), bukan di layar.
 
 ## 6. Paket `shared`
 
@@ -311,6 +321,11 @@ API berada di origin yang sama (dev: proxy Vite `/api` → `:3000`; produksi: Ho
 - **Route test**: `app.request()` Hono untuk memastikan izin ditegakkan (403 untuk peran tanpa izin) dan format respons.
 - **E2E**: Playwright untuk alur kritis: login → order → checkout langsung → struk; pengantaran → surat jalan →
   pelunasan; retur disetujui; void disetujui; tutup shift. Dijalankan di Fase 8 dan sebelum rilis.
+- **Penyiapan E2E** (K-106, K-107): tes layar berjalan di database pengembangan. `e2e/penyiapan-global.ts`
+  (`globalSetup` Playwright) menonaktifkan tier harga selain tier dasar selama tes dan mengaktifkannya kembali
+  di akhir, menutup shift demo yang terlewat, dan menandai pembayaran non-tunai buatan tes sebagai sudah
+  dicek. Server untuk tes dijalankan dengan `SALURAN_TIRUAN=1` (kode persetujuan tidak pernah dikirim ke
+  Telegram/email sungguhan) dan `LOGIN_MAKS_PER_MENIT=600` (tes login puluhan kali semenit dari satu alamat).
 - Cakupan minimal: setiap aturan di docs/05 dan docs/06 punya tes bernama sesuai aturannya, contoh
   `ledger.test.ts › "stok fisik tidak boleh negatif"`.
 
@@ -334,6 +349,13 @@ Variabel produksi (`PORT_HTTP_ALIH`, `LOG_FILE`, `HTTPS_PFX`, `ORIGIN_TAMBAHAN`,
 (`CADANGAN_*`) tercantum berkomentar di `.env.example`; daftar lengkap beserta validasinya ada di
 `apps/api/src/env.ts`. Variabel yang tidak dikenal diabaikan.
 
+Dua variabel hanya berpengaruh **di luar produksi** dan dipakai server tes e2e (K-107): `SALURAN_TIRUAN=1`
+(pesan ke atasan masuk kotak keluar uji, tidak dikirim) dan `LOGIN_MAKS_PER_MENIT` (batas laju login per IP;
+di produksi selalu 20).
+
+Pekerjaan berkala di proses API (`index.ts`): job order tiap 15 menit (order basi, lepas kunci; K-070),
+penjadwal cadangan tiap 10 menit (K-084), dan pengingat shift tiap 5 menit (`ingatkanShiftPerluDitutup`, K-109).
+
 Konfigurasi bisnis (nama toko, prefix nomor, ambang restock, batas umur order, pembulatan, batas diskon per peran)
 tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari halaman Pengaturan).
 
@@ -354,6 +376,9 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 
 ## Riwayat
 
+- 2026-10-12 — §3 modul `kas/rekening` dan `kas/nontunai` (K-111); §5 ganti akun, tata letak bersama, komponen
+  bersama baru, cari barang (K-106, K-108, K-109, K-111); §10 penyiapan e2e; §11 variabel khusus server tes
+  dan daftar pekerjaan berkala (K-107, K-109).
 - 2026-10-11 — §2 saluran pesan ke atasan dan nodemailer (K-102); §2, §5 struk ESC/POS lewat Web Serial (K-103).
 - 2026-10-11 — §5 penyiapan terpandu, struk potret/tebal, izin port tunggal (K-105).
 - 2026-10-10 — §4: pembuat galat bersama, pemetaan galat database, batas waktu koneksi, pola rute bersama;

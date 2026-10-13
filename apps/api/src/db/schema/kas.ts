@@ -1,12 +1,21 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, pgTable, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
-import { ARAH_KAS, JENIS_KAS_SHIFT, STATUS_SHIFT } from '@sit/shared';
+import {
+  boolean,
+  check,
+  foreignKey,
+  index,
+  pgTable,
+  uniqueIndex,
+  varchar,
+} from 'drizzle-orm/pg-core';
+import { ARAH_KAS, JENIS_KAS_SHIFT, JENIS_REKENING, STATUS_AKTIF, STATUS_SHIFT } from '@sit/shared';
 import {
   dalamDaftar,
   dibuatPada,
   diubahPada,
   kolomId,
   kolomRef,
+  statusAktif,
   tanggal,
   timestamptz,
   uang,
@@ -16,6 +25,36 @@ import { pengguna } from './sistem';
 import { pembayaranPemasok } from './transaksi-pemasok';
 
 // Bagian SHIFT KASIR dan KAS SHIFT & CLERICAL.
+
+/**
+ * K-111 (migrasi 0018): rekening toko = tujuan pembayaran non-tunai yang diterima toko (rekening bank untuk
+ * TRANSFER, mesin EDC, QRIS). Data master: tidak dihapus, dinonaktifkan. `nama` = label lengkap yang
+ * disalin ke `pembayaran_penjualan.rekening` saat pembayaran dicatat.
+ */
+export const rekeningToko = pgTable(
+  'rekening_toko',
+  {
+    id: kolomId(),
+    jenis: varchar('jenis', { length: 10, enum: JENIS_REKENING }).notNull(),
+    bank: varchar('bank', { length: 30 }).notNull(),
+    nomor: varchar('nomor', { length: 30 }),
+    atasNama: varchar('atas_nama', { length: 40 }),
+    nama: varchar('nama', { length: 60 }).notNull(),
+    /** Terpilih otomatis saat kasir memilih metode ini; paling banyak satu per jenis. */
+    isDefault: boolean('is_default').notNull().default(false),
+    statusAktif: statusAktif(),
+    dibuatPada: dibuatPada(),
+    diubahPada: diubahPada(),
+  },
+  (t) => [
+    check('chk_rekening_jenis', dalamDaftar('jenis', JENIS_REKENING)),
+    check('chk_rekening_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
+    uniqueIndex('uq_rekening_default_per_jenis')
+      .on(t.jenis)
+      .where(sql`is_default and status_aktif = 'AKTIF'`),
+    index('idx_rekening_jenis').on(t.jenis, t.statusAktif),
+  ],
+);
 
 /** [APPEND] kecuali status/waktu_tutup. */
 export const shiftKasir = pgTable(
@@ -34,6 +73,14 @@ export const shiftKasir = pgTable(
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /**
+     * K-109 (migrasi 0016): jadwal shift toko saat shift ini dibuka (`HH:mm`, Asia/Jakarta), dibekukan agar
+     * perubahan pengaturan tidak mengubah shift yang sedang berjalan. NULL = tanpa jadwal.
+     */
+    jadwalBuka: varchar('jadwal_buka', { length: 5 }),
+    jadwalTutup: varchar('jadwal_tutup', { length: 5 }),
+    /** Kolom status: kapan pengingat "shift perlu ditutup" terakhir dikirim ke atasan (sekali per hari). */
+    diingatkanPada: timestamptz('diingatkan_pada'),
   },
   (t) => [
     foreignKey({

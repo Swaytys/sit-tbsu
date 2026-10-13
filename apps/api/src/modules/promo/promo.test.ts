@@ -733,4 +733,100 @@ describe('PR9 promo di atas harga tier (K-098); promo menurut pembeli (K-097)', 
     const kosong = await kirim(admin, '/api/promo', promoBaru({ sasaranPembeli: 'PELANGGAN' }));
     expect(kosong.status).toBe(400);
   });
+
+  it('PR10 anggaran promo: potongan dibatasi sisa anggaran, dibagi per baris, gugur saat habis; void mengembalikannya', async () => {
+    await tanpaGrosir();
+    // 10% dengan anggaran Rp 3.000. Semen 12.000/sak → potongan penuh 1.200 per sak.
+    const p = await buatPromo({ nama: 'Hemat 10%', anggaran: 3000 });
+    expect(p).toMatchObject({ anggaran: 3000, totalDiskon: 0, sisaAnggaran: 3000 });
+    await kirimData(kasir, '/api/shift/buka', { modalAwal: 0 });
+
+    // Dua baris dalam satu transaksi berbagi sisa: semen 2 sak (2.400) lalu pasir 5 (2.000 → tinggal 600).
+    const pra = await pratinjau(kasir, [
+      { idBarang: m.semen, qty: '2' },
+      { idBarang: m.pasir, qty: '5' },
+    ]);
+    expect(pra.baris.map((b) => b.diskonPromo)).toEqual([2400, 600]);
+    const pj = await kirimData<DetailPenjualan>(kasir, '/api/penjualan/checkout', {
+      order: keranjang([{ idBarang: m.semen, qty: '2' }]),
+      pembayaran: [lunas],
+    });
+    expect(pj.baris[0]).toMatchObject({ idPromo: p.id, diskonPromo: 2400 });
+
+    // Sisa Rp 600: potongan berikutnya dipotong menjadi sebesar sisanya.
+    const sisa = await pratinjau(kasir, [{ idBarang: m.semen, qty: '1' }]);
+    expect(sisa.baris[0]).toMatchObject({ idPromo: p.id, diskonPromo: 600 });
+    const pj2 = await kirimData<DetailPenjualan>(kasir, '/api/penjualan/checkout', {
+      order: keranjang([{ idBarang: m.semen, qty: '1' }]),
+      pembayaran: [lunas],
+    });
+    expect(pj2.baris[0]?.diskonPromo).toBe(600);
+
+    // Anggaran habis: promo gugur, daftar promo menunjukkan realisasinya.
+    const habis = await pratinjau(kasir, [{ idBarang: m.semen, qty: '1' }]);
+    expect(habis.baris[0]).toMatchObject({ idPromo: null, diskonPromo: 0 });
+    const d = await kirimData<Promo>(admin, `/api/promo/${p.id}`, undefined, 'GET');
+    expect(d).toMatchObject({ totalDiskon: 3000, sisaAnggaran: 0 });
+
+    // Anggaran boleh dinaikkan walau promo sudah dipakai, tetapi tidak di bawah yang sudah terpakai.
+    const turun = await galat(
+      kirim(admin, `/api/promo/${p.id}`, promoBaru({ nama: 'Hemat 10%', anggaran: 2000 }), 'PATCH'),
+    );
+    expect(turun.status).toBe(400);
+    expect(turun.pesan).toContain('Rp 3.000');
+    await kirimData(
+      admin,
+      `/api/promo/${p.id}`,
+      promoBaru({ nama: 'Hemat 10%', anggaran: 5000 }),
+      'PATCH',
+    );
+    expect((await pratinjau(kasir, [{ idBarang: m.semen, qty: '1' }])).baris[0]?.diskonPromo).toBe(
+      1200,
+    );
+
+    // Void seluruh penjualan pertama mengembalikan Rp 2.400 ke anggaran.
+    await kirimData(admin, '/api/shift/buka', { modalAwal: 100_000 });
+    await kirimData(admin, '/api/void', {
+      idPenjualan: pj.id,
+      lingkup: 'TRANSAKSI',
+      alasan: 'Uji anggaran promo',
+      persetujuan: { metodeRefund: 'TUNAI' },
+    });
+    expect(await kirimData<Promo>(admin, `/api/promo/${p.id}`, undefined, 'GET')).toMatchObject({
+      totalDiskon: 600,
+      sisaAnggaran: 4400,
+    });
+  });
+
+  it('PR11 batas per pembeli: pelanggan terdata dijumlah lintas transaksi, pembeli umum per transaksi; harus di bawah anggaran', async () => {
+    await tanpaGrosir();
+    const tolak = await galat(
+      kirim(admin, '/api/promo', promoBaru({ anggaran: 5000, maksPerPembeli: 5000 })),
+    );
+    expect(tolak.status).toBe(400);
+    const p = await buatPromo({ nama: 'Hemat 10%', anggaran: 100_000, maksPerPembeli: 2000 });
+    const [budi] = await db
+      .insert(pelanggan)
+      .values({ kode: 'PLG-81001', namaPelanggan: 'Pak Budi', noHp: '0812' })
+      .returning();
+    await kirimData(kasir, '/api/shift/buka', { modalAwal: 0 });
+    const jual = (idPelanggan: number | null, qty: string) =>
+      kirimData<DetailPenjualan>(kasir, '/api/penjualan/checkout', {
+        order: keranjang([{ idBarang: m.semen, qty }], { idPelanggan }),
+        pembayaran: [lunas],
+      });
+
+    // Pak Budi: 1 sak → 1.200; berikutnya tinggal 800; lalu habis untuk dia.
+    expect((await jual(budi!.id, '1')).baris[0]?.diskonPromo).toBe(1200);
+    expect((await jual(budi!.id, '1')).baris[0]).toMatchObject({ idPromo: p.id, diskonPromo: 800 });
+    expect((await jual(budi!.id, '1')).baris[0]).toMatchObject({ idPromo: null, diskonPromo: 0 });
+    // Pembeli umum tidak punya riwayat: batasnya per transaksi (3 sak = 3.600 → 2.000), tiap transaksi.
+    expect((await jual(null, '3')).baris[0]?.diskonPromo).toBe(2000);
+    expect((await jual(null, '3')).baris[0]?.diskonPromo).toBe(2000);
+    expect(await kirimData<Promo>(admin, `/api/promo/${p.id}`, undefined, 'GET')).toMatchObject({
+      totalDiskon: 6000,
+      sisaAnggaran: 94_000,
+      maksPerPembeli: 2000,
+    });
+  });
 });

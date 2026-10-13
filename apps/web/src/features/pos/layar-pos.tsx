@@ -52,6 +52,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { useDaftarRekening } from '@/api/rekening';
 import { cetakLangsungAktif } from '@/lib/printer-thermal';
 import { cetakStrukLangsung } from '@/lib/struk-escpos';
 import { cn } from '@/lib/utils';
@@ -197,6 +198,8 @@ export function LayarPos({
   const tierDefault = tierAktif.find((t) => t.isDefault)?.id ?? null;
   const toko = useTampilanToko().data;
   const shift = useShiftSaya(bolehShift);
+  // K-111: rekening/EDC/QRIS toko untuk pembayaran non-tunai (dipilih, tidak diketik).
+  const rekening = useDaftarRekening();
   const proses = useProsesOrder();
   const lepas = useLepasOrder();
   const checkout = useCheckout();
@@ -835,8 +838,7 @@ export function LayarPos({
             total={adaTransaksi ? totalTampil : 0}
             mode={pengantaran ? 'pengantaran' : 'langsung'}
             bolehKurang={pengantaran || tr.t.pelanggan !== null}
-            rekeningTransfer={toko?.rekeningTransfer ?? ''}
-            rekeningEdc={toko?.rekeningEdc ?? ''}
+            rekening={rekening.data ?? []}
             memproses={checkout.isPending}
             nonaktif={!adaTransaksi || tr.t.baris.length === 0}
             ditinggal={ditinggal}

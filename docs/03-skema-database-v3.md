@@ -125,6 +125,9 @@ baris tier selain tier default selalu IKUT_TIER (ditegakkan service; butuh memba
 potongan. v3.9: `sasaran_pembeli` SEMUA/GOLONGAN/PELANGGAN (+ `id_golongan`, CHECK), `min_belanja_pelanggan` dan
 `hari_belanja` (keduanya terisi atau keduanya kosong). **`promo_pelanggan`** (id_promo, id_pelanggan) = pelanggan
 yang berhak untuk sasaran PELANGGAN.
+v3.14 (K-110): `anggaran` (jumlah seluruh potongan yang boleh diberikan; NULL = tanpa batas) dan
+`maks_per_pembeli` (potongan paling banyak per pembeli); CHECK keduanya > 0 dan `maks_per_pembeli < anggaran`.
+Yang terpakai tidak disimpan: dihitung dari `penjualan_detail.diskon_promo` (bukan VOID).
 
 ### 3.3 Persediaan
 
@@ -194,9 +197,12 @@ dibayar bersih = dibayar − refund. CHECK: void + retur ≤ neto; refund ≤ di
 DIKIRIM → SELESAI, atau BATAL (hanya sebelum DIKIRIM), dengan waktu tiap status. Detail: `qty_kirim` per baris
 invoice; service menjaga Σ qty_kirim (SJ tidak batal) ≤ qty baris − qty void − qty retur.
 
-**`pembayaran_penjualan`** [APPEND] — `jenis` PENUH/DP/PELUNASAN; `metode` TUNAI/TRANSFER/EDC; TUNAI wajib `id_shift`
-(CHECK); `uang_diterima` dan `kembalian` untuk tunai; `rekening`, `referensi` untuk transfer/EDC. Nomor `BYR`.
-Service menolak `nominal > sisa_tagihan`.
+**`pembayaran_penjualan`** [APPEND] — `jenis` PENUH/DP/PELUNASAN; `metode` TUNAI/TRANSFER/EDC/QRIS; TUNAI wajib
+`id_shift` (CHECK); `uang_diterima` dan `kembalian` untuk tunai; `rekening`, `referensi` untuk non-tunai. Nomor `BYR`.
+Service menolak `nominal > sisa_tagihan`. v3.15 (K-111): `id_rekening` → `rekening_toko` (`rekening` menyimpan
+labelnya saat itu). **Kolom status yang boleh berubah:** `status_verifikasi` BELUM_DICEK/SUDAH_MASUK/TIDAK_MASUK
+(NULL untuk tunai; CHECK `(metode = 'TUNAI') = (status_verifikasi is null)`), `diverifikasi_oleh`,
+`diverifikasi_pada`, `catatan_verifikasi`. Isi pembayaran lainnya tidak pernah diubah.
 
 ### 3.5 Retur, void
 
@@ -217,6 +223,8 @@ untuk atasan), `status` MENUNGGU/DIPAKAI/GAGAL/DIGANTI, `gagal` (hitungan salah 
 per atasan penerima (`id_atasan`, unik per permintaan), `kode_hash` (sha256; kode aslinya tidak disimpan),
 `saluran` (yang berhasil mengirim, mis. `TELEGRAM,EMAIL`). Dipakai di transaksi yang sama dengan dokumen yang
 disetujuinya.
+v3.13 (K-107): jenis `UBAH_PELANGGAN` (rujukan `id_pelanggan`) dan kolom `sidik` (SHA-256 isian yang
+dimintakan persetujuan; kode hanya berlaku untuk isian yang sama).
 
 **`void_transaksi`** + **`void_transaksi_detail`** [APPEND] — `lingkup` TRANSAKSI/ITEM; untuk TRANSAKSI, service tetap
 membuat satu baris detail per item sehingga ledger selalu merujuk detail. `nominal_void` (nilai barang),
@@ -244,7 +252,13 @@ otomatis saat penerimaan disimpan (sehingga `sisa_hutang = 0`).
 
 **`shift_kasir`** — `nomor SHF`, `id_kasir`, `tanggal_operasional`, `modal_awal`, `waktu_buka/tutup`, `status`
 BUKA/TUTUP. Satu shift BUKA per kasir (index parsial). Membuka kembali shift yang sudah tutup (koreksi) hanya
-Admin/Owner dengan `dibuka_kembali_oleh` + alasan.
+Admin/Owner dengan `dibuka_kembali_oleh` + alasan. v3.13 (K-109): `jadwal_buka`, `jadwal_tutup` (`HH:mm`, jadwal
+toko yang dibekukan saat shift dibuka; NULL = tanpa jadwal) dan kolom status `diingatkan_pada` (pengingat
+terakhir ke atasan).
+
+**`rekening_toko`** (v3.15, K-111) — data master tujuan pembayaran non-tunai: `jenis` TRANSFER/EDC/QRIS, `bank`,
+`nomor`, `atas_nama`, `nama` (label lengkap ≤ 60 karakter, disalin ke pembayaran), `is_default` (index unik
+parsial: satu bawaan AKTIF per jenis), `status_aktif`. Tidak dihapus.
 
 **`kas_shift`** [APPEND] — kas masuk/keluar **non-penjualan** per shift: KASBON, SETOR_OWNER, TARIK_OWNER,
 REFUND_RETUR, REFUND_VOID, BAYAR_PEMASOK, MASUK_LAIN, KELUAR_LAIN; maksimal satu referensi (retur/void/pembayaran
@@ -310,7 +324,9 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | status_pengiriman (invoice) | BELUM, SEBAGIAN, SELESAI |
 | status_surat_jalan | DIPROSES, DIMUAT, DIKIRIM, SELESAI, BATAL |
 | jenis_pembayaran | PENUH, DP, PELUNASAN |
-| metode_pembayaran | TUNAI, TRANSFER, EDC |
+| metode_pembayaran | TUNAI, TRANSFER, EDC, QRIS |
+| jenis_rekening | TRANSFER, EDC, QRIS |
+| status_verifikasi | BELUM_DICEK, SUDAH_MASUK, TIDAK_MASUK |
 | status_persetujuan (retur, void) | MENUNGGU, DISETUJUI, DITOLAK |
 | penyelesaian_retur | REFUND, TUKAR_BARANG, POTONG_TAGIHAN |
 | metode_refund | TUNAI, TRANSFER |
@@ -451,3 +467,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-10 — v3.10: `tingkat_harga.min_belanja` + CHECK (migrasi 0011, sekaligus menjadikan baris harga tier selain tier default IKUT_TIER dan menghitung ulang harganya); `tingkat_harga.min_qty` dan `harga_barang.min_qty` dihapus (migrasi 0012; K-098).
 - 2026-10-10 — v3.11: `retur_penjualan.cara_persetujuan`, `void_transaksi.cara_persetujuan` + CHECK; status DIBATALKAN; `order_penjualan_detail.tier_dipilih` dihapus; CHECK `chk_tingkat_harga_aktif_bersyarat` (tier aktif tanpa syarat belanja dinonaktifkan migrasi) (migrasi 0013; K-099).
 - 2026-10-11 — v3.12: tabel `permintaan_persetujuan`, `kode_persetujuan`; `pengguna.email`, `pengguna.telegram_chat_id` (migrasi 0014; K-102). Kunci konfigurasi baru: `telegram_bot_token`, `smtp_host`, `smtp_port`, `smtp_pengguna`, `smtp_sandi`, `email_pengirim` (rahasia, tidak dikembalikan API; K-102), `limit_kredit_default` (K-104).
+- 2026-10-12 — v3.13: `permintaan_persetujuan.sidik`, jenis `UBAH_PELANGGAN` (migrasi 0015; K-107); `shift_kasir.jadwal_buka`, `jadwal_tutup`, `diingatkan_pada` (migrasi 0016; K-109). v3.14: `promo.anggaran`, `promo.maks_per_pembeli` (migrasi 0017; K-110). v3.15: tabel `rekening_toko`; `pembayaran_penjualan.id_rekening`, `status_verifikasi`, `diverifikasi_oleh`, `diverifikasi_pada`, `catatan_verifikasi`; metode `QRIS` (migrasi 0018; K-111). Kunci konfigurasi baru: `shift_jam_buka`, `shift_jam_tutup`; `rekening_transfer_default` dan `rekening_edc_default` tidak dipakai lagi (isinya dipindah ke `rekening_toko`).

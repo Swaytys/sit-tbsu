@@ -34,6 +34,7 @@ fitur di sini adalah jalan pintas yang tunduk pada izin yang sama.
 | A9 | Pintasan keyboard global dan pencarian perintah (Ctrl+K). | |
 | A10 | Batalkan (undo) singkat untuk aksi massal. | |
 | A11 | **(masukan pemilik 2026-10-10) Promo v2**: satu promo untuk **banyak barang pilihan** (bukan hanya semua/satu kategori/satu barang); tabel promo yang bisa **diedit massal** (pilih banyak promo/barang → ubah potongan, masa, syarat); salin promo; syarat tambahan: nilai belanja barang itu (bukan total transaksi), hari/jam tertentu, potongan bertingkat menurut qty. | Dasar saat ini (K-097/K-098): promo per semua/kategori/barang dengan syarat qty, total belanja, pembeli, dan belanja pelanggan N hari; dipotong dari harga tier. Promo bertingkat butuh revisi PR4/PR8. |
+| A12 | **(masukan pemilik 2026-10-12) Uang masuk non-tunai terdeteksi otomatis** lewat payment gateway (QRIS dinamis dan virtual account per transaksi): pembayaran ditandai *Sudah masuk* oleh sistem begitu dana diterima, beserta nominalnya. | Tidak ada jalur yang gratis dan resmi: API bank butuh kontrak, payment gateway memotong biaya per transaksi, layanan cek mutasi berlangganan (K-111). Dasarnya sudah ada: daftar rekening toko dan status pengecekan per pembayaran; gateway cukup mengisi status itu. Perlu keputusan pemilik soal biaya sebelum dikerjakan. |
 
 ## v2.0.0 — Sprint B: Peran dan hak akses kustom
 
@@ -91,6 +92,7 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 | D-K9 | **Memori komputer server.** Saat diuji di komputer 7,7 GB yang memorinya hampir penuh, PostgreSQL sekali menjawab `out of memory`. Aplikasi kini menjawab 503 dengan pesan yang menyebut sebabnya, tetapi akar masalahnya di perangkat. | Server toko (dan komputer untuk versi desktop, Fase 13): RAM minimal 8 GB dengan aplikasi lain ditutup, disarankan 16 GB; tulis di panduan pasang. |
 | D-K10 | **Persetujuan dengan membalas pesan** (atasan menekan Setuju/Tolak di Telegram, tanpa menyebutkan kode ke kasir) dan pemberitahuan pengajuan retur/void yang menunggu ke Telegram/email atasan. | Butuh server yang terus membaca pesan masuk bot; cocok setelah server online (v3). Dasarnya (bot, kontak atasan, K-102) sudah ada. |
 | D-K11 | **Kode persetujuan lewat WhatsApp.** | Ditawarkan dan tidak dipilih pemilik (K-102): jalur resmi butuh verifikasi bisnis Meta dan templat berbayar; gateway tidak resmi berisiko blokir. Saluran baru cukup ditambahkan di `sistem/saluran`. |
+| D-K12 | **Pembatalan pembayaran otomatis** untuk pembayaran non-tunai yang ditandai *Tidak masuk*: dokumen pembatalan yang mengurangi jumlah terbayar dan menghidupkan kembali sisa tagihan. | Sekarang *Tidak masuk* hanya tanda (K-111): penjualan tidak berubah, tindak lanjut oleh atasan (menagih pembeli, atau void/retur). Butuh dokumen koreksi baru karena `pembayaran_penjualan` hanya-tambah; dikerjakan bila kasusnya sering terjadi di toko. |
 
 ---
 
@@ -111,9 +113,10 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 | F2 | **Pintasan umum di semua halaman**: urungkan (Ctrl+Z), ulangi (Ctrl+Y / Ctrl+Shift+Z), simpan (Ctrl+S), cari (Ctrl+K), hapus ke "keranjang sampah"/pulihkan, pindah tab halaman, tutup dialog — juga bisa diganti di F1. | Urungkan/ulangi berlaku untuk perubahan yang belum disimpan; dokumen yang sudah tersimpan tetap dikoreksi lewat dokumen baru (CLAUDE.md aturan 3). |
 | F3 | **Panduan tombol yang bisa dibuka/ditutup** kapan saja (mis. tombol `?`) di Order Penjualan, layar kasir, dan pengantaran: ringkasan alur + daftar tombol; pilihan "jangan tampilkan lagi" per pengguna. | Bilah tombol bawah (K-073) tetap ada dan bisa disembunyikan. |
 | F7 | **(masukan pemilik 2026-10-10) Tombol "?" di setiap halaman** sebagai tutor: cara pakai halaman, arti istilah/lencana, dan langkah umum; isi bisa dicari. | Dasarnya sudah ada (komponen `Penjelasan`, K-099) di Harga Jual, Kelola tier, dan Promo; tinggal ditulis untuk halaman lain. Terkait F3 dan tutorial awal Fase 13.4. |
-| F4 | **(sebagian selesai, K-103 dan K-105: struk langsung ke printer thermal ESC/POS, pilih printer terpandu, uji cetak, cetak tebal; sisa: pilih printer A4, jumlah salinan, logo di struk langsung, memilih printer menurut namanya)** **Pengaturan › Printer**: aktif/nonaktif cetak struk otomatis per komputer kasir, pilih printer struk & printer A4, jumlah salinan, uji cetak. | Peramban tidak bisa memilih printer sendiri; butuh agen cetak lokal kecil (atau ESC/POS lewat Web Serial) — dinilai saat Sprint F. Sampai itu: `scripts/kasir/buka-kasir.cmd` (K-074). |
+| F4 | **(sebagian selesai, K-103 dan K-105: struk langsung ke printer thermal ESC/POS, pilih printer terpandu, uji cetak, cetak tebal; sisa: **printer per jenis dokumen** (struk, label, invoice/surat jalan, laporan) dan cetak tanpa jendela untuk dokumen A4, jumlah salinan, logo di struk langsung, memilih printer menurut namanya; semuanya menjadi syarat aplikasi desktop Fase 13.1, K-112)** **Pengaturan › Printer**: aktif/nonaktif cetak struk otomatis per komputer kasir, pilih printer struk & printer A4, jumlah salinan, uji cetak. | Peramban tidak bisa memilih printer sendiri; butuh agen cetak lokal kecil (atau ESC/POS lewat Web Serial) — dinilai saat Sprint F. Sampai itu: `scripts/kasir/buka-kasir.cmd` (K-074). |
 | F5 | **(selesai, K-103)** Laci uang terbuka otomatis saat struk tunai dicetak (perintah ESC/POS lewat printer struk). | Bergantung F4. |
 | F6 | **(masukan pemilik 2026-10-09) Tata letak POS bisa diatur pengguna**: daftar barang, papan antrean, panel bayar, dan hasil cari bisa diperlebar/dipersempit dengan menarik pembatas; ukuran diingat per komputer; tombol "kembalikan tata letak". | Preferensi tampilan (boleh `localStorage`). Cetak senyap & pilihan "tanya dulu/tidak cetak" sudah ada sejak K-095. |
+| F8 | **(masukan pemilik 2026-10-12) Katalog bergambar di layar penjualan**: kisi kartu barang dengan foto besar, kategori, atribut, harga per satuan, stok, dan tanda promo; bisa dijelajahi tanpa mengetik dan disaring per kategori/atribut; klik kartu = tambah ke keranjang. Termasuk membuat gambar kecil (thumbnail) saat foto diunggah agar katalog ringan. | Dasarnya sudah ada (K-108): cari per atribut dan kategori, tombol **Daftar**, dan foto kecil di hasil cari. Katalog adalah pelengkap, bukan pengganti kotak cari; keyboard tetap jalur tercepat di kasir. Dikerjakan bersama E4 (pemilih barang grafis). |
 
 ## v3.0.0 — Pembukuan dan skala
 
@@ -134,7 +137,7 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 | Logo perusahaan (gambar) | Selesai (K-065): Pengaturan › Profil toko › Logo toko; tampil di sidebar. |
 | Slip memakai nama / logo perusahaan | Selesai (K-065): dua opsi kop struk; dipakai saat cetak struk (Fase 5). |
 | Jumlah baris per halaman | Selesai (K-065): Pengaturan › Operasional; berlaku di semua tabel data. |
-| Kas utama / bank utama | v2 Sprint C (C3). Rekening transfer untuk nota ikut C3. |
+| Kas utama / bank utama | Sebagian selesai (K-111): daftar rekening toko (bank, EDC, QRIS) di Pengaturan › Pembayaran dan pengecekan uang masuk. Saldo per akun dan transfer antar-akun tetap v2 Sprint C (C3). |
 | Themes | v2 Sprint D (kenyamanan). |
 | Metode persediaan FIFO | Tidak: HPP rata-rata tertimbang sudah dikunci (K-008). |
 | Bisa keluar/proses meskipun stok minus | Tidak: stok tidak boleh negatif (docs/05 L2) karena merusak HPP dan kartu stok. |
@@ -153,3 +156,4 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 - 2026-10-10 — D-K2 dikerjakan (K-101, disetujui pemilik).
 - 2026-10-11 — F4 sebagian dan F5 selesai (K-103); D-K10, D-K11 dari K-102.
 - 2026-10-11 — F4: penyiapan printer terpandu (K-105); nama printer baru bisa ditampilkan di aplikasi desktop (Fase 13.1).
+- 2026-10-12 — A12 payment gateway dan D-K12 pembatalan pembayaran otomatis (K-111); F8 katalog bergambar (K-108); F4: printer per jenis dokumen menjadi syarat Fase 13.1 (K-112); baris "Kas utama / bank utama" diperbarui.

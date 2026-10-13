@@ -27,7 +27,28 @@ export type KandidatPromo = {
   idBarang: number | null;
   minQty: string | null;
   minBelanja: number | null;
+  /**
+   * K-110: potongan yang masih boleh diberikan promo ini kepada pembeli transaksi ini, yaitu yang terkecil
+   * dari sisa anggaran promo dan sisa batas per pembeli; `null` = tanpa batas.
+   */
+  sisaPotongan: number | null;
 };
+
+/**
+ * K-110: sisa potongan tiap promo yang berbatas, untuk dibagi ke baris-baris satu transaksi secara berurutan
+ * (baris pertama mengambil dulu; baris berikutnya mendapat sisanya).
+ */
+export function petaSisaPromo(kandidat: KandidatPromo[]): Map<number, number> {
+  return new Map(
+    kandidat.flatMap((p) => (p.sisaPotongan === null ? [] : [[p.id, Math.max(0, p.sisaPotongan)]])),
+  );
+}
+
+/** Mengurangi sisa potongan promo setelah dipakai satu baris. */
+export function pakaiSisaPromo(sisa: Map<number, number>, idPromo: number, potongan: number): void {
+  const s = sisa.get(idPromo);
+  if (s !== undefined) sisa.set(idPromo, Math.max(0, s - potongan));
+}
 
 export type BarisUntukPromo = {
   idBarang: number;
@@ -87,16 +108,21 @@ export type HasilPilihPromo = {
  * PR4 + PR6: satu promo per baris. Kandidat yang berlaku dan cocok diurutkan potongan terbesar, lalu
  * tanggal_mulai terbaru, lalu id terbesar (pemutus seri, K-087). Promo yang membuat harga di bawah batas
  * bawah dilewati dan promo aman berikutnya dipakai (keputusan pemilik).
+ *
+ * PR10/PR11 (K-110): potongan tiap promo dibatasi `sisa` (sisa anggaran dan sisa batas per pembeli, sudah
+ * dikurangi baris sebelumnya di transaksi yang sama). Promo yang sisanya 0 gugur; yang sisanya kurang dari
+ * potongan penuh tetap berlaku sebesar sisanya. Pemanggil mengurangi `sisa` dengan `pakaiSisaPromo`.
  */
 export function pilihPromo(
   kandidat: KandidatPromo[],
   b: BarisUntukPromo,
   totalBruto: number,
   tanggal: string,
+  sisa: ReadonlyMap<number, number> = new Map(),
 ): HasilPilihPromo {
   const urut = kandidat
     .filter((p) => promoBerlaku(p, tanggal) && promoCocok(p, b, totalBruto))
-    .map((p) => ({ p, potongan: potonganPromo(p, b) }))
+    .map((p) => ({ p, potongan: Math.min(potonganPromo(p, b), sisa.get(p.id) ?? Infinity) }))
     .filter((x) => x.potongan > 0)
     .sort(
       (x, y) =>

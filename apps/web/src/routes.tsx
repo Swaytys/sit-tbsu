@@ -39,7 +39,6 @@ const HALAMAN: Record<string, MuatHalaman> = {
   '/void': () => import('@/features/koreksi/halaman-void').then((m) => m.HalamanVoid),
   '/shift': () => import('@/features/shift/halaman-shift').then((m) => m.HalamanShift),
   '/laporan': () => import('@/features/laporan/halaman-laporan').then((m) => m.HalamanLaporan),
-  '/promo': () => import('@/features/promo/halaman-promo').then((m) => m.HalamanPromo),
   '/hutang': () => import('@/features/hutang/halaman-hutang').then((m) => m.HalamanHutang),
   '/konsinyasi': () =>
     import('@/features/konsinyasi/halaman-konsinyasi').then((m) => m.HalamanKonsinyasi),
@@ -129,6 +128,8 @@ export const router = createBrowserRouter([
             errorElement: <HalamanGalat />,
             children: [
               { index: true, element: <Navigate to="/dashboard" replace /> },
+              // K-110: Promo pindah ke Pengaturan › Promo; alamat lama tetap sampai ke sana.
+              { path: 'promo', element: <Navigate to="/pengaturan?tab=promo" replace /> },
               ...ruteMenu,
               ruteLazy('barang/import', 'Data Barang', 'master.import.jalankan', () =>
                 import('@/features/barang/halaman-import-barang').then(

@@ -152,3 +152,172 @@ pekerjaan tersendiri.
 - **Mencocokkan angka atribut sebagai potongan teks:** "2" akan menemukan 12, 20, 2,5, dan seterusnya.
 - **Membuat katalog sekarang dengan gambar asli (sampai 2 MB per gambar):** puluhan gambar besar sekaligus
   membuat layar kasir tersendat di jaringan toko.
+
+---
+
+### K-109 — Shift: terlewat mengunci pencatatan, jadwal buka/tutup, pengingat
+
+**Status:** menambah aturan K9–K11 di docs/05 §10; migrasi 0016 (`shift_kasir.jadwal_buka`, `jadwal_tutup`,
+`diingatkan_pada`); kunci konfigurasi `shift_jam_buka`, `shift_jam_tutup`.
+
+**Latar:** pemilik melihat baris berstatus Buka di riwayat shift dan menilainya bug berat. Pemeriksaan: tiga
+shift (akun demo Admin, Kasir, Owner; dibuka 10–11 Oktober) memang tidak pernah ditutup pemiliknya. Datanya
+tidak rusak; yang kurang adalah aturannya: sistem membiarkan shift melewati hari tanpa peringatan atau kunci,
+sehingga penjualan hari berikutnya ikut masuk shift lama.
+
+**Keputusan:**
+
+1. **Sistem tidak pernah menutup shift sendiri.** Menutup shift = clerical check, yang butuh hitungan uang di
+   laci (K4). Yang dilakukan sistem: mengingatkan dan, bila perlu, mengunci.
+2. **(pemilik) K9 — shift terlewat mengunci.** Shift BUKA yang `tanggal_operasional`-nya sebelum hari ini
+   disebut *terlewat*. Selama pemiliknya punya shift terlewat, ia **tidak bisa mencatat penjualan, pembayaran
+   (tunai maupun non-tunai), kas masuk/keluar, atau refund**, dan tidak bisa membuka shift baru, sampai shift
+   itu ditutup. Pesan galatnya menyebut nomor dan tanggal shift serta langkahnya. Tujuannya: satu shift tidak
+   memuat uang beberapa hari, dan selisih kas diketahui paling lambat keesokan harinya.
+3. **(pemilik) K10 — jadwal shift toko** (Pengaturan › Operasional, hanya Admin/Owner): jam buka dan jam tutup
+   (`JJ:MM`, boleh kosong). **Jadwal dibekukan ke tiap shift saat shift itu dibuka**; mengubah pengaturan
+   hanya memengaruhi shift yang dibuka sesudahnya. Jam tutup harus setelah jam buka.
+4. **Lewat jam tutup = peringatan, bukan kunci.** 15 menit sebelum jam tutup: pengingat biru di atas semua
+   halaman kasir itu. Setelah lewat: peringatan kuning, dan penjualan tetap bisa (pembeli yang datang
+   terlambat tetap dilayani).
+5. **K11 — atasan diberi tahu.** Lonceng menampilkan "Shift perlu ditutup" (jumlah shift yang lewat jam tutup
+   atau terlewat) bagi pemegang `kas.shift.lihat_semua`, dan "Shift Anda belum ditutup" bagi pemilik shift.
+   Server juga mengirim pesan Telegram/email ke Admin/Owner, paling banyak sekali sehari per shift.
+6. **Admin/Owner bisa menutup shift orang lain dari layar.** API-nya sudah ada sejak Fase 6, layarnya belum.
+   Di tab *Semua shift*, nomor shift yang masih buka menampilkan bagian *Tutup shift ini*: Admin/Owner
+   menghitung uang di laci kasir itu dan mengisinya. Ada saringan *Hanya yang perlu ditutup* dan tanda warna
+   (Buka / Buka, lewat jam tutup / Terlewat, belum ditutup).
+
+*Alasan:* dipilih pemilik dari tiga pilihan. Kunci tepat setelah jam tutup menolak pembeli yang datang
+terlambat; peringatan saja mengulang masalah yang dilaporkan.
+
+*Ditolak:*
+
+- **Menutup shift otomatis dengan uang fisik = saldo sistem:** menghilangkan inti clerical check (selisih
+  tidak pernah ketahuan).
+- **Hanya mengunci pembayaran tunai:** penjualan non-tunai kasir itu tetap akan menempel ke shift lama dan
+  mengacaukan rekap hari sebelumnya.
+- **Jadwal langsung berlaku untuk shift berjalan:** diminta pemilik agar tidak berubah di tengah shift.
+
+---
+
+### K-110 — Promo: pindah ke Pengaturan, jumlah potongan yang diberikan, anggaran, batas per pembeli
+
+**Status:** menambah PR10–PR11 di docs/06 §3; migrasi 0017 (`promo.anggaran`, `promo.maks_per_pembeli`).
+
+**Keputusan:**
+
+1. **(pemilik) Promo menjadi tab Pengaturan › Promo.** Menu samping "Promo" dihapus; alamat lama `/promo`
+   dialihkan. Izinnya tetap `promo.kelola`.
+2. **(pemilik) Jumlah potongan yang sudah diberikan tampil di daftar promo**: Σ `diskon_promo` baris
+   penjualan yang memakai promo itu, tidak termasuk baris atau penjualan VOID.
+3. **(pemilik) PR10 — anggaran promo** (`anggaran`, rupiah, opsional): jumlah seluruh potongan yang boleh
+   diberikan promo. Bila sisa anggaran lebih kecil dari potongan sebuah baris, baris itu dipotong **sebesar
+   sisanya**; setelah habis promo gugur dan promo cocok berikutnya (bila ada) yang dipakai. Sisa dibagi ke
+   baris-baris satu transaksi secara berurutan. Void mengembalikan anggaran; retur tidak.
+4. **(pemilik) PR11 — batas per pembeli** (`maks_per_pembeli`, rupiah, opsional): potongan paling banyak
+   untuk satu pembeli dari promo itu, supaya satu pembeli tidak menghabiskan anggaran. Pelanggan terdata:
+   dijumlah dari semua transaksinya. Pembeli umum (tanpa identitas): per transaksi. Bila anggaran juga diisi,
+   batas per pembeli **harus lebih kecil** dari anggaran.
+5. Anggaran dan batas per pembeli **boleh diubah walau promo sudah dipakai** (keduanya bukan aturan potongan
+   yang dikunci K-087), tetapi anggaran tidak boleh di bawah yang sudah diberikan.
+6. Saat checkout, promo berbatas dikunci dulu (`FOR UPDATE`, urut id) sebelum sisanya dibaca, supaya dua
+   kasir yang membayar bersamaan tidak sama-sama memakai sisa yang sama. Pratinjau di keranjang memakai sisa
+   saat itu tanpa mengunci; angka final selalu dari checkout (PR5).
+
+*Alasan:* promo adalah pengaturan toko, bukan pekerjaan harian; dan pemilik perlu tahu berapa uang yang
+"mengucur" serta bisa membatasinya.
+
+*Ditolak:*
+
+- **Promo gugur seluruhnya bila sisa anggaran kurang dari potongan penuh:** pembeli terakhir tidak mendapat
+  apa-apa padahal masih ada sisa; memotong sebesar sisa lebih mudah dijelaskan di kasir.
+- **Batas per pembeli dalam persen anggaran:** rupiah lebih langsung dibaca dan dihitung.
+- **Membatasi pembeli umum lintas transaksi:** tidak ada identitas untuk menghitungnya. Promo yang benar-benar
+  harus dibatasi per orang sebaiknya disasarkan ke pelanggan terdata (K-097).
+
+---
+
+### K-111 — Rekening toko, metode QRIS, dan pengecekan uang masuk non-tunai
+
+**Status:** menambah K12–K14 di docs/05 §10 dan mengubah P8; migrasi 0018 (tabel `rekening_toko`; kolom
+`pembayaran_penjualan.id_rekening`, `status_verifikasi`, `diverifikasi_oleh`, `diverifikasi_pada`,
+`catatan_verifikasi`; metode `QRIS`); izin baru `kas.rekening.lihat` dan `kas.nontunai.verifikasi`.
+
+**Latar:** pemilik meminta (a) pengaturan bank/EDC yang diterima toko supaya kasir tidak mengetik nomor
+rekening, dan (b) cara mengetahui bahwa transfer/QRIS/EDC "beneran masuk", dengan anggapan pemantauan seperti
+itu gratis.
+
+**Keputusan:**
+
+1. **Pemantauan otomatis tidak ada yang gratis dan resmi**, dan itu disampaikan apa adanya kepada pemilik:
+   mutasi rekening hanya bisa dibaca aplikasi lewat API bank (butuh kontrak) atau perantara berbayar (payment
+   gateway dengan potongan per transaksi, atau layanan cek mutasi berlangganan). **(pemilik)** memilih:
+   daftar rekening + **pengecekan manual** sekarang; payment gateway dicatat untuk v2.0.0 (docs/08 A12).
+2. **K12 — rekening toko** (Pengaturan › Pembayaran, `sistem.pengaturan.kelola`): rekening bank (untuk
+   Transfer), mesin EDC, dan QRIS. Isian: jenis, nama bank/penyedia, nomor (opsional untuk EDC/QRIS), atas
+   nama (opsional); labelnya disusun otomatis. Satu **bawaan** per jenis. Data master: dinonaktifkan, tidak
+   dihapus. Daftar aktifnya dibaca pencatat pembayaran lewat izin `kas.rekening.lihat` (Kasir ke atas).
+   Konfigurasi lama `rekening_transfer_default` / `rekening_edc_default` (K-073) dipindahkan migrasi menjadi
+   baris tabel ini dan isiannya di Pengaturan › Operasional dihapus.
+3. **Metode pembayaran QRIS** ditambahkan di samping Tunai, Transfer, EDC (huruf **Q** di layar kasir).
+4. **K13 — kasir memilih, tidak mengetik.** Pada pembayaran non-tunai, rekening tujuan dipilih dari daftar
+   (`idRekening`); bawaannya terpilih sendiri. API memeriksa rekening itu aktif dan jenisnya sama dengan
+   metode, lalu menyalin labelnya ke `pembayaran_penjualan.rekening`. Bila toko belum mendaftarkan rekening
+   untuk metode itu, kasir masih boleh mengetik tujuannya (dengan petunjuk mendaftarkannya), supaya penjualan
+   tidak terhenti.
+5. **K14 — pengecekan uang masuk.** Tiap pembayaran non-tunai mulai dari `BELUM_DICEK`. Pemegang
+   `kas.nontunai.verifikasi` (Admin, Owner) membuka *Shift & Clerical Check › Cek uang non-tunai*,
+   mencocokkannya dengan mutasi m-banking / rekap settlement EDC / riwayat QRIS, lalu menandai `SUDAH_MASUK`
+   atau `TIDAK_MASUK` (wajib catatan). Layar menampilkan jumlah dan total per rekening untuk saringan yang
+   dipilih (angka yang dibandingkan dengan mutasi), dan lonceng menampilkan yang belum dicek serta yang tidak
+   masuk. Hasilnya tampil di rincian penjualan. Tiap perubahan tercatat di log (`PEMBAYARAN_VERIFIKASI`).
+6. **`TIDAK_MASUK` adalah tanda, bukan koreksi.** Penjualan tetap tercatat seperti semula. Tindak lanjutnya
+   oleh manusia: menagih pembeli lalu mengubah tanda menjadi Sudah masuk, atau mengoreksi penjualan lewat
+   void/retur. Pembatalan pembayaran otomatis dicatat sebagai usulan (docs/08 D-K12).
+7. **Refund retur/void lewat transfer** memilih rekening toko asal uangnya dari daftar yang sama; rekening
+   pembeli/nomor referensi menjadi isian opsional. Kasir tidak lagi wajib mengetik nomor rekening.
+8. Pembayaran non-tunai yang dicatat sebelum migrasi ditandai `SUDAH_MASUK` dengan catatan khusus, supaya
+   daftar "belum dicek" hanya berisi pembayaran setelah fitur ini ada.
+9. `pembayaran_penjualan` tetap append-only: yang berubah hanya kolom status pengecekan (docs/03).
+
+*Alasan:* daftar rekening menghilangkan salah ketik dan membuat rekap per rekening mungkin; pengecekan manual
+memberi kepastian tanpa biaya dan tanpa bergantung pada pihak ketiga; daftar rekening ini juga dasar yang
+dibutuhkan bila kelak memakai payment gateway.
+
+*Ditolak:*
+
+- **Payment gateway sekarang:** butuh pendaftaran usaha dan akun penyedia dari pemilik, potongan per
+  transaksi, dan server toko tidak punya alamat publik untuk menerima pemberitahuan.
+- **Membaca mutasi dengan menyimpan nama pengguna dan kata sandi internet banking di aplikasi** (cara
+  layanan tidak resmi): berisiko pemblokiran rekening dan melanggar ketentuan bank.
+- **`TIDAK_MASUK` otomatis membuka kembali tagihan:** pembeli umum tidak boleh punya piutang (P7), dan
+  mengubah tagihan tanpa dokumen koreksi melanggar aturan append-only.
+- **Memakai kembali isian teks rekening di Pengaturan › Operasional:** hanya satu rekening per metode dan
+  tetap bisa diubah kasir dengan mengetik.
+
+---
+
+### K-112 — Cetak: printer per jenis dokumen menjadi syarat aplikasi desktop
+
+**Status:** tidak ada perubahan kode. Menambah syarat Fase 13.1 (docs/07) dan butir F4 (docs/08).
+
+**Latar:** pemilik mencetak laporan dan pratinjaunya memakai setelan printer thermal dari cetakan struk
+sebelumnya.
+
+**Keputusan:**
+
+1. **Ukuran dan arah kertas sudah ditentukan tiap dokumen** oleh aplikasi: struk = lebar gulungan, invoice
+   dan surat jalan = A4 potret, laporan = A4 potret atau lanskap menurut jumlah kolomnya, label = ukuran label.
+   Ini tidak perlu pengaturan baru.
+2. **Yang "ingat setelan sebelumnya" adalah jendela cetak peramban**: ia mengingat printer terakhir (mis.
+   POS58), dan halaman web tidak diizinkan memilih printer. Itu batas peramban, bukan pengaturan aplikasi.
+3. **Jalan keluar sekarang:** struk dicetak langsung ke printer thermal (K-103, K-105). Sejak itu jendela cetak
+   hanya dipakai dokumen A4, sehingga yang diingatnya adalah printer A4. Bila struk masih lewat jendela cetak,
+   pakai jendela kasir tersendiri (`scripts/kasir/buka-kasir.cmd`), yang punya ingatan printernya sendiri.
+4. **Jalan keluar tuntas = aplikasi desktop (Fase 13.1):** pengaturan *printer per jenis dokumen* (struk,
+   label, invoice/surat jalan, laporan), dan cetak tanpa jendela untuk semuanya. Dicatat sebagai syarat fase
+   itu.
+
+*Ditolak:* membuat pengaturan "printer per dokumen" di versi peramban: peramban tidak menyediakan cara
+menerapkannya, sehingga pengaturannya tidak akan berpengaruh.

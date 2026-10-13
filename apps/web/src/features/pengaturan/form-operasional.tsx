@@ -32,9 +32,9 @@ type KolomAngka = Exclude<
   keyof Masukan,
   | 'autoBatalOrderBasi'
   | 'checkoutWajibShift'
+  | 'shiftJamBuka'
+  | 'shiftJamTutup'
   | 'barisPerHalaman'
-  | 'rekeningTransfer'
-  | 'rekeningEdc'
   | 'batasReturTanpaSetuju'
   | 'batasVoidTanpaSetuju'
 >;
@@ -179,36 +179,6 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
                 </FormItem>
               )}
             />
-            {(
-              [
-                {
-                  nama: 'rekeningTransfer',
-                  label: 'Rekening bawaan transfer',
-                  ket: 'Terisi otomatis saat kasir memilih Transfer (mis. BCA 1234567890).',
-                },
-                {
-                  nama: 'rekeningEdc',
-                  label: 'Mesin EDC bawaan',
-                  ket: 'Terisi otomatis saat kasir memilih EDC (mis. EDC BRI).',
-                },
-              ] as const
-            ).map((k) => (
-              <FormField
-                key={k.nama}
-                control={form.control}
-                name={k.nama}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{k.label}</FormLabel>
-                    <FormControl>
-                      <Input {...field} maxLength={60} />
-                    </FormControl>
-                    <FormDescription>{k.ket}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
           </div>
           {/* K-099: batas nilai retur/void yang boleh diproses Kasir tanpa atasan. */}
           <div className="rounded-lg border p-3">
@@ -259,6 +229,55 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
             label="Pembayaran tunai wajib shift terbuka"
             ket="Kasir harus membuka shift sebelum menerima uang tunai (K-018)."
           />
+          {/* K-109: jadwal shift toko; dibekukan ke tiap shift saat shift itu dibuka. */}
+          <div className="rounded-lg border p-3">
+            <p className="text-sm font-medium">Jadwal shift</p>
+            <p className="text-muted-foreground text-sm">
+              Jam toko biasanya membuka dan menutup shift. Dipakai untuk mengingatkan, bukan menutup
+              otomatis (menutup shift butuh hitungan uang di laci):
+            </p>
+            <ul className="text-muted-foreground mt-1 list-disc space-y-0.5 pl-5 text-sm">
+              <li>15 menit sebelum jam tutup: pengingat biru di layar kasir.</li>
+              <li>
+                Lewat jam tutup: peringatan kuning di layar kasir, notifikasi lonceng, dan pesan
+                Telegram/email ke Admin/Owner. Penjualan masih bisa.
+              </li>
+              <li>
+                Ganti hari dan shift belum ditutup: penjualan dan pencatatan uang kasir itu terkunci
+                sampai shiftnya ditutup (berlaku juga tanpa jadwal).
+              </li>
+              <li>
+                <b>Perubahan jadwal baru berlaku untuk shift yang dibuka setelah disimpan.</b> Shift
+                yang sedang berjalan tetap memakai jadwal saat ia dibuka.
+              </li>
+            </ul>
+            <div className="mt-3 grid grid-cols-2 gap-4">
+              {(
+                [
+                  { nama: 'shiftJamBuka', label: 'Jam buka shift' },
+                  { nama: 'shiftJamTutup', label: 'Jam tutup shift' },
+                ] as const
+              ).map((k) => (
+                <FormField
+                  key={k.nama}
+                  control={form.control}
+                  name={k.nama}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{k.label}</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} className="w-40" />
+                      </FormControl>
+                      <FormDescription>
+                        Kosongkan bila tidak memakai jadwal. Contoh: 09:00 dan 17:30.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+          </div>
         </KartuBagian>
       </form>
     </Form>

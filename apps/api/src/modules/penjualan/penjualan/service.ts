@@ -25,7 +25,7 @@ import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { siarkan } from '../../../lib/siaran';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahHari, tanggalOperasional } from '../../../lib/waktu';
-import { shiftBuka } from '../../kas/shift/service';
+import { shiftUntukCatat } from '../../kas/shift/service';
 import { hargaBarangDasar } from '../../master/harga/repo';
 import { catatMutasi, kunciPersediaan, ubahReservasi } from '../../persediaan/ledger';
 import { mintaKode, pakaiKode, periksaKode } from '../../sistem/kode-persetujuan/service';
@@ -352,7 +352,7 @@ export async function checkout(
     const totalNeto = totalBruto - totalDiskon + h.ongkir;
 
     const nomor = await terbitkanNomor(tx, jenis === 'LANGSUNG' ? 'STR' : 'INV', tanggal);
-    const shift = await shiftBuka(tx, pelaku.id, true);
+    const shift = await shiftUntukCatat(tx, pelaku.id);
     const [pj] = await tx
       .insert(penjualan)
       .values({

@@ -90,8 +90,8 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       termHariDefault: angka(m, 'term_hari_default', 0),
       jatuhTempoDefaultHari: angka(m, 'jatuh_tempo_default_hari', 7),
       checkoutWajibShift: bool(m, 'checkout_wajib_shift', true),
-      rekeningTransfer: teks(m, 'rekening_transfer_default', ''),
-      rekeningEdc: teks(m, 'rekening_edc_default', ''),
+      shiftJamBuka: teks(m, 'shift_jam_buka', ''),
+      shiftJamTutup: teks(m, 'shift_jam_tutup', ''),
       batasReturTanpaSetuju: angka(m, 'batas_retur_tanpa_persetujuan', 0),
       batasVoidTanpaSetuju: angka(m, 'batas_void_tanpa_persetujuan', 0),
       barisPerHalaman: barisPerHalaman(m),
@@ -147,8 +147,8 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     a('term_hari_default', o.termHariDefault);
     a('jatuh_tempo_default_hari', o.jatuhTempoDefaultHari);
     b('checkout_wajib_shift', o.checkoutWajibShift);
-    t('rekening_transfer_default', o.rekeningTransfer);
-    t('rekening_edc_default', o.rekeningEdc);
+    t('shift_jam_buka', o.shiftJamBuka);
+    t('shift_jam_tutup', o.shiftJamTutup);
     a('batas_retur_tanpa_persetujuan', o.batasReturTanpaSetuju);
     a('batas_void_tanpa_persetujuan', o.batasVoidTanpaSetuju);
     a('baris_per_halaman', o.barisPerHalaman);
@@ -250,8 +250,6 @@ export async function tampilanToko(): Promise<TampilanToko> {
     strukTampilkanNama: p.profil.strukTampilkanNama,
     strukTampilkanLogo: p.profil.strukTampilkanLogo,
     strukCetak: p.profil.strukCetak,
-    rekeningTransfer: p.operasional.rekeningTransfer,
-    rekeningEdc: p.operasional.rekeningEdc,
   };
 }
 

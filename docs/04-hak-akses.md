@@ -31,8 +31,8 @@ memakai kode di luar daftar gagal typecheck.
 | `master.harga.kelola` | Ubah harga jual per tier per barang; kelola master tier |
 | `master.harga.tinjau` | (M2) Terapkan usulan harga dari markup |
 | `master.pelanggan.lihat` | Lihat pelanggan |
-| `master.pelanggan.kelola` | Tambah/ubah/nonaktifkan pelanggan (data kontak) |
-| `master.pelanggan.atur_kredit` | Atur tier harga default, term hari, dan limit kredit pelanggan (K-059) |
+| `master.pelanggan.kelola` | Tambah pelanggan; ubah data kontak dan nonaktifkan/aktifkan pelanggan yang sudah ada **dengan kode persetujuan atasan** (K-107) |
+| `master.pelanggan.atur_kredit` | Atur golongan, term hari, dan limit kredit pelanggan (K-059); ubah/nonaktifkan pelanggan tanpa kode; kodenya menyetujui perubahan pelanggan dan melampaui limit kredit (K-107) |
 | `master.pemasok.lihat` | Lihat pemasok |
 | `master.pemasok.kelola` | Tambah/ubah/nonaktifkan pemasok |
 | `master.import.jalankan` | Import Excel barang / saldo awal |
@@ -80,7 +80,9 @@ memakai kode di luar daftar gagal typecheck.
 | Kode | Arti |
 |---|---|
 | `kas.shift.kelola_sendiri` | Buka/tutup shift sendiri, catat kas masuk/keluar shift sendiri, clerical shift sendiri |
-| `kas.shift.lihat_semua` | Lihat semua shift dan clerical, buka kembali shift (dengan alasan tercatat) |
+| `kas.shift.lihat_semua` | Lihat semua shift dan clerical, menutup shift pengguna lain, menerima pengingat shift yang perlu ditutup (K-109) |
+| `kas.rekening.lihat` | Melihat daftar rekening/EDC/QRIS toko untuk dipilih saat mencatat pembayaran atau refund (K-111) |
+| `kas.nontunai.verifikasi` | Mengecek uang masuk pembayaran non-tunai dan menandai hasilnya (K-111) |
 
 ### Laporan dan dashboard
 
@@ -150,6 +152,8 @@ memakai kode di luar daftar gagal typecheck.
 | konsinyasi.kelola | | | ✓ | ✓ |
 | kas.shift.kelola_sendiri | | ✓ | ✓ | ✓ |
 | kas.shift.lihat_semua | | | ✓ | ✓ |
+| kas.rekening.lihat | | ✓ | ✓ | ✓ |
+| kas.nontunai.verifikasi | | | ✓ | ✓ |
 | dashboard.dasar | ✓ | ✓ | ✓ | ✓ |
 | dashboard.omzet | | ✓ | ✓ | ✓ |
 | laporan.penjualan | | ✓ | ✓ | ✓ |
@@ -185,10 +189,9 @@ tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembe
 | Persediaan › Retur ke Pemasok (M2) | `persediaan.retur_pemasok.kelola` | Daftar, form, detail, cetak nota retur (K-088) |
 | Persediaan › Hutang Pemasok (M2) | `hutang.lihat` | Tombol bayar bila `hutang.kelola` (K-088) |
 | Persediaan › Konsinyasi (M2) | `konsinyasi.kelola` | Posisi per pemasok, setoran KSG, nota setoran; bayar lewat `hutang.kelola` (K-089) |
-| Kas › Shift & Clerical Check | `kas.shift.kelola_sendiri` | Tab "Semua Shift" bila `kas.shift.lihat_semua` |
+| Kas › Shift & Clerical Check | `kas.shift.kelola_sendiri` | Tab "Semua Shift" bila `kas.shift.lihat_semua`; tab "Cek uang non-tunai" bila `kas.nontunai.verifikasi` (K-111) |
 | Laporan | `laporan.penjualan` atau `laporan.persediaan` | Daftar laporan disaring per izin |
-| Promo (M2) | `promo.kelola` | |
-| Pengaturan | `sistem.pengaturan.kelola` | Tab "Log Aktivitas" bila `sistem.log.lihat`; tab "Cadangan" bila `sistem.cadangan.kelola` |
+| Pengaturan | `sistem.pengaturan.kelola` | Tab "Log Aktivitas" bila `sistem.log.lihat`; tab "Cadangan" bila `sistem.cadangan.kelola`; tab "Promo" bila `promo.kelola` (menu Promo dipindah ke sini, K-110); tab "Pembayaran" = rekening toko (K-111) |
 
 ## 5. Data sensitif
 
@@ -238,6 +241,12 @@ Aturan kode sekali pakai (K-102, menggantikan password atasan di layar kasir dar
   jawabannya menyebut apa yang kurang tanpa memuat token atau sandi.
 - Tanpa internet/saluran: retur/void tetap lewat `AKUN_ATASAN` atau `BATAS_BEBAS`; limit kredit hanya bisa
   dilanjutkan Admin/Owner yang login.
+- **Perubahan data pelanggan (K-107):** jenis kode `UBAH_PELANGGAN` untuk pengguna tanpa
+  `master.pelanggan.atur_kredit` yang mengubah data kontak pelanggan yang sudah ada, menonaktifkan, atau
+  mengaktifkannya kembali (menambah pelanggan baru tidak butuh kode). Pesan untuk atasan memuat rincian
+  perubahan (kolom, nilai lama, nilai baru). Kode terikat pada pelanggan dan **isian yang persis sama**
+  (`permintaan_persetujuan.sidik`): kode untuk satu perubahan tidak bisa dipakai untuk perubahan lain. Tanpa
+  kode ditolak 403. Log perubahan menyebut atasan pemilik kode.
 - **Limit kredit (PT6):** penjualan tetap atas nama kasir; log `PENJUALAN_LIMIT_OVERRIDE` atas nama atasan
   pemilik kode. Tidak ada status MENUNGGU: tanpa persetujuan, penjualan tidak tersimpan.
 
@@ -305,3 +314,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-10 — §6: persetujuan di tempat untuk melampaui limit kredit (K-101).
 - 2026-10-11 — §6: password atasan di layar kasir diganti kode sekali pakai lewat Telegram/email (K-102).
 - 2026-10-11 — §6: uji saluran per jenis (K-105).
+- 2026-10-12 — §2–§4: izin `kas.rekening.lihat`, `kas.nontunai.verifikasi`; arti izin pelanggan; menu Promo masuk Pengaturan; §6 kode `UBAH_PELANGGAN` (K-107, K-109, K-110, K-111).

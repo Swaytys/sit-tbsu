@@ -8,6 +8,7 @@ import {
   gte,
   ilike,
   inArray,
+  isNotNull,
   isNull,
   lt,
   lte,
@@ -49,6 +50,32 @@ const kolomKandidat = {
   minBelanja: promo.minBelanja,
 };
 
+/**
+ * K-110: jumlah potongan promo yang sudah diberikan = Σ `diskon_promo` baris penjualan yang memakai promo itu,
+ * kecuali baris VOID dan penjualan VOID (void mengembalikan anggaran; retur tidak).
+ */
+const terpakai = sql<number>`(
+  select coalesce(sum(${kolomPenuh(penjualanDetail.diskonPromo)}), 0)::bigint
+    from ${penjualanDetail}
+    inner join ${penjualan} on ${kolomPenuh(penjualan.id)} = ${kolomPenuh(penjualanDetail.idPenjualan)}
+   where ${kolomPenuh(penjualanDetail.idPromo)} = ${kolomPenuh(promo.id)}
+     and ${kolomPenuh(penjualanDetail.statusItem)} <> 'VOID'
+     and ${kolomPenuh(penjualan.statusTransaksi)} <> 'VOID'
+)`.mapWith(Number);
+
+/** Sama dengan `terpakai`, hanya transaksi satu pelanggan terdata. */
+function terpakaiPelanggan(idPelanggan: number) {
+  return sql<number>`(
+  select coalesce(sum(${kolomPenuh(penjualanDetail.diskonPromo)}), 0)::bigint
+    from ${penjualanDetail}
+    inner join ${penjualan} on ${kolomPenuh(penjualan.id)} = ${kolomPenuh(penjualanDetail.idPenjualan)}
+   where ${kolomPenuh(penjualanDetail.idPromo)} = ${kolomPenuh(promo.id)}
+     and ${kolomPenuh(penjualanDetail.statusItem)} <> 'VOID'
+     and ${kolomPenuh(penjualan.statusTransaksi)} <> 'VOID'
+     and ${kolomPenuh(penjualan.idPelanggan)} = ${idPelanggan}
+)`.mapWith(Number);
+}
+
 /** Pembeli transaksi untuk syarat promo (K-097); pembeli umum = semua `null`. */
 export type PembeliPromo = { idPelanggan: number | null; idGolongan: number | null };
 
@@ -81,8 +108,16 @@ export async function kandidatPromo(
   pembeli: PembeliPromo,
 ): Promise<KandidatPromo[]> {
   if (idBarang.length === 0) return [];
-  return ex
-    .select(kolomKandidat)
+  const baris = await ex
+    .select({
+      ...kolomKandidat,
+      anggaran: promo.anggaran,
+      maksPerPembeli: promo.maksPerPembeli,
+      terpakai,
+      // Pembeli umum tidak punya riwayat: batas per pembeli berlaku per transaksi.
+      terpakaiPembeli:
+        pembeli.idPelanggan === null ? sql<number>`0` : terpakaiPelanggan(pembeli.idPelanggan),
+    })
     .from(promo)
     .where(
       and(
@@ -113,6 +148,39 @@ export async function kandidatPromo(
         syaratBelanjaPelanggan(tanggal, pembeli.idPelanggan),
       ),
     );
+  return baris.map(({ anggaran, maksPerPembeli, terpakai: t, terpakaiPembeli: tp, ...k }) => {
+    const batas = [
+      ...(anggaran === null ? [] : [anggaran - t]),
+      ...(maksPerPembeli === null ? [] : [maksPerPembeli - tp]),
+    ];
+    return { ...k, sisaPotongan: batas.length === 0 ? null : Math.max(0, Math.min(...batas)) };
+  });
+}
+
+/**
+ * K-110: mengunci promo berbatas yang berlaku pada `tanggal` (urut id) sebelum sisa anggarannya dibaca saat
+ * checkout, supaya dua checkout bersamaan tidak sama-sama memakai sisa yang sama.
+ */
+export async function kunciPromoBerbatas(tx: Tx, tanggal: string): Promise<void> {
+  await tx
+    .select({ id: promo.id })
+    .from(promo)
+    .where(
+      and(
+        eq(promo.statusAktif, 'AKTIF'),
+        lte(promo.tanggalMulai, tanggal),
+        gte(promo.tanggalSelesai, tanggal),
+        or(isNotNull(promo.anggaran), isNotNull(promo.maksPerPembeli)),
+      ),
+    )
+    .orderBy(asc(promo.id))
+    .for('update');
+}
+
+/** Jumlah potongan promo yang sudah diberikan (K-110). */
+export async function totalDiskonPromo(ex: Executor, id: number): Promise<number> {
+  const [b] = await ex.select({ total: terpakai }).from(promo).where(eq(promo.id, id));
+  return b?.total ?? 0;
 }
 
 // --- Master promo ---
@@ -138,6 +206,9 @@ const kolom = {
   namaGolongan: golonganPelanggan.nama,
   keterangan: promo.keterangan,
   jumlahPemakaian: pemakaian,
+  anggaran: promo.anggaran,
+  maksPerPembeli: promo.maksPerPembeli,
+  totalDiskon: terpakai,
 };
 
 function dasar(ex: Executor) {
@@ -240,7 +311,13 @@ export async function promoById(ex: Executor, id: number) {
 
 export async function kunciPromo(tx: Tx, id: number) {
   const [b] = await tx
-    .select({ ...kolomKandidat, ...kolomPembeli, keterangan: promo.keterangan })
+    .select({
+      ...kolomKandidat,
+      ...kolomPembeli,
+      keterangan: promo.keterangan,
+      anggaran: promo.anggaran,
+      maksPerPembeli: promo.maksPerPembeli,
+    })
     .from(promo)
     .where(eq(promo.id, id))
     .limit(1)

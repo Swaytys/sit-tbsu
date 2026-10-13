@@ -15,8 +15,10 @@ Nama repo: `sit-tbsu`. Nama tampil di aplikasi: **BonsaiUrip** (K-044).
 | `04-hak-akses.md` | Daftar izin, matriks peran, aturan data sensitif, sesi, login, persetujuan | Setiap route baru, setiap menu baru |
 | `05-aturan-bisnis-inti.md` | Ledger stok, reservasi order, HPP rata-rata, penomoran, status dokumen, satuan & konversi | Fase 4–6 |
 | `06-harga-piutang-hutang.md` | Tier harga, markup, tinjau harga, diskon, promo, piutang, hutang, retur pemasok, konsinyasi, stok rusak | Fase 3 (tier dasar), Fase 5 (piutang), M2 |
-| `07-roadmap.md` | Milestone M1/M2, 12 fase, deliverable dan definisi selesai per fase, status | Awal setiap fase; diperbarui di akhir fase |
+| `07-roadmap.md` | Milestone M1/M2, 12 fase, deliverable dan definisi selesai per fase, status; rencana Fase 13 | Awal setiap fase; diperbarui di akhir fase |
 | `08-backlog.md` | Usulan di luar fase: v2.0.0 (produktivitas, peran kustom, keuangan ringan, perbaikan) dan v3.0.0 | Saat ada usulan baru; sebelum merencanakan versi berikut |
+| `09-keamanan.md` | Checklist keamanan (OWASP dasar) beserta bukti tiap butir | Setiap rilis dan setiap modul baru |
+| `10-ringkasan-keputusan.md` | Ringkasan seluruh keputusan K-001 s.d. K-112: garis waktu, yang berlaku sekarang per topik, keputusan yang diganti, daftar lengkap | Saat ingin gambaran utuh tanpa membaca 25 berkas keputusan |
 | `keputusan/` | Log keputusan bernomor K-001, K-002, … beserta alasan dan alternatif yang ditolak | Saat bertanya "kenapa begini?" |
 | `panduan/` | Panduan langkah demi langkah untuk pemilik proyek (install, git, alur kerja) | Fase 1 |
 | `referensi/` | Laporan KP, diagram, skema lama, mockup Figma Make, screenshot | Saat perlu sumber asli |
@@ -59,11 +61,12 @@ Jangan pakai mode auto-accept.
 
 ## Aturan perubahan dokumen
 
-- Dokumen bernomor (`01`–`07`) adalah **dokumen hidup**: diubah ketika keputusan berubah. Setiap perubahan
+- Dokumen bernomor (`01`–`10`) adalah **dokumen hidup**: diubah ketika keputusan berubah. Setiap perubahan
   dicatat di bagian `## Riwayat` di akhir dokumen tersebut (tanggal + ringkasan).
 - `keputusan/` bersifat **append-only**: keputusan baru = entri baru (K-nnn berurutan lintas berkas), berkas
   bertanggal `YYYY-MM-DD-<topik>.md`. Keputusan lama tidak diedit; yang dibatalkan dirujuk oleh entri baru
-  dengan status "Menggantikan K-nnn".
+  dengan status "Menggantikan K-nnn". Setiap keputusan baru ikut ditambahkan ke `10-ringkasan-keputusan.md`
+  (daftar lengkap, dan bagian "yang berlaku sekarang" bila aturannya berubah).
 - Sebelum Claude Code mengubah dokumen mana pun, ia harus menyebutkan perubahannya dan mendapat persetujuan.
 
 ## Status dokumen
@@ -72,14 +75,15 @@ Jangan pakai mode auto-accept.
 |---|---|---|
 | CLAUDE.md | Final v1 | 2026-09-19 |
 | 01-ikhtisar-sistem.md | Final v1 (§5.1 alur cepat order → kasir, K-073; laporan Fase 9) | 2026-10-04 |
-| 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073; dokumen laporan, K-078; deploy & cadangan, K-082–K-084; model galat & pola bersama, K-100) | 2026-10-10 |
-| 03-skema-database-v3 (.md + .sql) | Final v3.12 (.sql = v3.1 migrasi 0000; v3.2–v3.12 lewat migrasi 0001–0014) | 2026-10-11 |
-| 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086; menu Fase 10, K-088; persetujuan di tempat, K-099; batas laju, K-100; limit kredit di tempat, K-101; kode sekali pakai, K-102) | 2026-10-11 |
-| 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH; §14 tukar retur netral, K-079; L6 → H5/H7, K-086; A5 MUSNAH, K-088; V1 setoran, K-089) | 2026-10-07 |
-| 06-harga-piutang-hutang.md | Final v1 (H4–H8, H12, D1–D2, PR3–PR7, HT7 dirinci, K-086–K-087; PT5–PT6, HT2–HT3, RP5, SR4, K-088; KS5–KS6, K-089) | 2026-10-07 |
-| 07-roadmap.md | Final v1 (Fase 8 siap uji coba toko; Fase 9–12 selesai, menunggu tinjauan) | 2026-10-07 |
-| 09-keamanan.md | Hidup (checklist OWASP dasar, K-083; review kedua, K-100) | 2026-10-10 |
-| 08-backlog.md | Hidup (v2.0.0, v3.0.0; temuan tinjauan kode D-K1–D-K9) | 2026-10-10 |
+| 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073; dokumen laporan, K-078; deploy & cadangan, K-082–K-084; model galat & pola bersama, K-100; saluran pesan & struk ESC/POS, K-102–K-105; modul rekening & non-tunai, penyiapan e2e, pekerjaan berkala, K-106–K-111) | 2026-10-12 |
+| 03-skema-database-v3 (.md + .sql) | Final v3.15 (.sql = v3.1 migrasi 0000; v3.2–v3.15 lewat migrasi 0001–0018) | 2026-10-12 |
+| 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086; menu Fase 10, K-088; persetujuan di tempat, K-099; batas laju, K-100; limit kredit di tempat, K-101; kode sekali pakai, K-102; ubah pelanggan dengan kode, K-107; izin rekening & cek non-tunai, K-111) | 2026-10-12 |
+| 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH; §14 tukar retur netral, K-079; L6 → H5/H7, K-086; A5 MUSNAH, K-088; V1 setoran, K-089; K9–K11 shift, K-109; K12–K14 rekening & cek non-tunai, P8, K-111) | 2026-10-12 |
+| 06-harga-piutang-hutang.md | Final v1 (H4–H8, H12, D1–D2, PR3–PR7, HT7 dirinci, K-086–K-087; PT5–PT6, HT2–HT3, RP5, SR4, K-088; KS5–KS6, K-089; tier nilai belanja & promo pembeli, K-097–K-099; PR10–PR11 anggaran promo, K-110) | 2026-10-12 |
+| 07-roadmap.md | Final v1 (Fase 8 siap uji coba toko; Fase 9–12 selesai, tinjauan pemilik K-092–K-112; Fase 13 belum aktif) | 2026-10-12 |
+| 09-keamanan.md | Hidup (checklist OWASP dasar, K-083; review kedua, K-100; review ketiga, K-106–K-111) | 2026-10-12 |
+| 08-backlog.md | Hidup (v2.0.0, v3.0.0; temuan tinjauan kode D-K1–D-K12; A12 payment gateway; F8 katalog bergambar) | 2026-10-12 |
+| 10-ringkasan-keputusan.md | Hidup (ringkasan K-001 s.d. K-112) | 2026-10-12 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
 | keputusan/2026-09-19-keputusan-tambahan.md | Final (K-044–K-049) | 2026-09-19 |
 | keputusan/2026-09-29-setup-fase-1.md | Final (K-050–K-053) | 2026-09-29 |
@@ -104,9 +108,10 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-10-10-tinjauan-kode.md | Final (K-100) | 2026-10-10 |
 | keputusan/2026-10-10-limit-kredit-ditempat.md | Final (K-101; diganti K-102) | 2026-10-10 |
 | keputusan/2026-10-11-tinjauan-pemilik.md | Final (K-102–K-105) | 2026-10-11 |
+| keputusan/2026-10-12-tinjauan-pemilik.md | Final (K-106–K-112) | 2026-10-12 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |
 | panduan/fase-8-pasang-server.md | Final v1 (server toko Windows, Tailscale, cadangan, pemulihan) | 2026-10-04 |
 | panduan/fase-8-uji-coba.md | Final v1 (persiapan, skenario, daftar temuan) | 2026-10-04 |
-| panduan/manual-pengguna.md | Final v1 (per peran) | 2026-10-11 |
+| panduan/manual-pengguna.md | Final v1 (per peran; + K-106–K-111) | 2026-10-12 |
 | panduan/kode-persetujuan-telegram-email.md | Final v1 (bot Telegram, sandi aplikasi Gmail, penjelasan teknis, uji mandiri; K-105) | 2026-10-11 |
 | panduan/printer-struk.md | Final v1 (printer thermal Bluetooth/USB, cetak langsung, pemecahan masalah; K-105) | 2026-10-11 |

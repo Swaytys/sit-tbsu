@@ -1,11 +1,21 @@
-import type { DaftarShift, DetailOrder, DetailShift, ShiftAktif } from '@sit/shared';
+import type { DaftarShift, DetailOrder, DetailShift, Notifikasi, ShiftAktif } from '@sit/shared';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
-import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import {
+  aturKonfigurasi,
+  beriEmail,
+  json,
+  minta,
+  pesanTerkirim,
+  sesiUji,
+  siapkanDatabaseSistem,
+} from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import { clericalCheck, hargaBarang, kasShift, orderPenjualan, shiftKasir } from '../../db/schema';
+import { tambahHari, tanggalOperasional } from '../../lib/waktu';
+import { ingatkanShiftPerluDitutup } from './shift/service';
 
 type Sesi = Awaited<ReturnType<typeof sesiUji>>;
 type Galat = { error: { kode: string; pesan: string; detail?: { perluKeterangan?: boolean } } };
@@ -172,6 +182,89 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
     expect((await galat(kasir2, `/api/shift/${s1.id}`, undefined, 'GET')).status).toBe(404);
     const selisih = await ambil<DaftarShift>(admin, '/api/shift?adaSelisih=true');
     expect(selisih.data.map((s) => [s.id, s.clerical?.selisih])).toEqual([[s1.id, 1000]]);
+  });
+
+  it('K10 jadwal shift dibekukan saat dibuka; lewat jam tutup hanya peringatan (penjualan tetap bisa)', async () => {
+    await aturKonfigurasi({ shift_jam_buka: '08:00', shift_jam_tutup: '23:59' });
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 0 });
+    expect(s).toMatchObject({
+      jadwalBuka: '08:00',
+      jadwalTutup: '23:59',
+      lewatJadwal: false,
+      terlewat: false,
+    });
+    expect(s.batasTutup).not.toBeNull();
+    // Pengaturan diubah saat shift berjalan: shift ini tetap memakai jadwal lamanya.
+    await aturKonfigurasi({ shift_jam_tutup: '00:00' });
+    let saya = (await ambil<{ data: ShiftAktif }>(kasir, '/api/shift/saya')).data;
+    expect(saya).toMatchObject({ jadwalTutup: '23:59', lewatJadwal: false });
+    let notif = (await ambil<{ data: Notifikasi[] }>(kasir, '/api/notifikasi')).data;
+    expect(notif.some((n) => n.jenis === 'SHIFT_SAYA_PERLU_DITUTUP')).toBe(false);
+
+    // Jam tutup shift ini sudah lewat: peringatan untuk kasir dan atasan, penjualan masih diterima.
+    await db.update(shiftKasir).set({ jadwalTutup: '00:00' }).where(eq(shiftKasir.id, s.id));
+    saya = (await ambil<{ data: ShiftAktif }>(kasir, '/api/shift/saya')).data;
+    expect(saya).toMatchObject({ lewatJadwal: true, terlewat: false });
+    notif = (await ambil<{ data: Notifikasi[] }>(kasir, '/api/notifikasi')).data;
+    expect(notif.find((n) => n.jenis === 'SHIFT_SAYA_PERLU_DITUTUP')?.tautan).toBe('/shift');
+    const notifAdmin = (await ambil<{ data: Notifikasi[] }>(admin, '/api/notifikasi')).data;
+    expect(notifAdmin.find((n) => n.jenis === 'SHIFT_PERLU_DITUTUP')?.jumlah).toBe(1);
+    await jualTunai(kasir, '1');
+
+    // Shift yang dibuka setelah perubahan memakai jadwal baru.
+    await kirim(kasir, `/api/shift/${s.id}/tutup`, { uangFisik: 10000 });
+    const baru = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 0 });
+    expect(baru).toMatchObject({ jadwalBuka: '08:00', jadwalTutup: '00:00' });
+  });
+
+  it('K9 shift dari hari sebelumnya mengunci penjualan dan kas sampai ditutup; K11 atasan diingatkan sekali sehari', async () => {
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 50000 });
+    await jualTunai(kasir, '1');
+    await db
+      .update(shiftKasir)
+      .set({ tanggalOperasional: tambahHari(tanggalOperasional(), -1) })
+      .where(eq(shiftKasir.id, s.id));
+
+    const saya = (await ambil<{ data: ShiftAktif }>(kasir, '/api/shift/saya')).data;
+    expect(saya.terlewat).toBe(true);
+    // Tunai, non-tunai, dan kas manual semuanya ditolak dengan petunjuk menutup shift lama.
+    const tunai = await galat(kasir, '/api/penjualan/checkout', {
+      order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '1' }] },
+      pembayaran: [{ metode: 'TUNAI', uangDiterima: 10000 }],
+    });
+    expect(tunai).toMatchObject({ status: 409, kode: 'KONFLIK' });
+    expect(tunai.pesan).toContain(`Shift ${s.nomor}`);
+    expect(tunai.pesan).toContain('belum ditutup');
+    const transfer = await galat(kasir, '/api/penjualan/checkout', {
+      order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '1' }] },
+      pembayaran: [{ metode: 'TRANSFER', rekening: 'BCA 123' }],
+    });
+    expect(transfer.status).toBe(409);
+    expect(
+      (
+        await galat(kasir, '/api/shift/kas', {
+          jenis: 'MASUK_LAIN',
+          nominal: 1000,
+          keterangan: 'x',
+        })
+      ).status,
+    ).toBe(409);
+    expect((await galat(kasir, '/api/shift/buka', { modalAwal: 0 })).status).toBe(409);
+
+    // Daftar "perlu ditutup" dan pengingat ke atasan (sekali per hari per shift).
+    const perlu = await ambil<DaftarShift>(admin, '/api/shift?perluDitutup=true');
+    expect(perlu.data.map((x) => x.id)).toEqual([s.id]);
+    expect(perlu.data[0]?.waktu).toMatchObject({ terlewat: true });
+    await beriEmail(admin.pengguna.id);
+    expect(await ingatkanShiftPerluDitutup()).toBe(1);
+    expect(pesanTerkirim(admin.pengguna.namaPengguna)).toContain(s.nomor);
+    expect(await ingatkanShiftPerluDitutup()).toBe(0);
+
+    // Setelah shift lama ditutup (di sini oleh Admin), kasir bisa membuka shift baru dan menjual lagi.
+    await kirim(admin, `/api/shift/${s.id}/tutup`, { uangFisik: 60000 });
+    expect((await ambil<DaftarShift>(admin, '/api/shift?perluDitutup=true')).data).toHaveLength(0);
+    await kirim(kasir, '/api/shift/buka', { modalAwal: 0 });
+    await jualTunai(kasir, '1');
   });
 
   it('K2/E4 penerimaan tunai dari laci butuh shift dan tercatat sebagai kas keluar BAYAR_PEMASOK', async () => {

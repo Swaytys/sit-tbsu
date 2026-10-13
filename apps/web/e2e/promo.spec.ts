@@ -36,8 +36,11 @@ test('Admin membuat promo barang; kasir melihat potongan, melepas/memasang denga
   let idPromo: number | null = null;
   try {
     // Admin: halaman Promo → buat promo 10% untuk barang uji.
-    await menuUtama(admin).getByRole('link', { name: 'Promo' }).click();
-    await expect(admin.getByRole('heading', { name: 'Promo' })).toBeVisible();
+    // K-110: Promo ada di Pengaturan › Promo (bukan menu sendiri); alamat lama /promo dialihkan ke sana.
+    await expect(menuUtama(admin).getByRole('link', { name: 'Promo' })).toHaveCount(0);
+    await admin.goto('/promo');
+    await expect(admin).toHaveURL(/\/pengaturan\?tab=promo$/);
+    await expect(admin.getByRole('heading', { name: 'Promo', exact: true })).toBeVisible();
     await admin.getByRole('button', { name: 'Buat promo' }).click();
     const dialog = admin.getByRole('dialog', { name: 'Buat promo' });
     await dialog.getByLabel('Nama promo').fill(namaPromo);
@@ -102,7 +105,10 @@ test('Admin membuat promo barang; kasir melihat potongan, melepas/memasang denga
     // Promo terpakai: aturannya terkunci di form.
     await admin.reload();
     await admin.getByLabel('Cari promo').fill(namaPromo);
-    await expect(admin.getByRole('row').filter({ hasText: namaPromo })).toContainText('1 baris');
+    const barisPromo = admin.getByRole('row').filter({ hasText: namaPromo });
+    await expect(barisPromo).toContainText('1 baris');
+    // K-110: jumlah potongan yang sudah diberikan promo ini tampil di daftar (10% × Rp 8.000 = Rp 800).
+    await expect(barisPromo).toContainText('Rp 800');
   } finally {
     if (idPromo !== null) {
       await api(admin, `/promo/${idPromo}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });

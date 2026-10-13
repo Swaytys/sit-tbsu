@@ -97,6 +97,12 @@ export const AKSI_LOG = [
   'SHIFT_BUKA',
   'SHIFT_TUTUP',
   'KAS_SHIFT_CATAT',
+  // Rekening toko dan pengecekan uang masuk non-tunai (K-111).
+  'REKENING_BUAT',
+  'REKENING_UBAH',
+  'REKENING_NONAKTIF',
+  'REKENING_AKTIFKAN',
+  'PEMBAYARAN_VERIFIKASI',
   'CETAK_ULANG',
   'LAPORAN_EKSPOR',
   // Hutang, retur pemasok, limit kredit (Fase 10, K-088).

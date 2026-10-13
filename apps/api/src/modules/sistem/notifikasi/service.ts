@@ -1,5 +1,8 @@
-import type { Izin, Notifikasi } from '@sit/shared';
+import type { Notifikasi } from '@sit/shared';
+import type { PenggunaAktif } from '../../../lib/konteks';
 import { hutangJatuhTempo } from '../../hutang/service';
+import { hitungNonTunai } from '../../kas/nontunai/service';
+import { jumlahShiftPerluDitutup, shiftSaya } from '../../kas/shift/service';
 import { jumlahReturMenunggu } from '../../koreksi/retur/service';
 import { jumlahVoidMenunggu } from '../../koreksi/void/service';
 import { jumlahOrderBasi } from '../../penjualan/order/service';
@@ -8,8 +11,58 @@ import { peringatanStok } from '../../persediaan/stok/service';
 import { peringatanCadangan } from '../cadangan/service';
 
 /** Notifikasi topbar per pengguna (docs/05 ST2), disaring menurut izin. */
-export async function notifikasiPengguna(izin: ReadonlySet<Izin>): Promise<Notifikasi[]> {
+export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifikasi[]> {
+  const { izin } = pelaku;
   const hasil: Notifikasi[] = [];
+  // K-109: shift sendiri yang lewat hari (pencatatan terkunci) atau lewat jam tutup tampil paling atas.
+  if (izin.has('kas.shift.kelola_sendiri')) {
+    const s = await shiftSaya(pelaku);
+    if (s && (s.terlewat || s.lewatJadwal)) {
+      hasil.push({
+        jenis: 'SHIFT_SAYA_PERLU_DITUTUP',
+        judul: s.terlewat ? 'Shift Anda belum ditutup' : 'Sudah lewat jam tutup shift',
+        keterangan: s.terlewat
+          ? `Shift ${s.nomor} dari hari sebelumnya masih terbuka. Penjualan dan pencatatan uang Anda terkunci sampai shift itu ditutup.`
+          : `Shift ${s.nomor} dijadwalkan tutup pukul ${s.jadwalTutup ?? ''}. Selesaikan transaksi lalu tutup shift.`,
+        jumlah: 1,
+        tautan: '/shift',
+      });
+    }
+  }
+  if (izin.has('kas.shift.lihat_semua')) {
+    const n = await jumlahShiftPerluDitutup();
+    if (n > 0) {
+      hasil.push({
+        jenis: 'SHIFT_PERLU_DITUTUP',
+        judul: 'Shift perlu ditutup',
+        keterangan: `${n} shift masih terbuka padahal sudah lewat jam tutup atau lewat hari.`,
+        jumlah: n,
+        tautan: '/shift?tab=riwayat&perlu=1',
+      });
+    }
+  }
+  // K-111: uang non-tunai yang belum dicocokkan dengan mutasi, dan yang ditandai tidak masuk.
+  if (izin.has('kas.nontunai.verifikasi')) {
+    const n = await hitungNonTunai();
+    if (n.tidakMasuk > 0) {
+      hasil.push({
+        jenis: 'NONTUNAI_TIDAK_MASUK',
+        judul: 'Pembayaran non-tunai tidak masuk',
+        keterangan: `${n.tidakMasuk} pembayaran transfer/EDC/QRIS ditandai tidak masuk dan perlu ditindaklanjuti.`,
+        jumlah: n.tidakMasuk,
+        tautan: '/shift?tab=nontunai&status=TIDAK_MASUK',
+      });
+    }
+    if (n.belumDicek > 0) {
+      hasil.push({
+        jenis: 'NONTUNAI_BELUM_DICEK',
+        judul: 'Uang non-tunai belum dicek',
+        keterangan: `${n.belumDicek} pembayaran transfer/EDC/QRIS belum dicocokkan dengan mutasi rekening.`,
+        jumlah: n.belumDicek,
+        tautan: '/shift?tab=nontunai',
+      });
+    }
+  }
   if (izin.has('penjualan.order.lihat_semua')) {
     const basi = await jumlahOrderBasi();
     if (basi > 0) {

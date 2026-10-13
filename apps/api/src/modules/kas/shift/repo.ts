@@ -1,4 +1,18 @@
-import { and, asc, count, desc, eq, gte, lte, ne, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  isNull,
+  lt,
+  lte,
+  ne,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import type { StatusShift } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
@@ -27,6 +41,8 @@ const kolom = {
   waktuTutup: shiftKasir.waktuTutup,
   modalAwal: shiftKasir.modalAwal,
   status: shiftKasir.status,
+  jadwalBuka: shiftKasir.jadwalBuka,
+  jadwalTutup: shiftKasir.jadwalTutup,
   clcNomor: clericalCheck.nomor,
   clcTanggal: clericalCheck.tanggal,
   clcModalAwal: clericalCheck.modalAwal,
@@ -48,8 +64,24 @@ function dasar(ex: Executor) {
     .leftJoin(clericalCheck, eq(clericalCheck.idShift, shiftKasir.id));
 }
 
+/**
+ * K-109: shift BUKA yang perlu ditutup pada saat `kini`: dari hari operasional sebelum `hariIni`, atau sudah
+ * melewati jam tutup yang dibekukan saat shift dibuka.
+ */
+export function perluDitutup(hariIni: string, kini: Date): SQL {
+  return and(
+    eq(shiftKasir.status, 'BUKA'),
+    or(
+      lt(shiftKasir.tanggalOperasional, hariIni),
+      sql`(${shiftKasir.jadwalTutup} is not null and ((${shiftKasir.tanggalOperasional} + ${shiftKasir.jadwalTutup}::time) at time zone 'Asia/Jakarta') <= ${kini.toISOString()}::timestamptz)`,
+    ),
+  ) as SQL;
+}
+
 export type SaringShift = {
   status?: StatusShift | undefined;
+  /** Hanya yang perlu ditutup (K-109); butuh `hariIni` dan `kini`. */
+  perluDitutup?: { hariIni: string; kini: Date } | undefined;
   idKasir?: number | undefined;
   dari?: string | undefined;
   sampai?: string | undefined;
@@ -59,6 +91,7 @@ export type SaringShift = {
 function syarat(p: SaringShift): SQL | undefined {
   return and(
     p.status ? eq(shiftKasir.status, p.status) : undefined,
+    p.perluDitutup ? perluDitutup(p.perluDitutup.hariIni, p.perluDitutup.kini) : undefined,
     p.idKasir === undefined ? undefined : eq(shiftKasir.idKasir, p.idKasir),
     p.dari ? gte(shiftKasir.tanggalOperasional, p.dari) : undefined,
     p.sampai ? lte(shiftKasir.tanggalOperasional, p.sampai) : undefined,
@@ -79,6 +112,44 @@ export async function daftar(ex: Executor, p: SaringShift & { limit: number; off
     .leftJoin(clericalCheck, eq(clericalCheck.idShift, shiftKasir.id))
     .where(where);
   return { baris, total: h?.total ?? 0 };
+}
+
+/** Jumlah shift yang perlu ditutup (notifikasi atasan). */
+export async function jumlahPerluDitutup(ex: Executor, hariIni: string, kini: Date) {
+  const [h] = await ex
+    .select({ total: count() })
+    .from(shiftKasir)
+    .where(perluDitutup(hariIni, kini));
+  return h?.total ?? 0;
+}
+
+/** Shift yang perlu ditutup dan belum diingatkan hari ini (pengingat ke atasan, paling banyak sekali sehari). */
+export function perluDiingatkan(ex: Executor, hariIni: string, kini: Date) {
+  return ex
+    .select({
+      id: shiftKasir.id,
+      nomor: shiftKasir.nomor,
+      namaKasir: pengguna.namaPengguna,
+      tanggalOperasional: shiftKasir.tanggalOperasional,
+      waktuBuka: shiftKasir.waktuBuka,
+      jadwalTutup: shiftKasir.jadwalTutup,
+    })
+    .from(shiftKasir)
+    .innerJoin(pengguna, eq(pengguna.id, shiftKasir.idKasir))
+    .where(
+      and(
+        perluDitutup(hariIni, kini),
+        or(
+          isNull(shiftKasir.diingatkanPada),
+          sql`(${shiftKasir.diingatkanPada} at time zone 'Asia/Jakarta')::date < ${hariIni}::date`,
+        ),
+      ),
+    )
+    .orderBy(asc(shiftKasir.id));
+}
+
+export async function tandaiDiingatkan(ex: Executor, id: number, waktu: Date): Promise<void> {
+  await ex.update(shiftKasir).set({ diingatkanPada: waktu }).where(eq(shiftKasir.id, id));
 }
 
 export async function byId(ex: Executor, id: number) {

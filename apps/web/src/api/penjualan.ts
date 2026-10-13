@@ -149,6 +149,8 @@ export function useShiftSaya(aktif = true) {
     queryKey: ['shift', 'saya'],
     queryFn: async () => ambilData(await api.shift.saya.$get()),
     enabled: aktif,
+    // K-109: status "terlewat" berubah saat ganti hari walau layar tidak disentuh.
+    refetchInterval: 5 * 60_000,
   });
 }
 
@@ -361,6 +363,8 @@ export function useSiaranAntrean() {
 export function useDaftarShift(p: {
   status: StatusShift | null;
   adaSelisih: boolean;
+  /** Hanya shift BUKA yang lewat jam tutup atau lewat hari (K-109). */
+  perluDitutup?: boolean;
   halaman: number;
   perHalaman: number;
 }) {
@@ -372,6 +376,7 @@ export function useDaftarShift(p: {
           query: {
             status: p.status ?? undefined,
             adaSelisih: p.adaSelisih ? 'true' : undefined,
+            perluDitutup: p.perluDitutup ? 'true' : undefined,
             halaman: String(p.halaman),
             perHalaman: String(p.perHalaman),
           },

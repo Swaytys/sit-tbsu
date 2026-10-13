@@ -19,8 +19,8 @@ import { tanggalOperasional } from '../../lib/waktu';
 import { hargaBarangDasar } from '../master/harga/repo';
 import { dasarMarkup, muatKonteksHarga } from '../master/harga/service';
 import { muatSatuanJual } from '../master/satuan-jual/service';
-import { pilihPromo, type KandidatPromo } from '../promo/hitung';
-import { kandidatPromo, type PembeliPromo } from '../promo/repo';
+import { pakaiSisaPromo, petaSisaPromo, pilihPromo, type KandidatPromo } from '../promo/hitung';
+import { kandidatPromo, kunciPromoBerbatas, type PembeliPromo } from '../promo/repo';
 import { ambilAngka } from '../sistem/konfigurasi/service';
 
 /*
@@ -388,6 +388,8 @@ export async function hitungBarisJual(
     [...new Set(tahap1.map((x) => x.brg.idKategori))],
     await pembeliPromo(tx, input.idPelanggan),
   );
+  // PR10/PR11: sisa anggaran dan batas per pembeli dibagi ke baris secara berurutan.
+  const sisaPromo = petaSisaPromo(kandidat);
 
   // Tahap 3: promo (dipotong dari harga tier, PR9), diskon manual, subtotal, dan saran tier per baris.
   const baris: BarisSiap[] = tahap1.map((x, i) => {
@@ -416,9 +418,11 @@ export async function hitungBarisJual(
           },
           totalBruto,
           tanggal,
+          sisaPromo,
         );
     const promoDipakai = !tanpaPromo && pilih.promo !== null;
     const diskonPromo = promoDipakai ? pilih.potongan : 0;
+    if (promoDipakai && pilih.promo) pakaiSisaPromo(sisaPromo, pilih.promo.id, diskonPromo);
 
     // D1/D3: diskon manual atas subtotal setelah promo; D2 batas peran untuk nilai yang diubah pelaku.
     const dasarManual = bruto - diskonPromo;
@@ -552,6 +556,8 @@ export async function hitungPromoCheckout(
   const bebasModal = pelaku.izin.has('penjualan.harga_manual');
   const bruto = rows.map((r) => subtotalRupiah(r.qty, r.hargaSatuan));
   const totalBruto = bruto.reduce((t, x) => t + x, 0);
+  // PR10/PR11: promo berbatas dikunci dulu, baru sisanya dibaca (dua checkout bersamaan jadi berurutan).
+  await kunciPromoBerbatas(tx, tanggal);
   const kandidat = await kandidatPromo(
     tx,
     tanggal,
@@ -559,6 +565,7 @@ export async function hitungPromoCheckout(
     [...new Set(rows.map((r) => r.idKategori))],
     await pembeliPromo(tx, idPelanggan),
   );
+  const sisaPromo = petaSisaPromo(kandidat);
   return rows.map((r, i) => {
     const b = bruto[i] ?? 0;
     const brg = brgPer.get(r.idBarang);
@@ -581,7 +588,9 @@ export async function hitungPromoCheckout(
       },
       totalBruto,
       tanggal,
+      sisaPromo,
     );
+    if (pilih.promo) pakaiSisaPromo(sisaPromo, pilih.promo.id, pilih.potongan);
     return {
       idPromo: pilih.promo?.id ?? null,
       namaPromo: pilih.promo?.nama ?? null,

@@ -141,8 +141,16 @@ export type StatusSuratJalan = (typeof STATUS_SURAT_JALAN)[number];
 export const JENIS_PEMBAYARAN = ['PENUH', 'DP', 'PELUNASAN'] as const;
 export type JenisPembayaran = (typeof JENIS_PEMBAYARAN)[number];
 
-export const METODE_PEMBAYARAN = ['TUNAI', 'TRANSFER', 'EDC'] as const;
+export const METODE_PEMBAYARAN = ['TUNAI', 'TRANSFER', 'EDC', 'QRIS'] as const;
 export type MetodePembayaran = (typeof METODE_PEMBAYARAN)[number];
+
+/** K-111: jenis rekening toko = metode pembayaran non-tunai yang diterima toko. */
+export const JENIS_REKENING = ['TRANSFER', 'EDC', 'QRIS'] as const;
+export type JenisRekening = (typeof JENIS_REKENING)[number];
+
+/** K-111: hasil pengecekan uang masuk untuk pembayaran non-tunai. */
+export const STATUS_VERIFIKASI = ['BELUM_DICEK', 'SUDAH_MASUK', 'TIDAK_MASUK'] as const;
+export type StatusVerifikasi = (typeof STATUS_VERIFIKASI)[number];
 
 export const STATUS_ITEM = ['NORMAL', 'RETUR_SEBAGIAN', 'RETUR', 'VOID'] as const;
 export type StatusItem = (typeof STATUS_ITEM)[number];

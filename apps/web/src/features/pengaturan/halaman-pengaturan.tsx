@@ -5,7 +5,9 @@ import { usePengaturan } from '@/api/pengaturan';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import { bolehAkses } from '@/lib/menu';
+import { TabPromo } from '../promo/halaman-promo';
 import { FormHarga } from './form-harga';
 import { FormKeamanan } from './form-keamanan';
 import { FormOperasional } from './form-operasional';
@@ -15,22 +17,25 @@ import { KartuLogo } from './kartu-logo';
 import { KartuPrinterStruk } from './kartu-printer-struk';
 import { TabCadangan } from './tab-cadangan';
 import { TabLog } from './tab-log';
+import { TabPembayaran } from './tab-pembayaran';
 import { TabPersetujuan } from './tab-persetujuan';
 
 /**
  * Pengaturan sistem (Admin, Owner). Tab "Log Aktivitas" bila `sistem.log.lihat`, tab "Cadangan" bila
- * `sistem.cadangan.kelola` (docs/04 §4). Tab aktif disimpan di URL (?tab=).
+ * `sistem.cadangan.kelola`, tab "Promo" bila `promo.kelola` (docs/04 §4; promo pindah ke sini di K-110).
+ * Tab aktif disimpan di URL (?tab=).
  */
 export function HalamanPengaturan() {
   const pengguna = usePengguna();
   const pengaturan = usePengaturan();
   const bolehLihatLog = bolehAkses(pengguna, 'sistem.log.lihat');
   const bolehCadangan = bolehAkses(pengguna, 'sistem.cadangan.kelola');
+  const bolehPromo = bolehAkses(pengguna, 'promo.kelola');
   const [url, setUrl] = useSearchParams();
   const tab = url.get('tab') ?? 'profil';
 
   return (
-    <div className="max-w-5xl space-y-4 p-6">
+    <div className={cn('space-y-4 p-6', tab !== 'promo' && 'max-w-5xl')}>
       <div>
         <h1 className="text-xl font-semibold text-slate-900">Pengaturan sistem</h1>
         <p className="text-sm text-slate-500">
@@ -57,7 +62,9 @@ export function HalamanPengaturan() {
             <TabsTrigger value="struk">Struk &amp; printer</TabsTrigger>
             <TabsTrigger value="penomoran">Penomoran</TabsTrigger>
             <TabsTrigger value="operasional">Operasional</TabsTrigger>
+            <TabsTrigger value="pembayaran">Pembayaran</TabsTrigger>
             <TabsTrigger value="harga">Harga &amp; diskon</TabsTrigger>
+            {bolehPromo && <TabsTrigger value="promo">Promo</TabsTrigger>}
             <TabsTrigger value="keamanan">Keamanan</TabsTrigger>
             <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>
             {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
@@ -81,9 +88,17 @@ export function HalamanPengaturan() {
           <TabsContent value="operasional">
             <FormOperasional pengaturan={pengaturan.data} />
           </TabsContent>
+          <TabsContent value="pembayaran">
+            <TabPembayaran />
+          </TabsContent>
           <TabsContent value="harga">
             <FormHarga pengaturan={pengaturan.data} />
           </TabsContent>
+          {bolehPromo && (
+            <TabsContent value="promo">
+              <TabPromo />
+            </TabsContent>
+          )}
           <TabsContent value="keamanan">
             <FormKeamanan pengaturan={pengaturan.data} />
           </TabsContent>

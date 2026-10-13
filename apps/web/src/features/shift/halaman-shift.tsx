@@ -23,6 +23,7 @@ import {
 } from '@/api/penjualan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { InputRupiah } from '@/components/input-rupiah';
+import { ButirPenjelasan, Penjelasan } from '@/components/penjelasan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -41,6 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatTanggal, formatWaktu } from '@/lib/format';
 import { LABEL_JENIS_KAS } from '@/lib/label';
 import { cn } from '@/lib/utils';
+import { TabNonTunai } from './tab-nontunai';
 
 function Angka({ label, nilai, tebal }: { label: string; nilai: number; tebal?: boolean }) {
   return (
@@ -177,6 +179,41 @@ function FormKas() {
   );
 }
 
+/** Tanda shift BUKA: biasa, lewat jam tutup, atau dari hari sebelumnya (K-109). Status dari API. */
+function TandaBuka({ s }: { s: Pick<BarisShift, 'waktu'> }) {
+  if (s.waktu?.terlewat) {
+    return (
+      <Badge
+        variant="outline"
+        className="border-red-300 bg-red-50 text-red-700"
+        title="Shift dari hari sebelumnya yang belum ditutup. Penjualan dan pencatatan uang pemiliknya terkunci sampai shift ini ditutup."
+      >
+        Terlewat, belum ditutup
+      </Badge>
+    );
+  }
+  if (s.waktu?.lewatJadwal) {
+    return (
+      <Badge
+        variant="outline"
+        className="border-amber-300 bg-amber-50 text-amber-800"
+        title={`Sudah melewati jam tutup ${s.waktu.jadwalTutup ?? ''}. Segera hitung uang di laci dan tutup shift.`}
+      >
+        Buka, lewat jam tutup
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      variant="outline"
+      className="border-emerald-200 bg-emerald-50 text-emerald-700"
+      title="Shift masih berjalan."
+    >
+      Buka
+    </Badge>
+  );
+}
+
 /** K4: blind count — uang fisik diinput sebelum angka sistem tampil. */
 function FormTutup({
   idShift,
@@ -307,15 +344,20 @@ function ShiftSaya() {
       <Card className="gap-3 p-5">
         <div className="flex items-baseline justify-between">
           <h2 className="font-semibold">
-            Shift {s.nomor}{' '}
-            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-              Buka
-            </Badge>
+            Shift {s.nomor} <TandaBuka s={{ waktu: s }} />
           </h2>
           <span className="text-sm text-slate-500">
             dibuka {formatWaktu(s.waktuBuka)} · modal {formatRupiah(s.modalAwal)}
+            {s.jadwalTutup && ` · jadwal tutup ${s.jadwalTutup}`}
           </span>
         </div>
+        {s.terlewat && (
+          <p className="rounded-md border border-red-300 bg-red-50 p-2 text-sm text-red-800">
+            Shift ini dari tanggal {formatTanggal(s.tanggalOperasional)} dan belum ditutup. Selama
+            belum ditutup Anda tidak bisa mencatat penjualan atau kas. Hitung uang di laci, isi di
+            kotak <b>Tutup shift & clerical check</b> di kanan, lalu buka shift baru.
+          </p>
+        )}
         <h3 className="text-sm font-semibold text-slate-700">
           Kas masuk / keluar (selain penjualan)
         </h3>
@@ -332,6 +374,10 @@ function ShiftSaya() {
 
 function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
   const d = useDetailShift(id).data;
+  const saya = usePengguna();
+  // K6: pemilik shift, atau pemegang `kas.shift.lihat_semua` (kasir lupa menutup), boleh menutup.
+  const bolehTutup =
+    d?.status === 'BUKA' && (d.idKasir === saya.id || saya.izin.includes('kas.shift.lihat_semua'));
   return (
     <Dialog open onOpenChange={(b) => !b && onTutup()}>
       <DialogContent className="sm:max-w-lg">
@@ -356,6 +402,24 @@ function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
               </div>
             ) : null}
             <DaftarKas d={d} />
+            {bolehTutup && (
+              <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                <h3 className="text-sm font-semibold text-amber-900">
+                  Tutup shift ini{d.idKasir !== saya.id ? ` (milik ${d.namaKasir})` : ''}
+                </h3>
+                {d.idKasir !== saya.id && (
+                  <p className="text-xs text-amber-900">
+                    Dipakai bila kasirnya lupa menutup atau tidak ada di toko. Hitung sendiri uang
+                    di laci kasir itu lalu isi di bawah. Shift tercatat ditutup oleh Anda; kasir itu
+                    bisa membuka shift baru sesudahnya.
+                  </p>
+                )}
+                <FormTutup
+                  idShift={d.id}
+                  onSelesai={() => toast.success(`Shift ${d.nomor} ditutup.`)}
+                />
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
@@ -365,11 +429,20 @@ function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
 
 function Riwayat() {
   const semua = usePengguna().izin.includes('kas.shift.lihat_semua');
+  const [url] = useSearchParams();
   const [halaman, setHalaman] = useState(1);
   const [selisih, setSelisih] = useState(false);
+  // Dibuka dari notifikasi "Shift perlu ditutup" (…?perlu=1): langsung disaring.
+  const [perlu, setPerlu] = useState(url.get('perlu') === '1');
   const [buka, setBuka] = useState<number | null>(null);
   const perHalaman = useBarisPerHalaman();
-  const daftar = useDaftarShift({ status: null, adaSelisih: selisih, halaman, perHalaman });
+  const daftar = useDaftarShift({
+    status: null,
+    adaSelisih: selisih,
+    perluDitutup: perlu,
+    halaman,
+    perHalaman,
+  });
   const kolom: KolomTabel<BarisShift>[] = [
     {
       kunci: 'nomor',
@@ -429,9 +502,7 @@ function Riwayat() {
             {formatRupiah(s.clerical.selisih)}
           </span>
         ) : (
-          <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-            Buka
-          </Badge>
+          <TandaBuka s={s} />
         ),
     },
     {
@@ -454,6 +525,22 @@ function Riwayat() {
           />
           Hanya yang ada selisih
         </label>
+        <label className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={perlu}
+            onChange={(e) => {
+              setPerlu(e.target.checked);
+              setHalaman(1);
+            }}
+          />
+          Hanya yang perlu ditutup (lewat jam tutup atau lewat hari)
+        </label>
+        {semua && (
+          <span className="ml-auto text-xs text-slate-500">
+            Klik nomor shift untuk melihat rinciannya; shift yang masih buka bisa ditutup dari sana.
+          </span>
+        )}
       </div>
       <DataTable
         kolom={kolom}
@@ -474,13 +561,60 @@ function Riwayat() {
 /** Kas › Shift & Clerical Check (docs/05 §10, mockup Clerical Check). */
 export function HalamanShift() {
   const [url, setUrl] = useSearchParams();
-  const semua = usePengguna().izin.includes('kas.shift.lihat_semua');
-  const tab = url.get('tab') === 'riwayat' ? 'riwayat' : 'saya';
+  const izin = usePengguna().izin;
+  const semua = izin.includes('kas.shift.lihat_semua');
+  // K-111: pengecekan uang masuk non-tunai, pasangan clerical check untuk uang yang tidak lewat laci.
+  const bolehCek = izin.includes('kas.nontunai.verifikasi');
+  const diminta = url.get('tab');
+  const tab =
+    diminta === 'riwayat' ? 'riwayat' : diminta === 'nontunai' && bolehCek ? 'nontunai' : 'saya';
   return (
     <div className="space-y-4 p-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Shift & Clerical Check</h1>
-        <p className="text-sm text-slate-500">Rekonsiliasi uang fisik dengan catatan sistem.</p>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-80">
+          <h1 className="text-xl font-semibold text-slate-900">Shift & Clerical Check</h1>
+          <p className="text-sm text-slate-500">
+            Rekonsiliasi uang dengan catatan sistem: uang tunai di laci (shift) dan uang non-tunai
+            di rekening.
+          </p>
+        </div>
+        <Penjelasan judul="Cara kerja shift dan clerical check">
+          <ButirPenjelasan>
+            <li>
+              <b>Shift</b> = masa seorang kasir memegang laci uang. Dibuka dengan mengisi modal awal
+              di laci; semua uang tunai yang diterima atau dikeluarkan kasir itu tercatat di
+              shiftnya.
+            </li>
+            <li>
+              <b>Tutup shift = clerical check</b>: kasir menghitung uang di laci dan mengisinya
+              tanpa melihat angka sistem. Setelah ditutup barulah sistem menampilkan saldo menurut
+              catatan dan <b>selisih</b>nya. Selisih wajib diberi keterangan.
+            </li>
+            <li>
+              <b>Sistem tidak pernah menutup shift sendiri</b>, karena menutup butuh hitungan uang
+              sungguhan. Yang dilakukan sistem adalah mengingatkan dan, bila perlu, mengunci.
+            </li>
+            <li>
+              <b>Jadwal shift</b> (diatur Admin/Owner di Pengaturan › Operasional): 15 menit sebelum
+              jam tutup muncul pengingat; setelah jam tutup lewat muncul peringatan kuning dan
+              Admin/Owner diberi tahu lewat lonceng dan Telegram/email. Penjualan masih bisa.
+            </li>
+            <li>
+              <b>Shift terlewat</b> = shift dari hari sebelumnya yang belum ditutup (tanda merah).
+              Pemiliknya <b>tidak bisa mencatat penjualan atau kas</b> sampai shift itu ditutup,
+              supaya satu shift tidak memuat uang beberapa hari.
+            </li>
+            <li>
+              <b>Kasir lupa menutup atau tidak ada di toko?</b> Admin/Owner membuka tab Semua shift,
+              mengeklik nomor shiftnya, menghitung uang di laci kasir itu, lalu mengisi bagian{' '}
+              <i>Tutup shift ini</i>. Shift tercatat ditutup oleh Admin/Owner tersebut.
+            </li>
+            <li>
+              Shift yang sudah ditutup tidak bisa dibuka lagi. Koreksi dicatat di shift berikutnya
+              lewat kas masuk/keluar lain dengan keterangan.
+            </li>
+          </ButirPenjelasan>
+        </Penjelasan>
       </div>
       <Tabs
         value={tab}
@@ -489,6 +623,7 @@ export function HalamanShift() {
         <TabsList>
           <TabsTrigger value="saya">Shift saya</TabsTrigger>
           <TabsTrigger value="riwayat">{semua ? 'Semua shift' : 'Riwayat'}</TabsTrigger>
+          {bolehCek && <TabsTrigger value="nontunai">Cek uang non-tunai</TabsTrigger>}
         </TabsList>
         <TabsContent value="saya">
           <ShiftSaya />
@@ -496,6 +631,11 @@ export function HalamanShift() {
         <TabsContent value="riwayat">
           <Riwayat />
         </TabsContent>
+        {bolehCek && (
+          <TabsContent value="nontunai">
+            <TabNonTunai />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
