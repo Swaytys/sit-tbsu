@@ -54,6 +54,10 @@ export const DAFTAR_IZIN = {
   'kas.shift.kelola_sendiri':
     'Buka/tutup shift sendiri, kas masuk/keluar dan clerical shift sendiri',
   'kas.shift.lihat_semua': 'Lihat semua shift dan clerical, buka kembali shift',
+  'kas.rekening.lihat':
+    'Melihat daftar rekening/EDC/QRIS toko untuk dipilih saat mencatat pembayaran atau refund',
+  'kas.nontunai.verifikasi':
+    'Mengecek uang masuk pembayaran non-tunai (transfer, EDC, QRIS) dan menandai hasilnya',
   // Laporan dan dashboard
   'dashboard.dasar': 'Kartu antrean order, pengiriman aktif, peringatan stok, aksi cepat',
   'dashboard.omzet': 'Kartu penjualan hari ini, grafik penjualan',

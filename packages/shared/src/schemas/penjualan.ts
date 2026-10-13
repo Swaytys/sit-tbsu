@@ -21,6 +21,7 @@ import {
   type StatusPengiriman,
   type StatusSuratJalan,
   type StatusTransaksi,
+  type StatusVerifikasi,
 } from '../enums';
 import type { RingkasAtribut } from './barang';
 import { skemaQtyPositif, skemaTanggal } from './persediaan';
@@ -343,6 +344,11 @@ export const skemaPembayaran = z
       .default(null),
     /** TUNAI: uang yang diserahkan pembeli (kembalian dihitung server). */
     uangDiterima: z.preprocess(kosongJadiNull, skemaRupiah.nullable()).default(null),
+    /**
+     * K-111: rekening toko tujuan (dari daftar Pengaturan › Pembayaran) untuk pembayaran non-tunai. Bila
+     * diisi, `rekening` diabaikan dan diisi server dari label rekening itu.
+     */
+    idRekening: z.number().int().positive().nullable().default(null),
     rekening: teksOpsional(60, 'Rekening maksimal 60 karakter.'),
     referensi: teksOpsional(60, 'Referensi maksimal 60 karakter.'),
     catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
@@ -360,11 +366,11 @@ export const skemaPembayaran = z
         message: 'Uang diterima kurang dari nominal.',
       });
     }
-    if (p.metode !== 'TUNAI' && !p.rekening) {
+    if (p.metode !== 'TUNAI' && !p.rekening && p.idRekening === null) {
       ctx.addIssue({
         code: 'custom',
         path: ['rekening'],
-        message: 'Rekening tujuan wajib diisi untuk transfer/EDC.',
+        message: 'Pilih rekening tujuan untuk pembayaran transfer, EDC, atau QRIS.',
       });
     }
   });
@@ -480,6 +486,9 @@ export type PembayaranPenjualan = {
   rekening: string | null;
   referensi: string | null;
   namaPengguna: string;
+  /** K-111: hasil pengecekan uang masuk; `null` untuk tunai. */
+  statusVerifikasi: StatusVerifikasi | null;
+  catatanVerifikasi: string | null;
 };
 
 export type DetailPenjualan = BarisDaftarPenjualan & {
@@ -510,7 +519,22 @@ export const skemaBukaShift = z.object({
   modalAwal: z.preprocess((v) => (v === '' || v == null ? 0 : v), skemaRupiah),
 });
 
-export type ShiftAktif = {
+/**
+ * Keadaan waktu sebuah shift BUKA (K-109), dihitung server saat diminta.
+ * `terlewat`: shift dari hari operasional sebelumnya yang belum ditutup; selama itu pemiliknya tidak bisa
+ * mencatat penjualan atau uang sampai shift ditutup.
+ */
+export type WaktuShift = {
+  /** Jadwal yang berlaku untuk shift ini, dibekukan saat shift dibuka (`HH:mm`); `null` = tanpa jadwal. */
+  jadwalBuka: string | null;
+  jadwalTutup: string | null;
+  /** Saat jam tutup shift ini (ISO); `null` bila tanpa jadwal tutup. */
+  batasTutup: string | null;
+  lewatJadwal: boolean;
+  terlewat: boolean;
+};
+
+export type ShiftAktif = WaktuShift & {
   id: number;
   nomor: string;
   tanggalOperasional: string;

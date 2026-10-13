@@ -206,19 +206,10 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     tipe: 'ANGKA',
     deskripsi: 'Jatuh tempo piutang bila term pelanggan 0 (P7)',
   },
-  // K-073: isian bawaan layar kasir
-  {
-    kode: 'rekening_transfer_default',
-    nilai: '',
-    tipe: 'TEKS',
-    deskripsi: 'Rekening tujuan bawaan pembayaran transfer',
-  },
-  {
-    kode: 'rekening_edc_default',
-    nilai: '',
-    tipe: 'TEKS',
-    deskripsi: 'Mesin EDC bawaan pembayaran kartu',
-  },
+  // K-109: jadwal shift toko (kosong = tanpa jadwal); dibekukan ke tiap shift saat dibuka
+  { kode: 'shift_jam_buka', nilai: '', tipe: 'TEKS', deskripsi: 'Jam buka shift (HH:mm)' },
+  { kode: 'shift_jam_tutup', nilai: '', tipe: 'TEKS', deskripsi: 'Jam tutup shift (HH:mm)' },
+  // Rekening bawaan layar kasir (K-073) sejak K-111 ada di tabel rekening_toko (Pengaturan › Pembayaran).
 ];
 
 /** Akun demo per peran (hanya NODE_ENV=development; docs/03 §6, K-021). */

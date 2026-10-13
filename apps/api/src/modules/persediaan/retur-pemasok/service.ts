@@ -15,7 +15,7 @@ import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tanggalOperasional } from '../../../lib/waktu';
 import { statusHutangDari } from '../../hutang/service';
 import * as hutangRepo from '../../hutang/repo';
-import { catatKas, shiftBuka } from '../../kas/shift/service';
+import { catatKas, shiftUntukCatat } from '../../kas/shift/service';
 import { kunciBarangHarga } from '../../master/harga/repo';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
@@ -143,7 +143,7 @@ export async function simpanReturPemasok(
       }
     }
     const refundTunai = input.penyelesaian === 'REFUND' && input.metodeRefund === 'TUNAI';
-    if (refundTunai && total > 0 && !(await shiftBuka(tx, pelaku.id, true))) {
+    if (refundTunai && total > 0 && !(await shiftUntukCatat(tx, pelaku.id))) {
       throw new AppError(
         'KONFLIK',
         'Uang kembali tunai masuk ke laci shift Anda: buka shift dulu, atau pilih transfer.',

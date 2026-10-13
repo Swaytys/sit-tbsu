@@ -52,6 +52,22 @@ bulanan). Butir baru:
 | 32 | **Cetak langsung (Web Serial)**: izin port diberikan pengguna per komputer; yang dikirim hanya isi struk; memilih printer lagi mencabut izin port lama | ✅ | `lib/printer-thermal.ts` (K-103, K-105) |
 | 33 | **Uji saluran dan skrip uji mandiri** tidak membocorkan rahasia: jawaban uji hanya memuat pesan galat yang sudah disaring (tanpa token/sandi); `scripts/uji/*.py` meminta rahasia saat dijalankan dan tidak menyimpannya | ✅ | `sistem/saluran/service.ts` `ujiSaluran`, tes "uji per saluran" (K-105) |
 
+## Review ketiga — 12 Oktober 2026 (tinjauan pemilik, K-106–K-111)
+
+Butir 1–33 diperiksa ulang terhadap perubahan K-106–K-111 dan tetap terpenuhi. Butir baru:
+
+| # | Area | Status | Bukti / catatan |
+|---|---|---|---|
+| 34 | **Data akun sebelumnya tidak terbawa ke akun berikutnya** di peramban yang sama: cache data dikosongkan setiap login dan masuk cepat | ✅ | `gantiPengguna` di `apps/web/src/api/auth.ts` (K-106). Data di server tidak pernah tertukar; yang tampil salah adalah salinan di peramban |
+| 35 | **Ubah/nonaktif pelanggan oleh Kasir/Staf** butuh kode sekali pakai atasan; kode terikat **sidik** (SHA-256) dari pelanggan + isian yang dimintakan, sehingga isian yang diubah setelah kode diminta ditolak | ✅ | `master/pelanggan/service.ts` (`sidikPerubahan`), `permintaan_persetujuan.sidik`; tes `mitra.test.ts` "K-107" |
+| 36 | **Term, limit kredit, dan golongan** pelanggan tetap hanya bisa diubah pemegang `master.pelanggan.atur_kredit`, dengan atau tanpa kode | ✅ | tes `mitra.test.ts` (403 untuk Staf/Kasir) |
+| 37 | **Variabel khusus server tes** (`SALURAN_TIRUAN`, `LOGIN_MAKS_PER_MENIT`) tidak berpengaruh di produksi: pengiriman selalu sungguhan dan batas login selalu 20/menit | ✅ | `sistem/saluran/service.ts`, `middleware/batas-percobaan.ts` (keduanya memeriksa `NODE_ENV`) |
+| 38 | **Shift terlewat mengunci pencatatan uang**: satu shift tidak bisa memuat uang beberapa hari; selisih kas diketahui paling lambat keesokan harinya | ✅ | `kas/shift/service.ts` (`shiftUntukCatat`), tes `shift.test.ts` "K9" |
+| 39 | **Rekening tujuan pembayaran tidak bisa diisi sembarang**: kasir memilih dari daftar; API menolak rekening nonaktif atau beda jenis dengan metodenya | ✅ | `kas/rekening/service.ts` (`rekeningUntukBayar`), tes `rekening.test.ts` "K13" |
+| 40 | **Pengecekan uang non-tunai** hanya oleh pemegang `kas.nontunai.verifikasi` (Admin, Owner); Kasir ditolak (403); tiap hasil cek dicatat di log beserta pelakunya; *Tidak masuk* wajib catatan | ✅ | `kas/nontunai`, tes `rekening.test.ts` "K14" |
+| 41 | **Anggaran promo tidak bisa terlampaui oleh dua kasir yang membayar bersamaan**: promo berbatas dikunci (`FOR UPDATE`, urut id) sebelum sisanya dibaca saat checkout | ✅ | `promo/repo.ts` (`kunciPromoBerbatas`), tes `promo.test.ts` "PR10", "PR11" |
+| 42 | **Pengecekan uang masuk dilakukan manusia**: tanda *Sudah masuk* bisa keliru bila mutasi tidak benar-benar dicocokkan | ⚠️ | Diterima (K-111): tidak ada pemantauan otomatis yang gratis dan resmi. Tiap tanda tercatat siapa dan kapan; ringkasan per rekening menampilkan angka yang harus sama dengan mutasi. Otomatis lewat payment gateway: docs/08 A12 |
+
 Alat yang dipakai sekali jalan (tidak ditambahkan sebagai dependensi): `pnpm audit`, `knip` (kode mati),
 `madge --circular` (impor melingkar).
 
@@ -69,3 +85,4 @@ Alat yang dipakai sekali jalan (tidak ditambahkan sebagai dependensi): `pnpm aud
 - 2026-10-10 — Review kedua setelah Fase 9–12: butir 21–28 (K-100).
 - 2026-10-11 — Butir 21–22 diperbarui dan 29–32 ditambahkan: kode sekali pakai, rahasia saluran, cetak langsung (K-102, K-103).
 - 2026-10-11 — Butir 32 diperbarui dan 33 ditambahkan (K-105).
+- 2026-10-12 — Review ketiga: butir 34–42 (K-106, K-107, K-109, K-110, K-111).

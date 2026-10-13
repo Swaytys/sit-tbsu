@@ -45,6 +45,8 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | PR7 | Struk mencetak "Promo <nama>" di bawah baris; invoice, detail penjualan, dan Laporan Detail Invoice menampilkan potongan promo. Laporan Promo: ringkasan per promo (transaksi, baris, bruto, potongan, bersih, rasio) dan rincian per barang. |
 | PR8 | Yang tidak ada: beli X gratis Y, kupon, poin, promo bertingkat. |
 | PR9 | **K-098: promo bertumpuk di atas harga tier.** Urutan hitung baris: harga tier (H8) → bruto → promo dihitung dari harga tier baris itu (PR3) → diskon manual (D1). Baris bertier pilihan kasir juga mendapat promo. Batas modal PR6 diuji atas harga setelah promo. Saat checkout order (PR5), promo dievaluasi ulang dari harga yang tersimpan di baris order. Nilai belanja penentu tier (H8) tidak dikurangi promo. Menggantikan K-097 ("tier qty dan promo tidak digabung"). |
+| PR10 | **[K-110] Anggaran promo.** `promo.anggaran` (rupiah; NULL = tanpa batas) = jumlah seluruh potongan yang boleh diberikan promo. *Terpakai* = Σ `diskon_promo` baris penjualan yang memakai promo itu, tidak termasuk baris VOID dan penjualan VOID (void mengembalikan anggaran; retur tidak). Potongan sebuah baris dibatasi sisa anggaran: bila sisa < potongan penuh, baris dipotong sebesar sisanya; bila sisa 0, promo gugur dan kandidat berikutnya (PR4) dipakai. Sisa dibagi ke baris satu transaksi secara berurutan. Saat checkout promo berbatas dikunci (`FOR UPDATE`, urut id) sebelum sisanya dibaca. Anggaran boleh diubah setelah promo dipakai, tetapi tidak di bawah yang terpakai. |
+| PR11 | **[K-110] Batas per pembeli.** `promo.maks_per_pembeli` (rupiah; NULL = tanpa batas) = potongan paling banyak untuk satu pembeli dari promo itu. Pelanggan terdata: dihitung dari semua transaksinya (bukan VOID). Pembeli umum: per transaksi. Bila `anggaran` juga diisi, `maks_per_pembeli < anggaran` (CHECK DB dan validasi). Sisa yang berlaku untuk sebuah transaksi = yang terkecil dari sisa anggaran (PR10) dan sisa batas pembeli. |
 
 ## 4. Piutang pelanggan (Fase 5 dasar, Fase 10 limit dan umur)
 
@@ -138,3 +140,4 @@ Konfigurasi: `dasar_markup`, `pembulatan_harga`, `batas_diskon_persen_<PERAN>`, 
   penerimaan pertama); satu barang beberapa baris beda satuan (K-095).
 - 2026-10-10 — PT6: melampaui limit kredit dengan persetujuan atasan di tempat (K-101, keputusan pemilik).
 - 2026-10-11 — PT6: persetujuan dengan kode sekali pakai (K-102); limit kredit bawaan pelanggan baru (K-104).
+- 2026-10-12 — PR10 anggaran promo, PR11 batas per pembeli (K-110).

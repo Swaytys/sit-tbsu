@@ -19,6 +19,15 @@ export function jamLokal(waktu: Date): string {
   return format(new TZDate(waktu, ZONA_TOKO), 'HH:mm');
 }
 
+/** Saat `jam` (`HH:mm`) pada `tanggal` (`YYYY-MM-DD`) menurut zona toko, mis. jam tutup shift hari itu. */
+export function saatLokal(tanggal: string, jam: string): Date {
+  const [tahun, bulan, hari] = tanggal.split('-').map(Number);
+  const [j, m] = jam.split(':').map(Number);
+  return new Date(
+    new TZDate(tahun ?? 1970, (bulan ?? 1) - 1, hari ?? 1, j ?? 0, m ?? 0, ZONA_TOKO).getTime(),
+  );
+}
+
 export function tambahMenit(waktu: Date, menit: number): Date {
   return addMinutes(waktu, menit);
 }

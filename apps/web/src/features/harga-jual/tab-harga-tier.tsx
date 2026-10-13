@@ -332,7 +332,10 @@ export function TabHargaTier({ tierAktif }: { tierAktif: TingkatHarga[] }) {
               </li>
               <li>
                 Harga khusus untuk barang, pelanggan, jumlah beli, atau masa tertentu dibuat di menu{' '}
-                <Link to="/promo" className="font-medium text-blue-700 hover:underline">
+                <Link
+                  to="/pengaturan?tab=promo"
+                  className="font-medium text-blue-700 hover:underline"
+                >
                   Promo
                 </Link>
                 ; potongannya dihitung dari harga tier.

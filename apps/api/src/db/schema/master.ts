@@ -428,6 +428,16 @@ export const promo = pgTable(
     /** Belanja pelanggan (neto) dalam `hari_belanja` hari terakhir minimal sekian rupiah. */
     minBelanjaPelanggan: uang('min_belanja_pelanggan'),
     hariBelanja: integer('hari_belanja'),
+    /**
+     * K-110 (migrasi 0017): anggaran promo = jumlah seluruh potongan yang boleh diberikan promo ini
+     * (rupiah); NULL = tanpa batas. Yang sudah terpakai dihitung dari baris penjualan (bukan void).
+     */
+    anggaran: uang('anggaran'),
+    /**
+     * K-110: potongan paling banyak untuk satu pembeli dari promo ini; NULL = tanpa batas. Pelanggan
+     * terdata: dijumlah dari semua transaksinya; pembeli umum: per transaksi.
+     */
+    maksPerPembeli: uang('maks_per_pembeli'),
   },
   (t) => [
     foreignKey({
@@ -436,6 +446,11 @@ export const promo = pgTable(
       foreignColumns: [golonganPelanggan.id],
     }),
     check('chk_promo_sasaran_pembeli', dalamDaftar('sasaran_pembeli', SASARAN_PEMBELI)),
+    check(
+      'chk_promo_anggaran',
+      sql`(anggaran is null or anggaran > 0) and (maks_per_pembeli is null or maks_per_pembeli > 0)
+        and (anggaran is null or maks_per_pembeli is null or maks_per_pembeli < anggaran)`,
+    ),
     check('chk_promo_golongan', sql`(sasaran_pembeli = 'GOLONGAN') = (id_golongan is not null)`),
     check(
       'chk_promo_belanja_pelanggan',

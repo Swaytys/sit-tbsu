@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { MetaHalaman } from '../api';
 import { STATUS_SHIFT, type ArahKas, type JenisKasShift, type StatusShift } from '../enums';
+import type { WaktuShift } from './penjualan';
 import { skemaTanggal } from './persediaan';
 import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
 
@@ -60,6 +61,11 @@ export type DataTutupShift = z.output<typeof skemaTutupShift>;
 
 export const skemaCariShift = skemaHalaman.extend({
   status: z.enum(STATUS_SHIFT).optional(),
+  /** Hanya shift BUKA dari hari sebelumnya atau yang sudah lewat jam tutupnya (K-109). */
+  perluDitutup: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
   idKasir: z.coerce.number().int().positive().optional(),
   dari: skemaTanggal('Tanggal awal').optional(),
   sampai: skemaTanggal('Tanggal akhir').optional(),
@@ -119,6 +125,8 @@ export type BarisShift = {
   status: StatusShift;
   /** Hanya untuk shift TUTUP. */
   clerical: HasilClerical | null;
+  /** Hanya untuk shift BUKA (K-109); `null` bila sudah TUTUP. */
+  waktu: WaktuShift | null;
 };
 
 export type DaftarShift = { data: BarisShift[]; meta: MetaHalaman };

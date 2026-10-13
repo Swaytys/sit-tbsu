@@ -10,7 +10,8 @@ import { pembayaranPenjualan, penjualan } from '../../db/schema';
 import { AppError } from '../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { sekarang, tanggalOperasional } from '../../lib/waktu';
-import { shiftBuka } from '../kas/shift/service';
+import { rekeningUntukBayar } from '../kas/rekening/service';
+import { shiftUntukCatat } from '../kas/shift/service';
 import { ambilTeks } from '../sistem/konfigurasi/service';
 import { catatLog } from '../sistem/log-aktivitas';
 import { terbitkanNomor } from '../sistem/penomoran';
@@ -58,7 +59,7 @@ export async function catatPembayaran(
   let nilai: NilaiTagihan = { ...pj };
   if (daftar.length === 0) return { ...nilai, statusPembayaran: statusPembayaran(nilai) };
 
-  const shift = await shiftBuka(tx, pelaku.id, true);
+  const shift = await shiftUntukCatat(tx, pelaku.id);
   const wajibShift = (await ambilTeks('checkout_wajib_shift', 'true', tx)) === 'true';
   const tanggal = tanggalOperasional();
   for (const [i, p] of daftar.entries()) {
@@ -96,6 +97,13 @@ export async function catatPembayaran(
         kolom: { [`pembayaran.${i}.uangDiterima`]: ['Uang diterima kurang dari nominal.'] },
       });
     }
+    // K-111: rekening tujuan non-tunai dipilih dari daftar rekening toko (label disalin ke pembayaran);
+    // teks bebas hanya untuk toko yang belum mendaftarkan rekeningnya.
+    const tunai = p.metode === 'TUNAI';
+    const rekening =
+      tunai || p.idRekening === null
+        ? null
+        : await rekeningUntukBayar(tx, p.idRekening, p.metode, `pembayaran.${i}.rekening`);
     const nomor = await terbitkanNomor(tx, 'BYR', tanggal);
     await tx.insert(pembayaranPenjualan).values({
       nomor,
@@ -108,9 +116,12 @@ export async function catatPembayaran(
       nominal,
       uangDiterima,
       kembalian: uangDiterima === null ? 0 : uangDiterima - nominal,
-      rekening: p.metode === 'TUNAI' ? null : (p.rekening ?? null),
-      referensi: p.metode === 'TUNAI' ? null : (p.referensi ?? null),
+      idRekening: rekening?.id ?? null,
+      rekening: tunai ? null : (rekening?.nama ?? p.rekening ?? null),
+      referensi: tunai ? null : (p.referensi ?? null),
       catatan: p.catatan ?? null,
+      // Uang non-tunai belum tentu sudah sampai: menunggu dicek atasan (K-111).
+      statusVerifikasi: tunai ? null : 'BELUM_DICEK',
     });
     await catatLog(tx, {
       aksi: 'PEMBAYARAN_CATAT',

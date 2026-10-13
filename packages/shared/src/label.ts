@@ -3,6 +3,7 @@ import type {
   JenisMutasi,
   JenisPotongan,
   JenisPenjualan,
+  JenisRekening,
   JenisPenyesuaian,
   KondisiRetur,
   MetodePembayaran,
@@ -14,6 +15,7 @@ import type {
   StatusBerlakuPromo,
   StatusItem,
   StatusPembayaran,
+  StatusVerifikasi,
   StatusPersetujuan,
   StatusStok,
   StatusTransaksi,
@@ -67,6 +69,19 @@ export const LABEL_METODE_PEMBAYARAN: Record<MetodePembayaran, string> = {
   TUNAI: 'Tunai',
   TRANSFER: 'Transfer',
   EDC: 'EDC',
+  QRIS: 'QRIS',
+};
+
+export const LABEL_JENIS_REKENING: Record<JenisRekening, string> = {
+  TRANSFER: 'Rekening bank (transfer)',
+  EDC: 'Mesin EDC (kartu)',
+  QRIS: 'QRIS',
+};
+
+export const LABEL_STATUS_VERIFIKASI: Record<StatusVerifikasi, string> = {
+  BELUM_DICEK: 'Belum dicek',
+  SUDAH_MASUK: 'Sudah masuk',
+  TIDAK_MASUK: 'Tidak masuk',
 };
 
 export const LABEL_METODE_PEMBAYARAN_PEMASOK: Record<MetodePembayaranPemasok, string> = {

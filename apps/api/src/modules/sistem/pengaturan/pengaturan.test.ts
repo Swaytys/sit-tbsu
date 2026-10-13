@@ -190,23 +190,19 @@ describe('pengaturan › tampilan toko dan logo (K-065)', () => {
     expect(salah.status).toBe(400);
   });
 
-  it('K-073 rekening bawaan transfer/EDC disimpan Admin dan dibaca layar kasir', async () => {
+  it('K-109 jadwal shift: format JJ:MM, tutup setelah buka, boleh dikosongkan', async () => {
     const sekarang = await json<{ data: { operasional: Record<string, unknown> } }>(
       await minta('/api/pengaturan', { cookie: admin.cookie }),
     );
-    const res = await ubah({
-      operasional: {
-        ...sekarang.data.operasional,
-        rekeningTransfer: 'BCA 1234567890',
-        rekeningEdc: 'EDC BRI',
-      },
-    });
+    const simpan = (ubahan: Record<string, unknown>) =>
+      ubah({ operasional: { ...sekarang.data.operasional, ...ubahan } });
+    expect((await simpan({ shiftJamBuka: '9', shiftJamTutup: '17:30' })).status).toBe(400);
+    expect((await simpan({ shiftJamBuka: '18:00', shiftJamTutup: '17:30' })).status).toBe(400);
+    const res = await simpan({ shiftJamBuka: '09:00', shiftJamTutup: '17:30' });
     expect(res.status).toBe(200);
-    const kasir = await sesiUji('KASIR');
-    const t = await json<{ data: { rekeningTransfer: string; rekeningEdc: string } }>(
-      await minta('/api/pengaturan/tampilan', { cookie: kasir.cookie }),
-    );
-    expect(t.data).toMatchObject({ rekeningTransfer: 'BCA 1234567890', rekeningEdc: 'EDC BRI' });
+    const d = await json<{ data: { operasional: Record<string, unknown> } }>(res);
+    expect(d.data.operasional).toMatchObject({ shiftJamBuka: '09:00', shiftJamTutup: '17:30' });
+    expect((await simpan({ shiftJamBuka: '', shiftJamTutup: '' })).status).toBe(200);
   });
 
   it('Admin mengunggah logo; semua peran bisa melihat; Kasir tidak bisa mengganti; hapus logo', async () => {

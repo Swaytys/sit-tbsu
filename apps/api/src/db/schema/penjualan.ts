@@ -15,6 +15,7 @@ import {
   JENIS_PENJUALAN,
   METODE_PEMBAYARAN,
   PRIORITAS_ORDER,
+  STATUS_VERIFIKASI,
   STATUS_ITEM,
   STATUS_ORDER,
   STATUS_PEMBAYARAN,
@@ -23,7 +24,7 @@ import {
   STATUS_SURAT_JALAN,
   STATUS_TRANSAKSI,
 } from '@sit/shared';
-import { shiftKasir } from './kas';
+import { rekeningToko, shiftKasir } from './kas';
 import {
   dalamDaftar,
   dibuatPada,
@@ -431,8 +432,37 @@ export const pembayaranPenjualan = pgTable(
     referensi: varchar('referensi', { length: 60 }),
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
+    /**
+     * K-111 (migrasi 0018): rekening toko tujuan pembayaran non-tunai; `rekening` menyimpan labelnya saat itu.
+     * NULL untuk tunai dan untuk pembayaran lama yang rekeningnya diketik.
+     */
+    idRekening: kolomRef('id_rekening'),
+    /**
+     * Kolom status (boleh berubah): hasil pengecekan uang masuk. NULL untuk tunai; non-tunai mulai dari
+     * BELUM_DICEK.
+     */
+    statusVerifikasi: varchar('status_verifikasi', { length: 12, enum: STATUS_VERIFIKASI }),
+    diverifikasiOleh: kolomRef('diverifikasi_oleh'),
+    diverifikasiPada: timestamptz('diverifikasi_pada'),
+    catatanVerifikasi: varchar('catatan_verifikasi', { length: 255 }),
   },
   (t) => [
+    foreignKey({
+      name: 'pembayaran_penjualan_id_rekening_fkey',
+      columns: [t.idRekening],
+      foreignColumns: [rekeningToko.id],
+    }),
+    foreignKey({
+      name: 'pembayaran_penjualan_diverifikasi_oleh_fkey',
+      columns: [t.diverifikasiOleh],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_pembayaran_verifikasi', dalamDaftar('status_verifikasi', STATUS_VERIFIKASI)),
+    check(
+      'chk_pembayaran_verifikasi_metode',
+      sql`(metode = 'TUNAI') = (status_verifikasi is null)`,
+    ),
+    index('idx_pembayaran_verifikasi').on(t.statusVerifikasi),
     foreignKey({
       name: 'pembayaran_penjualan_id_penjualan_fkey',
       columns: [t.idPenjualan],

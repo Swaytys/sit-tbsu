@@ -9,6 +9,9 @@ import { request, type APIRequestContext, type FullConfig } from '@playwright/te
  * mengubah total dan menggagalkan tes yang tidak ada hubungannya. Karena itu tier selain tier dasar
  * dinonaktifkan selama tes berjalan, lalu diaktifkan kembali sesudahnya.
  *
+ * Selain itu shift demo dari hari sebelumnya yang belum ditutup ditutup lebih dulu (lihat
+ * `tutupShiftTerlewat`).
+ *
  * Daftar tier yang dinonaktifkan disimpan di berkas sementara. Bila tes terhenti paksa (mis. kehabisan
  * memori) sehingga pemulihan tidak sempat jalan, penyiapan berikutnya memulihkannya lebih dulu.
  */
@@ -42,10 +45,53 @@ async function pulihkan(api: APIRequestContext): Promise<void> {
   rmSync(BERKAS);
 }
 
+type ShiftTerbuka = { id: number; nomor: string; waktu: { terlewat: boolean } | null };
+
+/**
+ * K-109: shift dari hari sebelumnya yang belum ditutup mengunci penjualan pemiliknya, sehingga akun demo
+ * yang shiftnya tertinggal terbuka (dari tes atau percobaan kemarin) tidak bisa menjual. Shift seperti itu
+ * ditutup di sini oleh Admin dengan uang fisik = saldo sistem (selisih 0) dan keterangan yang jelas.
+ */
+async function tutupShiftTerlewat(api: APIRequestContext): Promise<void> {
+  const res = await api.get('/api/shift?perluDitutup=true&perHalaman=100');
+  const daftar = ((await res.json()) as { data: ShiftTerbuka[] }).data;
+  for (const s of daftar.filter((x) => x.waktu?.terlewat)) {
+    const d = (await (await api.get(`/api/shift/${s.id}`)).json()) as {
+      data: { ringkasan: { saldoSistem: number } | null };
+    };
+    const tutup = await api.post(`/api/shift/${s.id}/tutup`, {
+      data: {
+        uangFisik: d.data.ringkasan?.saldoSistem ?? 0,
+        keterangan: 'Shift terlewat ditutup otomatis oleh penyiapan tes e2e',
+      },
+    });
+    if (!tutup.ok()) {
+      throw new Error(`Penyiapan e2e: shift ${s.nomor} gagal ditutup: ${await tutup.text()}`);
+    }
+  }
+}
+
+/**
+ * K-111: pembayaran transfer/EDC/QRIS yang dibuat tes berstatus "Belum dicek" dan akan menumpuk di lonceng
+ * notifikasi Admin/Owner. Yang dicatat selama tes ini berjalan ditandai "Sudah masuk" dengan catatan jelas;
+ * pembayaran lain (percobaan pemilik) tidak disentuh.
+ */
+async function rapikanNonTunai(api: APIRequestContext, mulai: number): Promise<void> {
+  const res = await api.get('/api/pembayaran-nontunai?status=BELUM_DICEK&perHalaman=100');
+  if (!res.ok()) return;
+  const daftar = ((await res.json()) as { data: { id: number; tanggal: string }[] }).data;
+  for (const p of daftar.filter((x) => Date.parse(x.tanggal) >= mulai)) {
+    await api.post(`/api/pembayaran-nontunai/${p.id}/verifikasi`, {
+      data: { status: 'SUDAH_MASUK', catatan: 'Pembayaran uji dari tes e2e' },
+    });
+  }
+}
+
 export default async function penyiapanGlobal(config: FullConfig) {
   const baseURL = config.projects[0]?.use.baseURL ?? 'http://localhost:5173';
   const api = await masukAdmin(baseURL);
   await pulihkan(api); // sisa penyiapan yang tidak sempat dipulihkan
+  await tutupShiftTerlewat(api);
   const res = await api.get('/api/tingkat-harga');
   const tier = ((await res.json()) as { data: Tier[] }).data;
   const dimatikan = tier.filter((t) => !t.isDefault && t.statusAktif === 'AKTIF');
@@ -55,10 +101,13 @@ export default async function penyiapanGlobal(config: FullConfig) {
   }
   await api.dispose();
 
+  const mulai = Date.now();
+
   // Nilai kembalian = pemulihan setelah semua tes selesai.
   return async () => {
     const lagi = await masukAdmin(baseURL);
     await pulihkan(lagi);
+    await rapikanNonTunai(lagi, mulai);
     await lagi.dispose();
   };
 }

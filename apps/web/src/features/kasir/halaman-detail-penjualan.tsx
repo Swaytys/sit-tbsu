@@ -1,4 +1,5 @@
 import {
+  LABEL_METODE_PEMBAYARAN,
   formatRupiah,
   type BarisSuratJalan,
   type DataPembayaran,
@@ -45,6 +46,8 @@ import { LABEL_STATUS_PENGAMBILAN, LABEL_STATUS_PENGIRIMAN } from '@/lib/label';
 import { cetakLangsungAktif } from '@/lib/printer-thermal';
 import { cetakStrukLangsung } from '@/lib/struk-escpos';
 import { PanelSuratJalan } from '../pengantaran/panel-surat-jalan';
+import { BadgeVerifikasi } from '@/components/badge-verifikasi';
+import { useDaftarRekening } from '@/api/rekening';
 import { PanelBayarPos } from '../pos/panel-bayar-pos';
 
 function Info({ judul, children }: { judul: string; children: ReactNode }) {
@@ -65,7 +68,8 @@ export function DialogTerimaPembayaran({
   onTutup: () => void;
 }) {
   const bayar = useBayarPenjualan();
-  const toko = useTampilanToko().data;
+  // K-111: rekening/EDC/QRIS toko untuk pembayaran non-tunai (dipilih, tidak diketik).
+  const rekening = useDaftarRekening().data ?? [];
   async function kirim(daftar: DataPembayaran[]) {
     if (daftar.length === 0) return;
     try {
@@ -96,8 +100,7 @@ export function DialogTerimaPembayaran({
           total={p.sisaTagihan}
           mode="pelunasan"
           bolehKurang
-          rekeningTransfer={toko?.rekeningTransfer ?? ''}
-          rekeningEdc={toko?.rekeningEdc ?? ''}
+          rekening={rekening}
           memproses={bayar.isPending}
           labelBayar="Simpan pembayaran"
           onBayar={(d) => void kirim(d)}
@@ -317,8 +320,18 @@ export function HalamanDetailPenjualan() {
                   <td className="py-1.5">{formatWaktu(b.tanggal)}</td>
                   <td className="py-1.5">
                     {b.jenis === 'PENUH' ? 'Penuh' : b.jenis === 'DP' ? 'DP' : 'Pelunasan'} ·{' '}
-                    {b.metode === 'TUNAI' ? 'Tunai' : `${b.metode} ${b.rekening ?? ''}`}
+                    {b.metode === 'TUNAI'
+                      ? 'Tunai'
+                      : `${LABEL_METODE_PEMBAYARAN[b.metode]} ${b.rekening ?? ''}`}
                     {b.referensi && ` (${b.referensi})`}
+                    {b.statusVerifikasi && (
+                      <span className="ml-2 inline-flex align-middle">
+                        <BadgeVerifikasi
+                          status={b.statusVerifikasi}
+                          catatan={b.catatanVerifikasi}
+                        />
+                      </span>
+                    )}
                   </td>
                   <td className="py-1.5 text-slate-500">{b.namaPengguna}</td>
                   <td className="py-1.5 text-right font-medium tabular-nums">

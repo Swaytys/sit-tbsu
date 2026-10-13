@@ -14,7 +14,7 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { tanggalOperasional } from '../../../lib/waktu';
-import { catatKas, shiftBuka } from '../../kas/shift/service';
+import { catatKas, shiftUntukCatat } from '../../kas/shift/service';
 import { kunciBarangHarga } from '../../master/harga/repo';
 import { petaDasar, tanggapiPerubahanDasar } from '../../master/harga/service';
 import { catatLog } from '../../sistem/log-aktivitas';
@@ -191,7 +191,7 @@ export async function simpanPenerimaan(
 
     // E4: pembelian tunai langsung lunas. Uang TUNAI keluar dari laci shift BUKA pencatat (K2, K-075).
     if (tunai && totalFaktur > 0) {
-      const shift = input.metodeBayar === 'TUNAI' ? await shiftBuka(tx, pelaku.id, true) : null;
+      const shift = input.metodeBayar === 'TUNAI' ? await shiftUntukCatat(tx, pelaku.id) : null;
       if (input.metodeBayar === 'TUNAI' && !shift) {
         throw new AppError(
           'KONFLIK',

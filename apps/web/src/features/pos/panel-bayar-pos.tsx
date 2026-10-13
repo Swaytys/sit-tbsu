@@ -3,6 +3,7 @@ import {
   LABEL_METODE_PEMBAYARAN,
   type DataPembayaran,
   type MetodePembayaran,
+  type RekeningToko,
 } from '@sit/shared';
 import { X } from 'lucide-react';
 import { useState, type KeyboardEvent, type MouseEvent } from 'react';
@@ -25,15 +26,33 @@ const RENCANA: { nilai: RencanaBayar; huruf: string; label: string; ket: string 
 ];
 const HURUF_RENCANA = Object.fromEntries(RENCANA.map((r) => [r.huruf.toLowerCase(), r.nilai]));
 
-const HURUF_METODE: Record<string, MetodePembayaran> = { t: 'TUNAI', b: 'TRANSFER', e: 'EDC' };
+const HURUF_METODE: Record<string, MetodePembayaran> = {
+  t: 'TUNAI',
+  b: 'TRANSFER',
+  e: 'EDC',
+  q: 'QRIS',
+};
+const METODE: { nilai: MetodePembayaran; huruf: string }[] = [
+  { nilai: 'TUNAI', huruf: 'T' },
+  { nilai: 'TRANSFER', huruf: 'B' },
+  { nilai: 'EDC', huruf: 'E' },
+  { nilai: 'QRIS', huruf: 'Q' },
+];
+
+/** Rekening bawaan (atau yang pertama) untuk satu metode non-tunai; `null` bila belum ada yang terdaftar. */
+function rekeningBawaan(daftar: RekeningToko[], metode: MetodePembayaran): number | null {
+  const pilihan = daftar.filter((r) => r.jenis === metode);
+  return (pilihan.find((r) => r.isDefault) ?? pilihan[0])?.id ?? null;
+}
 
 /** Klik tombol tanpa memindahkan fokus dari kotak "Bayar" (keyboard tetap bisa dipakai sesudahnya). */
 const tahanFokus = (e: MouseEvent) => e.preventDefault();
 
 /**
  * Panel pembayaran POS (K-073). Kursor selalu di kotak "Bayar": ketik angka = uang diterima (tunai) atau
- * nominal (transfer/EDC); Enter menyelesaikan. Huruf: T tunai, B transfer, E EDC, C bayar campuran, D barang
- * ditinggal (langsung). Bila pembeli boleh belum lunas, kasir memilih cara bayar secara tegas (K-104):
+ * nominal (transfer/EDC/QRIS); Enter menyelesaikan. Huruf: T tunai, B transfer, E EDC, Q QRIS, C bayar
+ * campuran, D barang ditinggal (langsung). Rekening tujuan non-tunai dipilih dari daftar rekening toko
+ * (Pengaturan › Pembayaran, K-111), tidak diketik; bawaannya terpilih sendiri. Bila pembeli boleh belum lunas, kasir memilih cara bayar secara tegas (K-104):
  * L lunas, U DP, N bayar nanti, S saat terima (pengantaran). Semua pilihan juga bisa diklik. Nominal final
  * dihitung server (nominal kosong = lunasi).
  *
@@ -49,8 +68,7 @@ export function PanelBayarPos({
   total,
   mode,
   bolehKurang,
-  rekeningTransfer,
-  rekeningEdc,
+  rekening: daftarRekening,
   memproses,
   nonaktif = false,
   ditinggal = false,
@@ -69,8 +87,8 @@ export function PanelBayarPos({
   mode: ModeBayar;
   /** Boleh belum lunas (pelanggan terdata / pengantaran / pelunasan). */
   bolehKurang: boolean;
-  rekeningTransfer: string;
-  rekeningEdc: string;
+  /** Rekening toko AKTIF (K-111) untuk dipilih pada pembayaran non-tunai. */
+  rekening: RekeningToko[];
   memproses: boolean;
   nonaktif?: boolean;
   ditinggal?: boolean;
@@ -86,6 +104,8 @@ export function PanelBayarPos({
 }) {
   const [metode, setMetode] = useState<MetodePembayaran>('TUNAI');
   const [digit, setDigit] = useState('');
+  const [idRekening, setIdRekening] = useState<number | null>(null);
+  /** Hanya dipakai bila toko belum mendaftarkan rekening untuk metode itu. */
   const [rekening, setRekening] = useState('');
   const [referensi, setReferensi] = useState('');
   const [daftar, setDaftar] = useState<DataPembayaran[]>([]);
@@ -116,9 +136,13 @@ export function PanelBayarPos({
   const kembalian = tunai && angka !== null ? Math.max(0, angka - sisa) : 0;
   const kurang = Math.max(0, sisa - dibayarKini);
 
+  const pilihanRekening = daftarRekening.filter((r) => r.jenis === metode);
+  const namaRekening = (id: number | null) => daftarRekening.find((r) => r.id === id)?.nama ?? null;
+
   function gantiMetode(m: MetodePembayaran) {
     setMetode(m);
-    setRekening(m === 'TRANSFER' ? rekeningTransfer : m === 'EDC' ? rekeningEdc : '');
+    setIdRekening(rekeningBawaan(daftarRekening, m));
+    setRekening('');
     setReferensi('');
     setGalat('');
   }
@@ -138,8 +162,14 @@ export function PanelBayarPos({
     if (tanpaBayar) return null;
     if (angka === null && !kosongBerartiLunas) return null;
     if (angka === 0) return null;
-    if (!tunai && !rekening.trim()) {
-      setGalat('Isi rekening/mesin EDC (Tab ke kolom rekening).');
+    if (!tunai && pilihanRekening.length > 0 && idRekening === null) {
+      setGalat('Pilih rekening tujuan dari daftar di bawah kotak bayar.');
+      return 'galat';
+    }
+    if (!tunai && pilihanRekening.length === 0 && !rekening.trim()) {
+      setGalat(
+        `Belum ada rekening ${LABEL_METODE_PEMBAYARAN[metode]} yang didaftarkan toko. Ketik tujuannya di kolom di bawah, dan minta Admin/Owner mendaftarkannya di Pengaturan › Pembayaran.`,
+      );
       return 'galat';
     }
     if (!tunai && angka !== null && angka > sisa) {
@@ -151,7 +181,8 @@ export function PanelBayarPos({
       // Kosong = lunasi (server); tunai dengan uang diterima → server memakai min(uang, sisa).
       nominal: tunai ? null : angka,
       uangDiterima: tunai ? angka : null,
-      rekening: tunai ? null : rekening.trim(),
+      idRekening: tunai ? null : idRekening,
+      rekening: tunai || idRekening !== null ? null : rekening.trim(),
       referensi: tunai ? null : referensi.trim() || null,
       catatan: null,
     };
@@ -292,8 +323,8 @@ export function PanelBayarPos({
       )}
 
       {!tanpaBayar && (
-        <div className="grid grid-cols-3 gap-1.5 text-sm">
-          {(['TUNAI', 'TRANSFER', 'EDC'] as const).map((m) => (
+        <div className="grid grid-cols-4 gap-1.5 text-sm">
+          {METODE.map(({ nilai: m, huruf }) => (
             <button
               key={m}
               type="button"
@@ -305,9 +336,7 @@ export function PanelBayarPos({
                 metode === m ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200',
               )}
             >
-              <span className="mr-1 font-mono text-xs opacity-60">
-                {m === 'TUNAI' ? 'T' : m === 'TRANSFER' ? 'B' : 'E'}
-              </span>
+              <span className="mr-1 font-mono text-xs opacity-60">{huruf}</span>
               {LABEL_METODE_PEMBAYARAN[m]}
             </button>
           ))}
@@ -340,7 +369,7 @@ export function PanelBayarPos({
                 <span className="w-4 text-xs text-slate-500 tabular-nums">{i + 1}.</span>
                 <span className="min-w-0 flex-1 truncate">
                   {LABEL_METODE_PEMBAYARAN[p.metode]}
-                  {p.rekening && ` · ${p.rekening}`}
+                  {p.metode !== 'TUNAI' && ` · ${namaRekening(p.idRekening) ?? p.rekening ?? ''}`}
                 </span>
                 <span className="font-semibold tabular-nums">{formatRupiah(p.nominal ?? 0)}</span>
                 <button
@@ -394,20 +423,45 @@ export function PanelBayarPos({
       />
       {!tunai && !tanpaBayar && (
         <div className="grid grid-cols-2 gap-1.5">
-          <input
-            value={rekening}
-            onChange={(e) => setRekening(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                bayar();
-              }
-            }}
-            maxLength={60}
-            placeholder={metode === 'EDC' ? 'Mesin EDC' : 'Rekening tujuan'}
-            aria-label="Rekening tujuan"
-            className="h-8 rounded-md border px-2 text-sm"
-          />
+          {pilihanRekening.length > 0 ? (
+            <select
+              value={idRekening ?? ''}
+              onChange={(e) => {
+                setIdRekening(e.target.value ? Number(e.target.value) : null);
+                setGalat('');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  bayar();
+                }
+              }}
+              aria-label="Rekening tujuan"
+              title="Uang masuk ke rekening/mesin mana? Daftarnya diatur di Pengaturan › Pembayaran."
+              className="h-8 rounded-md border bg-white px-1.5 text-sm"
+            >
+              {pilihanRekening.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nama}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              value={rekening}
+              onChange={(e) => setRekening(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  bayar();
+                }
+              }}
+              maxLength={60}
+              placeholder={`Tujuan ${LABEL_METODE_PEMBAYARAN[metode]} (belum terdaftar)`}
+              aria-label="Rekening tujuan"
+              className="h-8 rounded-md border border-amber-400 bg-amber-50 px-2 text-sm"
+            />
+          )}
           <input
             value={referensi}
             onChange={(e) => setReferensi(e.target.value)}

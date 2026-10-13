@@ -6,6 +6,7 @@ import { app } from './app';
 import { pool } from './db/client';
 import { env } from './env';
 import { logger } from './lib/logger';
+import { ingatkanShiftPerluDitutup } from './modules/kas/shift/service';
 import { jalankanJobOrder } from './modules/penjualan/order/service';
 import { cekJadwalCadangan } from './modules/sistem/cadangan/service';
 
@@ -58,6 +59,16 @@ const job = setInterval(() => {
     .catch((err: unknown) => logger.error({ err }, 'Job order gagal'));
 }, LIMA_BELAS_MENIT);
 
+/** Pengingat shift yang lewat jam tutup atau lewat hari ke atasan (K-109) tiap 5 menit. */
+const LIMA_MENIT = 5 * 60 * 1000;
+const jobShift = setInterval(() => {
+  ingatkanShiftPerluDitutup()
+    .then((n) => {
+      if (n > 0) logger.info({ jumlah: n }, 'Pengingat shift dikirim');
+    })
+    .catch((err: unknown) => logger.error({ err }, 'Pengingat shift gagal'));
+}, LIMA_MENIT);
+
 /** Cadangan harian & uji pulih bulanan (K-084): diperiksa tiap 10 menit dan sesaat setelah menyala. */
 const SEPULUH_MENIT = 10 * 60 * 1000;
 const cekCadangan = () =>
@@ -69,6 +80,7 @@ const awalCadangan = setTimeout(() => void cekCadangan(), 60 * 1000);
 function berhenti(sinyal: string): void {
   logger.info(`${sinyal} diterima, server dihentikan.`);
   clearInterval(job);
+  clearInterval(jobShift);
   clearInterval(jobCadangan);
   clearTimeout(awalCadangan);
   pengalih?.close();

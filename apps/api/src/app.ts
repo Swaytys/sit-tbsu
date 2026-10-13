@@ -28,6 +28,8 @@ import { penggunaRoutes } from './modules/master/pengguna/routes';
 import { satuanRoutes } from './modules/master/satuan/routes';
 import { tingkatHargaRoutes } from './modules/master/tingkat-harga/routes';
 import { shiftRoutes } from './modules/kas/shift/routes';
+import { nonTunaiRoutes } from './modules/kas/nontunai/routes';
+import { rekeningRoutes } from './modules/kas/rekening/routes';
 import { returRoutes } from './modules/koreksi/retur/routes';
 import { laporanRoutes } from './modules/laporan/routes';
 import { voidRoutes } from './modules/koreksi/void/routes';
@@ -69,6 +71,8 @@ const rute = new Hono<EnvApp>()
   .route('/surat-jalan', suratJalanRoutes)
   .route('/piutang', piutangRoutes)
   .route('/shift', shiftRoutes)
+  .route('/rekening', rekeningRoutes)
+  .route('/pembayaran-nontunai', nonTunaiRoutes)
   .route('/void', voidRoutes)
   .route('/retur', returRoutes)
   .route('/pelanggan', pelangganRoutes)

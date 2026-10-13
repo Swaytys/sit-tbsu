@@ -169,6 +169,8 @@ export function pembayaran(ex: Executor, id: number) {
       rekening: pembayaranPenjualan.rekening,
       referensi: pembayaranPenjualan.referensi,
       namaPengguna: pengguna.namaPengguna,
+      statusVerifikasi: pembayaranPenjualan.statusVerifikasi,
+      catatanVerifikasi: pembayaranPenjualan.catatanVerifikasi,
     })
     .from(pembayaranPenjualan)
     .innerJoin(pengguna, eq(pengguna.id, pembayaranPenjualan.idPengguna))

@@ -9,6 +9,7 @@ import {
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
+import { useDaftarRekening } from '@/api/rekening';
 import {
   useMintaKodeRetur,
   useMintaKodeVoid,
@@ -98,6 +99,9 @@ export function IsianRefund({
   onUbah: (v: DataSetujui) => void;
   labelTunai?: string;
 }) {
+  // K-111: rekening toko jenis transfer; bawaannya terpilih begitu Transfer dipilih.
+  const rekeningToko = (useDaftarRekening().data ?? []).filter((r) => r.jenis === 'TRANSFER');
+  const bawaan = (rekeningToko.find((r) => r.isDefault) ?? rekeningToko[0])?.nama;
   return (
     <div className="space-y-2">
       <Label>Bila ada uang yang dikembalikan ke pembeli</Label>
@@ -106,7 +110,14 @@ export function IsianRefund({
           <button
             key={m}
             type="button"
-            onClick={() => onUbah({ ...nilai, metodeRefund: m })}
+            onClick={() =>
+              onUbah({
+                ...nilai,
+                metodeRefund: m,
+                // Transfer: rekening toko bawaan langsung terisi; tunai: tidak ada rekening.
+                rekeningRefund: m === 'TRANSFER' ? (nilai.rekeningRefund ?? bawaan ?? null) : null,
+              })
+            }
             className={cn(
               'rounded-md border-2 py-1.5 text-sm font-semibold',
               nilai.metodeRefund === m
@@ -119,21 +130,44 @@ export function IsianRefund({
         ))}
       </div>
       {nilai.metodeRefund === 'TRANSFER' && (
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            placeholder="Rekening pembeli"
-            aria-label="Rekening refund"
-            value={nilai.rekeningRefund ?? ''}
-            maxLength={60}
-            onChange={(e) => onUbah({ ...nilai, rekeningRefund: e.target.value })}
-          />
-          <Input
-            placeholder="No. referensi (opsional)"
-            aria-label="Referensi refund"
-            value={nilai.referensiRefund ?? ''}
-            maxLength={60}
-            onChange={(e) => onUbah({ ...nilai, referensiRefund: e.target.value })}
-          />
+        <div className="space-y-1.5">
+          <div className="grid grid-cols-2 gap-2">
+            {rekeningToko.length > 0 ? (
+              <select
+                aria-label="Rekening refund"
+                title="Dari rekening toko mana uangnya dikirim? Daftarnya diatur di Pengaturan › Pembayaran."
+                value={nilai.rekeningRefund ?? ''}
+                onChange={(e) => onUbah({ ...nilai, rekeningRefund: e.target.value })}
+                className="h-9 rounded-md border bg-white px-2 text-sm"
+              >
+                {rekeningToko.map((r) => (
+                  <option key={r.id} value={r.nama}>
+                    {r.nama}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                placeholder="Rekening toko asal uang"
+                aria-label="Rekening refund"
+                value={nilai.rekeningRefund ?? ''}
+                maxLength={60}
+                onChange={(e) => onUbah({ ...nilai, rekeningRefund: e.target.value })}
+              />
+            )}
+            <Input
+              placeholder="Rekening pembeli / no. referensi (opsional)"
+              aria-label="Referensi refund"
+              value={nilai.referensiRefund ?? ''}
+              maxLength={60}
+              onChange={(e) => onUbah({ ...nilai, referensiRefund: e.target.value })}
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            Kiri = rekening toko yang mengirim uangnya (dipilih dari daftar toko, tidak perlu
+            mengetik nomor). Kanan = rekening pembeli atau nomor referensi transfer; boleh kosong
+            dan dilengkapi orang yang melakukan transfernya.
+          </p>
         </div>
       )}
     </div>

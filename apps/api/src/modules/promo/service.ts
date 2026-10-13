@@ -68,6 +68,10 @@ function keRespons(b: Baris, hariIni: string, pelanggan: PelangganPromo): Promo 
     statusAktif: b.statusAktif === 'NONAKTIF' ? 'NONAKTIF' : 'AKTIF',
     statusBerlaku: statusBerlaku(b, hariIni),
     jumlahPemakaian: b.jumlahPemakaian,
+    anggaran: b.anggaran,
+    maksPerPembeli: b.maksPerPembeli,
+    totalDiskon: b.totalDiskon,
+    sisaAnggaran: b.anggaran === null ? null : Math.max(0, b.anggaran - b.totalDiskon),
   };
 }
 
@@ -139,6 +143,8 @@ function nilaiDari(input: DataPromo): repo.NilaiPromo {
     idGolongan: input.sasaranPembeli === 'GOLONGAN' ? input.idGolongan : null,
     minBelanjaPelanggan: input.minBelanjaPelanggan,
     hariBelanja: input.minBelanjaPelanggan === null ? null : input.hariBelanja,
+    anggaran: input.anggaran,
+    maksPerPembeli: input.maksPerPembeli,
   };
 }
 
@@ -282,10 +288,23 @@ export async function ubahPromo(
         idPelanggan: idPelangganLama.join(','),
         minBelanjaPelanggan: lama.minBelanjaPelanggan,
         hariBelanja: lama.hariBelanja,
+        anggaran: lama.anggaran,
+        maksPerPembeli: lama.maksPerPembeli,
       },
       { ...baru, idPelanggan: idPelanggan.join(',') },
     );
     if (beda.kolom.length === 0) return;
+    // K-110: anggaran dan batas per pembeli boleh diubah kapan saja (bukan aturan potongan), tetapi anggaran
+    // tidak boleh di bawah yang sudah terpakai.
+    if (baru.anggaran != null && beda.kolom.includes('anggaran')) {
+      const sudah = await repo.totalDiskonPromo(tx, id);
+      if (baru.anggaran < sudah) {
+        throw galatKolom(
+          'anggaran',
+          `Anggaran tidak boleh lebih kecil dari potongan yang sudah diberikan (${formatRupiah(sudah)}).`,
+        );
+      }
+    }
     const aturanBerubah = beda.kolom.filter((k) => KOLOM_ATURAN.includes(k));
     if (aturanBerubah.length > 0 && (await repo.jumlahPemakaian(tx, id)) > 0) {
       throw new AppError(

@@ -44,6 +44,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -133,6 +134,8 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
       idPelanggan: (promo?.pelanggan ?? []).map((p) => p.id),
       minBelanjaPelanggan: promo?.minBelanjaPelanggan ?? null,
       hariBelanja: promo?.hariBelanja ?? null,
+      anggaran: promo?.anggaran ?? null,
+      maksPerPembeli: promo?.maksPerPembeli ?? null,
     },
   });
   const [jenis, sasaran, sasaranPembeli, idPelanggan] = useWatch({
@@ -167,6 +170,8 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
         'idPelanggan',
         'minBelanjaPelanggan',
         'hariBelanja',
+        'anggaran',
+        'maksPerPembeli',
       ]);
     }
   }
@@ -595,6 +600,50 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
                 </FormItem>
               )}
             />
+            {/* K-110: batas uang promo. Boleh diubah walau promo sudah dipakai (bukan aturan potongan). */}
+            <fieldset className="col-span-2 grid grid-cols-2 gap-4 rounded-lg border p-3">
+              <legend className="px-1 text-xs font-medium text-slate-500">
+                Batas uang promo (opsional)
+              </legend>
+              <FormField
+                control={form.control}
+                name="anggaran"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Anggaran promo</FormLabel>
+                    <FormControl>
+                      <InputRupiah {...field} placeholder="Tanpa batas" />
+                    </FormControl>
+                    <FormDescription>
+                      Jumlah seluruh potongan yang boleh diberikan promo ini. Setelah tercapai,
+                      promo berhenti sendiri.
+                      {promo && promo.totalDiskon > 0 && (
+                        <> Sudah terpakai {formatRupiah(promo.totalDiskon)}.</>
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="maksPerPembeli"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Potongan paling banyak per pembeli</FormLabel>
+                    <FormControl>
+                      <InputRupiah {...field} placeholder="Tanpa batas" />
+                    </FormControl>
+                    <FormDescription>
+                      Supaya satu pembeli tidak menghabiskan anggaran. Pelanggan terdata: dijumlah
+                      dari semua transaksinya. Pembeli umum: per transaksi. Harus lebih kecil dari
+                      anggaran.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </fieldset>
             <FormField
               control={form.control}
               name="keterangan"
@@ -629,8 +678,11 @@ function DialogPromo({ promo, onTutup }: { promo: Promo | null; onTutup: () => v
   );
 }
 
-/** Master promo (docs/06 §3, docs/04 §4 "Promo"): daftar, buat, ubah, nonaktifkan. Tidak ada hapus. */
-export function HalamanPromo() {
+/**
+ * Master promo (docs/06 §3, docs/04 §4 "Promo"): daftar, buat, ubah, nonaktifkan. Tidak ada hapus.
+ * Sejak K-110 tampil sebagai tab Pengaturan › Promo (bukan menu sendiri).
+ */
+export function TabPromo() {
   const [cari, setCari] = useState('');
   const cariTertunda = useTunda(cari, 300);
   const [status, setStatus] = useState<SaringStatus>('SEMUA');
@@ -706,9 +758,36 @@ export function HalamanPromo() {
     },
     {
       kunci: 'pakai',
-      judul: 'Dipakai',
-      className: 'text-right tabular-nums',
-      sel: (p) => (p.jumlahPemakaian > 0 ? `${p.jumlahPemakaian} baris` : '—'),
+      judul: 'Potongan diberikan',
+      className: 'text-right',
+      // K-110: uang promo yang sudah "mengucur", dan sisa anggarannya bila promo dibatasi.
+      sel: (p) => (
+        <div className="leading-tight" data-testid={`realisasi-promo-${p.id}`}>
+          <div className="font-semibold tabular-nums">
+            {p.totalDiskon > 0 ? formatRupiah(p.totalDiskon) : '—'}
+          </div>
+          <div className="text-xs text-slate-500">
+            {p.jumlahPemakaian > 0 ? `${p.jumlahPemakaian} baris` : 'belum dipakai'}
+          </div>
+          {p.anggaran !== null && p.sisaAnggaran !== null && (
+            <div
+              className={cn(
+                'text-xs tabular-nums',
+                p.sisaAnggaran === 0 ? 'font-semibold text-red-600' : 'text-slate-500',
+              )}
+            >
+              {p.sisaAnggaran === 0
+                ? `anggaran ${formatRupiah(p.anggaran)} habis`
+                : `sisa ${formatRupiah(p.sisaAnggaran)} dari ${formatRupiah(p.anggaran)}`}
+            </div>
+          )}
+          {p.maksPerPembeli !== null && (
+            <div className="text-xs text-slate-500 tabular-nums">
+              maks. {formatRupiah(p.maksPerPembeli)}/pembeli
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       kunci: 'aksi',
@@ -731,12 +810,13 @@ export function HalamanPromo() {
   ];
 
   return (
-    <div className="space-y-4 p-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1 basis-80">
-          <h1 className="text-xl font-semibold text-slate-900">Promo</h1>
+          <h2 className="font-semibold text-slate-900">Promo</h2>
           <p className="text-sm text-slate-500">
-            Potongan harga otomatis per baris barang selama periode promo.
+            Potongan harga otomatis per baris barang selama periode promo, beserta jumlah potongan
+            yang sudah diberikan.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -763,6 +843,14 @@ export function HalamanPromo() {
               <li>
                 Promo yang membuat harga di bawah modal dilewati otomatis untuk Kasir dan Staf
                 Penjualan. Promo tidak berlaku untuk baris berharga manual.
+              </li>
+              <li>
+                <b>Potongan diberikan</b> = jumlah rupiah potongan promo itu di semua penjualan
+                (penjualan yang di-void tidak dihitung). <b>Anggaran promo</b> membatasi jumlah itu:
+                bila sisa anggaran lebih kecil dari potongan sebuah baris, baris itu hanya dipotong
+                sebesar sisanya, dan setelah habis promo berhenti.{' '}
+                <b>Potongan paling banyak per pembeli</b> mencegah satu pembeli menghabiskan
+                anggaran.
               </li>
               <li>
                 Status <b>Terjadwal</b> = belum mulai, <b>Berjalan</b> = sedang berlaku,{' '}

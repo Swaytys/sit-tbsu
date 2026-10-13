@@ -73,31 +73,46 @@ export const skemaPenomoran = z
     }
   });
 
-export const skemaOperasional = z.object({
-  ambangRestockPersen: bulat('Ambang restock', 0, 100),
-  stokMinimumDefault: bulat('Stok minimum bawaan', 0, 1_000_000),
-  batasUmurOrderJam: bulat('Batas umur order', 1, 720),
-  autoBatalOrderBasi: z.boolean(),
-  batasKunciOrderMenit: bulat('Batas kunci order', 5, 1440),
-  termHariDefault: bulat('Term piutang bawaan', 0, 365),
-  jatuhTempoDefaultHari: bulat('Jatuh tempo bawaan', 0, 365),
-  checkoutWajibShift: z.boolean(),
-  /** Rekening bawaan saat kasir memilih transfer/EDC (K-073); boleh kosong. */
-  rekeningTransfer: z.string().trim().max(60, 'Rekening maksimal 60 karakter.'),
-  rekeningEdc: z.string().trim().max(60, 'Nama mesin EDC maksimal 60 karakter.'),
-  /**
-   * K-099: nilai retur/void per transaksi yang boleh diproses Kasir tanpa persetujuan Admin/Owner
-   * (rupiah; 0 = selalu butuh persetujuan).
-   */
-  batasReturTanpaSetuju: bulat('Batas retur tanpa persetujuan', 0, 1_000_000_000),
-  batasVoidTanpaSetuju: bulat('Batas void tanpa persetujuan', 0, 1_000_000_000),
-  barisPerHalaman: z.coerce
-    .number('Jumlah baris harus berupa angka.')
-    .refine(
-      (v) => (PILIHAN_BARIS_PER_HALAMAN as readonly number[]).includes(v),
-      'Pilih 10, 25, 50, atau 100 baris.',
-    ),
-});
+/** Jam `HH:mm` (00:00–23:59) atau kosong. */
+const jamAtauKosong = (label: string) =>
+  z
+    .string()
+    .trim()
+    .regex(/^(?:(?:[01]\d|2[0-3]):[0-5]\d)?$/, `${label} harus berbentuk JJ:MM, mis. 09:00.`);
+
+export const skemaOperasional = z
+  .object({
+    ambangRestockPersen: bulat('Ambang restock', 0, 100),
+    stokMinimumDefault: bulat('Stok minimum bawaan', 0, 1_000_000),
+    batasUmurOrderJam: bulat('Batas umur order', 1, 720),
+    autoBatalOrderBasi: z.boolean(),
+    batasKunciOrderMenit: bulat('Batas kunci order', 5, 1440),
+    termHariDefault: bulat('Term piutang bawaan', 0, 365),
+    jatuhTempoDefaultHari: bulat('Jatuh tempo bawaan', 0, 365),
+    checkoutWajibShift: z.boolean(),
+    /**
+     * K-109: jadwal shift toko (`HH:mm`, zona Asia/Jakarta; kosong = tanpa jadwal). Dibekukan ke tiap shift
+     * saat shift itu dibuka, jadi perubahan di sini baru berlaku untuk shift yang dibuka sesudahnya.
+     */
+    shiftJamBuka: jamAtauKosong('Jam buka shift'),
+    shiftJamTutup: jamAtauKosong('Jam tutup shift'),
+    /**
+     * K-099: nilai retur/void per transaksi yang boleh diproses Kasir tanpa persetujuan Admin/Owner
+     * (rupiah; 0 = selalu butuh persetujuan).
+     */
+    batasReturTanpaSetuju: bulat('Batas retur tanpa persetujuan', 0, 1_000_000_000),
+    batasVoidTanpaSetuju: bulat('Batas void tanpa persetujuan', 0, 1_000_000_000),
+    barisPerHalaman: z.coerce
+      .number('Jumlah baris harus berupa angka.')
+      .refine(
+        (v) => (PILIHAN_BARIS_PER_HALAMAN as readonly number[]).includes(v),
+        'Pilih 10, 25, 50, atau 100 baris.',
+      ),
+  })
+  .refine(
+    (d) => d.shiftJamBuka === '' || d.shiftJamTutup === '' || d.shiftJamBuka < d.shiftJamTutup,
+    { path: ['shiftJamTutup'], message: 'Jam tutup shift harus setelah jam buka.' },
+  );
 
 export const DASAR_MARKUP = ['HARGA_BELI_TERAKHIR', 'HPP_RATA2'] as const;
 
@@ -151,9 +166,6 @@ export type TampilanToko = {
   strukTampilkanNama: boolean;
   strukTampilkanLogo: boolean;
   strukCetak: StrukCetak;
-  /** Rekening bawaan pembayaran transfer/EDC di layar kasir (K-073). */
-  rekeningTransfer: string;
-  rekeningEdc: string;
 };
 
 // --- Log aktivitas (Pengaturan › tab Log Aktivitas, izin sistem.log.lihat; docs/04 §8) ---
