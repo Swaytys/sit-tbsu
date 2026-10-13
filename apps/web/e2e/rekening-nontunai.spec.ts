@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { api, masukCepat } from './pembantu';
+import { api, CATATAN_UJI_E2E, masukCepat } from './pembantu';
 
 // K-111: rekening toko didaftarkan sekali, kasir memilihnya (tidak mengetik), dan Admin mengecek uang masuk.
 // K-109: jadwal shift di Pengaturan › Operasional divalidasi. Menambah barang, rekening, dan penjualan uji di
@@ -90,7 +90,7 @@ test('Admin mendaftarkan rekening → Kasir membayar transfer dengan memilihnya 
     const cek = admin.getByRole('dialog', { name: /^Hasil pengecekan BYR-/ });
     await cek.getByRole('radio', { name: 'Tidak masuk' }).click();
     await expect(cek.getByRole('button', { name: 'Simpan hasil' })).toBeDisabled();
-    await cek.getByLabel(/^Catatan/).fill('Tidak ada di mutasi (uji e2e)');
+    await cek.getByLabel(/^Catatan/).fill(`Tidak ada di mutasi ${CATATAN_UJI_E2E}`);
     await cek.getByRole('button', { name: 'Simpan hasil' }).click();
     await expect(admin.getByText(/BYR-\d{6}-\d{3,}: tidak masuk\./)).toBeVisible();
     await admin.getByLabel('Hasil cek').selectOption({ label: 'Tidak masuk' });

@@ -19,6 +19,12 @@ export function menuUtama(page: Page) {
 }
 
 /**
+ * Akhiran catatan pada tanda "Tidak masuk" yang dibuat tes (K-111). Penyiapan global mengenalinya dan
+ * mengembalikan tanda itu menjadi "Sudah masuk", supaya lonceng pemilik tidak berisi sisa tes.
+ */
+export const CATATAN_UJI_E2E = '(uji e2e)';
+
+/**
  * Memanggil API memakai sesi halaman (cookie login `page`), untuk menyiapkan data tes tanpa lewat layar.
  * Header `origin` wajib agar lolos pemeriksaan CSRF; permintaan selain GET tanpa isi dikirim sebagai JSON
  * kosong. Gagal (bukan 2xx) = tes gagal dengan isi jawaban server.
