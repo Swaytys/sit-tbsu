@@ -284,11 +284,6 @@ export const permintaanPersetujuan = pgTable(
     nilai: uang('nilai').notNull(),
     /** Isi pesan yang dikirim ke atasan (tanpa kode). */
     ringkasan: varchar('ringkasan', { length: 500 }).notNull(),
-    /**
-     * Sidik (SHA-256) isi yang dimintakan persetujuan, untuk jenis yang menyetujui sebuah ISIAN (mis.
-     * UBAH_PELANGGAN): kode hanya berlaku bila isian yang dikirim saat memakainya persis sama (K-107).
-     */
-    sidik: varchar('sidik', { length: 64 }),
     status: varchar('status', { length: 10, enum: STATUS_KODE_PERSETUJUAN })
       .notNull()
       .default('MENUNGGU'),
@@ -299,6 +294,12 @@ export const permintaanPersetujuan = pgTable(
     idPenyetuju: kolomRef('id_penyetuju'),
     diputusPada: timestamptz('diputus_pada'),
     dibuatPada: dibuatPada(),
+    /**
+     * Sidik (SHA-256) isi yang dimintakan persetujuan, untuk jenis yang menyetujui sebuah ISIAN (mis.
+     * UBAH_PELANGGAN): kode hanya berlaku bila isian yang dikirim saat memakainya persis sama (K-107).
+     * Ditaruh terakhir karena migrasi 0015 menambahkannya di akhir tabel (urutan kolom harus sama, K-052).
+     */
+    sidik: varchar('sidik', { length: 64 }),
   },
   (t) => [
     foreignKey({
