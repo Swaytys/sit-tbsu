@@ -2,6 +2,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { request, type APIRequestContext, type FullConfig } from '@playwright/test';
+import { CATATAN_UJI_E2E } from './pembantu';
 
 /*
  * Penyiapan sebelum seluruh tes e2e (K-106). Tes berjalan di database pengembangan dan menghitung dengan
@@ -73,14 +74,21 @@ async function tutupShiftTerlewat(api: APIRequestContext): Promise<void> {
 
 /**
  * K-111: pembayaran transfer/EDC/QRIS yang dibuat tes berstatus "Belum dicek" dan akan menumpuk di lonceng
- * notifikasi Admin/Owner. Yang dicatat selama tes ini berjalan ditandai "Sudah masuk" dengan catatan jelas;
- * pembayaran lain (percobaan pemilik) tidak disentuh.
+ * notifikasi Admin/Owner. Yang dicatat selama tes ini berjalan ditandai "Sudah masuk" dengan catatan jelas,
+ * begitu juga yang ditandai "Tidak masuk" oleh tes; pembayaran lain (percobaan pemilik) tidak disentuh.
  */
 async function rapikanNonTunai(api: APIRequestContext, mulai: number): Promise<void> {
-  const res = await api.get('/api/pembayaran-nontunai?status=BELUM_DICEK&perHalaman=100');
-  if (!res.ok()) return;
-  const daftar = ((await res.json()) as { data: { id: number; tanggal: string }[] }).data;
-  for (const p of daftar.filter((x) => Date.parse(x.tanggal) >= mulai)) {
+  type Baris = { id: number; tanggal: string; catatanVerifikasi: string | null };
+  const ambil = async (status: string): Promise<Baris[]> => {
+    const res = await api.get(`/api/pembayaran-nontunai?status=${status}&perHalaman=100`);
+    return res.ok() ? ((await res.json()) as { data: Baris[] }).data : [];
+  };
+  const belumDicek = (await ambil('BELUM_DICEK')).filter((x) => Date.parse(x.tanggal) >= mulai);
+  // Tanda "Tidak masuk" buatan tes dikenali dari catatannya sendiri, kapan pun dibuatnya.
+  const tidakMasuk = (await ambil('TIDAK_MASUK')).filter((x) =>
+    x.catatanVerifikasi?.endsWith(CATATAN_UJI_E2E),
+  );
+  for (const p of [...belumDicek, ...tidakMasuk]) {
     await api.post(`/api/pembayaran-nontunai/${p.id}/verifikasi`, {
       data: { status: 'SUDAH_MASUK', catatan: 'Pembayaran uji dari tes e2e' },
     });
