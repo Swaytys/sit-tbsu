@@ -19,6 +19,7 @@ Nama repo: `sit-tbsu`. Nama tampil di aplikasi: **BonsaiUrip** (K-044).
 | `08-backlog.md` | Usulan di luar fase: v2.0.0 (produktivitas, peran kustom, keuangan ringan, perbaikan) dan v3.0.0 | Saat ada usulan baru; sebelum merencanakan versi berikut |
 | `09-keamanan.md` | Checklist keamanan (OWASP dasar) beserta bukti tiap butir | Setiap rilis dan setiap modul baru |
 | `10-ringkasan-keputusan.md` | Ringkasan seluruh keputusan K-001 s.d. K-112: garis waktu, yang berlaku sekarang per topik, keputusan yang diganti, daftar lengkap | Saat ingin gambaran utuh tanpa membaca 25 berkas keputusan |
+| `LAPORAN-FITUR-APLIKASI.md` | Inventaris fitur faktual dengan rujukan `berkas:baris` (peran & hak akses, fitur per modul, rumus bisnis, laporan, jejak data, daftar endpoint dan tabel); bahan Proposal TA | Saat perlu tahu fitur apa yang sudah ada dan di mana kodenya; diperbarui setiap fitur baru |
 | `keputusan/` | Log keputusan bernomor K-001, K-002, … beserta alasan dan alternatif yang ditolak | Saat bertanya "kenapa begini?" |
 | `panduan/` | Panduan langkah demi langkah untuk pemilik proyek (install, git, alur kerja) | Fase 1 |
 | `referensi/` | Laporan KP, diagram, skema lama, mockup Figma Make, screenshot | Saat perlu sumber asli |
@@ -84,6 +85,7 @@ Jangan pakai mode auto-accept.
 | 09-keamanan.md | Hidup (checklist OWASP dasar, K-083; review kedua, K-100; review ketiga, K-106–K-111) | 2026-10-12 |
 | 08-backlog.md | Hidup (v2.0.0, v3.0.0; temuan tinjauan kode D-K1–D-K12; A12 payment gateway; F8 katalog bergambar) | 2026-10-12 |
 | 10-ringkasan-keputusan.md | Hidup (ringkasan K-001 s.d. K-112) | 2026-10-12 |
+| LAPORAN-FITUR-APLIKASI.md | Hidup (inventaris fitur dari kode, commit 42fe18d) | 2026-10-14 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
 | keputusan/2026-09-19-keputusan-tambahan.md | Final (K-044–K-049) | 2026-09-19 |
 | keputusan/2026-09-29-setup-fase-1.md | Final (K-050–K-053) | 2026-09-29 |
