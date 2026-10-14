@@ -1,7 +1,7 @@
-# 10 — Ringkasan Keputusan (K-001 s.d. K-112)
+# 10 — Ringkasan Keputusan (K-001 s.d. K-113)
 
 Dokumen ini merangkum **seluruh keputusan** yang dicatat di folder `keputusan/` selama pengembangan BonsaiUrip
-(SIT TBSU): **112 keputusan dalam 25 berkas**, dari 19 September sampai 12 Oktober 2026.
+(SIT TBSU): **113 keputusan dalam 26 berkas**, dari 19 September sampai 14 Oktober 2026.
 
 Yang dirangkum di sini adalah **apa yang diputuskan** dan **apa yang berlaku sekarang**. Alasan lengkap, pilihan
 yang ditolak, dan rincian teknis tetap ada di berkas keputusan aslinya. Bila ringkasan ini berbeda dengan berkas
@@ -65,6 +65,7 @@ Isi dokumen:
 | 10 Okt | Tinjauan kode | K-100 | Pengerasan dan perapian kode tanpa mengubah aturan bisnis. |
 | 11 Okt | Tinjauan pemilik | K-102–K-105 | Kode persetujuan sekali pakai lewat Telegram/email, struk langsung ke printer thermal, pengantaran tanpa order, penyiapan terpandu. |
 | 12 Okt | Tinjauan pemilik | K-106–K-112 | Perapian tampilan, persetujuan ubah pelanggan, cari barang lewat atribut, aturan shift, anggaran promo, rekening toko dan cek uang non-tunai, cetak per jenis dokumen. |
+| 14 Okt | Masukan dosen dan jawaban pemilik | K-113 | Rekomendasi pemesanan ulang, tablet untuk staf, ekspor log; Fase 14. |
 
 Hubungan dengan versi (K-062): **v1.0.0** = akhir M1 (Fase 1–8); **v1.1–v1.4** = M2 (Fase 9–12); usulan sesudahnya
 dikumpulkan di `08-backlog.md` sebagai v2.0.0 dan v3.0.0.
@@ -563,6 +564,12 @@ keputusan lama masih tertulis di berkasnya.
 | K-111 | Rekening toko, metode QRIS, dan pengecekan uang masuk non-tunai. | Berlaku |
 | K-112 | Printer per jenis dokumen menjadi syarat aplikasi desktop. | Berlaku (tanpa perubahan kode) |
 
+### 6.17 Pendukung keputusan dan tablet 14 Oktober — `2026-10-14-pendukung-keputusan-tablet.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-113 | Fase 14: rekomendasi pemesanan ulang (rata-rata jual + lead time), tampilan tablet untuk layar staf, ekspor log ke Excel; bentuk deploy belum final. | Berlaku (rencana; kode menyusul) |
+
 ---
 
 ## 7. Yang dijadwalkan sesudah ini
@@ -588,3 +595,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 ## Riwayat
 
 - 2026-10-12 — Dibuat atas permintaan pemilik: ringkasan K-001 s.d. K-112.
+- 2026-10-14 — K-113 ditambahkan (garis waktu, daftar lengkap 6.17).

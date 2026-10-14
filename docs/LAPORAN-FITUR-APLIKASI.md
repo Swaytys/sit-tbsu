@@ -15,7 +15,7 @@ Sistem Informasi Terintegrasi Penjualan & Persediaan UD. Sumber Urip, Peterongan
 | `[KODE: path:baris]` | Diperiksa langsung di kode. Path relatif terhadap akar repo. |
 | `[KONFIG: path]` | Dari berkas konfigurasi, variabel lingkungan, atau data awal (nilai bawaan yang bisa diubah). |
 | `[DOK: path]` | Dari dokumen proyek di repo (`docs/`, `CLAUDE.md`): keputusan atau aturan yang dicatat, bukan dibaca dari kode. |
-| `[TANYA n]` | Tidak bisa dipastikan dari kode; dikumpulkan sebagai pertanyaan di bagian 13. |
+| `[TANYA n]` / `[JAWAB n]` | Tidak bisa dipastikan dari kode; ditanyakan dan dijawab pemilik di bagian 13. |
 
 Singkatan path: `api/` = `apps/api/src/`, `web/` = `apps/web/src/`, `shared/` = `packages/shared/src/`.
 Contoh: `[KODE: api/modules/persediaan/ledger.ts:161]` berarti `apps/api/src/modules/persediaan/ledger.ts` baris 161.
@@ -43,7 +43,7 @@ Kata "K-nnn" merujuk ke catatan keputusan di `docs/keputusan/`; ringkasannya di 
 5. **Deploy (rancangan):** server aplikasi + database di **satu komputer Windows di toko**; produksi melayani API
    dan tampilan web dari satu port HTTPS (443) dengan sertifikat CA lokal toko; dinyalakan otomatis oleh Task
    Scheduler; diperbarui lewat skrip PowerShell `[DOK: docs/keputusan/2026-10-04-deploy-cadangan.md, K-082]`
-   `[KODE: apps/api/src/app.ts:136]`. Apakah sudah terpasang di toko: `[TANYA 1]`.
+   `[KODE: apps/api/src/app.ts:136]`. **Belum terpasang di toko:** per 14 Oktober 2026 aplikasi masih dikembangkan dan diuji di laptop pengembang. Bentuk deploy akhir (server lokal di komputer toko seperti rancangan K-082, atau hosting cloud/remote) akan dipilih pemilik toko `[JAWAB 1]`.
 6. **Keterhubungan perangkat:** semua perangkat (komputer kasir, perangkat staf) membuka alamat server yang sama
    lewat jaringan lokal toko; tidak ada sinkronisasi antar-perangkat karena datanya hanya satu (di server).
    Pemilik bisa mengakses dari luar toko lewat **Tailscale** (VPN) `[DOK: K-082]`.
@@ -85,7 +85,7 @@ Kata "K-nnn" merujuk ke catatan keputusan di `docs/keputusan/`; ringkasannya di 
 
 - **Responsif:** ada penyesuaian lebar untuk layar sempit (mis. tombol di kepala halaman turun ke baris berikut)
   `[KODE: web/components/layout/layout.tsx:56]`, tetapi pemakaian di ponsel tidak menjadi target. Perangkat yang
-  benar-benar dipakai staf di toko: `[TANYA 2]`.
+  dipakai di toko: **laptop/komputer** (kasir, admin, owner) dan **tablet** (staf penjualan), keduanya membuka server yang sama sehingga data saling terlihat seketika `[JAWAB 2]`. Tampilan yang nyaman di tablet menjadi kebutuhan **penting** yang akan dikerjakan (bagian 11).
 - **Jaringan putus:** tidak ada mode offline (tidak ada service worker, tidak ada penyimpanan data bisnis di
   peramban) `[DOK: CLAUDE.md, bagian Jangan]`. Karena server ada di toko, **internet putus tidak menghentikan**
   pemakaian di jaringan lokal; yang berhenti hanya akses dari luar, kiriman kode Telegram/email, dan cadangan ke
@@ -235,7 +235,7 @@ Admin/Owner menerima | desktop + Telegram/email atasan
   bulanan/5 tahunan, uji pulih otomatis tiap tanggal 1, tombol cadangkan sekarang.
 - Tabel: `cadangan`.
 - Bukti: `[KODE: api/modules/sistem/cadangan/service.ts:323,458,528]` `[DOK: K-084]`.
-- Status: SEBAGIAN — berfungsi di tes; bergantung pada pemasangan restic/rclone di server toko `[TANYA 1]`.
+- Status: SEBAGIAN — berfungsi di tes; bergantung pada pemasangan restic/rclone di server; cadangan ke cloud akan diaktifkan saat deploy `[JAWAB 1]`.
 
 ### 4.2 Data master
 
@@ -435,7 +435,7 @@ Admin/Owner menerima | desktop + Telegram/email atasan
   tercatat di log.
 - Bukti: `[KODE: web/lib/printer-thermal.ts]` `[KODE: web/lib/struk-escpos.ts]` `[KODE: api/modules/penjualan/penjualan/service.ts:580]`.
 - Status: SEBAGIAN — jalur cetak langsung ke printer thermal baru diuji dengan printer tiruan; uji pada printer
-  toko belum dilaporkan `[TANYA 3]`.
+  toko belum dilakukan; pemilik menganggapnya berhasil untuk keperluan dokumen ini dan akan mengujinya `[JAWAB 3]`.
 
 ---
 
@@ -528,7 +528,7 @@ Yang **sudah ada** dan bisa menjadi dasar keputusan pemesanan ulang secara manua
 | Laporan Produk Terlaris | Qty terjual, nilai, kontribusi, kumulatif (dasar analisis Pareto) | Kasir+ | `[KODE: api/modules/laporan/produk-terlaris.ts]` |
 | Laporan Riwayat Harga Beli | Harga per penerimaan, terendah/tertinggi/rata-rata per pemasok | Admin/Owner | `[KODE: api/modules/laporan/riwayat-harga-beli.ts]` |
 
-Apakah proposal mengharapkan fitur reorder: `[TANYA 4]`.
+**Akan ditambahkan** atas rekomendasi dosen pembimbing untuk mendukung pengambilan keputusan pembelian `[JAWAB 4]`; rancangannya dicatat di bagian 11.
 
 ### 5e. Promo dan diskon
 
@@ -639,7 +639,7 @@ Ekspor data selain laporan: data barang `[KODE: api/modules/master/import/routes
 
 | Jejak | Tabel / kolom | Isi | Bisa diekspor dari aplikasi? |
 |---|---|---|---|
-| Log aktivitas | `log_aktivitas`: `waktu`, `id_pengguna`, `username_percobaan`, `aksi` (103 jenis), `entitas`, `id_entitas`, `nomor_dokumen`, `ringkasan`, `data_lama`, `data_baru` (JSON), `ip` `[KODE: apps/api/src/db/schema/sistem.ts:114-130]` | Siapa melakukan apa, kapan, dari mana; nilai sebelum/sesudah | Tidak (hanya tampil di Pengaturan › Log aktivitas dengan cari/saring); bisa diambil lewat kueri database `[TANYA 5]` |
+| Log aktivitas | `log_aktivitas`: `waktu`, `id_pengguna`, `username_percobaan`, `aksi` (103 jenis), `entitas`, `id_entitas`, `nomor_dokumen`, `ringkasan`, `data_lama`, `data_baru` (JSON), `ip` `[KODE: apps/api/src/db/schema/sistem.ts:114-130]` | Siapa melakukan apa, kapan, dari mana; nilai sebelum/sesudah | Tidak (hanya tampil di Pengaturan › Log aktivitas dengan cari/saring); **ekspor Excel akan ditambahkan** `[JAWAB 5]` |
 | Riwayat login | `log_aktivitas` aksi `LOGIN_SUKSES`, `LOGIN_GAGAL`, `LOGOUT`; `sesi_login` (sesi aktif, waktu terakhir aktif, IP, peramban) `[KODE: apps/api/src/db/schema/sistem.ts:89]` | Frekuensi dan waktu pemakaian per pengguna | Tidak langsung |
 | Waktu transaksi | `penjualan`, `order_penjualan`, `pembayaran_penjualan`, dsb.: `tanggal`/`waktu` (timestamptz UTC), `tanggal_operasional` (tanggal Jakarta), `dibuat_pada` | Kapan order dibuat, dikirim ke antrean, diproses, dibayar | Ya, lewat laporan Penjualan/Detail Invoice (Excel) |
 | Riwayat stok | `mutasi_persediaan`: barang, waktu, jenis mutasi, kondisi, qty masuk/keluar, saldo setelah, HPP satuan/setelah, rujukan dokumen, pengguna `[KODE: apps/api/src/db/schema/persediaan.ts:274]` | Setiap perubahan stok dengan dokumennya | Ya: Kartu Stok, Stok Rekap (Excel) |
@@ -714,7 +714,12 @@ Ekspor data selain laporan: data barang `[KODE: api/modules/master/import/routes
 - Tombol "?" di setiap halaman (F7), tata letak POS yang bisa diatur (F6), pintasan yang bisa diganti (F1–F3).
 - Pembukuan/akuntansi, multi-gudang, cabang (v3.0.0).
 
-**Belum ada dan tidak dijadwalkan:** rekomendasi jumlah pemesanan ulang (5d); mode offline; tata letak ponsel;
+**Diminta pemilik pada 14 Oktober 2026 (akan dikerjakan):**
+- Rekomendasi jumlah pemesanan ulang (reorder) — rekomendasi dosen pembimbing (bagian 5d).
+- Tampilan responsif yang nyaman di **tablet** untuk staf penjualan.
+- Ekspor log aktivitas ke Excel untuk dokumentasi penelitian.
+
+**Belum ada dan tidak dijadwalkan:** mode offline; tata letak ponsel;
 PPN; pesanan pembelian (PO) ke pemasok; batch/kedaluwarsa; WhatsApp `[DOK: K-038]`.
 
 **Keterbatasan yang diketahui:**
@@ -750,24 +755,23 @@ Sumber: `git log --merges` (198 commit; commit pertama 29 Sep 2026). Rincian per
 
 ---
 
-## 13. Daftar [TANYA]
+## 13. Daftar [TANYA] dan jawaban pemilik (14 Oktober 2026)
 
-1. Apakah server sudah dipasang dan dipakai di komputer toko (produksi), atau aplikasi masih diuji di laptop
-   pengembang? Sejak tanggal berapa, dan apakah cadangan otomatis ke cloud sudah aktif?
-2. Perangkat apa yang dipakai staf penjualan di toko (komputer, tablet, atau HP)? Kode dirancang untuk layar
-   desktop/tablet, belum untuk ponsel.
-3. Apakah cetak struk langsung ke printer thermal (EPPOS RPP02) sudah berhasil diuji di toko?
-4. Proposal menyebut "rekomendasi jumlah pemesanan ulang". Fitur ini **belum ada**. Apakah ingin dimasukkan sebagai
-   fitur yang dievaluasi (berarti perlu dibangun), atau proposal cukup memakai fitur yang ada (status stok, stok
-   minimum, laporan stok minimum, produk terlaris)?
-5. Untuk triangulasi data, apakah perlu fitur ekspor log aktivitas ke Excel, atau cukup diambil langsung dari
-   database oleh pengembang?
-6. Berapa jumlah pengguna sungguhan per peran dan perkiraan jumlah barang/transaksi harian di toko? Data ini tidak
-   ada di kode.
-7. Apakah Telegram/email persetujuan akan dipakai di toko, atau atasan lebih sering menyetujui dari akunnya
-   sendiri?
+Label `[JAWAB n]` di dokumen merujuk ke tabel ini.
 
----
+| No | Pertanyaan | Jawaban pemilik |
+|---|---|---|
+| 1 | Sudah dipasang di toko? Cadangan cloud aktif? | Belum. Masih diuji di laptop pengembang. Bentuk deploy dipilih pemilik toko: hosting remote/cloud atau server lokal di komputer toko. Cadangan ke cloud pasti dilaksanakan bersama pengembangan. |
+| 2 | Perangkat staf penjualan? | Dua jenis perangkat: laptop/komputer dan **tablet** (dipakai staf penjualan di toko). Keduanya saling bertukar data dan sama-sama dipakai untuk input. Tampilan harus responsif dan bisa dipakai di tablet (**penting sekali**). |
+| 3 | Cetak langsung ke printer RPP02 sudah berhasil? | Belum dicoba; dianggap berhasil untuk keperluan dokumen ini. |
+| 4 | Fitur rekomendasi pemesanan ulang? | Belum ada; rekomendasi dosen pembimbing. Akan ditambahkan, bersama fitur pendukung keputusan lain untuk v2.0.0. |
+| 5 | Ekspor log aktivitas? | Ke Excel. |
+| 6 | Skala pemakaian? | 4 staf penjualan, 1 kasir, 2 owner; lebih dari 200 transaksi per hari. |
+| 7 | Cara persetujuan atasan yang paling sering? | Paling sering kode lewat Telegram; sebagian dari akun atasan sendiri dan lewat email. |
+
+Catatan tentang jawaban 2: karena semua perangkat membuka satu server yang sama, "saling bertukar data" sudah
+terjadi tanpa sinkronisasi tambahan. Order dari tablet staf muncul di layar kasir dalam hitungan detik lewat
+siaran antrean (bagian 1, butir 7).
 
 ## Lampiran A — Daftar endpoint API dan izinnya
 
@@ -988,3 +992,4 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 ## Riwayat
 
 - 2026-10-14 — v1: inventaris disusun dari kode di `main` commit `42fe18d` (K-001–K-112).
+- 2026-10-14 — v1.1: jawaban pemilik atas pertanyaan 1–7 dicatat (bagian 13); rencana reorder, tablet, ekspor log (bagian 11).
