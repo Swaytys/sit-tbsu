@@ -27,6 +27,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 11 | Konsinyasi | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 12 | Multi-satuan jual dan label (akhir M2) | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 13 | Aplikasi desktop (versi build) | Belum (lingkup menunggu konfirmasi pemilik) | — |
+| 14 | Pendukung keputusan, tablet, ekspor log (dikerjakan sebelum Fase 13) | Aktif (rencana menunggu persetujuan) | — |
 
 Nilai status: Belum · Aktif · Berjalan (sebagian branch merge) · Selesai · Ditunda.
 
@@ -365,6 +366,21 @@ baris; stok/HPP/laba memakai qty dasar. Tes `satuan-jual.test.ts` dan e2e `satua
 
 ## Sesudah M2
 
+### Fase 14 — Pendukung keputusan, tablet, ekspor log (K-113)
+
+**Status: aktif, dikerjakan sebelum Fase 13.** Urutan dan definisi selesai:
+
+1. **Rekomendasi pemesanan ulang** (rumus di K-113 butir 1): kolom lama kirim dan jarak belanja per pemasok
+   (migrasi baru), pengaturan periode/hari pengaman/bawaan, tab *Saran Pesan* di Stok Persediaan, laporan
+   *Rekomendasi Pemesanan Ulang* (layar, cetak, Excel), notifikasi untuk Admin/Owner. Aturan bisnis baru di
+   docs/05 dengan tes service per aturan.
+2. **Tampilan tablet** untuk layar staf penjualan (K-113 butir 3), dengan tes Playwright pada 1280×800 dan
+   800×1280.
+3. **Ekspor log aktivitas ke Excel** (Owner).
+
+Selesai bila: `pnpm typecheck && pnpm lint && pnpm test` lulus, tes e2e baru dan lama lulus, docs/03–06,
+manual pengguna, dan `LAPORAN-FITUR-APLIKASI.md` diperbarui.
+
 ### Fase 13 — Aplikasi desktop (versi build)
 
 **Status: belum aktif.** Rencana awal sudah dipaparkan kepada pemilik (aplikasi desktop yang membungkus aplikasi
@@ -391,6 +407,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-10-14 — Fase 14 ditambahkan dan diaktifkan: rekomendasi pemesanan ulang, tablet, ekspor log (K-113).
 - 2026-10-12 — Tinjauan pemilik gelombang 1: data akun lama dibuang saat login, judul halaman dan form
   dirapikan, keterangan tier menonjol, pohon laporan, retur, bayar campuran, "Mulai dari awal" (K-106).
 - 2026-10-12 — Gelombang 2: posisi kredit di Data Pelanggan, ubah/nonaktif pelanggan oleh Kasir/Staf dengan

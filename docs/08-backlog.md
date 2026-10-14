@@ -118,6 +118,28 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 | F6 | **(masukan pemilik 2026-10-09) Tata letak POS bisa diatur pengguna**: daftar barang, papan antrean, panel bayar, dan hasil cari bisa diperlebar/dipersempit dengan menarik pembatas; ukuran diingat per komputer; tombol "kembalikan tata letak". | Preferensi tampilan (boleh `localStorage`). Cetak senyap & pilihan "tanya dulu/tidak cetak" sudah ada sejak K-095. |
 | F8 | **(masukan pemilik 2026-10-12) Katalog bergambar di layar penjualan**: kisi kartu barang dengan foto besar, kategori, atribut, harga per satuan, stok, dan tanda promo; bisa dijelajahi tanpa mengetik dan disaring per kategori/atribut; klik kartu = tambah ke keranjang. Termasuk membuat gambar kecil (thumbnail) saat foto diunggah agar katalog ringan. | Dasarnya sudah ada (K-108): cari per atribut dan kategori, tombol **Daftar**, dan foto kecil di hasil cari. Katalog adalah pelengkap, bukan pengganti kotak cari; keyboard tetap jalur tercepat di kasir. Dikerjakan bersama E4 (pemilih barang grafis). |
 
+## v2.0.0 — Sprint G: Pendukung pengambilan keputusan (usulan 2026-10-14, K-113)
+
+Diminta pemilik setelah dosen pembimbing merekomendasikan fitur pemesanan ulang: cari fitur lain yang membantu
+keputusan. Rekomendasi pemesanan ulang sendiri **tidak** di sini; ia dikerjakan di Fase 14 (docs/07). Urutan di
+bawah = usulan prioritas (dampak ke keputusan harian toko dibanding biaya membuatnya).
+
+| # | Fitur | Keputusan yang dibantu | Catatan |
+|---|---|---|---|
+| G1 | **Barang pengganti saat stok habis**: di hasil cari, barang yang habis menampilkan 1–3 barang sekategori dengan atribut terdekat yang masih ada stoknya. | Staf: menawarkan alternatif ke pembeli. | Memakai kategori dan atribut yang sudah ada (K-108). |
+| G2 | **Sering dibeli bersama**: saat barang ditambahkan, tampil barang yang paling sering ada di nota yang sama (90 hari terakhir), mis. semen → pasir, besi → kawat bendrat. | Staf/Kasir: menawarkan barang pelengkap. | Hitungan pasangan barang per nota (analisis keranjang sederhana: support dan confidence); dihitung berkala, bukan per ketikan. |
+| G3 | **Analisis ABC** di Produk Terlaris dan Saran Pesan (A ≤ 80 % kumulatif, B ≤ 95 %, C sisanya). | Owner/Admin: barang mana yang dijaga ketat stoknya. | Sama dengan D-L1; kolom kumulatif sudah ada. |
+| G4 | **Barang lambat & modal tertahan**: barang tanpa penjualan N hari, nilai stoknya, dan umur stok. | Owner: obral, retur ke pemasok, atau berhenti membeli. | Dasarnya ikut Fase 14 (tanda "tidak laku"); sprint ini menambah laporan dan saran tindakan. |
+| G5 | **Pemasok termurah per barang**: dari riwayat harga beli, tampilkan harga terakhir per pemasok dan selisihnya saat menyusun belanja. | Admin/Owner: memilih pemasok. | Data dari laporan Riwayat Harga Beli. |
+| G6 | **Pola jam & hari ramai**: jumlah transaksi dan omzet per jam dan per hari dalam seminggu. | Owner: jadwal staf dan kasir, jam buka. | Dari waktu penjualan yang sudah tersimpan. |
+| G7 | **Efektivitas promo**: penjualan barang selama promo dibanding periode sama sebelum promo, potongan per tambahan penjualan. | Owner: lanjut atau hentikan promo. | Melengkapi laporan Promo. |
+| G8 | **Margin tipis & harga perlu ditinjau**: barang dengan margin di bawah ambang atau harga beli naik tetapi harga jual tetap. | Admin/Owner: menyesuaikan harga. | Melengkapi Tinjau Harga. |
+| G9 | **Proyeksi kas 30 hari**: piutang jatuh tempo masuk vs hutang pemasok dan setoran konsinyasi jatuh tempo keluar. | Owner: kapan bisa belanja besar. | Dari data piutang/hutang yang sudah ada. |
+| G10 | **Risiko piutang per pelanggan**: riwayat keterlambatan bayar, rata-rata hari terlambat, saran limit. | Admin/Owner: memberi atau menahan kredit. | Melengkapi posisi kredit (K-107). |
+| G11 | **Tren selisih kas per kasir** dari clerical check (bersama D-L3). | Owner: pengawasan kas. | |
+| G12 | **Stok pengaman statistik** (Z·σ, tingkat layanan) sebagai pilihan rumus Fase 14. | Admin: barang yang lakunya tidak menentu. | Ditolak untuk versi pertama (K-113); setelah riwayat penjualan beberapa bulan. |
+| G13 | **Pesanan pembelian (PO) dari Saran Pesan**: saran dijadikan dokumen PO per pemasok, dikirim ke pemasok, lalu diterima lewat Penerimaan; barang "dalam perjalanan" ikut mengurangi saran. | Admin: menindaklanjuti saran. | PO penuh semula ditolak (K-038); dibuka kembali bila pemilik memintanya. |
+
 ## v3.0.0 — Pembukuan dan skala
 
 | # | Fitur | Catatan |
@@ -157,3 +179,4 @@ Temuan tinjauan kode 10 Oktober 2026 yang sengaja tidak dikerjakan saat itu (K-1
 - 2026-10-11 — F4 sebagian dan F5 selesai (K-103); D-K10, D-K11 dari K-102.
 - 2026-10-11 — F4: penyiapan printer terpandu (K-105); nama printer baru bisa ditampilkan di aplikasi desktop (Fase 13.1).
 - 2026-10-12 — A12 payment gateway dan D-K12 pembatalan pembayaran otomatis (K-111); F8 katalog bergambar (K-108); F4: printer per jenis dokumen menjadi syarat Fase 13.1 (K-112); baris "Kas utama / bank utama" diperbarui.
+- 2026-10-14 — Sprint G: usulan fitur pendukung keputusan G1–G13 (K-113).
