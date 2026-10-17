@@ -15,6 +15,7 @@ const JUMLAH_HASIL = 8;
 const JUMLAH_JELAJAH = 30;
 
 /** Satu pilihan di hasil cari: barang dalam satu satuan (satuan dasar atau kemasan, K-094). */
+export type PilihanBarang = { b: BarisBarang; o: OpsiSatuanBaris; qty: string };
 type Pilihan = { b: BarisBarang; o: OpsiSatuanBaris };
 
 /**
@@ -83,6 +84,7 @@ export function CariBarangPos({
   onEsc,
   onFokus,
   tierBawaan,
+  onSorot,
   placeholder = 'Nama, kode, merk, kategori, atribut, atau scan barcode… (semen*3 = qty 3)',
 }: {
   id: string;
@@ -95,6 +97,11 @@ export function CariBarangPos({
   onTurun: () => void;
   onEsc: () => void;
   onFokus: () => void;
+  /**
+   * K-114: barang yang sedang disorot (panah atau kursor), `null` bila daftar tertutup. Bila diisi, rincian
+   * barang ditampilkan pemanggil (layar kasir: menutupi area antrean) dan baris info di bawah daftar disembunyikan.
+   */
+  onSorot?: (p: PilihanBarang | null) => void;
   placeholder?: string;
 }) {
   const [teks, setTeks] = useState('');
@@ -229,6 +236,18 @@ export function CariBarangPos({
   }
 
   const total = daftar.data?.meta.total ?? 0;
+  const disorotSekarang = terbuka && (kata !== '' || sorotDipilih) ? hasil[sorot] : undefined;
+  const kunciSorot = disorotSekarang
+    ? `${disorotSekarang.b.id}:${disorotSekarang.o.idSatuanJual ?? 0}:${qty}`
+    : '';
+  const sorotTerakhir = useRef('');
+  // Memberi tahu pemanggil hanya saat barang/satuan/qty yang disorot berganti, bukan setiap render.
+  useEffect(() => {
+    if (sorotTerakhir.current === kunciSorot) return;
+    sorotTerakhir.current = kunciSorot;
+    onSorot?.(disorotSekarang ? { ...disorotSekarang, qty } : null);
+  });
+  useEffect(() => () => onSorot?.(null), [onSorot]);
 
   return (
     <div className="relative">
@@ -329,7 +348,7 @@ export function CariBarangPos({
           <ul
             role="listbox"
             aria-label="Hasil cari barang"
-            className="max-h-[50vh] overflow-y-auto"
+            className="max-h-[50vh] overflow-x-hidden overflow-y-auto"
           >
             {hasil.length === 0 && (
               <li className="px-3 py-2 text-sm text-slate-500">
@@ -354,39 +373,52 @@ export function CariBarangPos({
                     tambah(b, o.idSatuanJual);
                   }}
                   className={cn(
-                    'flex cursor-pointer items-center gap-2 px-3 py-1 text-sm',
+                    'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm',
                     disorot && 'bg-blue-50',
                   )}
                 >
                   <FotoBarang src={b.gambar} ukuran="kecil" />
-                  <span className="max-w-[50%] shrink-0 truncate font-medium">{b.namaBarang}</span>
-                  {/* Atribut ringkas: pembeda barang yang namanya mirip. */}
-                  <span className="min-w-0 flex-1 truncate text-xs text-slate-500">
-                    {b.ringkasAtribut.map((a) => a.nilai).join(' · ')}
-                  </span>
-                  <span
-                    className={cn(
-                      'shrink-0 rounded px-1 text-xs',
-                      o.idSatuanJual === null
-                        ? 'bg-slate-100 text-slate-700'
-                        : 'bg-blue-50 font-medium text-blue-700',
-                    )}
-                  >
-                    {o.kodeSatuan}
-                    {o.idSatuanJual !== null && ` isi ${formatDesimal(o.faktor)} ${b.kodeSatuan}`}
-                  </span>
-                  <span className="w-44 shrink-0 text-right text-xs text-slate-500 tabular-nums">
-                    {h && h.hargaJual > 0
-                      ? `${formatRupiah(h.hargaJual)}/${o.kodeSatuan}`
-                      : 'harga belum ada'}{' '}
-                    · stok {formatDesimal(b.stokTersedia)}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-start gap-1.5">
+                      <span className="line-clamp-2 min-w-0 flex-1 font-medium break-words">
+                        {b.namaBarang}
+                      </span>
+                      <span
+                        className={cn(
+                          'shrink-0 rounded px-1 text-xs',
+                          o.idSatuanJual === null
+                            ? 'bg-slate-100 text-slate-700'
+                            : 'bg-blue-50 font-medium text-blue-700',
+                        )}
+                      >
+                        {o.kodeSatuan}
+                        {o.idSatuanJual !== null &&
+                          ` isi ${formatDesimal(o.faktor)} ${b.kodeSatuan}`}
+                      </span>
+                    </span>
+                    <span className="flex flex-wrap gap-x-2 text-xs text-slate-500">
+                      {/* Atribut ringkas: pembeda barang yang namanya mirip. */}
+                      {b.ringkasAtribut.length > 0 && (
+                        <span className="min-w-0 truncate">
+                          {b.ringkasAtribut.map((a) => a.nilai).join(' · ')}
+                        </span>
+                      )}
+                      <span className="ml-auto tabular-nums">
+                        {h && h.hargaJual > 0
+                          ? `${formatRupiah(h.hargaJual)}/${o.kodeSatuan}`
+                          : 'harga belum ada'}{' '}
+                        · stok {formatDesimal(b.stokTersedia)}
+                      </span>
+                    </span>
                   </span>
                 </li>
               );
             })}
           </ul>
           {/* Info lengkap barang yang disorot (panah atau kursor): foto, kode, kategori, merk, atribut. */}
-          {hasil[sorot] && (kata !== '' || sorotDipilih) && <InfoBarang b={hasil[sorot].b} />}
+          {!onSorot && hasil[sorot] && (kata !== '' || sorotDipilih) && (
+            <InfoBarang b={hasil[sorot].b} />
+          )}
         </div>
       )}
     </div>

@@ -322,7 +322,9 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 
 **F21. Penjualan Langsung (kasir/POS)** | Transaksi | Kasir+ | komputer kasir
 - Fungsi: checkout dari antrean atau langsung; cara bayar Tunai, Transfer, EDC, QRIS, bayar campuran; pembeli
-  terdata boleh DP/bayar nanti; struk otomatis; tanda barang belum diambil.
+  terdata boleh DP/bayar nanti; struk otomatis; tanda barang belum diambil. Layar dibagi dua sama lebar (antrean |
+  transaksi); barang yang disorot di hasil cari tampil rinci (foto, stok, harga per satuan/kemasan per tier,
+  atribut) menutupi area antrean `[KODE: web/features/pos/panel-detail-barang.tsx]` (K-114).
 - Input → Proses → Output: barang, pembeli, pembayaran → satu transaksi DB: penjualan + detail (snapshot harga &
   HPP), lepas reservasi, mutasi stok keluar, pembayaran, cek limit kredit → struk `STR-…`.
 - Tabel: `penjualan`, `penjualan_detail`, `pembayaran_penjualan`, `mutasi_persediaan`, `persediaan`, `kas_shift`.
@@ -434,6 +436,8 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 - Fungsi: struk thermal 58/80 mm (langsung ESC/POS atau jendela cetak), invoice dan surat jalan A4, cetak ulang
   tercatat di log.
 - Bukti: `[KODE: web/lib/printer-thermal.ts]` `[KODE: web/lib/struk-escpos.ts]` `[KODE: api/modules/penjualan/penjualan/service.ts:580]`.
+- Panduan penyiapan berlaku untuk semua printer ESC/POS (Bluetooth SPP dan USB), termasuk membuat port COM keluar
+  saat Windows menulis *Driver is unavailable* `[DOK: docs/panduan/printer-struk.md]` (K-115).
 - Status: SEBAGIAN — jalur cetak langsung ke printer thermal baru diuji dengan printer tiruan; uji pada printer
   toko belum dilakukan; pemilik menganggapnya berhasil untuk keperluan dokumen ini dan akan mengujinya `[JAWAB 3]`.
 
@@ -993,3 +997,4 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 
 - 2026-10-14 — v1: inventaris disusun dari kode di `main` commit `42fe18d` (K-001–K-112).
 - 2026-10-14 — v1.1: jawaban pemilik atas pertanyaan 1–7 dicatat (bagian 13); rencana reorder, tablet, ekspor log (bagian 11).
+- 2026-10-17 — Layar kasir separuh-separuh dengan panel rincian barang, deret tab membungkus, panduan printer umum (K-114, K-115).

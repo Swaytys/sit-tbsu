@@ -1,27 +1,30 @@
 # Panduan: Printer Struk Thermal (cetak langsung tanpa jendela cetak)
 
-Status: Final v1 · 2026-10-11 · Keputusan terkait: K-103, K-105
+Status: Final v2 · 2026-10-17 · Keputusan terkait: K-103, K-105, K-115
 
-Panduan ini untuk siapa pun yang menyiapkan komputer kasir. Contohnya memakai printer toko, **EPPOS RPP02**
-(thermal 58 mm, Bluetooth) di **Windows 11**, tetapi berlaku untuk printer struk Bluetooth/USB-serial lain yang
-memakai bahasa ESC/POS. Kerjakan dari atas ke bawah; tiap langkah menyebut hasil yang benar.
+Panduan ini untuk siapa pun yang menyiapkan komputer kasir, **apa pun merek printernya**. Berlaku untuk printer
+struk thermal 58 mm atau 80 mm yang memakai bahasa perintah **ESC/POS**: hampir semua printer struk di pasaran,
+misalnya EPPOS RPP02, POS-58, Xprinter, Panda, Iware, Epson TM, dan sejenisnya. Contoh layar memakai
+**Windows 11**. Kerjakan dari atas ke bawah; setiap langkah menyebut hasil yang benar.
 
-Petunjuk yang sama (versi ringkas per langkah) tampil di aplikasi: *Pengaturan › Struk & printer › Printer
-struk komputer ini*.
+Petunjuk ringkas yang sama tampil di aplikasi: *Pengaturan › Struk & printer › Printer struk komputer ini*.
 
 ## Daftar isi
 
 1. [Dua cara mencetak struk, dan mana yang dipakai](#1-dua-cara-mencetak-struk-dan-mana-yang-dipakai)
-2. [Yang harus siap](#2-yang-harus-siap)
-3. [Langkah 1 — Pasangkan printer dengan Windows](#3-langkah-1--pasangkan-printer-dengan-windows)
-4. [Langkah 2 — Pilih printer di peramban](#4-langkah-2--pilih-printer-di-peramban)
-5. [Langkah 3 — Lebar kertas](#5-langkah-3--lebar-kertas)
-6. [Langkah 4 — Uji cetak](#6-langkah-4--uji-cetak)
-7. [Langkah 5 — Nyalakan cetak langsung dan cetak otomatis](#7-langkah-5--nyalakan-cetak-langsung-dan-cetak-otomatis)
-8. [Pengaturan lanjutan](#8-pengaturan-lanjutan)
-9. [Penjelasan teknis](#9-penjelasan-teknis)
-10. [Daftar masalah dan jalan keluarnya](#10-daftar-masalah-dan-jalan-keluarnya)
-11. [Cadangan: mencetak lewat jendela cetak](#11-cadangan-mencetak-lewat-jendela-cetak)
+2. [Kenali printer Anda dulu](#2-kenali-printer-anda-dulu)
+3. [Yang harus siap](#3-yang-harus-siap)
+4. [Langkah 1A — Printer Bluetooth: pasangkan dan buat port COM keluar](#4-langkah-1a--printer-bluetooth-pasangkan-dan-buat-port-com-keluar)
+5. [Langkah 1B — Printer kabel USB](#5-langkah-1b--printer-kabel-usb)
+6. [Langkah 2 — Pilih printer di peramban](#6-langkah-2--pilih-printer-di-peramban)
+7. [Langkah 3 — Lebar kertas](#7-langkah-3--lebar-kertas)
+8. [Langkah 4 — Uji cetak](#8-langkah-4--uji-cetak)
+9. [Langkah 5 — Nyalakan cetak langsung dan cetak otomatis](#9-langkah-5--nyalakan-cetak-langsung-dan-cetak-otomatis)
+10. [Pengaturan lanjutan](#10-pengaturan-lanjutan)
+11. [Penjelasan teknis](#11-penjelasan-teknis)
+12. [Daftar masalah dan jalan keluarnya](#12-daftar-masalah-dan-jalan-keluarnya)
+13. [Cadangan: mencetak lewat jendela cetak](#13-cadangan-mencetak-lewat-jendela-cetak)
+14. [Catatan per merek](#14-catatan-per-merek)
 
 ---
 
@@ -33,107 +36,139 @@ struk komputer ini*.
 | Jendela pratinjau | Tidak ada; struk keluar seketika | Selalu muncul (kecuali lewat `buka-kasir.cmd`) |
 | Arah cetak | Selalu tegak (potret) | Tergantung ukuran kertas di driver; bisa menyamping |
 | Ketajaman | Huruf bawaan printer: tajam dan hitam | Gambar titik: bisa pudar/putus-putus |
-| Kerapian kolom | Lebar tetap 32/48 karakter, angka rata kanan | Tergantung skala dan margin |
-| Butuh driver printer | Tidak | Ya |
-| Peramban | Chrome atau Edge di komputer (bukan HP) | Semua |
+| Butuh driver printer | **Tidak** | Ya |
+| Peramban | Chrome atau Edge di komputer (bukan HP/tablet) | Semua |
 
-Keluhan "tercetak menyamping, buram, dan berantakan" berasal dari cara kedua: driver `POS58 Printer` menerima
-halaman sebagai gambar dan ukuran kertasnya tidak cocok. **Cetak langsung** menghilangkan ketiga masalah itu
-karena tidak melewati driver sama sekali.
+**Cetak langsung tidak butuh driver printer.** Karena itu tulisan *Driver is unavailable* (*Driver tidak
+tersedia*) di bawah nama printer pada Setelan Windows **tidak menjadi masalah**. Yang dibutuhkan hanya sebuah
+**port COM** untuk printer itu (Langkah 1).
 
-## 2. Yang harus siap
+## 2. Kenali printer Anda dulu
+
+Lihat label di bawah printer, kotaknya, atau buku petunjuknya, lalu cocokkan:
+
+| Ciri printer | Jalur yang dipakai | Langkah |
+|---|---|---|
+| Bluetooth "biasa" (Bluetooth 2.x/4.x SPP, dipasangkan dengan PIN `0000`/`1234`), mis. RPP02, POS-58 BT | Cetak langsung lewat port COM Bluetooth | 1A |
+| Kabel USB, dan di *Device Manager* muncul di **Ports (COM & LPT)** | Cetak langsung lewat port COM USB | 1B |
+| Kabel USB, tetapi hanya muncul di **Printers** / **Print queues** (tidak ada port COM) | Pasang driver *USB virtual COM* dari pembuatnya, lalu cetak langsung; bila tidak ada, jendela cetak | 1B |
+| Hanya **Bluetooth Low Energy** / hanya bisa dipakai lewat aplikasi HP (banyak printer mini "label"/"sticker") | Tidak bisa cetak langsung dari komputer | 13 |
+| Printer kertas A4 biasa (tinta/laser) | Tidak untuk struk; hanya invoice, surat jalan, laporan | — |
+
+Tidak yakin? Kerjakan Langkah 1A sampai butir 6. Bila Windows bisa membuat **port COM keluar** untuk printer
+itu, printer Anda bisa dipakai cetak langsung.
+
+## 3. Yang harus siap
 
 - Printer menyala, baterai terisi, gulungan kertas thermal terpasang (sisi mengilap menghadap kepala cetak).
+  Tes cepat: matikan printer, tahan tombol *Feed* (FEED/↑) sambil menyalakan; kebanyakan printer mencetak
+  halaman uji sendiri. Bila halaman uji keluar, printernya sehat.
 - Komputer kasir memakai **Google Chrome** atau **Microsoft Edge** versi terbaru.
 - Aplikasi dibuka dari alamat `http://localhost…` atau `https://…` (cetak langsung tidak tersedia di alamat
-  `http://` biasa selain localhost; lihat `docs/panduan/fase-8-pasang-server.md` untuk HTTPS toko).
+  `http://` biasa selain localhost).
 - Anda login sebagai Owner atau Admin (yang boleh membuka *Pengaturan*).
 
-**Penting — pengaturan ini per komputer dan per jendela peramban.** Kerjakan di komputer kasir, di peramban
-yang benar-benar dipakai untuk menjual. Bila kasir dibuka lewat `scripts/kasir/buka-kasir.cmd`, jendela itu
-memakai profil peramban tersendiri: kerjakan panduan ini **di dalam jendela itu** (buka *Pengaturan* dari menu
-di jendela yang sama).
+**Pengaturan ini per komputer dan per jendela peramban.** Kerjakan di komputer kasir, di peramban yang
+benar-benar dipakai untuk menjual. Bila kasir dibuka lewat `scripts/kasir/buka-kasir.cmd`, kerjakan panduan ini
+**di dalam jendela itu**.
 
-## 3. Langkah 1 — Pasangkan printer dengan Windows
+## 4. Langkah 1A — Printer Bluetooth: pasangkan dan buat port COM keluar
 
 Cukup sekali per komputer.
 
+**Pasangkan:**
+
 1. Nyalakan printer (tahan tombol daya sampai lampu menyala).
-2. Klik **Start** › **Setelan** (Settings) › **Bluetooth & perangkat**.
-3. Pastikan sakelar **Bluetooth** di bagian atas **Aktif**.
-4. Lihat daftar perangkat. Bila printer (mis. `RPP02` atau `RPP02N`) sudah ada dengan tulisan **Dipasangkan**
-   (Paired), langkah ini selesai.
-5. Bila belum: klik **Tambahkan perangkat** › **Bluetooth**. Tunggu nama printer muncul, klik.
-6. Bila diminta PIN: ketik `0000`. Bila ditolak, `1234`. Tunggu sampai tertulis **Dipasangkan**.
+2. Klik **Start** › **Setelan** (Settings) › **Bluetooth & perangkat**. Pastikan sakelar **Bluetooth** **Aktif**.
+3. Bila printer belum ada di daftar: klik **Tambahkan perangkat** › **Bluetooth**. Tunggu nama printer muncul
+   (biasanya nama modelnya, mis. `RPP02`, `RPP02N`, `BlueTooth Printer`, `MTP-II`, `Printer001`), lalu klik.
+4. Bila diminta PIN: ketik `0000`. Bila ditolak, `1234`. Tunggu sampai printer tercantum di daftar.
+5. Di **Bluetooth & perangkat › Perangkat**, printer mungkin bertuliskan *Driver is unavailable* atau tampil
+   di bagian *Other devices*. **Biarkan.** Jangan klik *Remove*.
 
-Hasil yang benar: printer tampil di daftar perangkat sebagai *Dipasangkan*. Lampu Bluetooth printer mungkin
-tetap berkedip; itu wajar, karena printer jenis ini baru tersambung saat ada yang dicetak lalu memutus lagi.
+**Buat port COM keluar** (langkah yang paling sering terlewat; tanpa ini printer tidak muncul di Langkah 2):
 
-Saat dipasangkan, Windows membuat **port COM** untuk printer (mis. COM8 dan COM9). Driver `POS58 Printer` yang
-sudah terpasang boleh dibiarkan; cetak langsung tidak memakainya.
+6. Masih di **Bluetooth & perangkat › Perangkat**, gulir ke paling bawah, klik **Setelan Bluetooth lainnya**
+   (*More Bluetooth settings*). Jendela kecil *Bluetooth Settings* terbuka.
+7. Buka tab **Port COM** (*COM Ports*).
+8. Lihat tabelnya:
+   - Ada baris berarah **Keluar** (*Outgoing*) yang kolom namanya memuat nama printer (mis.
+     `RPP02 'Serial Port'` atau `RPP02 'SPP slave'`)? Catat nomornya (mis. **COM5**) dan lanjut ke Langkah 2.
+   - Tidak ada? Klik **Tambah…** (*Add…*) › pilih **Keluar** (*Outgoing*) › pada daftar
+     **Perangkat yang akan memakai port COM** pilih printer Anda › (bila ada pilihan layanan, pilih
+     **Serial Port** / **SPP**) › **OK**. Tunggu beberapa detik sampai baris baru muncul, lalu **OK**.
+     Catat nomornya.
+9. Baris berarah **Masuk** (*Incoming*) **tidak dipakai** untuk mencetak; boleh dibiarkan.
 
-Printer kabel USB: tidak perlu dipasangkan. Colokkan, nyalakan, lanjut ke Langkah 2.
+Hasil yang benar: tab Port COM memuat satu baris **Keluar** dengan nama printer Anda.
 
-## 4. Langkah 2 — Pilih printer di peramban
+Bila daftar perangkat di butir 8 tidak memuat printer Anda, atau muncul pesan bahwa perangkat tidak mendukung
+port serial, printer itu kemungkinan hanya **Bluetooth Low Energy** (lihat bagian 2): pakai jendela cetak
+(bagian 13) atau printer lain.
 
-1. Buka aplikasi › *Pengaturan* › tab **Struk & printer** › gulir ke kartu **Printer struk komputer ini**.
+**Tentang "tersambung terus":** printer Bluetooth jenis ini **tidak perlu tersambung terus**. Lampunya boleh
+tetap berkedip. Setiap kali struk dicetak, aplikasi membuka port COM itu; Windows menyambungkan printer dalam
+1–5 detik, struk dikirim, lalu sambungan dilepas lagi. Pilihan printer diingat peramban, jadi kasir tidak perlu
+melakukan apa-apa: struk otomatis ke printer itu.
+
+## 5. Langkah 1B — Printer kabel USB
+
+1. Colokkan kabel USB printer ke komputer dan nyalakan printer.
+2. Klik kanan **Start** › **Device Manager** (Pengelola Perangkat).
+3. Buka **Ports (COM & LPT)**. Ada baris baru, mis. `USB-SERIAL CH340 (COM3)` atau `USB Serial Device (COM4)`,
+   yang muncul saat printer dicolokkan? Bila ya, lanjut ke Langkah 2 dan pilih baris itu.
+4. Bila printer hanya muncul di **Printers** / **Print queues** dan tidak ada di **Ports (COM & LPT)**: printer
+   memakai jalur USB-printer, bukan serial. Cari di CD/situs pembuatnya driver bernama *virtual COM*,
+   *USB to COM*, atau *VCP*; setelah dipasang, ulangi butir 3. Bila tidak tersedia, pakai jendela cetak
+   (bagian 13).
+
+## 6. Langkah 2 — Pilih printer di peramban
+
+1. Buka aplikasi › *Pengaturan* › tab **Struk & printer** › kartu **Printer struk komputer ini**.
 2. Pada Langkah 2 tekan **Pilih printer…**.
-3. Peramban menampilkan jendela kecil "…ingin terhubung ke port serial" berisi daftar. Daftar ini memuat
-   **semua** perangkat serial di komputer, bukan hanya printer. Pada laptop toko daftarnya kira-kira:
+3. Peramban menampilkan jendela kecil "…ingin terhubung ke port serial". Daftar ini memuat **semua** port
+   serial di komputer, bukan hanya printer:
 
    | Baris di daftar | Apa itu | Dipilih? |
    |---|---|---|
-   | `SPP slave`, `Spp1`, `SerialPort`, `Standard Serial over Bluetooth link (COM…)`, atau `RPP02` | Sambungan serial ke perangkat Bluetooth; salah satunya printer | **Ya** |
-   | `EM7455` (bisa muncul dua kali) | Modem seluler bawaan laptop | **Jangan** |
-   | `Bluetooth Peripheral Device` | Port "masuk" buatan Windows; tidak bisa mencetak | **Jangan** |
+   | `Standard Serial over Bluetooth link (COM5)` dengan nomor COM dari Langkah 1A | Port keluar ke printer Bluetooth | **Ya** |
+   | `SPP slave`, `Spp1`, `SerialPort`, atau nama printer | Nama lain port printer Bluetooth (tergantung merek) | **Ya** |
+   | `USB-SERIAL CH340 (COM3)`, `USB Serial Device (COM4)` | Printer kabel (Langkah 1B) | **Ya** (printer kabel) |
+   | `EM7455`, nama berbau *modem*/*WWAN*/*LTE* | Modem seluler laptop | **Jangan** |
+   | `Bluetooth Peripheral Device` | Port *Masuk* Windows; tidak bisa mencetak | **Jangan** |
 
-4. Klik satu baris yang benar, lalu tekan **Hubungkan** (Connect).
-5. Hasil yang benar: di aplikasi, *Terpilih sekarang* bertuliskan **Port serial (COM) Bluetooth atau kabel**
-   (atau *Perangkat Bluetooth*), dan Langkah 2 bercentang hijau.
+4. Klik satu baris yang benar, lalu **Hubungkan** (Connect).
+5. Hasil yang benar: *Terpilih sekarang* bertuliskan **Port serial (COM) Bluetooth atau kabel** (atau
+   *Perangkat Bluetooth*), dan Langkah 2 bercentang hijau.
 
-Bila tertulis **Salah pilih. Yang dipilih adalah modem seluler…**: Anda memilih `EM7455`. Tekan **Pilih printer
-lain…** dan pilih baris lain.
+Ada dua calon baris? Pilih salah satu, lanjut Uji cetak (Langkah 4); bila kertas tidak keluar, kembali dan pilih
+yang lain. Salah pilih tidak merusak apa pun; tiap kali memilih lagi, izin pilihan lama dicabut otomatis.
 
-**Cara pasti mengetahui baris mana printernya** (bila ada dua calon, mis. `SPP slave` dan `Spp1`):
+Daftarnya kosong atau printer tidak ada? Port COM keluar belum dibuat (Langkah 1A butir 6–8) atau Bluetooth
+komputer mati.
 
-1. **Setelan** › **Bluetooth & perangkat** › **Perangkat**.
-2. Gulir ke bawah, klik **Setelan Bluetooth lainnya** (More Bluetooth settings).
-3. Buka tab **Port COM**.
-4. Cari baris yang kolom **Arah**-nya **Keluar** (Outgoing) dan kolom **Nama**-nya memuat nama printer, mis.
-   `RPP02 'SPP slave'`. Teks di dalam tanda kutip (`SPP slave`) adalah nama baris yang harus dipilih di daftar
-   peramban. Baris berarah **Masuk** (Incoming) adalah yang tampil sebagai `Bluetooth Peripheral Device`.
-
-Peramban tidak memberi tahu aplikasi nama atau nomor COM port yang Anda pilih, jadi aplikasi tidak bisa
-menampilkannya. Kepastiannya didapat dari uji cetak (Langkah 4). Salah pilih tidak merusak apa pun; tiap kali
-memilih lagi, izin untuk pilihan lama dicabut otomatis sehingga tidak tertukar.
-
-Daftarnya kosong? Printer belum dipasangkan atau Bluetooth komputer mati: ulangi Langkah 1.
-
-## 5. Langkah 3 — Lebar kertas
+## 7. Langkah 3 — Lebar kertas
 
 1. Ukur lebar gulungan kertas dengan penggaris.
-2. Pada **Lebar kertas / karakter per baris** pilih:
-   - kertas 57 atau 58 mm (RPP02 dan printer genggam lain): **Kertas 57/58 mm (32 karakter per baris)**;
-   - kertas 80 mm (printer meja besar): **Kertas 80 mm (48 karakter per baris)**.
-3. Hasil yang benar: Langkah 3 bercentang.
+2. Pada **Lebar kertas / karakter per baris** pilih **Kertas 57/58 mm (32 karakter per baris)** atau
+   **Kertas 80 mm (48 karakter per baris)**.
+3. Di kartu **Struk penjualan** (tab yang sama) samakan **Lebar kertas struk** lalu **Simpan** (dipakai saat
+   mencetak lewat jendela cetak).
 
-Di kartu **Struk penjualan** (di atas, tab yang sama) ada juga **Lebar kertas struk**. Itu dipakai saat mencetak
-lewat jendela cetak dan berlaku untuk semua komputer. Samakan dengan kertas toko (58 mm) lalu tekan **Simpan**.
+## 8. Langkah 4 — Uji cetak
 
-## 6. Langkah 4 — Uji cetak
-
-1. Tekan **Uji cetak**. Sambungan Bluetooth dibuat saat itu, jadi cetakan pertama bisa menunggu 3–10 detik.
+1. Tekan **Uji cetak**. Cetakan pertama bisa menunggu 3–10 detik (sambungan Bluetooth dibuat saat itu).
 2. Aplikasi bertanya **Apa yang keluar dari printer?** Jawab sesuai kenyataan:
 
 | Jawaban | Arti | Yang dikerjakan |
 |---|---|---|
 | **Tercetak dan terbaca jelas** | Printer dan pengaturan benar | Selesai. Cetak langsung dinyalakan otomatis |
-| **Tidak keluar apa-apa** | Yang dipilih di Langkah 2 bukan printernya, atau printer mati | Periksa lampu/kertas; kembali ke Langkah 2, **Pilih printer lain…**, pilih baris lain; uji lagi |
-| **Keluar huruf acak** | Kecepatan port tidak cocok (printer kabel) | *Pengaturan lanjutan* › Kecepatan port: coba 115200, lalu 19200, 38400, 57600 |
-| **Baris angka turun / ada ruang kosong** | Jumlah karakter per baris tidak cocok dengan kertas | Langkah 3: turun → pilih angka lebih kecil (32, lalu 30); ruang kosong → lebih besar (48) |
-| **Tercetak tetapi pudar** | Baterai lemah, kertas jelek, atau cetak tebal mati | *Pengaturan lanjutan* › nyalakan **Cetak lebih tebal**; isi daya; ganti kertas |
+| **Tidak keluar apa-apa** | Yang dipilih di Langkah 2 bukan printernya, atau printer mati | Periksa lampu/kertas; Langkah 2, **Pilih printer lain…**, pilih baris lain; uji lagi |
+| **Keluar huruf acak** | Kecepatan port tidak cocok (printer kabel), atau printer bukan ESC/POS | *Pengaturan lanjutan* › Kecepatan port: coba 115200, lalu 19200, 38400, 57600 |
+| **Baris angka turun / ada ruang kosong** | Karakter per baris tidak cocok dengan kertas | Langkah 3: turun → angka lebih kecil (32, lalu 30); ruang kosong → lebih besar (48) |
+| **Tercetak tetapi pudar** | Baterai lemah, kertas jelek, atau cetak tebal mati | *Pengaturan lanjutan* › **Cetak lebih tebal**; isi daya; ganti kertas |
 
-Halaman uji yang benar terlihat seperti ini (kertas 58 mm):
+Halaman uji yang benar (kertas 58 mm):
 
 ```
            BonsaiUrip
@@ -152,98 +187,93 @@ TOTAL                 Rp 110.000
 Bila semua baris di atas terbaca
 jelas dan tegak, printer siap
 dipakai.
-        11/10/2026 14:30
+        17/10/2026 14:30
 ```
 
-Nama toko di baris pertama dicetak dengan huruf besar (dua kali ukuran). Yang diperiksa: tulisan tegak (bukan
-menyamping), baris `1234…` pas satu baris, angka rupiah rata kanan, garis putus-putus penuh selebar kertas.
+## 9. Langkah 5 — Nyalakan cetak langsung dan cetak otomatis
 
-Bila muncul kotak merah **Uji cetak tidak terkirim**, pesannya menyebut penyebab (printer tidak menjawab, port
-tidak bisa dibuka). Lihat bagian 10.
-
-## 7. Langkah 5 — Nyalakan cetak langsung dan cetak otomatis
-
-1. Sakelar **Cetak struk langsung ke printer thermal** harus menyala (otomatis menyala setelah Anda menjawab
-   "Tercetak dan terbaca jelas").
-2. Gulir ke kartu **Struk penjualan** di atas. Pada **Cetak struk setelah bayar (penjualan langsung)** pilih:
-   - **Langsung cetak**: struk keluar sendiri begitu pembayaran selesai, tanpa ditanya;
-   - **Tanya dulu**: muncul pertanyaan, Enter = cetak, Esc = tidak;
-   - **Tidak dicetak**: hanya dicetak bila tombol *Cetak struk* di layar hasil ditekan.
-3. Tekan **Simpan** di kartu itu.
-4. Uji sungguhan: buka *Penjualan Langsung*, jual satu barang, bayar. Struk harus keluar tanpa jendela apa pun.
+1. Sakelar **Cetak struk langsung ke printer thermal** menyala (otomatis setelah Anda menjawab "Tercetak dan
+   terbaca jelas").
+2. Kartu **Struk penjualan** › **Cetak struk setelah bayar**: **Langsung cetak**, **Tanya dulu** (Enter = cetak,
+   Esc = tidak), atau **Tidak dicetak**. Tekan **Simpan**.
+3. Uji sungguhan: *Penjualan Langsung*, jual satu barang, bayar. Struk keluar tanpa jendela apa pun.
 
 Bila printer mati saat menjual, **penjualan tetap tersimpan**. Kasir melihat pemberitahuan "Struk tidak
 tercetak: …" dengan tombol **Jendela cetak**; setelah printer menyala, struk bisa dicetak ulang dari layar hasil
-(tombol *Cetak struk*) atau dari halaman *Detail Penjualan* (tombol **Cetak ulang struk**).
+atau dari halaman *Detail Penjualan* (**Cetak ulang struk**).
 
-## 8. Pengaturan lanjutan
-
-Di kartu yang sama, buka **Pengaturan lanjutan**:
+## 10. Pengaturan lanjutan
 
 | Pilihan | Bawaan | Kegunaan |
 |---|---|---|
-| Cetak lebih tebal | Nyala | Tiap titik dicetak dua kali (double-strike) agar hitam pekat. Matikan bila ingin lebih cepat/hemat baterai |
-| Potong kertas otomatis | Nyala | Untuk printer berpemotong. RPP02 tidak punya pemotong dan mengabaikannya; sobek di gerigi |
-| Buka laci uang | Mati | Laci yang tersambung ke printer terbuka saat struk penjualan tunai dicetak (bukan saat cetak ulang) |
-| Kecepatan port (baud) | 9600 | Tidak berpengaruh pada Bluetooth. Hanya untuk printer kabel bila hasil uji huruf acak |
+| Cetak lebih tebal | Nyala | Tiap titik dicetak dua kali agar hitam pekat. Matikan bila ingin lebih cepat/hemat baterai |
+| Potong kertas otomatis | Nyala | Untuk printer berpemotong. Printer tanpa pemotong mengabaikannya; sobek di gerigi |
+| Buka laci uang | Mati | Laci yang tersambung ke printer terbuka saat struk penjualan tunai dicetak |
+| Kecepatan port (baud) | 9600 | Tidak berpengaruh pada Bluetooth. Untuk printer kabel bila hasil uji huruf acak |
 
-## 9. Penjelasan teknis
+## 11. Penjelasan teknis
 
 - **Jalur data.** Peramban membuka port serial lewat Web Serial API (`navigator.serial`), mengirim byte
   ESC/POS, lalu menutupnya. Printer Bluetooth memakai profil SPP (Serial Port Profile); Windows menampilkannya
-  sebagai port COM virtual, dan sambungan radio dibuat saat port dibuka (*on-demand*). Karena itu port dibuka
-  dan ditutup untuk tiap struk, dengan batas tunggu 15 detik dan jeda singkat sebelum ditutup agar ekor struk
-  tidak terpotong. Kode: `apps/web/src/lib/printer-thermal.ts`.
-- **Isi struk.** `packages/shared/src/escpos.ts` menyusun byte: `ESC @` (reset), `ESC V 0` (matikan putaran 90°,
-  jadi selalu potret), `ESC M 0` (font A bawaan printer, 12×24 titik), `ESC G 1` (double-strike bila "Cetak lebih
-  tebal" nyala), lalu baris teks ASCII selebar tepat 32/48 karakter. Kolom dibuat dengan spasi (nama di kiri,
-  angka rata kanan), pemisah dengan 32/48 tanda `-`. Tidak ada gambar yang dikirim, jadi tidak ada yang bisa
-  buram karena skala. Susunan struk: `apps/web/src/lib/struk-escpos.ts`.
-- **Tanpa pratinjau.** Mencetak lewat jalur ini tidak memanggil `window.print()`, jadi peramban tidak punya
-  jendela untuk ditampilkan. Izin memakai port diberikan sekali lewat jendela pemilih (Langkah 2) dan diingat
-  peramban untuk alamat aplikasi itu.
-- **Penyimpanan.** Pilihan di kartu ini (nyala/mati, lebar, tebal, potong, laci, baud) disimpan di peramban
-  komputer itu (`localStorage`, kunci `tbsu:printer-struk`); ini preferensi perangkat, bukan data bisnis.
-  Membersihkan data peramban menghapusnya dan izin portnya: ulangi Langkah 2–5.
-- **Batas.** Logo toko tidak dicetak di jalur langsung (hanya teks). Huruf non-ASCII diganti padanannya
-  (é → e). Invoice dan surat jalan A4 tetap lewat jendela cetak ke printer biasa.
+  sebagai **port COM virtual berarah keluar**, dan sambungan radio dibuat saat port dibuka (*on-demand*). Port
+  dibuka dan ditutup untuk tiap struk, dengan batas tunggu 15 detik. Kode: `apps/web/src/lib/printer-thermal.ts`.
+- **Mengapa tidak butuh driver.** Driver printer Windows mengubah halaman menjadi gambar untuk dicetak. Cetak
+  langsung tidak melewati driver: yang dikirim adalah teks dan perintah ESC/POS ke port COM, sehingga status
+  *Driver is unavailable* tidak berpengaruh.
+- **Mengapa port COM keluar kadang harus dibuat sendiri.** Windows 11 tidak selalu membuat port COM untuk
+  perangkat Bluetooth yang dikenalnya sebagai "printer"; yang dibuat kadang hanya port *Masuk*. Port *Keluar*
+  (komputer yang memulai sambungan) itulah yang dipakai untuk mencetak.
+- **Isi struk.** `packages/shared/src/escpos.ts` menyusun byte: `ESC @` (reset), `ESC V 0` (selalu potret),
+  `ESC M 0` (font A), `ESC G 1` (cetak tebal), lalu baris teks ASCII selebar tepat 32/48 karakter.
+- **Penyimpanan.** Pilihan di kartu printer disimpan di peramban komputer itu (`localStorage`, kunci
+  `tbsu:printer-struk`): preferensi perangkat, bukan data bisnis. Izin port diingat peramban untuk alamat
+  aplikasi itu. Membersihkan data peramban menghapus keduanya: ulangi Langkah 2–5.
+- **Batas.** Logo toko tidak dicetak di jalur langsung (hanya teks). Huruf non-ASCII diganti padanannya.
 
-## 10. Daftar masalah dan jalan keluarnya
+## 12. Daftar masalah dan jalan keluarnya
 
 | Gejala | Penyebab | Jalan keluar |
 |---|---|---|
-| "Peramban ini tidak bisa mencetak langsung" | Bukan Chrome/Edge, atau dibuka di HP/tablet, atau alamatnya `http://` bukan localhost | Pakai Chrome/Edge di komputer; buka lewat alamat HTTPS toko |
-| Daftar port kosong | Printer belum dipasangkan; Bluetooth mati | Langkah 1 |
-| Terpilih "Perangkat kabel USB (kode 1199:9075)" + peringatan merah | Yang dipilih modem laptop EM7455 | **Pilih printer lain…**, pilih `SPP slave`/`Spp1` |
-| Uji cetak: tidak keluar apa-apa, tanpa pesan galat | Port yang dipilih bukan printer (data terkirim ke perangkat lain) | Langkah 2, pilih baris lain; pakai tab Port COM untuk memastikan |
+| *Driver is unavailable* di Setelan Windows | Windows tidak punya driver printer untuk model itu | **Abaikan.** Pastikan port COM **Keluar** sudah dibuat (Langkah 1A butir 6–8) |
+| Printer tidak muncul di daftar Langkah 2 | Belum ada port COM keluar | Langkah 1A butir 6–8 |
+| Tombol **Tambah…** di tab Port COM tidak menampilkan printer | Printer belum dipasangkan, mati, atau hanya Bluetooth Low Energy | Nyalakan, pasangkan ulang (butir 3–4); bila tetap tidak ada, lihat bagian 2 |
+| "Peramban ini tidak bisa mencetak langsung" | Bukan Chrome/Edge, dibuka di HP/tablet, atau alamat `http://` bukan localhost | Pakai Chrome/Edge di komputer; alamat HTTPS toko |
+| Uji cetak: tidak keluar apa-apa, tanpa pesan galat | Port yang dipilih bukan printer | Langkah 2, pilih baris lain; cocokkan nomor COM dengan tab Port COM |
 | "Printer tidak menjawab dalam 15 detik" | Printer mati, baterai habis, terlalu jauh (>5–8 m), atau Bluetooth komputer mati | Nyalakan, dekatkan, isi daya; coba lagi |
-| "Port printer tidak bisa dibuka" | Port sedang dipakai program lain | Tutup aplikasi printer bawaan; batalkan antrean cetak `POS58 Printer` (Setelan › Printer & pemindai › POS58 › Buka antrean cetak › batalkan semua); matikan-nyalakan printer |
-| Huruf acak | Baud tidak cocok (printer kabel), atau printer bukan ESC/POS | Bagian 8; bila semua baud gagal, pakai jendela cetak |
+| "Port printer tidak bisa dibuka" | Port sedang dipakai program lain (aplikasi printer bawaan, antrean cetak driver) | Tutup aplikasi printer lain; batalkan antrean cetak di *Printer & pemindai*; matikan-nyalakan printer |
+| Huruf acak | Baud tidak cocok (kabel), atau printer bukan ESC/POS | Bagian 10; bila semua baud gagal, jendela cetak |
 | Baris turun / terpotong di kanan | Karakter per baris terlalu besar | Langkah 3: 32, lalu 30 |
-| Cetakan pudar | Baterai lemah; kertas lama; cetak tebal mati; kepala cetak kotor | Isi daya; ganti kertas; nyalakan Cetak lebih tebal; bersihkan kepala cetak dengan kapas beralkohol saat printer mati |
-| Struk berhenti di tengah | Baterai lemah atau printer menjauh saat mencetak | Isi daya; jangan pindahkan printer saat mencetak |
-| Kemarin bisa, hari ini tidak keluar | Printer dinyalakan setelah aplikasi; atau printer dipasangkan ulang sehingga port berganti | Nyalakan printer dulu; ulangi Langkah 2 dan 4 |
-| Sudah diatur, tetapi di jendela kasir (`buka-kasir.cmd`) tetap muncul jendela cetak | Pengaturan dibuat di jendela peramban lain (profil berbeda) | Ulangi Langkah 2–5 di dalam jendela kasir itu |
-| Struk keluar dua kali | Cetak langsung nyala **dan** kasir menekan tombol Cetak struk | Wajar; cetakan kedua tercatat sebagai cetak ulang |
+| Cetakan pudar | Baterai lemah; kertas lama; cetak tebal mati; kepala cetak kotor | Isi daya; ganti kertas; Cetak lebih tebal; bersihkan kepala cetak dengan kapas beralkohol saat printer mati |
+| Kemarin bisa, hari ini tidak keluar | Printer dipasangkan ulang sehingga nomor COM berganti, atau data peramban dibersihkan | Ulangi Langkah 1A butir 6–8, lalu Langkah 2 dan 4 |
+| Di jendela kasir (`buka-kasir.cmd`) tetap muncul jendela cetak | Pengaturan dibuat di jendela peramban lain | Ulangi Langkah 2–5 di dalam jendela kasir itu |
+| Struk keluar dua kali | Cetak langsung nyala **dan** tombol Cetak struk ditekan | Wajar; cetakan kedua tercatat sebagai cetak ulang |
 
-## 11. Cadangan: mencetak lewat jendela cetak
+## 13. Cadangan: mencetak lewat jendela cetak
 
-Dipakai bila cetak langsung tidak mungkin (peramban lain, printer bukan ESC/POS). Matikan sakelar **Cetak
-struk langsung ke printer thermal**. Agar hasilnya tegak dan terbaca:
+Dipakai bila cetak langsung tidak mungkin (peramban lain, printer tanpa port COM, printer Bluetooth Low Energy).
+Matikan sakelar **Cetak struk langsung ke printer thermal**, lalu:
 
-1. Pastikan driver printer terpasang (mis. `POS58 Printer`) dan muncul di **Setelan › Bluetooth & perangkat ›
+1. Pasang driver printer dari pembuatnya sampai printer muncul di **Setelan › Bluetooth & perangkat ›
    Printer & pemindai**.
-2. Klik printer itu › **Preferensi pencetakan**: ukuran kertas **58 mm** (mis. `58(48) x 210 mm` atau
-   `58 x 3276 mm`), orientasi **Potret**. Simpan.
-3. Di aplikasi, kartu **Struk penjualan**: **Lebar kertas struk** = 58 mm, **Simpan**.
-4. Saat jendela cetak muncul: **Tujuan** = printer struk; buka **Setelan lainnya**: **Margin** = Tidak ada,
+2. Klik printer itu › **Preferensi pencetakan**: ukuran kertas 58 mm atau 80 mm, orientasi **Potret**. Simpan.
+3. Di aplikasi, kartu **Struk penjualan**: **Lebar kertas struk** sesuai kertas, **Simpan**.
+4. Saat jendela cetak muncul: **Tujuan** = printer struk; **Setelan lainnya**: **Margin** = Tidak ada,
    **Skala** = 100, hilangkan centang **Header dan footer**.
-5. Agar jendela cetak tidak muncul sama sekali di jalur ini, jalankan kasir lewat
-   `scripts/kasir/buka-kasir.cmd` (lihat `scripts/kasir/README.md`).
+5. Agar jendela cetak tidak muncul, jalankan kasir lewat `scripts/kasir/buka-kasir.cmd`.
 
-Struk di jalur ini dicetak dengan huruf tebal seluruhnya dan halaman yang selalu lebih tinggi daripada lebarnya,
-supaya tidak dianggap lanskap oleh driver. Hasilnya tetap tidak setajam cetak langsung.
+## 14. Catatan per merek
+
+Bagian ini diisi setiap kali sebuah merek berhasil diuji di toko. Langkah 1–5 di atas tetap berlaku.
+
+| Merek / model | Sambungan | Catatan |
+|---|---|---|
+| EPPOS RPP02 / RPP02N (58 mm) | Bluetooth SPP, PIN `0000` | Windows 11 menampilkan *Driver is unavailable*: wajar. Port COM keluar harus dibuat lewat Langkah 1A butir 6–8. Tanpa pemotong kertas. Status uji di toko: belum diuji (17 Okt 2026). |
+| Printer berlabel POS-58 / "BlueTooth Printer" (58 mm) | Bluetooth SPP, PIN `0000`/`1234` | Sama dengan RPP02. |
+| Epson TM-T82 / TM-T20 (80 mm) | USB | Driver Epson memasang antrean printer, bukan port COM; pasang *TM Virtual Port Driver* dari Epson agar muncul port COM, atau pakai jendela cetak. |
 
 ## Riwayat revisi
 
-- 2026-10-11 — v1: panduan dibuat (K-105).
+- 2026-10-11 — v1: panduan dibuat (K-105), contoh EPPOS RPP02.
+- 2026-10-17 — v2: dibuat umum untuk semua printer ESC/POS; langkah membuat port COM keluar (penyebab printer
+  tidak muncul saat Windows menulis *Driver is unavailable*); printer kabel USB; tabel cara mengenali printer;
+  catatan per merek (K-115).
