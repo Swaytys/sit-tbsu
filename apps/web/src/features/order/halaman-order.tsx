@@ -1,16 +1,14 @@
-import {
-  formatRupiah,
-  type BarisDaftarOrder,
-  type DetailOrder,
-  type StatusOrder,
-} from '@sit/shared';
+import { formatRupiah, type BarisDaftarOrder, type StatusOrder } from '@sit/shared';
 import {
   AlertCircle,
+  CalendarClock,
   ChevronRight,
   Clock,
+  FilePen,
   MapPin,
   Package,
   Pencil,
+  Phone,
   Plus,
   Search,
   Send,
@@ -24,43 +22,50 @@ import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
 import {
-  useBatalOrder,
   useDaftarOrder,
   useDetailOrder,
+  useKeDrafOrder,
   useKirimOrder,
   useLepasOrder,
 } from '@/api/penjualan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatDesimal, formatWaktu } from '@/lib/format';
+import { formatDesimal, formatTanggal, formatWaktu } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useTunda } from '@/lib/use-tunda';
+import { DialogBatal } from './dialog-batal-order';
+import { DialogSimpanOrder } from './dialog-simpan-order';
 import { InputOrderCepat } from './input-order-cepat';
 
-type Saring = 'AKTIF' | 'DRAFT' | 'SELESAI' | 'BATAL';
-const SARING: Saring[] = ['AKTIF', 'DRAFT', 'SELESAI', 'BATAL'];
+type Saring = 'AKTIF' | 'DISIMPAN' | 'DRAFT' | 'SELESAI' | 'BATAL';
+const SARING: Saring[] = ['AKTIF', 'DISIMPAN', 'DRAFT', 'SELESAI', 'BATAL'];
 const LABEL_SARING: Record<Saring, string> = {
   AKTIF: 'Antrean',
+  DISIMPAN: 'Disimpan',
   DRAFT: 'Draf',
   SELESAI: 'Selesai',
   BATAL: 'Batal',
+};
+
+/** Penjelasan singkat tiap tab daftar order (K-122). */
+const KET_SARING: Record<Saring, string> = {
+  AKTIF:
+    'Order yang menunggu atau sedang di kasir; urut yang paling lama menunggu. Stoknya ditahan.',
+  DISIMPAN:
+    'Order yang dipesan sekarang dan diambil nanti; urut tanggal ambil. Stoknya ditahan. Kirim ke antrean atau langsung proses saat pembeli datang.',
+  DRAFT: 'Order yang belum dikirim; stoknya belum ditahan.',
+  SELESAI: 'Order yang sudah dibayar.',
+  BATAL: 'Order yang dibatalkan.',
 };
 
 const LABEL_STATUS: Record<StatusOrder, string> = {
   DRAFT: 'Draf',
   MENUNGGU: 'Menunggu kasir',
   DIPROSES: 'Diproses',
+  DISIMPAN: 'Disimpan',
   SELESAI: 'Selesai',
   BATAL: 'Batal',
 };
@@ -69,6 +74,7 @@ const WARNA_STATUS: Record<StatusOrder, string> = {
   DRAFT: 'border-slate-200 bg-slate-100 text-slate-600',
   MENUNGGU: 'border-amber-200 bg-amber-100 text-amber-700',
   DIPROSES: 'border-blue-200 bg-blue-100 text-blue-700',
+  DISIMPAN: 'border-violet-200 bg-violet-100 text-violet-700',
   SELESAI: 'border-emerald-200 bg-emerald-100 text-emerald-700',
   BATAL: 'border-red-200 bg-red-50 text-red-600',
 };
@@ -144,6 +150,18 @@ function KartuOrder({
           <Package className="size-3" /> {o.jumlahItem} barang
         </span>
       </div>
+      {o.status === 'DISIMPAN' && (
+        <div
+          className={cn(
+            'mt-1 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-semibold',
+            o.lewatTanggalAmbil ? 'bg-red-100 text-red-800' : 'bg-violet-50 text-violet-800',
+          )}
+        >
+          <CalendarClock className="size-3.5" /> Ambil {formatTanggal(o.tanggalAmbil)}
+          {o.lewatTanggalAmbil && ' · lewat, hubungi pembeli'}
+          <span className="ml-auto font-normal">{o.noHpPembeli}</span>
+        </div>
+      )}
       <ul className="mt-1.5 space-y-0.5 text-sm leading-tight">
         {o.ringkasan.slice(0, 3).map((r, i) => (
           <li key={i} className="flex justify-between gap-2">
@@ -176,63 +194,15 @@ function KartuOrder({
   );
 }
 
-function DialogBatal({ d, onTutup }: { d: DetailOrder; onTutup: () => void }) {
-  const batal = useBatalOrder();
-  const [alasan, setAlasan] = useState('');
-  return (
-    <Dialog open onOpenChange={(b) => !b && onTutup()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Batalkan order {d.nomor}?</DialogTitle>
-          <DialogDescription>
-            Barang yang ditahan order ini dilepas kembali ke stok tersedia. Order yang dibatalkan
-            tidak bisa dipakai lagi.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-1">
-          <label htmlFor="alasan-batal" className="text-sm font-medium">
-            Alasan batal
-          </label>
-          <Input
-            id="alasan-batal"
-            value={alasan}
-            maxLength={255}
-            onChange={(e) => setAlasan(e.target.value)}
-            autoFocus
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onTutup}>
-            Kembali
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={alasan.trim().length < 3 || batal.isPending}
-            onClick={() =>
-              void batal
-                .mutateAsync({ id: d.id, alasan: alasan.trim() })
-                .then(() => {
-                  toast.success(`Order ${d.nomor} dibatalkan.`);
-                  onTutup();
-                })
-                .catch((err: unknown) => toast.error(pesanGalat(err)))
-            }
-          >
-            Batalkan order
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 function PanelDetail({ id }: { id: number }) {
   const navigasi = useNavigate();
   const saya = usePengguna();
   const detail = useDetailOrder(id);
   const kirim = useKirimOrder();
   const lepas = useLepasOrder();
+  const keDraf = useKeDrafOrder();
   const [dialogBatal, setDialogBatal] = useState(false);
+  const [dialogSimpan, setDialogSimpan] = useState(false);
   const d = detail.data;
   if (!d) {
     return (
@@ -245,16 +215,25 @@ function PanelDetail({ id }: { id: number }) {
   const izin = (k: Parameters<typeof saya.izin.includes>[0]) => saya.izin.includes(k);
   const pembuat = d.idPengguna === saya.id;
   const pemegang = d.idKasirProses === saya.id;
+  const pembuatAtauKasir = pembuat || izin('penjualan.checkout');
   const bolehUbah =
     (d.status === 'DRAFT' && pembuat) ||
-    (d.status === 'MENUNGGU' && (pembuat || izin('penjualan.checkout'))) ||
+    ((d.status === 'MENUNGGU' || d.status === 'DISIMPAN') && pembuatAtauKasir) ||
     (d.status === 'DIPROSES' && pemegang);
   const bolehBatal =
-    d.status === 'DRAFT' || d.status === 'MENUNGGU'
+    d.status === 'DRAFT' || d.status === 'MENUNGGU' || d.status === 'DISIMPAN'
       ? pembuat || izin('penjualan.order.batal')
       : d.status === 'DIPROSES' &&
         izin('penjualan.order.batal') &&
         (pemegang || izin('penjualan.order.lepas_paksa'));
+  // K-122: simpan untuk nanti dan kembali ke draf.
+  const bolehSimpan =
+    (d.status === 'DRAFT' && pembuat) ||
+    (d.status === 'MENUNGGU' && pembuatAtauKasir) ||
+    (d.status === 'DIPROSES' && pemegang);
+  const bolehKeDraf =
+    ((d.status === 'MENUNGGU' || d.status === 'DISIMPAN') && pembuatAtauKasir) ||
+    (d.status === 'DIPROSES' && (pemegang || izin('penjualan.order.lepas_paksa')));
   const jalankan = (p: Promise<unknown>, pesan: string) =>
     void p.then(() => toast.success(pesan)).catch((err: unknown) => toast.error(pesanGalat(err)));
 
@@ -296,6 +275,24 @@ function PanelDetail({ id }: { id: number }) {
             {d.namaKasirProses && <span>Diproses {d.namaKasirProses}</span>}
           </p>
           {d.alasanBatal && <p className="mt-1 text-sm text-red-600">Batal: {d.alasanBatal}</p>}
+          {d.status === 'DISIMPAN' && (
+            <p
+              className={cn(
+                'mt-1 flex flex-wrap items-center gap-x-3 text-sm font-semibold',
+                d.lewatTanggalAmbil ? 'text-red-700' : 'text-violet-800',
+              )}
+            >
+              <span className="flex items-center gap-1">
+                <CalendarClock className="size-4" /> Diambil {formatTanggal(d.tanggalAmbil)}
+                {d.lewatTanggalAmbil && ' (sudah lewat: hubungi pembeli)'}
+              </span>
+              {d.noHpPembeli && (
+                <span className="flex items-center gap-1">
+                  <Phone className="size-4" /> {d.noHpPembeli}
+                </span>
+              )}
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           {bolehUbah && (
@@ -310,7 +307,27 @@ function PanelDetail({ id }: { id: number }) {
               <X /> Batalkan
             </Button>
           )}
-          {d.status === 'DRAFT' && pembuat && (
+          {bolehSimpan && (
+            <Button variant="outline" onClick={() => setDialogSimpan(true)}>
+              <CalendarClock /> Simpan untuk nanti
+            </Button>
+          )}
+          {bolehKeDraf && (
+            <Button
+              variant="outline"
+              disabled={keDraf.isPending}
+              title="Stok dilepas; daftar barang tetap tersimpan sebagai draf milik pembuat order"
+              onClick={() =>
+                jalankan(
+                  keDraf.mutateAsync(d.id),
+                  `Order ${d.nomor} dikembalikan ke draf; stoknya dilepas.`,
+                )
+              }
+            >
+              <FilePen /> Kembalikan ke draf
+            </Button>
+          )}
+          {((d.status === 'DRAFT' && pembuat) || (d.status === 'DISIMPAN' && pembuatAtauKasir)) && (
             <Button
               disabled={kirim.isPending}
               onClick={() =>
@@ -332,7 +349,9 @@ function PanelDetail({ id }: { id: number }) {
             </Button>
           )}
           {izin('penjualan.checkout') &&
-            (d.status === 'MENUNGGU' || (d.status === 'DIPROSES' && pemegang)) && (
+            (d.status === 'MENUNGGU' ||
+              d.status === 'DISIMPAN' ||
+              (d.status === 'DIPROSES' && pemegang)) && (
               <Button onClick={prosesKePembayaran}>
                 Proses ke pembayaran <ChevronRight />
               </Button>
@@ -434,6 +453,19 @@ function PanelDetail({ id }: { id: number }) {
         </div>
       </div>
       {dialogBatal && <DialogBatal d={d} onTutup={() => setDialogBatal(false)} />}
+      {dialogSimpan && (
+        <DialogSimpanOrder
+          order={{
+            nomor: d.nomor,
+            namaPelanggan: d.namaPelanggan,
+            namaPembeli: d.namaPembeli,
+            noHp: d.noHpPembeli,
+          }}
+          siapkan={() => Promise.resolve(d.id)}
+          onTersimpan={() => setDialogSimpan(false)}
+          onTutup={() => setDialogSimpan(false)}
+        />
+      )}
     </div>
   );
 }
@@ -476,7 +508,7 @@ function DaftarOrder() {
     <div className="flex h-full flex-col gap-3">
       <div className="flex items-start justify-between">
         <p className="text-sm text-slate-500">
-          {semua ? 'Semua order; antrean urut yang paling lama menunggu.' : 'Order yang Anda buat.'}
+          {semua ? 'Semua order.' : 'Order yang Anda buat.'} {KET_SARING[saring]}
         </p>
         <Button asChild variant="outline">
           <Link to="/order/baru">

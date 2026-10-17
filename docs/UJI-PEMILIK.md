@@ -16,6 +16,18 @@ sebagian sudah dicoba.
 
 ## Belum dicoba / perlu dicoba ulang
 
+### Order disimpan, kembali ke draf, draf lain (18 Oktober, K-122)
+
+| No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
+|---|---|---|---|---|---|
+| U28 | Simpan untuk diambil nanti | Login **Staf** → *Order Penjualan* → tambah barang → **Simpan untuk nanti** (`F7`) → isi nama, No. HP, pilih **Besok** → `Enter` | Form kosong lagi; order tampil di *Daftar order › Disimpan* dengan tanggal ambil dan No. HP; stok tersedia barang itu berkurang; order **tidak** muncul di antrean kasir | Belum | |
+| U29 | Validasi simpan | Ulangi U28 tanpa nama / dengan HP `12` / tanggal lebih dari 14 hari | Pesan merah di bawah isian yang salah; order tidak tersimpan | Belum | |
+| U30 | Kasir memproses order disimpan | Login **Kasir** → *Penjualan Langsung*: di atas antrean tertulis "1 disimpan" → klik → pilih order → **Proses ke pembayaran** | Order terbuka di layar kasir dan bisa dibayar seperti order antrean | Belum | |
+| U31 | Pembeli lupa dompet (F9) | Di layar kasir dengan order terbuka tekan `F9` → coba `A`, lalu buka lagi dan `D`, lalu buka order lain dan `S` | `A` = kembali ke antrean; `D` = order kembali jadi draf milik staf pembuatnya (stok dilepas, barang tetap); `S` = dialog simpan untuk nanti | Belum | |
+| U32 | Peringatan draf lain | Staf A membuat draf (jangan dikirim) berisi barang dengan stok sedikit; Staf B (atau akun lain) menambahkan barang yang sama sampai melebihi stok | Muncul "… juga ada di draf lain" menyebut draf, pembeli, pembuat, qty; `Esc` menghapus lagi; `Enter` membiarkan; `B` membuka draf milik sendiri | Belum | |
+| U33 | Buka draf otomatis | Di *Order saya* hilangkan centang **Buka draf otomatis**, muat ulang halaman; lalu centang lagi, muat ulang | Mati: form selalu kosong; nyala: draf terakhir terbuka sendiri | Belum | |
+| U34 | Tutup shift dengan order dipegang | Kasir membuka satu order dari antrean (jangan dibayar), lalu ke *Shift & Clerical Check* | Kotak kuning "1 order masih Anda pegang" dengan tombol Ke antrean / Simpan untuk nanti / Ke draf / Batalkan | Belum | |
+
 ### Shift & Clerical Check baru (18 Oktober, K-121)
 
 Login sebagai **Kasir** (atau Owner). Bila masih ada shift terbuka, tutup dulu.
@@ -72,3 +84,4 @@ Login sebagai **Kasir** (atau Owner). Bila masih ada shift terbuka, tutup dulu.
 ## Riwayat
 
 - 2026-10-18 — Dibuat atas permintaan pemilik: daftar uji 17 Oktober (U1–U17) dan shift baru K-121 (U18–U27).
+- 2026-10-18 — U28–U34 order disimpan, kembali ke draf, peringatan draf lain (K-122).

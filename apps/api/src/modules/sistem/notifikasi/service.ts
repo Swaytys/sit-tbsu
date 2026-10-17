@@ -5,7 +5,7 @@ import { hitungNonTunai } from '../../kas/nontunai/service';
 import { jumlahShiftPerluDitutup, shiftSaya } from '../../kas/shift/service';
 import { jumlahReturMenunggu } from '../../koreksi/retur/service';
 import { jumlahVoidMenunggu } from '../../koreksi/void/service';
-import { jumlahOrderBasi } from '../../penjualan/order/service';
+import { jumlahDisimpanLewat, jumlahOrderBasi } from '../../penjualan/order/service';
 import { piutangJatuhTempo } from '../../penjualan/piutang/service';
 import { jumlahPerluDipesan } from '../../persediaan/saran-pesan/service';
 import { peringatanStok } from '../../persediaan/stok/service';
@@ -72,6 +72,20 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         keterangan: `${n.belumDicek} pembayaran transfer/EDC/QRIS belum dicocokkan dengan mutasi rekening.`,
         jumlah: n.belumDicek,
         tautan: '/shift?tab=nontunai',
+      });
+    }
+  }
+  if (izin.has('penjualan.order.buat')) {
+    // K-122: order disimpan yang lewat tanggal ambil; pemegang lihat_semua melihat semuanya.
+    const semua = izin.has('penjualan.order.lihat_semua');
+    const lewat = await jumlahDisimpanLewat(semua ? undefined : pelaku.id);
+    if (lewat > 0) {
+      hasil.push({
+        jenis: 'ORDER_DISIMPAN_LEWAT',
+        judul: 'Order disimpan lewat tanggal ambil',
+        keterangan: `${lewat} order disimpan belum diambil padahal tanggal ambilnya sudah lewat. Hubungi pembelinya; stoknya masih ditahan.`,
+        jumlah: lewat,
+        tautan: '/order?status=DISIMPAN',
       });
     }
   }

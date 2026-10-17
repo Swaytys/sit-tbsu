@@ -1,7 +1,11 @@
 import {
+  bandingQty,
+  kaliQty,
   kunciBaris,
+  kurangQty,
   formatRupiah,
   skemaOrder,
+  tambahQty,
   type BarisBarang,
   type DetailOrder,
   type InputOrder,
@@ -9,8 +13,8 @@ import {
   type Pelanggan,
   type StatusOrder,
 } from '@sit/shared';
-import { RotateCcw } from 'lucide-react';
-import { useEffect, useEffectEvent, useState } from 'react';
+import { CalendarClock, RotateCcw } from 'lucide-react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
 import { ambilData, ambilIsi, api, pesanGalat } from '@/api/client';
@@ -25,16 +29,27 @@ import {
 } from '@/api/penjualan';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
-import { formatDesimal } from '@/lib/format';
+import { formatDesimal, formatTanggal } from '@/lib/format';
 import { InfoTierBelanja } from '@/components/info-tier-belanja';
 import { cn } from '@/lib/utils';
 import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
 import { BilahTombol, type Tombol } from '../pos/bilah-tombol';
-import { CariBarangPos } from '../pos/cari-barang-pos';
+import { CariBarangPos, type PilihanBarang } from '../pos/cari-barang-pos';
 import { CariPelangganPos } from '../pos/cari-pelanggan-pos';
 import { KeranjangPos } from '../pos/keranjang-pos';
-import { digitSaja, keBarisOrder, tampilRibuan } from '../pos/model';
+import {
+  digitSaja,
+  keBarisOrder,
+  opsiDariBarang,
+  qtyDasarBaris,
+  rapikanQty,
+  satuanAwal,
+  tampilRibuan,
+} from '../pos/model';
+import { PanelDetailBarang } from '../pos/panel-detail-barang';
 import { useTransaksiPos } from '../pos/use-transaksi-pos';
+import { DialogSimpanOrder } from './dialog-simpan-order';
+import { useCekDrafLain } from './peringatan-draf-lain';
 
 type Zona = 'cari' | 'keranjang' | 'pelanggan' | 'kirim';
 
@@ -49,9 +64,29 @@ const LABEL_STATUS: Record<StatusOrder, string> = {
   DRAFT: 'Draf',
   MENUNGGU: 'Menunggu kasir',
   DIPROSES: 'Di kasir',
+  DISIMPAN: 'Disimpan',
   SELESAI: 'Selesai',
   BATAL: 'Batal',
 };
+
+/** K-122 butir 3: preferensi tampilan per peramban (bukan data bisnis). */
+const KUNCI_BUKA_DRAF = 'order.bukaDrafOtomatis';
+
+function bacaBukaDrafOtomatis(): boolean {
+  try {
+    return localStorage.getItem(KUNCI_BUKA_DRAF) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function tulisBukaDrafOtomatis(nyala: boolean) {
+  try {
+    localStorage.setItem(KUNCI_BUKA_DRAF, nyala ? 'true' : 'false');
+  } catch {
+    // Penyimpanan peramban tidak tersedia: preferensi hanya berlaku sampai halaman ditutup.
+  }
+}
 
 const TOMBOL: Record<Zona, Tombol[]> = {
   cari: [
@@ -78,11 +113,26 @@ const TOMBOL: Record<Zona, Tombol[]> = {
   ],
 };
 
+const TERANG_STATUS: Partial<Record<StatusOrder, string>> = {
+  SELESAI: 'bg-emerald-100 text-emerald-700',
+  BATAL: 'bg-red-50 text-red-600',
+  DIPROSES: 'bg-blue-100 text-blue-700',
+  DISIMPAN: 'bg-violet-100 text-violet-700',
+};
+
 /**
  * Daftar order milik sendiri (hari ini), diperbarui otomatis lewat siaran antrean. Draf bisa diklik untuk
  * dilanjutkan.
  */
-function OrderSaya({ onLanjutDraf }: { onLanjutDraf: (id: number) => void }) {
+function OrderSaya({
+  onLanjutDraf,
+  bukaDrafOtomatis,
+  onBukaDrafOtomatis,
+}: {
+  onLanjutDraf: (id: number) => void;
+  bukaDrafOtomatis: boolean;
+  onBukaDrafOtomatis: (nyala: boolean) => void;
+}) {
   const daftar = useDaftarOrder({
     cari: '',
     status: null,
@@ -93,8 +143,21 @@ function OrderSaya({ onLanjutDraf }: { onLanjutDraf: (id: number) => void }) {
   });
   const data = daftar.data?.data ?? [];
   return (
-    <section className="flex w-72 shrink-0 flex-col gap-1.5" aria-label="Order saya">
-      <h2 className="text-sm font-semibold text-slate-700">Order saya</h2>
+    <section className="flex h-full flex-col gap-1.5" aria-label="Order saya">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold text-slate-700">Order saya</h2>
+        <label
+          className="flex items-center gap-1 text-xs text-slate-600"
+          title="Nyala: draf terakhir Anda dibuka lagi saat halaman ini dibuka. Mati: form selalu kosong; draf dibuka dengan mengkliknya di daftar ini."
+        >
+          <input
+            type="checkbox"
+            checked={bukaDrafOtomatis}
+            onChange={(e) => onBukaDrafOtomatis(e.target.checked)}
+          />
+          Buka draf otomatis
+        </label>
+      </div>
       <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
         {data.length === 0 && <li className="text-sm text-slate-400">Belum ada order.</li>}
         {data.map((o) => (
@@ -112,16 +175,11 @@ function OrderSaya({ onLanjutDraf }: { onLanjutDraf: (id: number) => void }) {
               <span
                 className={cn(
                   'rounded px-1.5 text-xs font-semibold',
-                  o.status === 'SELESAI'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : o.status === 'BATAL'
-                      ? 'bg-red-50 text-red-600'
-                      : o.status === 'DIPROSES'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-amber-100 text-amber-700',
+                  TERANG_STATUS[o.status] ?? 'bg-amber-100 text-amber-700',
                 )}
               >
                 {LABEL_STATUS[o.status]}
+                {o.status === 'DISIMPAN' && ` · ambil ${formatTanggal(o.tanggalAmbil).slice(0, 5)}`}
               </span>
             </div>
             <div className="truncate text-xs text-slate-600">
@@ -164,18 +222,59 @@ export function InputOrderCepat() {
   const [terakhir, setTerakhir] = useState<{ no: number; isi: string } | null>(null);
   const [pelangganBaru, setPelangganBaru] = useState(false);
   const [tanyaUlang, setTanyaUlang] = useState(false);
+  const [dialogSimpan, setDialogSimpan] = useState(false);
+  const [sorotBarang, setSorotBarang] = useState<PilihanBarang | null>(null);
+  const [bukaDrafOtomatis, setBukaDrafOtomatis] = useState(bacaBukaDrafOtomatis);
+  /** No. HP pelanggan terpilih, untuk mengisi awal dialog simpan (K-122). */
+  const [hpPelanggan, setHpPelanggan] = useState<string | null>(null);
+  const cekDraf = useCekDrafLain(ID.cari);
+  /** Fungsi dengan isian terbaru, untuk pilihan yang datang setelah pemeriksaan draf selesai. */
+  const aksiKini = useRef<{
+    kurangi: (idBarang: number, idSatuanJual: number | null, qty: string) => void;
+    bukaDrafLain: (id: number) => Promise<void>;
+  } | null>(null);
   const antar = jenis === 'PENGANTARAN';
 
   useEffect(() => {
     if (zona !== 'pelanggan') document.getElementById(ID[zona])?.focus();
   }, [zona]);
 
+  /**
+   * K-122 butir 4: barang langsung ditambahkan; draf lain yang memuat barang yang sama diperiksa di belakang.
+   * Pilihan pengguna dijalankan dengan isian terbaru (lewat `aksiKini`), bukan isian saat barang ditambahkan.
+   */
   function tambah(b: BarisBarang, qty: string, idSatuanJual?: number | null) {
+    const satuan = idSatuanJual !== undefined ? idSatuanJual : satuanAwal(b);
+    const faktor = opsiDariBarang(b).find((o) => o.idSatuanJual === satuan)?.faktor ?? '1';
+    const sudah = tr.t.baris
+      .filter((x) => x.idBarang === b.id)
+      .reduce((n, x) => tambahQty(n, qtyDasarBaris(x) ?? '0'), '0');
     setIndeksBaris(tr.tambah(b, qty, idSatuanJual));
+    void cekDraf.periksa(b, tambahQty(sudah, kaliQty(qty, faktor)), idDraf).then((h) => {
+      if (h.aksi === 'HAPUS') aksiKini.current?.kurangi(b.id, satuan, qty);
+      else if (h.aksi === 'BUKA') void aksiKini.current?.bukaDrafLain(h.id);
+    });
+  }
+
+  /** Membatalkan penambahan `qty` barang pada baris satuannya (pilihan "Hapus lagi"). */
+  function kurangi(idBarang: number, idSatuanJual: number | null, qty: string) {
+    const i = tr.t.baris.findIndex(
+      (x) => x.idBarang === idBarang && x.idSatuanJual === idSatuanJual,
+    );
+    const baris = tr.t.baris[i];
+    if (!baris) return;
+    const sisa = kurangQty(baris.qty, qty);
+    if (bandingQty(sisa, '0') <= 0) {
+      tr.hapus(i);
+      setIndeksBaris(Math.max(0, i - 1));
+    } else {
+      tr.ubah(i, { qty: rapikanQty(sisa) });
+    }
   }
 
   function pilihPelanggan(p: Pelanggan | null) {
     tr.aturPelanggan(p);
+    setHpPelanggan(p?.noHp ?? null);
     if (p?.alamat && !alamat) setAlamat(p.alamat);
     setZona('cari');
   }
@@ -216,8 +315,41 @@ export function InputOrderCepat() {
     toast.info(`Draf order ${d.nomor} dilanjutkan.`);
   }
 
-  // K-095: draf terakhir milik sendiri dibuka lagi saat halaman dibuka, agar isian tidak hilang.
+  /** Isian sekarang disimpan sebagai draf (bila ada), lalu draf lain milik sendiri dibuka (K-122 butir 4). */
+  async function bukaDrafLain(id: number) {
+    try {
+      if (tr.t.baris.length > 0 && (idDraf === null || tr.t.diubah)) {
+        const data = skemaOrder.safeParse(isianOrder());
+        if (data.success) {
+          const o = await simpan.mutateAsync(
+            idDraf === null
+              ? { json: data.data, kirim: false }
+              : { id: idDraf, json: data.data, kirim: false },
+          );
+          toast.info(`Isian sebelumnya disimpan sebagai draf ${o.nomor}.`);
+        }
+      }
+      const d = await ambilData(await api.order[':id'].$get({ param: { id: String(id) } }));
+      if (d.status !== 'DRAFT') {
+        toast.error(`Order ${d.nomor} sudah bukan draf.`);
+        return;
+      }
+      tr.kosongkan(false);
+      muatDraf(d);
+      toast.info(`Draf order ${d.nomor} dibuka. Lanjutkan transaksi pembeli itu.`);
+    } catch (err) {
+      toast.error(pesanGalat(err));
+    }
+  }
+
+  useEffect(() => {
+    aksiKini.current = { kurangi, bukaDrafLain };
+  });
+
+  // K-095: draf terakhir milik sendiri dibuka lagi saat halaman dibuka, agar isian tidak hilang
+  // (K-122 butir 3: bisa dimatikan lewat "Buka draf otomatis").
   const bukaDrafTerakhir = useEffectEvent(async () => {
+    if (!bacaBukaDrafOtomatis()) return;
     const r = await ambilIsi(
       await api.order.$get({
         query: { status: 'DRAFT', milikSaya: 'true', halaman: '1', perHalaman: '1' },
@@ -347,6 +479,30 @@ export function InputOrderCepat() {
     setZona('cari');
   }
 
+  /** K-122: simpan untuk diambil nanti. Isian disimpan dulu sebagai draf, lalu draf itu disimpan (tahan stok). */
+  function mintaSimpanNanti() {
+    if (tr.t.baris.length === 0) {
+      toast.info('Tambahkan barang dulu.');
+      return;
+    }
+    const data = skemaOrder.safeParse(isianOrder());
+    if (!data.success) {
+      toast.error(data.error.issues[0]?.message ?? 'Isian belum lengkap.');
+      setZona(data.error.issues[0]?.path[0] === 'idPelanggan' ? 'pelanggan' : 'cari');
+      return;
+    }
+    setDialogSimpan(true);
+  }
+
+  async function siapkanDraf(): Promise<number> {
+    const data = skemaOrder.parse(isianOrder());
+    if (idDraf !== null && !tr.t.diubah) return idDraf;
+    const o = await simpan.mutateAsync(
+      idDraf === null ? { json: data, kirim: false } : { id: idDraf, json: data, kirim: false },
+    );
+    return o.id;
+  }
+
   /** Isian sekarang disimpan sebagai draf (tidak menahan stok), lalu form kosong untuk pembeli berikutnya. */
   function orderBaru() {
     if (simpan.isPending || tr.t.baris.length === 0) return;
@@ -398,6 +554,9 @@ export function InputOrderCepat() {
     } else if (e.key === 'F9') {
       e.preventDefault();
       mintaMulaiDariAwal();
+    } else if (e.key === 'F7') {
+      e.preventDefault();
+      mintaSimpanNanti();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && tr.adaCadangan) {
       const el = document.activeElement;
       if (el instanceof HTMLInputElement && el.value) return;
@@ -417,6 +576,7 @@ export function InputOrderCepat() {
     { kunci: 'F4', label: 'Pelanggan' },
     { kunci: 'F3', label: antar ? 'Ubah ke langsung' : 'Ubah ke pengantaran' },
     { kunci: 'F8', label: 'Kirim ke antrean' },
+    { kunci: 'F7', label: 'Simpan untuk nanti' },
     { kunci: 'F9', label: 'Mulai dari awal' },
     ...TOMBOL[zona],
   ];
@@ -523,6 +683,7 @@ export function InputOrderCepat() {
             onTurun={() => tr.t.baris.length > 0 && setZona('keranjang')}
             onEsc={() => undefined}
             onFokus={() => setZona('cari')}
+            onSorot={setSorotBarang}
           />
 
           <KeranjangPos
@@ -582,6 +743,17 @@ export function InputOrderCepat() {
             {tr.t.baris.length > 0 && (
               <button
                 type="button"
+                onClick={mintaSimpanNanti}
+                title="Pembeli pesan sekarang, diambil/dibayar nanti: stok ditahan, wajib nama, No. HP, dan tanggal ambil (F7)"
+                className="flex h-12 items-center gap-1.5 rounded-md border border-violet-300 bg-white px-3 text-sm font-semibold text-violet-800 hover:bg-violet-50"
+              >
+                <CalendarClock className="size-4" /> Simpan untuk nanti
+                <kbd className="font-mono text-xs opacity-60">F7</kbd>
+              </button>
+            )}
+            {tr.t.baris.length > 0 && (
+              <button
+                type="button"
                 onClick={orderBaru}
                 disabled={simpan.isPending}
                 title="Simpan isian ini sebagai draf, lalu mulai order baru"
@@ -627,11 +799,32 @@ export function InputOrderCepat() {
             </div>
           )}
         </section>
-        <OrderSaya
-          onLanjutDraf={(id) =>
-            void lanjutDraf(id).catch((err: unknown) => toast.error(pesanGalat(err)))
-          }
-        />
+        {/* Kanan: Order saya; saat memilih barang, rinciannya menutupi area ini (K-122 butir 5, K-114). */}
+        <aside className="relative w-96 shrink-0">
+          {sorotBarang && (
+            <PanelDetailBarang
+              b={sorotBarang.b}
+              o={sorotBarang.o}
+              qty={sorotBarang.qty}
+              menutupi="daftar Order saya"
+            />
+          )}
+          <OrderSaya
+            onLanjutDraf={(id) =>
+              void lanjutDraf(id).catch((err: unknown) => toast.error(pesanGalat(err)))
+            }
+            bukaDrafOtomatis={bukaDrafOtomatis}
+            onBukaDrafOtomatis={(v) => {
+              setBukaDrafOtomatis(v);
+              tulisBukaDrafOtomatis(v);
+              toast.info(
+                v
+                  ? 'Draf terakhir akan dibuka otomatis saat halaman ini dibuka.'
+                  : 'Form akan selalu kosong saat dibuka; buka draf dengan mengkliknya di Order saya.',
+              );
+            }}
+          />
+        </aside>
       </div>
       <BilahTombol daftar={tombol} />
       <DialogKonfirmasi
@@ -655,6 +848,34 @@ export function InputOrderCepat() {
         bahaya
         onKonfirmasi={mulaiDariAwal}
       />
+      {cekDraf.dialog}
+      {dialogSimpan && (
+        <DialogSimpanOrder
+          order={{
+            namaPelanggan: tr.t.pelanggan?.nama ?? null,
+            namaPembeli: tr.t.pelanggan ? null : tr.t.namaPembeli.trim() || null,
+            noHp: tr.t.pelanggan ? hpPelanggan : null,
+          }}
+          siapkan={siapkanDraf}
+          fokusSesudah={ID.cari}
+          onTersimpan={(o) => {
+            setDialogSimpan(false);
+            setTerakhir(null);
+            tr.kosongkan(false);
+            setJenis('LANGSUNG');
+            setAlamat('');
+            setOngkir('');
+            setCatatanKirim('');
+            setCatatan('');
+            setIndeksBaris(0);
+            setZona('cari');
+            toast.info(
+              `Order ${o.nomor} ada di Order › Disimpan; form kosong untuk pembeli berikutnya.`,
+            );
+          }}
+          onTutup={() => setDialogSimpan(false)}
+        />
+      )}
       {pelangganBaru && (
         <DialogPelanggan
           pelanggan={null}

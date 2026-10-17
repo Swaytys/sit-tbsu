@@ -38,7 +38,9 @@ test(
       }
 
       await menuUtama(kasir).getByRole('link', { name: 'Shift & Clerical Check' }).click();
-      await expect(kasir.getByRole('heading', { name: 'Shift & Clerical Check' })).toBeVisible();
+      await expect(
+        kasir.getByRole('heading', { name: 'Shift & Clerical Check', exact: true }),
+      ).toBeVisible();
 
       // Dialog buka shift: Esc di langkah pertama menutup dialog tanpa perlu mengklik apa pun.
       await kasir.getByRole('button', { name: 'Buka shift' }).click();

@@ -60,6 +60,7 @@ import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
 import { BilahTombol, type Tombol } from './bilah-tombol';
 import { DialogBukaShift } from '../shift/dialog-buka-shift';
 import { CariBarangPos, type PilihanBarang } from './cari-barang-pos';
+import { DialogPilihanOrder, TautanOrderDisimpan } from '../order/pilihan-order';
 import { PanelDetailBarang } from './panel-detail-barang';
 import { CariPelangganPos } from './cari-pelanggan-pos';
 import { KeranjangPos } from './keranjang-pos';
@@ -288,16 +289,26 @@ export function LayarPos({
     }
   }
 
-  // Dibuka dari halaman Order (…?order=ID): langsung proses order itu.
-  const bukaOrderAwal = useEffectEvent((id: number) => {
+  // Dibuka dari halaman Order (…?order=ID): langsung proses order itu. Order DISIMPAN (K-122) tidak ada di
+  // papan antrean, jadi datanya diambil sendiri.
+  const bukaOrderAwal = useEffectEvent(async (id: number) => {
     const t = tiket.find((x) => x.id === id);
-    if (t) void prosesTiket(t);
+    if (t) {
+      await prosesTiket(t);
+      return;
+    }
+    try {
+      const d = await ambilData(await api.order[':id'].$get({ param: { id: String(id) } }));
+      if (d.status === 'DISIMPAN') await prosesTiket({ ...d, alamatKirim: d.alamatKirim });
+    } catch (err) {
+      toast.error(pesanGalat(err));
+    }
   });
   const awalTerproses = useRef<number | null>(null);
   useEffect(() => {
     if (idOrderAwal && awalTerproses.current !== idOrderAwal && papan.isSuccess) {
       awalTerproses.current = idOrderAwal;
-      bukaOrderAwal(idOrderAwal);
+      void bukaOrderAwal(idOrderAwal);
     }
   }, [idOrderAwal, papan.isSuccess]);
 
@@ -313,21 +324,31 @@ export function LayarPos({
   });
   useEffect(() => () => lepasSaatKeluar(), []);
 
+  /** Layar kembali kosong setelah order dilepas, disimpan, atau dikembalikan ke draf (K-122). */
+  function selesaiDenganOrder() {
+    tr.kosongkan();
+    mulaiBaru();
+    setZona('antrean');
+    if (idOrderAwal)
+      void navigasi(pengantaran ? '/penjualan-pengantaran' : '/penjualan-langsung', {
+        replace: true,
+      });
+  }
+
+  async function keAntrean() {
+    if (!order) return;
+    await lepas.mutateAsync(order.id);
+    toast(`Antrean ${order.noAntrean} dikembalikan ke antrean.`);
+  }
+
   async function batal() {
     if (order) {
       try {
-        await lepas.mutateAsync(order.id);
-        toast(`Antrean ${order.noAntrean} dikembalikan ke antrean.`);
+        await keAntrean();
       } catch (err) {
         toast.error(pesanGalat(err));
       }
-      tr.kosongkan();
-      mulaiBaru();
-      setZona('antrean');
-      if (idOrderAwal)
-        void navigasi(pengantaran ? '/penjualan-pengantaran' : '/penjualan-langsung', {
-          replace: true,
-        });
+      selesaiDenganOrder();
     } else if (tr.t.baris.length > 0) {
       tr.kosongkan(true);
       mulaiBaru();
@@ -529,7 +550,7 @@ export function LayarPos({
               <kbd className="font-mono text-xs text-slate-400">F3</kbd>
             </span>
             <span className="text-xs text-slate-500">
-              {tiket.length} order · urut yang paling lama menunggu
+              {tiket.length} order · urut yang paling lama menunggu <TautanOrderDisimpan />
             </span>
           </div>
           <PapanAntrean
@@ -894,23 +915,23 @@ export function LayarPos({
         />
       )}
       {dialogKeluar}
+      {order && tanyaUlang && (
+        <DialogPilihanOrder
+          order={order}
+          onKeAntrean={keAntrean}
+          onSelesai={() => {
+            setTanyaUlang(false);
+            selesaiDenganOrder();
+          }}
+          onTutup={() => setTanyaUlang(false)}
+        />
+      )}
       <DialogKonfirmasi
-        terbuka={tanyaUlang}
+        terbuka={tanyaUlang && !order}
         onTutup={() => setTanyaUlang(false)}
         judul="Mulai dari awal?"
         pesan={
-          order ? (
-            <>
-              <p>
-                Antrean <b>{order.noAntrean}</b> dikembalikan ke daftar antrean.{' '}
-                <b>Order tidak dihapus</b> dan bisa diproses lagi kapan saja.
-              </p>
-              <p className="mt-1">
-                Perubahan barang, pelanggan, dan isian pembayaran yang belum dibayar di layar ini
-                dibuang.
-              </p>
-            </>
-          ) : (
+          order ? null : (
             <>
               <p>
                 Daftar barang, pelanggan{pengantaran ? ', alamat kirim,' : ''} dan isian pembayaran

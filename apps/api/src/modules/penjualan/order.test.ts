@@ -26,7 +26,7 @@ import {
   tingkatHarga,
 } from '../../db/schema';
 import { dengarkan } from '../../lib/siaran';
-import { sekarang, tambahJam, tambahMenit } from '../../lib/waktu';
+import { sekarang, tambahHari, tambahJam, tambahMenit, tanggalOperasional } from '../../lib/waktu';
 import { hitungUlangCache } from '../persediaan/ledger';
 import { jalankanJobOrder } from './order/service';
 
@@ -72,7 +72,9 @@ async function stok(idBarang: number) {
   return { fisik: p!.stokFisik, dipesan: p!.stokDipesan, tersedia: p!.stokTersedia };
 }
 
-async function logTerakhir(aksi: 'PENJUALAN_HARGA_MANUAL' | 'ORDER_LEPAS' | 'ORDER_BATAL') {
+async function logTerakhir(
+  aksi: 'PENJUALAN_HARGA_MANUAL' | 'ORDER_LEPAS' | 'ORDER_BATAL' | 'ORDER_SIMPAN' | 'ORDER_KE_DRAF',
+) {
   const [log] = await db
     .select()
     .from(logAktivitas)
@@ -464,5 +466,160 @@ describe('order penjualan (docs/05 §3, §6)', () => {
     expect(o).toMatchObject({ status: 'BATAL', alasanBatal: 'KADALUARSA' });
     expect((await stok(m.semen)).dipesan).toBe('0.000');
     expect(await logTerakhir('ORDER_BATAL')).toMatchObject({ idPengguna: null });
+  });
+});
+
+describe('order disimpan, kembali ke draf, draf lain (docs/05 R11–R14, K-122)', () => {
+  const hariIni = () => tanggalOperasional();
+  const simpanan = (ubah: Record<string, unknown> = {}) => ({
+    namaPembeli: 'Pak Budi',
+    noHp: '0812 3456 7890',
+    tanggalAmbil: tambahHari(hariIni(), 3),
+    ...ubah,
+  });
+  type DrafBarangUji = {
+    data: {
+      stokTersedia: string;
+      draf: { id: number; qtyDasar: string; milikSaya: boolean; namaPembeli: string | null }[];
+    };
+  };
+
+  it('R11 simpan: nama, HP, tanggal ≤ 14 hari wajib; menahan stok; di luar antrean; tercatat', async () => {
+    const d = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '3' }]));
+    const simpan = (ubah: Record<string, unknown>) =>
+      galat(minta2(staf, `/api/order/${d.id}/simpan`, simpanan(ubah)));
+    expect(await simpan({ namaPembeli: null })).toMatchObject({ status: 400, kode: 'VALIDASI' });
+    expect((await simpan({ tanggalAmbil: tambahHari(hariIni(), -1) })).pesan).toContain(
+      'sebelum hari ini',
+    );
+    expect((await simpan({ tanggalAmbil: tambahHari(hariIni(), 15) })).pesan).toContain(
+      'paling lama 14 hari',
+    );
+    expect((await simpan({ noHp: '12' })).status).toBe(400);
+    expect((await stok(m.semen)).dipesan).toBe('0.000');
+
+    const s = await kirim(staf, `/api/order/${d.id}/simpan`, simpanan());
+    expect(s).toMatchObject({
+      status: 'DISIMPAN',
+      namaPembeli: 'Pak Budi',
+      noHpPembeli: '0812 3456 7890',
+      tanggalAmbil: tambahHari(hariIni(), 3),
+      waktuMasukAntrean: null,
+      lewatTanggalAmbil: false,
+    });
+    expect((await stok(m.semen)).dipesan).toBe('3.000');
+    expect((await hitungUlangCache(db, m.semen)).cocok).toBe(true);
+    expect((await logTerakhir('ORDER_SIMPAN'))?.ringkasan).toContain('stok mulai ditahan');
+
+    const papan = await ambil<{ data: TiketAntrean[] }>(kasir, '/api/order/antrean?jenis=LANGSUNG');
+    expect(papan.data.some((t) => t.id === d.id)).toBe(false);
+    const daftar = await ambil<DaftarOrder>(kasir, '/api/order?status=DISIMPAN');
+    expect(daftar.data.map((o) => o.id)).toEqual([d.id]);
+
+    // Stok tidak cukup: draf tidak bisa disimpan.
+    const besar = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '8' }]));
+    expect((await galat(minta2(staf, `/api/order/${besar.id}/simpan`, simpanan()))).kode).toBe(
+      'STOK_TIDAK_CUKUP',
+    );
+  });
+
+  it('R12 order disimpan masuk antrean atau langsung diproses kasir; boleh diubah; batal melepas stok', async () => {
+    const a = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '2' }]));
+    await kirim(staf, `/api/order/${a.id}/simpan`, simpanan());
+    const ubah = await kirim(
+      staf,
+      `/api/order/${a.id}`,
+      order([{ idBarang: m.semen, qty: '4' }]),
+      'PUT',
+    );
+    expect(ubah.status).toBe('DISIMPAN');
+    expect((await stok(m.semen)).dipesan).toBe('4.000');
+    const antre = await kirim(kasir, `/api/order/${a.id}/kirim`);
+    expect(antre.status).toBe('MENUNGGU');
+    expect(antre.waktuMasukAntrean).not.toBeNull();
+    expect((await stok(m.semen)).dipesan).toBe('4.000');
+
+    const b = await kirim(staf, '/api/order', order([{ idBarang: m.pasir, qty: '1' }]));
+    await kirim(staf, `/api/order/${b.id}/simpan`, simpanan());
+    const proses = await kirim(kasir, `/api/order/${b.id}/proses`);
+    expect(proses).toMatchObject({ status: 'DIPROSES', idKasirProses: kasir.pengguna.id });
+    const dipegang = await ambil<DaftarOrder>(kasir, '/api/order?dipegangSaya=true');
+    expect(dipegang.data.map((o) => o.id)).toEqual([b.id]);
+
+    const c = await kirim(staf, '/api/order', order([{ idBarang: m.pasir, qty: '2' }]));
+    await kirim(staf, `/api/order/${c.id}/simpan`, simpanan());
+    expect((await stok(m.pasir)).dipesan).toBe('3.000');
+    await kirim(staf, `/api/order/${c.id}/batal`, { alasan: 'pembeli tidak jadi' });
+    expect((await stok(m.pasir)).dipesan).toBe('1.000');
+    expect((await hitungUlangCache(db, m.pasir)).cocok).toBe(true);
+  });
+
+  it('R13 kembali ke draf: stok dilepas, barang tetap, draf milik pembuat; kunci kasir dihormati', async () => {
+    const a = await kirim(staf, '/api/order?kirim=true', order([{ idBarang: m.semen, qty: '3' }]));
+    expect((await stok(m.semen)).dipesan).toBe('3.000');
+    const d = await kirim(kasir, `/api/order/${a.id}/draf`);
+    expect(d).toMatchObject({
+      status: 'DRAFT',
+      waktuMasukAntrean: null,
+      idPengguna: staf.pengguna.id,
+    });
+    expect(d.baris).toHaveLength(1);
+    expect((await stok(m.semen)).dipesan).toBe('0.000');
+    expect((await logTerakhir('ORDER_KE_DRAF'))?.ringkasan).toContain('dari menunggu');
+    const drafStaf = await ambil<DaftarOrder>(staf, '/api/order?status=DRAFT&milikSaya=true');
+    expect(drafStaf.data.map((o) => o.id)).toEqual([a.id]);
+    expect((await galat(minta2(staf, `/api/order/${a.id}/draf`))).kode).toBe('STATUS_TIDAK_VALID');
+
+    // Dari kasir: pembuat tidak bisa merebut order yang sedang diproses; Admin boleh (lepas paksa).
+    await kirim(staf, `/api/order/${a.id}/kirim`);
+    await kirim(kasir, `/api/order/${a.id}/proses`);
+    expect((await galat(minta2(staf, `/api/order/${a.id}/draf`))).status).toBe(409);
+    expect((await kirim(admin, `/api/order/${a.id}/draf`)).status).toBe('DRAFT');
+
+    // Dari disimpan.
+    await kirim(staf, `/api/order/${a.id}/simpan`, simpanan());
+    expect((await kirim(staf, `/api/order/${a.id}/draf`)).tanggalAmbil).toBeNull();
+    expect((await stok(m.semen)).dipesan).toBe('0.000');
+    expect((await hitungUlangCache(db, m.semen)).cocok).toBe(true);
+  });
+
+  it('R14 draf lain yang memuat barang: siapa pun pembuatnya, kecuali draf yang sedang diisi', async () => {
+    const milikStaf = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '4' }]));
+    const milikKasir = await kirim(
+      kasir,
+      '/api/order',
+      order([{ idBarang: m.semen, qty: '5' }], { namaPembeli: 'Bu Ani' }),
+    );
+    await kirim(kasir, '/api/order', order([{ idBarang: m.pasir, qty: '1' }]));
+    const r = await ambil<DrafBarangUji>(
+      staf,
+      `/api/order/draf-barang?idBarang=${m.semen}&kecuali=${milikStaf.id}`,
+    );
+    expect(r.data.stokTersedia).toBe('10.000');
+    expect(r.data.draf).toEqual([
+      expect.objectContaining({
+        id: milikKasir.id,
+        qtyDasar: '5.000',
+        milikSaya: false,
+        namaPembeli: 'Bu Ani',
+      }),
+    ]);
+    const semua = await ambil<DrafBarangUji>(kasir, `/api/order/draf-barang?idBarang=${m.semen}`);
+    expect(semua.data.draf.map((x) => x.id)).toEqual([milikStaf.id, milikKasir.id]);
+  });
+
+  it('R11 lewat tanggal ambil: ditandai dan masuk notifikasi pembuat dan atasan', async () => {
+    const a = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '1' }]));
+    await kirim(staf, `/api/order/${a.id}/simpan`, simpanan({ tanggalAmbil: hariIni() }));
+    await db
+      .update(orderPenjualan)
+      .set({ tanggalAmbil: tambahHari(hariIni(), -2) })
+      .where(eq(orderPenjualan.id, a.id));
+    const daftar = await ambil<DaftarOrder>(staf, '/api/order?status=DISIMPAN');
+    expect(daftar.data[0]?.lewatTanggalAmbil).toBe(true);
+    for (const sesi of [staf, admin]) {
+      const n = await ambil<{ data: Notifikasi[] }>(sesi, '/api/notifikasi');
+      expect(n.data.find((x) => x.jenis === 'ORDER_DISIMPAN_LEWAT')?.jumlah).toBe(1);
+    }
   });
 });

@@ -26,7 +26,7 @@ import {
 import type { RingkasAtribut } from './barang';
 import { skemaQtyPositif, skemaTanggal } from './persediaan';
 import { skemaKodePersetujuan } from './saluran';
-import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
+import { skemaHalaman, skemaNoHpWajib, skemaRupiah, teksOpsional } from './umum';
 
 /*
  * Penjualan (Fase 5): order & antrean (docs/05 §3, §6), harga dan diskon baris (docs/06 §1–2).
@@ -197,6 +197,11 @@ export const skemaCariOrder = skemaHalaman.extend({
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
     .optional(),
+  /** Hanya order yang sedang diproses (dikunci) pengguna ini (tutup shift, K-121 butir 9). */
+  dipegangSaya: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
 });
 export type ParamCariOrder = z.input<typeof skemaCariOrder>;
 
@@ -207,6 +212,42 @@ export const skemaBatalOrder = z.object({
     .min(3, 'Alasan batal wajib diisi (min. 3 huruf).')
     .max(255, 'Alasan maksimal 255 karakter.'),
 });
+
+/** K-122: order disimpan paling lama sekian hari dari hari ini. */
+export const MAKS_HARI_SIMPAN_ORDER = 14;
+
+/** K-122: simpan order untuk diambil/dibayar nanti. Nama wajib bila order tanpa pelanggan (diperiksa service). */
+export const skemaSimpanOrder = z.object({
+  namaPembeli: teksOpsional(100, 'Nama pembeli maksimal 100 karakter.'),
+  noHp: skemaNoHpWajib,
+  tanggalAmbil: skemaTanggal('Tanggal ambil'),
+});
+export type InputSimpanOrder = z.input<typeof skemaSimpanOrder>;
+export type DataSimpanOrder = z.output<typeof skemaSimpanOrder>;
+
+/** K-122 butir 4: barang yang juga ada di draf lain, untuk peringatan saat ditambahkan. */
+export const skemaCariDrafBarang = z.object({
+  idBarang: z.coerce.number().int().positive(),
+  /** Draf yang sedang diisi (tidak ikut dihitung). */
+  kecuali: z.coerce.number().int().positive().optional(),
+});
+
+export type DrafBarang = {
+  /** Stok tersedia barang (satuan dasar). */
+  stokTersedia: string;
+  kodeSatuanDasar: string;
+  draf: {
+    id: number;
+    nomor: string;
+    noAntrean: number;
+    namaPembeli: string | null;
+    namaPengguna: string;
+    milikSaya: boolean;
+    /** Qty barang ini di draf itu (satuan dasar, semua baris satuan digabung). */
+    qtyDasar: string;
+    diubahPada: string | null;
+  }[];
+};
 
 export type BarisDaftarOrder = {
   id: number;
@@ -233,6 +274,11 @@ export type BarisDaftarOrder = {
   ringkasan: RingkasBarisOrder[];
   /** Catatan pembuat order untuk kasir (tampil di tiket antrean dan layar kasir, K-099). */
   catatan: string | null;
+  /** K-122: No. HP pembeli dan rencana tanggal ambil (order disimpan). */
+  noHpPembeli: string | null;
+  tanggalAmbil: string | null;
+  /** K-122: order DISIMPAN yang tanggal ambilnya sudah lewat (hubungi pembeli). */
+  lewatTanggalAmbil: boolean;
 };
 
 export type RingkasBarisOrder = { namaBarang: string; qty: string; kodeSatuan: string };

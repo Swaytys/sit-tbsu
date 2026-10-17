@@ -319,3 +319,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-11 — §6: uji saluran per jenis (K-105).
 - 2026-10-12 — §2–§4: izin `kas.rekening.lihat`, `kas.nontunai.verifikasi`; arti izin pelanggan; menu Promo masuk Pengaturan; §6 kode `UBAH_PELANGGAN` (K-107, K-109, K-110, K-111).
 - 2026-10-18 — §2, §6: arti izin shift diperluas (hitung dua langkah, koreksi modal, penjelasan selisih); kode `KOREKSI_KAS` (K-121).
+- 2026-10-18 — Order disimpan dan kembali ke draf memakai izin `penjualan.order.buat` dengan pemeriksaan pemilik/kunci di service (pembuat, pemegang `penjualan.checkout`, atau kasir pemegang kunci; docs/05 R11–R13); daftar draf lain per barang untuk peringatan (R14) (K-122).

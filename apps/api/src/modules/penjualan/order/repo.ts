@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
 import type { JenisPenjualan, StatusOrder } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
@@ -50,7 +50,12 @@ const kolom = {
   alasanBatal: orderPenjualan.alasanBatal,
   idPenjualan: orderPenjualan.idPenjualan,
   diubahPada: orderPenjualan.diubahPada,
+  noHpPembeli: orderPenjualan.noHpPembeli,
+  tanggalAmbil: orderPenjualan.tanggalAmbil,
 };
+
+/** Status yang menahan stok (R2 + K-122): antrean, sedang diproses, dan disimpan. */
+export const STATUS_MENAHAN = ['MENUNGGU', 'DIPROSES', 'DISIMPAN'] as const;
 
 function dasar(ex: Executor) {
   return ex
@@ -65,6 +70,8 @@ export type SaringOrder = {
   status?: StatusOrder | 'AKTIF' | undefined;
   jenis?: JenisPenjualan | undefined;
   idPengguna?: number | undefined;
+  /** Order DIPROSES yang dikunci pengguna ini. */
+  idKasirProses?: number | undefined;
 };
 
 function syarat(p: SaringOrder): SQL | undefined {
@@ -77,6 +84,12 @@ function syarat(p: SaringOrder): SQL | undefined {
         : undefined,
     p.jenis ? eq(orderPenjualan.jenisPenjualan, p.jenis) : undefined,
     p.idPengguna === undefined ? undefined : eq(orderPenjualan.idPengguna, p.idPengguna),
+    p.idKasirProses === undefined
+      ? undefined
+      : and(
+          eq(orderPenjualan.status, 'DIPROSES'),
+          eq(orderPenjualan.idKasirProses, p.idKasirProses),
+        ),
     pola
       ? or(
           ilike(orderPenjualan.nomor, pola),
@@ -99,7 +112,9 @@ export async function daftarOrder(
   const urutan =
     p.status === 'AKTIF' || p.status === 'MENUNGGU'
       ? [asc(orderPenjualan.waktuMasukAntrean), asc(orderPenjualan.id)]
-      : [desc(orderPenjualan.tanggal), desc(orderPenjualan.id)];
+      : p.status === 'DISIMPAN'
+        ? [asc(orderPenjualan.tanggalAmbil), asc(orderPenjualan.id)]
+        : [desc(orderPenjualan.tanggal), desc(orderPenjualan.id)];
   const baris = await dasar(ex)
     .where(where)
     .orderBy(...urutan)
@@ -236,7 +251,7 @@ export function kunciKadaluarsa(tx: Executor, batas: Date) {
     .orderBy(asc(orderPenjualan.id));
 }
 
-/** Stok tertahan (R7): baris order MENUNGGU/DIPROSES per barang. */
+/** Stok tertahan (R7): baris order yang menahan stok (MENUNGGU/DIPROSES/DISIMPAN) per barang. */
 export function stokTertahan(ex: Executor) {
   return ex
     .select({
@@ -263,7 +278,7 @@ export function stokTertahan(ex: Executor) {
     .innerJoin(persediaan, eq(persediaan.idBarang, barang.id))
     .innerJoin(pengguna, eq(pengguna.id, orderPenjualan.idPengguna))
     .leftJoin(pelanggan, eq(pelanggan.id, orderPenjualan.idPelanggan))
-    .where(inArray(orderPenjualan.status, ['MENUNGGU', 'DIPROSES']))
+    .where(inArray(orderPenjualan.status, [...STATUS_MENAHAN]))
     .orderBy(asc(barang.namaBarang), asc(orderPenjualan.waktuMasukAntrean));
 }
 
@@ -297,4 +312,73 @@ export function ringkasBaris(ex: Executor, idOrder: number[]) {
     .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
     .where(inArray(orderPenjualanDetail.idOrder, idOrder))
     .orderBy(asc(orderPenjualanDetail.id));
+}
+
+/** K-122 butir 4: draf lain yang memuat barang ini (qty satuan dasar digabung per draf). */
+export function drafBarang(ex: Executor, idBarang: number, kecuali: number | undefined) {
+  return ex
+    .select({
+      id: orderPenjualan.id,
+      nomor: orderPenjualan.nomor,
+      idPengguna: orderPenjualan.idPengguna,
+      namaPengguna: pengguna.namaPengguna,
+      namaPembeli: sql<
+        string | null
+      >`coalesce(${pelanggan.namaPelanggan}, ${orderPenjualan.namaPembeli})`,
+      qtyDasar: sql<string>`sum(${orderPenjualanDetail.qtyDasar})::text`,
+      diubahPada: orderPenjualan.diubahPada,
+    })
+    .from(orderPenjualanDetail)
+    .innerJoin(orderPenjualan, eq(orderPenjualan.id, orderPenjualanDetail.idOrder))
+    .innerJoin(pengguna, eq(pengguna.id, orderPenjualan.idPengguna))
+    .leftJoin(pelanggan, eq(pelanggan.id, orderPenjualan.idPelanggan))
+    .where(
+      and(
+        eq(orderPenjualanDetail.idBarang, idBarang),
+        eq(orderPenjualan.status, 'DRAFT'),
+        kecuali === undefined ? undefined : ne(orderPenjualan.id, kecuali),
+      ),
+    )
+    .groupBy(
+      orderPenjualan.id,
+      orderPenjualan.nomor,
+      orderPenjualan.idPengguna,
+      pengguna.namaPengguna,
+      pelanggan.namaPelanggan,
+      orderPenjualan.namaPembeli,
+      orderPenjualan.diubahPada,
+    )
+    .orderBy(asc(orderPenjualan.diubahPada));
+}
+
+export async function stokBarang(ex: Executor, idBarang: number) {
+  const [b] = await ex
+    .select({
+      stokTersedia: sql<string>`${persediaan.stokTersedia}::text`,
+      kodeSatuanDasar: satuan.kode,
+    })
+    .from(barang)
+    .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .innerJoin(persediaan, eq(persediaan.idBarang, barang.id))
+    .where(eq(barang.id, idBarang));
+  return b;
+}
+
+/** K-122: order DISIMPAN yang tanggal ambilnya sebelum `hariIni` (opsional: buatan satu pengguna). */
+export async function jumlahDisimpanLewat(
+  ex: Executor,
+  hariIni: string,
+  idPengguna: number | undefined,
+) {
+  const [r] = await ex
+    .select({ n: count() })
+    .from(orderPenjualan)
+    .where(
+      and(
+        eq(orderPenjualan.status, 'DISIMPAN'),
+        lt(orderPenjualan.tanggalAmbil, hariIni),
+        idPengguna === undefined ? undefined : eq(orderPenjualan.idPengguna, idPengguna),
+      ),
+    );
+  return r?.n ?? 0;
 }

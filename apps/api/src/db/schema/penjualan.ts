@@ -71,6 +71,9 @@ export const orderPenjualan = pgTable(
     alasanBatal: varchar('alasan_batal', { length: 255 }),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /** K-122: kontak pembeli dan rencana tanggal ambil untuk order DISIMPAN (migrasi 0021). */
+    noHpPembeli: varchar('no_hp_pembeli', { length: 20 }),
+    tanggalAmbil: tanggal('tanggal_ambil'),
   },
   // Tipe hasil ditulis eksplisit: order_penjualan dan penjualan saling merujuk (FK dua arah).
   (t): PgTableExtraConfigValue[] => [
@@ -100,6 +103,10 @@ export const orderPenjualan = pgTable(
     check(
       'chk_order_pengantaran',
       sql`jenis_penjualan = 'LANGSUNG' or (id_pelanggan is not null and alamat_kirim is not null)`,
+    ),
+    check(
+      'chk_order_disimpan',
+      sql`status <> 'DISIMPAN' or (tanggal_ambil is not null and no_hp_pembeli is not null)`,
     ),
     check(
       'chk_order_uang',

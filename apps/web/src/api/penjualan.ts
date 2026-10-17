@@ -10,6 +10,7 @@ import type {
   DataMintaKodeLimit,
   DataSetujui,
   DataSetujuiKode,
+  DataSimpanOrder,
   DataSuratJalan,
   DataTutupShift,
   DataVoid,
@@ -34,6 +35,8 @@ export type ParamDaftarOrder = {
   status: StatusOrder | 'AKTIF' | null;
   jenis: JenisPenjualan | null;
   milikSaya: boolean;
+  /** Hanya order yang sedang diproses (dikunci) pengguna ini. */
+  dipegangSaya?: boolean;
   halaman: number;
   perHalaman: number;
 };
@@ -49,6 +52,7 @@ export function useDaftarOrder(p: ParamDaftarOrder, opsi: { segarkanTiap?: numbe
             status: p.status ?? undefined,
             jenis: p.jenis ?? undefined,
             milikSaya: p.milikSaya ? 'true' : undefined,
+            dipegangSaya: p.dipegangSaya ? 'true' : undefined,
             halaman: String(p.halaman),
             perHalaman: String(p.perHalaman),
           },
@@ -129,6 +133,32 @@ export function useProsesOrder() {
 export function useLepasOrder() {
   return useMutasiOrder(async (id: number) =>
     ambilData(await api.order[':id'].lepas.$post({ param: paramId(id) })),
+  );
+}
+
+/** R11 (K-122): simpan order untuk diambil nanti (menahan stok, di luar antrean). */
+export function useSimpanUntukNanti() {
+  return useMutasiOrder(async ({ id, json }: { id: number; json: DataSimpanOrder }) =>
+    ambilData(await api.order[':id'].simpan.$post({ param: paramId(id), json })),
+  );
+}
+
+/** R13 (K-122): kembalikan order ke draf (reservasi dilepas, barang tetap). */
+export function useKeDrafOrder() {
+  return useMutasiOrder(async (id: number) =>
+    ambilData(await api.order[':id'].draf.$post({ param: paramId(id) })),
+  );
+}
+
+/** R14 (K-122): draf lain yang memuat barang ini (dipanggil saat barang ditambahkan). */
+export async function ambilDrafBarang(idBarang: number, kecuali: number | null) {
+  return ambilData(
+    await api.order['draf-barang'].$get({
+      query: {
+        idBarang: String(idBarang),
+        ...(kecuali === null ? {} : { kecuali: String(kecuali) }),
+      },
+    }),
   );
 }
 

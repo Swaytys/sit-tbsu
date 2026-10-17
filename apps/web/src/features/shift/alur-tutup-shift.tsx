@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatWaktu } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { HITUNG_KOSONG, keJsonHitung, totalHitung, type NilaiHitung } from './hitung-uang';
+import { DaftarOrderDipegang } from '../order/pilihan-order';
 import { InputHitungUang } from './input-hitung-uang';
 import { TampilBantuan, TampilTinjauan } from './tinjauan-shift';
 
@@ -91,19 +92,28 @@ export function AlurTutupShift({
   idShift,
   status,
   onSelesai,
+  milikSendiri = true,
 }: {
   idShift: number;
   status: 'BUKA' | 'DIHITUNG';
   onSelesai: (d: DetailShift) => void;
+  /** Shift milik pengguna ini: order yang ia pegang ditampilkan dengan pilihan (K-121 butir 9). */
+  milikSendiri?: boolean;
 }) {
   if (status === 'BUKA') {
     return (
       <div className="space-y-2">
         <p className="text-sm text-slate-600">
           Hitung <b>semua</b> uang di laci (termasuk modal awal). Angka sistem baru tampil setelah
-          hitungan dikirim. Order yang sedang Anda proses akan dikembalikan ke antrean saat shift
-          ditutup.
+          hitungan dikirim.
         </p>
+        {milikSendiri ? (
+          <DaftarOrderDipegang />
+        ) : (
+          <p className="text-xs text-slate-500">
+            Order yang masih dipegang kasir itu kembali ke antrean saat shift ditutup.
+          </p>
+        )}
         <FormHitung idShift={idShift} ulang={false} />
       </div>
     );

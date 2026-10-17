@@ -2,9 +2,11 @@ import { zValidator } from '@hono/zod-validator';
 import {
   skemaBatalOrder,
   skemaCariAntrean,
+  skemaCariDrafBarang,
   skemaCariOrder,
   skemaOrder,
   skemaPratinjauOrder,
+  skemaSimpanOrder,
 } from '@sit/shared';
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
@@ -18,11 +20,14 @@ import {
   buatOrder,
   daftarOrder,
   detailOrder,
+  drafBarangLain,
+  keDrafOrder,
   kirimOrder,
   lepasOrder,
   papanAntrean,
   pratinjauOrder,
   prosesOrder,
+  simpanOrder,
   ubahOrder,
 } from './service';
 
@@ -70,6 +75,10 @@ export const orderRoutes = new Hono<EnvApp>()
       berhenti();
     });
   })
+  /** K-122 butir 4: draf lain yang memuat barang ini (peringatan saat menambah barang). */
+  .get('/draf-barang', buat, zValidator('query', skemaCariDrafBarang, kaitValidasi), async (c) =>
+    c.json({ data: await drafBarangLain(c.req.valid('query'), penggunaWajib(c)) }, 200),
+  )
   .get('/', buat, zValidator('query', skemaCariOrder, kaitValidasi), async (c) =>
     c.json(await daftarOrder(c.req.valid('query'), penggunaWajib(c)), 200),
   )
@@ -101,6 +110,29 @@ export const orderRoutes = new Hono<EnvApp>()
   .post('/:id/kirim', buat, paramId, async (c) =>
     c.json(
       { data: await kirimOrder(c.req.valid('param').id, penggunaWajib(c), c.get('asal')) },
+      200,
+    ),
+  )
+  /** R11 (K-122): simpan untuk diambil nanti (menahan stok, di luar antrean). */
+  .post(
+    '/:id/simpan',
+    buat,
+    paramId,
+    zValidator('json', skemaSimpanOrder, kaitValidasi),
+    async (c) => {
+      const data = await simpanOrder(
+        c.req.valid('param').id,
+        c.req.valid('json'),
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data }, 200);
+    },
+  )
+  /** R13 (K-122): kembalikan ke draf (reservasi dilepas, barang tetap). */
+  .post('/:id/draf', buat, paramId, async (c) =>
+    c.json(
+      { data: await keDrafOrder(c.req.valid('param').id, penggunaWajib(c), c.get('asal')) },
       200,
     ),
   )

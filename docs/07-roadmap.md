@@ -27,7 +27,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 11 | Konsinyasi | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 12 | Multi-satuan jual dan label (akhir M2) | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 13 | Aplikasi desktop (versi build) | Belum (lingkup menunggu konfirmasi pemilik) | — |
-| 14 | Pendukung keputusan, anomali alur kerja, order pembelian, tablet, ekspor log (dikerjakan sebelum Fase 13; lingkup v1.0.0 menurut K-120–K-127) | Berjalan (rekomendasi pesan selesai 2026-10-17; shift K-121 selesai 2026-10-18) | — |
+| 14 | Pendukung keputusan, anomali alur kerja, order pembelian, tablet, ekspor log (dikerjakan sebelum Fase 13; lingkup v1.0.0 menurut K-120–K-127) | Berjalan (rekomendasi pesan 2026-10-17; shift K-121 dan order K-122 selesai 2026-10-18) | — |
 
 Nilai status: Belum · Aktif · Berjalan (sebagian branch merge) · Selesai · Ditunda.
 
@@ -378,9 +378,10 @@ definisi selesai:
    docs/05 dengan tes service per aturan. **Selesai 2026-10-17.**
 2. **Shift & clerical check anti-anomali** (K-121): tiga cara buka, hitung susulan, koreksi modal dengan kode
    atasan, tutup dua langkah, toleransi, uang ditinggal, tinjauan, bantuan selisih, penjelasan atasan (docs/05
-   K15–K24). **Selesai 2026-10-18**, kecuali butir 9 (pilihan per order saat tutup) yang menyusul bersama butir 3.
+   K15–K24). **Selesai 2026-10-18.**
 3. **Order penjualan** (K-122): order disimpan (tahan stok), kembali ke draf, buka draf otomatis, peringatan barang
    di draf lain, panel rincian di Order Penjualan; pilihan per order saat tutup shift (K-121 butir 9).
+   **Selesai 2026-10-18** (docs/05 R11–R14, migrasi 0021).
 4. **Pencarian dan tampilan** (K-123): atribut dicocokkan sebagian, label keterjualan, angka stok merah tebal,
    teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan.
 5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),
@@ -423,6 +424,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-10-18 — Fase 14 butir 3 selesai: order disimpan, kembali ke draf, peringatan draf lain (K-122, docs/05 R11–R14, migrasi 0021).
 - 2026-10-18 — Fase 14 diperluas dengan lingkup v1.0.0 dari tinjauan pemilik 18 Okt (K-120–K-127); butir 2 shift anti-anomali selesai (K-121, docs/05 K15–K24, migrasi 0020).
 - 2026-10-17 — Fase 14 bagian 1 selesai: rekomendasi pemesanan ulang (K-113, docs/05 §17). Tinjauan pemilik 17 Okt: K-114–K-119.
 - 2026-10-14 — Fase 14 ditambahkan dan diaktifkan: rekomendasi pemesanan ulang, tablet, ekspor log (K-113).

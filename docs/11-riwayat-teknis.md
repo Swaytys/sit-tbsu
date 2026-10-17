@@ -313,6 +313,52 @@ uang ditinggal menjadi usulan, penjelasan atasan, Kasir ditolak 403 untuk penjel
 dengan hitung ulang, uang ditinggal muncul sebagai pilihan buka berikutnya; skenario kedua *hitung nanti* dengan
 penjualan sebelum hitungan susulan.
 
+### C3. Order disimpan, kembali ke draf, peringatan draf lain (18 Oktober 2026, K-122)
+
+**Tujuan:** menangani tiga anomali order (docs/12 O1–O4): pembeli yang pesan sekarang tetapi mengambil beberapa
+hari lagi (order menumpuk di antrean), pembeli di kasir yang ternyata tidak bisa membayar (order harus dibatalkan
+dan diketik ulang), dan dua pembeli yang menginginkan stok terakhir yang sama sementara salah satunya masih draf.
+
+**Perubahan data (migrasi 0021):** status order keenam `DISIMPAN`; kolom `order_penjualan.no_hp_pembeli` dan
+`tanggal_ambil`; CHECK `chk_order_disimpan` (keduanya wajib saat DISIMPAN). Tidak ada tabel baru: order disimpan
+tetap order biasa yang menahan stok seperti MENUNGGU.
+
+**Kerangka kode:**
+- `penjualan/order/repo.ts` — konstanta `STATUS_MENAHAN` (MENUNGGU, DIPROSES, DISIMPAN) dipakai daftar stok
+  tertahan; saringan `idKasirProses` (order yang dipegang kasir, untuk tutup shift); kueri `drafBarang` (draf lain
+  yang memuat satu barang, qty dasar digabung per draf), `stokBarang`, `jumlahDisimpanLewat`.
+- `persediaan/ledger.ts` — pemeriksaan "stok dipesan = Σ order penahan" dan pesan galat A6 kini ikut menghitung
+  DISIMPAN, sehingga `hitungUlangCache` tetap cocok.
+- `penjualan/order/service.ts` — `simpanOrder` (R11: periksa asal status dan pemilik/kunci, tanggal hari ini s.d.
+  14 hari, nama atau pelanggan; draf mulai menahan stok lewat `ubahReservasi`), `kirimOrder` dan `prosesOrder`
+  menerima DISIMPAN (R12), `keDrafOrder` (R13: lepas reservasi, status DRAFT, tanggal ambil dikosongkan),
+  `drafBarangLain` (R14), `jumlahDisimpanLewat` untuk notifikasi. Pemeriksaan siapa boleh memindahkan order
+  disatukan di `periksaPindah`.
+- Route baru: `POST /:id/simpan`, `POST /:id/draf`, `GET /draf-barang` (izin `penjualan.order.buat`; pemeriksaan
+  pemilik dan kunci di service).
+- Web: `features/order/dialog-simpan-order.tsx` (nama, HP, tanggal dengan tombol cepat; validasi Zod bersama),
+  `pilihan-order.tsx` (dialog F9 kasir A/S/D, daftar order yang dipegang saat tutup shift, tautan "n disimpan" di
+  papan antrean), `peringatan-draf-lain.tsx` + `dialog-draf-lain.tsx`, `dialog-batal-order.tsx` (dipindah dari
+  halaman order agar bisa dipakai ulang); tab *Disimpan* di daftar order; panel rincian barang di input cepat;
+  centang *Buka draf otomatis* (preferensi tampilan di `localStorage`).
+
+**Alur logika penting:**
+- Order disimpan tidak punya `waktu_masuk_antrean`, jadi tidak pernah dianggap basi (R7) dan tidak ikut papan
+  antrean. Saat dikirim ke antrean, waktu masuk antrean diisi saat itu (antre dari belakang); saat langsung
+  diproses kasir, diisi waktu diproses.
+- Peringatan draf lain dijalankan **setelah** barang ditambahkan, bukan sebelumnya: menunggu jawaban server
+  sebelum menambah membuat dua barang yang diketik cepat bisa saling menimpa (isian lama dipakai). Pilihan
+  pengguna (hapus lagi / buka draf) dijalankan dengan isian terbaru lewat referensi fungsi yang selalu
+  diperbarui.
+- Fokus kembali ke kotak cari barang setelah dialog simpan dan dialog peringatan tertutup, supaya alur
+  keyboard tidak terputus.
+
+**Tes:** `order.test.ts` R11–R14 (5 tes: syarat simpan, stok ditahan dan di luar antrean, stok kurang ditolak;
+masuk antrean/langsung diproses/diubah/batal; kembali ke draf dari antrean, kasir, dan disimpan dengan kunci
+dihormati; draf lain kecuali draf yang sedang diisi; lewat tanggal ambil dan notifikasi). Tes layar
+`order-simpan.spec.ts` (F7 simpan dengan validasi, peringatan draf lain lalu hapus, kasir memproses order disimpan
+lalu F9 → D ke draf, buka draf otomatis mati/nyala); `order.spec.ts` disesuaikan dengan dialog F9 baru.
+
 ---
 
 ## Riwayat dokumen
@@ -320,3 +366,4 @@ penjualan sebelum hitungan susulan.
 - 2026-10-17 — v1: dibuat atas permintaan pemilik (K-118); Bagian A–B dari catatan keputusan dan riwayat git
   (146 commit non-merge, 29 September–17 Oktober 2026); Bagian C1 rekomendasi pemesanan ulang.
 - 2026-10-18 — Bagian C2 shift & clerical check anti-anomali (K-120, K-121).
+- 2026-10-18 — Bagian C3 order disimpan, kembali ke draf, peringatan draf lain (K-122).
