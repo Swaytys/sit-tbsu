@@ -21,6 +21,7 @@ Nama repo: `sit-tbsu`. Nama tampil di aplikasi: **BonsaiUrip** (K-044).
 | `10-ringkasan-keputusan.md` | Ringkasan seluruh keputusan K-001 s.d. K-127: garis waktu, yang berlaku sekarang per topik, keputusan yang diganti, daftar lengkap | Saat ingin gambaran utuh tanpa membaca 28 berkas keputusan |
 | `11-riwayat-teknis.md` | Riwayat teknis runtut: kerangka bersama (ledger, izin, penomoran, log, tes) lalu apa yang dibangun di setiap tahap dan bagaimana; ditambah setiap fitur baru (K-118) | Saat perlu memahami cara kerja dan sejarah teknis aplikasi |
 | `12-anomali-alur-kerja.md` | Katalog anomali alur kerja per fitur (salah ketik, urutan terbalik, lupa, curang) dengan jawaban atasi, cegah, ajari dan statusnya (K-120) | Sebelum merancang atau mengubah fitur; setiap fitur baru menambah barisnya |
+| `UJI-PEMILIK.md` | Daftar hal yang perlu dicoba pemilik (U1, U2, …) dengan langkah, hasil yang diharapkan, dan status | Setiap selesai fitur (baris baru) dan setiap pemilik melapor hasil uji |
 | `LAPORAN-FITUR-APLIKASI.md` | Inventaris fitur faktual dengan rujukan `berkas:baris` (peran & hak akses, fitur per modul, rumus bisnis, laporan, jejak data, daftar endpoint dan tabel); bahan Proposal TA | Saat perlu tahu fitur apa yang sudah ada dan di mana kodenya; diperbarui setiap fitur baru |
 | `keputusan/` | Log keputusan bernomor K-001, K-002, … beserta alasan dan alternatif yang ditolak | Saat bertanya "kenapa begini?" |
 | `panduan/` | Panduan langkah demi langkah untuk pemilik proyek (install, git, alur kerja) | Fase 1 |
@@ -89,6 +90,7 @@ Jangan pakai mode auto-accept.
 | 11-riwayat-teknis.md | Hidup (v1, sampai shift tiga cara buka dan tutup dua langkah) | 2026-10-18 |
 | 12-anomali-alur-kerja.md | Hidup (v1: shift S1–S21, order O1–O5, penjualan P1–P3) | 2026-10-18 |
 | 10-ringkasan-keputusan.md | Hidup (ringkasan K-001 s.d. K-127) | 2026-10-18 |
+| UJI-PEMILIK.md | Hidup (U1–U27) | 2026-10-18 |
 | LAPORAN-FITUR-APLIKASI.md | Hidup (inventaris fitur dari kode; diperbarui tiap fitur, terakhir shift K-121) | 2026-10-18 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
 | keputusan/2026-09-19-keputusan-tambahan.md | Final (K-044–K-049) | 2026-09-19 |
