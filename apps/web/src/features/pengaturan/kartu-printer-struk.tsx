@@ -213,43 +213,54 @@ export function KartuPrinterStruk() {
 
         <Langkah
           no={1}
-          judul="Nyalakan printer dan pasangkan dengan Windows (sekali saja)"
+          judul="Nyalakan printer dan sambungkan ke Windows (sekali saja)"
           selesai={p.info !== null}
         >
           <Lipatan
-            judul="Cara memasangkan printer Bluetooth (mis. EPPOS RPP02) di Windows 10/11"
+            judul="Printer Bluetooth (merek apa pun): pasangkan, lalu buat port COM keluar"
             terbuka={p.info === null}
           >
+            <p>
+              Berlaku untuk printer struk thermal 58/80 mm yang memakai perintah ESC/POS (hampir
+              semua printer struk: RPP02, POS-58, Xprinter, Panda, Epson TM, dan sejenisnya).
+            </p>
             <ol className="list-decimal space-y-1 pl-5">
               <li>
                 Pasang gulungan kertas thermal, tutup penutupnya, lalu nyalakan printer (tahan
                 tombol daya sampai lampunya menyala).
               </li>
               <li>
-                Di komputer: klik tombol <b>Start</b> › <b>Setelan</b> (Settings) ›{' '}
-                <b>Bluetooth &amp; perangkat</b>. Pastikan sakelar <b>Bluetooth</b> dalam keadaan{' '}
-                <b>Aktif</b>.
+                Di komputer: klik <b>Start</b> › <b>Setelan</b> (Settings) ›{' '}
+                <b>Bluetooth &amp; perangkat</b>. Pastikan sakelar <b>Bluetooth</b> <b>Aktif</b>.
               </li>
               <li>
-                Bila printer sudah ada di daftar perangkat dengan tulisan <i>Dipasangkan</i>{' '}
-                (Paired), langkah ini sudah beres; lanjut ke Langkah 2.
+                Bila printer belum ada di daftar: klik <b>Tambahkan perangkat</b> › <b>Bluetooth</b>
+                , tunggu nama printer muncul, klik. Bila diminta PIN, ketik <code>0000</code>; bila
+                ditolak, <code>1234</code>.
               </li>
               <li>
-                Bila belum: klik <b>Tambahkan perangkat</b> › <b>Bluetooth</b>. Tunggu nama printer
-                muncul (RPP02 biasanya tampil sebagai <i>RPP02</i> atau <i>RPP02N</i>), lalu klik
-                namanya.
+                Tulisan <i>Driver is unavailable</i> / <i>Driver tidak tersedia</i> di bawah nama
+                printer itu <b>wajar dan boleh diabaikan</b>: cetak langsung tidak memakai driver.
               </li>
               <li>
-                Bila diminta PIN, ketik <code>0000</code>. Bila ditolak, coba <code>1234</code>.
-                Tunggu sampai tertulis <i>Dipasangkan</i>.
+                <b>Buat port COM keluar</b> (langkah yang paling sering terlewat): di halaman{' '}
+                <b>Bluetooth &amp; perangkat</b> › <b>Perangkat</b>, gulir ke bawah, klik{' '}
+                <b>Setelan Bluetooth lainnya</b> (More Bluetooth settings) › tab <b>Port COM</b>.
+                Bila sudah ada baris berarah <b>Keluar</b> (Outgoing) yang memuat nama printer,
+                lewati langkah ini. Bila belum: klik <b>Tambah…</b> › pilih <b>Keluar</b> (Outgoing)
+                › pada <b>Perangkat yang akan memakai port COM</b> pilih printer Anda › <b>OK</b> ›{' '}
+                <b>OK</b>. Catat nomornya (mis. COM5).
               </li>
             </ol>
             <p className="text-xs text-slate-500">
-              Lampu Bluetooth printer tetap berkedip setelah dipasangkan? Itu wajar: printer baru
-              benar-benar tersambung saat ada yang dicetak, lalu memutus lagi. Printer kabel USB
-              tidak perlu dipasangkan: colokkan kabelnya, nyalakan, lanjut ke Langkah 2. Driver
-              printer (mis. &quot;POS58 Printer&quot;) tidak dibutuhkan untuk cetak langsung dan
-              boleh tetap terpasang.
+              Printer tidak perlu &quot;tersambung terus&quot;: lampunya boleh berkedip. Setiap kali
+              struk dicetak, aplikasi membuka port itu, printer tersambung sendiri dalam 1–5 detik,
+              lalu terputus lagi. Pilihan port diingat peramban, jadi Langkah 2 cukup sekali.
+              Printer kabel USB: colokkan dan nyalakan; bila di <i>Device Manager</i> ›{' '}
+              <i>Ports (COM &amp; LPT)</i> tidak muncul port untuknya, pasang driver{' '}
+              <i>USB virtual COM</i> dari pembuat printer, atau pakai jendela cetak. Printer yang
+              hanya Bluetooth Low Energy (tidak bisa dibuatkan port COM di langkah 5) tidak bisa
+              dipakai untuk cetak langsung.
             </p>
           </Lipatan>
         </Langkah>
@@ -263,9 +274,9 @@ export function KartuPrinterStruk() {
           <Lipatan judul="Baris mana yang harus dipilih?" terbuka={!terpilih}>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                <b>Pilih</b> baris bernama <i>SPP slave</i>, <i>Spp1</i>, <i>SerialPort</i>,{' '}
-                <i>Standard Serial over Bluetooth link (COM…)</i>, atau nama printernya (
-                <i>RPP02</i>). Itu nama sambungan serial printer Bluetooth.
+                <b>Pilih</b> baris bernama <i>Standard Serial over Bluetooth link (COM…)</i> dengan
+                nomor COM dari Langkah 1, atau baris bernama <i>SPP slave</i>, <i>Spp1</i>,{' '}
+                <i>SerialPort</i>, atau nama printernya. Itu sambungan serial printer Bluetooth.
               </li>
               <li>
                 <b>Jangan pilih</b> <i>EM7455</i> atau nama lain yang berbau modem/WWAN: itu modem

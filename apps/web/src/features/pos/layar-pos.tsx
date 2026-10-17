@@ -59,7 +59,8 @@ import { cn } from '@/lib/utils';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
 import { BilahTombol, type Tombol } from './bilah-tombol';
-import { CariBarangPos } from './cari-barang-pos';
+import { CariBarangPos, type PilihanBarang } from './cari-barang-pos';
+import { PanelDetailBarang } from './panel-detail-barang';
 import { CariPelangganPos } from './cari-pelanggan-pos';
 import { KeranjangPos } from './keranjang-pos';
 import { digitSaja, tampilRibuan } from './model';
@@ -207,6 +208,8 @@ export function LayarPos({
   const tr = useTransaksiPos(tierDefault);
 
   const [zona, setZona] = useState<Zona>(pengantaran || idOrderAwal ? 'antrean' : 'cari');
+  /** K-114: barang yang disorot di hasil cari; rinciannya menutupi area antrean. */
+  const [sorotBarang, setSorotBarang] = useState<PilihanBarang | null>(null);
   const [indeksTiket, setIndeksTiket] = useState(0);
   const [indeksBaris, setIndeksBaris] = useState(0);
   const [ditinggal, setDitinggal] = useState(false);
@@ -561,8 +564,11 @@ export function LayarPos({
         </div>
       )}
       <div className="flex min-h-0 flex-1 gap-3">
-        {/* Kiri: papan antrean */}
-        <section className="flex w-[55%] min-w-0 flex-col gap-1.5">
+        {/* Kiri: papan antrean; saat memilih barang, rinciannya menutupi area ini (K-114). */}
+        <section className="relative flex w-1/2 min-w-0 flex-col gap-1.5">
+          {sorotBarang && (
+            <PanelDetailBarang b={sorotBarang.b} o={sorotBarang.o} qty={sorotBarang.qty} />
+          )}
           <div className="flex items-baseline justify-between text-sm">
             <span className="font-semibold text-slate-700">
               Antrean {pengantaran ? 'pengantaran' : 'langsung'}{' '}
@@ -589,7 +595,7 @@ export function LayarPos({
         </section>
 
         {/* Kanan: transaksi aktif */}
-        <section className="flex min-h-0 w-[45%] min-w-0 flex-col gap-2 overflow-y-auto pr-1">
+        <section className="flex min-h-0 w-1/2 min-w-0 flex-col gap-2 overflow-y-auto pr-1">
           <div className="rounded-md border bg-white px-3 py-2 text-sm">
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-semibold">
@@ -719,6 +725,7 @@ export function LayarPos({
             onTurun={() => tr.t.baris.length > 0 && setZona('keranjang')}
             onEsc={() => setZona('antrean')}
             onFokus={() => setZona('cari')}
+            onSorot={setSorotBarang}
           />
 
           {!adaTransaksi && hasil && !pengantaran ? (
