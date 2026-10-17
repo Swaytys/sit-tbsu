@@ -30,6 +30,7 @@ export * from './schemas/promo';
 export * from './schemas/referensi';
 export * from './schemas/rekening';
 export * from './schemas/saluran';
+export * from './schemas/saran-pesan';
 export * from './schemas/satuan';
 export * from './schemas/umum';
 export * from './tanggal';

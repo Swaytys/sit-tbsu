@@ -129,8 +129,24 @@ export const pemasok = pgTable(
     statusAktif: statusAktif(),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /**
+     * K-113 (migrasi 0019): parameter rekomendasi pemesanan ulang. Hari dari memesan sampai barang tiba, dan
+     * jarak hari antara dua kali belanja ke pemasok ini. NULL = nilai bawaan toko (konfigurasi).
+     */
+    lamaKirimHari: integer('lama_kirim_hari'),
+    jarakBelanjaHari: integer('jarak_belanja_hari'),
   },
-  () => [check('chk_pemasok_status', dalamDaftar('status_aktif', STATUS_AKTIF))],
+  () => [
+    check('chk_pemasok_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
+    check(
+      'chk_pemasok_lama_kirim',
+      sql`lama_kirim_hari is null or lama_kirim_hari between 0 and 365`,
+    ),
+    check(
+      'chk_pemasok_jarak_belanja',
+      sql`jarak_belanja_hari is null or jarak_belanja_hari between 1 and 365`,
+    ),
+  ],
 );
 
 export const tingkatHarga = pgTable(

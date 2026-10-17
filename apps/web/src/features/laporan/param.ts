@@ -12,6 +12,7 @@ import {
   skemaLaporanPromo,
   skemaLaporanRetur,
   skemaLaporanRiwayatHargaBeli,
+  skemaLaporanRekomendasiPesan,
   skemaLaporanStokMinimum,
   skemaLaporanStokRekap,
   type JenisLaporan,
@@ -25,6 +26,7 @@ const SKEMA: Record<JenisLaporan, z.ZodType> = {
   'stok-rekap': skemaLaporanStokRekap,
   'kartu-stok': skemaLaporanKartuStok,
   'stok-minimum': skemaLaporanStokMinimum,
+  'rekomendasi-pesan': skemaLaporanRekomendasiPesan,
   'nilai-persediaan': skemaLaporanNilaiPersediaan,
   penjualan: skemaLaporanPenjualan,
   'produk-terlaris': skemaLaporanProdukTerlaris,
@@ -65,6 +67,7 @@ export function paramAwal(kode: JenisLaporan): Record<string, string> {
     case 'nilai-persediaan':
       return { tanggal: tanggalHariIni() };
     case 'stok-minimum':
+    case 'rekomendasi-pesan':
     case 'piutang':
     case 'hutang':
     case 'daftar-harga':

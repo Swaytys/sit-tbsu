@@ -96,6 +96,11 @@ export const skemaOperasional = z
      */
     shiftJamBuka: jamAtauKosong('Jam buka shift'),
     shiftJamTutup: jamAtauKosong('Jam tutup shift'),
+    /** K-113 (RO1–RO3): parameter rekomendasi pemesanan ulang. */
+    saranPesanPeriodeHari: bulat('Periode pengamatan penjualan', 7, 365),
+    saranPesanHariPengaman: bulat('Hari stok pengaman', 0, 60),
+    saranPesanLamaKirim: bulat('Lama kirim bawaan', 0, 365),
+    saranPesanJarakBelanja: bulat('Jarak belanja bawaan', 1, 365),
     /**
      * K-099: nilai retur/void per transaksi yang boleh diproses Kasir tanpa persetujuan Admin/Owner
      * (rupiah; 0 = selalu butuh persetujuan).

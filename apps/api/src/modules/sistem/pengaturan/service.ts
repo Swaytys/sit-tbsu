@@ -92,6 +92,10 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       checkoutWajibShift: bool(m, 'checkout_wajib_shift', true),
       shiftJamBuka: teks(m, 'shift_jam_buka', ''),
       shiftJamTutup: teks(m, 'shift_jam_tutup', ''),
+      saranPesanPeriodeHari: angka(m, 'saran_pesan_periode_hari', 30),
+      saranPesanHariPengaman: angka(m, 'saran_pesan_hari_pengaman', 2),
+      saranPesanLamaKirim: angka(m, 'saran_pesan_lama_kirim_default', 3),
+      saranPesanJarakBelanja: angka(m, 'saran_pesan_jarak_belanja_default', 7),
       batasReturTanpaSetuju: angka(m, 'batas_retur_tanpa_persetujuan', 0),
       batasVoidTanpaSetuju: angka(m, 'batas_void_tanpa_persetujuan', 0),
       barisPerHalaman: barisPerHalaman(m),
@@ -149,6 +153,10 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     b('checkout_wajib_shift', o.checkoutWajibShift);
     t('shift_jam_buka', o.shiftJamBuka);
     t('shift_jam_tutup', o.shiftJamTutup);
+    a('saran_pesan_periode_hari', o.saranPesanPeriodeHari);
+    a('saran_pesan_hari_pengaman', o.saranPesanHariPengaman);
+    a('saran_pesan_lama_kirim_default', o.saranPesanLamaKirim);
+    a('saran_pesan_jarak_belanja_default', o.saranPesanJarakBelanja);
     a('batas_retur_tanpa_persetujuan', o.batasReturTanpaSetuju);
     a('batas_void_tanpa_persetujuan', o.batasVoidTanpaSetuju);
     a('baris_per_halaman', o.barisPerHalaman);

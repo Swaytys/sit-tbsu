@@ -28,6 +28,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -49,6 +50,8 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
       kontakPerson: pemasok?.kontakPerson ?? '',
       alamat: pemasok?.alamat ?? '',
       keterangan: pemasok?.keterangan ?? '',
+      lamaKirimHari: pemasok?.lamaKirimHari ?? '',
+      jarakBelanjaHari: pemasok?.jarakBelanjaHari ?? '',
     },
   });
 
@@ -68,6 +71,8 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
         'kontakPerson',
         'alamat',
         'keterangan',
+        'lamaKirimHari',
+        'jarakBelanjaHari',
       ]);
     }
   }
@@ -136,6 +141,38 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
                 </FormItem>
               )}
             />
+            {(['lamaKirimHari', 'jarakBelanjaHari'] as const).map((nama) => (
+              <FormField
+                key={nama}
+                control={form.control}
+                name={nama}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {nama === 'lamaKirimHari' ? 'Lama kirim (hari)' : 'Belanja tiap (hari)'}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        inputMode="numeric"
+                        placeholder="kosong = bawaan toko"
+                        {...field}
+                        value={
+                          typeof field.value === 'number' || typeof field.value === 'string'
+                            ? String(field.value)
+                            : ''
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      {nama === 'lamaKirimHari'
+                        ? 'Dari memesan sampai barang tiba. Dipakai saran pesan ulang.'
+                        : 'Jarak antara dua kali belanja ke pemasok ini.'}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
             <FormField
               control={form.control}
               name="keterangan"

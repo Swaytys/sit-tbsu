@@ -31,6 +31,7 @@ export const JENIS_LAPORAN = [
   'hutang',
   'konsinyasi',
   'daftar-harga',
+  'rekomendasi-pesan',
 ] as const;
 export type JenisLaporan = (typeof JENIS_LAPORAN)[number];
 
@@ -78,6 +79,15 @@ export const DAFTAR_LAPORAN = [
     grup: 'PERSEDIAAN',
     izin: ['laporan.persediaan'],
     deskripsi: 'Barang yang stoknya habis, kritis, atau perlu restock saat ini.',
+  },
+  {
+    kode: 'rekomendasi-pesan',
+    nama: 'Rekomendasi Pemesanan Ulang',
+    judul: 'Laporan Rekomendasi Pemesanan Ulang',
+    grup: 'PERSEDIAAN',
+    izin: ['laporan.persediaan'],
+    deskripsi:
+      'Barang yang perlu dibeli ulang dan jumlah sarannya, dari rata-rata penjualan dan lama kirim pemasok.',
   },
   {
     kode: 'nilai-persediaan',
@@ -249,6 +259,13 @@ export const skemaLaporanKartuStok = z
 export type ParamLaporanKartuStok = z.input<typeof skemaLaporanKartuStok>;
 
 export const skemaLaporanStokMinimum = z.object({ idKategori: idOpsional });
+/** K-113: laporan rekomendasi pemesanan ulang (posisi saat ini). */
+export const skemaLaporanRekomendasiPesan = z.object({
+  idKategori: idOpsional,
+  idPemasok: idOpsional,
+  tampil: z.enum(['PERLU', 'SEMUA']).default('PERLU'),
+});
+export type ParamLaporanRekomendasiPesan = z.input<typeof skemaLaporanRekomendasiPesan>;
 export type ParamLaporanStokMinimum = z.input<typeof skemaLaporanStokMinimum>;
 
 export const skemaLaporanNilaiPersediaan = z

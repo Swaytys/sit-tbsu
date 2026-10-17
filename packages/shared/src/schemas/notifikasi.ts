@@ -18,6 +18,7 @@ export const JENIS_NOTIFIKASI = [
   'SHIFT_PERLU_DITUTUP',
   'NONTUNAI_BELUM_DICEK',
   'NONTUNAI_TIDAK_MASUK',
+  'PERLU_DIPESAN',
 ] as const;
 export type JenisNotifikasi = (typeof JENIS_NOTIFIKASI)[number];
 

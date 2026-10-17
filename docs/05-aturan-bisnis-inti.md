@@ -214,6 +214,21 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 
 Semua total laporan dihitung untuk seluruh periode di server (K-033); paginasi hanya memotong baris tampilan.
 
+## 17. Rekomendasi pemesanan ulang (Fase 14, K-113)
+
+Bagian ini sengaja diletakkan sebelum §15 agar dekat dengan status stok; nomornya mengikuti urutan penambahan.
+
+| # | Aturan |
+|---|---|
+| RO1 | **Terjual bersih** per barang = Σ `qty_keluar` mutasi PENJUALAN dan TUKAR_RETUR − Σ `qty_masuk` mutasi RETUR_JUAL dan VOID, dengan `tanggal_operasional` dalam periode **N hari penuh sampai kemarin** (`saran_pesan_periode_hari`, bawaan 30; penjualan hari ini tidak ikut). Hasil negatif dianggap 0. **Hari amatan** = min(N, hari sejak mutasi pertama barang sampai kemarin); barang tanpa mutasi sebelum hari ini = 0 hari. **Rata-rata jual per hari** = terjual bersih ÷ hari amatan. |
+| RO2 | **Stok pengaman** = terjual bersih × `saran_pesan_hari_pengaman` (bawaan 2) ÷ hari amatan. |
+| RO3 | **Lama kirim** = `pemasok.lama_kirim_hari` dari pemasok penerimaan PEMBELIAN terakhir barang itu; kosong atau belum pernah dibeli = `saran_pesan_lama_kirim_default` (bawaan 3). **Titik pesan** = terjual × (lama kirim + hari pengaman) ÷ hari amatan. |
+| RO4 | **Jarak belanja** = `pemasok.jarak_belanja_hari`, bawaan `saran_pesan_jarak_belanja_default` (7). **Stok target** = terjual × (lama kirim + jarak belanja + hari pengaman) ÷ hari amatan. |
+| RO5 | **Saran pesan** = bulat ke atas (stok target − stok tersedia), paling kecil 0, dalam satuan dasar. Bila barang punya kemasan aktif berfaktor > 1, saran juga ditulis dalam kemasan terbesar: bulat ke atas (saran ÷ faktor). **Stok cukup untuk** = stok tersedia (minimal 0) × hari amatan ÷ terjual (hari). Pembagian dilakukan sekali per angka (tidak dari rata-rata yang sudah dibulatkan); semua angka qty tiga desimal. |
+| RO6 | **Status**: terjual bersih 0 atau hari amatan 0 → TIDAK_LAKU (tanpa saran); tersedia ≤ titik pesan → PESAN_SEKARANG; tersedia < stok target → SEGERA; selain itu AMAN. Notifikasi "Barang perlu dipesan" (`persediaan.stok.lihat`) = jumlah PESAN_SEKARANG. |
+| RO7 | Rekomendasi tidak disimpan: dihitung setiap kali diminta dari ledger dan cache persediaan. Perkiraan biaya = saran × `harga_beli_terakhir` (bila 0: `hpp_rata2`), hanya untuk `master.barang.lihat_hpp`. |
+| RO8 | Hanya barang AKTIF milik sendiri; barang titipan (KONSINYASI) tidak disarankan karena diisi penitipnya. |
+
 ## 15. Konfigurasi tambahan (melengkapi docs/03 §6)
 
 | Kode | Default | Dipakai |
@@ -248,3 +263,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-10 — P3 tier tidak bisa dipilih; T3, T10, V3, V7 persetujuan di tempat, batas tanpa persetujuan, status DIBATALKAN; log RETUR_BATAL, VOID_BATAL, PERSETUJUAN_GAGAL (K-099).
 - 2026-10-11 — R10 pelanggan pengantaran wajib No. HP, pengantaran tanpa order (K-104); log PERSETUJUAN_KODE_KIRIM, AKUN_KONTAK_UBAH (K-102).
 - 2026-10-12 — §10 K9–K11 shift terlewat, jadwal, pemberitahuan (K-109); K12–K14 rekening toko dan pengecekan uang masuk, P8 metode QRIS (K-111); T3/T5/T7 tampilan retur (K-106). Nilai `log_aktivitas.aksi` baru: REKENING_BUAT, REKENING_UBAH, REKENING_NONAKTIF, REKENING_AKTIFKAN, PEMBAYARAN_VERIFIKASI.
+- 2026-10-17 — §17 rekomendasi pemesanan ulang RO1–RO8 (K-113).

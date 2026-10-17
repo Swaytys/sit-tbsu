@@ -278,10 +278,26 @@ export function SaringLaporan({
       )}
       {(kode === 'stok-rekap' ||
         kode === 'stok-minimum' ||
+        kode === 'rekomendasi-pesan' ||
         kode === 'nilai-persediaan' ||
         kode === 'produk-terlaris' ||
         kode === 'riwayat-harga-beli' ||
         kode === 'daftar-harga') && <Kategori p={p} ubah={ubah} />}
+      {kode === 'rekomendasi-pesan' && (
+        <>
+          <Pemasok p={p} ubah={ubah} />
+          <Pilihan
+            label="Tampilkan"
+            id="laporan-tampil"
+            nilai={p.tampil ?? 'PERLU'}
+            opsi={[
+              { nilai: 'PERLU', label: 'Yang perlu dipesan' },
+              { nilai: 'SEMUA', label: 'Semua barang' },
+            ]}
+            onUbah={(v) => ubah({ tampil: v })}
+          />
+        </>
+      )}
       {kode === 'riwayat-harga-beli' && (
         <>
           <Pemasok p={p} ubah={ubah} />

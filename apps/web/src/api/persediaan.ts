@@ -9,6 +9,7 @@ import type {
   KondisiStok,
   StatusPenyesuaian,
   StatusStok,
+  StatusSaranPesan,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, ambilIsi, api, galatDariRespons, paramId } from './client';
@@ -252,5 +253,33 @@ export function usePeringatanStok(aktif: boolean) {
     queryKey: ['persediaan', 'peringatan'],
     queryFn: async () => ambilData(await api.dashboard['peringatan-stok'].$get()),
     enabled: aktif,
+  });
+}
+
+// --- Rekomendasi pemesanan ulang (K-113) ---
+
+/** Saran pesan: dihitung server setiap kali diminta dari penjualan N hari terakhir dan parameter pemasok. */
+export type SaringSaranPesan = {
+  tampil: 'PERLU' | 'SEMUA' | StatusSaranPesan;
+  idPemasok?: number | undefined;
+  idKategori?: number | undefined;
+  cari?: string | undefined;
+};
+
+export function useSaranPesan(p: SaringSaranPesan) {
+  return useQuery({
+    queryKey: ['persediaan', 'saran-pesan', p],
+    queryFn: async () =>
+      ambilData(
+        await api['saran-pesan'].$get({
+          query: {
+            tampil: p.tampil,
+            ...(p.idPemasok ? { idPemasok: String(p.idPemasok) } : {}),
+            ...(p.idKategori ? { idKategori: String(p.idKategori) } : {}),
+            ...(p.cari ? { cari: p.cari } : {}),
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
   });
 }
