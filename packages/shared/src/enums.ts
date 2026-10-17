@@ -123,7 +123,15 @@ export type JenisPenjualan = (typeof JENIS_PENJUALAN)[number];
 export const PRIORITAS_ORDER = ['NORMAL', 'TINGGI'] as const;
 export type PrioritasOrder = (typeof PRIORITAS_ORDER)[number];
 
-export const STATUS_ORDER = ['DRAFT', 'MENUNGGU', 'DIPROSES', 'SELESAI', 'BATAL'] as const;
+/** K-122: DISIMPAN = pesan sekarang, diambil/dibayar nanti (menahan stok, tidak di antrean). */
+export const STATUS_ORDER = [
+  'DRAFT',
+  'MENUNGGU',
+  'DIPROSES',
+  'DISIMPAN',
+  'SELESAI',
+  'BATAL',
+] as const;
 export type StatusOrder = (typeof STATUS_ORDER)[number];
 
 export const STATUS_PEMBAYARAN = ['BELUM_BAYAR', 'DP', 'LUNAS'] as const;

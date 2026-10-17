@@ -27,12 +27,15 @@ export function PanelDetailBarang({
   b,
   o,
   qty,
+  menutupi = 'antrean',
 }: {
   b: BarisBarang;
   /** Satuan yang sedang disorot (satuan dasar atau kemasan). */
   o: OpsiSatuanBaris;
   /** Qty yang akan ditambahkan bila Enter ditekan. */
   qty: string;
+  /** Area yang ditutupi panel ini (teks petunjuk). */
+  menutupi?: string;
 }) {
   const tier = (useDaftarTingkatHarga().data ?? [])
     .filter((t) => t.statusAktif === 'AKTIF')
@@ -195,8 +198,8 @@ export function PanelDetailBarang({
         <kbd className="rounded border px-1 font-mono">Enter</kbd> atau klik = tambah ·{' '}
         <kbd className="rounded border px-1 font-mono">↑</kbd>/
         <kbd className="rounded border px-1 font-mono">↓</kbd> = barang lain ·{' '}
-        <kbd className="rounded border px-1 font-mono">Esc</kbd> = tutup. Panel ini menutupi antrean
-        hanya selama memilih barang.
+        <kbd className="rounded border px-1 font-mono">Esc</kbd> = tutup. Panel ini menutupi{' '}
+        {menutupi} hanya selama memilih barang.
       </p>
     </div>
   );

@@ -214,9 +214,9 @@ bergantung konfigurasi.
 - Status: BERFUNGSI (tampil di layar; **tidak ada tombol ekspor** log).
 
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
-- Fungsi: 16 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
+- Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
-  hitung uang laci susulan belum dikirim (K-121),
+  hitung uang laci susulan belum dikirim (K-121), order disimpan lewat tanggal ambil (K-122),
   pembayaran non-tunai belum dicek, non-tunai tidak masuk.
 - Bukti: `[KODE: shared/schemas/notifikasi.ts:7-20]` `[KODE: api/modules/sistem/notifikasi/service.ts:14]`.
 - Status: BERFUNGSI.
@@ -301,12 +301,18 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 
 **F18. Order Penjualan (input cepat dan form lengkap)** | Transaksi | Staf, Kasir, Admin, Owner | desktop/tablet
 - Fungsi: staf mencatat pesanan (ketik `3*semen` untuk qty), memilih pelanggan bila ada, lalu mengirim ke antrean
-  kasir; order menahan stok (reservasi); isian yang belum dikirim tersimpan sebagai draf; "Mulai dari awal" (F9)
-  dengan konfirmasi.
+  kasir; order menahan stok (reservasi); isian yang belum dikirim tersimpan sebagai draf (bisa diatur: *Buka draf
+  otomatis*); "Mulai dari awal" (F9) dengan konfirmasi. Sejak 18 Okt (K-122): **order disimpan** untuk diambil
+  nanti (F7; wajib nama, No. HP, tanggal ambil ≤ 14 hari; stok ditahan; daftar *Disimpan* terpisah dari antrean;
+  pengingat lewat tanggal), **kembali ke draf** dari antrean/kasir/disimpan (stok dilepas, barang tetap),
+  **peringatan barang yang juga ada di draf lain** bila stok tidak cukup (biarkan / hapus / buka draf itu), dan
+  panel rincian barang saat memilih barang.
 - Input → Proses → Output: barang + qty → harga, tier, promo dihitung server (pratinjau) → order MENUNGGU dengan
   nomor antrean; `stok_dipesan` naik.
 - Tabel: `order_penjualan`, `order_penjualan_detail`, `persediaan`.
-- Bukti: `[KODE: api/modules/penjualan/order/service.ts:372,468,517]` `[KODE: api/modules/persediaan/ledger.ts:264]`.
+- Bukti: `[KODE: api/modules/penjualan/order/service.ts:549,591,752,822,863]` `[KODE: api/modules/persediaan/ledger.ts:264]`
+  `[KODE: web/features/order/dialog-simpan-order.tsx]` `[KODE: web/features/order/pilihan-order.tsx]`
+  `[TES: api/modules/penjualan/order.test.ts R11–R14]` `[TES: web/e2e/order-simpan.spec.ts]`.
 - Status: BERFUNGSI.
 
 **F19. Cari barang** | semua layar transaksi | semua | desktop
@@ -795,7 +801,7 @@ dibangun) ada tetapi semua menu sudah punya halaman `[KODE: web/routes.tsx:23-55
 | 11 Okt | Kode persetujuan Telegram/email, struk langsung ke printer thermal, pengantaran tanpa order, penyiapan terpandu |
 | 12–13 Okt | Perapian tampilan, persetujuan ubah pelanggan, cari lewat atribut, aturan shift, anggaran promo, rekening toko dan cek non-tunai |
 | 14–17 Okt | Inventaris fitur; rekomendasi pemesanan ulang; tampilan muat dan panduan printer umum |
-| 18 Okt | Shift tiga cara buka, hitung susulan, koreksi modal dengan kode atasan, tutup dua langkah dengan tinjauan dan bantuan selisih (K-121); katalog anomali (K-120) |
+| 18 Okt | Shift tiga cara buka, hitung susulan, koreksi modal dengan kode atasan, tutup dua langkah dengan tinjauan dan bantuan selisih (K-121); katalog anomali (K-120); order disimpan untuk diambil nanti, kembali ke draf, peringatan draf lain (K-122) |
 
 Sumber: `git log --merges` (198 commit; commit pertama 29 Sep 2026). Rincian per keputusan:
 `docs/10-ringkasan-keputusan.md`.
@@ -824,7 +830,7 @@ siaran antrean (bagian 1, butir 7).
 
 Format: `berkas:baris METODE alamat izin`. `LOGIN` = cukup login (data milik sendiri). Login dan masuk cepat tidak
 butuh izin tetapi dibatasi laju; masuk cepat hanya ada di mode pengembangan `[KODE: api/app.ts:132,146]`.
-Path berkas relatif terhadap `apps/api/src/modules/`. Jumlah: 201 endpoint (+ `GET /api/health`,
+Path berkas relatif terhadap `apps/api/src/modules/`. Jumlah: 204 endpoint (+ `GET /api/health`,
 `GET /api/notifikasi` [LOGIN], `GET /api/log-aktivitas` [sistem.log.lihat]).
 
 ```
@@ -963,17 +969,20 @@ master/tingkat-harga/routes.ts:18 GET /api/tingkat-harga/ master.barang.lihat
 master/tingkat-harga/routes.ts:21 POST /api/tingkat-harga/ master.harga.kelola
 master/tingkat-harga/routes.ts:25 PATCH /api/tingkat-harga/:id master.harga.kelola
 master/tingkat-harga/routes.ts:36 PATCH /api/tingkat-harga/:id/status master.harga.kelola
-penjualan/order/routes.ts:43 GET /api/order/antrean penjualan.checkout
-penjualan/order/routes.ts:50 GET /api/order/antrean/siaran penjualan.order.buat
-penjualan/order/routes.ts:73 GET /api/order/ penjualan.order.buat
-penjualan/order/routes.ts:76 GET /api/order/:id penjualan.order.buat
-penjualan/order/routes.ts:80 POST /api/order/pratinjau penjualan.order.buat
-penjualan/order/routes.ts:83 POST /api/order/ penjualan.order.buat
-penjualan/order/routes.ts:92 PUT /api/order/:id penjualan.order.buat
-penjualan/order/routes.ts:101 POST /api/order/:id/kirim penjualan.order.buat
-penjualan/order/routes.ts:107 POST /api/order/:id/proses penjualan.checkout
-penjualan/order/routes.ts:113 POST /api/order/:id/lepas penjualan.order.batal_sendiri
-penjualan/order/routes.ts:119 POST /api/order/:id/batal penjualan.order.batal_sendiri
+penjualan/order/routes.ts:48 GET /api/order/antrean penjualan.checkout
+penjualan/order/routes.ts:55 GET /api/order/antrean/siaran penjualan.order.buat
+penjualan/order/routes.ts:79 GET /api/order/draf-barang penjualan.order.buat
+penjualan/order/routes.ts:82 GET /api/order/ penjualan.order.buat
+penjualan/order/routes.ts:85 GET /api/order/:id penjualan.order.buat
+penjualan/order/routes.ts:89 POST /api/order/pratinjau penjualan.order.buat
+penjualan/order/routes.ts:92 POST /api/order/ penjualan.order.buat
+penjualan/order/routes.ts:101 PUT /api/order/:id penjualan.order.buat
+penjualan/order/routes.ts:110 POST /api/order/:id/kirim penjualan.order.buat
+penjualan/order/routes.ts:117 POST /api/order/:id/simpan penjualan.order.buat
+penjualan/order/routes.ts:133 POST /api/order/:id/draf penjualan.order.buat
+penjualan/order/routes.ts:139 POST /api/order/:id/proses penjualan.checkout
+penjualan/order/routes.ts:145 POST /api/order/:id/lepas penjualan.checkout
+penjualan/order/routes.ts:151 POST /api/order/:id/batal penjualan.order.batal_sendiri
 penjualan/penjualan/routes.ts:29 GET /api/penjualan/ penjualan.riwayat.lihat
 penjualan/penjualan/routes.ts:32 GET /api/penjualan/:id penjualan.riwayat.lihat
 penjualan/penjualan/routes.ts:35 POST /api/penjualan/checkout penjualan.checkout
@@ -1052,3 +1061,4 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-17 — Layar kasir separuh-separuh dengan panel rincian barang, deret tab membungkus, panduan printer umum (K-114, K-115).
 - 2026-10-17 — Rekomendasi pemesanan ulang (F40, bagian 5d, laporan ke-16, notifikasi ke-15; K-113).
 - 2026-10-18 — F28 shift diperbarui (tiga cara buka, hitung susulan, koreksi modal, tutup dua langkah, tinjauan, bantuan selisih, penjelasan atasan; K-121); notifikasi ke-16; tabel ke-49 `hitung_kas`; 7 endpoint shift baru.
+- 2026-10-18 — F18 order disimpan, kembali ke draf, peringatan draf lain, buka draf otomatis, panel rincian di input cepat (K-122); notifikasi ke-17; 3 endpoint order baru; F28 pilihan order saat tutup shift.

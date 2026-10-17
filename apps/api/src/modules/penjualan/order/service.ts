@@ -1,6 +1,7 @@
 import {
   formatRupiah,
   keQty,
+  MAKS_HARI_SIMPAN_ORDER,
   rapikanDesimal,
   kunciBaris,
   tambahQty,
@@ -8,7 +9,9 @@ import {
   type BarisDaftarOrder,
   type BarisStokTertahan,
   type DataOrder,
+  type DataSimpanOrder,
   type DetailOrder,
+  type DrafBarang,
   type JenisPenjualan,
   type MetaHalaman,
   type PratinjauOrder,
@@ -22,7 +25,13 @@ import { logger } from '../../../lib/logger';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { siarkan } from '../../../lib/siaran';
 import { dalamTransaksi } from '../../../lib/transaksi';
-import { sekarang, tambahJam, tambahMenit, tanggalOperasional } from '../../../lib/waktu';
+import {
+  sekarang,
+  tambahHari,
+  tambahJam,
+  tambahMenit,
+  tanggalOperasional,
+} from '../../../lib/waktu';
 import { ubahReservasi, type PerubahanReservasi } from '../../persediaan/ledger';
 import { hargaBarangDasar } from '../../master/harga/repo';
 import { atributPerBarang } from '../../master/barang/service';
@@ -34,9 +43,12 @@ import { hitungBarisJual, type HargaLama, type HasilHarga, type OpsiHitung } fro
 import * as repo from './repo';
 
 /*
- * Order penjualan & antrean (docs/05 §3 R1–R9, §5): DRAFT tidak menahan stok; MENUNGGU/DIPROSES menahan
- * `stok_dipesan` lewat `ubahReservasi()` (ledger.ts); DIPROSES dikunci satu kasir; batal melepas reservasi.
+ * Order penjualan & antrean (docs/05 §3 R1–R9, R11–R14, §5): DRAFT tidak menahan stok; MENUNGGU/DIPROSES/
+ * DISIMPAN menahan `stok_dipesan` lewat `ubahReservasi()` (ledger.ts); DIPROSES dikunci satu kasir; DISIMPAN
+ * (K-122) menunggu pembeli datang, di luar antrean; batal dan kembali ke draf melepas reservasi.
  */
+
+const tglId = (t: string) => `${t.slice(8, 10)}/${t.slice(5, 7)}/${t.slice(0, 4)}`;
 
 type Header = NonNullable<Awaited<ReturnType<typeof repo.orderById>>>;
 
@@ -45,6 +57,7 @@ async function batasBasi(): Promise<Date> {
 }
 
 function keRespons(h: Header, basiSebelum: Date, ringkasan: RingkasBarisOrder[]): BarisDaftarOrder {
+  const hariIni = tanggalOperasional();
   return {
     id: h.id,
     nomor: h.nomor,
@@ -67,6 +80,10 @@ function keRespons(h: Header, basiSebelum: Date, ringkasan: RingkasBarisOrder[])
     noAntrean: nomorAntrean(h.nomor),
     ringkasan,
     catatan: h.catatan,
+    noHpPembeli: h.noHpPembeli,
+    tanggalAmbil: h.tanggalAmbil,
+    lewatTanggalAmbil:
+      h.status === 'DISIMPAN' && h.tanggalAmbil !== null && h.tanggalAmbil < hariIni,
   };
 }
 
@@ -91,13 +108,21 @@ function bolehLihat(h: { idPengguna: number }, pelaku: PenggunaAktif): boolean {
 }
 
 export async function daftarOrder(
-  p: repo.SaringOrder & { halaman: number; perHalaman: number; milikSaya?: boolean | undefined },
+  p: repo.SaringOrder & {
+    halaman: number;
+    perHalaman: number;
+    milikSaya?: boolean | undefined;
+    dipegangSaya?: boolean | undefined;
+  },
   pelaku: PenggunaAktif,
 ): Promise<{ data: BarisDaftarOrder[]; meta: MetaHalaman }> {
-  const sendiri = p.milikSaya || !pelaku.izin.has('penjualan.order.lihat_semua');
+  // Order yang sedang dipegang kasir ini selalu boleh ia lihat, siapa pun pembuatnya.
+  const sendiri =
+    !p.dipegangSaya && (p.milikSaya || !pelaku.izin.has('penjualan.order.lihat_semua'));
   const { baris, total } = await repo.daftarOrder(db, {
     ...p,
     idPengguna: sendiri ? pelaku.id : undefined,
+    idKasirProses: p.dipegangSaya ? pelaku.id : undefined,
     ...batasHalaman(p),
   });
   const basi = await batasBasi();
@@ -136,7 +161,7 @@ export async function detailOrder(id: number, pelaku: PenggunaAktif): Promise<De
   // K-091: pilihan satuan per baris dan harga tier untuk satuan baris.
   const satuanJual = await muatSatuanJual(db, idBarang);
   const atribut = await atributPerBarang(idBarang);
-  const menahan = h.status === 'MENUNGGU' || h.status === 'DIPROSES';
+  const menahan = (repo.STATUS_MENAHAN as readonly string[]).includes(h.status);
   return {
     ...keRespons(
       h,
@@ -411,7 +436,11 @@ export async function ubahOrderTx(
   if (h.status === 'DRAFT' && !pembuat) {
     throw new AppError('TIDAK_BERIZIN', 'Hanya pembuat order yang bisa mengubah draf.', 403);
   }
-  if (h.status === 'MENUNGGU' && !pembuat && !pelaku.izin.has('penjualan.checkout')) {
+  if (
+    (h.status === 'MENUNGGU' || h.status === 'DISIMPAN') &&
+    !pembuat &&
+    !pelaku.izin.has('penjualan.checkout')
+  ) {
     throw new AppError('TIDAK_BERIZIN', 'Anda tidak bisa mengubah order orang lain.', 403);
   }
   if (h.status === 'DIPROSES' && h.idKasirProses !== pelaku.id) {
@@ -513,7 +542,10 @@ export async function pratinjauOrder(
   });
 }
 
-/** R3: DRAFT → MENUNGGU (hanya pembuat). */
+/**
+ * R3: DRAFT → MENUNGGU (hanya pembuat). R12 (K-122): DISIMPAN → MENUNGGU oleh pembuat atau kasir; stoknya
+ * sudah ditahan, jadi hanya status dan waktu masuk antrean yang berubah (antre dari sekarang).
+ */
 export async function kirimOrder(
   id: number,
   pelaku: PenggunaAktif,
@@ -521,6 +553,27 @@ export async function kirimOrder(
 ): Promise<DetailOrder> {
   await dalamTransaksi(async (tx) => {
     const h = await kunci(tx, id, pelaku);
+    if (h.status === 'DISIMPAN') {
+      if (h.idPengguna !== pelaku.id && !pelaku.izin.has('penjualan.checkout')) {
+        throw new AppError('TIDAK_BERIZIN', 'Anda tidak bisa mengirim order orang lain.', 403);
+      }
+      const waktu = sekarang();
+      await repo.ubahHeader(tx, id, {
+        status: 'MENUNGGU',
+        waktuMasukAntrean: waktu,
+        diubahPada: waktu,
+      });
+      await catatLog(tx, {
+        aksi: 'ORDER_ANTREAN',
+        idPengguna: pelaku.id,
+        entitas: 'order_penjualan',
+        idEntitas: id,
+        nomorDokumen: h.nomor,
+        ringkasan: `Order ${h.nomor} yang disimpan masuk antrean`,
+        ip: asal.ip,
+      });
+      return;
+    }
     if (h.status !== 'DRAFT') throw statusTidakValid(h.nomor, h.status, 'dikirim ke antrean');
     if (h.idPengguna !== pelaku.id) {
       throw new AppError('TIDAK_BERIZIN', 'Hanya pembuat order yang bisa mengirimnya.', 403);
@@ -531,7 +584,10 @@ export async function kirimOrder(
   return detailOrder(id, pelaku);
 }
 
-/** MENUNGGU → DIPROSES: kasir mengunci order (R8). Membuka ulang order yang dikunci sendiri tidak apa-apa. */
+/**
+ * MENUNGGU → DIPROSES: kasir mengunci order (R8). Membuka ulang order yang dikunci sendiri tidak apa-apa.
+ * R12 (K-122): order DISIMPAN boleh langsung diproses saat pembelinya datang.
+ */
 export async function prosesOrder(
   id: number,
   pelaku: PenggunaAktif,
@@ -548,11 +604,15 @@ export async function prosesOrder(
         409,
       );
     }
-    if (h.status !== 'MENUNGGU') throw statusTidakValid(h.nomor, h.status, 'diproses');
+    if (h.status !== 'MENUNGGU' && h.status !== 'DISIMPAN') {
+      throw statusTidakValid(h.nomor, h.status, 'diproses');
+    }
+    const waktu = sekarang();
     await repo.ubahHeader(tx, id, {
       status: 'DIPROSES',
       idKasirProses: pelaku.id,
-      diubahPada: sekarang(),
+      diubahPada: waktu,
+      ...(h.status === 'DISIMPAN' ? { waktuMasukAntrean: waktu } : {}),
     });
     await catatLog(tx, {
       aksi: 'ORDER_PROSES',
@@ -635,7 +695,7 @@ export async function batalOrder(
     }
     const sendiri =
       h.idPengguna === pelaku.id &&
-      (h.status === 'DRAFT' || h.status === 'MENUNGGU') &&
+      (h.status === 'DRAFT' || h.status === 'MENUNGGU' || h.status === 'DISIMPAN') &&
       pelaku.izin.has('penjualan.order.batal_sendiri');
     if (!sendiri && !pelaku.izin.has('penjualan.order.batal')) {
       throw new AppError(
@@ -664,6 +724,168 @@ export async function batalOrder(
   });
   siarkan('antrean');
   return detailOrder(id, pelaku);
+}
+
+/**
+ * Siapa boleh memindahkan order yang sedang menahan stok (simpan / kembali ke draf): MENUNGGU dan DISIMPAN
+ * oleh pembuat atau pemegang `penjualan.checkout`; DIPROSES oleh kasir pemegang kunci (atau pelepas paksa).
+ */
+function periksaPindah(
+  h: { nomor: string; status: string; idPengguna: number; idKasirProses: number | null },
+  pelaku: PenggunaAktif,
+  paksaBoleh: boolean,
+) {
+  if (h.status === 'DIPROSES') {
+    if (h.idKasirProses === pelaku.id) return;
+    if (paksaBoleh && pelaku.izin.has('penjualan.order.lepas_paksa')) return;
+    throw new AppError('KONFLIK', `Order ${h.nomor} sedang diproses kasir lain.`, 409);
+  }
+  if (h.idPengguna !== pelaku.id && !pelaku.izin.has('penjualan.checkout')) {
+    throw new AppError('TIDAK_BERIZIN', 'Anda tidak bisa memindahkan order orang lain.', 403);
+  }
+}
+
+/**
+ * R11 (K-122): simpan order untuk diambil/dibayar nanti. Wajib nama pembeli (atau pelanggan), No. HP, dan
+ * tanggal ambil hari ini s.d. 14 hari lagi. Draf mulai menahan stok; order dari antrean/kasir tetap menahan.
+ */
+export async function simpanOrder(
+  id: number,
+  input: DataSimpanOrder,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<DetailOrder> {
+  await dalamTransaksi(async (tx) => {
+    const h = await kunci(tx, id, pelaku);
+    if (h.status === 'DRAFT') {
+      if (h.idPengguna !== pelaku.id) {
+        throw new AppError('TIDAK_BERIZIN', 'Hanya pembuat draf yang bisa menyimpannya.', 403);
+      }
+    } else if (h.status === 'MENUNGGU' || h.status === 'DIPROSES') {
+      periksaPindah(h, pelaku, false);
+    } else {
+      throw statusTidakValid(h.nomor, h.status, 'disimpan untuk nanti');
+    }
+    const hariIni = tanggalOperasional();
+    const batas = tambahHari(hariIni, MAKS_HARI_SIMPAN_ORDER);
+    if (input.tanggalAmbil < hariIni) {
+      throw galatKolom('tanggalAmbil', 'Tanggal ambil tidak boleh sebelum hari ini.');
+    }
+    if (input.tanggalAmbil > batas) {
+      throw galatKolom(
+        'tanggalAmbil',
+        `Order disimpan paling lama ${MAKS_HARI_SIMPAN_ORDER} hari (sampai ${tglId(batas)}).`,
+      );
+    }
+    const o = await repo.orderById(tx, id);
+    if (!o) throw tidakDitemukan();
+    const nama = o.namaPelanggan ?? input.namaPembeli ?? null;
+    if (!nama) {
+      throw galatKolom('namaPembeli', 'Nama pembeli wajib diisi untuk order yang disimpan.');
+    }
+    if (h.status === 'DRAFT') {
+      const baris = await repo.barisReservasi(tx, id);
+      await ubahReservasi(
+        tx,
+        baris.map((b) => ({ idBarang: b.idBarang, delta: b.qtyDasar })),
+      );
+    }
+    await repo.ubahHeader(tx, id, {
+      status: 'DISIMPAN',
+      namaPembeli: o.idPelanggan === null ? nama : o.namaPembeli,
+      noHpPembeli: input.noHp,
+      tanggalAmbil: input.tanggalAmbil,
+      idKasirProses: null,
+      waktuMasukAntrean: null,
+      diubahPada: sekarang(),
+    });
+    await catatLog(tx, {
+      aksi: 'ORDER_SIMPAN',
+      idPengguna: pelaku.id,
+      entitas: 'order_penjualan',
+      idEntitas: id,
+      nomorDokumen: h.nomor,
+      ringkasan:
+        `Order ${h.nomor} disimpan untuk diambil ${tglId(input.tanggalAmbil)}: ${nama}, ${input.noHp}` +
+        (h.status === 'DRAFT' ? ' (stok mulai ditahan)' : ` (dari ${h.status.toLowerCase()})`),
+      ip: asal.ip,
+    });
+  });
+  siarkan('antrean');
+  return detailOrder(id, pelaku);
+}
+
+/**
+ * R13 (K-122): order di antrean, sedang diproses, atau disimpan dikembalikan ke draf (mis. pembeli lupa membawa
+ * dompet). Reservasi dilepas; barangnya tetap tersimpan sebagai draf milik pembuat order.
+ */
+export async function keDrafOrder(
+  id: number,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<DetailOrder> {
+  await dalamTransaksi(async (tx) => {
+    const h = await kunci(tx, id, pelaku);
+    if (h.status !== 'MENUNGGU' && h.status !== 'DIPROSES' && h.status !== 'DISIMPAN') {
+      throw statusTidakValid(h.nomor, h.status, 'dikembalikan ke draf');
+    }
+    periksaPindah(h, pelaku, true);
+    const baris = await repo.barisReservasi(tx, id);
+    await ubahReservasi(
+      tx,
+      baris.map((b) => ({ idBarang: b.idBarang, delta: `-${b.qtyDasar}` })),
+    );
+    await repo.ubahHeader(tx, id, {
+      status: 'DRAFT',
+      idKasirProses: null,
+      waktuMasukAntrean: null,
+      tanggalAmbil: null,
+      diubahPada: sekarang(),
+    });
+    await catatLog(tx, {
+      aksi: 'ORDER_KE_DRAF',
+      idPengguna: pelaku.id,
+      entitas: 'order_penjualan',
+      idEntitas: id,
+      nomorDokumen: h.nomor,
+      ringkasan: `Order ${h.nomor} dikembalikan ke draf dari ${h.status.toLowerCase()}; stok dilepas`,
+      ip: asal.ip,
+    });
+  });
+  siarkan('antrean');
+  return detailOrder(id, pelaku);
+}
+
+/**
+ * K-122 butir 4: draf lain yang memuat barang ini, untuk peringatan saat barang ditambahkan ke order. Draf
+ * siapa pun ikut (pembuat dan pembelinya ditampilkan); draf tidak menahan stok.
+ */
+export async function drafBarangLain(
+  p: { idBarang: number; kecuali?: number | undefined },
+  pelaku: PenggunaAktif,
+): Promise<DrafBarang> {
+  const stok = await repo.stokBarang(db, p.idBarang);
+  if (!stok) throw new AppError('TIDAK_DITEMUKAN', 'Barang tidak ditemukan.', 404);
+  const draf = await repo.drafBarang(db, p.idBarang, p.kecuali);
+  return {
+    stokTersedia: keQty(stok.stokTersedia),
+    kodeSatuanDasar: stok.kodeSatuanDasar,
+    draf: draf.map((d) => ({
+      id: d.id,
+      nomor: d.nomor,
+      noAntrean: nomorAntrean(d.nomor),
+      namaPembeli: d.namaPembeli,
+      namaPengguna: d.namaPengguna,
+      milikSaya: d.idPengguna === pelaku.id,
+      qtyDasar: keQty(d.qtyDasar),
+      diubahPada: d.diubahPada?.toISOString() ?? null,
+    })),
+  };
+}
+
+/** K-122: jumlah order disimpan yang lewat tanggal ambil (semua, atau buatan sendiri). */
+export function jumlahDisimpanLewat(idPengguna?: number): Promise<number> {
+  return repo.jumlahDisimpanLewat(db, tanggalOperasional(), idPengguna);
 }
 
 /**

@@ -532,6 +532,7 @@ function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
                 <AlurTutupShift
                   idShift={d.id}
                   status={d.status === 'DIHITUNG' ? 'DIHITUNG' : 'BUKA'}
+                  milikSendiri={d.idKasir === saya.id}
                   onSelesai={() => toast.success(`Shift ${d.nomor} ditutup.`)}
                 />
               </div>

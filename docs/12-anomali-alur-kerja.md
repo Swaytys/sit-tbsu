@@ -47,7 +47,7 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | S14 | Kasir melihat angka sistem lalu menyamakan hitungannya | Selisih tersembunyi (kecurangan) | Hitungan pertama tetap tercatat dan terlihat atasan | Hitung buta: angka sistem tampil setelah hitungan dikirim; hitung ulang dibatasi satu | — | Ada |
 | S15 | Selisih receh karena pembulatan kembalian | Kasir harus menulis keterangan untuk Rp 200 | Ditandai *selisih receh* otomatis | Toleransi (bawaan Rp 1.000) | Hasil menulis "selisih receh, dalam toleransi" | Ada (K-121) |
 | S16 | Keterangan selisih diisi sebelum tahu berapa selisihnya | Keterangan tidak bermakna | — | Keterangan diminta **setelah** hasil tampil | Hasil + bantuan selisih tampil di samping isian keterangan | Ada (K-121) |
-| S17 | Menutup shift padahal masih ada order yang dipegang kasir | Order tergantung | Pilihan per order: kembalikan ke antrean, simpan, ke draf, batalkan | Daftar order tampil sebelum menghitung | Teks menjelaskan akibat tiap pilihan | F14 (bersama K-122; kini order kembali ke antrean) |
+| S17 | Menutup shift padahal masih ada order yang dipegang kasir | Order tergantung | Pilihan per order: kembalikan ke antrean, simpan, ke draf, batalkan | Daftar order tampil sebelum menghitung | Teks menjelaskan akibat tiap pilihan | Ada (K-122) |
 | S18 | Uang yang ditinggal untuk besok tidak dicatat | Modal besok harus dihitung ulang dari nol | — | Isian *uang ditinggal di laci* saat tutup (terisi sebesar modal, boleh diubah, boleh 0) | Penjelasan bahwa angka ini jadi usulan modal besok | Ada (K-121) |
 | S19 | Kasir lupa menutup shift sampai malam / besok | Uang dua hari bercampur | Admin/Owner menutup dari Semua shift (alur dua langkah yang sama) | Pengingat jam tutup, lonceng, Telegram atasan; kunci saat ganti hari | Banner biru/kuning/merah | Ada (K-109) |
 | S20 | Selisih ditemukan sebabnya setelah shift ditutup | Angka salah selamanya | Admin/Owner menambah *penjelasan selisih* (terjelaskan), angka tetap | — | Riwayat menampilkan penjelasan | Ada (K-121) |
@@ -59,10 +59,10 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 
 | # | Anomali | Akibat | Atasi | Cegah | Ajari | Status |
 |---|---|---|---|---|---|---|
-| O1 | Pembeli pergi (lupa dompet) setelah order masuk antrean | Antrean penuh order mati; stok tertahan | Kembalikan order ke draf (reservasi dilepas, barang tetap tersimpan) | — | Pilihan di tiket antrean dan layar kasir | F14 |
-| O2 | Pembeli memesan untuk diambil beberapa hari lagi | Order menumpuk di antrean | Simpan order (nama, HP, tanggal ambil wajib; stok ditahan ≤ 14 hari) | Daftar order disimpan terpisah dari antrean | Notifikasi lewat tanggal | F14 |
-| O3 | Pembeli lain mengambil barang yang sedang di draf pembeli pertama | Pembeli pertama kecewa | — | Peringatan "barang ini ada di draf …" dengan pilihan buka draf itu | Pesan menyebut draf, pembeli, qty | F14 |
-| O4 | Order dibuat dua kali untuk pembeli yang sama | Stok tertahan dua kali | Batalkan salah satu (alasan) | Peringatan draf (O3) | — | F14 (sebagian) |
+| O1 | Pembeli pergi (lupa dompet) setelah order masuk antrean | Antrean penuh order mati; stok tertahan | Kembalikan order ke draf (reservasi dilepas, barang tetap tersimpan) | — | Pilihan di tiket antrean dan layar kasir | Ada (K-122) |
+| O2 | Pembeli memesan untuk diambil beberapa hari lagi | Order menumpuk di antrean | Simpan order (nama, HP, tanggal ambil wajib; stok ditahan ≤ 14 hari) | Daftar order disimpan terpisah dari antrean | Notifikasi lewat tanggal | Ada (K-122) |
+| O3 | Pembeli lain mengambil barang yang sedang di draf pembeli pertama | Pembeli pertama kecewa | Hapus lagi dari order ini, atau buka draf pembeli pertama | Peringatan "barang ini ada di draf …" saat stok tidak cukup untuk semuanya | Pesan menyebut draf, pembeli, pembuat, qty | Ada (K-122) |
+| O4 | Order dibuat dua kali untuk pembeli yang sama | Stok tertahan dua kali | Batalkan salah satu (alasan) | Peringatan draf (O3) | — | Ada (K-122, peringatan draf) |
 | O5 | Staf lupa mengirim order; isian hilang | Order harus diketik ulang | Draf otomatis (K-095) | — | — | Ada |
 
 ---
@@ -83,3 +83,4 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
   (K-120).
 - 2026-10-18 — Status S1–S5, S8–S10, S13–S16, S18, S20, S21 menjadi *Ada* setelah gelombang shift K-121 selesai;
   S17 menunggu K-122.
+- 2026-10-18 — O1–O4 dan S17 menjadi *Ada* (order disimpan, kembali ke draf, peringatan draf lain, pilihan order saat tutup shift; K-122).

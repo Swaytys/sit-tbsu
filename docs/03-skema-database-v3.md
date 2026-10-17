@@ -180,7 +180,9 @@ terisi) | BATAL (`alasan_batal`). PENGANTARAN wajib pelanggan dan alamat (CHECK)
 diskon, dan `qty_dasar` yang ditahan. Detail boleh diubah selama DRAFT/MENUNGGU (service menyesuaikan
 `stok_dipesan`). v3.5: detail juga menyimpan promo baris (`id_promo`, `diskon_promo`) dan `promo_nonaktif` (promo
 dilepas kasir); promo dievaluasi ulang saat checkout (K-087). v3.8 `tier_dipilih` dihapus di v3.11
-(tier selalu otomatis, K-099).
+(tier selalu otomatis, K-099). v3.18 (K-122, migrasi 0021): status DISIMPAN (pesan sekarang, diambil nanti; menahan stok,
+di luar antrean) dengan `no_hp_pembeli` dan `tanggal_ambil` (CHECK `chk_order_disimpan`: keduanya wajib saat
+DISIMPAN); detail boleh diubah juga selama DISIMPAN.
 
 **`penjualan`** [APPEND] + **`penjualan_detail`** [APPEND] — satu tabel untuk LANGSUNG (nomor `STR`,
 `status_pengambilan` wajib) dan PENGANTARAN (nomor `INV`, `status_pengiriman` wajib, pelanggan dan alamat wajib) —
@@ -327,7 +329,7 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | kondisi_retur | BAIK, RUSAK, CACAT |
 | jenis_penjualan | LANGSUNG, PENGANTARAN |
 | prioritas_order | NORMAL, TINGGI |
-| status_order | DRAFT, MENUNGGU, DIPROSES, SELESAI, BATAL |
+| status_order | DRAFT, MENUNGGU, DIPROSES, DISIMPAN, SELESAI, BATAL |
 | status_pembayaran | BELUM_BAYAR, DP, LUNAS |
 | status_transaksi | SELESAI, VOID_SEBAGIAN, VOID |
 | status_pengambilan | DIAMBIL, BELUM_DIAMBIL |
@@ -482,3 +484,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-12 — v3.13: `permintaan_persetujuan.sidik`, jenis `UBAH_PELANGGAN` (migrasi 0015; K-107); `shift_kasir.jadwal_buka`, `jadwal_tutup`, `diingatkan_pada` (migrasi 0016; K-109). v3.14: `promo.anggaran`, `promo.maks_per_pembeli` (migrasi 0017; K-110). v3.15: tabel `rekening_toko`; `pembayaran_penjualan.id_rekening`, `status_verifikasi`, `diverifikasi_oleh`, `diverifikasi_pada`, `catatan_verifikasi`; metode `QRIS` (migrasi 0018; K-111). Kunci konfigurasi baru: `shift_jam_buka`, `shift_jam_tutup`; `rekening_transfer_default` dan `rekening_edc_default` tidak dipakai lagi (isinya dipindah ke `rekening_toko`).
 - 2026-10-17 — v3.16: `pemasok.lama_kirim_hari`, `pemasok.jarak_belanja_hari` (migrasi 0019; K-113). Kunci konfigurasi baru: `saran_pesan_periode_hari`, `saran_pesan_hari_pengaman`, `saran_pesan_lama_kirim_default`, `saran_pesan_jarak_belanja_default`.
 - 2026-10-18 — v3.17: tabel `hitung_kas`; `shift_kasir.cara_buka`, `modal_usulan`, `rincian_buka`, `batas_hitung_buka`, `hitung_buka_pada`, status DIHITUNG, index satu shift belum tutup per kasir; `clerical_check.uang_ditinggal`, `koreksi_modal`, `toleransi`, `jumlah_hitung`, `penjelasan_atasan`, `dijelaskan_oleh`, `dijelaskan_pada`; jenis kas KOREKSI_MODAL_TAMBAH/KURANG; jenis kode `KOREKSI_KAS` (migrasi 0020; K-121). Kunci konfigurasi baru: `toleransi_selisih_kas`, `batas_hitung_buka_menit`.
+- 2026-10-18 — v3.18: `order_penjualan.no_hp_pembeli`, `order_penjualan.tanggal_ambil`, status DISIMPAN, CHECK `chk_order_disimpan` (status DISIMPAN wajib tanggal ambil dan No. HP) (migrasi 0021; K-122).

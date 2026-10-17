@@ -138,7 +138,7 @@ const HPP_DARI_PEMANGGIL: readonly JenisMutasi[] = [
   'VOID',
 ];
 
-/** Nomor order MENUNGGU/DIPROSES yang menahan stok barang (pesan A6/K-048). */
+/** Nomor order MENUNGGU/DIPROSES/DISIMPAN yang menahan stok barang (pesan A6/K-048, K-122). */
 async function orderPenahan(tx: Tx, idBarang: number): Promise<string[]> {
   const baris = await tx
     .selectDistinct({ nomor: orderPenjualan.nomor })
@@ -147,7 +147,7 @@ async function orderPenahan(tx: Tx, idBarang: number): Promise<string[]> {
     .where(
       and(
         eq(orderPenjualanDetail.idBarang, idBarang),
-        inArray(orderPenjualan.status, ['MENUNGGU', 'DIPROSES']),
+        inArray(orderPenjualan.status, ['MENUNGGU', 'DIPROSES', 'DISIMPAN']),
       ),
     );
   return baris.map((b) => b.nomor);
@@ -380,7 +380,7 @@ export async function hitungUlangCache(ex: Executor, idBarang: number): Promise<
       hpp = r.hppSetelah;
     }
   }
-  // R2: stok dipesan = Σ qty_dasar baris order MENUNGGU/DIPROSES.
+  // R2: stok dipesan = Σ qty_dasar baris order MENUNGGU/DIPROSES/DISIMPAN (K-122).
   const [tahan] = await ex
     .select({
       qty: sql<string>`coalesce(sum(${orderPenjualanDetail.qtyDasar}), 0)::text`,
@@ -390,7 +390,7 @@ export async function hitungUlangCache(ex: Executor, idBarang: number): Promise<
     .where(
       and(
         eq(orderPenjualanDetail.idBarang, idBarang),
-        inArray(orderPenjualan.status, ['MENUNGGU', 'DIPROSES']),
+        inArray(orderPenjualan.status, ['MENUNGGU', 'DIPROSES', 'DISIMPAN']),
       ),
     );
   const ledger = {

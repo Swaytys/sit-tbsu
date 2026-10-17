@@ -210,6 +210,12 @@ keputusan lama masih tertulis di berkasnya.
   (K-024, K-072).
 - Penjualan langsung mencatat apakah barang sudah diambil atau belum (K-026).
 
+- **Order disimpan** untuk pembeli yang mengambil nanti: wajib nama, No. HP, tanggal ambil paling lama 14 hari;
+  stoknya ditahan, tidak masuk antrean, diingatkan bila lewat tanggal (tidak batal otomatis). Order di antrean,
+  di kasir, atau disimpan bisa **dikembalikan ke draf** (stok dilepas, barang tetap) (K-122).
+- Saat barang ditambahkan, staf diperingatkan bila barang itu juga ada di draf lain dan stoknya tidak cukup untuk
+  semuanya (K-122).
+
 ### 4.6 Pembayaran non-tunai
 
 - Metode pembayaran: Tunai, Transfer, EDC, dan **QRIS** (K-025, K-111).
@@ -601,8 +607,8 @@ keputusan lama masih tertulis di berkasnya.
 | K | Keputusan | Status |
 |---|---|---|
 | K-120 | Prinsip anomali alur kerja: setiap fitur wajib mengatasi, mencegah, dan mengajari; katalog `docs/12`. | Berlaku |
-| K-121 | Shift: buka tiga cara, hitung per pecahan, hitung susulan, koreksi modal, tutup dua langkah, toleransi receh, uang ditinggal, tinjauan, bantuan selisih, penjelasan atasan. | Berlaku (selesai 18 Okt; butir 9 menunggu K-122) |
-| K-122 | Order disimpan (nama, HP, tanggal ambil ≤ 14 hari, tahan stok), kembali ke draf, buka draf otomatis, peringatan barang di draf lain, panel rincian di Order. | Berlaku (rencana; kode menyusul) |
+| K-121 | Shift: buka tiga cara, hitung per pecahan, hitung susulan, koreksi modal, tutup dua langkah, toleransi receh, uang ditinggal, tinjauan, bantuan selisih, penjelasan atasan. | Berlaku (selesai 18 Okt) |
+| K-122 | Order disimpan (nama, HP, tanggal ambil ≤ 14 hari, tahan stok), kembali ke draf, buka draf otomatis, peringatan barang di draf lain, panel rincian di Order. | Berlaku (selesai 18 Okt) |
 | K-123 | Pencarian atribut sebagian, label keterjualan, angka stok merah tebal, teks kecil penting lebih jelas, panel dengan tombol tutup dan info penjualan. | Berlaku (rencana; kode menyusul) |
 | K-124 | Cetak: setelan tersimpan, penjelasan laci uang, logo di struk, kepekatan, dokumen A4 dengan setelan bawaan, cetak otomatis per jenis dokumen. | Berlaku (rencana; kode menyusul) |
 | K-125 | Order pembelian ke pemasok masuk v1.0.0. | Berlaku (rencana; riset dan rancangan menyusul) |
@@ -637,3 +643,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-14 — K-113 ditambahkan (garis waktu, daftar lengkap 6.17).
 - 2026-10-17 — K-114–K-119 ditambahkan (daftar lengkap 6.18).
 - 2026-10-18 — K-120–K-127 ditambahkan (daftar lengkap 6.19, garis waktu, 4.8 shift, bagian 5).
+- 2026-10-18 — K-121 dan K-122 selesai dibangun (status 6.19, 4.5).

@@ -71,12 +71,12 @@ test('Staf memakai form order lengkap → antrean → Kasir membuka order di lay
     await expect(kasir.getByLabel('Bayar')).toBeFocused();
     const o = await api<{ status: string }>(admin, `/order/${idOrder}`);
     expect(o.status).toBe('DIPROSES');
-    // F9 = mulai dari awal: ditanya dulu (K-106), lalu order dikembalikan ke antrean (tidak dihapus).
+    // F9 = mulai dari awal: ditanya dulu (K-106) dengan pilihan untuk order itu (K-122); A = kembali ke
+    // antrean (tidak dihapus).
     await kasir.keyboard.press('F9');
-    await expect(kasir.getByRole('alertdialog', { name: 'Mulai dari awal?' })).toContainText(
-      'Order tidak dihapus',
-    );
-    await kasir.getByRole('button', { name: 'Ya, mulai dari awal' }).click();
+    const pilihan = kasir.getByRole('dialog', { name: /mau diapakan/ });
+    await expect(pilihan).toContainText('Order tidak dihapus');
+    await pilihan.getByRole('button', { name: /Kembalikan ke antrean/ }).click();
     await expect
       .poll(async () => (await api<{ status: string }>(admin, `/order/${idOrder}`)).status)
       .toBe('MENUNGGU');

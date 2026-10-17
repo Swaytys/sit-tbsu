@@ -49,15 +49,19 @@ catatMutasi(tx, {
 | # | Aturan |
 |---|---|
 | R1 | `stok_tersedia = stok_fisik − stok_dipesan` (generated column). Angka yang dilihat Staf saat mencari barang adalah stok tersedia. |
-| R2 | Order DRAFT tidak menahan stok (membatalkannya tidak melepas reservasi apa pun). Order MENUNGGU dan DIPROSES menahan `qty_dasar` tiap barisnya di `stok_dipesan`. Input order cepat menyimpan isian yang belum dikirim sebagai DRAFT saat halaman ditinggalkan dan membukanya lagi (K-095). |
+| R2 | Order DRAFT tidak menahan stok (membatalkannya tidak melepas reservasi apa pun). Order MENUNGGU, DIPROSES, dan DISIMPAN (R11) menahan `qty_dasar` tiap barisnya di `stok_dipesan`. Input order cepat menyimpan isian yang belum dikirim sebagai DRAFT saat halaman ditinggalkan dan membukanya lagi (K-095). |
 | R3 | Kirim ke antrean (DRAFT → MENUNGGU): dalam satu transaksi, untuk tiap baris: `FOR UPDATE persediaan`, cek `stok_tersedia ≥ qty_dasar`, tambah `stok_dipesan`. Satu baris gagal → seluruh order gagal, pesan menyebut semua barang yang kurang. Isi `waktu_masuk_antrean`. |
-| R4 | Mengubah baris order MENUNGGU (qty, tambah, hapus): hitung selisih `qty_dasar`, terapkan ke `stok_dipesan` dengan pemeriksaan R3 untuk penambahan. Order DIPROSES hanya bisa diubah oleh `id_kasir_proses`. |
-| R5 | Batal (MENUNGGU/DIPROSES → BATAL): lepas seluruh `stok_dipesan` baris order. `alasan_batal` wajib. Staf hanya boleh membatalkan order buatannya yang MENUNGGU (`penjualan.order.batal_sendiri`). |
+| R4 | Mengubah baris order MENUNGGU atau DISIMPAN (qty, tambah, hapus; pembuat atau pemegang `penjualan.checkout`): hitung selisih `qty_dasar`, terapkan ke `stok_dipesan` dengan pemeriksaan R3 untuk penambahan. Order DIPROSES hanya bisa diubah oleh `id_kasir_proses`. |
+| R5 | Batal (MENUNGGU/DIPROSES/DISIMPAN → BATAL): lepas seluruh `stok_dipesan` baris order. `alasan_batal` wajib. Staf hanya boleh membatalkan order buatannya yang DRAFT, MENUNGGU, atau DISIMPAN (`penjualan.order.batal_sendiri`). |
 | R6 | Checkout (DIPROSES → SELESAI): dalam satu transaksi per baris: lepas `stok_dipesan`, lalu `catatMutasi(PENJUALAN, keluar qty_dasar)`. Bila `stok_fisik < qty_dasar` (mis. opname menurunkan stok) → gagal, pesan menyebut barang. |
 | R7 | **Order basi**: MENUNGGU dengan `waktu_masuk_antrean` lebih tua dari `konfigurasi.batas_umur_order_jam` (default 24). Ditandai di antrean, masuk notifikasi, dan tampil di tab "Stok Tertahan" (per barang: daftar order penahan, qty, umur). Bila `konfigurasi.auto_batal_order_basi = true`, job tiap 15 menit membatalkan order basi dengan `alasan_batal = 'KADALUARSA'` dan mencatat log. |
 | R8 | Kunci DIPROSES: kasir lain tidak bisa membuka order yang sedang DIPROSES. Kasir pemegang kunci bisa melepaskannya (kembali MENUNGGU). Admin/Owner bisa memaksa lepas (log). Order DIPROSES lebih lama dari `konfigurasi.batas_kunci_order_menit` (default 30) otomatis kembali MENUNGGU oleh job yang sama dengan R7. |
 | R9 | Order PENGANTARAN wajib pelanggan dan alamat kirim (CHECK DB). Order LANGSUNG boleh tanpa pelanggan; `nama_pembeli` opsional untuk label ("Tukang Bp. Joko"). |
 | R10 | Pelanggan order PENGANTARAN wajib punya No. HP (barang diantar, pembelinya harus bisa dihubungi); diperiksa saat order dibuat atau diubah. Penjualan pengantaran boleh dibuat langsung di halaman Penjualan Pengantaran tanpa order dari Order Penjualan (K-104). |
+| R11 | **[K-122] Order disimpan** (`POST /api/order/:id/simpan`): untuk pembeli yang pesan sekarang dan mengambil/membayar nanti. Dari DRAFT (pembuat; mulai menahan stok dengan pemeriksaan R3), MENUNGGU (pembuat atau `penjualan.checkout`), atau DIPROSES (kasir pemegang kunci). Wajib nama pembeli (atau pelanggan terdaftar), No. HP (`no_hp_pembeli`), dan `tanggal_ambil` antara hari ini dan 14 hari lagi (`MAKS_HARI_SIMPAN_ORDER`); CHECK DB. Order DISIMPAN tidak tampil di papan antrean; daftar urut tanggal ambil. Lewat tanggal ambil: ditandai dan notifikasi `ORDER_DISIMPAN_LEWAT` (pembuat; semua untuk `penjualan.order.lihat_semua`); **tidak** dibatalkan otomatis. Log `ORDER_SIMPAN`. |
+| R12 | **[K-122] Order disimpan dilanjutkan:** DISIMPAN → MENUNGGU lewat kirim ke antrean (pembuat atau kasir; antre dari saat itu), atau DISIMPAN → DIPROSES langsung saat kasir memprosesnya (pembeli datang). Stok tetap ditahan; tidak ada pemeriksaan ulang. |
+| R13 | **[K-122] Kembali ke draf** (`POST /api/order/:id/draf`): MENUNGGU/DISIMPAN (pembuat atau kasir) atau DIPROSES (pemegang kunci, atau `penjualan.order.lepas_paksa`) → DRAFT. Seluruh reservasi dilepas, baris order tetap, `tanggal_ambil` dikosongkan, draf tetap milik pembuat order. Log `ORDER_KE_DRAF`. |
+| R14 | **[K-122] Barang di draf lain** (`GET /api/order/draf-barang`): saat barang ditambahkan di input order cepat, draf lain (siapa pun pembuatnya) yang memuat barang yang sama diperiksa. Bila stok tersedia < qty barang itu di order ini + total di draf lain, muncul peringatan yang menyebut draf (nomor, pembeli, pembuat, qty) dengan pilihan *biarkan*, *hapus lagi dari order ini*, atau *buka draf itu* (hanya draf milik sendiri; isian sekarang disimpan dulu sebagai draf). Barang ditambahkan lebih dulu agar input cepat tidak tertahan pemeriksaan. Peringatan saja: draf tidak menahan stok. |
 
 ## 4. Penomoran dokumen
 
@@ -73,7 +77,7 @@ catatMutasi(tx, {
 
 | Dokumen | Status | Transisi yang diizinkan |
 |---|---|---|
-| order_penjualan | DRAFT, MENUNGGU, DIPROSES, SELESAI, BATAL | DRAFT→MENUNGGU (R3); MENUNGGU→DIPROSES (kasir buka); DIPROSES→MENUNGGU (lepas kunci); DIPROSES→SELESAI (checkout); DRAFT/MENUNGGU/DIPROSES→BATAL (R5). SELESAI dan BATAL final. |
+| order_penjualan | DRAFT, MENUNGGU, DIPROSES, DISIMPAN, SELESAI, BATAL | DRAFT→MENUNGGU (R3); MENUNGGU→DIPROSES (kasir buka); DIPROSES→MENUNGGU (lepas kunci); DIPROSES→SELESAI (checkout); DRAFT/MENUNGGU/DIPROSES→DISIMPAN (R11); DISIMPAN→MENUNGGU/DIPROSES (R12); MENUNGGU/DIPROSES/DISIMPAN→DRAFT (R13); DRAFT/MENUNGGU/DIPROSES/DISIMPAN→BATAL (R5). SELESAI dan BATAL final. |
 | penjualan.status_transaksi | SELESAI, VOID_SEBAGIAN, VOID | SELESAI→VOID_SEBAGIAN (void ITEM sebagian); SELESAI/VOID_SEBAGIAN→VOID (semua baris VOID). VOID final. |
 | penjualan.status_pembayaran | BELUM_BAYAR, DP, LUNAS | Dihitung ulang (P9) setiap pembayaran, retur, void. |
 | penjualan.status_pengambilan (LANGSUNG) | DIAMBIL, BELUM_DIAMBIL | BELUM_DIAMBIL→DIAMBIL (kasir konfirmasi; log). |
@@ -81,7 +85,7 @@ catatMutasi(tx, {
 | surat_jalan | DIPROSES, DIMUAT, DIKIRIM, SELESAI, BATAL | Maju satu langkah: DIPROSES→DIMUAT→DIKIRIM→SELESAI (isi waktu). DIPROSES/DIMUAT→BATAL (alasan). DIKIRIM tidak bisa BATAL. |
 | retur_penjualan, void_transaksi | MENUNGGU, DISETUJUI, DITOLAK | MENUNGGU→DISETUJUI / DITOLAK oleh pemegang izin `*.setujui` (docs/04 §6). Final. |
 | penyesuaian_stok | DRAFT, SELESAI, BATAL | DRAFT→SELESAI (tulis mutasi); DRAFT→BATAL. Final. |
-| shift_kasir | BUKA, TUTUP | BUKA→TUTUP lewat clerical check (K4). TUTUP final di M1 (K7). |
+| shift_kasir | BUKA, DIHITUNG, TUTUP | BUKA→DIHITUNG (hitungan tutup dikirim, K4, K18); DIHITUNG→TUTUP (clerical check). Kompatibilitas: BUKA→TUTUP sekali jalan. TUTUP final di M1 (K7). |
 | penerimaan_barang | (tidak ada status) | Tidak bisa dibatalkan; koreksi lewat retur pemasok [M2] atau penyesuaian. |
 
 Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
@@ -171,7 +175,7 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 | K21 | **[K-121] Uang ditinggal di laci** (`uangDitinggal`, 0 ≤ nilai ≤ uang fisik; bawaan min(modal efektif, uang fisik)) disimpan di `clerical_check.uang_ditinggal`; sisanya dianggap disetor. Nilai ini menjadi usulan modal shift berikutnya (K15). |
 | K22 | **[K-121] Tinjauan dan bantuan selisih** dihitung saat diminta, tidak disimpan: transaksi per jenis, pembayaran per metode, total kembalian, refund, kas, dan linimasa tunai (setiap uang tunai masuk/keluar dengan saldo laci menurut sistem). Bantuan mencocokkan nilai selisih dengan satu pembayaran tunai, kembalian, pembayaran non-tunai (bila lebih), kas manual, atau kelipatan satu pecahan ≥ Rp 10.000 (≤ 5 lembar), paling banyak 8 petunjuk, plus daftar periksa umum. Terlihat oleh kasir setelah hitungan dikirim; atasan selalu. Saran, bukan tuduhan. |
 | K23 | **[K-121] Penjelasan atasan** (`POST /api/shift/:id/penjelasan`, `kas.shift.lihat_semua`): hanya shift TUTUP yang berselisih, sekali; mengisi `penjelasan_atasan`, `dijelaskan_oleh`, `dijelaskan_pada`. Angka clerical tidak berubah. Log `SHIFT_PENJELASAN`. |
-| K24 | **[K-121] Order yang dipegang kasir saat tutup** tetap kembali ke antrean (K6). Pilihan per order (simpan, ke draf, batal) menyusul bersama K-122. |
+| K24 | **[K-121] Order yang dipegang kasir saat tutup:** sebelum menghitung, kotak *Tutup shift* milik sendiri menampilkan order DIPROSES kasir itu dengan pilihan per order: ke antrean, simpan untuk nanti (R11), ke draf (R13), atau batalkan (R5). Yang tidak dipilih tetap kembali ke antrean saat tutup (K6). |
 
 ## 11. Penerimaan barang
 
@@ -250,7 +254,7 @@ Bagian ini sengaja diletakkan sebelum §15 agar dekat dengan status stok; nomorn
 
 ## 16. Aksi log aktivitas
 
-Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, PERSETUJUAN_GAGAL, PERSETUJUAN_KODE_KIRIM, AKUN_KONTAK_UBAH (K-102), LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK/BATAL, VOID_AJUKAN/SETUJUI/TOLAK/BATAL, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, SHIFT_HITUNG, SHIFT_HITUNG_BUKA, SHIFT_KOREKSI_MODAL, SHIFT_PENJELASAN (K-121), KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086), PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN, PENJUALAN_PROMO_LEPAS (K-087). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN.
+Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, PERSETUJUAN_GAGAL, PERSETUJUAN_KODE_KIRIM, AKUN_KONTAK_UBAH (K-102), LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, ORDER_SIMPAN, ORDER_KE_DRAF (K-122), PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, RETUR_AJUKAN/SETUJUI/TOLAK/BATAL, VOID_AJUKAN/SETUJUI/TOLAK/BATAL, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, SHIFT_HITUNG, SHIFT_HITUNG_BUKA, SHIFT_KOREKSI_MODAL, SHIFT_PENJELASAN (K-121), KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086), PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN, PENJUALAN_PROMO_LEPAS (K-087). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN.
 
 ## Riwayat
 
@@ -277,3 +281,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-12 — §10 K9–K11 shift terlewat, jadwal, pemberitahuan (K-109); K12–K14 rekening toko dan pengecekan uang masuk, P8 metode QRIS (K-111); T3/T5/T7 tampilan retur (K-106). Nilai `log_aktivitas.aksi` baru: REKENING_BUAT, REKENING_UBAH, REKENING_NONAKTIF, REKENING_AKTIFKAN, PEMBAYARAN_VERIFIKASI.
 - 2026-10-17 — §17 rekomendasi pemesanan ulang RO1–RO8 (K-113).
 - 2026-10-18 — §10 K1, K4, K5 diperbarui dan K15–K24 shift tiga cara buka, hitung susulan, koreksi modal, tutup dua langkah, toleransi, uang ditinggal, tinjauan, penjelasan atasan (K-121); §15 `toleransi_selisih_kas`, `batas_hitung_buka_menit`; §16 aksi log SHIFT_HITUNG, SHIFT_HITUNG_BUKA, SHIFT_KOREKSI_MODAL, SHIFT_PENJELASAN.
+- 2026-10-18 — §3 R2, R4, R5 diperbarui dan R11–R14 order disimpan, kembali ke draf, barang di draf lain; §5 status DISIMPAN dan shift DIHITUNG; K24 pilihan order saat tutup shift; §16 aksi log ORDER_SIMPAN, ORDER_KE_DRAF (K-122).

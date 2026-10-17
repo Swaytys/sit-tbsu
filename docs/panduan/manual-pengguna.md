@@ -31,8 +31,18 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
      dengan panah lalu **Enter**.
 2. Pembeli umum tidak perlu nama. Pelanggan langganan: **F4** cari pelanggan. Pengantaran: **F3** ubah jenis
    (alamat pelanggan terisi otomatis). **Catatan untuk kasir** (opsional) ikut tampil di tiket antrean kasir.
+   - **Rincian barang**: saat barang disorot di hasil cari (panah atau kursor), rinciannya (foto, stok tersedia/
+     fisik/dipesan, harga tiap satuan dan tier, atribut) tampil menutupi daftar *Order saya*. **Esc** menutupnya.
+   - **Peringatan "juga ada di draf lain"**: bila barang yang baru ditambahkan juga ada di draf orang lain (atau
+     draf Anda yang lain) dan stoknya tidak cukup untuk semuanya, muncul peringatan yang menyebut draf itu
+     (nomor, pembeli, pembuat, qty). Draf belum menahan stok, jadi pembeli yang lebih dulu dibayar yang mendapat
+     barangnya. Pilih: **Biarkan** (Enter), **Hapus lagi dari order ini** (Esc), atau **Buka draf …** (B; hanya
+     draf Anda sendiri: isian sekarang disimpan dulu sebagai draf, lalu draf itu dibuka untuk dilanjutkan). Bila
+     draf milik orang lain, hubungi dia bila pembelinya masih menunggu.
 3. Isian yang belum dikirim **tidak hilang**: saat Anda pindah menu atau menutup halaman, isian disimpan sebagai
-   **draf** dan dibuka lagi saat kembali ke Order Penjualan (draf lain bisa diklik di "Order saya"). Tombol
+   **draf** dan dibuka lagi saat kembali ke Order Penjualan (draf lain bisa diklik di "Order saya"). Tidak ingin
+   draf terakhir terbuka sendiri? Hilangkan centang **Buka draf otomatis** di atas *Order saya*; form lalu selalu
+   kosong saat dibuka, dan draf dibuka dengan mengkliknya. Pilihan ini tersimpan di peramban komputer/tablet itu. Tombol
    **Simpan draf & order baru** menyimpan isian sekarang sebagai draf lalu mengosongkan form untuk pembeli
    berikutnya. Qty bisa diubah dengan tombol **−** / **+** di sebelah qty.
    - **Mulai dari awal** (tombol, atau **F9**): mengosongkan isian order yang sedang diketik (draf yang sedang
@@ -40,6 +50,15 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
      terpencet lalu Enter tidak menghapus apa pun. Pilih **Ya, mulai dari awal** bila memang ingin mengosongkan.
 4. **F8** kirim ke antrean. Order mendapat **nomor antrean** dan langsung muncul di layar kasir. Serahkan barang
    ke kasir sambil menyebut isi order (mis. "semen 3 sak, nomor 12").
+   - **Pembeli pesan sekarang, mengambil nanti** (mis. besok atau minggu depan): klik **Simpan untuk nanti** (atau
+     **F7**). Isi **Nama pembeli** (tidak perlu bila pelanggan terdaftar dipilih), **No. HP pembeli**, dan
+     **Rencana tanggal ambil** (tombol cepat *Hari ini / Besok / 3 hari / 7 hari / 14 hari*, paling lama 14 hari),
+     lalu **Simpan order** (Enter). Barangnya langsung **ditahan** (tidak bisa dijual ke pembeli lain), tetapi order
+     **tidak masuk antrean kasir**; ia tampil di *Order Penjualan › Daftar order › Disimpan*. Saat pembeli datang:
+     buka order itu lalu **Kirim ke antrean** (atau kasir langsung **Proses ke pembayaran**). Lewat tanggal ambil:
+     order ditandai merah dan lonceng mengingatkan untuk menghubungi pembeli; order **tidak** dibatalkan sendiri.
+     Pembeli batal: **Batalkan** (stok dilepas). Pembeli belum pasti: **Kembalikan ke draf** (stok dilepas,
+     barang tetap tersimpan).
 5. Stok yang tampil adalah stok **tersedia** (sudah dikurangi order lain yang belum dibayar).
 6. **Harga dan promo otomatis**: harga mengikuti total belanja (mis. harga Grosir untuk semua barang begitu total
    belanja mencapai Rp 1.000.000; di atas total tertulis "Belanja Rp … lagi untuk harga Grosir"). Promo untuk
@@ -92,6 +111,19 @@ pertama menutup jendela; tidak perlu mengklik apa pun dulu.
   (3) ketik jumlahnya, (4) **Tutup shift**, (5) buka shift baru untuk hari ini. Bila uangnya sudah tidak bisa
   dihitung dengan benar, isi apa adanya dan tulis sebabnya di keterangan selisih; Admin/Owner juga bisa
   menutupkannya.
+
+**Order yang tidak jadi dibayar sekarang** (layar kasir, order dari antrean sudah dibuka): tekan **F9** (atau
+**Mulai dari awal**). Muncul pilihan:
+- **A — Kembalikan ke antrean**: pembeli masih di toko dan akan dilayani lagi. Stok tetap ditahan.
+- **S — Simpan untuk diambil nanti…**: pembeli datang lagi lain hari; isi No. HP dan tanggal ambil. Stok tetap
+  ditahan; order pindah ke *Daftar order › Disimpan*.
+- **D — Kembalikan ke draf**: pembeli batal untuk sementara (mis. lupa membawa dompet). Stok dilepas; daftar
+  barangnya tetap tersimpan sebagai draf milik staf yang membuatnya, jadi tidak perlu diketik ulang.
+- **Esc**: kembali ke transaksi.
+
+**Order disimpan** (pembeli datang mengambil pesanannya): di atas papan antrean tertulis "*n* disimpan" (merah bila
+ada yang lewat tanggal ambil). Klik, pilih order pembelinya, lalu **Proses ke pembayaran**: order langsung terbuka
+di layar kasir seperti order antrean.
 
 **Penjualan langsung** (*Transaksi › Penjualan Langsung*):
 - Papan antrean menampilkan order dari staf (terlama disorot). **Enter** memproses order yang disorot; panah
@@ -229,7 +261,9 @@ yang sudah ada, menonaktifkan, atau mengaktifkannya kembali butuh persetujuan at
    - Klik **Tutup shift**, periksa ringkasannya, lalu **Ya, tutup shift**. Setelah ditutup angka tidak bisa
      diubah; Admin/Owner bisa menambahkan penjelasan bila sebab selisih ditemukan kemudian.
 
-Order yang masih Anda proses dikembalikan ke antrean saat shift ditutup.
+**Order yang masih Anda pegang** (sedang dibuka di layar kasir) tampil di kotak kuning di atas hitungan, dengan
+tombol per order: **Ke antrean**, **Simpan untuk nanti…**, **Ke draf**, atau **Batalkan…** (wajib alasan). Order
+yang tidak Anda pilih otomatis kembali ke antrean saat shift ditutup.
 
 - Bila toko mengatur jam tutup: 15 menit sebelumnya muncul pengingat biru di atas halaman; setelah lewat,
   peringatan kuning. Anda **masih bisa menjual** (pembeli yang datang terlambat tetap dilayani), tetapi tutuplah
