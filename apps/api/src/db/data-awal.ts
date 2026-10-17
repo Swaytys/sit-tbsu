@@ -209,6 +209,31 @@ const KONFIGURASI: BarisKonfigurasi[] = [
   // K-109: jadwal shift toko (kosong = tanpa jadwal); dibekukan ke tiap shift saat dibuka
   { kode: 'shift_jam_buka', nilai: '', tipe: 'TEKS', deskripsi: 'Jam buka shift (HH:mm)' },
   { kode: 'shift_jam_tutup', nilai: '', tipe: 'TEKS', deskripsi: 'Jam tutup shift (HH:mm)' },
+  // K-113: rekomendasi pemesanan ulang (docs/05 §17 RO1–RO4)
+  {
+    kode: 'saran_pesan_periode_hari',
+    nilai: '30',
+    tipe: 'ANGKA',
+    deskripsi: 'Hari penjualan yang diamati untuk rata-rata jual per hari (RO1)',
+  },
+  {
+    kode: 'saran_pesan_hari_pengaman',
+    nilai: '2',
+    tipe: 'ANGKA',
+    deskripsi: 'Stok pengaman = rata-rata jual per hari × hari ini (RO2)',
+  },
+  {
+    kode: 'saran_pesan_lama_kirim_default',
+    nilai: '3',
+    tipe: 'ANGKA',
+    deskripsi: 'Lama kirim (hari) bila pemasok belum diisi (RO3)',
+  },
+  {
+    kode: 'saran_pesan_jarak_belanja_default',
+    nilai: '7',
+    tipe: 'ANGKA',
+    deskripsi: 'Jarak belanja (hari) bila pemasok belum diisi (RO4)',
+  },
   // Rekening bawaan layar kasir (K-073) sejak K-111 ada di tabel rekening_toko (Pengaturan › Pembayaran).
 ];
 

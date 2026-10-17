@@ -7,6 +7,7 @@ import { jumlahReturMenunggu } from '../../koreksi/retur/service';
 import { jumlahVoidMenunggu } from '../../koreksi/void/service';
 import { jumlahOrderBasi } from '../../penjualan/order/service';
 import { piutangJatuhTempo } from '../../penjualan/piutang/service';
+import { jumlahPerluDipesan } from '../../persediaan/saran-pesan/service';
 import { peringatanStok } from '../../persediaan/stok/service';
 import { peringatanCadangan } from '../cadangan/service';
 
@@ -172,6 +173,17 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         keterangan: `${s.kritis} barang di bawah stok minimum.`,
         jumlah: s.kritis,
         tautan: '/persediaan?tab=posisi&status=KRITIS',
+      });
+    }
+    // K-113 RO6: barang yang stok tersedianya sudah di titik pesan ulang.
+    const pesan = await jumlahPerluDipesan();
+    if (pesan > 0) {
+      hasil.push({
+        jenis: 'PERLU_DIPESAN',
+        judul: 'Barang perlu dipesan',
+        keterangan: `${pesan} barang sudah di titik pesan ulang; lihat saran jumlah pesannya.`,
+        jumlah: pesan,
+        tautan: '/persediaan?tab=saran-pesan',
       });
     }
   }

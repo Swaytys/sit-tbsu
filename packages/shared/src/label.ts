@@ -17,6 +17,7 @@ import type {
   StatusPembayaran,
   StatusVerifikasi,
   StatusPersetujuan,
+  StatusSaranPesan,
   StatusStok,
   StatusTransaksi,
 } from './enums';
@@ -45,6 +46,13 @@ export const LABEL_JENIS_PENYESUAIAN: Record<JenisPenyesuaian, string> = {
   KOREKSI: 'Koreksi',
   RUSAK: 'Stok rusak',
   MUSNAH: 'Pemusnahan',
+};
+
+export const LABEL_STATUS_SARAN_PESAN: Record<StatusSaranPesan, string> = {
+  PESAN_SEKARANG: 'Pesan sekarang',
+  SEGERA: 'Segera pesan',
+  AMAN: 'Aman',
+  TIDAK_LAKU: 'Tidak laku',
 };
 
 export const LABEL_STATUS_STOK: Record<StatusStok, string> = {

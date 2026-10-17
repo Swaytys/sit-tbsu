@@ -26,6 +26,14 @@ const email = teksOpsional(100, 'Email maksimal 100 karakter.').refine(
 /** Isian kosong pada form berarti "tidak diisi". */
 const kosongJadiUndefined = (v: unknown) => (v === '' ? undefined : v);
 const kosongJadiNull = (v: unknown) => (v === '' ? null : v);
+const hariOpsional = (label: string, min: number, maks: number) =>
+  z.coerce
+    .number(`${label} harus berupa angka.`)
+    .int(`${label} harus bilangan bulat.`)
+    .min(min, `${label} minimal ${min} hari.`)
+    .max(maks, `${label} maksimal ${maks} hari.`)
+    .nullable()
+    .optional();
 
 /**
  * Term hari dan limit kredit hanya boleh diatur pemegang `master.pelanggan.atur_kredit` (K-059). Kolom yang
@@ -159,6 +167,10 @@ export const skemaPemasok = z.object({
   kontakPerson: teksOpsional(100, 'Kontak person maksimal 100 karakter.'),
   alamat: teksOpsional(255, 'Alamat maksimal 255 karakter.'),
   keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
+  /** K-113: hari dari memesan sampai barang tiba (rekomendasi pemesanan ulang); kosong = bawaan toko. */
+  lamaKirimHari: z.preprocess(kosongJadiNull, hariOpsional('Lama kirim', 0, 365)),
+  /** K-113: jarak hari antara dua kali belanja ke pemasok ini; kosong = bawaan toko. */
+  jarakBelanjaHari: z.preprocess(kosongJadiNull, hariOpsional('Jarak belanja', 1, 365)),
 });
 export type InputPemasok = z.input<typeof skemaPemasok>;
 export type DataPemasok = z.output<typeof skemaPemasok>;
@@ -171,6 +183,8 @@ export type Pemasok = {
   kontakPerson: string | null;
   alamat: string | null;
   keterangan: string | null;
+  lamaKirimHari: number | null;
+  jarakBelanjaHari: number | null;
   statusAktif: StatusAktif;
   dibuatPada: string;
 };

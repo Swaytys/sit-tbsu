@@ -101,6 +101,10 @@ export type JenisMutasi = (typeof JENIS_MUTASI)[number];
 export const STATUS_STOK = ['HABIS', 'KRITIS', 'PERLU_RESTOCK', 'AMAN'] as const;
 export type StatusStok = (typeof STATUS_STOK)[number];
 
+/** RO6 (K-113): status rekomendasi pemesanan ulang per barang. */
+export const STATUS_SARAN_PESAN = ['PESAN_SEKARANG', 'SEGERA', 'AMAN', 'TIDAK_LAKU'] as const;
+export type StatusSaranPesan = (typeof STATUS_SARAN_PESAN)[number];
+
 export const PENYELESAIAN_RETUR_PEMASOK = [
   'POTONG_HUTANG',
   'GANTI_BARANG',

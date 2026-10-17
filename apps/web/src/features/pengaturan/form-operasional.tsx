@@ -53,6 +53,30 @@ const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: strin
     ket: 'Diisikan otomatis saat membuat barang baru.',
   },
   {
+    nama: 'saranPesanPeriodeHari',
+    label: 'Saran pesan: periode penjualan',
+    satuan: 'hari',
+    ket: 'Rata-rata jual per hari dihitung dari penjualan sekian hari terakhir (sampai kemarin).',
+  },
+  {
+    nama: 'saranPesanHariPengaman',
+    label: 'Saran pesan: stok pengaman',
+    satuan: 'hari',
+    ket: 'Cadangan = rata-rata jual per hari × hari ini, untuk penjualan ramai/kiriman telat.',
+  },
+  {
+    nama: 'saranPesanLamaKirim',
+    label: 'Saran pesan: lama kirim bawaan',
+    satuan: 'hari',
+    ket: 'Dipakai bila lama kirim di Data Pemasok kosong.',
+  },
+  {
+    nama: 'saranPesanJarakBelanja',
+    label: 'Saran pesan: belanja tiap',
+    satuan: 'hari',
+    ket: 'Dipakai bila jarak belanja di Data Pemasok kosong.',
+  },
+  {
     nama: 'batasUmurOrderJam',
     label: 'Batas umur order',
     satuan: 'jam',

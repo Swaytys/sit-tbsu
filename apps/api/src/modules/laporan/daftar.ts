@@ -12,6 +12,7 @@ import {
   skemaLaporanPiutang,
   skemaLaporanProdukTerlaris,
   skemaLaporanPromo,
+  skemaLaporanRekomendasiPesan,
   skemaLaporanRetur,
   skemaLaporanRiwayatHargaBeli,
   skemaLaporanStokMinimum,
@@ -38,6 +39,7 @@ import { laporanPenjualanPeriode } from './penjualan-periode';
 import { laporanPiutang } from './piutang';
 import { laporanProdukTerlaris } from './produk-terlaris';
 import { laporanPromo } from './promo';
+import { laporanRekomendasiPesan } from './rekomendasi-pesan';
 import { laporanReturPenjualan } from './retur-penjualan';
 import { laporanRiwayatHargaBeli } from './riwayat-harga-beli';
 import { laporanStokMinimum } from './stok-minimum';
@@ -87,6 +89,8 @@ export function susunLaporan(
       return laporanKonsinyasi(urai(skemaLaporanKonsinyasi, query), pelaku);
     case 'daftar-harga':
       return laporanDaftarHarga(urai(skemaLaporanDaftarHarga, query), pelaku);
+    case 'rekomendasi-pesan':
+      return laporanRekomendasiPesan(urai(skemaLaporanRekomendasiPesan, query), pelaku);
   }
 }
 

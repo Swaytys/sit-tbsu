@@ -274,6 +274,22 @@ Semua tugas kasir, ditambah:
 - **Stok** (*Persediaan › Stok Persediaan*): posisi stok, mutasi, kartu stok per barang, stok tertahan, dan
   **penyesuaian** (saldo awal, koreksi, barang rusak, **stok opname**). Barang yang tidak dihitung saat opname
   dikecualikan dengan alasan, bukan dihapus.
+- **Saran pesan ulang** (*Persediaan › Stok Persediaan › Saran pesan*): daftar barang yang perlu dibeli dan
+  berapa banyak, dikelompokkan per pemasok.
+  1. Isi dulu sekali per pemasok di *Data Pemasok* › Ubah: **Lama kirim (hari)** (dari memesan sampai barang tiba)
+     dan **Belanja tiap (hari)** (seberapa sering Anda belanja ke pemasok itu). Kosong = memakai bawaan di
+     *Pengaturan › Operasional* (bawaan 3 dan 7 hari).
+  2. Buka tab **Saran pesan**. Empat kotak di atas menghitung barang per status: **Pesan sekarang** (stok sudah di
+     titik pesan ulang), **Segera pesan** (akan habis sebelum belanja berikutnya), **Aman**, **Tidak laku** (tidak
+     terjual 30 hari terakhir: modal tertahan). Klik kotak untuk menyaring.
+  3. Tiap baris menulis terjual dan rata-rata per hari, stok tersedia dan cukup untuk berapa hari, titik pesan,
+     **saran pesan** (dan dalam dus/kemasan bila ada), serta perkiraan biaya. Total perkiraan belanja ada di bilah
+     saringan.
+  4. Tombol **?** menjelaskan rumusnya dengan contoh. **Cetak / Excel** membuka laporan *Rekomendasi Pemesanan
+     Ulang* untuk dibawa saat belanja.
+  5. Angka dihitung dari penjualan sampai **kemarin**, jadi penjualan hari ini belum mengubah rata-rata. Saran
+     adalah bahan keputusan; jumlah yang dibeli tetap keputusan Anda. Lonceng menampilkan "Barang perlu dipesan"
+     bila ada yang berstatus Pesan sekarang.
 - **Stok rusak** (tab *Stok rusak* di *Stok Persediaan*): barang rusak tidak bisa dijual. Pindahkan dari stok
   baik lewat *Penyesuaian › Stok rusak*. Lalu pilih **Retur ke pemasok** (diklaim) atau **Musnahkan** (dibuang;
   alasan wajib).

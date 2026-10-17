@@ -6,13 +6,22 @@ import { TabMutasi } from './tab-mutasi';
 import { TabPenyesuaian } from './tab-penyesuaian';
 import { TabPosisi } from './tab-posisi';
 import { TabRusak } from './tab-rusak';
+import { TabSaranPesan } from './tab-saran-pesan';
 import { TabTertahan } from './tab-tertahan';
 
-const TAB = ['posisi', 'mutasi', 'kartu', 'tertahan', 'rusak', 'penyesuaian'] as const;
+const TAB = [
+  'posisi',
+  'saran-pesan',
+  'mutasi',
+  'kartu',
+  'tertahan',
+  'rusak',
+  'penyesuaian',
+] as const;
 type Tab = (typeof TAB)[number];
 
 /**
- * Persediaan › Stok Persediaan (docs/04 §4): posisi stok, riwayat mutasi, kartu stok, stok tertahan,
+ * Persediaan › Stok Persediaan (docs/04 §4): posisi stok, saran pesan ulang (K-113), riwayat mutasi, kartu stok, stok tertahan,
  * stok rusak, penyesuaian.
  */
 export function HalamanPersediaan() {
@@ -33,6 +42,7 @@ export function HalamanPersediaan() {
       <Tabs value={tab} onValueChange={(v) => setCari({ tab: v }, { replace: true })}>
         <TabsList className="print:hidden">
           <TabsTrigger value="posisi">Posisi stok</TabsTrigger>
+          <TabsTrigger value="saran-pesan">Saran pesan</TabsTrigger>
           <TabsTrigger value="mutasi">Mutasi</TabsTrigger>
           <TabsTrigger value="kartu">Kartu stok</TabsTrigger>
           <TabsTrigger value="tertahan">Stok tertahan</TabsTrigger>
@@ -41,6 +51,9 @@ export function HalamanPersediaan() {
         </TabsList>
         <TabsContent value="posisi">
           <TabPosisi />
+        </TabsContent>
+        <TabsContent value="saran-pesan">
+          <TabSaranPesan />
         </TabsContent>
         <TabsContent value="mutasi">
           <TabMutasi />

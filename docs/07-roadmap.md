@@ -27,7 +27,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 11 | Konsinyasi | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 12 | Multi-satuan jual dan label (akhir M2) | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 13 | Aplikasi desktop (versi build) | Belum (lingkup menunggu konfirmasi pemilik) | — |
-| 14 | Pendukung keputusan, tablet, ekspor log (dikerjakan sebelum Fase 13) | Aktif (rencana menunggu persetujuan) | — |
+| 14 | Pendukung keputusan, tablet, ekspor log (dikerjakan sebelum Fase 13) | Berjalan (bagian 1 rekomendasi pesan selesai 2026-10-17) | — |
 
 Nilai status: Belum · Aktif · Berjalan (sebagian branch merge) · Selesai · Ditunda.
 
@@ -407,6 +407,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-10-17 — Fase 14 bagian 1 selesai: rekomendasi pemesanan ulang (K-113, docs/05 §17). Tinjauan pemilik 17 Okt: K-114–K-119.
 - 2026-10-14 — Fase 14 ditambahkan dan diaktifkan: rekomendasi pemesanan ulang, tablet, ekspor log (K-113).
 - 2026-10-12 — Tinjauan pemilik gelombang 1: data akun lama dibuang saat login, judul halaman dan form
   dirapikan, keterangan tier menonjol, pohon laporan, retur, bayar campuran, "Mulai dari awal" (K-106).

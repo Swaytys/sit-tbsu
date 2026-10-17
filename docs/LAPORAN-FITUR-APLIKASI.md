@@ -69,7 +69,7 @@ Kata "K-nnn" merujuk ke catatan keputusan di `docs/keputusan/`; ringkasannya di 
 |---|---|---|
 | Tampilan (web) | Halaman React per menu, dimuat per rute (lazy) | `[KODE: web/routes.tsx:23-55]` |
 | Kontrak bersama | Enum status, daftar izin, peran, skema validasi Zod, helper uang/qty | `[KODE: shared/roles.ts:9-83]` `[KODE: shared/permissions.ts]` |
-| API | 192 endpoint REST di bawah `/api`, dikelompokkan per modul | `[KODE: api/app.ts:52-88]` |
+| API | 194 endpoint REST di bawah `/api`, dikelompokkan per modul | `[KODE: api/app.ts:52-88]` |
 | Logika bisnis | Hanya di `api/modules/*/service.ts` | `[DOK: CLAUDE.md, aturan arsitektur 1]` |
 | Penulisan stok | Satu pintu `catatMutasi()` dengan kunci baris (`SELECT … FOR UPDATE`) | `[KODE: api/modules/persediaan/ledger.ts:161]` |
 | Database | PostgreSQL, tabel transaksi hanya-tambah (koreksi lewat dokumen baru) | `[DOK: CLAUDE.md, aturan 3]` |
@@ -214,7 +214,7 @@ bergantung konfigurasi.
 - Status: BERFUNGSI (tampil di layar; **tidak ada tombol ekspor** log).
 
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
-- Fungsi: 14 jenis pengingat: order basi, stok habis, stok kritis, piutang terlambat, piutang jatuh tempo ≤ 3 hari,
+- Fungsi: 15 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
   pembayaran non-tunai belum dicek, non-tunai tidak masuk.
 - Bukti: `[KODE: shared/schemas/notifikasi.ts:7-20]` `[KODE: api/modules/sistem/notifikasi/service.ts:14]`.
@@ -424,7 +424,17 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 
 ### 4.8 Laporan, dashboard, cetak
 
-**F37. Laporan (15 jenis)** — rincian di bagian 7. Status: BERFUNGSI.
+**F40. Rekomendasi pemesanan ulang (Saran pesan)** | Stok Persediaan › Saran pesan; Laporan | Admin, Owner | desktop
+- Fungsi: barang yang perlu dibeli ulang dan jumlah sarannya per pemasok, dengan status Pesan sekarang / Segera /
+  Aman / Tidak laku, stok cukup untuk berapa hari, dan perkiraan biaya. Rumus di bagian 5d.
+- Input → Proses → Output: data penjualan (ledger) + stok tersedia + lama kirim/jarak belanja pemasok + pengaturan
+  → hitung RO1–RO6 → daftar saran per pemasok, laporan, notifikasi.
+- Tabel: `mutasi_persediaan`, `persediaan`, `barang`, `barang_satuan_jual`, `penerimaan_barang(_detail)`,
+  `pemasok`, `konfigurasi` (hanya dibaca).
+- Bukti: `[KODE: api/modules/persediaan/saran-pesan/service.ts]` `[KODE: api/modules/persediaan/saran-pesan/routes.ts]`.
+- Status: BERFUNGSI (K-113).
+
+**F37. Laporan (16 jenis)** — rincian di bagian 7. Status: BERFUNGSI.
 
 **F38. Dashboard per peran** | Dashboard | semua | semua
 - Fungsi: penjualan hari ini vs kemarin dan grafik 7 hari (hanya yang berizin omzet), antrean order, pengiriman
@@ -515,24 +525,36 @@ Status dokumen `[KODE: shared/enums.ts:122-161]`:
 
 ### 5d. Rekomendasi jumlah pemesanan ulang (reorder)
 
-**BELUM ADA.** Kode tidak memiliki fungsi yang menghitung jumlah yang sebaiknya dipesan ulang (tidak ditemukan
-rumus EOQ, rata-rata penjualan harian, lead time, atau saran qty beli) `[KODE: pencarian "reorder", "rekomendasi",
-"saran" di api/ dan shared/ tanpa hasil logika]`. Fitur ini juga tidak tercatat di backlog
-`[DOK: docs/08-backlog.md]`.
+**SUDAH ADA sejak 17 Oktober 2026** (Fase 14 bagian 1, K-113; rekomendasi dosen pembimbing). Rumus
+"rata-rata jual + lead time" `[KODE: api/modules/persediaan/saran-pesan/hitung.ts]`
+`[DOK: docs/05-aturan-bisnis-inti.md §17 RO1–RO8]`:
 
-Yang **sudah ada** dan bisa menjadi dasar keputusan pemesanan ulang secara manual:
+| Langkah | Rumus | Sumber data |
+|---|---|---|
+| Terjual bersih | Σ keluar PENJUALAN + TUKAR_RETUR − Σ masuk RETUR_JUAL + VOID, N hari penuh **sampai kemarin** (bawaan N = 30) | ledger `mutasi_persediaan` `[KODE: api/modules/persediaan/saran-pesan/repo.ts]` |
+| Hari amatan | min(N, hari sejak mutasi pertama barang); barang baru diamati sejak stoknya pertama masuk | ledger |
+| Rata-rata jual per hari | terjual bersih ÷ hari amatan | |
+| Stok pengaman | rata × hari pengaman (bawaan 2) | pengaturan |
+| Titik pesan | rata × lama kirim + stok pengaman | lama kirim per pemasok (bawaan 3 hari) |
+| Saran pesan | bulat ke atas (rata × (lama kirim + jarak belanja) + stok pengaman − stok tersedia), ≥ 0; juga dalam kemasan terbesar | jarak belanja per pemasok (bawaan 7 hari) |
+| Stok cukup untuk | stok tersedia ÷ rata (hari) | |
+| Status | Tidak laku (tidak terjual) · Pesan sekarang (tersedia ≤ titik pesan) · Segera pesan (tersedia < target) · Aman | |
+| Perkiraan biaya | saran × harga beli terakhir (hanya yang berizin melihat harga modal) | `persediaan.harga_beli_terakhir` |
 
-| Fitur | Isi | Siapa | Bukti |
-|---|---|---|---|
-| Stok minimum per barang | Diisi manual di Data Barang (bawaan dari pengaturan) | Admin/Owner | `[KONFIG: apps/api/src/db/data-awal.ts:100]` |
-| Status stok 4 tingkat | Rumus di 5c | Admin/Owner (Stok Persediaan); semua peran (kartu dashboard) | `[KODE: api/modules/persediaan/stok/repo.ts:50]` |
-| Notifikasi lonceng | Hanya **HABIS** dan **KRITIS** (PERLU_RESTOCK tidak masuk lonceng) | yang berizin stok | `[KODE: shared/schemas/notifikasi.ts:8-9]` |
-| Kartu "Peringatan stok" di dashboard | Jumlah HABIS/KRITIS/PERLU_RESTOCK + 5 barang teratas | semua peran | `[KODE: api/modules/dashboard/routes.ts:18]` |
-| Laporan Stok Minimum | Fisik, dipesan, tersedia, stok minimum, **selisih (fisik − minimum)**, status | Admin/Owner | `[KODE: api/modules/laporan/stok-minimum.ts:92,151-164]` |
-| Laporan Produk Terlaris | Qty terjual, nilai, kontribusi, kumulatif (dasar analisis Pareto) | Kasir+ | `[KODE: api/modules/laporan/produk-terlaris.ts]` |
-| Laporan Riwayat Harga Beli | Harga per penerimaan, terendah/tertinggi/rata-rata per pemasok | Admin/Owner | `[KODE: api/modules/laporan/riwayat-harga-beli.ts]` |
+- **Pemasok barang** = pemasok penerimaan pembelian terakhirnya. Lama kirim dan jarak belanja diisi di Data
+  Pemasok `[KODE: apps/api/src/db/schema/master.ts]` (kolom `lama_kirim_hari`, `jarak_belanja_hari`).
+- **Siapa melihat:** Admin/Owner, di **Stok Persediaan › Saran pesan** (dikelompokkan per pemasok, saring
+  status/pemasok/kategori/cari, penjelasan rumus dengan contoh) `[KODE: web/features/persediaan/tab-saran-pesan.tsx]`,
+  laporan **Rekomendasi Pemesanan Ulang** (layar, cetak, Excel) `[KODE: api/modules/laporan/rekomendasi-pesan.ts]`,
+  dan notifikasi lonceng "Barang perlu dipesan" `[KODE: api/modules/sistem/notifikasi/service.ts]`.
+- **Tidak disimpan:** dihitung ulang setiap kali dibuka dari ledger (selalu sesuai data terbaru).
+- **Tidak termasuk:** barang titipan (diisi penitip); pesanan pembelian (PO) ke pemasok belum ada (backlog G13).
+- **Tes:** 6 tes layanan (contoh angka K-113, status, pembulatan, data sungguhan dengan void, notifikasi, izin) dan
+  1 tes layar `[KODE: apps/api/src/modules/persediaan/saran-pesan.test.ts]` `[KODE: apps/web/e2e/saran-pesan.spec.ts]`.
 
-**Akan ditambahkan** atas rekomendasi dosen pembimbing untuk mendukung pengambilan keputusan pembelian `[JAWAB 4]`; rancangannya dicatat di bagian 11.
+Fitur pendukung yang sudah ada sebelumnya tetap berlaku: stok minimum per barang, status stok 4 tingkat,
+notifikasi stok habis/kritis, kartu peringatan stok di dashboard, laporan Stok Minimum, Produk Terlaris, dan
+Riwayat Harga Beli.
 
 ### 5e. Promo dan diskon
 
@@ -596,7 +618,7 @@ atasan untuk shift yang perlu ditutup (paling banyak sekali sehari per shift)
 | Kasir | Mengizinkan pembeli berhutang | Limit, piutang berjalan, tagihan baru; butuh kode atasan bila lewat | Dialog limit kredit |
 | Kasir | Urutan melayani | Antrean FIFO, lama menunggu berwarna | Papan antrean |
 | Admin/Owner | Menyetujui retur/void/ubah pelanggan | Rincian permintaan di pesan Telegram/email | Kode persetujuan |
-| Admin/Owner | Kapan dan barang apa yang dibeli ulang | Status stok, stok minimum, selisih, produk terlaris, riwayat harga beli per pemasok | Stok Persediaan, laporan (lihat 5d) |
+| Admin/Owner | Kapan dan berapa banyak barang dibeli ulang | Saran pesan per pemasok (rata jual/hari, titik pesan, saran qty dan kemasan, stok cukup berapa hari, perkiraan biaya), status stok, produk terlaris, riwayat harga beli per pemasok | Stok Persediaan › Saran pesan, laporan Rekomendasi Pemesanan Ulang (lihat 5d) |
 | Admin/Owner | Menaikkan/menurunkan harga jual | Usulan harga, margin, dasar modal baru | Tinjau Harga |
 | Admin/Owner | Menagih pelanggan | Umur piutang, jatuh tempo terdekat, posisi kredit per pelanggan | Piutang, Data Pelanggan, laporan Piutang |
 | Admin/Owner | Membayar pemasok | Umur hutang, jatuh tempo | Hutang Pemasok, laporan Hutang |
@@ -619,6 +641,7 @@ hari ini, kemarin, minggu ini, bulan ini, bulan lalu, tahun ini, atau rentang ta
 | Stok Rekap | Persediaan | Saldo awal, masuk (penerimaan, retur & void, lainnya), keluar (penjualan, lainnya), saldo akhir | persediaan (Admin+) | `[KODE: api/modules/laporan/stok-rekap.ts]` |
 | Kartu Stok | Persediaan | Tanggal, dokumen, keterangan, masuk, keluar, saldo; versi nilai (qty × harga, HPP) untuk yang berizin | persediaan (Admin+) | `[KODE: api/modules/laporan/kartu-stok.ts]` |
 | Stok Minimum | Persediaan | Fisik, dipesan, tersedia, minimum, selisih, status | persediaan (Admin+) | `[KODE: api/modules/laporan/stok-minimum.ts:151-164]` |
+| Rekomendasi Pemesanan Ulang | Persediaan | Per pemasok: terjual, rata/hari, tersedia, cukup (hari), titik pesan, saran pesan, kemasan, perkiraan biaya, status | persediaan (Admin+); biaya hanya yang berizin nilai | `[KODE: api/modules/laporan/rekomendasi-pesan.ts]` |
 | Nilai Persediaan | Persediaan | Qty, HPP rata-rata, nilai; titipan dan barang rusak terpisah | persediaan + laba (Admin+) | `[KODE: api/modules/laporan/nilai-persediaan.ts]` |
 | Riwayat Harga Beli | Persediaan | Harga per penerimaan, perubahan, terendah/tertinggi/rata-rata per pemasok | persediaan + laba (Admin+) | `[KODE: api/modules/laporan/riwayat-harga-beli.ts]` |
 | Penjualan | Penjualan | Jumlah transaksi, omzet, retur, penjualan bersih; rincian per transaksi | penjualan (Kasir+) | `[KODE: api/modules/laporan/penjualan-periode.ts]` |
@@ -719,7 +742,7 @@ Ekspor data selain laporan: data barang `[KODE: api/modules/master/import/routes
 - Pembukuan/akuntansi, multi-gudang, cabang (v3.0.0).
 
 **Diminta pemilik pada 14 Oktober 2026 (akan dikerjakan):**
-- Rekomendasi jumlah pemesanan ulang (reorder) — rekomendasi dosen pembimbing (bagian 5d).
+- ~~Rekomendasi jumlah pemesanan ulang~~ — **selesai 17 Okt 2026** (F40, bagian 5d).
 - Tampilan responsif yang nyaman di **tablet** untuk staf penjualan.
 - Ekspor log aktivitas ke Excel untuk dokumentasi penelitian.
 
@@ -781,7 +804,7 @@ siaran antrean (bagian 1, butir 7).
 
 Format: `berkas:baris METODE alamat izin`. `LOGIN` = cukup login (data milik sendiri). Login dan masuk cepat tidak
 butuh izin tetapi dibatasi laju; masuk cepat hanya ada di mode pengembangan `[KODE: api/app.ts:132,146]`.
-Path berkas relatif terhadap `apps/api/src/modules/`. Jumlah: 192 endpoint (+ `GET /api/health`,
+Path berkas relatif terhadap `apps/api/src/modules/`. Jumlah: 194 endpoint (+ `GET /api/health`,
 `GET /api/notifikasi` [LOGIN], `GET /api/log-aktivitas` [sistem.log.lihat]).
 
 ```
@@ -836,6 +859,7 @@ koreksi/void/routes.ts:100 POST /api/void/:id/tolak void.setujui
 laporan/routes.ts:51 GET /api/laporan/stok-rekap laporan.persediaan
 laporan/routes.ts:58 GET /api/laporan/kartu-stok laporan.persediaan
 laporan/routes.ts:65 GET /api/laporan/stok-minimum laporan.persediaan
+laporan/routes.ts GET /api/laporan/rekomendasi-pesan laporan.persediaan
 laporan/routes.ts:72 GET /api/laporan/nilai-persediaan laporan.laba (+ laporan.persediaan)
 laporan/routes.ts:80 GET /api/laporan/penjualan laporan.penjualan
 laporan/routes.ts:87 GET /api/laporan/produk-terlaris laporan.penjualan
@@ -950,6 +974,7 @@ persediaan/penyesuaian/routes.ts:65 POST /api/penyesuaian/:id/batal persediaan.p
 persediaan/retur-pemasok/routes.ts:13 GET /api/retur-pemasok/ persediaan.retur_pemasok.kelola
 persediaan/retur-pemasok/routes.ts:16 GET /api/retur-pemasok/:id persediaan.retur_pemasok.kelola
 persediaan/retur-pemasok/routes.ts:19 POST /api/retur-pemasok/ persediaan.retur_pemasok.kelola
+persediaan/saran-pesan/routes.ts GET /api/saran-pesan/ persediaan.stok.lihat
 persediaan/stok/routes.ts:14 GET /api/stok/ persediaan.stok.lihat
 persediaan/stok/routes.ts:17 GET /api/stok/ekspor persediaan.stok.lihat
 persediaan/stok/routes.ts:21 GET /api/stok/tertahan persediaan.stok.lihat
@@ -998,3 +1023,4 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-14 — v1: inventaris disusun dari kode di `main` commit `42fe18d` (K-001–K-112).
 - 2026-10-14 — v1.1: jawaban pemilik atas pertanyaan 1–7 dicatat (bagian 13); rencana reorder, tablet, ekspor log (bagian 11).
 - 2026-10-17 — Layar kasir separuh-separuh dengan panel rincian barang, deret tab membungkus, panduan printer umum (K-114, K-115).
+- 2026-10-17 — Rekomendasi pemesanan ulang (F40, bagian 5d, laporan ke-16, notifikasi ke-15; K-113).

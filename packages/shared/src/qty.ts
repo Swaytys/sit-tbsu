@@ -35,6 +35,11 @@ export function kaliQty(a: Decimal.Value, b: Decimal.Value): string {
   return keQty(new Decimal(a).times(b));
 }
 
+/** Dibulatkan ke atas ke bilangan bulat, mis. `"55.2"` → `"56.000"` (saran pesan, K-113 RO5). */
+export function bulatAtasQty(a: Decimal.Value): string {
+  return keQty(new Decimal(a).ceil());
+}
+
 /** `a ÷ b` dibulatkan 3 desimal (konversi qty dasar → satuan jual, K-091). */
 export function bagiQty(a: Decimal.Value, b: Decimal.Value): string {
   return keQty(new Decimal(a).div(b));
