@@ -141,6 +141,13 @@
       "when": 1792243413344,
       "tag": "0019_saran_pesan",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792257944102,
+      "tag": "0020_shift_anomali",
+      "breakpoints": true
     }
   ]
 }

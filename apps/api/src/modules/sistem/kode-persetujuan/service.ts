@@ -37,6 +37,7 @@ const LABEL: Record<JenisKodePersetujuan, { nama: string; entitas: string }> = {
   VOID: { nama: 'void', entitas: 'void_transaksi' },
   LIMIT_KREDIT: { nama: 'melewati limit kredit', entitas: 'pelanggan' },
   UBAH_PELANGGAN: { nama: 'perubahan data pelanggan', entitas: 'pelanggan' },
+  KOREKSI_KAS: { nama: 'koreksi modal kas shift', entitas: 'shift_kasir' },
 };
 
 function hashKode(idPermintaan: number, idAtasan: number, kode: string): string {

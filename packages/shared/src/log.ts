@@ -96,6 +96,10 @@ export const AKSI_LOG = [
   'PENYESUAIAN_BATAL',
   'SHIFT_BUKA',
   'SHIFT_TUTUP',
+  'SHIFT_HITUNG',
+  'SHIFT_HITUNG_BUKA',
+  'SHIFT_KOREKSI_MODAL',
+  'SHIFT_PENJELASAN',
   'KAS_SHIFT_CATAT',
   // Rekening toko dan pengecekan uang masuk non-tunai (K-111).
   'REKENING_BUAT',

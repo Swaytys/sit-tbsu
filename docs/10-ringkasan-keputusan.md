@@ -1,7 +1,7 @@
-# 10 — Ringkasan Keputusan (K-001 s.d. K-119)
+# 10 — Ringkasan Keputusan (K-001 s.d. K-127)
 
 Dokumen ini merangkum **seluruh keputusan** yang dicatat di folder `keputusan/` selama pengembangan BonsaiUrip
-(SIT TBSU): **119 keputusan dalam 27 berkas**, dari 19 September sampai 17 Oktober 2026.
+(SIT TBSU): **127 keputusan dalam 28 berkas**, dari 19 September sampai 18 Oktober 2026.
 
 Yang dirangkum di sini adalah **apa yang diputuskan** dan **apa yang berlaku sekarang**. Alasan lengkap, pilihan
 yang ditolak, dan rincian teknis tetap ada di berkas keputusan aslinya. Bila ringkasan ini berbeda dengan berkas
@@ -14,7 +14,7 @@ Isi dokumen:
 3. [Tiga konsep yang paling banyak berubah](#3-tiga-konsep-yang-paling-banyak-berubah)
 4. [Yang berlaku sekarang, per topik](#4-yang-berlaku-sekarang-per-topik)
 5. [Keputusan yang diganti atau diubah](#5-keputusan-yang-diganti-atau-diubah)
-6. [Daftar lengkap K-001 s.d. K-112](#6-daftar-lengkap-k-001-sd-k-112)
+6. [Daftar lengkap K-001 s.d. K-127](#6-daftar-lengkap-k-001-sd-k-127)
 7. [Yang dijadwalkan sesudah ini](#7-yang-dijadwalkan-sesudah-ini)
 
 ---
@@ -67,6 +67,7 @@ Isi dokumen:
 | 12 Okt | Tinjauan pemilik | K-106–K-112 | Perapian tampilan, persetujuan ubah pelanggan, cari barang lewat atribut, aturan shift, anggaran promo, rekening toko dan cek uang non-tunai, cetak per jenis dokumen. |
 | 14 Okt | Masukan dosen dan jawaban pemilik | K-113 | Rekomendasi pemesanan ulang, tablet untuk staf, ekspor log; Fase 14. |
 | 17 Okt | Uji pemilik di laptop | K-114–K-119 | Tampilan muat, panduan printer umum, rencana tutup shift baru, order ditunda, dokumen riwayat teknis, database tes sendiri. |
+| 18 Okt | Uji pemilik (printer RPP02 berhasil) | K-120–K-127 | Prinsip anomali (atasi, cegah, ajari); shift tiga cara buka dan tutup dua langkah; order disimpan dan kembali ke draf; pencarian sebagian dan label keterjualan; cetak A4 tanpa jendela; order pembelian dan Hasil Penjualan masuk v1.0.0; metode rekomendasi pesan. |
 
 Hubungan dengan versi (K-062): **v1.0.0** = akhir M1 (Fase 1–8); **v1.1–v1.4** = M2 (Fase 9–12); usulan sesudahnya
 dikumpulkan di `08-backlog.md` sebagai v2.0.0 dan v3.0.0.
@@ -242,6 +243,15 @@ keputusan lama masih tertulis di berkasnya.
 - Semua uang tunai terikat pada shift. Kasir membuka shift dengan modal awal, mencatat kas masuk/keluar
   non-penjualan, lalu menutupnya dengan **menghitung uang lebih dulu** sebelum angka sistem tampil (K-018, K-071,
   K-075).
+- **Buka shift tiga cara** dengan konfirmasi: sama dengan uang ditinggal kemarin, hitung sekarang (per pecahan),
+  atau buka dulu lalu hitung nanti. Hitung susulan menghitung modal sebenarnya = hitungan − uang tunai bersih sejak
+  buka, sehingga toko bisa melayani sebelum laci selesai dihitung (K-121).
+- **Modal awal tidak pernah diubah**; salah ketik dibetulkan lewat *koreksi modal* beralasan: bebas sebelum ada
+  transaksi tunai, sesudahnya dengan kode atasan (K-121).
+- **Tutup dua langkah**: hitungan pertama terkunci; hasil, tinjauan shift, dan bantuan mencari selisih tampil
+  sesudahnya; hitung ulang sekali; keterangan wajib di luar toleransi receh (bawaan Rp 1.000); uang ditinggal di
+  laci menjadi usulan modal besok. Admin/Owner bisa menambah penjelasan selisih setelah tutup (K-121).
+- Setiap fitur dianalisis anomalinya (atasi, cegah, ajari) di `12-anomali-alur-kerja.md` (K-120).
 - **Sistem tidak pernah menutup shift sendiri**, karena menutup shift berarti menghitung uang di laci (K-109).
 - **Shift terlewat mengunci**: shift yang masih buka dari hari sebelumnya membuat pemiliknya tidak bisa mencatat
   penjualan, pembayaran, kas, atau refund sampai shift itu ditutup (K-109).
@@ -368,10 +378,14 @@ keputusan lama masih tertulis di berkasnya.
 | K-098 butir 3 (tier tanpa syarat bisa dipilih kasir) | K-099 | Tidak ada tier pilihan kasir. |
 | K-099 butir 1 dan 4 (password atasan diketik di layar kasir) | K-102 | Diganti kode sekali pakai. |
 | K-101 (limit kredit dengan password atasan di tempat) | K-102 | Diganti kode sekali pakai. |
+| K-108 butir 1 (angka atribut dicocokkan utuh) | K-123 | Atribut dicocokkan sebagian ("1" menemukan 10, "c" menemukan cm). |
+| K-116 (rencana tutup shift baru) | K-121 | Dirinci menjadi tiga cara buka, hitung susulan, koreksi modal, tutup dua langkah. |
+| K-117 butir 1–2 (order ditunda, tahan stok opsional) | K-122 | Order *disimpan* selalu menahan stok, wajib nama, HP, dan tanggal ambil ≤ 14 hari. |
+| K-038 sebagian (order pembelian tidak dibuat) | K-125 | Order pembelian ke pemasok masuk v1.0.0. |
 
 ---
 
-## 6. Daftar lengkap K-001 s.d. K-112
+## 6. Daftar lengkap K-001 s.d. K-127
 
 ### 6.1 Fondasi — `2026-09-19-keputusan-fondasi.md`
 
@@ -577,10 +591,23 @@ keputusan lama masih tertulis di berkasnya.
 |---|---|---|
 | K-114 | Tampilan muat di layar: tab membungkus, kasir separuh-separuh, rincian barang di area antrean. | Berlaku |
 | K-115 | Panduan printer umum untuk semua printer ESC/POS; langkah port COM keluar. | Berlaku |
-| K-116 | Hitung kas per pecahan, modal berlanjut, toleransi receh, hitungan pertama terkunci, tinjauan shift, bantuan mencari selisih. | Berlaku (rencana; kode menyusul) |
-| K-117 | Order ditunda dengan tanggal rencana (tahan stok bisa dipilih); tutup shift dengan order yang belum selesai. | Berlaku (rencana; kode menyusul) |
+| K-116 | Hitung kas per pecahan, modal berlanjut, toleransi receh, hitungan pertama terkunci, tinjauan shift, bantuan mencari selisih. | Dirinci oleh K-121 (selesai 18 Okt) |
+| K-117 | Order ditunda dengan tanggal rencana (tahan stok bisa dipilih); tutup shift dengan order yang belum selesai. | Butir 1–2 diganti K-122 |
 | K-118 | Laporan fitur diperbarui tiap commit; riwayat teknis `docs/11`. | Berlaku |
 | K-119 | Tes layar memakai database sendiri. | Berlaku (rencana) |
+
+### 6.19 Tinjauan pemilik 18 Oktober — `2026-10-18-tinjauan-pemilik.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-120 | Prinsip anomali alur kerja: setiap fitur wajib mengatasi, mencegah, dan mengajari; katalog `docs/12`. | Berlaku |
+| K-121 | Shift: buka tiga cara, hitung per pecahan, hitung susulan, koreksi modal, tutup dua langkah, toleransi receh, uang ditinggal, tinjauan, bantuan selisih, penjelasan atasan. | Berlaku (selesai 18 Okt; butir 9 menunggu K-122) |
+| K-122 | Order disimpan (nama, HP, tanggal ambil ≤ 14 hari, tahan stok), kembali ke draf, buka draf otomatis, peringatan barang di draf lain, panel rincian di Order. | Berlaku (rencana; kode menyusul) |
+| K-123 | Pencarian atribut sebagian, label keterjualan, angka stok merah tebal, teks kecil penting lebih jelas, panel dengan tombol tutup dan info penjualan. | Berlaku (rencana; kode menyusul) |
+| K-124 | Cetak: setelan tersimpan, penjelasan laci uang, logo di struk, kepekatan, dokumen A4 dengan setelan bawaan, cetak otomatis per jenis dokumen. | Berlaku (rencana; kode menyusul) |
+| K-125 | Order pembelian ke pemasok masuk v1.0.0. | Berlaku (rencana; riset dan rancangan menyusul) |
+| K-126 | Halaman Hasil Penjualan. | Berlaku (rencana; kode menyusul) |
+| K-127 | Rekomendasi pesan beberapa metode (rata-rata, statistik Z, min–maks, tren), cache memori, lead time aktual dari order pembelian. | Berlaku (rencana; kode menyusul) |
 
 ---
 
@@ -609,3 +636,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-12 — Dibuat atas permintaan pemilik: ringkasan K-001 s.d. K-112.
 - 2026-10-14 — K-113 ditambahkan (garis waktu, daftar lengkap 6.17).
 - 2026-10-17 — K-114–K-119 ditambahkan (daftar lengkap 6.18).
+- 2026-10-18 — K-120–K-127 ditambahkan (daftar lengkap 6.19, garis waktu, 4.8 shift, bagian 5).

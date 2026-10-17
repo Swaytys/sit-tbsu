@@ -79,8 +79,8 @@ memakai kode di luar daftar gagal typecheck.
 
 | Kode | Arti |
 |---|---|
-| `kas.shift.kelola_sendiri` | Buka/tutup shift sendiri, catat kas masuk/keluar shift sendiri, clerical shift sendiri |
-| `kas.shift.lihat_semua` | Lihat semua shift dan clerical, menutup shift pengguna lain, menerima pengingat shift yang perlu ditutup (K-109) |
+| `kas.shift.kelola_sendiri` | Buka/tutup shift sendiri (tiga cara buka, hitung susulan, hitung tutup dua langkah), catat kas masuk/keluar shift sendiri, koreksi modal shift sendiri sebelum ada transaksi tunai (sesudahnya dengan kode atasan, K-121), clerical shift sendiri |
+| `kas.shift.lihat_semua` | Lihat semua shift dan clerical, menutup shift pengguna lain, menerima pengingat shift yang perlu ditutup (K-109), menyetujui koreksi modal (kode `KOREKSI_KAS`) dan mengoreksi modal kapan saja selama shift BUKA, menulis penjelasan selisih setelah shift ditutup (K-121) |
 | `kas.rekening.lihat` | Melihat daftar rekening/EDC/QRIS toko untuk dipilih saat mencatat pembayaran atau refund (K-111) |
 | `kas.nontunai.verifikasi` | Mengecek uang masuk pembayaran non-tunai dan menandai hasilnya (K-111) |
 
@@ -247,6 +247,9 @@ Aturan kode sekali pakai (K-102, menggantikan password atasan di layar kasir dar
   perubahan (kolom, nilai lama, nilai baru). Kode terikat pada pelanggan dan **isian yang persis sama**
   (`permintaan_persetujuan.sidik`): kode untuk satu perubahan tidak bisa dipakai untuk perubahan lain. Tanpa
   kode ditolak 403. Log perubahan menyebut atasan pemilik kode.
+- **Koreksi modal shift (K-121):** jenis kode `KOREKSI_KAS` (izin `kas.shift.lihat_semua`) untuk kasir yang
+  membetulkan modal awal setelah ada transaksi tunai di shiftnya. Kode terikat pada shift dan modal benar yang
+  diajukan (`sidik`); tanpa kode ditolak 403 dengan `butuhKode`. Keterangan kas koreksi menyebut atasan pemilik kode.
 - **Limit kredit (PT6):** penjualan tetap atas nama kasir; log `PENJUALAN_LIMIT_OVERRIDE` atas nama atasan
   pemilik kode. Tidak ada status MENUNGGU: tanpa persetujuan, penjualan tidak tersimpan.
 
@@ -315,3 +318,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-11 — §6: password atasan di layar kasir diganti kode sekali pakai lewat Telegram/email (K-102).
 - 2026-10-11 — §6: uji saluran per jenis (K-105).
 - 2026-10-12 — §2–§4: izin `kas.rekening.lihat`, `kas.nontunai.verifikasi`; arti izin pelanggan; menu Promo masuk Pengaturan; §6 kode `UBAH_PELANGGAN` (K-107, K-109, K-110, K-111).
+- 2026-10-18 — §2, §6: arti izin shift diperluas (hitung dua langkah, koreksi modal, penjelasan selisih); kode `KOREKSI_KAS` (K-121).

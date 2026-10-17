@@ -29,6 +29,17 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         tautan: '/shift',
       });
     }
+    // K-121: shift dibuka dengan "hitung nanti" dan hitungan susulannya belum dikirim.
+    if (s?.batasHitungBuka) {
+      const lewat = new Date(s.batasHitungBuka) <= new Date();
+      hasil.push({
+        jenis: 'SHIFT_HITUNG_BUKA',
+        judul: lewat ? 'Hitung uang laci sudah lewat batas' : 'Hitung uang laci belum dikirim',
+        keterangan: `Shift ${s.nomor} dibuka dengan "hitung nanti". Hitung uang di laci lalu kirim hasilnya di menu Shift & Clerical Check.`,
+        jumlah: 1,
+        tautan: '/shift',
+      });
+    }
   }
   if (izin.has('kas.shift.lihat_semua')) {
     const n = await jumlahShiftPerluDitutup();

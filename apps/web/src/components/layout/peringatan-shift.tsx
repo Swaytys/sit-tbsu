@@ -23,6 +23,55 @@ export function PeringatanShift() {
   const diHalamanShift = useLocation().pathname === '/shift';
   if (!shift) return null;
 
+  // K-121: hitung susulan belum dikirim, atau shift sedang ditutup (hitungan sudah dikirim).
+  if (shift.status === 'DIHITUNG' || shift.batasHitungBuka) {
+    const dihitung = shift.status === 'DIHITUNG';
+    const lewatHitung =
+      !dihitung && shift.batasHitungBuka !== null && Date.parse(shift.batasHitungBuka) <= kini;
+    return (
+      <div
+        role="alert"
+        data-testid="peringatan-shift"
+        className={cn(
+          'flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-6 py-2 text-sm print:hidden',
+          lewatHitung
+            ? 'border-red-300 bg-red-50 text-red-900'
+            : 'border-amber-300 bg-amber-50 text-amber-900',
+        )}
+      >
+        <AlarmClock className="size-4 shrink-0" />
+        <span className="min-w-0 flex-1">
+          {dihitung ? (
+            <>
+              <b>Shift {shift.nomor} sedang ditutup.</b> Hitungan uang sudah dikirim; uang baru
+              tidak bisa dicatat sampai penutupan diselesaikan (keterangan dan uang ditinggal di
+              laci).
+            </>
+          ) : (
+            <>
+              <b>Hitung uang laci belum dikirim</b> (shift dibuka dengan "hitung nanti", batas{' '}
+              {new Date(shift.batasHitungBuka ?? '').toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'Asia/Jakarta',
+              })}
+              {lewatHitung ? ', sudah lewat' : ''}). Hitung semua uang di laci sekarang dan kirim di
+              halaman Shift.
+            </>
+          )}
+        </span>
+        {!diHalamanShift && (
+          <Link
+            to="/shift"
+            className="shrink-0 rounded-md border border-current px-2 py-0.5 text-xs font-semibold hover:bg-white/60"
+          >
+            {dihitung ? 'Selesaikan penutupan' : 'Hitung sekarang'}
+          </Link>
+        )}
+      </div>
+    );
+  }
+
   const batas = shift.batasTutup ? Date.parse(shift.batasTutup) : null;
   const sisaMenit = batas === null ? null : Math.ceil((batas - kini) / 60_000);
   const lewat = shift.lewatJadwal || (sisaMenit !== null && sisaMenit <= 0);

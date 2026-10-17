@@ -515,10 +515,6 @@ export type DetailPenjualan = BarisDaftarPenjualan & {
 
 // --- Shift (K1; tutup & clerical di Fase 6) ---
 
-export const skemaBukaShift = z.object({
-  modalAwal: z.preprocess((v) => (v === '' || v == null ? 0 : v), skemaRupiah),
-});
-
 /**
  * Keadaan waktu sebuah shift BUKA (K-109), dihitung server saat diminta.
  * `terlewat`: shift dari hari operasional sebelumnya yang belum ditutup; selama itu pemiliknya tidak bisa
@@ -537,9 +533,19 @@ export type WaktuShift = {
 export type ShiftAktif = WaktuShift & {
   id: number;
   nomor: string;
+  /** BUKA atau DIHITUNG (hitungan tutup sudah dikirim, belum selesai ditutup). */
+  status: 'BUKA' | 'DIHITUNG' | 'TUTUP';
   tanggalOperasional: string;
   waktuBuka: string;
   modalAwal: number;
+  /** K-121 */
+  caraBuka: 'SAMA_KEMARIN' | 'HITUNG' | 'HITUNG_NANTI';
+  /** Batas hitung susulan (cara HITUNG_NANTI) bila belum dikirim; `null` bila tidak perlu. */
+  batasHitungBuka: string | null;
+  /** Koreksi modal bersih (+/−) sejauh ini. */
+  koreksiModal: number;
+  /** Sudah ada transaksi tunai (koreksi modal setelahnya butuh kode atasan). */
+  adaTransaksiTunai: boolean;
 };
 
 // --- Surat jalan (docs/05 §7, S1–S7) ---

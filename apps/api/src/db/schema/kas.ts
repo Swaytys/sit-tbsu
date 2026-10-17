@@ -1,14 +1,26 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
   check,
   foreignKey,
   index,
+  integer,
+  jsonb,
   pgTable,
   uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { ARAH_KAS, JENIS_KAS_SHIFT, JENIS_REKENING, STATUS_AKTIF, STATUS_SHIFT } from '@sit/shared';
+import {
+  ARAH_KAS,
+  CARA_BUKA_SHIFT,
+  JENIS_HITUNG_KAS,
+  JENIS_KAS_SHIFT,
+  JENIS_REKENING,
+  STATUS_AKTIF,
+  STATUS_SHIFT,
+  type RincianPecahan,
+} from '@sit/shared';
 import {
   dalamDaftar,
   dibuatPada,
@@ -81,6 +93,18 @@ export const shiftKasir = pgTable(
     jadwalTutup: varchar('jadwal_tutup', { length: 5 }),
     /** Kolom status: kapan pengingat "shift perlu ditutup" terakhir dikirim ke atasan (sekali per hari). */
     diingatkanPada: timestamptz('diingatkan_pada'),
+    /**
+     * K-121 (migrasi 0020): cara membuka shift; usulan modal = uang ditinggal saat shift terakhir ditutup;
+     * rincian pecahan hitungan buka; batas hitung susulan (HITUNG_NANTI). `hitung_buka_pada` = kolom status:
+     * kapan hitung susulan dikirim.
+     */
+    caraBuka: varchar('cara_buka', { length: 15, enum: CARA_BUKA_SHIFT })
+      .notNull()
+      .default('HITUNG'),
+    modalUsulan: uang('modal_usulan'),
+    rincianBuka: jsonb('rincian_buka').$type<RincianPecahan>(),
+    batasHitungBuka: timestamptz('batas_hitung_buka'),
+    hitungBukaPada: timestamptz('hitung_buka_pada'),
   },
   (t) => [
     foreignKey({
@@ -95,10 +119,11 @@ export const shiftKasir = pgTable(
     }),
     check('chk_shift_status', dalamDaftar('status', STATUS_SHIFT)),
     check('chk_shift_modal', sql`modal_awal >= 0`),
-    // Satu shift BUKA per kasir.
+    check('chk_shift_cara_buka', dalamDaftar('cara_buka', CARA_BUKA_SHIFT)),
+    // Satu shift belum tutup (BUKA/DIHITUNG) per kasir.
     uniqueIndex('uq_shift_buka_per_kasir')
       .on(t.idKasir)
-      .where(sql`status = 'BUKA'`),
+      .where(sql`status <> 'TUTUP'`),
     index('idx_shift_tanggal').on(t.tanggalOperasional),
   ],
 );
@@ -173,8 +198,29 @@ export const clericalCheck = pgTable(
     selisih: uang('selisih').generatedAlwaysAs(sql`uang_fisik - saldo_sistem`),
     keterangan: varchar('keterangan', { length: 255 }),
     dibuatPada: dibuatPada(),
+    /**
+     * K-121 (migrasi 0020): uang ditinggal di laci untuk shift berikutnya (sisanya disetor); koreksi modal bersih
+     * (sudah termasuk di `modal_awal` = modal efektif); toleransi selisih saat itu; jumlah hitungan (1 atau 2).
+     * Penjelasan atasan = kolom status yang diisi setelah shift ditutup (angka tidak berubah).
+     */
+    uangDitinggal: uang('uang_ditinggal').notNull().default(0),
+    koreksiModal: bigint('koreksi_modal', { mode: 'number' }).notNull().default(0),
+    toleransi: uang('toleransi').notNull().default(0),
+    jumlahHitung: integer('jumlah_hitung').notNull().default(1),
+    penjelasanAtasan: varchar('penjelasan_atasan', { length: 255 }),
+    dijelaskanOleh: kolomRef('dijelaskan_oleh'),
+    dijelaskanPada: timestamptz('dijelaskan_pada'),
   },
   (t) => [
+    foreignKey({
+      name: 'clerical_check_dijelaskan_oleh_fkey',
+      columns: [t.dijelaskanOleh],
+      foreignColumns: [pengguna.id],
+    }),
+    check(
+      'chk_clerical_ditinggal',
+      sql`uang_ditinggal >= 0 and uang_ditinggal <= uang_fisik and jumlah_hitung between 1 and 2`,
+    ),
     foreignKey({
       name: 'clerical_check_id_shift_fkey',
       columns: [t.idShift],
@@ -191,5 +237,41 @@ export const clericalCheck = pgTable(
       sql`modal_awal >= 0 and tunai_penjualan >= 0 and kas_masuk_lain >= 0 and kas_keluar >= 0 and uang_fisik >= 0`,
     ),
     index('idx_clerical_tanggal').on(t.tanggalOperasional),
+  ],
+);
+
+/**
+ * K-121 (migrasi 0020): setiap hitungan uang laci yang dikirim kasir/atasan, termasuk yang tidak dipakai
+ * (hitungan pertama sebelum hitung ulang). [APPEND] Hitung buta tetap bermakna karena hitungan pertama tidak bisa
+ * dihapus atau diganti. `saldo_sistem` = saldo menurut sistem saat hitungan tutup, atau tunai bersih sejak buka
+ * saat hitung susulan.
+ */
+export const hitungKas = pgTable(
+  'hitung_kas',
+  {
+    id: kolomId(),
+    idShift: kolomRef('id_shift').notNull(),
+    jenis: varchar('jenis', { length: 15, enum: JENIS_HITUNG_KAS }).notNull(),
+    waktu: timestamptz('waktu').notNull().defaultNow(),
+    idPengguna: kolomRef('id_pengguna').notNull(),
+    uangFisik: uang('uang_fisik').notNull(),
+    rincian: jsonb('rincian').$type<RincianPecahan>(),
+    saldoSistem: bigint('saldo_sistem', { mode: 'number' }),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'hitung_kas_id_shift_fkey',
+      columns: [t.idShift],
+      foreignColumns: [shiftKasir.id],
+    }),
+    foreignKey({
+      name: 'hitung_kas_id_pengguna_fkey',
+      columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_hitung_kas_jenis', dalamDaftar('jenis', JENIS_HITUNG_KAS)),
+    check('chk_hitung_kas_nilai', sql`uang_fisik >= 0`),
+    index('idx_hitung_kas_shift').on(t.idShift),
   ],
 );

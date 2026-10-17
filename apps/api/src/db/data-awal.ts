@@ -209,6 +209,19 @@ const KONFIGURASI: BarisKonfigurasi[] = [
   // K-109: jadwal shift toko (kosong = tanpa jadwal); dibekukan ke tiap shift saat dibuka
   { kode: 'shift_jam_buka', nilai: '', tipe: 'TEKS', deskripsi: 'Jam buka shift (HH:mm)' },
   { kode: 'shift_jam_tutup', nilai: '', tipe: 'TEKS', deskripsi: 'Jam tutup shift (HH:mm)' },
+  // K-121: tutup shift (toleransi selisih receh) dan hitung susulan saat buka
+  {
+    kode: 'toleransi_selisih_kas',
+    nilai: '1000',
+    tipe: 'ANGKA',
+    deskripsi: 'Selisih kas sampai nilai ini ditandai selisih receh (rupiah)',
+  },
+  {
+    kode: 'batas_hitung_buka_menit',
+    nilai: '60',
+    tipe: 'ANGKA',
+    deskripsi: 'Batas menit hitung susulan untuk cara buka "hitung nanti"',
+  },
   // K-113: rekomendasi pemesanan ulang (docs/05 §17 RO1–RO4)
   {
     kode: 'saran_pesan_periode_hari',

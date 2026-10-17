@@ -23,7 +23,6 @@ import { useDaftarTingkatHarga } from '@/api/mitra';
 import { useTampilanToko } from '@/api/pengaturan';
 import {
   catatCetakUlang,
-  useBukaShift,
   useBuatSuratJalan,
   useCheckout,
   useMintaKodeLimit,
@@ -59,6 +58,7 @@ import { cn } from '@/lib/utils';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
 import { BilahTombol, type Tombol } from './bilah-tombol';
+import { DialogBukaShift } from '../shift/dialog-buka-shift';
 import { CariBarangPos, type PilihanBarang } from './cari-barang-pos';
 import { PanelDetailBarang } from './panel-detail-barang';
 import { CariPelangganPos } from './cari-pelanggan-pos';
@@ -129,52 +129,6 @@ const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
     { kunci: 'Enter', label: 'Lanjut' },
   ],
 };
-
-function DialogBukaShift({ onTutup }: { onTutup: () => void }) {
-  const buka = useBukaShift();
-  const [modal, setModal] = useState('');
-  function kirim() {
-    buka
-      .mutateAsync(Number(modal || '0'))
-      .then((s) => {
-        toast.success(`Shift ${s.nomor} dibuka.`);
-        onTutup();
-      })
-      .catch((err: unknown) => toast.error(pesanGalat(err)));
-  }
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      role="dialog"
-      aria-label="Buka shift kasir"
-    >
-      <div className="w-80 space-y-3 rounded-lg bg-white p-4 shadow-xl">
-        <h2 className="font-semibold">Buka shift kasir</h2>
-        <p className="text-sm text-slate-500">
-          Uang modal di laci saat ini. Enter simpan, Esc batal.
-        </p>
-        <input
-          autoFocus
-          aria-label="Modal awal"
-          inputMode="numeric"
-          value={tampilRibuan(modal)}
-          onChange={(e) => setModal(digitSaja(e.target.value))}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              kirim();
-            } else if (e.key === 'Escape') {
-              e.preventDefault();
-              onTutup();
-            }
-          }}
-          placeholder="Rp 0"
-          className="h-11 w-full rounded-md border px-3 text-right text-xl font-bold"
-        />
-      </div>
-    </div>
-  );
-}
 
 /**
  * Layar POS keyboard-first (K-073) untuk penjualan langsung dan pengantaran: papan antrean FIFO (kiri) dan

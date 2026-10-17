@@ -260,9 +260,63 @@ pengaman 2, tersedia 40 → titik 40, saran 56, 6 dus; status Segera/Aman; pembu
 data sungguhan (penerimaan, penjualan, void yang dikurangkan, riwayat 10 hari, parameter pemasok, barang titipan
 dan nonaktif tidak ikut, notifikasi, laporan, Kasir ditolak 403). Tes layar `saran-pesan.spec.ts`.
 
+### C2. Shift & clerical check anti-anomali (18 Oktober 2026, K-120, K-121)
+
+**Tujuan:** menutup celah alur kas yang ditemukan pemilik saat menguji: Esc di dialog buka shift, salah ketik
+modal awal yang bisa "diedit" kasir (risiko curang), toko yang harus melayani sebelum laci selesai dihitung, hitung
+ulang tanpa batas, keterangan selisih yang diisi sebelum tahu selisihnya, dan selisih yang sulit dicari sebabnya.
+Sekaligus menjadi contoh pertama prinsip K-120 (setiap anomali: atasi, cegah, ajari; katalog `docs/12`).
+
+**Perubahan data (migrasi 0020):**
+- `shift_kasir`: status ketiga `DIHITUNG`; `cara_buka`, `modal_usulan`, `rincian_buka` (jsonb), `batas_hitung_buka`,
+  `hitung_buka_pada`. Index unik "satu shift per kasir" diubah dari `status = 'BUKA'` menjadi `status <> 'TUTUP'`
+  supaya shift yang sedang dihitung tetap menghalangi shift baru.
+- Tabel baru `hitung_kas` (append-only): setiap hitungan uang laci (buka, buka susulan, tutup, tutup ulang) dengan
+  rincian pecahan dan saldo sistem saat itu. Inilah yang membuat "hitungan pertama terkunci" bisa dibuktikan.
+- `clerical_check`: `uang_ditinggal`, `koreksi_modal`, `toleransi`, `jumlah_hitung`, dan kolom status penjelasan
+  atasan (`penjelasan_atasan`, `dijelaskan_oleh`, `dijelaskan_pada`).
+- Jenis kas baru `KOREKSI_MODAL_TAMBAH/KURANG`; jenis kode persetujuan baru `KOREKSI_KAS`; konfigurasi
+  `toleransi_selisih_kas` dan `batas_hitung_buka_menit`.
+
+**Kerangka kode:**
+- `kas/shift/service.ts` ditulis ulang di sekitar tiga keadaan. `bukaShift` menerima tiga cara; `hitungBukaSusulan`
+  menghitung modal sebenarnya dan mencatat bedanya sebagai kas koreksi; `koreksiModal` memeriksa
+  `adaTransaksiTunai` lalu, bila perlu, kode `KOREKSI_KAS` yang `sidik`-nya mengikat id shift dan modal benar;
+  `hitungTutup` mengubah BUKA → DIHITUNG atau mencatat hitung ulang (sekali, hanya di luar toleransi);
+  `hasilHitung` menyusun rekonsiliasi, tinjauan, dan bantuan; `tutupShift` membuat clerical dari hitungan terakhir.
+  `shiftUntukCatat` (dipakai semua pencatatan uang) kini juga menolak shift DIHITUNG.
+- `kas/shift/bantuan.ts` — dua fungsi murni: `linimasaTunai()` (setiap uang tunai masuk/keluar dengan saldo laci
+  berjalan) dan `bantuanSelisih()` (mencocokkan nilai selisih dengan kejadian shift; arah kurang dan lebih punya
+  kandidat berbeda).
+- `kas/shift/repo.ts` — `komponenKas` memisahkan koreksi modal dari kas masuk/keluar lain dan mengembalikan
+  `adaTransaksiTunai`; kueri baru untuk usulan buka, hitungan, pembayaran dan penjualan shift.
+- Route baru: `usulan-buka`, `:id/hitung-buka`, `:id/koreksi-modal(/minta-kode)`, `:id/hitung`, `:id/hasil`,
+  `:id/penjelasan` (izin `kas.shift.lihat_semua`). `/tutup` tetap menerima `uangFisik` sekali jalan untuk kompatibel.
+- Web: `features/shift/` dipecah menjadi `dialog-buka-shift.tsx` (langkah pilih → hitung → konfirmasi; Esc mundur
+  satu langkah atau menutup), `input-hitung-uang.tsx` + `hitung-uang.ts` (per pecahan atau total),
+  `alur-tutup-shift.tsx` (dua langkah), `tinjauan-shift.tsx`, `dialog-koreksi-modal.tsx` (memakai
+  `DialogKodeAtasan` yang sudah ada); spanduk `peringatan-shift.tsx` untuk hitung susulan dan shift sedang ditutup.
+
+**Alur logika penting:**
+- *Hitung susulan:* modal saat buka = hitungan − (tunai penjualan + kas masuk lain − kas keluar sejak buka). Karena
+  `tunai penjualan` memakai `nominal` (bukan uang diterima), kembalian yang sudah keluar otomatis diperhitungkan.
+- *Modal efektif* = `modal_awal` + Σ koreksi. Angka asli tidak pernah diubah (aturan append-only); koreksi berjejak
+  di `kas_shift` dan log `SHIFT_KOREKSI_MODAL`, dan tidak ikut dihitung di kas masuk/keluar lain agar tidak terhitung
+  dua kali.
+- *Hitung buta tetap terjaga:* angka sistem baru dikirim ke kasir setelah hitungan pertama tersimpan, dan hitungan itu
+  tidak bisa diganti; hitung ulang hanya menambah baris baru.
+
+**Tes:** `kas/shift.test.ts` K15–K23 (tiga cara buka, hitung susulan dengan penjualan sebelum hitung, koreksi modal
+bebas lalu wajib kode dan kode terikat nilai, DIHITUNG menolak pencatatan, hitung ulang sekali, toleransi receh,
+uang ditinggal menjadi usulan, penjelasan atasan, Kasir ditolak 403 untuk penjelasan). Tes layar
+`e2e/shift.spec.ts`: Esc menutup dialog, hitung per pecahan dengan konfirmasi dan Esc kembali, tutup dua langkah
+dengan hitung ulang, uang ditinggal muncul sebagai pilihan buka berikutnya; skenario kedua *hitung nanti* dengan
+penjualan sebelum hitungan susulan.
+
 ---
 
 ## Riwayat dokumen
 
 - 2026-10-17 — v1: dibuat atas permintaan pemilik (K-118); Bagian A–B dari catatan keputusan dan riwayat git
   (146 commit non-merge, 29 September–17 Oktober 2026); Bagian C1 rekomendasi pemesanan ulang.
+- 2026-10-18 — Bagian C2 shift & clerical check anti-anomali (K-120, K-121).

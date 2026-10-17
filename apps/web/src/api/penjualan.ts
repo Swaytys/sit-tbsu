@@ -1,6 +1,9 @@
 import type {
   DataCheckout,
+  DataHitungKas,
   DataKasShift,
+  DataKoreksiModal,
+  InputBukaShift,
   DataOrder,
   DataPembayaran,
   DataRetur,
@@ -157,9 +160,17 @@ export function useShiftSaya(aktif = true) {
 export function useBukaShift() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (modalAwal: number) =>
-      ambilData(await api.shift.buka.$post({ json: { modalAwal } })),
+    mutationFn: async (json: InputBukaShift) => ambilData(await api.shift.buka.$post({ json })),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['shift'] }),
+  });
+}
+
+/** K-121: usulan modal awal (uang ditinggal di laci saat shift terakhir ditutup). */
+export function useUsulanBukaShift(aktif = true) {
+  return useQuery({
+    queryKey: ['shift', 'usulan-buka'],
+    queryFn: async () => ambilData(await api.shift['usulan-buka'].$get()),
+    enabled: aktif,
   });
 }
 
@@ -412,6 +423,52 @@ export function useCatatKas() {
 export function useTutupShift() {
   return useMutasiShift(async ({ id, json }: { id: number; json: DataTutupShift }) =>
     ambilData(await api.shift[':id'].tutup.$post({ param: paramId(id), json })),
+  );
+}
+
+/** K-121: kirim hitungan tutup (pertama atau hitung ulang); shift menjadi DIHITUNG. */
+export function useHitungTutup() {
+  return useMutasiShift(async ({ id, json }: { id: number; json: DataHitungKas }) =>
+    ambilData(await api.shift[':id'].hitung.$post({ param: paramId(id), json })),
+  );
+}
+
+export function useHasilHitung(id: number | null) {
+  return useQuery({
+    queryKey: ['shift', 'hasil', id],
+    queryFn: async () =>
+      ambilData(await api.shift[':id'].hasil.$get({ param: { id: String(id) } })),
+    enabled: id !== null,
+  });
+}
+
+/** K-121: hitung susulan untuk shift yang dibuka dengan "hitung nanti". */
+export function useHitungBuka() {
+  return useMutasiShift(async ({ id, json }: { id: number; json: DataHitungKas }) =>
+    ambilData(await api.shift[':id']['hitung-buka'].$post({ param: paramId(id), json })),
+  );
+}
+
+export function useKoreksiModal() {
+  return useMutasiShift(async ({ id, json }: { id: number; json: DataKoreksiModal }) =>
+    ambilData(await api.shift[':id']['koreksi-modal'].$post({ param: paramId(id), json })),
+  );
+}
+
+export async function mintaKodeKoreksiModal(
+  id: number,
+  json: { modalBenar: number; alasan: string },
+) {
+  return ambilData(
+    await api.shift[':id']['koreksi-modal']['minta-kode'].$post({ param: paramId(id), json }),
+  );
+}
+
+export function usePenjelasanSelisih() {
+  return useMutasiShift(async ({ id, penjelasan }: { id: number; penjelasan: string }) =>
+    ambilData(
+      await api.shift[':id'].penjelasan.$post({ param: paramId(id), json: { penjelasan } }),
+    ),
   );
 }
 

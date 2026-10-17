@@ -27,7 +27,7 @@ sebelumnya terpenuhi dan status di tabel ini diperbarui. Claude Code hanya menge
 | 11 | Konsinyasi | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 12 | Multi-satuan jual dan label (akhir M2) | Selesai (menunggu tinjauan pemilik) | 2026-10-07 |
 | 13 | Aplikasi desktop (versi build) | Belum (lingkup menunggu konfirmasi pemilik) | — |
-| 14 | Pendukung keputusan, tablet, ekspor log (dikerjakan sebelum Fase 13) | Berjalan (bagian 1 rekomendasi pesan selesai 2026-10-17) | — |
+| 14 | Pendukung keputusan, anomali alur kerja, order pembelian, tablet, ekspor log (dikerjakan sebelum Fase 13; lingkup v1.0.0 menurut K-120–K-127) | Berjalan (rekomendasi pesan selesai 2026-10-17; shift K-121 selesai 2026-10-18) | — |
 
 Nilai status: Belum · Aktif · Berjalan (sebagian branch merge) · Selesai · Ditunda.
 
@@ -366,17 +366,33 @@ baris; stok/HPP/laba memakai qty dasar. Tes `satuan-jual.test.ts` dan e2e `satua
 
 ## Sesudah M2
 
-### Fase 14 — Pendukung keputusan, tablet, ekspor log (K-113)
+### Fase 14 — Pendukung keputusan, anomali alur kerja, order pembelian, tablet, ekspor log (K-113, K-120–K-127)
 
-**Status: aktif, dikerjakan sebelum Fase 13.** Urutan dan definisi selesai:
+**Status: aktif, dikerjakan sebelum Fase 13.** Pemilik menetapkan butir 3–9 masuk v1.0.0 (tinjauan 18 Oktober).
+Setiap butir menjawab anomalinya (atasi, cegah, ajari; K-120) dan menambah barisnya di docs/12. Urutan dan
+definisi selesai:
 
 1. **Rekomendasi pemesanan ulang** (rumus di K-113 butir 1): kolom lama kirim dan jarak belanja per pemasok
    (migrasi baru), pengaturan periode/hari pengaman/bawaan, tab *Saran Pesan* di Stok Persediaan, laporan
    *Rekomendasi Pemesanan Ulang* (layar, cetak, Excel), notifikasi untuk Admin/Owner. Aturan bisnis baru di
-   docs/05 dengan tes service per aturan.
-2. **Tampilan tablet** untuk layar staf penjualan (K-113 butir 3), dengan tes Playwright pada 1280×800 dan
+   docs/05 dengan tes service per aturan. **Selesai 2026-10-17.**
+2. **Shift & clerical check anti-anomali** (K-121): tiga cara buka, hitung susulan, koreksi modal dengan kode
+   atasan, tutup dua langkah, toleransi, uang ditinggal, tinjauan, bantuan selisih, penjelasan atasan (docs/05
+   K15–K24). **Selesai 2026-10-18**, kecuali butir 9 (pilihan per order saat tutup) yang menyusul bersama butir 3.
+3. **Order penjualan** (K-122): order disimpan (tahan stok), kembali ke draf, buka draf otomatis, peringatan barang
+   di draf lain, panel rincian di Order Penjualan; pilihan per order saat tutup shift (K-121 butir 9).
+4. **Pencarian dan tampilan** (K-123): atribut dicocokkan sebagian, label keterjualan, angka stok merah tebal,
+   teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan.
+5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),
+   cetak otomatis per jenis dokumen, panduan cetak A4 tanpa jendela.
+6. **Metode rekomendasi pesan** (K-127): metode statistik Z, min–maks, tren; cache memori; "?" kelebihan dan
+   kekurangan.
+7. **Hasil Penjualan** (K-126).
+8. **Order pembelian ke pemasok** (K-125): riset alur umum dan rancangan diajukan ke pemilik dulu; lead time aktual
+   mengisi rekomendasi pesan.
+9. **Tampilan tablet** untuk layar staf penjualan (K-113 butir 3), dengan tes Playwright pada 1280×800 dan
    800×1280.
-3. **Ekspor log aktivitas ke Excel** (Owner).
+10. **Ekspor log aktivitas ke Excel** (Owner).
 
 Selesai bila: `pnpm typecheck && pnpm lint && pnpm test` lulus, tes e2e baru dan lama lulus, docs/03–06,
 manual pengguna, dan `LAPORAN-FITUR-APLIKASI.md` diperbarui.
@@ -407,6 +423,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-10-18 — Fase 14 diperluas dengan lingkup v1.0.0 dari tinjauan pemilik 18 Okt (K-120–K-127); butir 2 shift anti-anomali selesai (K-121, docs/05 K15–K24, migrasi 0020).
 - 2026-10-17 — Fase 14 bagian 1 selesai: rekomendasi pemesanan ulang (K-113, docs/05 §17). Tinjauan pemilik 17 Okt: K-114–K-119.
 - 2026-10-14 — Fase 14 ditambahkan dan diaktifkan: rekomendasi pemesanan ulang, tablet, ekspor log (K-113).
 - 2026-10-12 — Tinjauan pemilik gelombang 1: data akun lama dibuang saat login, judul halaman dan form
