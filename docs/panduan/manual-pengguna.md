@@ -53,8 +53,38 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
 
 Tugas: menerima pembayaran, mencetak struk/invoice, dan mempertanggungjawabkan uang laci.
 
-**Awal hari — buka shift.** Saat pertama membuka *Penjualan Langsung*, isi **modal awal** (uang di laci).
-Semua uang tunai yang Anda terima/keluarkan tercatat di shift ini.
+**Awal hari — buka shift.** Semua uang tunai yang Anda terima/keluarkan tercatat di shift. Buka shift di
+*Shift & Clerical Check* (tombol **Buka shift**) atau saat pertama membuka *Penjualan Langsung*. Muncul jendela
+**Buka shift kasir** dengan tiga pilihan. Pilih dengan klik atau tombol keyboard di kirinya:
+
+1. **Enter — Sama dengan uang ditinggal kemarin.** Dipakai bila laci tidak disentuh sejak shift terakhir
+   ditutup. Angkanya adalah uang yang dicatat *ditinggal di laci* saat shift itu ditutup. Tidak bisa dipilih bila
+   belum ada catatannya.
+2. **H — Hitung sekarang.** Paling teliti. Isi jumlah lembar/keping per pecahan (Rp100.000 × 3, Rp2.000 × 10, …);
+   total dihitung otomatis. Bila lebih mudah, klik **Ketik total saja**. Tekan **Enter** untuk lanjut.
+3. **N — Buka dulu, hitung nanti.** Untuk pagi yang sudah ramai sebelum laci selesai dihitung. Shift langsung
+   buka dengan modal sementara (uang ditinggal kemarin). Anda boleh langsung melayani: uang yang masuk dan
+   kembalian yang keluar tetap tercatat. Lihat *Hitung susulan* di bawah.
+
+Setelah memilih, muncul kotak konfirmasi berisi angka modal awal dalam huruf besar. Periksa angkanya:
+**Enter** = ya, buka shift; **Esc** = kembali (angka yang sudah Anda isi tidak hilang). **Esc** di langkah
+pertama menutup jendela; tidak perlu mengklik apa pun dulu.
+
+- **Hitung susulan** (bila memilih *hitung nanti*). Di atas semua halaman muncul spanduk kuning *Hitung uang laci
+  belum dikirim* beserta batas jamnya (bawaan 60 menit; menjadi merah bila lewat). Begitu sempat:
+  (1) klik **Hitung sekarang** pada spanduk atau buka *Shift & Clerical Check*; (2) di kotak kuning **Hitung uang
+  laci** hitung **semua** uang di laci saat itu, termasuk uang penjualan yang sudah masuk; (3) klik **Kirim
+  hitungan susulan**, periksa angkanya, lalu **Ya, kirim**. Sistem menghitung sendiri modal yang sebenarnya saat
+  buka: *hasil hitungan − (uang tunai masuk − uang tunai keluar sejak shift dibuka)*. Contoh: modal sementara
+  Rp 500.000, sudah ada penjualan tunai Rp 24.000, laci dihitung Rp 529.000 → modal sebenarnya Rp 505.000, jadi
+  ada *selisih semalam* Rp 5.000 yang dicatat sebagai koreksi modal dan dilihat Owner. Hitung susulan hanya
+  sekali. Bila tidak pernah dikirim, selisih semalam ikut masuk ke selisih tutup shift dan ditandai.
+- **Salah ketik modal awal?** Klik **Koreksi modal** di kartu shift Anda, isi *Modal awal yang benar* dan
+  *Alasan* (mis. "kurang satu nol"), lalu **Simpan koreksi**. Angka lama tidak dihapus; koreksi tercatat dengan
+  alasan dan terlihat atasan. Selama **belum ada transaksi tunai** di shift itu, Anda boleh mengoreksi sendiri.
+  Bila **sudah ada** transaksi tunai, tombolnya menjadi **Minta persetujuan…**: klik, lalu
+  **Kirim kode ke atasan** (kode 6 angka dikirim ke Telegram/email Admin/Owner); minta kodenya, ketik, lalu
+  **Setujui dengan kode**. Kode hanya berlaku untuk angka yang Anda ajukan.
 
 - **Shift kemarin belum ditutup?** Anda tidak bisa membuka shift baru, menjual, menerima pembayaran, mencatat
   kas, atau mengembalikan uang sampai shift itu ditutup. Di atas semua halaman muncul peringatan merah yang
@@ -175,8 +205,31 @@ yang sudah ada, menonaktifkan, atau mengaktifkannya kembali butuh persetujuan at
 
 **Kas lain** (*Shift & Clerical Check*): kasbon, setor ke owner, kas masuk/keluar lain — selalu dengan keterangan.
 
-**Akhir hari — tutup shift.** Hitung uang di laci, ketik jumlahnya **sebelum** melihat angka sistem (blind count),
-**Tutup shift**. Bila ada selisih, wajib isi keterangan. Hasil *clerical check* tersimpan dan terlihat Admin/Owner.
+**Akhir hari — tutup shift** (*Shift & Clerical Check*, kotak **Tutup shift & clerical check**). Dua langkah:
+
+1. **Hitung dan kirim.** Hitung semua uang di laci (termasuk modal awal) per pecahan atau ketik totalnya. Angka
+   sistem belum tampil (*blind count*), supaya hitungan Anda jujur dan tidak terpengaruh. Klik **Kirim hitungan**,
+   periksa angkanya, lalu **Ya, kirim**. Hitungan ini **terkunci dan tercatat**; sejak itu shift berstatus
+   *sedang ditutup* dan tidak bisa menerima uang lagi (spanduk kuning di atas halaman mengingatkan Anda untuk
+   menyelesaikan penutupan).
+2. **Lihat hasil dan tutup.** Tampil rincian: modal, penerimaan tunai, kas masuk/keluar, *saldo menurut sistem*,
+   uang yang Anda hitung, dan **selisihnya** (hijau = cocok, abu-abu = selisih receh, merah = kurang, kuning =
+   lebih). Di sampingnya ada **Tinjauan shift**: transaksi per jenis, pembayaran per metode, dan *linimasa tunai*
+   (setiap uang yang masuk/keluar laci dengan jam, nomor, kembalian, dan saldo laci saat itu).
+   - **Selisih receh** (bawaan sampai Rp 1.000, diatur Owner/Admin): keterangan tidak wajib; sistem menulis
+     "Selisih receh" sendiri.
+   - **Selisih di luar toleransi**: baca kotak **Bantuan mencari selisih**. Sistem mencocokkan nilai selisih
+     dengan kejadian di shift Anda, mis. "Sama dengan kembalian STR-… (Rp 20.000)" atau "1 lembar Rp 50.000",
+     plus daftar hal yang perlu diperiksa. Ini saran, bukan tuduhan. Bila menemukan uang yang terselip, buka
+     **Hitung ulang (sekali)**, hitung lagi, dan kirim. Hitung ulang hanya **sekali**; kedua hitungan tercatat
+     dan terlihat atasan. Bila masih berselisih, tulis **Keterangan selisih (wajib)**, mis. apa yang sudah Anda
+     periksa.
+   - Isi **Uang ditinggal di laci untuk shift berikutnya** (bawaan sebesar modal). Sisanya dianggap disetor.
+     Angka ini menjadi pilihan *Sama dengan uang ditinggal kemarin* saat shift berikutnya dibuka.
+   - Klik **Tutup shift**, periksa ringkasannya, lalu **Ya, tutup shift**. Setelah ditutup angka tidak bisa
+     diubah; Admin/Owner bisa menambahkan penjelasan bila sebab selisih ditemukan kemudian.
+
+Order yang masih Anda proses dikembalikan ke antrean saat shift ditutup.
 
 - Bila toko mengatur jam tutup: 15 menit sebelumnya muncul pengingat biru di atas halaman; setelah lewat,
   peringatan kuning. Anda **masih bisa menjual** (pembeli yang datang terlambat tetap dilayani), tetapi tutuplah
@@ -266,9 +319,18 @@ Semua tugas kasir, ditambah:
   (boleh dikosongkan; jam tutup harus setelah jam buka). Jadwal baru berlaku untuk shift yang **dibuka setelah
   disimpan**; shift yang sedang berjalan memakai jadwal saat ia dibuka.
 - **Menutup shift orang lain** (kasir lupa atau berhalangan): *Shift & Clerical Check › Semua shift* → centang
-  **Hanya yang perlu ditutup** → klik nomor shiftnya → di bagian **Tutup shift ini (milik …)** hitung uang di
-  laci kasir itu, ketik jumlahnya, isi keterangan bila ada selisih, lalu tutup. Tanda warna: *Buka*, *Buka,
-  lewat jam tutup*, *Terlewat, belum ditutup*. Shift tercatat ditutup atas nama Anda.
+  **Hanya yang perlu ditutup** → klik nomor shiftnya → di bagian **Tutup shift ini (milik …)** jalankan dua
+  langkah yang sama dengan kasir (hitung dan kirim, lalu lihat hasil dan tutup). Tanda warna: *Buka*, *Buka,
+  lewat jam tutup*, *Sedang ditutup*, *Terlewat, belum ditutup*. Shift tercatat ditutup atas nama Anda.
+- **Menyetujui koreksi modal**: bila kasir meminta kode *Koreksi modal*, pesan Telegram/email memuat nomor shift,
+  modal lama → baru, dan alasannya. Berikan kodenya hanya bila Anda yakin angka barunya benar (mis. sudah melihat
+  sendiri isi laci). Admin/Owner juga bisa mengoreksi modal langsung tanpa kode selama shift masih berjalan.
+- **Penjelasan selisih** (setelah shift ditutup): buka shift yang berselisih di *Semua shift*, isi **Penjelasan
+  selisih (Admin/Owner)**, mis. "uang Rp 50.000 terselip di bawah laci, sudah disetor", lalu **Tandai
+  terjelaskan**. Angka clerical tidak berubah; penjelasan, nama, dan waktunya tercatat.
+- **Toleransi dan batas hitung** (*Pengaturan › Operasional*): **Toleransi selisih kas** (rupiah; selisih sampai
+  angka ini tidak wajib keterangan) dan **Batas hitung susulan** (menit; untuk shift yang dibuka dengan *hitung
+  nanti*).
 - **Penerimaan barang** (*Persediaan › Penerimaan Barang*): catat barang datang dari pemasok (pembelian tunai/
   tempo atau titipan). Stok dan HPP rata-rata diperbarui otomatis.
 - **Stok** (*Persediaan › Stok Persediaan*): posisi stok, mutasi, kartu stok per barang, stok tertahan, dan

@@ -17,11 +17,13 @@ import type { StatusShift } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
   clericalCheck,
+  hitungKas,
   kasShift,
   orderPenjualan,
   pembayaranPemasok,
   pembayaranPenjualan,
   pengguna,
+  penjualan,
   returPenjualan,
   shiftKasir,
   voidTransaksi,
@@ -54,6 +56,15 @@ const kolom = {
   clcSelisih: clericalCheck.selisih,
   clcKeterangan: clericalCheck.keterangan,
   clcNamaPemeriksa: namaPemeriksa,
+  clcUangDitinggal: clericalCheck.uangDitinggal,
+  clcKoreksiModal: clericalCheck.koreksiModal,
+  clcToleransi: clericalCheck.toleransi,
+  clcJumlahHitung: clericalCheck.jumlahHitung,
+  clcPenjelasan: clericalCheck.penjelasanAtasan,
+  clcDijelaskanPada: clericalCheck.dijelaskanPada,
+  clcDijelaskanOleh: sql<string | null>`(select p.nama_pengguna from ${pengguna} p
+    where p.id = ${kolomPenuh(clericalCheck.dijelaskanOleh)})`,
+  caraBuka: shiftKasir.caraBuka,
 };
 
 function dasar(ex: Executor) {
@@ -70,7 +81,7 @@ function dasar(ex: Executor) {
  */
 export function perluDitutup(hariIni: string, kini: Date): SQL {
   return and(
-    eq(shiftKasir.status, 'BUKA'),
+    ne(shiftKasir.status, 'TUTUP'),
     or(
       lt(shiftKasir.tanggalOperasional, hariIni),
       sql`(${shiftKasir.jadwalTutup} is not null and ((${shiftKasir.tanggalOperasional} + ${shiftKasir.jadwalTutup}::time) at time zone 'Asia/Jakarta') <= ${kini.toISOString()}::timestamptz)`,
@@ -165,6 +176,9 @@ export async function kunci(tx: Tx, id: number) {
       idKasir: shiftKasir.idKasir,
       status: shiftKasir.status,
       modalAwal: shiftKasir.modalAwal,
+      caraBuka: shiftKasir.caraBuka,
+      hitungBukaPada: shiftKasir.hitungBukaPada,
+      tanggalOperasional: shiftKasir.tanggalOperasional,
     })
     .from(shiftKasir)
     .where(eq(shiftKasir.id, id))
@@ -184,12 +198,18 @@ export async function komponenKas(ex: Executor, idShift: number) {
     .where(and(eq(pembayaranPenjualan.idShift, idShift), eq(pembayaranPenjualan.metode, 'TUNAI')));
   const [kas] = await ex
     .select({
-      masuk:
-        sql<number>`coalesce(sum(${kasShift.nominal}) filter (where ${kasShift.arah} = 'MASUK'), 0)::bigint`.mapWith(
-          Number,
-        ),
+      masuk: sql<number>`coalesce(sum(${kasShift.nominal}) filter (where ${kasShift.arah} = 'MASUK'
+          and ${kasShift.jenis} not like 'KOREKSI_MODAL%'), 0)::bigint`.mapWith(Number),
       keluar:
-        sql<number>`coalesce(sum(${kasShift.nominal}) filter (where ${kasShift.arah} = 'KELUAR'), 0)::bigint`.mapWith(
+        sql<number>`coalesce(sum(${kasShift.nominal}) filter (where ${kasShift.arah} = 'KELUAR'
+          and ${kasShift.jenis} not like 'KOREKSI_MODAL%'), 0)::bigint`.mapWith(Number),
+      koreksi: sql<number>`coalesce(sum(case ${kasShift.jenis}
+          when 'KOREKSI_MODAL_TAMBAH' then ${kasShift.nominal}
+          when 'KOREKSI_MODAL_KURANG' then -${kasShift.nominal} else 0 end), 0)::bigint`.mapWith(
+        Number,
+      ),
+      jumlahKas:
+        sql<number>`count(*) filter (where ${kasShift.jenis} not like 'KOREKSI_MODAL%')`.mapWith(
           Number,
         ),
     })
@@ -200,6 +220,10 @@ export async function komponenKas(ex: Executor, idShift: number) {
     jumlahTransaksi: tunai?.jumlah ?? 0,
     kasMasukLain: kas?.masuk ?? 0,
     kasKeluar: kas?.keluar ?? 0,
+    /** K-121: koreksi modal bersih (+/−); modal efektif = modal awal + koreksi. */
+    koreksiModal: kas?.koreksi ?? 0,
+    /** Sudah ada uang tunai yang bergerak (pembayaran tunai atau kas selain koreksi modal). */
+    adaTransaksiTunai: (tunai?.jumlah ?? 0) + (kas?.jumlahKas ?? 0) > 0,
   };
 }
 
@@ -234,6 +258,96 @@ export async function tambahKas(tx: Tx, nilai: typeof kasShift.$inferInsert) {
 
 export async function tambahClerical(tx: Tx, nilai: typeof clericalCheck.$inferInsert) {
   await tx.insert(clericalCheck).values(nilai);
+}
+
+export async function ubahStatus(tx: Tx, id: number, status: 'BUKA' | 'DIHITUNG', waktu: Date) {
+  await tx.update(shiftKasir).set({ status, diubahPada: waktu }).where(eq(shiftKasir.id, id));
+}
+
+export async function tandaiHitungBuka(tx: Tx, id: number, waktu: Date) {
+  await tx
+    .update(shiftKasir)
+    .set({ hitungBukaPada: waktu, diubahPada: waktu })
+    .where(eq(shiftKasir.id, id));
+}
+
+/** K-121: uang ditinggal di laci menurut shift yang terakhir ditutup (satu laci untuk toko). */
+export async function usulanBuka(ex: Executor) {
+  const [b] = await ex
+    .select({
+      uangDitinggal: clericalCheck.uangDitinggal,
+      nomorShift: shiftKasir.nomor,
+      namaKasir: pengguna.namaPengguna,
+      waktuTutup: shiftKasir.waktuTutup,
+    })
+    .from(clericalCheck)
+    .innerJoin(shiftKasir, eq(shiftKasir.id, clericalCheck.idShift))
+    .innerJoin(pengguna, eq(pengguna.id, shiftKasir.idKasir))
+    .orderBy(desc(clericalCheck.tanggal), desc(clericalCheck.id))
+    .limit(1);
+  return b ?? null;
+}
+
+export async function tambahHitung(tx: Tx, nilai: typeof hitungKas.$inferInsert) {
+  await tx.insert(hitungKas).values(nilai);
+}
+
+export function daftarHitung(ex: Executor, idShift: number) {
+  return ex
+    .select({
+      jenis: hitungKas.jenis,
+      waktu: hitungKas.waktu,
+      uangFisik: hitungKas.uangFisik,
+      rincian: hitungKas.rincian,
+      saldoSistem: hitungKas.saldoSistem,
+      namaPengguna: pengguna.namaPengguna,
+    })
+    .from(hitungKas)
+    .innerJoin(pengguna, eq(pengguna.id, hitungKas.idPengguna))
+    .where(eq(hitungKas.idShift, idShift))
+    .orderBy(asc(hitungKas.id));
+}
+
+/** Pembayaran yang dicatat di shift ini (semua metode), dengan nomor penjualannya. */
+export function pembayaranShift(ex: Executor, idShift: number) {
+  return ex
+    .select({
+      tanggal: pembayaranPenjualan.tanggal,
+      metode: pembayaranPenjualan.metode,
+      nominal: pembayaranPenjualan.nominal,
+      uangDiterima: pembayaranPenjualan.uangDiterima,
+      kembalian: pembayaranPenjualan.kembalian,
+      nomorPembayaran: pembayaranPenjualan.nomor,
+      nomorPenjualan: penjualan.nomor,
+    })
+    .from(pembayaranPenjualan)
+    .innerJoin(penjualan, eq(penjualan.id, pembayaranPenjualan.idPenjualan))
+    .where(eq(pembayaranPenjualan.idShift, idShift))
+    .orderBy(asc(pembayaranPenjualan.tanggal), asc(pembayaranPenjualan.id));
+}
+
+/** Penjualan yang dibuat di shift ini per jenis (tidak termasuk yang di-void penuh). */
+export function penjualanShift(ex: Executor, idShift: number) {
+  return ex
+    .select({
+      jenis: penjualan.jenisPenjualan,
+      jumlah: count(),
+      total: sql<number>`coalesce(sum(${penjualan.totalNeto}), 0)::bigint`.mapWith(Number),
+    })
+    .from(penjualan)
+    .where(and(eq(penjualan.idShift, idShift), ne(penjualan.statusTransaksi, 'VOID')))
+    .groupBy(penjualan.jenisPenjualan);
+}
+
+export async function isiPenjelasan(
+  tx: Tx,
+  idShift: number,
+  p: { penjelasan: string; oleh: number; waktu: Date },
+) {
+  await tx
+    .update(clericalCheck)
+    .set({ penjelasanAtasan: p.penjelasan, dijelaskanOleh: p.oleh, dijelaskanPada: p.waktu })
+    .where(eq(clericalCheck.idShift, idShift));
 }
 
 export async function tutup(tx: Tx, id: number, waktu: Date) {

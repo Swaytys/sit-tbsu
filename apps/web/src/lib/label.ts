@@ -85,4 +85,6 @@ export const LABEL_JENIS_KAS: Record<JenisKasShift, string> = {
   BAYAR_PEMASOK: 'Bayar pemasok',
   MASUK_LAIN: 'Kas masuk lain',
   KELUAR_LAIN: 'Kas keluar lain',
+  KOREKSI_MODAL_TAMBAH: 'Koreksi modal (+)',
+  KOREKSI_MODAL_KURANG: 'Koreksi modal (−)',
 };

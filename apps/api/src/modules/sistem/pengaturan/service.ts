@@ -92,6 +92,8 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       checkoutWajibShift: bool(m, 'checkout_wajib_shift', true),
       shiftJamBuka: teks(m, 'shift_jam_buka', ''),
       shiftJamTutup: teks(m, 'shift_jam_tutup', ''),
+      toleransiSelisihKas: angka(m, 'toleransi_selisih_kas', 1000),
+      batasHitungBukaMenit: angka(m, 'batas_hitung_buka_menit', 60),
       saranPesanPeriodeHari: angka(m, 'saran_pesan_periode_hari', 30),
       saranPesanHariPengaman: angka(m, 'saran_pesan_hari_pengaman', 2),
       saranPesanLamaKirim: angka(m, 'saran_pesan_lama_kirim_default', 3),
@@ -153,6 +155,8 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     b('checkout_wajib_shift', o.checkoutWajibShift);
     t('shift_jam_buka', o.shiftJamBuka);
     t('shift_jam_tutup', o.shiftJamTutup);
+    a('toleransi_selisih_kas', o.toleransiSelisihKas);
+    a('batas_hitung_buka_menit', o.batasHitungBukaMenit);
     a('saran_pesan_periode_hari', o.saranPesanPeriodeHari);
     a('saran_pesan_hari_pengaman', o.saranPesanHariPengaman);
     a('saran_pesan_lama_kirim_default', o.saranPesanLamaKirim);

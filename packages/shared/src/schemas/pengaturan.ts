@@ -96,6 +96,10 @@ export const skemaOperasional = z
      */
     shiftJamBuka: jamAtauKosong('Jam buka shift'),
     shiftJamTutup: jamAtauKosong('Jam tutup shift'),
+    /** K-121: selisih kas yang dianggap selisih receh (rupiah). */
+    toleransiSelisihKas: bulat('Toleransi selisih kas', 0, 100_000),
+    /** K-121: batas menit hitung susulan untuk cara buka "hitung nanti". */
+    batasHitungBukaMenit: bulat('Batas hitung susulan', 5, 480),
     /** K-113 (RO1–RO3): parameter rekomendasi pemesanan ulang. */
     saranPesanPeriodeHari: bulat('Periode pengamatan penjualan', 7, 365),
     saranPesanHariPengaman: bulat('Hari stok pengaman', 0, 60),

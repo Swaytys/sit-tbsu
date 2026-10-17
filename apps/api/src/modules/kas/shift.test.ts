@@ -1,4 +1,13 @@
-import type { DaftarShift, DetailOrder, DetailShift, Notifikasi, ShiftAktif } from '@sit/shared';
+import type {
+  DaftarShift,
+  DetailOrder,
+  DetailShift,
+  HasilHitungTutup,
+  InfoKodePersetujuan,
+  Notifikasi,
+  ShiftAktif,
+  UsulanBukaShift,
+} from '@sit/shared';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
@@ -6,6 +15,7 @@ import {
   aturKonfigurasi,
   beriEmail,
   json,
+  kodeTerkirim,
   minta,
   pesanTerkirim,
   sesiUji,
@@ -13,7 +23,14 @@ import {
 } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
-import { clericalCheck, hargaBarang, kasShift, orderPenjualan, shiftKasir } from '../../db/schema';
+import {
+  clericalCheck,
+  hargaBarang,
+  hitungKas,
+  kasShift,
+  orderPenjualan,
+  shiftKasir,
+} from '../../db/schema';
 import { tambahHari, tanggalOperasional } from '../../lib/waktu';
 import { ingatkanShiftPerluDitutup } from './shift/service';
 
@@ -51,7 +68,7 @@ function jualTunai(sesi: Sesi, qty: string, uang?: number) {
 beforeEach(async () => {
   await siapkanDatabaseSistem();
   m = await siapkanMasterPersediaan();
-  await kosongkanTabel(kasShift, clericalCheck, shiftKasir);
+  await kosongkanTabel(hitungKas, kasShift, clericalCheck, shiftKasir);
   admin = await sesiUji('ADMIN');
   kasir = await sesiUji('KASIR');
   const idTier = await siapkanTierNormal();
@@ -104,6 +121,7 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
     const dAdmin = (await ambil<{ data: DetailShift }>(admin, `/api/shift/${s.id}`)).data;
     expect(dAdmin.ringkasan).toEqual({
       modalAwal: 200000,
+      koreksiModal: 0,
       tunaiPenjualan: 40000,
       kasMasukLain: 50000,
       kasKeluar: 15000,
@@ -289,5 +307,203 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
     expect(d.kas[0]).toMatchObject({ jenis: 'BAYAR_PEMASOK', arah: 'KELUAR', nominal: 16000 });
     expect(d.kas[0]?.nomorDokumen).toMatch(/^PBP-/);
     expect(d.ringkasan?.saldoSistem).toBe(34000);
+  });
+});
+
+describe('buka/tutup shift dan anomali kas (docs/05 §10 K15–K23, K-121)', () => {
+  /** Shift ditutup dengan uang ditinggal `ditinggal`, supaya shift berikutnya punya usulan modal. */
+  async function shiftKemarin(ditinggal: number) {
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: ditinggal });
+    await kirim(kasir, `/api/shift/${s.id}/tutup`, {
+      uangFisik: ditinggal,
+      uangDitinggal: ditinggal,
+    });
+  }
+
+  it('K15 buka tiga cara: sama dengan kemarin, hitung per pecahan, tanpa riwayat ditolak', async () => {
+    const tanpa = await galat(kasir, '/api/shift/buka', { cara: 'SAMA_KEMARIN' });
+    expect(tanpa.status).toBe(409);
+    expect(tanpa.pesan).toContain('Hitung sekarang');
+
+    await shiftKemarin(150000);
+    const usulan = (await ambil<{ data: UsulanBukaShift }>(kasir, '/api/shift/usulan-buka')).data;
+    expect(usulan.uangDitinggal).toBe(150000);
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { cara: 'SAMA_KEMARIN' });
+    expect(s.modalAwal).toBe(150000);
+    expect(s.caraBuka).toBe('SAMA_KEMARIN');
+    await kirim(kasir, `/api/shift/${s.id}/tutup`, { uangFisik: 150000, uangDitinggal: 120000 });
+
+    // Hitung per pecahan: total dari rincian; total yang tidak cocok ditolak.
+    const salah = await galat(kasir, '/api/shift/buka', {
+      cara: 'HITUNG',
+      modalAwal: 100000,
+      rincian: { '50000': 2, '1000': 3 },
+    });
+    expect(salah.status).toBe(400);
+    const h = await kirim<ShiftAktif>(kasir, '/api/shift/buka', {
+      cara: 'HITUNG',
+      rincian: { '50000': 2, '1000': 3, '500': 4 },
+    });
+    expect(h.modalAwal).toBe(105000);
+    const d = await ambil<{ data: DetailShift }>(admin, `/api/shift/${h.id}`);
+    expect(d.data.hitungan).toMatchObject([
+      { jenis: 'BUKA', uangFisik: 105000, saldoSistem: 120000, rincian: { '50000': 2 } },
+    ]);
+  });
+
+  it('K16 hitung nanti: modal saat buka = hitungan − tunai bersih sejak buka; selisih semalam jadi koreksi', async () => {
+    await shiftKemarin(150000);
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { cara: 'HITUNG_NANTI' });
+    expect(s.modalAwal).toBe(150000);
+    expect(s.batasHitungBuka).not.toBeNull();
+    const notif = await ambil<{ data: Notifikasi[] }>(kasir, '/api/notifikasi');
+    expect(notif.data.some((n) => n.jenis === 'SHIFT_HITUNG_BUKA')).toBe(true);
+
+    await jualTunai(kasir, '2', 50000); // tunai masuk 20.000 (kembalian 30.000)
+    await kirim(kasir, '/api/shift/kas', { jenis: 'KASBON', nominal: 5000, keterangan: 'Budi' });
+    // Laci 160.000; tunai bersih sejak buka 15.000; modal saat buka 145.000 (semalam kurang 5.000).
+    const h = await kirim<ShiftAktif>(kasir, `/api/shift/${s.id}/hitung-buka`, {
+      uangFisik: 160000,
+    });
+    expect(h.batasHitungBuka).toBeNull();
+    expect(h.koreksiModal).toBe(-5000);
+    const ulang = await galat(kasir, `/api/shift/${s.id}/hitung-buka`, { uangFisik: 160000 });
+    expect(ulang.status).toBe(409);
+    const d = await ambil<{ data: DetailShift }>(admin, `/api/shift/${s.id}`);
+    expect(d.data.ringkasan).toMatchObject({
+      modalAwal: 145000,
+      koreksiModal: -5000,
+      saldoSistem: 160000,
+    });
+    expect(d.data.kas.find((k) => k.jenis === 'KOREKSI_MODAL_KURANG')?.keterangan).toContain(
+      'selisih semalam',
+    );
+  });
+
+  it('K17 koreksi modal: bebas sebelum transaksi tunai; sesudahnya kode atasan yang terikat nilainya', async () => {
+    await beriEmail(admin.pengguna.id);
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 15000 });
+    const d1 = await kirim<DetailShift>(kasir, `/api/shift/${s.id}/koreksi-modal`, {
+      modalBenar: 150000,
+      alasan: 'Salah ketik, kurang nol',
+    });
+    expect(d1.kas.at(-1)).toMatchObject({ jenis: 'KOREKSI_MODAL_TAMBAH', nominal: 135000 });
+
+    await jualTunai(kasir, '1');
+    const isi = { modalBenar: 140000, alasan: 'Uang receh terhitung dua kali' };
+    const tolak = await galat(kasir, `/api/shift/${s.id}/koreksi-modal`, isi);
+    expect(tolak.status).toBe(403);
+    const info = await kirim<InfoKodePersetujuan>(
+      kasir,
+      `/api/shift/${s.id}/koreksi-modal/minta-kode`,
+      isi,
+    );
+    const kode = {
+      idPermintaan: info.idPermintaan,
+      kode: kodeTerkirim(admin.pengguna.namaPengguna),
+    };
+    const lain = await galat(kasir, `/api/shift/${s.id}/koreksi-modal`, {
+      ...isi,
+      modalBenar: 130000,
+      kode,
+    });
+    expect(lain.status).toBeGreaterThanOrEqual(400);
+    const d2 = await kirim<DetailShift>(kasir, `/api/shift/${s.id}/koreksi-modal`, {
+      ...isi,
+      kode,
+    });
+    expect(d2.kas.at(-1)?.keterangan).toContain('disetujui');
+    const r = await ambil<{ data: DetailShift }>(admin, `/api/shift/${s.id}`);
+    expect(r.data.ringkasan?.modalAwal).toBe(140000);
+  });
+
+  it('K18–K22 tutup dua langkah: hitungan terkunci, uang baru ditolak, bantuan, hitung ulang sekali, keterangan, uang ditinggal', async () => {
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 100000 });
+    await jualTunai(kasir, '3', 50000); // tunai 30.000, kembalian 20.000
+    const h1 = await kirim<HasilHitungTutup>(kasir, `/api/shift/${s.id}/hitung`, {
+      rincian: { '100000': 1, '5000': 2 },
+    });
+    expect(h1.rekonsiliasi).toMatchObject({
+      saldoSistem: 130000,
+      uangFisik: 110000,
+      selisih: -20000,
+    });
+    expect(h1.bolehHitungUlang).toBe(true);
+    expect(h1.perluKeterangan).toBe(true);
+    expect(h1.bantuan.petunjuk.map((p) => p.judul).join(' | ')).toContain('kembalian');
+    expect(h1.tinjauan.linimasa.map((l) => l.jenis)).toEqual(['MODAL', 'BAYAR']);
+    expect(h1.tinjauan.totalKembalian).toBe(20000);
+
+    const kas = await galat(kasir, '/api/shift/kas', {
+      jenis: 'MASUK_LAIN',
+      nominal: 1000,
+      keterangan: 'tambahan',
+    });
+    expect(kas.status).toBe(409);
+    expect(kas.pesan).toContain('sedang ditutup');
+
+    const h2 = await kirim<HasilHitungTutup>(kasir, `/api/shift/${s.id}/hitung`, {
+      uangFisik: 125000,
+    });
+    expect(h2.hitungan.map((x) => x.jenis)).toEqual(['BUKA', 'TUTUP', 'TUTUP_ULANG']);
+    expect(h2.bolehHitungUlang).toBe(false);
+    expect((await galat(kasir, `/api/shift/${s.id}/hitung`, { uangFisik: 130000 })).status).toBe(
+      409,
+    );
+
+    const tanpaKet = await galat(kasir, `/api/shift/${s.id}/tutup`, { uangDitinggal: 100000 });
+    expect(tanpaKet.status).toBe(409);
+    expect(tanpaKet.detail?.perluKeterangan).toBe(true);
+    const lebih = await galat(kasir, `/api/shift/${s.id}/tutup`, {
+      keterangan: 'Uang Rp 5.000 dipakai beli bensin',
+      uangDitinggal: 200000,
+    });
+    expect(lebih.status).toBe(400);
+    const d = await kirim<DetailShift>(kasir, `/api/shift/${s.id}/tutup`, {
+      keterangan: 'Uang Rp 5.000 dipakai beli bensin',
+      uangDitinggal: 100000,
+    });
+    expect(d.clerical).toMatchObject({
+      uangFisik: 125000,
+      selisih: -5000,
+      jumlahHitung: 2,
+      uangDitinggal: 100000,
+    });
+    expect(d.hitungan).toHaveLength(3);
+    const usulan = (await ambil<{ data: UsulanBukaShift }>(kasir, '/api/shift/usulan-buka')).data;
+    expect(usulan.uangDitinggal).toBe(100000);
+  });
+
+  it('K20 selisih dalam toleransi: tanpa keterangan, ditandai selisih receh, tidak boleh hitung ulang', async () => {
+    await aturKonfigurasi({ toleransi_selisih_kas: '1000' });
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 100000 });
+    const h = await kirim<HasilHitungTutup>(kasir, `/api/shift/${s.id}/hitung`, {
+      uangFisik: 99500,
+    });
+    expect(h.rekonsiliasi.dalamToleransi).toBe(true);
+    expect(h.bolehHitungUlang).toBe(false);
+    expect((await galat(kasir, `/api/shift/${s.id}/hitung`, { uangFisik: 100000 })).status).toBe(
+      409,
+    );
+    const d = await kirim<DetailShift>(kasir, `/api/shift/${s.id}/tutup`, {});
+    expect(d.clerical?.keterangan).toContain('Selisih receh');
+  });
+
+  it('K23 penjelasan selisih hanya oleh atasan, sekali, setelah ditutup; angka tidak berubah', async () => {
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 100000 });
+    await kirim(kasir, `/api/shift/${s.id}/tutup`, { uangFisik: 90000, keterangan: 'Belum tahu' });
+    expect(
+      (await galat(kasir, `/api/shift/${s.id}/penjelasan`, { penjelasan: 'Ditemukan' })).status,
+    ).toBe(403);
+    const d = await kirim<DetailShift>(admin, `/api/shift/${s.id}/penjelasan`, {
+      penjelasan: 'Uang Rp 10.000 terselip di bawah laci, sudah dikembalikan',
+    });
+    expect(d.clerical?.selisih).toBe(-10000);
+    expect(d.clerical?.penjelasanAtasan).toContain('terselip');
+    expect(d.clerical?.dijelaskanOleh).toBe(admin.pengguna.namaPengguna);
+    expect(d.bantuan?.petunjuk.some((p) => p.judul.includes('lembar'))).toBe(true);
+    expect(
+      (await galat(admin, `/api/shift/${s.id}/penjelasan`, { penjelasan: 'Lagi' })).status,
+    ).toBe(409);
   });
 });

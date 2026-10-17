@@ -53,6 +53,18 @@ const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: strin
     ket: 'Diisikan otomatis saat membuat barang baru.',
   },
   {
+    nama: 'toleransiSelisihKas',
+    label: 'Toleransi selisih kas',
+    satuan: 'rupiah',
+    ket: 'Selisih tutup shift sampai nilai ini ditandai "selisih receh" dan tidak perlu keterangan.',
+  },
+  {
+    nama: 'batasHitungBukaMenit',
+    label: 'Batas hitung susulan',
+    satuan: 'menit',
+    ket: 'Shift yang dibuka dengan "hitung nanti" harus dihitung dalam waktu ini (diingatkan).',
+  },
+  {
     nama: 'saranPesanPeriodeHari',
     label: 'Saran pesan: periode penjualan',
     satuan: 'hari',

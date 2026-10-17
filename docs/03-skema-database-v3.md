@@ -254,20 +254,30 @@ otomatis saat penerimaan disimpan (sehingga `sisa_hutang = 0`).
 BUKA/TUTUP. Satu shift BUKA per kasir (index parsial). Membuka kembali shift yang sudah tutup (koreksi) hanya
 Admin/Owner dengan `dibuka_kembali_oleh` + alasan. v3.13 (K-109): `jadwal_buka`, `jadwal_tutup` (`HH:mm`, jadwal
 toko yang dibekukan saat shift dibuka; NULL = tanpa jadwal) dan kolom status `diingatkan_pada` (pengingat
-terakhir ke atasan).
+terakhir ke atasan). v3.17 (K-121, migrasi 0020): status DIHITUNG (hitungan tutup sudah dikirim); index unik
+satu shift per kasir kini `where status <> 'TUTUP'`; `cara_buka` SAMA_KEMARIN/HITUNG/HITUNG_NANTI (CHECK, bawaan
+HITUNG), `modal_usulan` (uang ditinggal shift sebelumnya saat dibuka), `rincian_buka` (jsonb pecahan → jumlah
+lembar/keping), `batas_hitung_buka` dan `hitung_buka_pada` (hitung susulan).
+
+**`hitung_kas`** [APPEND] (v3.17, K-121) — setiap hitungan uang laci: `id_shift`, `jenis` BUKA/BUKA_SUSULAN/TUTUP/
+TUTUP_ULANG, `waktu`, `id_pengguna`, `uang_fisik`, `rincian` (jsonb, boleh NULL bila hanya total), `saldo_sistem`
+saat hitungan dikirim (NULL untuk BUKA tanpa catatan sebelumnya).
 
 **`rekening_toko`** (v3.15, K-111) — data master tujuan pembayaran non-tunai: `jenis` TRANSFER/EDC/QRIS, `bank`,
 `nomor`, `atas_nama`, `nama` (label lengkap ≤ 60 karakter, disalin ke pembayaran), `is_default` (index unik
 parsial: satu bawaan AKTIF per jenis), `status_aktif`. Tidak dihapus.
 
 **`kas_shift`** [APPEND] — kas masuk/keluar **non-penjualan** per shift: KASBON, SETOR_OWNER, TARIK_OWNER,
-REFUND_RETUR, REFUND_VOID, BAYAR_PEMASOK, MASUK_LAIN, KELUAR_LAIN; maksimal satu referensi (retur/void/pembayaran
+REFUND_RETUR, REFUND_VOID, BAYAR_PEMASOK, MASUK_LAIN, KELUAR_LAIN, KOREKSI_MODAL_TAMBAH, KOREKSI_MODAL_KURANG
+(v3.17; koreksi modal tidak masuk kas masuk/keluar lain di clerical); maksimal satu referensi (retur/void/pembayaran
 pemasok). Refund via transfer tetap dicatat di sini (arah KELUAR, keterangan) tetapi tidak dihitung dalam saldo
 tunai clerical — service membedakan lewat metode di dokumen sumbernya.
 
 **`clerical_check`** [APPEND] — satu per shift (`id_shift` unik). `saldo_sistem` = modal + tunai penjualan + kas masuk
 lain − kas keluar tunai; `uang_fisik` diinput sebelum saldo sistem ditampilkan; `selisih` generated; selisih ≠ 0
-wajib `keterangan` (CHECK).
+wajib `keterangan` (CHECK). v3.17 (K-121): `uang_ditinggal` (0 ≤ nilai ≤ uang fisik, CHECK; usulan modal shift
+berikutnya), `koreksi_modal`, `toleransi` (dibekukan dari konfigurasi), `jumlah_hitung`, dan kolom status
+`penjelasan_atasan`, `dijelaskan_oleh`, `dijelaskan_pada` (diisi sekali oleh Admin/Owner setelah tutup).
 
 ## 4. Kolom cache dan siapa yang menyinkronkan
 
@@ -334,8 +344,10 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | status_item | NORMAL, RETUR_SEBAGIAN, RETUR, VOID |
 | penyelesaian_retur_pemasok | POTONG_HUTANG, GANTI_BARANG, REFUND, PENGEMBALIAN_TITIPAN |
 | metode_pembayaran_pemasok | TUNAI, TRANSFER, KOMPENSASI |
-| status_shift | BUKA, TUTUP |
-| jenis_kas_shift | KASBON, SETOR_OWNER, TARIK_OWNER, REFUND_RETUR, REFUND_VOID, BAYAR_PEMASOK, MASUK_LAIN, KELUAR_LAIN |
+| status_shift | BUKA, DIHITUNG, TUTUP |
+| jenis_kas_shift | KASBON, SETOR_OWNER, TARIK_OWNER, REFUND_RETUR, REFUND_VOID, BAYAR_PEMASOK, MASUK_LAIN, KELUAR_LAIN, KOREKSI_MODAL_TAMBAH, KOREKSI_MODAL_KURANG |
+| cara_buka_shift | SAMA_KEMARIN, HITUNG, HITUNG_NANTI |
+| jenis_hitung_kas | BUKA, BUKA_SUSULAN, TUTUP, TUTUP_ULANG |
 | arah_kas | MASUK, KELUAR |
 | jenis_mutasi | SALDO_AWAL, PENERIMAAN, PENJUALAN, RETUR_JUAL, TUKAR_RETUR, VOID, PENYESUAIAN, PINDAH_KONDISI, RETUR_PEMASOK, MUSNAH |
 | status_stok (dihitung, tidak disimpan) | HABIS, KRITIS, PERLU_RESTOCK, AMAN |
@@ -469,3 +481,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-11 — v3.12: tabel `permintaan_persetujuan`, `kode_persetujuan`; `pengguna.email`, `pengguna.telegram_chat_id` (migrasi 0014; K-102). Kunci konfigurasi baru: `telegram_bot_token`, `smtp_host`, `smtp_port`, `smtp_pengguna`, `smtp_sandi`, `email_pengirim` (rahasia, tidak dikembalikan API; K-102), `limit_kredit_default` (K-104).
 - 2026-10-12 — v3.13: `permintaan_persetujuan.sidik`, jenis `UBAH_PELANGGAN` (migrasi 0015; K-107); `shift_kasir.jadwal_buka`, `jadwal_tutup`, `diingatkan_pada` (migrasi 0016; K-109). v3.14: `promo.anggaran`, `promo.maks_per_pembeli` (migrasi 0017; K-110). v3.15: tabel `rekening_toko`; `pembayaran_penjualan.id_rekening`, `status_verifikasi`, `diverifikasi_oleh`, `diverifikasi_pada`, `catatan_verifikasi`; metode `QRIS` (migrasi 0018; K-111). Kunci konfigurasi baru: `shift_jam_buka`, `shift_jam_tutup`; `rekening_transfer_default` dan `rekening_edc_default` tidak dipakai lagi (isinya dipindah ke `rekening_toko`).
 - 2026-10-17 — v3.16: `pemasok.lama_kirim_hari`, `pemasok.jarak_belanja_hari` (migrasi 0019; K-113). Kunci konfigurasi baru: `saran_pesan_periode_hari`, `saran_pesan_hari_pengaman`, `saran_pesan_lama_kirim_default`, `saran_pesan_jarak_belanja_default`.
+- 2026-10-18 — v3.17: tabel `hitung_kas`; `shift_kasir.cara_buka`, `modal_usulan`, `rincian_buka`, `batas_hitung_buka`, `hitung_buka_pada`, status DIHITUNG, index satu shift belum tutup per kasir; `clerical_check.uang_ditinggal`, `koreksi_modal`, `toleransi`, `jumlah_hitung`, `penjelasan_atasan`, `dijelaskan_oleh`, `dijelaskan_pada`; jenis kas KOREKSI_MODAL_TAMBAH/KURANG; jenis kode `KOREKSI_KAS` (migrasi 0020; K-121). Kunci konfigurasi baru: `toleransi_selisih_kas`, `batas_hitung_buka_menit`.

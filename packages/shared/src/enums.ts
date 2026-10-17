@@ -179,7 +179,13 @@ export type CaraPersetujuan = (typeof CARA_PERSETUJUAN)[number];
  * persetujuan; status DIGANTI = pengaju meminta kode baru untuk hal yang sama, GAGAL = terlalu banyak salah
  * ketik atau pesannya tidak terkirim.
  */
-export const JENIS_KODE_PERSETUJUAN = ['RETUR', 'VOID', 'LIMIT_KREDIT', 'UBAH_PELANGGAN'] as const;
+export const JENIS_KODE_PERSETUJUAN = [
+  'RETUR',
+  'VOID',
+  'LIMIT_KREDIT',
+  'UBAH_PELANGGAN',
+  'KOREKSI_KAS',
+] as const;
 export type JenisKodePersetujuan = (typeof JENIS_KODE_PERSETUJUAN)[number];
 
 export const STATUS_KODE_PERSETUJUAN = ['MENUNGGU', 'DIPAKAI', 'GAGAL', 'DIGANTI'] as const;
@@ -202,7 +208,8 @@ export const LINGKUP_VOID = ['TRANSAKSI', 'ITEM'] as const;
 export type LingkupVoid = (typeof LINGKUP_VOID)[number];
 
 // --- Kas ---
-export const STATUS_SHIFT = ['BUKA', 'TUTUP'] as const;
+/** K-121: DIHITUNG = hitungan tutup sudah dikirim, menunggu keterangan/uang ditinggal; uang baru ditolak. */
+export const STATUS_SHIFT = ['BUKA', 'DIHITUNG', 'TUTUP'] as const;
 export type StatusShift = (typeof STATUS_SHIFT)[number];
 
 export const JENIS_KAS_SHIFT = [
@@ -214,12 +221,23 @@ export const JENIS_KAS_SHIFT = [
   'BAYAR_PEMASOK',
   'MASUK_LAIN',
   'KELUAR_LAIN',
+  /** K-121: koreksi modal awal (salah ketik, hitung susulan); modal awal sendiri tidak diubah. */
+  'KOREKSI_MODAL_TAMBAH',
+  'KOREKSI_MODAL_KURANG',
 ] as const;
 export type JenisKasShift = (typeof JENIS_KAS_SHIFT)[number];
 
 /** K-095: struk penjualan langsung setelah bayar: langsung dicetak, ditanya dulu, atau tidak dicetak. */
 export const STRUK_CETAK = ['OTOMATIS', 'TANYA', 'TIDAK'] as const;
 export type StrukCetak = (typeof STRUK_CETAK)[number];
+
+/** K-121: cara membuka shift. */
+export const CARA_BUKA_SHIFT = ['SAMA_KEMARIN', 'HITUNG', 'HITUNG_NANTI'] as const;
+export type CaraBukaShift = (typeof CARA_BUKA_SHIFT)[number];
+
+/** K-121: jenis hitungan uang laci yang tercatat (hanya-tambah). */
+export const JENIS_HITUNG_KAS = ['BUKA', 'BUKA_SUSULAN', 'TUTUP', 'TUTUP_ULANG'] as const;
+export type JenisHitungKas = (typeof JENIS_HITUNG_KAS)[number];
 
 export const ARAH_KAS = ['MASUK', 'KELUAR'] as const;
 export type ArahKas = (typeof ARAH_KAS)[number];
