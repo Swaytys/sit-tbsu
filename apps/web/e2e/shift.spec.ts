@@ -77,7 +77,7 @@ test(
       // Langkah 1: hitungan dikirim tanpa melihat angka sistem (blind count), lalu terkunci.
       await expect(kasir.getByText('Saldo menurut sistem')).toHaveCount(0);
       const hitung = kasir.getByTestId('hitung-tutup');
-      await hitung.getByRole('radio', { name: 'Ketik total saja' }).click();
+      await hitung.getByRole('radio', { name: 'Total saja' }).click();
       await hitung.getByLabel('Total uang di laci').fill('104000');
       await kasir.getByRole('button', { name: 'Kirim hitungan' }).click();
       await kasir.getByRole('button', { name: 'Ya, kirim' }).click();
@@ -90,7 +90,7 @@ test(
 
       await kasir.getByText('Hitung ulang (sekali)').click();
       const ulang = kasir.getByTestId('hitung-tutup-ulang');
-      await ulang.getByRole('radio', { name: 'Ketik total saja' }).click();
+      await ulang.getByRole('radio', { name: 'Total saja' }).click();
       await ulang.getByLabel('Total uang di laci').fill('108000');
       await kasir.getByRole('button', { name: 'Kirim hitung ulang' }).click();
       await kasir.getByRole('button', { name: 'Ya, kirim' }).click();
@@ -175,7 +175,7 @@ test('Kasir: buka dulu hitung nanti, uang penjualan masuk, hitung susulan mengor
 
     // Laci berisi Rp 5.000 lebih dari modal sementara + penjualan: selisih semalam jadi koreksi modal.
     const kartu = kasir.getByTestId('hitung-susulan');
-    await kartu.getByRole('radio', { name: 'Ketik total saja' }).click();
+    await kartu.getByRole('radio', { name: 'Total saja' }).click();
     await kartu.getByLabel('Total uang di laci').fill(String(s.modalAwal + 24000 + 5000));
     await kartu.getByRole('button', { name: 'Kirim hitungan susulan' }).click();
     await kartu.getByRole('button', { name: 'Ya, kirim' }).click();

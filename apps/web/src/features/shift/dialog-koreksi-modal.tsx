@@ -62,6 +62,7 @@ export function DialogKoreksiModal({
         mintaKode={() =>
           mintaKodeKoreksiModal(shift.id, { modalBenar: benar, alasan: alasan.trim() })
         }
+        kunci={`koreksi-modal:${shift.id}:${benar}`}
         onSetujui={(k) => simpan(k)}
         memproses={koreksi.isPending}
         onTutup={() => setMintaKode(false)}

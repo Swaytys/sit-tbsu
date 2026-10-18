@@ -280,6 +280,7 @@ export function DialogKodeKoreksi({
       judul={`Persetujuan ${jenis} ${dok.nomor}`}
       ringkasan={ringkasan}
       mintaKode={() => minta.mutateAsync(dok.id)}
+      kunci={`${jenis}:${dok.id}`}
       memproses={setujui.isPending}
       labelTutup={labelTutup}
       onTutup={onTutup}

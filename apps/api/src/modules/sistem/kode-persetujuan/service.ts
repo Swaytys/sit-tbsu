@@ -4,6 +4,8 @@ import {
   type InfoKodePersetujuan,
   type Izin,
   type JenisKodePersetujuan,
+  SALURAN_PESAN,
+  type SaluranPesan,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
 import { catatPercobaan, type OpsiBatas } from '../../../lib/batas-percobaan';
@@ -157,6 +159,31 @@ export async function mintaKode(
     kadaluarsa: kadaluarsa.toISOString(),
     penerima: sampai.map((h) => ({ nama: h.nama, saluran: h.saluran })),
     simulasi: sampai.some((h) => h.tiruan.length > 0),
+  };
+}
+
+/**
+ * K-136: lanjutkan permintaan yang masih berlaku (dialog kode ditutup lalu dibuka lagi) tanpa mengirim kode baru.
+ * Hanya pengajunya sendiri; permintaan yang kadaluarsa, dipakai, atau diganti = `null`.
+ */
+export async function permintaanBerlaku(
+  id: number,
+  pelaku: PenggunaAktif,
+): Promise<InfoKodePersetujuan | null> {
+  const p = await repo.permintaanMenunggu(db, id, pelaku.id);
+  if (!p || p.kadaluarsaPada <= sekarang()) return null;
+  return {
+    idPermintaan: p.id,
+    kadaluarsa: p.kadaluarsaPada.toISOString(),
+    penerima: p.penerima
+      .filter((x) => x.saluran !== '')
+      .map((x) => ({
+        nama: x.nama,
+        saluran: x.saluran
+          .split(',')
+          .filter((s): s is SaluranPesan => (SALURAN_PESAN as readonly string[]).includes(s)),
+      })),
+    simulasi: false,
   };
 }
 

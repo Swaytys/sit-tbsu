@@ -394,6 +394,7 @@ function IsiDialogPelanggan({
                 json: { aksi: 'UBAH', data: menungguKode },
               })
             }
+            kunci={`pelanggan-ubah:${pelanggan.id}:${JSON.stringify(menungguKode)}`}
             memproses={simpan.isPending}
             onTutup={() => setMenungguKode(null)}
             onSetujui={(kodeAtasan) =>

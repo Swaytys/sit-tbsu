@@ -35,7 +35,7 @@ function LoncengNotifikasi() {
           </span>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
+      <DropdownMenuContent align="end" className="max-h-[75vh] w-80 overflow-y-auto">
         <DropdownMenuLabel>Notifikasi</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {daftar.length === 0 ? (
