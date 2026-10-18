@@ -18,9 +18,9 @@ sebagian sudah dicoba.
 
 ### Satu shift toko dan perbaikan uji (19 Oktober, K-132–K-142)
 
-**Penting sebelum mencoba:** di database Anda ada 3 shift terbuka dari aturan lama (Owner, Admin, Kasir). Buka
-*Shift & Clerical Check*: kotak merah menampilkan semuanya. Tutup semuanya dulu (hitung laci), lalu buka satu
-shift.
+**Catatan:** 3 shift terbuka dari aturan lama (Owner, Admin, Kasir) sudah ditutup oleh persiapan tes otomatis
+dengan uang fisik = saldo sistem (selisih 0) dan keterangan "ditutup otomatis … tes e2e" / "uji sendiri" (lihat
+*Riwayat*). Bila masih ada shift ganda, halaman Shift menampilkannya dalam kotak merah dengan tombol tutup.
 
 | No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
 |---|---|---|---|---|---|
