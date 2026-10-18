@@ -44,7 +44,7 @@ test(
 
       // Dialog buka shift: Esc di langkah pertama menutup dialog tanpa perlu mengklik apa pun.
       await kasir.getByRole('button', { name: 'Buka shift' }).click();
-      const dialog = kasir.getByRole('dialog', { name: 'Buka shift kasir' });
+      const dialog = kasir.getByRole('dialog', { name: 'Buka shift toko' });
       await expect(dialog).toBeVisible();
       await kasir.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);
@@ -109,9 +109,7 @@ test(
 
       // Shift berikutnya menawarkan uang ditinggal tadi sebagai modal (Enter = pakai).
       await kasir.getByRole('button', { name: 'Buka shift' }).click();
-      await expect(
-        dialog.getByText('Sama dengan uang ditinggal kemarin: Rp 100.000'),
-      ).toBeVisible();
+      await expect(dialog.getByText('Pakai uang kemarin: Rp 100.000')).toBeVisible();
       await kasir.keyboard.press('Escape');
 
       await kasir.getByRole('tab', { name: 'Riwayat' }).click();
@@ -124,7 +122,7 @@ test(
   },
 );
 
-test('Kasir: buka dulu hitung nanti, uang penjualan masuk, hitung susulan mengoreksi modal', async ({
+test('Kasir: buka dulu hitung nanti, uang penjualan masuk, hitung susulan → hasil → simpan', async ({
   browser,
 }) => {
   const kode = Date.now();
@@ -158,7 +156,7 @@ test('Kasir: buka dulu hitung nanti, uang penjualan masuk, hitung susulan mengor
     await menuUtama(kasir).getByRole('link', { name: 'Shift & Clerical Check' }).click();
     await kasir.getByRole('button', { name: 'Buka shift' }).click();
     await kasir.keyboard.press('n');
-    await expect(kasir.getByText(/sementara; hitung uang laci dalam \d+ menit/)).toBeVisible();
+    await expect(kasir.getByText(/sementara; hitung laci dalam \d+ menit/)).toBeVisible();
     await kasir.keyboard.press('Enter');
     await expect(kasir.getByText(/Shift SHF-\d{6}-\d{3,} dibuka/)).toBeVisible();
     const s = await api<{ modalAwal: number }>(kasir, '/shift/saya');
@@ -177,13 +175,15 @@ test('Kasir: buka dulu hitung nanti, uang penjualan masuk, hitung susulan mengor
     const kartu = kasir.getByTestId('hitung-susulan');
     await kartu.getByRole('radio', { name: 'Total saja' }).click();
     await kartu.getByLabel('Total uang di laci').fill(String(s.modalAwal + 24000 + 5000));
-    await kartu.getByRole('button', { name: 'Kirim hitungan susulan' }).click();
+    await kartu.getByRole('button', { name: 'Kirim hitungan' }).click();
     await kartu.getByRole('button', { name: 'Ya, kirim' }).click();
-    await expect(
-      kasir.getByText('Modal saat buka dikoreksi Rp 5.000 (selisih semalam).'),
-    ).toBeVisible();
+    // K-134: hasil tampil dengan angka; simpan untuk menetapkan modal.
+    await expect(kartu.getByTestId('selisih-semalam')).toContainText('Selisih semalam Rp 5.000');
+    await kartu.getByRole('button', { name: 'Simpan hasil' }).click();
+    await expect(kasir.getByText('Hitung laci disimpan; modal awal sudah benar.')).toBeVisible();
     await expect(kasir.getByTestId('hitung-susulan')).toHaveCount(0);
-    await expect(kasir.getByTestId('peringatan-shift')).toHaveCount(0);
+    // Spanduk hitung susulan hilang (spanduk lain, mis. lewat jam tutup, boleh tetap ada).
+    await expect(kasir.getByText('Hitung uang laci belum dikirim')).toHaveCount(0);
     await expect(kasir.getByText('(dikoreksi Rp 5.000)')).toBeVisible();
 
     const saya = await api<{ id: number }>(kasir, '/shift/saya');

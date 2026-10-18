@@ -398,6 +398,8 @@ export const skemaPembayaran = z
     rekening: teksOpsional(60, 'Rekening maksimal 60 karakter.'),
     referensi: teksOpsional(60, 'Referensi maksimal 60 karakter.'),
     catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+    /** K-141: TUNAI, pembeli tidak mengambil kembalian; dicatat kas masuk khusus (bukan penjualan). */
+    kembalianTidakDiambil: z.boolean().default(false),
   })
   .superRefine((p, ctx) => {
     if (
@@ -592,6 +594,52 @@ export type ShiftAktif = WaktuShift & {
   koreksiModal: number;
   /** Sudah ada transaksi tunai (koreksi modal setelahnya butuh kode atasan). */
   adaTransaksiTunai: boolean;
+  /** K-132: pengguna yang membuka shift toko ini. */
+  namaPembuka: string;
+  /** K-132: shift lain yang masih terbuka (sisa aturan lama, satu shift per pengguna); harus ditutup. */
+  lainTerbuka: { id: number; nomor: string; namaPembuka: string }[];
+  /** K-134: hasil hitung susulan yang sudah dikirim tetapi belum disimpan. */
+  hitungBuka: HasilHitungBuka | null;
+};
+
+/**
+ * K-134: hasil hitung susulan (shift "buka dulu, hitung nanti"). Selisih = laci − (modal sementara + uang masuk
+ * bersih sejak buka) = selisih semalam.
+ */
+export type HasilHitungBuka = {
+  jumlahHitung: number;
+  waktu: string;
+  laci: number;
+  masukSejakBuka: number;
+  modalSementara: number;
+  modalSaatBuka: number;
+  ditinggalKemarin: number | null;
+  selisih: number;
+  toleransi: number;
+  dalamToleransi: boolean;
+  bolehHitungUlang: boolean;
+};
+
+/** K-132: status shift toko untuk semua pengguna (indikator di topbar). */
+export type StatusShiftToko = {
+  id: number;
+  nomor: string;
+  status: 'BUKA' | 'DIHITUNG';
+  waktuBuka: string;
+  namaPembuka: string;
+  lewatJadwal: boolean;
+  terlewat: boolean;
+} | null;
+
+/** K-142: pengajuan retur/void yang menunggu persetujuan (informasi saat tutup shift). */
+export type PengajuanMenunggu = {
+  jenis: 'RETUR' | 'VOID';
+  id: number;
+  nomor: string;
+  nomorPenjualan: string;
+  nilai: number;
+  namaPengaju: string;
+  tanggal: string;
 };
 
 // --- Surat jalan (docs/05 §7, S1–S7) ---

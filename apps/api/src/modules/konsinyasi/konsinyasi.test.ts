@@ -118,7 +118,6 @@ beforeEach(async () => {
     baris: [{ idBarang: m.titip, qtyMasuk: '20', hargaModalMasuk: 0 }],
   });
   await kirim(kasir, '/api/shift/buka', { modalAwal: 500000 });
-  await kirim(admin, '/api/shift/buka', { modalAwal: 500000 });
 });
 
 describe('hitungSetoran (KS5, KS6, KS9)', () => {

@@ -36,7 +36,7 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | S8 | Pembayaran dicatat tunai padahal transfer (atau sebaliknya) | Selisih kas sebesar pembayaran itu | Bantuan selisih menunjuk pembayaran yang nominalnya sama; koreksi lewat void/retur | Cara bayar dipilih tegas (huruf T/B/E/Q); rekening dipilih dari daftar | Bantuan selisih menulis kemungkinan ini | Ada (bantuan K-121) |
 | S9 | Kembalian salah | Selisih sebesar kembalian | Bantuan selisih menunjuk kembalian yang nilainya sama | Kembalian dihitung sistem dan tampil besar | Layar hasil menulis kembalian dengan huruf besar | Ada |
 | S10 | Uang keluar laci tanpa dicatat (kasbon, beli bensin, setor) | Selisih kurang | Bantuan selisih menyarankan memeriksa kas keluar yang belum dicatat | Kas manual mudah dicatat; keterangan wajib | Daftar periksa umum di hasil tutup | Ada |
-| S11 | Kasir lain memakai laci yang sama | Transaksi tercatat di shift orang lain | — | Satu shift per kasir; tunai tercatat ke shift pencatatnya | Manual: satu laci satu kasir | Ada |
+| S11 | Beberapa pengguna memakai laci yang sama | Laci terbagi ke beberapa shift, hitungan tidak bisa cocok | Sisa shift ganda lama wajib ditutup; pencatatan ditolak sampai tersisa satu | Satu shift toko (K-132); setiap catatan menyimpan pencatatnya | Indikator shift di topbar untuk semua peran | Ada (K-132) |
 | S12 | Aplikasi ditutup/listrik padam saat shift berjalan | Tidak ada; data di server | Buka lagi, shift masih berjalan | Data disimpan di server per transaksi | — | Ada |
 
 ### 1.3 Saat menutup shift
@@ -52,6 +52,11 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | S19 | Kasir lupa menutup shift sampai malam / besok | Uang dua hari bercampur | Admin/Owner menutup dari Semua shift (alur dua langkah yang sama) | Pengingat jam tutup, lonceng, Telegram atasan; kunci saat ganti hari | Banner biru/kuning/merah | Ada (K-109) |
 | S20 | Selisih ditemukan sebabnya setelah shift ditutup | Angka salah selamanya | Admin/Owner menambah *penjelasan selisih* (terjelaskan), angka tetap | — | Riwayat menampilkan penjelasan | Ada (K-121) |
 | S21 | Pencatatan uang masuk saat shift sedang dihitung | Hitungan tidak cocok | — | Status *Dihitung* menolak pencatatan uang baru | Pesan: "Shift sedang ditutup; selesaikan dulu" | Ada (K-121) |
+| S22 | Pembeli datang setelah shift ditutup | Penjualan tidak bisa dicatat, atau dicatat ke shift yang salah | Buka shift baru, *Pakai uang kemarin* (1 Enter) | Order dan non-tunai tetap bisa tanpa shift | Pesan "Shift toko belum dibuka" + tombol buka | Ada (K-140) |
+| S23 | Pembeli tidak mengambil kembalian | Laci lebih dari catatan | — | Pilihan *Kembalian tidak diambil* (K) di layar bayar; dicatat kas masuk khusus | Label di layar bayar | Ada (K-141) |
+| S24 | Retur/void diajukan di satu shift, disetujui di shift berikutnya | Uang refund dikira hilang | Refund tercatat di shift saat disetujui | Kotak *Tutup shift* menampilkan pengajuan yang menunggu | Teks: uang belum keluar dari laci | Ada (K-142) |
+| S25 | Salah hitung saat hitung susulan | Modal awal salah | Hitung ulang sekali; setelah disimpan: Koreksi modal | Hasil ditampilkan dengan angka sebelum disimpan; koreksi modal dikunci sampai disimpan | Contoh angka di "?" | Ada (K-134) |
+| S26 | Dialog kode atasan tertutup sebelum kode diketik | Kode baru terkirim lagi, atasan bingung | Permintaan yang masih berlaku dilanjutkan | Satu permintaan menunggu per urusan | Teks "berlaku sampai …" | Ada (K-136) |
 
 ---
 
@@ -84,3 +89,4 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-18 — Status S1–S5, S8–S10, S13–S16, S18, S20, S21 menjadi *Ada* setelah gelombang shift K-121 selesai;
   S17 menunggu K-122.
 - 2026-10-18 — O1–O4 dan S17 menjadi *Ada* (order disimpan, kembali ke draf, peringatan draf lain, pilihan order saat tutup shift; K-122).
+- 2026-10-18 — S11 diperbarui; S22–S26 (setelah tutup, kembalian tidak diambil, retur lintas shift, salah hitung susulan, dialog kode) (K-132–K-142).

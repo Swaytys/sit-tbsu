@@ -209,7 +209,7 @@ export async function bayarHutang(
     if (input.nominal > d.sisa) {
       throw galatKolom('nominal', `Nominal melebihi sisa hutang ${formatRupiah(d.sisa)}.`);
     }
-    const shift = input.metode === 'TUNAI' ? await shiftUntukCatat(tx, pelaku.id) : null;
+    const shift = input.metode === 'TUNAI' ? await shiftUntukCatat(tx) : null;
     if (input.metode === 'TUNAI' && !shift) {
       throw new AppError(
         'KONFLIK',

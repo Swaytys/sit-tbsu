@@ -1,7 +1,7 @@
-# 10 — Ringkasan Keputusan (K-001 s.d. K-127)
+# 10 — Ringkasan Keputusan (K-001 s.d. K-145)
 
 Dokumen ini merangkum **seluruh keputusan** yang dicatat di folder `keputusan/` selama pengembangan BonsaiUrip
-(SIT TBSU): **127 keputusan dalam 28 berkas**, dari 19 September sampai 18 Oktober 2026.
+(SIT TBSU): **145 keputusan dalam 29 berkas**, dari 19 September sampai 18 Oktober 2026.
 
 Yang dirangkum di sini adalah **apa yang diputuskan** dan **apa yang berlaku sekarang**. Alasan lengkap, pilihan
 yang ditolak, dan rincian teknis tetap ada di berkas keputusan aslinya. Bila ringkasan ini berbeda dengan berkas
@@ -14,7 +14,7 @@ Isi dokumen:
 3. [Tiga konsep yang paling banyak berubah](#3-tiga-konsep-yang-paling-banyak-berubah)
 4. [Yang berlaku sekarang, per topik](#4-yang-berlaku-sekarang-per-topik)
 5. [Keputusan yang diganti atau diubah](#5-keputusan-yang-diganti-atau-diubah)
-6. [Daftar lengkap K-001 s.d. K-127](#6-daftar-lengkap-k-001-sd-k-127)
+6. [Daftar lengkap K-001 s.d. K-145](#6-daftar-lengkap-k-001-sd-k-145)
 7. [Yang dijadwalkan sesudah ini](#7-yang-dijadwalkan-sesudah-ini)
 
 ---
@@ -67,7 +67,7 @@ Isi dokumen:
 | 12 Okt | Tinjauan pemilik | K-106–K-112 | Perapian tampilan, persetujuan ubah pelanggan, cari barang lewat atribut, aturan shift, anggaran promo, rekening toko dan cek uang non-tunai, cetak per jenis dokumen. |
 | 14 Okt | Masukan dosen dan jawaban pemilik | K-113 | Rekomendasi pemesanan ulang, tablet untuk staf, ekspor log; Fase 14. |
 | 17 Okt | Uji pemilik di laptop | K-114–K-119 | Tampilan muat, panduan printer umum, rencana tutup shift baru, order ditunda, dokumen riwayat teknis, database tes sendiri. |
-| 18 Okt | Uji pemilik (printer RPP02 berhasil) | K-120–K-127 | Prinsip anomali (atasi, cegah, ajari); shift tiga cara buka dan tutup dua langkah; order disimpan dan kembali ke draf; pencarian sebagian dan label keterjualan; cetak A4 tanpa jendela; order pembelian dan Hasil Penjualan masuk v1.0.0; metode rekomendasi pesan. |
+| 18 Okt | Uji pemilik (printer RPP02 berhasil) dan uji lanjutan | K-120–K-145 | Prinsip anomali (atasi, cegah, ajari); shift tiga cara buka dan tutup dua langkah; order disimpan dan kembali ke draf; pencarian sebagian dan label keterjualan; cetak A4 tanpa jendela; order pembelian dan Hasil Penjualan masuk v1.0.0; metode rekomendasi pesan. |
 
 Hubungan dengan versi (K-062): **v1.0.0** = akhir M1 (Fase 1–8); **v1.1–v1.4** = M2 (Fase 9–12); usulan sesudahnya
 dikumpulkan di `08-backlog.md` sebagai v2.0.0 dan v3.0.0.
@@ -246,6 +246,9 @@ keputusan lama masih tertulis di berkasnya.
 
 ### 4.8 Shift dan kas
 
+- **Satu shift untuk toko** (satu laci): dibuka/ditutup siapa pun yang berizin; semua uang tunai masuk shift itu
+  dengan nama pencatatnya; status shift terlihat semua peran (K-132). Pembeli setelah tutup: buka shift baru
+  (K-140). Kembalian yang tidak diambil dicatat kas masuk khusus (K-141).
 - Semua uang tunai terikat pada shift. Kasir membuka shift dengan modal awal, mencatat kas masuk/keluar
   non-penjualan, lalu menutupnya dengan **menghitung uang lebih dulu** sebelum angka sistem tampil (K-018, K-071,
   K-075).
@@ -391,7 +394,7 @@ keputusan lama masih tertulis di berkasnya.
 
 ---
 
-## 6. Daftar lengkap K-001 s.d. K-127
+## 6. Daftar lengkap K-001 s.d. K-145
 
 ### 6.1 Fondasi — `2026-09-19-keputusan-fondasi.md`
 
@@ -617,6 +620,31 @@ keputusan lama masih tertulis di berkasnya.
 
 ---
 
+### 6.20 Uji pemilik lanjutan 18 Oktober — `2026-10-18-uji-pemilik-lanjutan.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-128 | Bahasa layar ringkas: kata efektif, makna cepat, tetap rinci. | Berlaku |
+| K-129 | Hot page pas satu layar tanpa gulir; daftar hotkey jadi satu tombol; hapus form order lengkap dan tab Input cepat. | Berlaku (rencana) |
+| K-130 | Pemberitahuan tidak mengagetkan: kartu pojok kanan bawah, item Buka shift di menu, spanduk bisa diperkecil jadi lencana. | Berlaku (rencana) |
+| K-131 | Notifikasi lebih rinci, bisa digulir, ada di dashboard. | Berlaku (gulir selesai; rincian menyusul) |
+| K-132 | Satu shift untuk toko; siapa pun berizin buka/tutup; indikator untuk Staf. | Berlaku (selesai 18 Okt) |
+| K-133 | Tutup shift menampilkan semua order belum selesai dengan pilihan per order. | Berlaku (selesai 18 Okt) |
+| K-134 | Hitung susulan dua langkah dengan hasil berangka; koreksi modal setelah disimpan; "Tambah uang laci". | Berlaku (selesai 18 Okt) |
+| K-135 | Hitung per pecahan dengan −/+, kosongkan, hotkey. | Berlaku (selesai 18 Okt) |
+| K-136 | Kode atasan bisa dilanjutkan; satu permintaan menunggu per urusan. | Berlaku (selesai 18 Okt) |
+| K-137 | Data bersih: format ketat, No. HP kode negara tanpa 0, cegah data ganda, pindai data lama. | Berlaku (rencana) |
+| K-138 | Tampilkan siapa penginput di halaman bersama. | Berlaku (rencana) |
+| K-139 | Saringan status daftar order; order disimpan jatuh tempo tetap tampil. | Berlaku (rencana) |
+| K-140 | Pembeli setelah tutup: buka shift baru (1 Enter). | Berlaku |
+| K-141 | Kembalian tidak diambil dicatat kas masuk khusus, bukan penjualan. | Berlaku (selesai 18 Okt) |
+| K-142 | Retur/void menunggu tampil saat tutup shift; refund tercatat di shift saat disetujui. | Berlaku (selesai 18 Okt) |
+| K-143 | F9 kasir: pilihan A/S/D dipertahankan, label tombol diperjelas. | Berlaku (rencana label) |
+| K-144 | Diskon manual dipertahankan, terbatas % per peran; di atas batas dengan kode atasan. | Berlaku (rencana kode) |
+| K-145 | Pengaturan hotkey per pengguna setelah v1.0.0 lain selesai. | Berlaku (rencana) |
+
+---
+
 ## 7. Yang dijadwalkan sesudah ini
 
 Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supaya tidak hilang. Rinciannya di
@@ -644,3 +672,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-17 — K-114–K-119 ditambahkan (daftar lengkap 6.18).
 - 2026-10-18 — K-120–K-127 ditambahkan (daftar lengkap 6.19, garis waktu, 4.8 shift, bagian 5).
 - 2026-10-18 — K-121 dan K-122 selesai dibangun (status 6.19, 4.5).
+- 2026-10-18 — K-128–K-145 ditambahkan (6.20; 4.8 satu shift toko).

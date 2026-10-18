@@ -114,7 +114,6 @@ describe('saran pesan dari data sungguhan', () => {
       }),
     );
     await data(kirim(kasir, '/api/shift/buka', { modalAwal: 0 }));
-    await data(kirim(admin, '/api/shift/buka', { modalAwal: 100000 }));
   });
 
   async function jual(qty: string) {

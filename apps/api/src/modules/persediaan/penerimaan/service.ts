@@ -191,7 +191,7 @@ export async function simpanPenerimaan(
 
     // E4: pembelian tunai langsung lunas. Uang TUNAI keluar dari laci shift BUKA pencatat (K2, K-075).
     if (tunai && totalFaktur > 0) {
-      const shift = input.metodeBayar === 'TUNAI' ? await shiftUntukCatat(tx, pelaku.id) : null;
+      const shift = input.metodeBayar === 'TUNAI' ? await shiftUntukCatat(tx) : null;
       if (input.metodeBayar === 'TUNAI' && !shift) {
         throw new AppError(
           'KONFLIK',

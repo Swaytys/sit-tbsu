@@ -400,7 +400,7 @@ function FormAjukan() {
               <IsianRefund
                 nilai={refund}
                 onUbah={setRefund}
-                labelTunai={langsung ? 'Tunai (laci shift saya)' : 'Tunai'}
+                labelTunai={langsung ? 'Tunai (laci toko)' : 'Tunai'}
               />
             )}
             <Input

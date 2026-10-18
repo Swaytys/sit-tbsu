@@ -528,7 +528,7 @@ export function LayarPos({
     <div className="flex h-[calc(100vh-8rem)] min-h-[560px] flex-col gap-2">
       {tanpaShift && (
         <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-800">
-          Shift belum dibuka — tunai belum bisa diterima.{' '}
+          Shift toko belum dibuka — tunai belum bisa diterima.{' '}
           <button
             type="button"
             className="font-semibold underline"
@@ -798,7 +798,7 @@ export function LayarPos({
           <div className="flex items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
             <span className="text-xs tracking-widest text-slate-300 uppercase">
               Total
-              {pratinjau.segar ? '' : ' (menghitung…)'}
+              {tr.t.baris.length > 0 && !pratinjau.segar ? ' (menghitung…)' : ''}
               {pratinjau.segar && pratinjau.data && pratinjau.data.totalDiskonPromo > 0 && (
                 <span className="ml-2 tracking-normal text-emerald-300 normal-case">
                   hemat promo {formatRupiah(pratinjau.data.totalDiskonPromo)}

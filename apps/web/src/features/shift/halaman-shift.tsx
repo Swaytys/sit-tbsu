@@ -7,7 +7,7 @@ import {
   type JenisKasManual,
   type ShiftAktif,
 } from '@sit/shared';
-import { Calculator, LockOpen, Pencil, Plus } from 'lucide-react';
+import { Calculator, LockOpen, Pencil, Plus, RotateCcw, Save } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -21,6 +21,7 @@ import {
   useHitungBuka,
   usePenjelasanSelisih,
   useShiftSaya,
+  useSimpanHitungBuka,
 } from '@/api/penjualan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { InputRupiah } from '@/components/input-rupiah';
@@ -198,9 +199,7 @@ function FormKas() {
           value={ket}
           maxLength={255}
           onChange={(e) => setKet(e.target.value)}
-          placeholder={
-            jenis === 'KASBON' ? 'Siapa & untuk apa' : 'Opsional untuk setor/tarik owner'
-          }
+          placeholder={jenis === 'KASBON' ? 'Siapa & untuk apa' : 'Opsional'}
         />
       </div>
       <Button type="submit" disabled={!nominal || catat.isPending}>
@@ -256,14 +255,45 @@ function TandaBuka({ s }: { s: Pick<BarisShift, 'waktu'> & { status?: BarisShift
   );
 }
 
-/** K-121: hitung susulan untuk shift yang dibuka dengan "hitung nanti". */
+function Baris({ label, nilai, tebal }: { label: string; nilai: string; tebal?: boolean }) {
+  return (
+    <div className={cn('flex justify-between gap-4', tebal && 'border-t pt-1 font-bold')}>
+      <span className="text-slate-600">{label}</span>
+      <span className="tabular-nums">{nilai}</span>
+    </div>
+  );
+}
+
+/**
+ * K-134: hitung susulan shift "buka dulu, hitung nanti" — hitung → hasil → hitung ulang sekali bila beda →
+ * simpan. Pola sama dengan tutup shift.
+ */
 function KartuHitungSusulan({ s }: { s: ShiftAktif }) {
   const kirim = useHitungBuka();
+  const simpan = useSimpanHitungBuka();
   const [n, setN] = useState<NilaiHitung>(HITUNG_KOSONG);
   const [yakin, setYakin] = useState(false);
+  const [ulang, setUlang] = useState(false);
   const total = totalHitung(n);
   const kini = useSekarang();
   const lewat = s.batasHitungBuka !== null && Date.parse(s.batasHitungBuka) <= kini;
+  const h = s.hitungBuka;
+  const tampilForm = h === null || ulang;
+
+  function kirimHitungan() {
+    kirim
+      .mutateAsync({ id: s.id, json: keJsonHitung(n) })
+      .then(() => {
+        setYakin(false);
+        setUlang(false);
+        setN(HITUNG_KOSONG);
+      })
+      .catch((err: unknown) => {
+        setYakin(false);
+        toast.error(pesanGalat(err));
+      });
+  }
+
   return (
     <Card
       className={cn(
@@ -272,68 +302,136 @@ function KartuHitungSusulan({ s }: { s: ShiftAktif }) {
       )}
       data-testid="hitung-susulan"
     >
-      <h2 className="flex items-center gap-2 font-semibold">
-        <Calculator className="size-4" /> Hitung uang laci (shift dibuka dengan "hitung nanti")
+      <h2 className="flex flex-wrap items-center gap-2 font-semibold">
+        <Calculator className="size-4" /> Hitung uang laci
+        <span className="text-sm font-normal text-slate-600">
+          batas {s.batasHitungBuka ? formatWaktu(s.batasHitungBuka).slice(11) : '—'}
+          {lewat && <b className="text-red-700"> (lewat)</b>}
+        </span>
       </h2>
-      <p className="text-sm text-slate-700">
-        Hitung semua uang di laci <b>sekarang</b>, termasuk uang penjualan yang sudah masuk. Sistem
-        menghitung modal sebenarnya saat buka = hasil hitungan − (tunai masuk − tunai keluar sejak
-        shift dibuka). Batas: {s.batasHitungBuka ? formatWaktu(s.batasHitungBuka).slice(11) : '—'}
-        {lewat && <b className="text-red-700"> (sudah lewat)</b>}.
-      </p>
-      <form
-        className="space-y-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (total === null) return;
-          if (!yakin) {
-            setYakin(true);
-            return;
-          }
-          kirim
-            .mutateAsync({ id: s.id, json: keJsonHitung(n) })
-            .then((h) =>
-              toast.success(
-                h.koreksiModal === 0
-                  ? 'Hitungan cocok dengan modal sementara.'
-                  : `Modal saat buka dikoreksi ${formatRupiah(h.koreksiModal)} (selisih semalam).`,
-              ),
-            )
-            .catch((err: unknown) => {
-              setYakin(false);
-              toast.error(pesanGalat(err));
-            });
-        }}
-      >
-        <InputHitungUang
-          id="susulan"
-          nilai={n}
-          onUbah={(v) => {
-            setN(v);
-            setYakin(false);
+      {tampilForm ? (
+        <form
+          className="space-y-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (total === null) return;
+            if (!yakin) setYakin(true);
+            else kirimHitungan();
           }}
-        />
-        {!yakin ? (
-          <Button type="submit" className="w-full" disabled={total === null}>
-            Kirim hitungan susulan
-          </Button>
-        ) : (
-          <div className="space-y-2 rounded-lg border-2 border-blue-300 bg-white p-3 text-sm">
-            <p>
-              Kirim hitungan <b>{formatRupiah(total ?? 0)}</b> sebagai isi laci saat ini? Hitungan
-              susulan hanya sekali; selisihnya dicatat sebagai koreksi modal dan terlihat atasan.
-            </p>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => setYakin(false)}>
-                Kembali
-              </Button>
-              <Button type="submit" autoFocus disabled={kirim.isPending}>
-                Ya, kirim
-              </Button>
+        >
+          <p className="text-sm text-slate-700">
+            Hitung <b>semua</b> uang di laci, termasuk uang penjualan tadi. Tidak perlu dipisah:
+            sistem tahu uang yang masuk dan kembalian yang keluar.
+          </p>
+          <InputHitungUang
+            id="susulan"
+            nilai={n}
+            autoFocus={ulang}
+            onUbah={(v) => {
+              setN(v);
+              setYakin(false);
+            }}
+          />
+          {!yakin ? (
+            <Button type="submit" className="w-full" disabled={total === null}>
+              {ulang ? 'Kirim hitung ulang' : 'Kirim hitungan'}
+            </Button>
+          ) : (
+            <div className="space-y-2 rounded-lg border-2 border-blue-300 bg-white p-3 text-sm">
+              <p>
+                Laci berisi <b>{formatRupiah(total ?? 0)}</b>? Hitungan ini tercatat
+                {ulang ? ' (hitung ulang terakhir).' : '.'}
+              </p>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setYakin(false)}>
+                  Kembali
+                </Button>
+                <Button type="submit" autoFocus disabled={kirim.isPending}>
+                  Ya, kirim
+                </Button>
+              </div>
             </div>
+          )}
+          {ulang && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => setUlang(false)}>
+              Batal hitung ulang
+            </Button>
+          )}
+        </form>
+      ) : (
+        <div className="space-y-3" data-testid="hasil-hitung-susulan">
+          <div className="space-y-1 rounded-lg border bg-white p-3 text-sm">
+            <Baris label="Laci dihitung" nilai={formatRupiah(h.laci)} />
+            <Baris label="− Uang masuk sejak buka" nilai={formatRupiah(h.masukSejakBuka)} />
+            <Baris label="= Modal saat buka" nilai={formatRupiah(h.modalSaatBuka)} tebal />
+            <Baris
+              label="Kemarin ditinggal"
+              nilai={h.ditinggalKemarin === null ? '—' : formatRupiah(h.ditinggalKemarin)}
+            />
           </div>
-        )}
-      </form>
+          <p
+            className={cn(
+              'rounded-md px-3 py-2 font-bold',
+              h.selisih === 0
+                ? 'bg-emerald-50 text-emerald-800'
+                : h.dalamToleransi
+                  ? 'bg-slate-100 text-slate-800'
+                  : 'bg-red-50 text-red-800',
+            )}
+            data-testid="selisih-semalam"
+          >
+            {h.selisih === 0
+              ? 'Cocok dengan uang kemarin'
+              : `Selisih semalam ${formatRupiah(h.selisih)}${h.dalamToleransi ? ' (receh)' : ''}`}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {h.bolehHitungUlang && (
+              <Button variant="outline" onClick={() => setUlang(true)}>
+                <RotateCcw /> Hitung ulang (sekali)
+              </Button>
+            )}
+            <Button
+              autoFocus
+              disabled={simpan.isPending}
+              onClick={() =>
+                void simpan
+                  .mutateAsync(s.id)
+                  .then(() => toast.success('Hitung laci disimpan; modal awal sudah benar.'))
+                  .catch((err: unknown) => toast.error(pesanGalat(err)))
+              }
+            >
+              <Save /> Simpan hasil
+            </Button>
+          </div>
+          <p className="text-xs text-slate-500">
+            {h.jumlahHitung >= 2 ? 'Sudah dihitung ulang. ' : ''}Salah hitung setelah disimpan:
+            pakai Koreksi modal.
+          </p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/** K-132: sisa shift ganda dari aturan lama (satu shift per pengguna) harus ditutup dulu. */
+function ShiftGanda({ s }: { s: ShiftAktif }) {
+  const [buka, setBuka] = useState<number | null>(null);
+  const semua = [{ id: s.id, nomor: s.nomor, namaPembuka: s.namaPembuka }, ...s.lainTerbuka];
+  return (
+    <Card className="gap-2 border-red-300 bg-red-50 p-4 text-sm text-red-900">
+      <p>
+        <b>{semua.length} shift masih terbuka</b> dari aturan lama. Toko kini memakai satu shift:
+        tutup semuanya (hitung laci), lalu buka satu shift. Uang tunai tidak bisa dicatat sampai
+        tersisa satu.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {semua.map((x) => (
+          <Button key={x.id} size="sm" variant="outline" onClick={() => setBuka(x.id)}>
+            Tutup {x.nomor} ({x.namaPembuka})
+          </Button>
+        ))}
+      </div>
+      {buka !== null && <DialogShift id={buka} onTutup={() => setBuka(null)} />}
     </Card>
   );
 }
@@ -371,10 +469,9 @@ function ShiftSaya() {
   if (!saya.data) {
     return (
       <Card className="max-w-md gap-3 p-5">
-        <h2 className="font-semibold">Belum ada shift terbuka</h2>
+        <h2 className="font-semibold">Shift toko belum dibuka</h2>
         <p className="text-sm text-slate-500">
-          Buka shift sebelum menerima uang tunai. Ada tiga cara: sama dengan uang ditinggal kemarin,
-          hitung sekarang, atau buka dulu lalu hitung nanti.
+          Uang tunai baru bisa diterima setelah shift dibuka.
         </p>
         <Button onClick={() => setDialogBuka(true)} autoFocus>
           <LockOpen /> Buka shift
@@ -393,28 +490,38 @@ function ShiftSaya() {
     );
   }
   const modal = s.modalAwal + s.koreksiModal;
+  const menungguHitung = s.batasHitungBuka !== null;
   return (
     <div className="space-y-4">
-      {s.batasHitungBuka && <KartuHitungSusulan s={s} />}
-      <div className="grid gap-4 lg:grid-cols-[1fr_24rem]">
+      {s.lainTerbuka.length > 0 && <ShiftGanda s={s} />}
+      {menungguHitung && <KartuHitungSusulan s={s} />}
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card className="gap-3 p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-semibold">
-              Shift {s.nomor} <TandaBuka s={{ waktu: s }} />
+              Shift toko {s.nomor} <TandaBuka s={{ waktu: s }} />
             </h2>
             <span className="text-sm text-slate-500">
-              dibuka {formatWaktu(s.waktuBuka)} · modal {formatRupiah(modal)}
+              dibuka {s.namaPembuka}, {formatWaktu(s.waktuBuka)} · modal {formatRupiah(modal)}
               {s.koreksiModal !== 0 && ` (dikoreksi ${formatRupiah(s.koreksiModal)})`}
               {s.jadwalTutup && ` · jadwal tutup ${s.jadwalTutup}`}
             </span>
           </div>
           <div>
-            <Button variant="outline" size="sm" onClick={() => setKoreksi(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={menungguHitung}
+              onClick={() => setKoreksi(true)}
+            >
               <Pencil /> Koreksi modal
             </Button>
             <span className="ml-2 text-xs text-slate-500">
-              Untuk salah ketik modal awal.
-              {s.adaTransaksiTunai && !atasan && ' Sudah ada transaksi tunai: butuh kode atasan.'}
+              {menungguHitung
+                ? 'Tersedia setelah hitung laci disimpan.'
+                : s.adaTransaksiTunai && !atasan
+                  ? 'Salah ketik modal. Sudah ada transaksi tunai: butuh kode atasan.'
+                  : 'Salah ketik modal.'}
             </span>
           </div>
           {koreksi && (
@@ -422,9 +529,9 @@ function ShiftSaya() {
           )}
           {s.terlewat && (
             <p className="rounded-md border border-red-300 bg-red-50 p-2 text-sm text-red-800">
-              Shift ini dari tanggal {formatTanggal(s.tanggalOperasional)} dan belum ditutup. Selama
-              belum ditutup Anda tidak bisa mencatat penjualan atau kas. Hitung uang di laci, isi di
-              kotak <b>Tutup shift & clerical check</b>, lalu buka shift baru.
+              Shift tanggal {formatTanggal(s.tanggalOperasional)} belum ditutup. Uang tunai tidak
+              bisa dicatat sampai ditutup: hitung laci di kotak <b>Tutup shift</b>, lalu buka shift
+              baru.
             </p>
           )}
           <h3 className="text-sm font-semibold text-slate-700">
@@ -434,7 +541,7 @@ function ShiftSaya() {
           {detail.data && <DaftarKas d={detail.data} />}
         </Card>
         <Card className="gap-3 p-5">
-          <h2 className="font-semibold">Tutup shift & clerical check</h2>
+          <h2 className="font-semibold">Tutup shift</h2>
           <AlurTutupShift idShift={s.id} status="BUKA" onSelesai={setHasil} />
         </Card>
       </div>
@@ -476,15 +583,15 @@ function FormPenjelasan({ id }: { id: number }) {
 function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
   const d = useDetailShift(id).data;
   const saya = usePengguna();
-  // K6: pemilik shift, atau pemegang `kas.shift.lihat_semua` (kasir lupa menutup), boleh menutup.
+  // K-132: shift toko bisa ditutup siapa pun yang punya akses halaman ini.
   const semua = saya.izin.includes('kas.shift.lihat_semua');
-  const bolehTutup = d !== undefined && d.status !== 'TUTUP' && (d.idKasir === saya.id || semua);
+  const bolehTutup = d !== undefined && d.status !== 'TUTUP';
   return (
     <Dialog open onOpenChange={(b) => !b && onTutup()}>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>
-            Shift {d?.nomor} · {d?.namaKasir}
+            Shift {d?.nomor} · dibuka {d?.namaKasir}
           </DialogTitle>
         </DialogHeader>
         {!d ? (
@@ -519,20 +626,10 @@ function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
             )}
             {bolehTutup && (
               <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
-                <h3 className="text-sm font-semibold text-amber-900">
-                  Tutup shift ini{d.idKasir !== saya.id ? ` (milik ${d.namaKasir})` : ''}
-                </h3>
-                {d.idKasir !== saya.id && (
-                  <p className="text-xs text-amber-900">
-                    Dipakai bila kasirnya lupa menutup atau tidak ada di toko. Hitung sendiri uang
-                    di laci kasir itu lalu isi di bawah. Shift tercatat ditutup oleh Anda; kasir itu
-                    bisa membuka shift baru sesudahnya.
-                  </p>
-                )}
+                <h3 className="text-sm font-semibold text-amber-900">Tutup shift ini</h3>
                 <AlurTutupShift
                   idShift={d.id}
                   status={d.status === 'DIHITUNG' ? 'DIHITUNG' : 'BUKA'}
-                  milikSendiri={d.idKasir === saya.id}
                   onSelesai={() => toast.success(`Shift ${d.nomor} ditutup.`)}
                 />
               </div>
@@ -545,7 +642,6 @@ function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
 }
 
 function Riwayat() {
-  const semua = usePengguna().izin.includes('kas.shift.lihat_semua');
   const [url] = useSearchParams();
   const [halaman, setHalaman] = useState(1);
   const [selisih, setSelisih] = useState(false);
@@ -574,7 +670,7 @@ function Riwayat() {
         </button>
       ),
     },
-    ...(semua ? [{ kunci: 'kasir', judul: 'Kasir', sel: (s: BarisShift) => s.namaKasir }] : []),
+    { kunci: 'kasir', judul: 'Dibuka oleh', sel: (s: BarisShift) => s.namaKasir },
     { kunci: 'tanggal', judul: 'Tanggal', sel: (s) => formatTanggal(s.tanggalOperasional) },
     {
       kunci: 'waktu',
@@ -653,11 +749,7 @@ function Riwayat() {
           />
           Hanya yang perlu ditutup (lewat jam tutup atau lewat hari)
         </label>
-        {semua && (
-          <span className="ml-auto text-xs text-slate-500">
-            Klik nomor shift untuk melihat rinciannya; shift yang masih buka bisa ditutup dari sana.
-          </span>
-        )}
+        <span className="ml-auto text-xs text-slate-500">Klik nomor shift untuk rinciannya.</span>
       </div>
       <DataTable
         kolom={kolom}
@@ -679,7 +771,6 @@ function Riwayat() {
 export function HalamanShift() {
   const [url, setUrl] = useSearchParams();
   const izin = usePengguna().izin;
-  const semua = izin.includes('kas.shift.lihat_semua');
   // K-111: pengecekan uang masuk non-tunai, pasangan clerical check untuk uang yang tidak lewat laci.
   const bolehCek = izin.includes('kas.nontunai.verifikasi');
   const diminta = url.get('tab');
@@ -690,70 +781,44 @@ export function HalamanShift() {
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1 basis-80">
           <h1 className="text-xl font-semibold text-slate-900">Shift & Clerical Check</h1>
-          <p className="text-sm text-slate-500">
-            Rekonsiliasi uang dengan catatan sistem: uang tunai di laci (shift) dan uang non-tunai
-            di rekening.
-          </p>
+          <p className="text-sm text-slate-500">Cocokkan uang laci dan rekening dengan catatan.</p>
         </div>
-        <Penjelasan judul="Cara kerja shift dan clerical check">
+        <Penjelasan judul="Cara kerja shift">
           <ButirPenjelasan>
             <li>
-              <b>Shift</b> = masa seorang kasir memegang laci uang. Dibuka dengan mengisi modal awal
-              di laci; semua uang tunai yang diterima atau dikeluarkan kasir itu tercatat di
-              shiftnya.
+              <b>Shift</b> = masa satu laci toko dipakai, dari buka sampai tutup. Hanya ada{' '}
+              <b>satu shift terbuka</b>; siapa pun yang berizin boleh membuka dan menutupnya. Setiap
+              uang tunai tercatat di shift itu beserta nama pencatatnya.
             </li>
             <li>
-              <b>Buka shift, tiga cara</b>: (1) <i>sama dengan uang ditinggal kemarin</i> bila laci
-              tidak disentuh sejak shift terakhir ditutup; (2) <i>hitung sekarang</i>, per pecahan
-              atau ketik total; (3) <i>buka dulu, hitung nanti</i> bila toko sudah ramai: hitung
-              uang laci dalam batas waktu, lalu sistem menghitung modal sebenarnya saat buka = hasil
-              hitungan − (tunai masuk − tunai keluar sejak buka). Contoh: kemarin ditinggal Rp
-              150.000; pukul 08.40 laci berisi Rp 160.000; sejak buka ada penjualan tunai Rp 20.000
-              dan kasbon Rp 5.000 (bersih Rp 15.000) → modal saat buka Rp 145.000, jadi semalam
-              berkurang Rp 5.000. Selisih semalam ini dicatat dan terlihat Owner.
+              <b>Buka shift</b>: <i>Pakai uang kemarin</i> (laci tidak disentuh),{' '}
+              <i>Hitung sekarang</i>, atau <i>Buka dulu, hitung nanti</i> (toko sudah ramai).
             </li>
             <li>
-              <b>Salah ketik modal?</b> Pakai <i>Koreksi modal</i>. Sebelum ada transaksi tunai
-              boleh sendiri; sesudahnya butuh kode Admin/Owner. Angka lama tidak dihapus.
+              <b>Hitung nanti</b>: hitung semua uang laci, tanpa memisah uang penjualan. Contoh:
+              laci Rp 160.000 − masuk sejak buka Rp 15.000 = modal saat buka Rp 145.000. Kemarin
+              ditinggal Rp 150.000 → selisih semalam −Rp 5.000 (tercatat untuk Owner). Beda besar:
+              hitung ulang sekali, lalu simpan.
             </li>
             <li>
-              <b>Tutup shift = clerical check, dua langkah</b>: (1) hitung uang di laci dan kirim
-              tanpa melihat angka sistem; hitungan ini tercatat dan shift berhenti menerima uang.
-              (2) Sistem menampilkan saldo menurut catatan, <b>selisih</b>, tinjauan shift (semua
-              uang masuk/keluar), dan <b>bantuan mencari selisih</b>. Bila selisih di luar toleransi
-              Anda boleh hitung ulang <b>sekali</b> (kedua hitungan tercatat), lalu keterangan
-              wajib. Isi uang yang ditinggal di laci untuk besok; sisanya disetor.
+              <b>Salah ketik modal</b>: Koreksi modal. Setelah ada transaksi tunai butuh kode
+              atasan.
             </li>
             <li>
-              <b>Selisih receh</b>: selisih sampai batas toleransi (Pengaturan › Operasional, bawaan
-              Rp 1.000) tidak dianggap masalah dan tidak perlu keterangan.
+              <b>Tambah uang laci</b> (mis. receh habis) dan <b>setor ke owner</b>: catat di Kas
+              masuk / keluar. Bukan penjualan.
             </li>
             <li>
-              <b>Sebab selisih ditemukan setelah shift ditutup?</b> Admin/Owner menulis penjelasan
-              di rincian shift (tab Semua shift); angka tetap, selisih ditandai terjelaskan.
+              <b>Tutup shift</b>: (1) hitung laci tanpa melihat angka sistem, kirim; (2) lihat
+              selisih, tinjauan, dan bantuan mencari selisih; hitung ulang sekali bila perlu; isi
+              keterangan bila selisih di atas toleransi; isi uang ditinggal untuk besok.
             </li>
             <li>
-              <b>Sistem tidak pernah menutup shift sendiri</b>, karena menutup butuh hitungan uang
-              sungguhan. Yang dilakukan sistem adalah mengingatkan dan, bila perlu, mengunci.
+              <b>Pembeli datang setelah tutup</b>: buka shift baru (Pakai uang kemarin, 1 Enter).
             </li>
             <li>
-              <b>Jadwal shift</b> (diatur Admin/Owner di Pengaturan › Operasional): 15 menit sebelum
-              jam tutup muncul pengingat; setelah jam tutup lewat muncul peringatan kuning dan
-              Admin/Owner diberi tahu lewat lonceng dan Telegram/email. Penjualan masih bisa.
-            </li>
-            <li>
-              <b>Shift terlewat</b> = shift dari hari sebelumnya yang belum ditutup (tanda merah).
-              Pemiliknya <b>tidak bisa mencatat penjualan atau kas</b> sampai shift itu ditutup,
-              supaya satu shift tidak memuat uang beberapa hari.
-            </li>
-            <li>
-              <b>Kasir lupa menutup atau tidak ada di toko?</b> Admin/Owner membuka tab Semua shift,
-              mengeklik nomor shiftnya, menghitung uang di laci kasir itu, lalu mengisi bagian{' '}
-              <i>Tutup shift ini</i>. Shift tercatat ditutup oleh Admin/Owner tersebut.
-            </li>
-            <li>
-              Shift yang sudah ditutup tidak bisa dibuka lagi. Koreksi dicatat di shift berikutnya
-              lewat kas masuk/keluar lain dengan keterangan.
+              <b>Shift kemarin belum ditutup</b>: uang tunai terkunci sampai ditutup. Sistem tidak
+              pernah menutup shift sendiri.
             </li>
           </ButirPenjelasan>
         </Penjelasan>
@@ -763,8 +828,8 @@ export function HalamanShift() {
         onValueChange={(v) => setUrl(v === 'saya' ? {} : { tab: v }, { replace: true })}
       >
         <TabsList>
-          <TabsTrigger value="saya">Shift saya</TabsTrigger>
-          <TabsTrigger value="riwayat">{semua ? 'Semua shift' : 'Riwayat'}</TabsTrigger>
+          <TabsTrigger value="saya">Shift toko</TabsTrigger>
+          <TabsTrigger value="riwayat">Riwayat</TabsTrigger>
           {bolehCek && <TabsTrigger value="nontunai">Cek uang non-tunai</TabsTrigger>}
         </TabsList>
         <TabsContent value="saya">

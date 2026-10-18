@@ -42,6 +42,7 @@ export const ARAH_JENIS_KAS: Record<JenisKasShift, ArahKas> = {
   KELUAR_LAIN: 'KELUAR',
   KOREKSI_MODAL_TAMBAH: 'MASUK',
   KOREKSI_MODAL_KURANG: 'KELUAR',
+  KEMBALIAN_DITINGGAL: 'MASUK',
 };
 
 /** Jenis kas yang merupakan koreksi modal awal (K-121): dihitung ke modal efektif, bukan kas masuk/keluar lain. */

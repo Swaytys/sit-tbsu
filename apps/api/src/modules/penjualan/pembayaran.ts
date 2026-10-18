@@ -11,7 +11,7 @@ import { AppError } from '../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { sekarang, tanggalOperasional } from '../../lib/waktu';
 import { rekeningUntukBayar } from '../kas/rekening/service';
-import { shiftUntukCatat } from '../kas/shift/service';
+import { catatKas, shiftUntukCatat } from '../kas/shift/service';
 import { ambilTeks } from '../sistem/konfigurasi/service';
 import { catatLog } from '../sistem/log-aktivitas';
 import { terbitkanNomor } from '../sistem/penomoran';
@@ -59,7 +59,7 @@ export async function catatPembayaran(
   let nilai: NilaiTagihan = { ...pj };
   if (daftar.length === 0) return { ...nilai, statusPembayaran: statusPembayaran(nilai) };
 
-  const shift = await shiftUntukCatat(tx, pelaku.id);
+  const shift = await shiftUntukCatat(tx);
   const wajibShift = (await ambilTeks('checkout_wajib_shift', 'true', tx)) === 'true';
   const tanggal = tanggalOperasional();
   for (const [i, p] of daftar.entries()) {
@@ -123,6 +123,16 @@ export async function catatPembayaran(
       // Uang non-tunai belum tentu sudah sampai: menunggu dicek atasan (K-111).
       statusVerifikasi: tunai ? null : 'BELUM_DICEK',
     });
+    // K-141: kembalian tidak diambil pembeli tetap di laci; dicatat kas masuk khusus (bukan penjualan).
+    const kembalian = uangDiterima === null ? 0 : uangDiterima - nominal;
+    if (tunai && p.kembalianTidakDiambil && kembalian > 0) {
+      await catatKas(tx, {
+        jenis: 'KEMBALIAN_DITINGGAL',
+        nominal: kembalian,
+        pelaku,
+        keterangan: `${pj.nomor} (${nomor})`,
+      });
+    }
     await catatLog(tx, {
       aksi: 'PEMBAYARAN_CATAT',
       idPengguna: pelaku.id,

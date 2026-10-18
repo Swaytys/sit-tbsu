@@ -16,11 +16,29 @@ sebagian sudah dicoba.
 
 ## Belum dicoba / perlu dicoba ulang
 
+### Satu shift toko dan perbaikan uji (19 Oktober, K-132–K-142)
+
+**Penting sebelum mencoba:** di database Anda ada 3 shift terbuka dari aturan lama (Owner, Admin, Kasir). Buka
+*Shift & Clerical Check*: kotak merah menampilkan semuanya. Tutup semuanya dulu (hitung laci), lalu buka satu
+shift.
+
+| No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
+|---|---|---|---|---|---|
+| U35 | Satu shift toko | Kasir membuka shift; lalu login Admin di jendela lain dan coba **Buka shift** | Admin ditolak: "Shift toko SHF-… sudah dibuka Demo Kasir"; penjualan tunai Admin masuk shift yang sama | Belum | |
+| U36 | Indikator shift untuk Staf | Login **Staf** | Di atas layar tampil *Shift buka* / *Shift tutup* | Belum | |
+| U37 | Hitung nanti dua langkah | **Buka shift** → `N` → `Enter` → jual tunai → di kotak *Hitung uang laci* isi laci (sengaja beda) → **Kirim hitungan** → **Ya, kirim** | Hasil berangka: laci − uang masuk = modal saat buka, dibanding uang kemarin; **Hitung ulang (sekali)**; **Simpan hasil**; Koreksi modal baru aktif setelah disimpan | Belum | |
+| U38 | Hitung per pecahan | Di kotak hitung: ketik angka, `↑` `↓`, `+` `−`, `Del`, `Shift+Del`, tombol −/+ dan × | Pindah/ubah/kosongkan sesuai tombol; tombol −/+/× tidak ikut `Tab` | Belum | |
+| U39 | Tutup shift dengan order di antrean | Staf mengirim 1 order ke antrean; lalu buka kotak *Tutup shift* | Kotak "1 order belum selesai" dengan pilihan **Simpan nanti / Ke draf / Batalkan** (dan **Ke antrean** bila sedang di kasir) | Belum | Pengganti U34 |
+| U40 | Retur menunggu saat tutup | Ajukan retur tunai (jangan disetujui), lalu lihat kotak *Tutup shift* | Kotak biru "retur/void menunggu persetujuan"; uangnya belum dihitung keluar | Belum | |
+| U41 | Kembalian tidak diambil | Di kasir: barang Rp 62.000, uang 100.000 → tekan `K` → bayar; lalu lihat kas di halaman Shift | Kembalian tercoret; kas "Kembalian tidak diambil Rp 38.000" tercatat; omzet tetap Rp 62.000 | Belum | |
+| U42 | Kode atasan dilanjutkan | Koreksi modal setelah ada transaksi tunai → **Minta persetujuan…** → **Kirim kode ke atasan** → `Esc` → **Minta persetujuan…** lagi | Langsung ke isian kode ("berlaku sampai …"), tanpa kirim kode baru | Belum | |
+| U43 | Notifikasi bisa digulir | Klik lonceng saat notifikasi banyak | Daftar bisa digulir sampai bawah | Belum | Rincian tiap notifikasi dan bagian dashboard menyusul (K-131) |
+
 ### Order disimpan, kembali ke draf, draf lain (18 Oktober, K-122)
 
 | No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
 |---|---|---|---|---|---|
-| U30 | Kasir memproses order disimpan | Login **Kasir** → *Penjualan Langsung*: di atas antrean tertulis "1 disimpan" → klik → pilih order → **Proses ke pembayaran** | Order terbuka di layar kasir dan bisa dibayar seperti order antrean | Masalah | 18 Okt: tombol *Proses ke pembayaran* tidak terlihat (terpotong); tombol *Kirim ke antrean (F8)* di input cepat juga terpotong. Diperbaiki di K-129 |
+| U30 | Kasir memproses order disimpan (coba ulang) | Login **Kasir** → *Penjualan Langsung*: di atas antrean tertulis "1 disimpan" → klik → pilih order → **Proses ke pembayaran** | Order terbuka di layar kasir dan bisa dibayar seperti order antrean | Masalah | 18 Okt: tombol *Proses ke pembayaran* tidak terlihat (terpotong); tombol *Kirim ke antrean (F8)* di input cepat juga terpotong. Diperbaiki di K-129 |
 | U34 | Tutup shift dengan order dipegang | Kasir membuka satu order dari antrean (jangan dibayar), lalu ke *Shift & Clerical Check* | Kotak kuning "1 order masih Anda pegang" dengan tombol Ke antrean / Simpan untuk nanti / Ke draf / Batalkan | Masalah | 18 Okt: order yang masih di antrean tidak ditampilkan, shift tetap bisa ditutup tanpa peringatan. Diubah di K-133: semua order belum selesai ditampilkan |
 
 ### Shift & Clerical Check baru (18 Oktober, K-121)
@@ -87,3 +105,4 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-18 — Dibuat atas permintaan pemilik: daftar uji 17 Oktober (U1–U17) dan shift baru K-121 (U18–U27).
 - 2026-10-18 — U28–U34 order disimpan, kembali ke draf, peringatan draf lain (K-122).
 - 2026-10-18 — Hasil uji pemilik: U17–U21, U28, U29, U31–U33 OK; U30, U34 Masalah; masukan dicatat K-128–K-145.
+- 2026-10-19 — U35–U43 satu shift toko dan perbaikan uji (K-132–K-142); U30 diperbaiki, coba ulang.

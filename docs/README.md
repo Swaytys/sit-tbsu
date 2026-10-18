@@ -18,7 +18,7 @@ Nama repo: `sit-tbsu`. Nama tampil di aplikasi: **BonsaiUrip** (K-044).
 | `07-roadmap.md` | Milestone M1/M2, 12 fase, deliverable dan definisi selesai per fase, status; rencana Fase 13 | Awal setiap fase; diperbarui di akhir fase |
 | `08-backlog.md` | Usulan di luar fase: v2.0.0 (produktivitas, peran kustom, keuangan ringan, perbaikan) dan v3.0.0 | Saat ada usulan baru; sebelum merencanakan versi berikut |
 | `09-keamanan.md` | Checklist keamanan (OWASP dasar) beserta bukti tiap butir | Setiap rilis dan setiap modul baru |
-| `10-ringkasan-keputusan.md` | Ringkasan seluruh keputusan K-001 s.d. K-127: garis waktu, yang berlaku sekarang per topik, keputusan yang diganti, daftar lengkap | Saat ingin gambaran utuh tanpa membaca 28 berkas keputusan |
+| `10-ringkasan-keputusan.md` | Ringkasan seluruh keputusan K-001 s.d. K-145: garis waktu, yang berlaku sekarang per topik, keputusan yang diganti, daftar lengkap | Saat ingin gambaran utuh tanpa membaca 29 berkas keputusan |
 | `11-riwayat-teknis.md` | Riwayat teknis runtut: kerangka bersama (ledger, izin, penomoran, log, tes) lalu apa yang dibangun di setiap tahap dan bagaimana; ditambah setiap fitur baru (K-118) | Saat perlu memahami cara kerja dan sejarah teknis aplikasi |
 | `12-anomali-alur-kerja.md` | Katalog anomali alur kerja per fitur (salah ketik, urutan terbalik, lupa, curang) dengan jawaban atasi, cegah, ajari dan statusnya (K-120) | Sebelum merancang atau mengubah fitur; setiap fitur baru menambah barisnya |
 | `UJI-PEMILIK.md` | Daftar hal yang perlu dicoba pemilik (U1, U2, …) dengan langkah, hasil yang diharapkan, dan status | Setiap selesai fitur (baris baru) dan setiap pemilik melapor hasil uji |
@@ -80,16 +80,16 @@ Jangan pakai mode auto-accept.
 | CLAUDE.md | Final v1 | 2026-09-19 |
 | 01-ikhtisar-sistem.md | Final v1 (§5.1 alur cepat order → kasir, K-073; laporan Fase 9) | 2026-10-04 |
 | 02-arsitektur.md | Final v1 (versi paket dikunci, K-050; + decimal.js, exceljs; layar POS & siaran, K-073; dokumen laporan, K-078; deploy & cadangan, K-082–K-084; model galat & pola bersama, K-100; saluran pesan & struk ESC/POS, K-102–K-105; modul rekening & non-tunai, penyiapan e2e, pekerjaan berkala, K-106–K-111) | 2026-10-12 |
-| 03-skema-database-v3 (.md + .sql) | Final v3.18 (.sql = v3.1 migrasi 0000; v3.2–v3.18 lewat migrasi 0001–0021) | 2026-10-18 |
+| 03-skema-database-v3 (.md + .sql) | Final v3.19 (.sql = v3.1 migrasi 0000; v3.2–v3.19 lewat migrasi 0001–0022) | 2026-10-18 |
 | 04-hak-akses.md | Final v1 (+ izin `master.pelanggan.atur_kredit`, K-059; nilai persediaan, K-081; Tinjau Harga, K-086; menu Fase 10, K-088; persetujuan di tempat, K-099; batas laju, K-100; limit kredit di tempat, K-101; kode sekali pakai, K-102; ubah pelanggan dengan kode, K-107; izin rekening & cek non-tunai, K-111; koreksi modal dengan kode, K-121) | 2026-10-18 |
 | 05-aturan-bisnis-inti.md | Final v1 (§16 PENYESUAIAN_UBAH; §14 tukar retur netral, K-079; L6 → H5/H7, K-086; A5 MUSNAH, K-088; V1 setoran, K-089; K9–K11 shift, K-109; K12–K14 rekening & cek non-tunai, P8, K-111; §17 rekomendasi pesan, K-113; K15–K24 shift, K-121; R11–R14 order disimpan, K-122) | 2026-10-18 |
 | 06-harga-piutang-hutang.md | Final v1 (H4–H8, H12, D1–D2, PR3–PR7, HT7 dirinci, K-086–K-087; PT5–PT6, HT2–HT3, RP5, SR4, K-088; KS5–KS6, K-089; tier nilai belanja & promo pembeli, K-097–K-099; PR10–PR11 anggaran promo, K-110) | 2026-10-12 |
 | 07-roadmap.md | Final v1 (Fase 8 siap uji coba toko; Fase 9–12 selesai, tinjauan pemilik K-092–K-112; Fase 14 aktif dengan lingkup K-120–K-127; Fase 13 belum aktif) | 2026-10-18 |
 | 09-keamanan.md | Hidup (checklist OWASP dasar, K-083; review kedua, K-100; review ketiga, K-106–K-111) | 2026-10-12 |
 | 08-backlog.md | Hidup (v2.0.0, v3.0.0; temuan tinjauan kode D-K1–D-K12; A12 payment gateway; F8 katalog bergambar) | 2026-10-12 |
-| 11-riwayat-teknis.md | Hidup (v1, sampai order disimpan dan kembali ke draf) | 2026-10-18 |
+| 11-riwayat-teknis.md | Hidup (v1, sampai satu shift toko) | 2026-10-18 |
 | 12-anomali-alur-kerja.md | Hidup (v1: shift S1–S21, order O1–O5, penjualan P1–P3) | 2026-10-18 |
-| 10-ringkasan-keputusan.md | Hidup (ringkasan K-001 s.d. K-127) | 2026-10-18 |
+| 10-ringkasan-keputusan.md | Hidup (ringkasan K-001 s.d. K-145) | 2026-10-18 |
 | UJI-PEMILIK.md | Hidup (U1–U34) | 2026-10-18 |
 | LAPORAN-FITUR-APLIKASI.md | Hidup (inventaris fitur dari kode; diperbarui tiap fitur, terakhir shift K-121) | 2026-10-18 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
@@ -120,6 +120,7 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-10-14-pendukung-keputusan-tablet.md | Final (K-113) | 2026-10-14 |
 | keputusan/2026-10-17-tinjauan-pemilik.md | Final (K-114–K-119) | 2026-10-17 |
 | keputusan/2026-10-18-tinjauan-pemilik.md | Final (K-120–K-127) | 2026-10-18 |
+| keputusan/2026-10-18-uji-pemilik-lanjutan.md | Final (K-128–K-145) | 2026-10-18 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |
 | panduan/fase-8-pasang-server.md | Final v1 (server toko Windows, Tailscale, cadangan, pemulihan) | 2026-10-04 |
 | panduan/fase-8-uji-coba.md | Final v1 (persiapan, skenario, daftar temuan) | 2026-10-04 |

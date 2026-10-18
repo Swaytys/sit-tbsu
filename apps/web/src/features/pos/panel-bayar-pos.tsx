@@ -111,6 +111,8 @@ export function PanelBayarPos({
   const [daftar, setDaftar] = useState<DataPembayaran[]>([]);
   const [galat, setGalat] = useState('');
   const [pilihan, setPilihan] = useState<RencanaBayar>('LUNAS');
+  /** K-141: pembeli tidak mengambil kembaliannya (dicatat kas masuk khusus, bukan penjualan). */
+  const [kembalianDitinggal, setKembalianDitinggal] = useState(false);
 
   // Pelunasan piutang (halaman Piutang) boleh sebagian tanpa memilih cara bayar: nominalnya sendiri jelas.
   const pakaiRencana = bolehKurang && mode !== 'pelunasan';
@@ -185,6 +187,7 @@ export function PanelBayarPos({
       rekening: tunai || idRekening !== null ? null : rekening.trim(),
       referensi: tunai ? null : referensi.trim() || null,
       catatan: null,
+      kembalianTidakDiambil: tunai && kembalianDitinggal && kembalian > 0,
     };
   }
 
@@ -269,6 +272,9 @@ export function PanelBayarPos({
     } else if (k === 'c') {
       e.preventDefault();
       campuran();
+    } else if (k === 'k' && tunai && kembalian > 0) {
+      e.preventDefault();
+      setKembalianDitinggal((v) => !v);
     } else if (k === 'd' && mode === 'langsung' && onDitinggal) {
       e.preventDefault();
       onDitinggal(!ditinggal);
@@ -490,9 +496,36 @@ export function PanelBayarPos({
 
       {/* Kembalian hanya ada pada pembayaran penuh; DP diterima sebesar jumlahnya. */}
       {rencana === 'LUNAS' && (
-        <div className="flex items-end justify-between">
+        <div className="flex items-end justify-between gap-2">
           <span className="text-sm text-slate-500">Kembalian</span>
-          <span className="text-2xl font-black text-blue-700 tabular-nums" data-testid="kembalian">
+          {tunai && kembalian > 0 && (
+            <label
+              className={cn(
+                'flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs',
+                kembalianDitinggal
+                  ? 'border-amber-400 bg-amber-50 font-semibold text-amber-900'
+                  : 'text-slate-600',
+              )}
+              title="Pembeli tidak mengambil kembaliannya. Dicatat sebagai uang masuk laci, bukan penjualan."
+            >
+              <input
+                type="checkbox"
+                tabIndex={-1}
+                checked={kembalianDitinggal}
+                onChange={(e) => setKembalianDitinggal(e.target.checked)}
+              />
+              tidak diambil <kbd className="font-mono opacity-70">K</kbd>
+            </label>
+          )}
+          <span
+            className={cn(
+              'ml-auto text-2xl font-black tabular-nums',
+              kembalianDitinggal && tunai && kembalian > 0
+                ? 'text-slate-400 line-through'
+                : 'text-blue-700',
+            )}
+            data-testid="kembalian"
+          >
             {formatRupiah(kembalian)}
           </span>
         </div>

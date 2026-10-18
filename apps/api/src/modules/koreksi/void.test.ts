@@ -105,12 +105,11 @@ beforeEach(async () => {
     ],
   });
   await kirim(admin, `/api/penyesuaian/${sa.id}/selesai`);
-  await kirim(kasir, '/api/shift/buka', { modalAwal: 100000 });
-  await kirim(admin, '/api/shift/buka', { modalAwal: 100000 });
+  await kirim(kasir, '/api/shift/buka', { modalAwal: 100000 }); // satu shift toko (K-132)
 });
 
 describe('void transaksi (docs/05 §9)', () => {
-  it('V3/V4/V5 Kasir mengajukan item → tanpa efek; Admin menyetujui: stok kembali, total_void, refund tunai dari laci penyetuju', async () => {
+  it('V3/V4/V5 Kasir mengajukan item → tanpa efek; Admin menyetujui: stok kembali, total_void, refund tunai dari laci toko', async () => {
     const pj = await jual(
       kasir,
       [
@@ -165,7 +164,7 @@ describe('void transaksi (docs/05 §9)', () => {
       statusPembayaran: 'LUNAS',
     });
     expect(d.baris.find((b) => b.id === semen.id)?.statusItem).toBe('VOID');
-    // V5/K2: refund tunai keluar dari laci shift Admin (penyetuju), bukan shift kasir.
+    // V5/K2 + K-132: refund tunai keluar dari laci shift toko (satu-satunya shift terbuka).
     const sAdmin = await ambil<ShiftAktif>(admin, '/api/shift/saya');
     const dShift = await ambil<DetailShift>(admin, `/api/shift/${sAdmin.id}`);
     expect(dShift.kas.map((k) => [k.jenis, k.nominal, k.nomorDokumen])).toEqual([

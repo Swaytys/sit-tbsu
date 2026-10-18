@@ -24,7 +24,7 @@ async function barangUji(page: Page, nama: string, harga: number, stok: string) 
   return b;
 }
 
-type OrderRingkas = { id: number; status: string; namaPembeli: string | null };
+type OrderRingkas = { id: number; nomor: string; status: string; namaPembeli: string | null };
 
 async function batalkanDraf(page: Page) {
   const draf = await api<OrderRingkas[]>(page, '/order?status=DRAFT&milikSaya=true&perHalaman=100');
@@ -109,6 +109,8 @@ test('Order disimpan untuk nanti, kasir mengembalikannya ke draf, peringatan dra
     }); // 409 bila sudah terbuka: diabaikan
     await kasir.goto('/order?status=DISIMPAN');
     await kasir.getByRole('button', { name: new RegExp(pembeli) }).click();
+    // Panel kanan harus sudah menampilkan order ini sebelum tombolnya diklik.
+    await expect(kasir.getByRole('heading', { name: `Order ${disimpan!.nomor}` })).toBeVisible();
     await expect(kasir.getByText(/Diambil \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
     await kasir.getByRole('button', { name: 'Proses ke pembayaran' }).click();
     await expect(kasir.getByTestId('total-pos')).toHaveText('Rp 4.000');
@@ -116,8 +118,9 @@ test('Order disimpan untuk nanti, kasir mengembalikannya ke draf, peringatan dra
     await expect(kasir.getByRole('dialog', { name: /mau diapakan/ })).toBeVisible();
     await kasir.keyboard.press('d');
     await expect(kasir.getByText(/dikembalikan ke draf/)).toBeVisible();
-    const drafStaf = await api<OrderRingkas[]>(staf, '/order?status=DRAFT&milikSaya=true');
-    expect(drafStaf.map((o) => o.id)).toContain(disimpan!.id);
+    await expect
+      .poll(async () => (await api<OrderRingkas>(staf, `/order/${disimpan!.id}`)).status)
+      .toBe('DRAFT');
     expect((await api<{ stokTersedia: string }>(admin, `/barang/${paku.id}`)).stokTersedia).toBe(
       '5.000',
     );

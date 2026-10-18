@@ -65,6 +65,7 @@ const kolom = {
   clcDijelaskanOleh: sql<string | null>`(select p.nama_pengguna from ${pengguna} p
     where p.id = ${kolomPenuh(clericalCheck.dijelaskanOleh)})`,
   caraBuka: shiftKasir.caraBuka,
+  hitungBukaPada: shiftKasir.hitungBukaPada,
 };
 
 function dasar(ex: Executor) {
@@ -179,6 +180,8 @@ export async function kunci(tx: Tx, id: number) {
       caraBuka: shiftKasir.caraBuka,
       hitungBukaPada: shiftKasir.hitungBukaPada,
       tanggalOperasional: shiftKasir.tanggalOperasional,
+      modalUsulan: shiftKasir.modalUsulan,
+      waktuBuka: shiftKasir.waktuBuka,
     })
     .from(shiftKasir)
     .where(eq(shiftKasir.id, id))
@@ -357,11 +360,68 @@ export async function tutup(tx: Tx, id: number, waktu: Date) {
     .where(eq(shiftKasir.id, id));
 }
 
-/** K6: order yang masih DIPROSES kasir ini kembali ke antrean saat shift ditutup. */
-export async function lepasOrderKasir(tx: Tx, idKasir: number, waktu: Date) {
+/** K6 + K-132: semua order yang masih DIPROSES (kasir mana pun) kembali ke antrean saat shift toko ditutup. */
+export async function lepasOrderDiproses(tx: Tx, waktu: Date) {
   return tx
     .update(orderPenjualan)
     .set({ status: 'MENUNGGU', idKasirProses: null, diubahPada: waktu })
-    .where(and(eq(orderPenjualan.status, 'DIPROSES'), eq(orderPenjualan.idKasirProses, idKasir)))
+    .where(eq(orderPenjualan.status, 'DIPROSES'))
     .returning({ nomor: orderPenjualan.nomor });
+}
+
+/** K-132: semua shift yang belum ditutup (seharusnya paling banyak satu), urut paling lama dibuka. */
+export function shiftTerbuka(ex: Executor) {
+  return ex
+    .select({
+      id: shiftKasir.id,
+      nomor: shiftKasir.nomor,
+      status: shiftKasir.status,
+      tanggalOperasional: shiftKasir.tanggalOperasional,
+      waktuBuka: shiftKasir.waktuBuka,
+      modalAwal: shiftKasir.modalAwal,
+      jadwalBuka: shiftKasir.jadwalBuka,
+      jadwalTutup: shiftKasir.jadwalTutup,
+      caraBuka: shiftKasir.caraBuka,
+      batasHitungBuka: shiftKasir.batasHitungBuka,
+      hitungBukaPada: shiftKasir.hitungBukaPada,
+      modalUsulan: shiftKasir.modalUsulan,
+      namaPembuka: pengguna.namaPengguna,
+    })
+    .from(shiftKasir)
+    .innerJoin(pengguna, eq(pengguna.id, shiftKasir.idKasir))
+    .where(ne(shiftKasir.status, 'TUTUP'))
+    .orderBy(asc(shiftKasir.waktuBuka), asc(shiftKasir.id));
+}
+
+/** K-142: pengajuan retur/void yang masih menunggu persetujuan (uangnya belum keluar dari laci). */
+export async function pengajuanMenunggu(ex: Executor) {
+  const pengaju = (kolomPengaju: SQL) =>
+    sql<string>`(select p.nama_pengguna from ${pengguna} p where p.id = ${kolomPengaju})`;
+  const retur = await ex
+    .select({
+      id: returPenjualan.id,
+      nomor: returPenjualan.nomor,
+      nomorPenjualan: penjualan.nomor,
+      nilai: returPenjualan.totalRetur,
+      namaPengaju: pengaju(sql`${kolomPenuh(returPenjualan.idPengaju)}`),
+      tanggal: returPenjualan.tanggal,
+    })
+    .from(returPenjualan)
+    .innerJoin(penjualan, eq(penjualan.id, returPenjualan.idPenjualan))
+    .where(eq(returPenjualan.status, 'MENUNGGU'))
+    .orderBy(asc(returPenjualan.tanggal));
+  const v = await ex
+    .select({
+      id: voidTransaksi.id,
+      nomor: voidTransaksi.nomor,
+      nomorPenjualan: penjualan.nomor,
+      nilai: voidTransaksi.nominalVoid,
+      namaPengaju: pengaju(sql`${kolomPenuh(voidTransaksi.idPengaju)}`),
+      tanggal: voidTransaksi.tanggal,
+    })
+    .from(voidTransaksi)
+    .innerJoin(penjualan, eq(penjualan.id, voidTransaksi.idPenjualan))
+    .where(eq(voidTransaksi.status, 'MENUNGGU'))
+    .orderBy(asc(voidTransaksi.tanggal));
+  return { retur, void: v };
 }

@@ -715,7 +715,7 @@ export function InputOrderCepat() {
           <div className="flex flex-wrap items-stretch gap-2">
             <div className="flex min-w-60 flex-1 items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
               <span className="text-xs tracking-widest text-slate-300 uppercase">
-                Total{pratinjau.segar ? '' : ' (menghitung…)'}
+                Total{tr.t.baris.length > 0 && !pratinjau.segar ? ' (menghitung…)' : ''}
                 {pratinjau.segar && pratinjau.data && pratinjau.data.totalDiskonPromo > 0 && (
                   <span className="ml-2 tracking-normal text-emerald-300 normal-case">
                     hemat promo {formatRupiah(pratinjau.data.totalDiskonPromo)}

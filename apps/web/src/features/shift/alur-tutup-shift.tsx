@@ -3,7 +3,12 @@ import { Lock, RotateCcw, Send } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
-import { useHasilHitung, useHitungTutup, useTutupShift } from '@/api/penjualan';
+import {
+  useHasilHitung,
+  useHitungTutup,
+  usePengajuanMenunggu,
+  useTutupShift,
+} from '@/api/penjualan';
 import { InputRupiah } from '@/components/input-rupiah';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -12,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatWaktu } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { HITUNG_KOSONG, keJsonHitung, totalHitung, type NilaiHitung } from './hitung-uang';
-import { DaftarOrderDipegang } from '../order/pilihan-order';
+import { DaftarOrderBelumSelesai } from '../order/pilihan-order';
 import { InputHitungUang } from './input-hitung-uang';
 import { TampilBantuan, TampilTinjauan } from './tinjauan-shift';
 
@@ -64,10 +69,10 @@ function FormHitung({
       ) : (
         <div className="space-y-2 rounded-lg border-2 border-blue-300 bg-blue-50 p-3 text-sm">
           <p>
-            Kirim hitungan <b>{formatRupiah(total ?? 0)}</b>?{' '}
+            Laci berisi <b>{formatRupiah(total ?? 0)}</b>?{' '}
             {ulang
-              ? 'Ini hitung ulang terakhir; kedua hitungan tercatat dan terlihat atasan.'
-              : 'Setelah dikirim, shift berhenti menerima uang dan hitungan ini tercatat. Bila selisihnya besar, Anda boleh hitung ulang satu kali.'}
+              ? 'Hitung ulang terakhir; kedua hitungan tercatat.'
+              : 'Setelah ini shift berhenti menerima uang. Hitung ulang boleh sekali bila selisih besar.'}
           </p>
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={() => setYakin(false)}>
@@ -92,33 +97,52 @@ export function AlurTutupShift({
   idShift,
   status,
   onSelesai,
-  milikSendiri = true,
 }: {
   idShift: number;
   status: 'BUKA' | 'DIHITUNG';
   onSelesai: (d: DetailShift) => void;
-  /** Shift milik pengguna ini: order yang ia pegang ditampilkan dengan pilihan (K-121 butir 9). */
-  milikSendiri?: boolean;
 }) {
   if (status === 'BUKA') {
     return (
       <div className="space-y-2">
+        <DaftarOrderBelumSelesai />
+        <PengajuanMenunggu />
         <p className="text-sm text-slate-600">
-          Hitung <b>semua</b> uang di laci (termasuk modal awal). Angka sistem baru tampil setelah
-          hitungan dikirim.
+          Hitung <b>semua</b> uang di laci. Angka sistem tampil setelah dikirim.
         </p>
-        {milikSendiri ? (
-          <DaftarOrderDipegang />
-        ) : (
-          <p className="text-xs text-slate-500">
-            Order yang masih dipegang kasir itu kembali ke antrean saat shift ditutup.
-          </p>
-        )}
         <FormHitung idShift={idShift} ulang={false} />
       </div>
     );
   }
   return <HasilTutup idShift={idShift} onSelesai={onSelesai} />;
+}
+
+/** K-142: retur/void yang belum diputuskan; uangnya belum keluar dari laci (bukan selisih). */
+function PengajuanMenunggu() {
+  const data = usePengajuanMenunggu().data ?? [];
+  if (data.length === 0) return null;
+  return (
+    <div
+      className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm"
+      data-testid="pengajuan-menunggu"
+    >
+      <p className="font-semibold text-blue-900">{data.length} retur/void menunggu persetujuan</p>
+      <p className="text-xs text-blue-900">
+        Uangnya belum keluar dari laci; tercatat di shift saat disetujui.
+      </p>
+      <ul className="mt-1 space-y-0.5 text-xs">
+        {data.map((p) => (
+          <li key={`${p.jenis}-${p.id}`} className="flex justify-between gap-2">
+            <span>
+              {p.jenis === 'RETUR' ? 'Retur' : 'Void'} {p.nomor} · {p.nomorPenjualan} ·{' '}
+              {p.namaPengaju}
+            </span>
+            <span className="tabular-nums">{formatRupiah(p.nilai)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function HasilTutup({

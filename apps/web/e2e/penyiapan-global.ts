@@ -51,12 +51,19 @@ type ShiftTerbuka = { id: number; nomor: string; waktu: { terlewat: boolean } | 
 /**
  * K-109: shift dari hari sebelumnya yang belum ditutup mengunci penjualan pemiliknya, sehingga akun demo
  * yang shiftnya tertinggal terbuka (dari tes atau percobaan kemarin) tidak bisa menjual. Shift seperti itu
- * ditutup di sini oleh Admin dengan uang fisik = saldo sistem (selisih 0) dan keterangan yang jelas.
+ * ditutup di sini oleh Admin dengan uang fisik = saldo sistem (selisih 0) dan keterangan yang jelas. Begitu juga
+ * shift ganda sisa aturan lama (K-132).
  */
 async function tutupShiftTerlewat(api: APIRequestContext): Promise<void> {
   const res = await api.get('/api/shift?perluDitutup=true&perHalaman=100');
   const daftar = ((await res.json()) as { data: ShiftTerbuka[] }).data;
-  for (const s of daftar.filter((x) => x.waktu?.terlewat)) {
+  // K-132: sisa shift ganda dari aturan lama (satu shift per pengguna) ikut ditutup; yang paling lama dibuka
+  // tetap menjadi shift toko.
+  const aktif = (await (await api.get('/api/shift/aktif')).json()) as {
+    data: { lainTerbuka: { id: number; nomor: string }[] } | null;
+  };
+  const ganda = (aktif.data?.lainTerbuka ?? []).map((x) => ({ ...x, waktu: { terlewat: true } }));
+  for (const s of [...daftar.filter((x) => x.waktu?.terlewat), ...ganda]) {
     const d = (await (await api.get(`/api/shift/${s.id}`)).json()) as {
       data: { ringkasan: { saldoSistem: number } | null };
     };
