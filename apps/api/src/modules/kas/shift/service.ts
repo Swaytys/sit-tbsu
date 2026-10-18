@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, eq, ne } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import {
   ARAH_JENIS_KAS,
   formatRupiah,
@@ -14,13 +14,16 @@ import {
   type DataKoreksiModal,
   type DataTutupShift,
   type DaftarShift,
+  type HasilHitungBuka,
   type DetailShift,
   type HasilClerical,
   type HasilHitungTutup,
   type InfoKodePersetujuan,
   type JenisKasShift,
+  type PengajuanMenunggu,
   type RincianPecahan,
   type ShiftAktif,
+  type StatusShiftToko,
   type TinjauanShift,
   type UsulanBukaShift,
   type WaktuShift,
@@ -43,8 +46,9 @@ import { bantuanSelisih, linimasaTunai, type KasShiftRingkas } from './bantuan';
 import * as repo from './repo';
 
 /*
- * Shift kasir dan clerical check (docs/05 §10, K1–K8; K-018). Semua uang tunai (pembayaran, refund, kas lain)
- * terikat ke shift BUKA milik pencatatnya.
+ * Shift toko dan clerical check (docs/05 §10, K1–K8; K-018, K-132). Toko memakai satu laci: hanya ada satu shift
+ * terbuka; dibuka/ditutup siapa pun yang berizin. Semua uang tunai (pembayaran, refund, kas lain) masuk shift itu;
+ * setiap catatan menyimpan siapa pencatatnya.
  *
  * K-109 (K9–K11): shift lewat hari mengunci pencatatan; jadwal dibekukan; atasan diingatkan.
  * K-121 (K15–K24): buka tiga cara (sama dengan kemarin, hitung sekarang, hitung nanti), hitung per pecahan,
@@ -70,45 +74,41 @@ export function waktuShift(
   };
 }
 
+/** Kunci transaksi untuk membuka shift toko: dua pembukaan bersamaan tidak bisa menghasilkan dua shift. */
+const KUNCI_BUKA_SHIFT = 4_210_132;
+
 /**
- * Shift milik pengguna yang belum ditutup (BUKA atau DIHITUNG), atau `null`. `kunci`: FOR SHARE, dipakai saat
- * mencatat uang ke shift itu agar tidak bersamaan dengan hitungan tutup (FOR UPDATE) — clerical tidak boleh
- * melewatkan transaksi (K6).
+ * K-132: shift toko yang belum ditutup (BUKA atau DIHITUNG), atau `null`. Bila tersisa lebih dari satu (dari
+ * aturan lama satu shift per pengguna), yang paling lama dibuka dipakai dan `lain` berisi sisanya. `kunci`: FOR
+ * SHARE, dipakai saat mencatat uang agar tidak bersamaan dengan hitungan tutup (FOR UPDATE) — clerical tidak
+ * boleh melewatkan transaksi (K6).
  */
-export async function shiftBuka(ex: Executor | Tx, idPengguna: number, kunci = false) {
-  const q = ex
-    .select({
-      id: shiftKasir.id,
-      nomor: shiftKasir.nomor,
-      status: shiftKasir.status,
-      tanggalOperasional: shiftKasir.tanggalOperasional,
-      waktuBuka: shiftKasir.waktuBuka,
-      modalAwal: shiftKasir.modalAwal,
-      jadwalBuka: shiftKasir.jadwalBuka,
-      jadwalTutup: shiftKasir.jadwalTutup,
-      caraBuka: shiftKasir.caraBuka,
-      batasHitungBuka: shiftKasir.batasHitungBuka,
-      hitungBukaPada: shiftKasir.hitungBukaPada,
-    })
-    .from(shiftKasir)
-    .where(and(eq(shiftKasir.idKasir, idPengguna), ne(shiftKasir.status, 'TUTUP')))
-    .limit(1);
-  const [s] = kunci ? await q.for('share') : await q;
-  return s ?? null;
+export async function shiftToko(ex: Executor | Tx, kunci = false) {
+  const q = repo.shiftTerbuka(ex);
+  const semua = kunci ? await q.for('share', { of: shiftKasir }) : await q;
+  const [s, ...lain] = semua;
+  return s ? { ...s, lain } : null;
 }
 
 /**
- * K9: shift BUKA milik pengguna untuk MENCATAT penjualan atau uang (dikunci FOR SHARE), atau `null` bila
- * tidak punya. Shift dari hari operasional sebelumnya ditolak; shift yang sedang ditutup (DIHITUNG, K-121)
- * ditolak karena hitungan uangnya sudah dikirim.
+ * K9 + K-132: shift toko untuk MENCATAT penjualan atau uang (dikunci FOR SHARE), atau `null` bila belum dibuka.
+ * Ditolak bila: sisa shift lama lebih dari satu, shift dari hari sebelumnya, atau shift sedang ditutup (DIHITUNG).
  */
-export async function shiftUntukCatat(tx: Tx, idPengguna: number) {
-  const s = await shiftBuka(tx, idPengguna, true);
+export async function shiftUntukCatat(tx: Tx) {
+  const s = await shiftToko(tx, true);
+  if (s && s.lain.length > 0) {
+    throw new AppError(
+      'KONFLIK',
+      `Ada ${s.lain.length + 1} shift terbuka (${[s, ...s.lain].map((x) => x.nomor).join(', ')}) dari aturan lama. ` +
+        'Toko kini memakai satu shift: tutup shift-shift itu di menu Shift & Clerical Check, lalu buka satu shift.',
+      409,
+      { shiftGanda: [s, ...s.lain].map((x) => ({ id: x.id, nomor: x.nomor })) },
+    );
+  }
   if (s && s.status === 'DIHITUNG') {
     throw new AppError(
       'KONFLIK',
-      `Shift ${s.nomor} sedang ditutup: hitungan uang sudah dikirim. Selesaikan penutupan di menu Shift & ` +
-        'Clerical Check, lalu buka shift baru untuk mencatat uang lagi.',
+      `Shift ${s.nomor} sedang ditutup (uang laci sudah dihitung). Selesaikan penutupan, lalu buka shift baru.`,
       409,
       { shiftDihitung: { id: s.id, nomor: s.nomor } },
     );
@@ -116,8 +116,8 @@ export async function shiftUntukCatat(tx: Tx, idPengguna: number) {
   if (s && s.tanggalOperasional < tanggalOperasional()) {
     throw new AppError(
       'KONFLIK',
-      `Shift ${s.nomor} tanggal ${tglId(s.tanggalOperasional)} belum ditutup. Tutup shift itu dulu di menu ` +
-        'Shift & Clerical Check (hitung uang di laci), lalu buka shift baru untuk hari ini.',
+      `Shift ${s.nomor} tanggal ${tglId(s.tanggalOperasional)} belum ditutup. Tutup dulu (hitung uang laci), ` +
+        'lalu buka shift hari ini.',
       409,
       { shiftTerlewat: { id: s.id, nomor: s.nomor } },
     );
@@ -125,7 +125,7 @@ export async function shiftUntukCatat(tx: Tx, idPengguna: number) {
   return s;
 }
 
-type ShiftTerbuka = NonNullable<Awaited<ReturnType<typeof shiftBuka>>>;
+type ShiftTerbuka = NonNullable<Awaited<ReturnType<typeof shiftToko>>>;
 
 async function keAktif(ex: Executor, s: ShiftTerbuka): Promise<ShiftAktif> {
   const k = await repo.komponenKas(ex, s.id);
@@ -143,13 +143,45 @@ async function keAktif(ex: Executor, s: ShiftTerbuka): Promise<ShiftAktif> {
         : null,
     koreksiModal: k.koreksiModal,
     adaTransaksiTunai: k.adaTransaksiTunai,
+    namaPembuka: s.namaPembuka,
+    lainTerbuka: s.lain.map((x) => ({ id: x.id, nomor: x.nomor, namaPembuka: x.namaPembuka })),
+    hitungBuka:
+      s.caraBuka === 'HITUNG_NANTI' && s.hitungBukaPada === null
+        ? await hasilHitungBuka(ex, s.id, s.modalAwal, s.modalUsulan)
+        : null,
     ...waktuShift(s),
   };
 }
 
-export async function shiftSaya(pelaku: PenggunaAktif): Promise<ShiftAktif | null> {
-  const s = await shiftBuka(db, pelaku.id);
+/** K-132: shift toko yang sedang terbuka (untuk layar kasir dan halaman shift). */
+export async function shiftAktifToko(): Promise<ShiftAktif | null> {
+  const s = await shiftToko(db);
   return s ? keAktif(db, s) : null;
+}
+
+/** K-132: status ringkas shift toko untuk semua pengguna (indikator di topbar, termasuk Staf). */
+export async function statusShiftToko(): Promise<StatusShiftToko> {
+  const s = await shiftToko(db);
+  if (!s || s.status === 'TUTUP') return null;
+  const w = waktuShift(s);
+  return {
+    id: s.id,
+    nomor: s.nomor,
+    status: s.status,
+    waktuBuka: s.waktuBuka.toISOString(),
+    namaPembuka: s.namaPembuka,
+    lewatJadwal: w.lewatJadwal,
+    terlewat: w.terlewat,
+  };
+}
+
+/** K-142: pengajuan retur/void yang belum diputuskan (uangnya belum keluar dari laci). */
+export async function pengajuanMenunggu(): Promise<PengajuanMenunggu[]> {
+  const r = await repo.pengajuanMenunggu(db);
+  return [
+    ...r.retur.map((x) => ({ jenis: 'RETUR' as const, ...x, tanggal: x.tanggal.toISOString() })),
+    ...r.void.map((x) => ({ jenis: 'VOID' as const, ...x, tanggal: x.tanggal.toISOString() })),
+  ];
 }
 
 async function toleransi(ex: Executor | Tx = db): Promise<number> {
@@ -175,19 +207,21 @@ function totalHitungan(h: {
   return h.rincian !== undefined ? totalPecahan(h.rincian) : (h.uangFisik ?? 0);
 }
 
-/** K1 + K-121: satu shift belum tutup per pengguna; tiga cara buka. */
+/** K1 + K-121 + K-132: satu shift toko terbuka; tiga cara buka. */
 export async function bukaShift(
   input: DataBukaShift,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<ShiftAktif> {
   await dalamTransaksi(async (tx) => {
-    const ada = await shiftBuka(tx, pelaku.id);
+    await tx.execute(sql`select pg_advisory_xact_lock(${KUNCI_BUKA_SHIFT})`);
+    const ada = await shiftToko(tx);
     if (ada) {
       throw new AppError(
         'KONFLIK',
-        `Anda masih punya shift yang belum ditutup (${ada.nomor}). Tutup shift itu dulu.`,
+        `Shift toko ${ada.nomor} sudah dibuka ${ada.namaPembuka}. Pakai shift itu, atau tutup dulu.`,
         409,
+        { shiftTerbuka: { id: ada.id, nomor: ada.nomor } },
       );
     }
     const usulan = (await repo.usulanBuka(tx))?.uangDitinggal ?? null;
@@ -264,13 +298,13 @@ export async function bukaShift(
       ip: asal.ip,
     });
   });
-  const s = await shiftBuka(db, pelaku.id);
+  const s = await shiftToko(db);
   if (!s) throw new Error('shift baru tidak terbaca');
   return keAktif(db, s);
 }
 
 /**
- * Mencatat uang keluar/masuk laci pada shift BUKA milik pencatat (K2/K3). Dipakai kas manual, refund retur/void,
+ * Mencatat uang keluar/masuk laci pada shift toko yang terbuka (K2/K3, K-132). Dipakai kas manual, refund retur/void,
  * dan pembayaran pemasok tunai. Tanpa shift BUKA → ditolak (uang tunai harus tercatat di laci tertentu).
  */
 export async function catatKas(
@@ -285,11 +319,11 @@ export async function catatKas(
     idPembayaranPemasok?: number;
   },
 ): Promise<{ idShift: number; nomorShift: string }> {
-  const s = await shiftUntukCatat(tx, k.pelaku.id);
+  const s = await shiftUntukCatat(tx);
   if (!s) {
     throw new AppError(
       'KONFLIK',
-      'Buka shift kasir terlebih dahulu: uang tunai harus tercatat di laci shift Anda.',
+      'Shift toko belum dibuka. Buka shift dulu: uang tunai harus tercatat di laci.',
       409,
     );
   }
@@ -348,21 +382,19 @@ function keBaris(b: Baris): BarisShift {
   };
 }
 
-/** K8: semua shift untuk `kas.shift.lihat_semua`; kasir hanya shift miliknya. */
+/** K8 + K-132: semua shift toko (saringan "dibuka oleh" opsional). */
 export async function daftarShift(
   p: Omit<repo.SaringShift, 'perluDitutup'> & {
     perluDitutup?: boolean | undefined;
     halaman: number;
     perHalaman: number;
   },
-  pelaku: PenggunaAktif,
 ): Promise<DaftarShift> {
-  const semua = pelaku.izin.has('kas.shift.lihat_semua');
   const kini = sekarang();
   const { baris, total } = await repo.daftar(db, {
     ...p,
     perluDitutup: p.perluDitutup ? { hariIni: tanggalOperasional(kini), kini } : undefined,
-    idKasir: semua ? p.idKasir : pelaku.id,
+    idKasir: p.idKasir,
     ...batasHalaman(p),
   });
   return { data: baris.map(keBaris), meta: metaHalaman(total, p) };
@@ -426,9 +458,7 @@ function hitunganKe(h: Awaited<ReturnType<typeof repo.daftarHitung>>): BarisHitu
 export async function detailShift(id: number, pelaku: PenggunaAktif): Promise<DetailShift> {
   const b = await repo.byId(db, id);
   const semua = pelaku.izin.has('kas.shift.lihat_semua');
-  if (!b || (!semua && b.idKasir !== pelaku.id)) {
-    throw new AppError('TIDAK_DITEMUKAN', 'Shift tidak ditemukan.', 404);
-  }
+  if (!b) throw new AppError('TIDAK_DITEMUKAN', 'Shift tidak ditemukan.', 404);
   const kas = (await repo.daftarKas(db, id)).map((k) => ({ ...k, waktu: k.waktu.toISOString() }));
   const hitungan = hitunganKe(await repo.daftarHitung(db, id));
   const terlihat = b.status === 'TUTUP' || semua;
@@ -464,7 +494,7 @@ export async function detailShift(id: number, pelaku: PenggunaAktif): Promise<De
   };
 }
 
-/** K3: kas masuk/keluar manual pada shift BUKA milik sendiri. */
+/** K3: kas masuk/keluar manual pada shift toko yang terbuka. */
 export async function catatKasManual(
   input: DataKasShift,
   pelaku: PenggunaAktif,
@@ -491,19 +521,54 @@ export async function catatKasManual(
   return detailShift(idShift, pelaku);
 }
 
-/** Shift yang boleh diurus pelaku (pemiliknya, atau `kas.shift.lihat_semua`), dikunci FOR UPDATE. */
-async function shiftUntukDiurus(tx: Tx, id: number, pelaku: PenggunaAktif) {
+/** K-132: shift toko yang diurus (route sudah memeriksa izin kelola shift), dikunci FOR UPDATE. */
+async function shiftUntukDiurus(tx: Tx, id: number) {
   const s = await repo.kunci(tx, id);
-  if (!s || (s.idKasir !== pelaku.id && !pelaku.izin.has('kas.shift.lihat_semua'))) {
-    throw new AppError('TIDAK_DITEMUKAN', 'Shift tidak ditemukan.', 404);
-  }
+  if (!s) throw new AppError('TIDAK_DITEMUKAN', 'Shift tidak ditemukan.', 404);
   return s;
 }
 
 /**
- * K-121 butir 1 (hitung nanti): kasir mengirim hitungan uang laci setelah shift berjalan. Modal sebenarnya saat
- * buka = hitungan − (tunai masuk − tunai keluar sejak buka). Selisihnya terhadap modal sementara dicatat sebagai
- * koreksi modal ("selisih semalam").
+ * K-134: hasil hitung susulan terakhir yang belum disimpan, atau `null`. Selisih = laci − (modal sementara + uang
+ * masuk bersih sejak buka) = selisih semalam; modal saat buka = laci − uang masuk bersih.
+ */
+async function hasilHitungBuka(
+  ex: Executor | Tx,
+  id: number,
+  modalSementara: number,
+  ditinggalKemarin: number | null,
+): Promise<HasilHitungBuka | null> {
+  const daftar = (await repo.daftarHitung(ex, id)).filter((h) => h.jenis === 'BUKA_SUSULAN');
+  const h = daftar.at(-1);
+  if (!h || h.saldoSistem === null) return null;
+  const tol = await toleransi(ex);
+  // Koreksi modal ditolak selama hitung susulan menunggu, jadi modal sementara = modal awal.
+  const masuk = h.saldoSistem - modalSementara;
+  const selisih = h.uangFisik - h.saldoSistem;
+  const dalam = Math.abs(selisih) <= tol;
+  return {
+    jumlahHitung: daftar.length,
+    waktu: h.waktu.toISOString(),
+    laci: h.uangFisik,
+    masukSejakBuka: masuk,
+    modalSementara,
+    modalSaatBuka: h.uangFisik - masuk,
+    ditinggalKemarin,
+    selisih,
+    toleransi: tol,
+    dalamToleransi: dalam,
+    bolehHitungUlang: !dalam && daftar.length < 2,
+  };
+}
+
+/** Shift "hitung nanti" yang masih menunggu hitungan susulan disimpan. */
+function menungguHitungBuka(s: { caraBuka: string; hitungBukaPada: Date | null }) {
+  return s.caraBuka === 'HITUNG_NANTI' && s.hitungBukaPada === null;
+}
+
+/**
+ * K-134 langkah 1 (hitung nanti): hitungan uang laci dikirim dan tercatat (tidak bisa diganti); hasilnya
+ * ditampilkan. Hitung ulang sekali bila selisih semalam di luar toleransi. Belum mengubah modal.
  */
 export async function hitungBukaSusulan(
   id: number,
@@ -512,7 +577,7 @@ export async function hitungBukaSusulan(
   asal: AsalRequest,
 ): Promise<ShiftAktif> {
   await dalamTransaksi(async (tx) => {
-    const s = await shiftUntukDiurus(tx, id, pelaku);
+    const s = await shiftUntukDiurus(tx, id);
     if (s.status !== 'BUKA') {
       throw new AppError(
         'STATUS_TIDAK_VALID',
@@ -520,50 +585,44 @@ export async function hitungBukaSusulan(
         409,
       );
     }
-    if (s.caraBuka !== 'HITUNG_NANTI' || s.hitungBukaPada !== null) {
+    if (!menungguHitungBuka(s)) {
       throw new AppError(
         'STATUS_TIDAK_VALID',
         `Shift ${s.nomor} tidak menunggu hitung susulan. Untuk membetulkan modal, pakai Koreksi modal.`,
         409,
       );
     }
+    const sebelum = await hasilHitungBuka(tx, id, s.modalAwal, s.modalUsulan);
+    if (sebelum && !sebelum.bolehHitungUlang) {
+      throw new AppError(
+        'KONFLIK',
+        sebelum.jumlahHitung >= 2
+          ? 'Hitung ulang hanya sekali. Simpan hasilnya; salah hitung dibetulkan lewat Koreksi modal.'
+          : 'Hasil sudah dalam toleransi; tidak perlu hitung ulang. Simpan hasilnya.',
+        409,
+      );
+    }
     const hitungan = totalHitungan(input);
     const k = await repo.komponenKas(tx, id);
     const bersih = k.tunaiPenjualan + k.kasMasukLain - k.kasKeluar;
-    const modalBenar = hitungan - bersih;
-    if (modalBenar < 0) {
+    if (hitungan - bersih < 0) {
       throw new AppError(
         'KONFLIK',
-        `Hitungan ${formatRupiah(hitungan)} lebih kecil dari uang tunai bersih yang masuk sejak shift dibuka ` +
-          `(${formatRupiah(bersih)}). Hitung ulang uang di laci; bila tetap begitu, hubungi atasan.`,
+        `Laci ${formatRupiah(hitungan)} lebih kecil dari uang yang masuk sejak buka ` +
+          `(${formatRupiah(bersih)}). Hitung lagi semua uang di laci.`,
         409,
-        { kolom: { uangFisik: ['Hitungan lebih kecil dari uang yang masuk sejak buka.'] } },
+        { kolom: { uangFisik: ['Lebih kecil dari uang yang masuk sejak buka.'] } },
       );
     }
-    const modalSekarang = s.modalAwal + k.koreksiModal;
-    const beda = modalBenar - modalSekarang;
-    const waktu = sekarang();
-    if (beda !== 0) {
-      await repo.tambahKas(tx, {
-        idShift: id,
-        jenis: beda > 0 ? 'KOREKSI_MODAL_TAMBAH' : 'KOREKSI_MODAL_KURANG',
-        arah: beda > 0 ? 'MASUK' : 'KELUAR',
-        nominal: Math.abs(beda),
-        idPengguna: pelaku.id,
-        keterangan:
-          `Hitung susulan: laci ${formatRupiah(hitungan)} − tunai bersih sejak buka ${formatRupiah(bersih)} = ` +
-          `modal saat buka ${formatRupiah(modalBenar)} (selisih semalam ${formatRupiah(beda)})`,
-      });
-    }
+    const modalSementara = s.modalAwal + k.koreksiModal;
     await repo.tambahHitung(tx, {
       idShift: id,
       jenis: 'BUKA_SUSULAN',
       idPengguna: pelaku.id,
       uangFisik: hitungan,
       rincian: input.rincian ?? null,
-      saldoSistem: bersih,
+      saldoSistem: modalSementara + bersih,
     });
-    await repo.tandaiHitungBuka(tx, id, waktu);
     await catatLog(tx, {
       aksi: 'SHIFT_HITUNG_BUKA',
       idPengguna: pelaku.id,
@@ -571,15 +630,73 @@ export async function hitungBukaSusulan(
       idEntitas: id,
       nomorDokumen: s.nomor,
       ringkasan:
-        `Hitung susulan shift ${s.nomor}: laci ${formatRupiah(hitungan)}, tunai bersih sejak buka ` +
-        `${formatRupiah(bersih)}, modal saat buka ${formatRupiah(modalBenar)}` +
-        (beda !== 0 ? ` (selisih semalam ${formatRupiah(beda)})` : ''),
+        `${sebelum ? 'Hitung ulang' : 'Hitung'} susulan shift ${s.nomor}: laci ${formatRupiah(hitungan)}, ` +
+        `masuk sejak buka ${formatRupiah(bersih)}, modal saat buka ${formatRupiah(hitungan - bersih)}`,
       ip: asal.ip,
     });
   });
-  const s = await shiftBuka(db, (await repo.byId(db, id))?.idKasir ?? pelaku.id);
+  const s = await shiftToko(db);
   if (!s) throw new Error('shift tidak terbaca');
   return keAktif(db, s);
+}
+
+/**
+ * K-134 langkah 2: hasil hitung susulan terakhir disimpan. Selisih semalam dicatat sebagai koreksi modal
+ * (KOREKSI_MODAL_±); hitung susulan selesai.
+ */
+export async function simpanHitungBuka(
+  id: number,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<ShiftAktif> {
+  await dalamTransaksi(async (tx) => {
+    const s = await shiftUntukDiurus(tx, id);
+    if (s.status !== 'BUKA' || !menungguHitungBuka(s)) {
+      throw new AppError(
+        'STATUS_TIDAK_VALID',
+        `Shift ${s.nomor} tidak menunggu hitung susulan.`,
+        409,
+      );
+    }
+    const h = await hasilHitungBuka(tx, id, s.modalAwal, s.modalUsulan);
+    if (!h) throw new AppError('VALIDASI', 'Kirim dulu hasil hitung uang laci.', 400);
+    if (h.selisih !== 0) {
+      await repo.tambahKas(tx, {
+        idShift: id,
+        jenis: h.selisih > 0 ? 'KOREKSI_MODAL_TAMBAH' : 'KOREKSI_MODAL_KURANG',
+        arah: h.selisih > 0 ? 'MASUK' : 'KELUAR',
+        nominal: Math.abs(h.selisih),
+        idPengguna: pelaku.id,
+        keterangan:
+          `Hitung susulan: laci ${formatRupiah(h.laci)} − masuk sejak buka ${formatRupiah(h.masukSejakBuka)} = ` +
+          `modal saat buka ${formatRupiah(h.modalSaatBuka)} (selisih semalam ${formatRupiah(h.selisih)})`,
+      });
+    }
+    await repo.tandaiHitungBuka(tx, id, sekarang());
+    await catatLog(tx, {
+      aksi: 'SHIFT_HITUNG_BUKA',
+      idPengguna: pelaku.id,
+      entitas: 'shift_kasir',
+      idEntitas: id,
+      nomorDokumen: s.nomor,
+      ringkasan:
+        `Simpan hitung susulan shift ${s.nomor}: modal saat buka ${formatRupiah(h.modalSaatBuka)}` +
+        (h.selisih !== 0 ? ` (selisih semalam ${formatRupiah(h.selisih)})` : ' (cocok)'),
+      ip: asal.ip,
+    });
+  });
+  const s = await shiftToko(db);
+  if (!s) throw new Error('shift tidak terbaca');
+  return keAktif(db, s);
+}
+
+/** K-134 butir 4: modal ditentukan hitung susulan; koreksi baru setelah hitungan itu disimpan. */
+function galatHitungBukaDulu(): AppError {
+  return new AppError(
+    'STATUS_TIDAK_VALID',
+    'Selesaikan hitung uang laci dulu; hasil hitungan itulah modal awal yang benar.',
+    409,
+  );
 }
 
 function sidikKoreksi(id: number, modalBenar: number): string {
@@ -594,11 +711,11 @@ export async function mintaKodeKoreksi(
   asal: AsalRequest,
 ): Promise<InfoKodePersetujuan> {
   const b = await repo.byId(db, id);
-  if (!b || b.idKasir !== pelaku.id)
-    throw new AppError('TIDAK_DITEMUKAN', 'Shift tidak ditemukan.', 404);
+  if (!b) throw new AppError('TIDAK_DITEMUKAN', 'Shift tidak ditemukan.', 404);
   if (b.status !== 'BUKA') {
     throw new AppError('STATUS_TIDAK_VALID', `Shift ${b.nomor} sudah tidak berjalan.`, 409);
   }
+  if (menungguHitungBuka(b)) throw galatHitungBukaDulu();
   const k = await repo.komponenKas(db, id);
   const lama = b.modalAwal + k.koreksiModal;
   return mintaKode(
@@ -611,7 +728,7 @@ export async function mintaKodeKoreksi(
       nomorDokumen: b.nomor,
       nilai: input.modalBenar,
       ringkasan:
-        `Koreksi modal awal shift ${b.nomor} (${b.namaKasir}): ${formatRupiah(lama)} → ` +
+        `Koreksi modal awal shift ${b.nomor}: ${formatRupiah(lama)} → ` +
         `${formatRupiah(input.modalBenar)} (${formatRupiah(input.modalBenar - lama)}). Alasan: ${input.alasan}`,
       sidik: sidikKoreksi(id, input.modalBenar),
     },
@@ -656,7 +773,7 @@ export async function koreksiModal(
     );
   }
   await dalamTransaksi(async (tx) => {
-    const s = await shiftUntukDiurus(tx, id, pelaku);
+    const s = await shiftUntukDiurus(tx, id);
     if (s.status !== 'BUKA') {
       throw new AppError(
         'STATUS_TIDAK_VALID',
@@ -664,6 +781,7 @@ export async function koreksiModal(
         409,
       );
     }
+    if (menungguHitungBuka(s)) throw galatHitungBukaDulu();
     const k = await repo.komponenKas(tx, id);
     if (k.adaTransaksiTunai && !atasan && !sah) {
       throw new AppError('TIDAK_BERIZIN', 'Koreksi modal butuh kode dari Admin/Owner.', 403, {
@@ -721,11 +839,9 @@ async function rekonsiliasiDasar(ex: Executor | Tx, id: number, modalAwal: numbe
 }
 
 /** Hasil rekonsiliasi untuk shift DIHITUNG: hitungan terakhir, tinjauan, bantuan. */
-export async function hasilHitung(id: number, pelaku: PenggunaAktif): Promise<HasilHitungTutup> {
+export async function hasilHitung(id: number): Promise<HasilHitungTutup> {
   const b = await repo.byId(db, id);
-  if (!b || (b.idKasir !== pelaku.id && !pelaku.izin.has('kas.shift.lihat_semua'))) {
-    throw new AppError('TIDAK_DITEMUKAN', 'Shift tidak ditemukan.', 404);
-  }
+  if (!b) throw new AppError('TIDAK_DITEMUKAN', 'Shift tidak ditemukan.', 404);
   if (b.status !== 'DIHITUNG') {
     throw new AppError('STATUS_TIDAK_VALID', `Shift ${b.nomor} belum dihitung untuk ditutup.`, 409);
   }
@@ -752,8 +868,7 @@ export async function hasilHitung(id: number, pelaku: PenggunaAktif): Promise<Ha
     bolehHitungUlang: !dalam && tutup.length < 2,
     perluKeterangan: !dalam,
     usulanDitinggal: Math.min(ringkasan.modalAwal, terakhir.uangFisik),
-    hitungBukaTidakDilakukan:
-      b.caraBuka === 'HITUNG_NANTI' && !hitungan.some((h) => h.jenis === 'BUKA_SUSULAN'),
+    hitungBukaTidakDilakukan: menungguHitungBuka(b),
     tinjauan: t.tinjauan,
     bantuan: bantuanSelisih(selisih, tol, t.bayar, t.kasRingkas),
   };
@@ -771,7 +886,7 @@ export async function hitungTutup(
   asal: AsalRequest,
 ): Promise<HasilHitungTutup> {
   await dalamTransaksi((tx) => kirimHitunganTutup(tx, id, input, pelaku, asal));
-  return hasilHitung(id, pelaku);
+  return hasilHitung(id);
 }
 
 async function kirimHitunganTutup(
@@ -781,7 +896,7 @@ async function kirimHitunganTutup(
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ) {
-  const s = await shiftUntukDiurus(tx, id, pelaku);
+  const s = await shiftUntukDiurus(tx, id);
   if (s.status === 'TUTUP') {
     throw new AppError('STATUS_TIDAK_VALID', `Shift ${s.nomor} sudah ditutup.`, 409);
   }
@@ -825,8 +940,7 @@ async function kirimHitunganTutup(
     nomorDokumen: s.nomor,
     ringkasan:
       `${jenis === 'TUTUP' ? 'Hitungan tutup' : 'Hitung ulang'} shift ${s.nomor}: fisik ${formatRupiah(uang)}, ` +
-      `sistem ${formatRupiah(ringkasan.saldoSistem)}, selisih ${formatRupiah(uang - ringkasan.saldoSistem)}` +
-      (s.idKasir !== pelaku.id ? ' (oleh pengguna lain)' : ''),
+      `sistem ${formatRupiah(ringkasan.saldoSistem)}, selisih ${formatRupiah(uang - ringkasan.saldoSistem)}`,
     ip: asal.ip,
   });
 }
@@ -845,7 +959,7 @@ export async function tutupShift(
 ): Promise<DetailShift> {
   let orderDilepas = 0;
   await dalamTransaksi(async (tx) => {
-    let s = await shiftUntukDiurus(tx, id, pelaku);
+    let s = await shiftUntukDiurus(tx, id);
     if (s.status === 'TUTUP') {
       throw new AppError('STATUS_TIDAK_VALID', `Shift ${s.nomor} sudah ditutup.`, 409);
     }
@@ -856,7 +970,7 @@ export async function tutupShift(
         });
       }
       await kirimHitunganTutup(tx, id, input, pelaku, asal);
-      s = await shiftUntukDiurus(tx, id, pelaku);
+      s = await shiftUntukDiurus(tx, id);
     }
     const hitungan = (await repo.daftarHitung(tx, id)).filter(
       (h) => h.jenis === 'TUTUP' || h.jenis === 'TUTUP_ULANG',
@@ -908,7 +1022,7 @@ export async function tutupShift(
       jumlahHitung: hitungan.length,
     });
     await repo.tutup(tx, id, waktu);
-    orderDilepas = (await repo.lepasOrderKasir(tx, s.idKasir, waktu)).length;
+    orderDilepas = (await repo.lepasOrderDiproses(tx, waktu)).length;
     await catatLog(tx, {
       aksi: 'SHIFT_TUTUP',
       idPengguna: pelaku.id,
@@ -920,8 +1034,7 @@ export async function tutupShift(
         `${formatRupiah(terakhir.uangFisik)}, selisih ${formatRupiah(selisih)}` +
         (hitungan.length > 1 ? ' (hitung ulang)' : '') +
         `, ditinggal di laci ${formatRupiah(ditinggal)}` +
-        (keterangan ? ` — ${keterangan}` : '') +
-        (s.idKasir !== pelaku.id ? ' (ditutup oleh pengguna lain)' : ''),
+        (keterangan ? ` — ${keterangan}` : ''),
       ip: asal.ip,
     });
   });

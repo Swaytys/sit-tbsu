@@ -144,7 +144,7 @@ Sumber izin: `[KODE: shared/roles.ts:9-76]`; izin per endpoint: daftar di Lampir
 | Pembayaran & Piutang | — | L T (terima pembayaran) | sama | sama |
 | Surat jalan | — | T U (status), batal | sama | sama |
 | Retur penjualan / Void | — | T (ajukan), batal pengajuan sendiri; S dengan kode atasan | + S, tolak | sama |
-| Shift & clerical check | — | shift sendiri: buka, kas, koreksi modal (setelah ada transaksi tunai: kode atasan), tutup | + lihat & tutup shift semua kasir, setujui koreksi modal, penjelasan selisih | sama |
+| Shift & clerical check | — (melihat status shift di topbar) | shift toko: buka, kas, koreksi modal (setelah ada transaksi tunai: kode atasan), tutup | + angka sistem sebelum dihitung, setujui koreksi modal, penjelasan selisih | sama |
 | Rekening toko | — | L (memilih saat bayar) | L T U N | sama |
 | Cek uang non-tunai | — | — | L, tandai Sudah/Tidak masuk | sama |
 | Penerimaan barang, stok, penyesuaian/opname, retur ke pemasok | — (stok tersedia tampil di cari barang) | — | L T | sama |
@@ -375,12 +375,16 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 
 ### 4.6 Kas
 
-**F28. Shift kasir dan clerical check** | Shift & Clerical Check | Kasir+ | komputer kasir
-- Fungsi (diperbarui 18 Okt, K-121):
+**F28. Shift toko dan clerical check** | Shift & Clerical Check | Kasir+ | komputer kasir
+- Fungsi (diperbarui 18 Okt, K-121, K-132–K-142):
+  - **Satu shift untuk toko** (satu laci): dibuka/ditutup siapa pun yang berizin; semua uang tunai masuk shift itu
+    dengan nama pencatatnya; status shift tampil di topbar untuk semua peran (termasuk Staf). Dua pembukaan
+    bersamaan tetap menghasilkan satu shift (kunci transaksi).
   - **Buka shift tiga cara** dalam satu dialog dengan konfirmasi (Enter = ya, Esc = kembali/tutup): *sama dengan
     uang ditinggal kemarin*, *hitung sekarang* per pecahan (Rp100.000 … Rp100) atau total, dan *buka dulu, hitung
-    nanti* untuk toko yang sudah ramai. Hitung susulan menghitung modal sebenarnya = hitungan − (tunai masuk −
-    tunai keluar sejak buka) dan mencatat *selisih semalam*; spanduk dan lonceng mengingatkan sampai batas waktu.
+    nanti* untuk toko yang sudah ramai. Hitung susulan dua langkah (hitung → hasil dengan angka → hitung ulang
+    sekali → simpan): modal saat buka = laci − uang masuk sejak buka; beda dengan uang kemarin = *selisih semalam*.
+  - Hitung per pecahan dengan −/+, kosongkan baris/semua, dan hotkey (↑↓, + −, Del, Shift+Del).
   - **Koreksi modal** tanpa mengubah angka asli: dicatat sebagai kas *Koreksi modal ±* beralasan; bebas sebelum ada
     transaksi tunai, sesudahnya dengan kode sekali pakai dari Admin/Owner (anti-kecurangan).
   - Kas manual (kasbon, setor/tarik owner, masuk/keluar lain).
@@ -389,8 +393,10 @@ Admin/Owner menerima | desktop + Telegram/email atasan
     metode, linimasa tunai dengan saldo laci) dan **bantuan mencari selisih** (mencocokkan selisih dengan
     pembayaran, kembalian, kas, atau kelipatan pecahan) → hitung ulang sekali → keterangan wajib di luar
     **toleransi receh** (bawaan Rp 1.000) → **uang ditinggal di laci** (menjadi usulan modal besok) → tutup.
-  - Admin/Owner menambah **penjelasan selisih** setelah shift ditutup (angka tetap); menutup shift kasir lain
-    dengan alur yang sama.
+  - Saat tutup: semua **order belum selesai** dengan pilihan per order, dan **retur/void menunggu** sebagai
+    informasi (uang belum keluar dari laci).
+  - **Kembalian tidak diambil** pembeli (tombol K di layar bayar) dicatat kas masuk khusus, bukan penjualan.
+  - Admin/Owner menambah **penjelasan selisih** setelah shift ditutup (angka tetap).
   - Shift yang lewat hari mengunci pencatatan; jadwal buka/tutup dengan pengingat.
 - Tabel: `shift_kasir`, `kas_shift`, `clerical_check`, `hitung_kas` (setiap hitungan uang laci).
 - Bukti: `[KODE: api/modules/kas/shift/service.ts:182,511,624,765,838,931]`
@@ -801,7 +807,7 @@ dibangun) ada tetapi semua menu sudah punya halaman `[KODE: web/routes.tsx:23-55
 | 11 Okt | Kode persetujuan Telegram/email, struk langsung ke printer thermal, pengantaran tanpa order, penyiapan terpandu |
 | 12–13 Okt | Perapian tampilan, persetujuan ubah pelanggan, cari lewat atribut, aturan shift, anggaran promo, rekening toko dan cek non-tunai |
 | 14–17 Okt | Inventaris fitur; rekomendasi pemesanan ulang; tampilan muat dan panduan printer umum |
-| 18 Okt | Shift tiga cara buka, hitung susulan, koreksi modal dengan kode atasan, tutup dua langkah dengan tinjauan dan bantuan selisih (K-121); katalog anomali (K-120); order disimpan untuk diambil nanti, kembali ke draf, peringatan draf lain (K-122) |
+| 18 Okt | Satu shift toko, hitung susulan dua langkah, kembalian tidak diambil, kode atasan dilanjutkan (K-132–K-142); shift tiga cara buka, hitung susulan, koreksi modal dengan kode atasan, tutup dua langkah dengan tinjauan dan bantuan selisih (K-121); katalog anomali (K-120); order disimpan untuk diambil nanti, kembali ke draf, peringatan draf lain (K-122) |
 
 Sumber: `git log --merges` (198 commit; commit pertama 29 Sep 2026). Rincian per keputusan:
 `docs/10-ringkasan-keputusan.md`.
@@ -830,7 +836,7 @@ siaran antrean (bagian 1, butir 7).
 
 Format: `berkas:baris METODE alamat izin`. `LOGIN` = cukup login (data milik sendiri). Login dan masuk cepat tidak
 butuh izin tetapi dibatasi laju; masuk cepat hanya ada di mode pengembangan `[KODE: api/app.ts:132,146]`.
-Path berkas relatif terhadap `apps/api/src/modules/`. Jumlah: 204 endpoint (+ `GET /api/health`,
+Path berkas relatif terhadap `apps/api/src/modules/`. Jumlah: 210 endpoint (+ `GET /api/health`,
 `GET /api/notifikasi` [LOGIN], `GET /api/log-aktivitas` [sistem.log.lihat]).
 
 ```
@@ -853,19 +859,24 @@ kas/rekening/routes.ts:16 GET /api/rekening/ kas.rekening.lihat
 kas/rekening/routes.ts:27 POST /api/rekening/ sistem.pengaturan.kelola
 kas/rekening/routes.ts:31 PATCH /api/rekening/:id sistem.pengaturan.kelola
 kas/rekening/routes.ts:36 PATCH /api/rekening/:id/status sistem.pengaturan.kelola
-kas/shift/routes.ts:35 GET /api/shift/saya kas.shift.kelola_sendiri
-kas/shift/routes.ts:36 GET /api/shift/usulan-buka kas.shift.kelola_sendiri
-kas/shift/routes.ts:37 POST /api/shift/buka kas.shift.kelola_sendiri
-kas/shift/routes.ts:41 POST /api/shift/kas kas.shift.kelola_sendiri
-kas/shift/routes.ts:45 GET /api/shift/ kas.shift.kelola_sendiri
-kas/shift/routes.ts:48 GET /api/shift/:id kas.shift.kelola_sendiri
-kas/shift/routes.ts:51 POST /api/shift/:id/hitung-buka kas.shift.kelola_sendiri
-kas/shift/routes.ts:66 POST /api/shift/:id/koreksi-modal/minta-kode kas.shift.kelola_sendiri
-kas/shift/routes.ts:81 POST /api/shift/:id/koreksi-modal kas.shift.kelola_sendiri (kode KOREKSI_KAS bila perlu)
-kas/shift/routes.ts:96 POST /api/shift/:id/hitung kas.shift.kelola_sendiri
-kas/shift/routes.ts:111 GET /api/shift/:id/hasil kas.shift.kelola_sendiri
-kas/shift/routes.ts:114 POST /api/shift/:id/tutup kas.shift.kelola_sendiri
-kas/shift/routes.ts:129 POST /api/shift/:id/penjelasan kas.shift.lihat_semua
+kas/shift/routes.ts:43 GET /api/shift/aktif kas.shift.kelola_sendiri
+kas/shift/routes.ts:44 GET /api/shift/saya kas.shift.kelola_sendiri (nama lama /aktif)
+kas/shift/routes.ts:46 GET /api/shift/status LOGIN
+kas/shift/routes.ts:48 GET /api/shift/menunggu kas.shift.kelola_sendiri
+kas/shift/routes.ts:49 GET /api/shift/usulan-buka kas.shift.kelola_sendiri
+kas/shift/routes.ts:50 POST /api/shift/buka kas.shift.kelola_sendiri
+kas/shift/routes.ts:54 POST /api/shift/kas kas.shift.kelola_sendiri
+kas/shift/routes.ts:58 GET /api/shift/ kas.shift.kelola_sendiri
+kas/shift/routes.ts:61 GET /api/shift/:id kas.shift.kelola_sendiri
+kas/shift/routes.ts:65 POST /api/shift/:id/hitung-buka/simpan kas.shift.kelola_sendiri
+kas/shift/routes.ts:73 POST /api/shift/:id/hitung-buka kas.shift.kelola_sendiri
+kas/shift/routes.ts:88 POST /api/shift/:id/koreksi-modal/minta-kode kas.shift.kelola_sendiri
+kas/shift/routes.ts:103 POST /api/shift/:id/koreksi-modal kas.shift.kelola_sendiri (kode KOREKSI_KAS bila perlu)
+kas/shift/routes.ts:118 POST /api/shift/:id/hitung kas.shift.kelola_sendiri
+kas/shift/routes.ts:133 GET /api/shift/:id/hasil kas.shift.kelola_sendiri
+kas/shift/routes.ts:136 POST /api/shift/:id/tutup kas.shift.kelola_sendiri
+kas/shift/routes.ts:151 POST /api/shift/:id/penjelasan kas.shift.lihat_semua
+sistem/kode-persetujuan/routes.ts:12 GET /api/persetujuan/:id LOGIN (hanya permintaan sendiri)
 konsinyasi/routes.ts:23 GET /api/konsinyasi/ringkasan konsinyasi.kelola
 konsinyasi/routes.ts:24 GET /api/konsinyasi/pratinjau konsinyasi.kelola
 konsinyasi/routes.ts:30 GET /api/konsinyasi/ konsinyasi.kelola
@@ -1062,3 +1073,4 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-17 — Rekomendasi pemesanan ulang (F40, bagian 5d, laporan ke-16, notifikasi ke-15; K-113).
 - 2026-10-18 — F28 shift diperbarui (tiga cara buka, hitung susulan, koreksi modal, tutup dua langkah, tinjauan, bantuan selisih, penjelasan atasan; K-121); notifikasi ke-16; tabel ke-49 `hitung_kas`; 7 endpoint shift baru.
 - 2026-10-18 — F18 order disimpan, kembali ke draf, peringatan draf lain, buka draf otomatis, panel rincian di input cepat (K-122); notifikasi ke-17; 3 endpoint order baru; F28 pilihan order saat tutup shift.
+- 2026-10-18 — F28 satu shift toko, hitung susulan dua langkah, order belum selesai + retur/void menunggu saat tutup, kembalian tidak diambil, hitung pecahan −/+; kode atasan bisa dilanjutkan; indikator shift di topbar (K-132–K-142); 6 endpoint baru.

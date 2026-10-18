@@ -143,7 +143,7 @@ export async function simpanReturPemasok(
       }
     }
     const refundTunai = input.penyelesaian === 'REFUND' && input.metodeRefund === 'TUNAI';
-    if (refundTunai && total > 0 && !(await shiftUntukCatat(tx, pelaku.id))) {
+    if (refundTunai && total > 0 && !(await shiftUntukCatat(tx))) {
       throw new AppError(
         'KONFLIK',
         'Uang kembali tunai masuk ke laci shift Anda: buka shift dulu, atau pilih transfer.',

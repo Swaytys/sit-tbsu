@@ -35,7 +35,7 @@ export type KasShiftRingkas = {
 const LABEL_KAS: Record<JenisKasShift, string> = {
   KASBON: 'Kasbon',
   SETOR_OWNER: 'Setor ke owner',
-  TARIK_OWNER: 'Tambahan dari owner',
+  TARIK_OWNER: 'Tambah uang laci',
   REFUND_RETUR: 'Refund retur',
   REFUND_VOID: 'Refund void',
   BAYAR_PEMASOK: 'Bayar pemasok',
@@ -43,6 +43,7 @@ const LABEL_KAS: Record<JenisKasShift, string> = {
   KELUAR_LAIN: 'Kas keluar lain',
   KOREKSI_MODAL_TAMBAH: 'Koreksi modal (+)',
   KOREKSI_MODAL_KURANG: 'Koreksi modal (−)',
+  KEMBALIAN_DITINGGAL: 'Kembalian tidak diambil',
 };
 
 export function labelKas(k: Pick<KasShiftRingkas, 'jenis' | 'keterangan'>): string {

@@ -252,7 +252,7 @@ otomatis saat penerimaan disimpan (sehingga `sisa_hutang = 0`).
 
 ### 3.7 Kas
 
-**`shift_kasir`** — `nomor SHF`, `id_kasir`, `tanggal_operasional`, `modal_awal`, `waktu_buka/tutup`, `status`
+**`shift_kasir`** — `nomor SHF`, `id_kasir` (sejak v3.19 = pengguna yang membuka shift toko; K-132), `tanggal_operasional`, `modal_awal`, `waktu_buka/tutup`, `status`
 BUKA/TUTUP. Satu shift BUKA per kasir (index parsial). Membuka kembali shift yang sudah tutup (koreksi) hanya
 Admin/Owner dengan `dibuka_kembali_oleh` + alasan. v3.13 (K-109): `jadwal_buka`, `jadwal_tutup` (`HH:mm`, jadwal
 toko yang dibekukan saat shift dibuka; NULL = tanpa jadwal) dan kolom status `diingatkan_pada` (pengingat
@@ -347,7 +347,7 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | penyelesaian_retur_pemasok | POTONG_HUTANG, GANTI_BARANG, REFUND, PENGEMBALIAN_TITIPAN |
 | metode_pembayaran_pemasok | TUNAI, TRANSFER, KOMPENSASI |
 | status_shift | BUKA, DIHITUNG, TUTUP |
-| jenis_kas_shift | KASBON, SETOR_OWNER, TARIK_OWNER, REFUND_RETUR, REFUND_VOID, BAYAR_PEMASOK, MASUK_LAIN, KELUAR_LAIN, KOREKSI_MODAL_TAMBAH, KOREKSI_MODAL_KURANG |
+| jenis_kas_shift | KASBON, SETOR_OWNER, TARIK_OWNER, REFUND_RETUR, REFUND_VOID, BAYAR_PEMASOK, MASUK_LAIN, KELUAR_LAIN, KOREKSI_MODAL_TAMBAH, KOREKSI_MODAL_KURANG, KEMBALIAN_DITINGGAL |
 | cara_buka_shift | SAMA_KEMARIN, HITUNG, HITUNG_NANTI |
 | jenis_hitung_kas | BUKA, BUKA_SUSULAN, TUTUP, TUTUP_ULANG |
 | arah_kas | MASUK, KELUAR |
@@ -485,3 +485,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-17 — v3.16: `pemasok.lama_kirim_hari`, `pemasok.jarak_belanja_hari` (migrasi 0019; K-113). Kunci konfigurasi baru: `saran_pesan_periode_hari`, `saran_pesan_hari_pengaman`, `saran_pesan_lama_kirim_default`, `saran_pesan_jarak_belanja_default`.
 - 2026-10-18 — v3.17: tabel `hitung_kas`; `shift_kasir.cara_buka`, `modal_usulan`, `rincian_buka`, `batas_hitung_buka`, `hitung_buka_pada`, status DIHITUNG, index satu shift belum tutup per kasir; `clerical_check.uang_ditinggal`, `koreksi_modal`, `toleransi`, `jumlah_hitung`, `penjelasan_atasan`, `dijelaskan_oleh`, `dijelaskan_pada`; jenis kas KOREKSI_MODAL_TAMBAH/KURANG; jenis kode `KOREKSI_KAS` (migrasi 0020; K-121). Kunci konfigurasi baru: `toleransi_selisih_kas`, `batas_hitung_buka_menit`.
 - 2026-10-18 — v3.18: `order_penjualan.no_hp_pembeli`, `order_penjualan.tanggal_ambil`, status DISIMPAN, CHECK `chk_order_disimpan` (status DISIMPAN wajib tanggal ambil dan No. HP) (migrasi 0021; K-122).
+- 2026-10-18 — v3.19: jenis kas `KEMBALIAN_DITINGGAL` (kembalian tidak diambil pembeli; migrasi 0022; K-141). Satu shift toko (K-132) dijaga service dengan kunci transaksi, tanpa constraint baru, agar shift ganda lama tidak menggagalkan migrasi; `shift_kasir.id_kasir` kini berarti pembuka.

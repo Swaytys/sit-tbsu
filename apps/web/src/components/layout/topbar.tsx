@@ -1,8 +1,11 @@
 import { LABEL_PERAN } from '@sit/shared';
-import { Bell, ChevronDown, KeyRound, LogOut, Menu } from 'lucide-react';
+import { Bell, ChevronDown, KeyRound, LockKeyhole, LogOut, Menu, Store } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
 import { useNotifikasi } from '@/api/persediaan';
+import { useStatusShiftToko } from '@/api/penjualan';
+import { formatWaktu } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +17,53 @@ import {
 import { PindahPenjualan } from './pindah-penjualan';
 
 type Props = { judul: string; onToggleSidebar: () => void };
+
+/**
+ * K-132: status shift toko untuk semua peran (Staf tidak punya menu Shift). Klik = halaman Shift bagi yang
+ * berizin.
+ */
+function IndikatorShift() {
+  const pengguna = usePengguna();
+  const navigate = useNavigate();
+  const st = useStatusShiftToko().data;
+  const boleh = pengguna.izin.includes('kas.shift.kelola_sendiri');
+  const [teks, warna, judul] =
+    st === undefined
+      ? ['Shift …', 'border-slate-200 text-slate-400', '']
+      : st === null
+        ? [
+            'Shift tutup',
+            'border-slate-300 bg-slate-100 text-slate-600',
+            'Shift toko belum dibuka.',
+          ]
+        : st.terlewat
+          ? ['Shift kemarin belum ditutup', 'border-red-300 bg-red-50 text-red-700', st.nomor]
+          : st.status === 'DIHITUNG'
+            ? ['Shift sedang ditutup', 'border-blue-300 bg-blue-50 text-blue-700', st.nomor]
+            : [
+                'Shift buka',
+                st.lewatJadwal
+                  ? 'border-amber-300 bg-amber-50 text-amber-800'
+                  : 'border-emerald-300 bg-emerald-50 text-emerald-700',
+                `${st.nomor} · dibuka ${st.namaPembuka}, ${formatWaktu(st.waktuBuka).slice(11)}`,
+              ];
+  return (
+    <button
+      type="button"
+      disabled={!boleh}
+      onClick={() => void navigate('/shift')}
+      title={judul}
+      data-testid="indikator-shift"
+      className={cn(
+        'flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold disabled:cursor-default',
+        warna,
+      )}
+    >
+      {st ? <Store className="size-3.5" /> : <LockKeyhole className="size-3.5" />}
+      {teks}
+    </button>
+  );
+}
 
 /** Lonceng notifikasi (docs/05 ST2): isi dihitung API sesuai izin pengguna. */
 function LoncengNotifikasi() {
@@ -75,6 +125,7 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
       </button>
       <span className="flex-1 text-sm font-semibold text-slate-800">{judul}</span>
       <PindahPenjualan />
+      <IndikatorShift />
       <LoncengNotifikasi />
 
       <DropdownMenu>

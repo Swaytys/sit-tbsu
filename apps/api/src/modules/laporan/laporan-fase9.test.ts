@@ -106,7 +106,6 @@ describe('Laporan Promo (PR7)', () => {
       { idBarang: m.semen, qty: '2' },
       { idBarang: m.pasir, qty: '1' },
     ]);
-    await kirim(admin, '/api/shift/buka', { modalAwal: 0 });
     await kirim<DetailPenjualan>(admin, '/api/penjualan/checkout', {
       order: {
         jenisPenjualan: 'LANGSUNG',

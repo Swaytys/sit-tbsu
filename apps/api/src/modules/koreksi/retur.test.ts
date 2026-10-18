@@ -110,12 +110,11 @@ beforeEach(async () => {
     ],
   });
   await kirim(admin, `/api/penyesuaian/${sa.id}/selesai`);
-  await kirim(kasir, '/api/shift/buka', { modalAwal: 100000 });
-  await kirim(admin, '/api/shift/buka', { modalAwal: 0 });
+  await kirim(kasir, '/api/shift/buka', { modalAwal: 100000 }); // satu shift toko (K-132)
 });
 
 describe('retur penjualan (docs/05 §8)', () => {
-  it('T2/T3/T4/T6 Kasir mengajukan refund; disetujui: BAIK ke stok jual, RUSAK ke bucket rusak, refund dari laci penyetuju', async () => {
+  it('T2/T3/T4/T6 Kasir mengajukan refund; disetujui: BAIK ke stok jual, RUSAK ke bucket rusak, refund dari laci toko', async () => {
     const pj = await jual(
       kasir,
       [{ idBarang: m.semen, qty: '5', diskonBaris: 0 }],
@@ -269,8 +268,8 @@ describe('retur penjualan (docs/05 §8)', () => {
     await jual(kasir, [{ idBarang: m.semen, qty: '3' }], [{ metode: 'TUNAI' }]); // 30.000
     await kirim(kasir, '/api/shift/kas', { jenis: 'KASBON', nominal: 5000, keterangan: 'Sopir' });
 
-    // Retur 1 sak dari p1, refund tunai — kasir mengajukan, kasir (penyetuju?) tidak berhak; Admin menyetujui
-    // dari shift Admin, jadi laci kasir TIDAK berkurang.
+    // Retur 1 sak dari p1, refund tunai — kasir mengajukan, Admin menyetujui; uangnya keluar dari laci toko
+    // (satu shift toko, K-132).
     const r = await kirim<BarisRetur>(kasir, '/api/retur', {
       idPenjualan: p1.id,
       alasan: 'Kelebihan',
@@ -279,7 +278,7 @@ describe('retur penjualan (docs/05 §8)', () => {
       baris: [{ idPenjualanDetail: p1.baris[0]!.id, qtyRetur: '1' }],
     });
     await kirim(admin, `/api/retur/${r.id}/setujui`, {});
-    // Void p4 seluruhnya, refund tunai dari laci Admin.
+    // Void p4 seluruhnya, refund tunai dari laci toko.
     const v = await kirim<BarisVoid>(kasir, '/api/void', {
       idPenjualan: p4.id,
       lingkup: 'TRANSAKSI',
@@ -287,23 +286,20 @@ describe('retur penjualan (docs/05 §8)', () => {
     });
     await kirim(admin, `/api/void/${v.id}/setujui`, { metodeRefund: 'TUNAI' });
 
-    // Hitungan manual laci kasir: 100.000 + (20.000 + 15.000 + 6.000 + 30.000) − 5.000 kasbon = 166.000.
+    // Hitungan manual laci toko: 100.000 + (20.000 + 15.000 + 6.000 + 30.000) − 5.000 kasbon − 10.000 refund
+    // retur − 6.000 refund void = 150.000.
     const tutup = await kirim<DetailShift>(kasir, `/api/shift/${s.id}/tutup`, {
-      uangFisik: 166000,
+      uangFisik: 150000,
     });
     expect(tutup.clerical).toMatchObject({
       modalAwal: 100000,
       tunaiPenjualan: 71000,
       kasMasukLain: 0,
-      kasKeluar: 5000,
-      saldoSistem: 166000,
-      uangFisik: 166000,
+      kasKeluar: 21000,
+      saldoSistem: 150000,
+      uangFisik: 150000,
       selisih: 0,
     });
-    // Laci Admin: 0 − refund retur 10.000 − refund void 6.000.
-    const sAdmin = await ambil<ShiftAktif>(admin, '/api/shift/saya');
-    const dAdmin = await ambil<DetailShift>(admin, `/api/shift/${sAdmin.id}`);
-    expect(dAdmin.ringkasan?.saldoSistem).toBe(-16000);
     for (const id of [m.semen, m.pasir]) expect((await hitungUlangCache(db, id)).cocok).toBe(true);
     expect(await stok(m.semen)).toEqual({ baik: '15.000', rusak: '0.000' }); // 20 − 6 + 1
     expect(await stok(m.pasir)).toEqual({ baik: '15.000', rusak: '0.000' }); // 20 − 7 + 2

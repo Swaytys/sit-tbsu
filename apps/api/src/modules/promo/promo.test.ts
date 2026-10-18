@@ -785,7 +785,6 @@ describe('PR9 promo di atas harga tier (K-098); promo menurut pembeli (K-097)', 
     );
 
     // Void seluruh penjualan pertama mengembalikan Rp 2.400 ke anggaran.
-    await kirimData(admin, '/api/shift/buka', { modalAwal: 100_000 });
     await kirimData(admin, '/api/void', {
       idPenjualan: pj.id,
       lingkup: 'TRANSAKSI',

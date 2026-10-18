@@ -205,7 +205,6 @@ describe('transaksi dengan satuan jual (K-091)', () => {
       baris: [{ idPenjualanDetail: pj.baris[0]!.id, qtyRetur: '3', kondisi: 'BAIK' }],
     });
     expect(lebih.pesan).toContain('melebihi yang bisa diretur (2 dus)');
-    await kirim(admin, '/api/shift/buka', { modalAwal: 500_000 });
     const r = await kirim<BarisRetur>(admin, '/api/retur', {
       idPenjualan: pj.id,
       alasan: 'Kelebihan',

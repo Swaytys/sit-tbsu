@@ -49,14 +49,21 @@ export function PeringatanShift() {
             </>
           ) : (
             <>
-              <b>Hitung uang laci belum dikirim</b> (shift dibuka dengan "hitung nanti", batas{' '}
+              <b>
+                {shift.hitungBuka
+                  ? 'Hasil hitung laci belum disimpan'
+                  : 'Hitung uang laci belum dikirim'}
+              </b>{' '}
+              (shift dibuka "hitung nanti", batas{' '}
               {new Date(shift.batasHitungBuka ?? '').toLocaleTimeString('id-ID', {
                 hour: '2-digit',
                 minute: '2-digit',
                 timeZone: 'Asia/Jakarta',
               })}
-              {lewatHitung ? ', sudah lewat' : ''}). Hitung semua uang di laci sekarang dan kirim di
-              halaman Shift.
+              {lewatHitung ? ', sudah lewat' : ''}).{' '}
+              {shift.hitungBuka
+                ? 'Periksa hasilnya, lalu Simpan hasil.'
+                : 'Hitung semua uang laci.'}
             </>
           )}
         </span>

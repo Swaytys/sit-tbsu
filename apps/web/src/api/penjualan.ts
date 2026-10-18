@@ -177,10 +177,11 @@ export function useStokTertahan() {
 
 // --- Checkout, pembayaran, riwayat penjualan, shift ---
 
+/** K-132: shift toko yang sedang terbuka (satu untuk seluruh toko). */
 export function useShiftSaya(aktif = true) {
   return useQuery({
     queryKey: ['shift', 'saya'],
-    queryFn: async () => ambilData(await api.shift.saya.$get()),
+    queryFn: async () => ambilData(await api.shift.aktif.$get()),
     enabled: aktif,
     // K-109: status "terlewat" berubah saat ganti hari walau layar tidak disentuh.
     refetchInterval: 5 * 60_000,
@@ -477,6 +478,31 @@ export function useHitungBuka() {
   return useMutasiShift(async ({ id, json }: { id: number; json: DataHitungKas }) =>
     ambilData(await api.shift[':id']['hitung-buka'].$post({ param: paramId(id), json })),
   );
+}
+
+/** K-134: simpan hasil hitung susulan terakhir. */
+export function useSimpanHitungBuka() {
+  return useMutasiShift(async (id: number) =>
+    ambilData(await api.shift[':id']['hitung-buka'].simpan.$post({ param: paramId(id) })),
+  );
+}
+
+/** K-132: status shift toko untuk semua pengguna (indikator topbar). */
+export function useStatusShiftToko() {
+  return useQuery({
+    queryKey: ['shift', 'status'],
+    queryFn: async () => ambilData(await api.shift.status.$get()),
+    refetchInterval: 60_000,
+  });
+}
+
+/** K-142: pengajuan retur/void yang belum diputuskan. */
+export function usePengajuanMenunggu(aktif = true) {
+  return useQuery({
+    queryKey: ['shift', 'menunggu'],
+    queryFn: async () => ambilData(await api.shift.menunggu.$get()),
+    enabled: aktif,
+  });
 }
 
 export function useKoreksiModal() {

@@ -352,7 +352,7 @@ export async function checkout(
     const totalNeto = totalBruto - totalDiskon + h.ongkir;
 
     const nomor = await terbitkanNomor(tx, jenis === 'LANGSUNG' ? 'STR' : 'INV', tanggal);
-    const shift = await shiftUntukCatat(tx, pelaku.id);
+    const shift = await shiftUntukCatat(tx);
     const [pj] = await tx
       .insert(penjualan)
       .values({

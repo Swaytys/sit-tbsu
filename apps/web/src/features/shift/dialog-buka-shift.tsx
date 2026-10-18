@@ -81,25 +81,25 @@ export function DialogBukaShift({ onTutup }: { onTutup: () => void }) {
       tombol: 'Enter',
       judul:
         ditinggal === null
-          ? 'Sama dengan uang ditinggal kemarin (belum ada catatan)'
-          : `Sama dengan uang ditinggal kemarin: ${formatRupiah(ditinggal)}`,
+          ? 'Pakai uang kemarin (belum ada catatan)'
+          : `Pakai uang kemarin: ${formatRupiah(ditinggal)}`,
       ket:
         ditinggal === null
-          ? 'Belum ada shift yang ditutup dengan catatan uang ditinggal. Pilih Hitung sekarang.'
-          : `Dicatat saat shift ${usulan?.nomorShift ?? ''} ditutup${usulan?.waktuTutup ? ` (${formatWaktu(usulan.waktuTutup)})` : ''}. Pakai bila laci tidak disentuh sejak itu.`,
+          ? 'Belum ada shift ditutup dengan uang ditinggal. Pilih Hitung sekarang.'
+          : `Ditinggal saat ${usulan?.nomorShift ?? ''} ditutup${usulan?.waktuTutup ? `, ${formatWaktu(usulan.waktuTutup)}` : ''}. Laci tidak disentuh sejak itu.`,
       mati: ditinggal === null,
     },
     {
       c: 'HITUNG',
       tombol: 'H',
       judul: 'Hitung sekarang',
-      ket: 'Hitung uang di laci per pecahan (atau ketik totalnya). Paling teliti.',
+      ket: 'Per pecahan atau total. Paling teliti.',
     },
     {
       c: 'HITUNG_NANTI',
       tombol: 'N',
       judul: 'Buka dulu, hitung nanti',
-      ket: `Toko sudah ramai? Shift langsung buka dengan modal sementara ${formatRupiah(ditinggal ?? 0)}; hitung uangnya dalam ${usulan?.batasHitungMenit ?? 60} menit. Uang yang masuk dan kembalian yang keluar sebelum itu otomatis diperhitungkan.`,
+      ket: `Toko sudah ramai. Langsung jualan; hitung laci dalam ${usulan?.batasHitungMenit ?? 60} menit (uang penjualan tidak perlu dipisah).`,
     },
   ];
 
@@ -115,13 +115,13 @@ export function DialogBukaShift({ onTutup }: { onTutup: () => void }) {
         }}
       >
         <DialogHeader>
-          <DialogTitle>Buka shift kasir</DialogTitle>
+          <DialogTitle>Buka shift toko</DialogTitle>
           <DialogDescription>
             {langkah === 'pilih'
-              ? 'Pilih cara mengisi modal awal (uang di laci saat shift dibuka).'
+              ? 'Modal awal = uang di laci saat buka.'
               : langkah === 'hitung'
-                ? 'Hitung semua uang di laci saat ini.'
-                : 'Periksa sekali lagi sebelum shift dibuka.'}
+                ? 'Hitung semua uang di laci.'
+                : 'Periksa sekali lagi.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -150,8 +150,7 @@ export function DialogBukaShift({ onTutup }: { onTutup: () => void }) {
               </button>
             ))}
             <p className="text-xs text-slate-500">
-              <kbd className="font-mono">Esc</kbd> = tutup. Staf tetap bisa mencatat order walau
-              shift belum dibuka; hanya pembayaran tunai yang menunggu shift.
+              <kbd className="font-mono">Esc</kbd> = tutup. Order tetap bisa dicatat tanpa shift.
             </p>
           </div>
         )}
@@ -184,15 +183,14 @@ export function DialogBukaShift({ onTutup }: { onTutup: () => void }) {
                 {formatRupiah(modal)}
               </p>
               <p className="mt-1 text-sm text-blue-900">
-                {cara === 'SAMA_KEMARIN' && 'sama dengan uang ditinggal kemarin'}
-                {cara === 'HITUNG' && 'hasil hitungan Anda'}
+                {cara === 'SAMA_KEMARIN' && 'uang kemarin'}
+                {cara === 'HITUNG' && 'hasil hitungan'}
                 {cara === 'HITUNG_NANTI' &&
-                  `sementara; hitung uang laci dalam ${usulan?.batasHitungMenit ?? 60} menit`}
+                  `sementara; hitung laci dalam ${usulan?.batasHitungMenit ?? 60} menit`}
               </p>
             </div>
             <p className="text-xs text-slate-500">
-              Salah ketik? Sebelum ada transaksi tunai, modal bisa dibetulkan sendiri lewat{' '}
-              <b>Koreksi modal</b> di menu Shift; sesudahnya butuh kode Admin/Owner.
+              Salah ketik nanti: <b>Koreksi modal</b> di menu Shift.
             </p>
             <div className="flex justify-between gap-2">
               <Button

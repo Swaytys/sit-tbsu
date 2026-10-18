@@ -382,6 +382,10 @@ definisi selesai:
 3. **Order penjualan** (K-122): order disimpan (tahan stok), kembali ke draf, buka draf otomatis, peringatan barang
    di draf lain, panel rincian di Order Penjualan; pilihan per order saat tutup shift (K-121 butir 9).
    **Selesai 2026-10-18** (docs/05 R11–R14, migrasi 0021).
+3a. **Perbaikan uji pemilik 18 Okt** (K-128–K-145, `keputusan/2026-10-18-uji-pemilik-lanjutan.md`):
+   (i) perbaikan cepat dan **satu shift toko** (K-132–K-136, K-140–K-142) — **selesai 2026-10-18**;
+   (ii) pemberitahuan tidak mengagetkan dan hot page pas layar (K-129, K-130, K-131, K-138, K-139, K-143);
+   (iii) data bersih dan diskon dengan kode (K-137, K-144); (iv) pengaturan hotkey (K-145) setelah butir lain.
 4. **Pencarian dan tampilan** (K-123): atribut dicocokkan sebagian, label keterjualan, angka stok merah tebal,
    teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan.
 5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),
@@ -424,6 +428,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-10-18 — Fase 14 butir 3a(i) selesai: satu shift toko, hitung susulan dua langkah, kembalian tidak diambil, kode atasan dilanjutkan (K-132–K-142, migrasi 0022).
 - 2026-10-18 — Fase 14 butir 3 selesai: order disimpan, kembali ke draf, peringatan draf lain (K-122, docs/05 R11–R14, migrasi 0021).
 - 2026-10-18 — Fase 14 diperluas dengan lingkup v1.0.0 dari tinjauan pemilik 18 Okt (K-120–K-127); butir 2 shift anti-anomali selesai (K-121, docs/05 K15–K24, migrasi 0020).
 - 2026-10-17 — Fase 14 bagian 1 selesai: rekomendasi pemesanan ulang (K-113, docs/05 §17). Tinjauan pemilik 17 Okt: K-114–K-119.

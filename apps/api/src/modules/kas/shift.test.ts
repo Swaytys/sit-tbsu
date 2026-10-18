@@ -8,7 +8,7 @@ import type {
   ShiftAktif,
   UsulanBukaShift,
 } from '@sit/shared';
-import { eq } from 'drizzle-orm';
+import { eq, ne } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
 import {
@@ -59,10 +59,14 @@ async function ambil<T>(sesi: Sesi, path: string) {
 }
 
 function jualTunai(sesi: Sesi, qty: string, uang?: number) {
-  return kirim<{ id: number; totalNeto: number }>(sesi, '/api/penjualan/checkout', {
-    order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty }] },
-    pembayaran: [{ metode: 'TUNAI', uangDiterima: uang }],
-  });
+  return kirim<{ id: number; nomor: string; totalNeto: number; baris: { id: number }[] }>(
+    sesi,
+    '/api/penjualan/checkout',
+    {
+      order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty }] },
+      pembayaran: [{ metode: 'TUNAI', uangDiterima: uang }],
+    },
+  );
 }
 
 beforeEach(async () => {
@@ -169,7 +173,7 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
     expect((await ambil<{ data: ShiftAktif | null }>(kasir, '/api/shift/saya')).data).toBeNull();
   });
 
-  it('K6 order DIPROSES kasir kembali ke antrean saat tutup; Admin boleh menutup shift kasir lain', async () => {
+  it('K6 + K-132: semua order DIPROSES kembali ke antrean saat tutup; siapa pun berizin boleh menutup', async () => {
     const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 0 });
     const staf = await sesiUji('STAF_PENJUALAN');
     const o = await kirim<DetailOrder>(staf, '/api/order?kirim=true', {
@@ -178,15 +182,15 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
     });
     await kirim(kasir, `/api/order/${o.id}/proses`);
 
-    const kasir2 = await sesiUji('KASIR');
-    expect((await galat(kasir2, `/api/shift/${s.id}/tutup`, { uangFisik: 0 })).status).toBe(404);
+    // Staf tidak punya akses shift; pengguna lain yang berizin boleh menutup shift toko.
+    expect((await galat(staf, `/api/shift/${s.id}/tutup`, { uangFisik: 0 })).status).toBe(403);
     const tutup = await kirim<DetailShift>(admin, `/api/shift/${s.id}/tutup`, { uangFisik: 0 });
     expect(tutup.clerical?.namaPemeriksa).toBe(admin.pengguna.namaPengguna);
     const [order] = await db.select().from(orderPenjualan).where(eq(orderPenjualan.id, o.id));
     expect(order).toMatchObject({ status: 'MENUNGGU', idKasirProses: null });
   });
 
-  it('K8 riwayat: Admin melihat semua shift, kasir hanya miliknya; saring selisih', async () => {
+  it('K8 + K-132 riwayat: shift toko terlihat oleh semua pengguna berizin; saring selisih', async () => {
     const s1 = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 0 });
     await kirim(kasir, `/api/shift/${s1.id}/tutup`, { uangFisik: 1000, keterangan: 'lebih' });
     const kasir2 = await sesiUji('KASIR');
@@ -195,9 +199,10 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
 
     const semua = await ambil<DaftarShift>(admin, '/api/shift');
     expect(semua.data.map((s) => s.id).sort()).toEqual([s1.id, s2.id].sort());
-    const milik = await ambil<DaftarShift>(kasir2, '/api/shift');
-    expect(milik.data.map((s) => s.id)).toEqual([s2.id]);
-    expect((await galat(kasir2, `/api/shift/${s1.id}`, undefined, 'GET')).status).toBe(404);
+    const kasirLain = await ambil<DaftarShift>(kasir2, '/api/shift');
+    expect(kasirLain.data.map((s) => s.id).sort()).toEqual([s1.id, s2.id].sort());
+    const d1 = await ambil<{ data: DetailShift }>(kasir2, `/api/shift/${s1.id}`);
+    expect(d1.data.clerical?.selisih).toBe(1000);
     const selisih = await ambil<DaftarShift>(admin, '/api/shift?adaSelisih=true');
     expect(selisih.data.map((s) => [s.id, s.clerical?.selisih])).toEqual([[s1.id, 1000]]);
   });
@@ -226,7 +231,7 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
     notif = (await ambil<{ data: Notifikasi[] }>(kasir, '/api/notifikasi')).data;
     expect(notif.find((n) => n.jenis === 'SHIFT_SAYA_PERLU_DITUTUP')?.tautan).toBe('/shift');
     const notifAdmin = (await ambil<{ data: Notifikasi[] }>(admin, '/api/notifikasi')).data;
-    expect(notifAdmin.find((n) => n.jenis === 'SHIFT_PERLU_DITUTUP')?.jumlah).toBe(1);
+    expect(notifAdmin.find((n) => n.jenis === 'SHIFT_SAYA_PERLU_DITUTUP')?.jumlah).toBe(1);
     await jualTunai(kasir, '1');
 
     // Shift yang dibuka setelah perubahan memakai jadwal baru.
@@ -351,22 +356,55 @@ describe('buka/tutup shift dan anomali kas (docs/05 §10 K15–K23, K-121)', () 
     ]);
   });
 
-  it('K16 hitung nanti: modal saat buka = hitungan − tunai bersih sejak buka; selisih semalam jadi koreksi', async () => {
+  it('K16 + K-134 hitung nanti: hitung → hasil → hitung ulang sekali → simpan; selisih semalam jadi koreksi', async () => {
     await shiftKemarin(150000);
     const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { cara: 'HITUNG_NANTI' });
     expect(s.modalAwal).toBe(150000);
     expect(s.batasHitungBuka).not.toBeNull();
     const notif = await ambil<{ data: Notifikasi[] }>(kasir, '/api/notifikasi');
     expect(notif.data.some((n) => n.jenis === 'SHIFT_HITUNG_BUKA')).toBe(true);
+    // Koreksi modal belum boleh: modal ditentukan hitung susulan.
+    expect(
+      (
+        await galat(kasir, `/api/shift/${s.id}/koreksi-modal`, {
+          modalBenar: 100000,
+          alasan: 'salah',
+        })
+      ).pesan,
+    ).toContain('hitung uang laci dulu');
 
     await jualTunai(kasir, '2', 50000); // tunai masuk 20.000 (kembalian 30.000)
     await kirim(kasir, '/api/shift/kas', { jenis: 'KASBON', nominal: 5000, keterangan: 'Budi' });
-    // Laci 160.000; tunai bersih sejak buka 15.000; modal saat buka 145.000 (semalam kurang 5.000).
-    const h = await kirim<ShiftAktif>(kasir, `/api/shift/${s.id}/hitung-buka`, {
+    // Hitungan pertama 150.000 (salah hitung): selisih −15.000 di luar toleransi → boleh hitung ulang sekali.
+    const h1 = await kirim<ShiftAktif>(kasir, `/api/shift/${s.id}/hitung-buka`, {
+      uangFisik: 150000,
+    });
+    expect(h1.batasHitungBuka).not.toBeNull();
+    expect(h1.hitungBuka).toMatchObject({
+      jumlahHitung: 1,
+      laci: 150000,
+      masukSejakBuka: 15000,
+      modalSaatBuka: 135000,
+      ditinggalKemarin: 150000,
+      selisih: -15000,
+      bolehHitungUlang: true,
+    });
+    expect(h1.koreksiModal).toBe(0);
+    // Hitung ulang: laci 160.000 → modal saat buka 145.000 (semalam kurang 5.000).
+    const h2 = await kirim<ShiftAktif>(kasir, `/api/shift/${s.id}/hitung-buka`, {
       uangFisik: 160000,
     });
-    expect(h.batasHitungBuka).toBeNull();
-    expect(h.koreksiModal).toBe(-5000);
+    expect(h2.hitungBuka).toMatchObject({
+      jumlahHitung: 2,
+      selisih: -5000,
+      bolehHitungUlang: false,
+    });
+    const ketiga = await galat(kasir, `/api/shift/${s.id}/hitung-buka`, { uangFisik: 160000 });
+    expect(ketiga.pesan).toContain('hanya sekali');
+    const simpan = await kirim<ShiftAktif>(kasir, `/api/shift/${s.id}/hitung-buka/simpan`);
+    expect(simpan.batasHitungBuka).toBeNull();
+    expect(simpan.hitungBuka).toBeNull();
+    expect(simpan.koreksiModal).toBe(-5000);
     const ulang = await galat(kasir, `/api/shift/${s.id}/hitung-buka`, { uangFisik: 160000 });
     expect(ulang.status).toBe(409);
     const d = await ambil<{ data: DetailShift }>(admin, `/api/shift/${s.id}`);
@@ -505,5 +543,116 @@ describe('buka/tutup shift dan anomali kas (docs/05 §10 K15–K23, K-121)', () 
     expect(
       (await galat(admin, `/api/shift/${s.id}/penjelasan`, { penjelasan: 'Lagi' })).status,
     ).toBe(409);
+  });
+});
+
+describe('satu shift untuk toko (docs/05 K1, K2, K25–K27; K-132, K-141, K-142)', () => {
+  it('K-132 satu shift terbuka untuk toko: buka kedua ditolak, dua pembukaan bersamaan tetap satu', async () => {
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 0 });
+    expect(s.namaPembuka).toBe(kasir.pengguna.namaPengguna);
+    const kedua = await galat(admin, '/api/shift/buka', { modalAwal: 0 });
+    expect(kedua.status).toBe(409);
+    expect(kedua.pesan).toContain(s.nomor);
+    // Admin mencatat penjualan tunai ke shift toko yang dibuka kasir.
+    await jualTunai(admin, '1');
+    const d = await ambil<{ data: DetailShift }>(admin, `/api/shift/${s.id}`);
+    expect(d.data.ringkasan?.tunaiPenjualan).toBe(10000);
+    await kirim(kasir, `/api/shift/${s.id}/tutup`, { uangFisik: 10000 });
+
+    const hasil = await Promise.all([
+      minta('/api/shift/buka', { method: 'POST', cookie: kasir.cookie, body: { modalAwal: 0 } }),
+      minta('/api/shift/buka', { method: 'POST', cookie: admin.cookie, body: { modalAwal: 0 } }),
+    ]);
+    expect(hasil.map((r) => r.status).sort()).toEqual([201, 409]);
+    const terbuka = await db.select().from(shiftKasir).where(ne(shiftKasir.status, 'TUTUP'));
+    expect(terbuka).toHaveLength(1);
+  });
+
+  it('K-132 sisa shift ganda (aturan lama) menolak pencatatan uang sampai ditutup; Staf melihat status shift', async () => {
+    const staf = await sesiUji('STAF_PENJUALAN');
+    expect((await ambil<{ data: unknown }>(staf, '/api/shift/status')).data).toBeNull();
+    const s1 = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 0 });
+    // Shift kedua yang tertinggal dari aturan lama (satu shift per pengguna).
+    const [lama] = await db
+      .insert(shiftKasir)
+      .values({
+        nomor: 'SHF-LAMA-001',
+        idKasir: admin.pengguna.id,
+        tanggalOperasional: s1.tanggalOperasional,
+        waktuBuka: new Date(),
+        modalAwal: 0,
+      })
+      .returning();
+    const g = await galat(kasir, '/api/shift/kas', { jenis: 'SETOR_OWNER', nominal: 1000 });
+    expect(g.status).toBe(409);
+    expect(g.pesan).toContain('aturan lama');
+    const aktif = (await ambil<{ data: ShiftAktif }>(kasir, '/api/shift/aktif')).data;
+    expect(aktif.lainTerbuka.map((x) => x.nomor)).toEqual(['SHF-LAMA-001']);
+    await kirim(admin, `/api/shift/${lama!.id}/tutup`, { uangFisik: 0 });
+    await kirim(kasir, '/api/shift/kas', { jenis: 'SETOR_OWNER', nominal: 1000 });
+    const st = (
+      await ambil<{ data: { nomor: string; status: string; namaPembuka: string } }>(
+        staf,
+        '/api/shift/status',
+      )
+    ).data;
+    expect(st).toMatchObject({
+      nomor: s1.nomor,
+      status: 'BUKA',
+      namaPembuka: kasir.pengguna.namaPengguna,
+    });
+  });
+
+  it('K-141 kembalian tidak diambil dicatat kas masuk khusus; omzet tetap, laci cocok', async () => {
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 100000 });
+    // Belanja 10.000, bayar 15.000, kembalian 5.000 tidak diambil.
+    const r = await minta('/api/penjualan/checkout', {
+      method: 'POST',
+      cookie: kasir.cookie,
+      body: {
+        order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '1' }] },
+        pembayaran: [{ metode: 'TUNAI', uangDiterima: 15000, kembalianTidakDiambil: true }],
+      },
+    });
+    expect(r.status).toBe(201);
+    const d = await ambil<{ data: DetailShift }>(admin, `/api/shift/${s.id}`);
+    expect(d.data.ringkasan).toMatchObject({
+      tunaiPenjualan: 10000,
+      kasMasukLain: 5000,
+      saldoSistem: 115000,
+    });
+    expect(d.data.kas.map((k) => [k.jenis, k.nominal])).toEqual([['KEMBALIAN_DITINGGAL', 5000]]);
+    const tutup = await kirim<DetailShift>(kasir, `/api/shift/${s.id}/tutup`, {
+      uangFisik: 115000,
+    });
+    expect(tutup.clerical?.selisih).toBe(0);
+  });
+
+  it('K-142 pengajuan retur menunggu tampil sebagai informasi; uangnya belum keluar dari laci', async () => {
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 100000 });
+    const pj = await jualTunai(kasir, '2');
+    const r = await minta('/api/retur', {
+      method: 'POST',
+      cookie: kasir.cookie,
+      body: {
+        idPenjualan: pj.id,
+        alasan: 'Kelebihan',
+        penyelesaian: 'REFUND',
+        persetujuan: { metodeRefund: 'TUNAI' },
+        baris: [{ idPenjualanDetail: pj.baris[0]!.id, qtyRetur: '1', kondisi: 'BAIK' }],
+      },
+    });
+    expect(r.status).toBe(201);
+    const menunggu = (
+      await ambil<{ data: { jenis: string; nomorPenjualan: string; nilai: number }[] }>(
+        kasir,
+        '/api/shift/menunggu',
+      )
+    ).data;
+    expect(menunggu).toContainEqual(
+      expect.objectContaining({ jenis: 'RETUR', nomorPenjualan: pj.nomor, nilai: 10000 }),
+    );
+    const d = await ambil<{ data: DetailShift }>(admin, `/api/shift/${s.id}`);
+    expect(d.data.ringkasan?.kasKeluar).toBe(0);
   });
 });

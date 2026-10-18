@@ -232,6 +232,8 @@ export const JENIS_KAS_SHIFT = [
   /** K-121: koreksi modal awal (salah ketik, hitung susulan); modal awal sendiri tidak diubah. */
   'KOREKSI_MODAL_TAMBAH',
   'KOREKSI_MODAL_KURANG',
+  /** K-141: pembeli tidak mengambil kembaliannya (bukan penjualan; laci tetap cocok). */
+  'KEMBALIAN_DITINGGAL',
 ] as const;
 export type JenisKasShift = (typeof JENIS_KAS_SHIFT)[number];
 

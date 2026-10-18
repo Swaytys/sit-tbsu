@@ -484,7 +484,6 @@ describe('limit kredit pelanggan (PT6) dan umur piutang (PT5)', () => {
     expect(logKode?.ringkasan).toContain(`kode sekali pakai, sesi ${kasir.pengguna.username}`);
     // Sekali pakai: penjualan berikutnya butuh kode baru.
     expect((await galat(jual(kasir, '1', { kodeLimit: kode }))).status).toBe(400);
-    await kirim(admin, '/api/shift/buka', { modalAwal: 0 });
     expect((await galat(jual(admin, '1'))).detail).toMatchObject({ bolehLanjut: true });
     const lanjut = await jual(admin, '1', { setujuLimit: true });
     expect(lanjut.status).toBe(201);

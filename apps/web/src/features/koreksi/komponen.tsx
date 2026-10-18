@@ -93,7 +93,7 @@ export function SelStatusKoreksi({
 export function IsianRefund({
   nilai,
   onUbah,
-  labelTunai = 'Tunai (laci shift saya)',
+  labelTunai = 'Tunai (laci toko)',
 }: {
   nilai: DataSetujui;
   onUbah: (v: DataSetujui) => void;

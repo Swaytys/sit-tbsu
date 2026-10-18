@@ -174,19 +174,20 @@ export function DialogPilihanOrder({
 }
 
 /**
- * Tutup shift (K-121 butir 9): order yang masih dipegang kasir ini, dengan pilihan per order. Order yang tidak
- * diurus tetap kembali ke antrean saat shift ditutup.
+ * Tutup shift (K-121 butir 9, K-133): semua order yang belum selesai (di antrean dan sedang di kasir), dengan
+ * pilihan per order. Yang tidak diubah tetap di antrean (stok tetap ditahan); yang sedang di kasir kembali ke
+ * antrean saat shift ditutup.
  */
-export function DaftarOrderDipegang() {
+export function DaftarOrderBelumSelesai() {
   const saya = usePengguna();
+  const izin = (k: Parameters<typeof saya.izin.includes>[0]) => saya.izin.includes(k);
   const daftar = useDaftarOrder({
     cari: '',
-    status: null,
+    status: 'AKTIF',
     jenis: null,
     milikSaya: false,
-    dipegangSaya: true,
     halaman: 1,
-    perHalaman: 50,
+    perHalaman: 100,
   });
   const lepas = useLepasOrder();
   const keDraf = useKeDrafOrder();
@@ -200,63 +201,83 @@ export function DaftarOrderDipegang() {
   return (
     <div
       className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3"
-      data-testid="order-dipegang"
+      data-testid="order-belum-selesai"
     >
-      <p className="text-sm font-semibold text-amber-900">
-        {data.length} order masih Anda pegang di kasir
-      </p>
+      <p className="text-sm font-semibold text-amber-900">{data.length} order belum selesai</p>
       <p className="text-xs text-amber-900">
-        Pilih untuk tiap order. Yang tidak dipilih otomatis kembali ke antrean saat shift ditutup.
+        Yang tidak diubah tetap di antrean (stok tetap ditahan).
       </p>
-      <ul className="space-y-1.5">
-        {data.map((o) => (
-          <li key={o.id} className="rounded-md border bg-white p-2 text-sm">
-            <div className="flex items-baseline justify-between gap-2">
-              <span>
-                <b className="tabular-nums">Antrean {o.noAntrean}</b>{' '}
-                <span className="font-mono text-xs text-slate-500">{o.nomor}</span> ·{' '}
-                {namaPembeli(o)}
-              </span>
-              <span className="font-semibold tabular-nums">{formatRupiah(o.total)}</span>
-            </div>
-            <p className="truncate text-xs text-slate-600">
-              {o.ringkasan.map((r) => `${r.namaBarang} ${formatDesimal(r.qty)}`).join(' · ')}
-            </p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={lepas.isPending}
-                onClick={() =>
-                  jalankan(lepas.mutateAsync(o.id), `Antrean ${o.noAntrean} kembali ke antrean.`)
-                }
-              >
-                <Undo2 /> Ke antrean
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setSimpan(o)}>
-                <CalendarClock /> Simpan untuk nanti…
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={keDraf.isPending}
-                onClick={() =>
-                  jalankan(
-                    keDraf.mutateAsync(o.id),
-                    `Antrean ${o.noAntrean} dikembalikan ke draf; stok dilepas.`,
-                  )
-                }
-              >
-                <FilePen /> Ke draf
-              </Button>
-              {saya.izin.includes('penjualan.order.batal') && (
-                <Button size="sm" variant="outline" onClick={() => setBatal(o)}>
-                  <X /> Batalkan…
-                </Button>
-              )}
-            </div>
-          </li>
-        ))}
+      <ul className="max-h-72 space-y-1.5 overflow-y-auto">
+        {data.map((o) => {
+          const diKasir = o.status === 'DIPROSES';
+          const pegangSaya = diKasir && o.idKasirProses === saya.id;
+          const bolehLepas = diKasir && (pegangSaya || izin('penjualan.order.lepas_paksa'));
+          const bolehDraf = !diKasir || bolehLepas;
+          const bolehSimpan = !diKasir || pegangSaya;
+          const bolehBatal =
+            izin('penjualan.order.batal') &&
+            (!diKasir || pegangSaya || izin('penjualan.order.lepas_paksa'));
+          return (
+            <li key={o.id} className="rounded-md border bg-white p-2 text-sm">
+              <div className="flex items-baseline justify-between gap-2">
+                <span>
+                  <b className="tabular-nums">Antrean {o.noAntrean}</b> · {namaPembeli(o)}
+                  <span className="text-xs text-slate-500">
+                    {' '}
+                    · input {o.namaPengguna}
+                    {diKasir && ` · di kasir ${o.namaKasirProses ?? ''}`}
+                  </span>
+                </span>
+                <span className="font-semibold tabular-nums">{formatRupiah(o.total)}</span>
+              </div>
+              <p className="truncate text-xs text-slate-600">
+                {o.ringkasan.map((r) => `${r.namaBarang} ${formatDesimal(r.qty)}`).join(' · ')}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {bolehLepas && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={lepas.isPending}
+                    onClick={() =>
+                      jalankan(
+                        lepas.mutateAsync(o.id),
+                        `Antrean ${o.noAntrean} kembali ke antrean.`,
+                      )
+                    }
+                  >
+                    <Undo2 /> Ke antrean
+                  </Button>
+                )}
+                {bolehSimpan && (
+                  <Button size="sm" variant="outline" onClick={() => setSimpan(o)}>
+                    <CalendarClock /> Simpan nanti…
+                  </Button>
+                )}
+                {bolehDraf && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={keDraf.isPending}
+                    onClick={() =>
+                      jalankan(
+                        keDraf.mutateAsync(o.id),
+                        `Antrean ${o.noAntrean} jadi draf; stok dilepas.`,
+                      )
+                    }
+                  >
+                    <FilePen /> Ke draf
+                  </Button>
+                )}
+                {bolehBatal && (
+                  <Button size="sm" variant="outline" onClick={() => setBatal(o)}>
+                    <X /> Batalkan…
+                  </Button>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
       {simpan && (
         <DialogSimpanOrder

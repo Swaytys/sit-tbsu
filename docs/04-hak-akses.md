@@ -79,8 +79,8 @@ memakai kode di luar daftar gagal typecheck.
 
 | Kode | Arti |
 |---|---|
-| `kas.shift.kelola_sendiri` | Buka/tutup shift sendiri (tiga cara buka, hitung susulan, hitung tutup dua langkah), catat kas masuk/keluar shift sendiri, koreksi modal shift sendiri sebelum ada transaksi tunai (sesudahnya dengan kode atasan, K-121), clerical shift sendiri |
-| `kas.shift.lihat_semua` | Lihat semua shift dan clerical, menutup shift pengguna lain, menerima pengingat shift yang perlu ditutup (K-109), menyetujui koreksi modal (kode `KOREKSI_KAS`) dan mengoreksi modal kapan saja selama shift BUKA, menulis penjelasan selisih setelah shift ditutup (K-121) |
+| `kas.shift.kelola_sendiri` | Buka/tutup **shift toko** (satu untuk seluruh toko, K-132; tiga cara buka, hitung susulan, tutup dua langkah), catat kas masuk/keluar, koreksi modal sebelum ada transaksi tunai (sesudahnya dengan kode atasan, K-121), lihat riwayat shift dan pengajuan retur/void yang menunggu |
+| `kas.shift.lihat_semua` | Melihat angka sistem shift yang belum dihitung, menerima pengingat Telegram/email shift yang perlu ditutup (K-109), menyetujui koreksi modal (kode `KOREKSI_KAS`) dan mengoreksi modal tanpa kode selama shift BUKA, menulis penjelasan selisih setelah shift ditutup (K-121) |
 | `kas.rekening.lihat` | Melihat daftar rekening/EDC/QRIS toko untuk dipilih saat mencatat pembayaran atau refund (K-111) |
 | `kas.nontunai.verifikasi` | Mengecek uang masuk pembayaran non-tunai dan menandai hasilnya (K-111) |
 
@@ -320,3 +320,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-12 — §2–§4: izin `kas.rekening.lihat`, `kas.nontunai.verifikasi`; arti izin pelanggan; menu Promo masuk Pengaturan; §6 kode `UBAH_PELANGGAN` (K-107, K-109, K-110, K-111).
 - 2026-10-18 — §2, §6: arti izin shift diperluas (hitung dua langkah, koreksi modal, penjelasan selisih); kode `KOREKSI_KAS` (K-121).
 - 2026-10-18 — Order disimpan dan kembali ke draf memakai izin `penjualan.order.buat` dengan pemeriksaan pemilik/kunci di service (pembuat, pemegang `penjualan.checkout`, atau kasir pemegang kunci; docs/05 R11–R13); daftar draf lain per barang untuk peringatan (R14) (K-122).
+- 2026-10-18 — Satu shift toko (K-132): arti izin shift diperbarui; `GET /api/shift/status` (semua pengguna login, indikator topbar) dan `GET /api/persetujuan/:id` (pengaju melanjutkan permintaan kode, K-136).

@@ -11,7 +11,11 @@ import {
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
 import { kaitValidasi, paramId } from '../../../lib/validasi';
-import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
+import {
+  penggunaWajib,
+  requireLogin,
+  requirePermission,
+} from '../../../middleware/require-permission';
 import {
   bukaShift,
   catatKasManual,
@@ -23,16 +27,25 @@ import {
   jelaskanSelisih,
   koreksiModal,
   mintaKodeKoreksi,
-  shiftSaya,
+  pengajuanMenunggu,
+  shiftAktifToko,
+  simpanHitungBuka,
+  statusShiftToko,
   tutupShift,
   usulanBukaShift,
 } from './service';
 
 const sendiri = requirePermission('kas.shift.kelola_sendiri');
 
-/** Shift kasir & clerical check (docs/05 §10). Akses per shift diperiksa service. */
+/** Shift toko & clerical check (docs/05 §10, K-132): satu shift terbuka untuk toko. */
 export const shiftRoutes = new Hono<EnvApp>()
-  .get('/saya', sendiri, async (c) => c.json({ data: await shiftSaya(penggunaWajib(c)) }, 200))
+  /** Shift toko yang sedang terbuka (`/saya` = nama lama, tetap dilayani). */
+  .get('/aktif', sendiri, async (c) => c.json({ data: await shiftAktifToko() }, 200))
+  .get('/saya', sendiri, async (c) => c.json({ data: await shiftAktifToko() }, 200))
+  /** K-132: status ringkas untuk semua pengguna login (indikator topbar, termasuk Staf). */
+  .get('/status', requireLogin(), async (c) => c.json({ data: await statusShiftToko() }, 200))
+  /** K-142: pengajuan retur/void yang belum diputuskan (informasi saat tutup shift). */
+  .get('/menunggu', sendiri, async (c) => c.json({ data: await pengajuanMenunggu() }, 200))
   .get('/usulan-buka', sendiri, async (c) => c.json({ data: await usulanBukaShift() }, 200))
   .post('/buka', sendiri, zValidator('json', skemaBukaShift, kaitValidasi), async (c) => {
     const data = await bukaShift(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
@@ -43,10 +56,19 @@ export const shiftRoutes = new Hono<EnvApp>()
     return c.json({ data }, 201);
   })
   .get('/', sendiri, zValidator('query', skemaCariShift, kaitValidasi), async (c) =>
-    c.json(await daftarShift(c.req.valid('query'), penggunaWajib(c)), 200),
+    c.json(await daftarShift(c.req.valid('query')), 200),
   )
   .get('/:id', sendiri, paramId, async (c) =>
     c.json({ data: await detailShift(c.req.valid('param').id, penggunaWajib(c)) }, 200),
+  )
+  /** K-134: simpan hasil hitung susulan terakhir (selisih semalam jadi koreksi modal). */
+  .post('/:id/hitung-buka/simpan', sendiri, paramId, async (c) =>
+    c.json(
+      {
+        data: await simpanHitungBuka(c.req.valid('param').id, penggunaWajib(c), c.get('asal')),
+      },
+      200,
+    ),
   )
   .post(
     '/:id/hitung-buka',
@@ -109,7 +131,7 @@ export const shiftRoutes = new Hono<EnvApp>()
     },
   )
   .get('/:id/hasil', sendiri, paramId, async (c) =>
-    c.json({ data: await hasilHitung(c.req.valid('param').id, penggunaWajib(c)) }, 200),
+    c.json({ data: await hasilHitung(c.req.valid('param').id) }, 200),
   )
   .post(
     '/:id/tutup',

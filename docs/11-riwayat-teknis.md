@@ -359,6 +359,34 @@ dihormati; draf lain kecuali draf yang sedang diisi; lewat tanggal ambil dan not
 `order-simpan.spec.ts` (F7 simpan dengan validasi, peringatan draf lain lalu hapus, kasir memproses order disimpan
 lalu F9 → D ke draf, buka draf otomatis mati/nyala); `order.spec.ts` disesuaikan dengan dialog F9 baru.
 
+### C4. Satu shift toko dan perbaikan uji pemilik (18 Oktober 2026, K-132–K-142)
+
+**Tujuan:** uji pemilik menemukan bahwa setiap pengguna membuka shift sendiri (Owner, Admin, Kasir punya laci
+masing-masing di sistem) padahal toko memakai satu laci; hitung susulan membingungkan; dialog kode atasan tidak bisa
+dilanjutkan; tombol order terpotong.
+
+**Keputusan teknis penting:**
+- **Satu shift toko tanpa constraint baru.** Index unik per kasir tetap; keunikan toko dijaga `pg_advisory_xact_lock`
+  di `bukaShift` + pemeriksaan shift terbuka. Alasannya: database pengembangan sudah memuat tiga shift terbuka
+  (aturan lama), sehingga index unik global akan menggagalkan migrasi. Shift ganda itu ditangani (K25): pencatatan
+  uang ditolak dengan daftar nomornya dan halaman Shift menampilkan tombol tutup tiap shift.
+- `shiftToko()` menggantikan `shiftBuka(idPengguna)`; semua pencatat uang (`pembayaran.ts`, penjualan, hutang,
+  penerimaan, retur pemasok, refund retur/void lewat `catatKas`) memakai shift toko. `shiftUntukDiurus` tidak lagi
+  memeriksa pemilik; izin route yang menentukan.
+- **Hitung susulan dua langkah:** `hitungBukaSusulan` hanya mencatat `hitung_kas` (saldo_sistem = modal sementara +
+  uang masuk bersih); `simpanHitungBuka` menerapkan selisih terakhir sebagai koreksi modal. Koreksi modal ditolak
+  selama menunggu, sehingga modal sementara = modal awal dan rumus tetap sederhana.
+- **Kembalian tidak diambil:** flag di pembayaran TUNAI → kas `KEMBALIAN_DITINGGAL` di transaksi yang sama (migrasi
+  0022; nama enum dipendekkan agar muat `varchar(20)`).
+- **Kode atasan dilanjutkan:** `GET /api/persetujuan/:id` (hanya pengaju, hanya MENUNGGU dan belum kadaluarsa);
+  dialog menyimpan id permintaan per `kunci` urusan di memori halaman.
+- Web: `InputHitungUang` (−/+ tanpa fokus Tab, ↑↓, Del, Shift+Del), `KartuHitungSusulan` (hasil berangka),
+  `DaftarOrderBelumSelesai` (semua order AKTIF), `PengajuanMenunggu`, indikator shift di topbar, opsi K di panel bayar.
+
+**Tes:** `shift.test.ts` (K6/K8/K10/K16 disesuaikan; baru: satu shift + dua pembukaan bersamaan, shift ganda,
+kembalian tidak diambil, retur menunggu), `persetujuan.test.ts` (melanjutkan permintaan), tes lain yang membuka dua
+shift disesuaikan (refund kini keluar dari laci toko).
+
 ---
 
 ## Riwayat dokumen
@@ -367,3 +395,4 @@ lalu F9 → D ke draf, buka draf otomatis mati/nyala); `order.spec.ts` disesuaik
   (146 commit non-merge, 29 September–17 Oktober 2026); Bagian C1 rekomendasi pemesanan ulang.
 - 2026-10-18 — Bagian C2 shift & clerical check anti-anomali (K-120, K-121).
 - 2026-10-18 — Bagian C3 order disimpan, kembali ke draf, peringatan draf lain (K-122).
+- 2026-10-18 — Bagian C4 satu shift toko dan perbaikan uji pemilik (K-132–K-142).

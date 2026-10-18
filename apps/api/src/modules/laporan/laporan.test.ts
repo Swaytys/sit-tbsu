@@ -138,7 +138,6 @@ beforeAll(async () => {
     baris: [{ idBarang: m.semen, qtyMasuk: '10', hargaModalMasuk: 11000 }],
   });
   await kirim(kasir, '/api/shift/buka', { modalAwal: 100000 });
-  await kirim(admin, '/api/shift/buka', { modalAwal: 100000 });
 
   const pjA = await jualLangsung([
     { idBarang: m.semen, qty: '5' },

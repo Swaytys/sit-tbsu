@@ -2,7 +2,7 @@ import type { Notifikasi } from '@sit/shared';
 import type { PenggunaAktif } from '../../../lib/konteks';
 import { hutangJatuhTempo } from '../../hutang/service';
 import { hitungNonTunai } from '../../kas/nontunai/service';
-import { jumlahShiftPerluDitutup, shiftSaya } from '../../kas/shift/service';
+import { shiftAktifToko } from '../../kas/shift/service';
 import { jumlahReturMenunggu } from '../../koreksi/retur/service';
 import { jumlahVoidMenunggu } from '../../koreksi/void/service';
 import { jumlahDisimpanLewat, jumlahOrderBasi } from '../../penjualan/order/service';
@@ -15,41 +15,37 @@ import { peringatanCadangan } from '../cadangan/service';
 export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifikasi[]> {
   const { izin } = pelaku;
   const hasil: Notifikasi[] = [];
-  // K-109: shift sendiri yang lewat hari (pencatatan terkunci) atau lewat jam tutup tampil paling atas.
+  // K-109 + K-132: shift toko yang lewat hari (pencatatan terkunci) atau lewat jam tutup tampil paling atas.
   if (izin.has('kas.shift.kelola_sendiri')) {
-    const s = await shiftSaya(pelaku);
-    if (s && (s.terlewat || s.lewatJadwal)) {
+    const s = await shiftAktifToko();
+    if (s && (s.terlewat || s.lewatJadwal || s.lainTerbuka.length > 0)) {
       hasil.push({
         jenis: 'SHIFT_SAYA_PERLU_DITUTUP',
-        judul: s.terlewat ? 'Shift Anda belum ditutup' : 'Sudah lewat jam tutup shift',
-        keterangan: s.terlewat
-          ? `Shift ${s.nomor} dari hari sebelumnya masih terbuka. Penjualan dan pencatatan uang Anda terkunci sampai shift itu ditutup.`
-          : `Shift ${s.nomor} dijadwalkan tutup pukul ${s.jadwalTutup ?? ''}. Selesaikan transaksi lalu tutup shift.`,
-        jumlah: 1,
+        judul:
+          s.lainTerbuka.length > 0
+            ? 'Shift ganda perlu ditutup'
+            : s.terlewat
+              ? 'Shift kemarin belum ditutup'
+              : 'Sudah lewat jam tutup shift',
+        keterangan:
+          s.lainTerbuka.length > 0
+            ? `${s.lainTerbuka.length + 1} shift terbuka dari aturan lama. Tutup semuanya, lalu buka satu shift toko.`
+            : s.terlewat
+              ? `Shift ${s.nomor} dari hari sebelumnya masih terbuka. Penjualan tunai terkunci sampai ditutup.`
+              : `Shift ${s.nomor} dijadwalkan tutup pukul ${s.jadwalTutup ?? ''}.`,
+        jumlah: 1 + s.lainTerbuka.length,
         tautan: '/shift',
       });
     }
-    // K-121: shift dibuka dengan "hitung nanti" dan hitungan susulannya belum dikirim.
+    // K-121: shift dibuka dengan "hitung nanti" dan hitungan susulannya belum disimpan.
     if (s?.batasHitungBuka) {
       const lewat = new Date(s.batasHitungBuka) <= new Date();
       hasil.push({
         jenis: 'SHIFT_HITUNG_BUKA',
-        judul: lewat ? 'Hitung uang laci sudah lewat batas' : 'Hitung uang laci belum dikirim',
-        keterangan: `Shift ${s.nomor} dibuka dengan "hitung nanti". Hitung uang di laci lalu kirim hasilnya di menu Shift & Clerical Check.`,
+        judul: lewat ? 'Hitung uang laci lewat batas' : 'Hitung uang laci belum selesai',
+        keterangan: `Shift ${s.nomor} dibuka "hitung nanti". Hitung semua uang laci di menu Shift.`,
         jumlah: 1,
         tautan: '/shift',
-      });
-    }
-  }
-  if (izin.has('kas.shift.lihat_semua')) {
-    const n = await jumlahShiftPerluDitutup();
-    if (n > 0) {
-      hasil.push({
-        jenis: 'SHIFT_PERLU_DITUTUP',
-        judul: 'Shift perlu ditutup',
-        keterangan: `${n} shift masih terbuka padahal sudah lewat jam tutup atau lewat hari.`,
-        jumlah: n,
-        tautan: '/shift?tab=riwayat&perlu=1',
       });
     }
   }
