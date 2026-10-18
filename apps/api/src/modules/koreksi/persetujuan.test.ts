@@ -255,9 +255,22 @@ describe('kode persetujuan sekali pakai (K-102)', () => {
         body: { metodeRefund: 'TUNAI', kode: { idPermintaan, kode } },
       });
 
+    // K-136: permintaan yang masih berlaku bisa dilanjutkan (tanpa kode baru), hanya oleh pengajunya.
+    const lanjut = (sesi: typeof kasir, id: number) =>
+      ambil<{ idPermintaan: number; penerima: { nama: string }[] } | null>(
+        sesi,
+        `/api/persetujuan/${id}`,
+      );
+    expect(await lanjut(kasir, lama.idPermintaan)).toMatchObject({
+      idPermintaan: lama.idPermintaan,
+      penerima: [expect.objectContaining({ nama: admin.pengguna.namaPengguna })],
+    });
+    expect(await lanjut(admin, lama.idPermintaan)).toBeNull();
+
     const baru = await mintaKode(kasir, `/api/retur/${r.id}`);
     const kodeBaru = kodeTerkirim(admin.pengguna.namaPengguna);
-    // Kode lama sudah diganti.
+    // Kode lama sudah diganti: tidak bisa dilanjutkan maupun dipakai.
+    expect(await lanjut(kasir, lama.idPermintaan)).toBeNull();
     expect((await setujui(lama.idPermintaan, kodeLama)).status).toBe(400);
     // Kode baru yang sudah lewat waktunya juga ditolak.
     await db
@@ -265,6 +278,7 @@ describe('kode persetujuan sekali pakai (K-102)', () => {
       .set({ kadaluarsaPada: new Date(Date.now() - 1000) })
       .where(eq(permintaanPersetujuan.id, baru.idPermintaan));
     expect((await setujui(baru.idPermintaan, kodeBaru)).status).toBe(400);
+    expect(await lanjut(kasir, baru.idPermintaan)).toBeNull();
     expect((await ambil<BarisRetur>(kasir, `/api/retur/${r.id}`)).status).toBe('MENUNGGU');
   });
 

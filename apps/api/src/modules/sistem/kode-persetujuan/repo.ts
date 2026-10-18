@@ -106,3 +106,27 @@ export function kodeTerkirim(tx: Tx, idPermintaan: number) {
     .innerJoin(pengguna, eq(pengguna.id, kodePersetujuan.idAtasan))
     .where(eq(kodePersetujuan.idPermintaan, idPermintaan));
 }
+
+/** K-136: permintaan milik pengaju yang masih MENUNGGU, beserta atasan yang benar-benar menerima kodenya. */
+export async function permintaanMenunggu(ex: Executor, id: number, idPengaju: number) {
+  const [p] = await ex
+    .select({
+      id: permintaanPersetujuan.id,
+      kadaluarsaPada: permintaanPersetujuan.kadaluarsaPada,
+    })
+    .from(permintaanPersetujuan)
+    .where(
+      and(
+        eq(permintaanPersetujuan.id, id),
+        eq(permintaanPersetujuan.idPengaju, idPengaju),
+        eq(permintaanPersetujuan.status, 'MENUNGGU'),
+      ),
+    );
+  if (!p) return null;
+  const penerima = await ex
+    .select({ nama: pengguna.namaPengguna, saluran: kodePersetujuan.saluran })
+    .from(kodePersetujuan)
+    .innerJoin(pengguna, eq(pengguna.id, kodePersetujuan.idAtasan))
+    .where(eq(kodePersetujuan.idPermintaan, id));
+  return { ...p, penerima };
+}

@@ -893,6 +893,7 @@ export function LayarPos({
               tagihanBaru: limitAtasan.tagihanBaru,
             })
           }
+          kunci={`limit:${limitAtasan.idPelanggan}:${limitAtasan.tagihanBaru}`}
           memproses={checkout.isPending}
           onTutup={() => setLimitAtasan(null)}
           onSetujui={(kodeLimit) => void kirimCheckout({ ...limitAtasan.data, kodeLimit })}

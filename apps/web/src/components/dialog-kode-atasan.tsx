@@ -1,7 +1,7 @@
 import type { DataKodePersetujuan, InfoKodePersetujuan } from '@sit/shared';
 import { ShieldCheck } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
-import { pesanGalat } from '@/api/client';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ambilData, api, pesanGalat } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +16,13 @@ import { Label } from '@/components/ui/label';
 import { formatWaktu } from '@/lib/format';
 
 const LABEL_SALURAN = { TELEGRAM: 'Telegram', EMAIL: 'email' } as const;
+
+/**
+ * K-136: permintaan kode yang sudah dikirim per urusan (`kunci`), supaya dialog yang ditutup lalu dibuka lagi
+ * melanjutkan permintaan yang sama tanpa mengirim kode baru. Hanya id permintaan; statusnya selalu dicek ke
+ * server (kadaluarsa/dipakai/diganti = kirim kode baru).
+ */
+const permintaanTerkirim = new Map<string, number>();
 
 /**
  * Persetujuan atasan dengan kode sekali pakai (docs/04 §6, K-102). Dipakai retur, void, dan melampaui limit
@@ -34,6 +41,7 @@ export function DialogKodeAtasan({
   memproses,
   labelTutup = 'Batal',
   onTutup,
+  kunci,
 }: {
   judul: string;
   ringkasan: ReactNode;
@@ -43,9 +51,31 @@ export function DialogKodeAtasan({
   memproses: boolean;
   labelTutup?: string;
   onTutup: () => void;
+  /** Pengenal urusan + isian yang disetujui; sama = permintaan yang masih berlaku dilanjutkan (K-136). */
+  kunci?: string;
 }) {
   const [info, setInfo] = useState<InfoKodePersetujuan | null>(null);
   const [mengirim, setMengirim] = useState(false);
+  const [memuat, setMemuat] = useState(kunci !== undefined && permintaanTerkirim.has(kunci));
+
+  useEffect(() => {
+    const id = kunci === undefined ? undefined : permintaanTerkirim.get(kunci);
+    if (id === undefined) return;
+    let aktif = true;
+    void api.persetujuan[':id']
+      .$get({ param: { id: String(id) } })
+      .then(ambilData)
+      .then((i) => {
+        if (!aktif) return;
+        if (i) setInfo(i);
+        else if (kunci !== undefined) permintaanTerkirim.delete(kunci);
+      })
+      .catch(() => undefined)
+      .finally(() => aktif && setMemuat(false));
+    return () => {
+      aktif = false;
+    };
+  }, [kunci]);
   const [galat, setGalat] = useState('');
   const [kode, setKode] = useState('');
 
@@ -57,6 +87,7 @@ export function DialogKodeAtasan({
       .then((i) => {
         setInfo(i);
         setKode('');
+        if (kunci !== undefined) permintaanTerkirim.set(kunci, i.idPermintaan);
       })
       .catch((err: unknown) => setGalat(pesanGalat(err)))
       .finally(() => setMengirim(false));
@@ -79,7 +110,9 @@ export function DialogKodeAtasan({
         <div className="rounded-md bg-slate-50 p-2 text-sm">{ringkasan}</div>
         {children}
 
-        {info === null ? (
+        {memuat ? (
+          <p className="text-sm text-slate-500">Memeriksa kode yang sudah dikirim…</p>
+        ) : info === null ? (
           <Button autoFocus disabled={mengirim} onClick={kirimKode}>
             {mengirim ? 'Mengirim kode…' : 'Kirim kode ke atasan'}
           </Button>

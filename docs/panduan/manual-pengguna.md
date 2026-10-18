@@ -80,7 +80,7 @@ Tugas: menerima pembayaran, mencetak struk/invoice, dan mempertanggungjawabkan u
    ditutup. Angkanya adalah uang yang dicatat *ditinggal di laci* saat shift itu ditutup. Tidak bisa dipilih bila
    belum ada catatannya.
 2. **H — Hitung sekarang.** Paling teliti. Isi jumlah lembar/keping per pecahan (Rp100.000 × 3, Rp2.000 × 10, …);
-   total dihitung otomatis. Bila lebih mudah, klik **Ketik total saja**. Tekan **Enter** untuk lanjut.
+   total dihitung otomatis. Bila lebih mudah, klik **Total saja**. Tekan **Enter** untuk lanjut.
 3. **N — Buka dulu, hitung nanti.** Untuk pagi yang sudah ramai sebelum laci selesai dihitung. Shift langsung
    buka dengan modal sementara (uang ditinggal kemarin). Anda boleh langsung melayani: uang yang masuk dan
    kembalian yang keluar tetap tercatat. Lihat *Hitung susulan* di bawah.

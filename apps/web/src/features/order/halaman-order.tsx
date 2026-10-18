@@ -249,7 +249,7 @@ function PanelDetail({ id }: { id: number }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-start justify-between gap-3 border-b p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b p-5">
         <div>
           <div className="mb-1 flex items-center gap-2">
             <h2 className="text-lg font-bold text-slate-800">Order {d.nomor}</h2>
@@ -294,7 +294,7 @@ function PanelDetail({ id }: { id: number }) {
             </p>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+        <div className="flex min-w-0 flex-wrap justify-end gap-2">
           {bolehUbah && (
             <Button variant="outline" asChild>
               <Link to={`/order/${d.id}/ubah`}>

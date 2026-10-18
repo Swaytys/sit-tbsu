@@ -712,8 +712,8 @@ export function InputOrderCepat() {
             idTierDasar={tierDefault}
             namaTier={(id) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain'}
           />
-          <div className="flex items-center gap-3">
-            <div className="flex flex-1 items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
+          <div className="flex flex-wrap items-stretch gap-2">
+            <div className="flex min-w-60 flex-1 items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
               <span className="text-xs tracking-widest text-slate-300 uppercase">
                 Total{pratinjau.segar ? '' : ' (menghitung…)'}
                 {pratinjau.segar && pratinjau.data && pratinjau.data.totalDiskonPromo > 0 && (

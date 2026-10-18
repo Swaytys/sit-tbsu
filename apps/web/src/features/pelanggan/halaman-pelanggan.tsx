@@ -293,6 +293,7 @@ export function HalamanPelanggan() {
               json: { aksi: 'STATUS', statusAktif: statusKode.statusAktif },
             })
           }
+          kunci={`pelanggan-status:${statusKode.p.id}:${statusKode.statusAktif}`}
           memproses={ubahStatus.isPending}
           onTutup={() => setStatusKode(null)}
           onSetujui={(kodeAtasan) =>
