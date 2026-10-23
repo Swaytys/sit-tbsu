@@ -60,7 +60,7 @@ test('Kasir mengajukan void item → Admin menyetujui dengan refund tunai → st
     const baris = admin.getByRole('row').filter({ hasText: pj.nomor });
     await baris.getByRole('button', { name: 'Putuskan' }).click();
     const dialog = admin.getByRole('dialog');
-    await dialog.getByRole('button', { name: 'Tunai (laci shift saya)' }).click();
+    await dialog.getByRole('button', { name: 'Tunai (uang shift)' }).click();
     await dialog.getByRole('button', { name: 'Setujui' }).click();
     await expect(admin.getByText(/disetujui; kembalikan Rp 27\.000/)).toBeVisible();
     expect((await api<{ stokFisik: string }>(admin, `/barang/${barang.id}`)).stokFisik).toBe(

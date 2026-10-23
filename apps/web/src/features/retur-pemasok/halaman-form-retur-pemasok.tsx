@@ -57,7 +57,7 @@ const PENJELASAN: Record<PenyelesaianReturPemasok, string> = {
   POTONG_HUTANG: 'Nilai retur mengurangi sisa hutang penerimaan yang dipilih.',
   GANTI_BARANG:
     'Pemasok mengganti dengan barang yang sama. Barang pengganti langsung dicatat masuk sebagai penerimaan yang dibayar dengan retur ini.',
-  REFUND: 'Pemasok mengembalikan uang: tunai masuk ke laci shift Anda, atau lewat transfer.',
+  REFUND: 'Pemasok mengembalikan uang: tunai masuk uang shift, atau lewat transfer.',
   PENGEMBALIAN_TITIPAN: 'Barang titipan (konsinyasi) dikembalikan ke pemiliknya; tidak ada uang.',
 };
 
@@ -332,7 +332,7 @@ export function HalamanFormReturPemasok() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="TRANSFER">Transfer ke rekening toko</SelectItem>
-                          <SelectItem value="TUNAI">Tunai ke laci shift</SelectItem>
+                          <SelectItem value="TUNAI">Tunai ke uang shift</SelectItem>
                         </SelectContent>
                       </Select>
                       {metodeRefund === 'TUNAI' && (

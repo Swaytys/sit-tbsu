@@ -93,7 +93,7 @@ export function SelStatusKoreksi({
 export function IsianRefund({
   nilai,
   onUbah,
-  labelTunai = 'Tunai (laci toko)',
+  labelTunai = 'Tunai (uang shift)',
 }: {
   nilai: DataSetujui;
   onUbah: (v: DataSetujui) => void;
@@ -297,7 +297,7 @@ export function DialogKodeKoreksi({
       }
     >
       {tampilRefund && (
-        <IsianRefund nilai={refund} onUbah={setRefund} labelTunai="Tunai (laci shift kasir ini)" />
+        <IsianRefund nilai={refund} onUbah={setRefund} labelTunai="Tunai (uang shift)" />
       )}
     </DialogKodeAtasan>
   );

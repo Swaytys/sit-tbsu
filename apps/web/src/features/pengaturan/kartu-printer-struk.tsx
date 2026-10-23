@@ -473,7 +473,7 @@ export function KartuPrinterStruk() {
           </p>
         </Langkah>
 
-        <Lipatan judul="Pengaturan lanjutan (tebal cetak, pemotong, laci uang, kecepatan port)">
+        <Lipatan judul="Pengaturan lanjutan (tebal cetak, pemotong, laci kas, kecepatan port)">
           <div className="grid grid-cols-2 gap-4">
             <Saklar
               label="Cetak lebih tebal"
@@ -488,8 +488,8 @@ export function KartuPrinterStruk() {
               onUbah={(v) => ubah({ potong: v })}
             />
             <Saklar
-              label="Buka laci uang"
-              ket="Saat struk penjualan tunai dicetak (laci tersambung ke printer)."
+              label="Buka laci kas"
+              ket="Saat struk penjualan tunai dicetak (laci kas tersambung ke printer)."
               nilai={p.bukaLaci}
               onUbah={(v) => ubah({ bukaLaci: v })}
             />

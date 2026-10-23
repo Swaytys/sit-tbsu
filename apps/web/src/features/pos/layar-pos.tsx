@@ -744,7 +744,6 @@ export function LayarPos({
               onKeluar={() => setZona('cari')}
               onLanjut={() => setZona('bayar')}
               onFokus={() => setZona('keranjang')}
-              bolehDiskon={saya.izin.includes('penjualan.diskon')}
               bolehLepasPromo={saya.izin.includes('penjualan.checkout')}
               pratinjau={pratinjauBaris}
             />

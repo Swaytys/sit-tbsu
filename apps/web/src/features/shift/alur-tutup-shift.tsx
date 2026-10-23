@@ -108,7 +108,7 @@ export function AlurTutupShift({
         <DaftarOrderBelumSelesai />
         <PengajuanMenunggu />
         <p className="text-sm text-slate-600">
-          Hitung <b>semua</b> uang di laci. Angka sistem tampil setelah dikirim.
+          Hitung <b>semua</b> uang shift. Angka sistem tampil setelah dikirim.
         </p>
         <FormHitung idShift={idShift} ulang={false} />
       </div>
@@ -262,7 +262,7 @@ function HasilTutup({
         )}
 
         <div className="space-y-1">
-          <Label htmlFor="uang-ditinggal">Uang ditinggal di laci untuk shift berikutnya</Label>
+          <Label htmlFor="uang-ditinggal">Uang ditinggal untuk shift berikutnya</Label>
           <InputRupiah id="uang-ditinggal" value={tinggal} onChange={setDitinggal} />
           <p className="text-xs text-slate-500">
             Sisanya <b>{formatRupiah(Math.max(0, r.uangFisik - tinggal))}</b> dianggap disetor.
@@ -281,8 +281,8 @@ function HasilTutup({
           <div className="space-y-2 rounded-lg border-2 border-blue-300 bg-blue-50 p-3 text-sm">
             <p>
               Tutup shift dengan uang dihitung <b>{formatRupiah(r.uangFisik)}</b>, selisih{' '}
-              <b>{formatRupiah(r.selisih)}</b>, ditinggal di laci <b>{formatRupiah(tinggal)}</b>?
-              Setelah ditutup angka tidak bisa diubah.
+              <b>{formatRupiah(r.selisih)}</b>, ditinggal untuk shift berikutnya{' '}
+              <b>{formatRupiah(tinggal)}</b>? Setelah ditutup angka tidak bisa diubah.
             </p>
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => setYakin(false)}>

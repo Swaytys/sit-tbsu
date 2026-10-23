@@ -70,9 +70,9 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
 
 ## Kasir
 
-Tugas: menerima pembayaran, mencetak struk/invoice, dan mempertanggungjawabkan uang laci.
+Tugas: menerima pembayaran, mencetak struk/invoice, dan mempertanggungjawabkan uang shift.
 
-**Shift toko.** Toko punya satu laci, jadi hanya ada **satu shift terbuka**. Siapa pun yang punya menu
+**Shift toko.** Toko memegang satu kumpulan uang tunai, jadi hanya ada **satu shift terbuka**. Siapa pun yang punya menu
 *Shift & Clerical Check* boleh membuka dan menutupnya. Semua uang tunai masuk ke shift itu, dengan nama pencatatnya.
 Status shift tampil di bagian atas layar untuk semua orang (*Shift buka* / *Shift tutup*).
 
@@ -81,13 +81,13 @@ Status shift tampil di bagian atas layar untuk semua orang (*Shift buka* / *Shif
 1. **Enter — Pakai uang kemarin.** Laci tidak disentuh sejak shift terakhir ditutup.
 2. **H — Hitung sekarang.** Isi jumlah lembar per pecahan (atau **Total saja**), lalu **Enter**.
    - Di kotak pecahan: **↑ ↓** pindah, **+ −** ubah 1, **Del** kosongkan baris, **Shift+Del** kosongkan semua.
-3. **N — Buka dulu, hitung nanti.** Toko sudah ramai: langsung jualan, hitung laci dalam 60 menit.
+3. **N — Buka dulu, hitung nanti.** Toko sudah ramai: langsung jualan, hitung uang shift dalam 60 menit.
 
 Konfirmasi menampilkan modal awal dengan huruf besar: **Enter** = buka, **Esc** = kembali (angka tidak hilang).
 **Esc** di langkah pertama menutup jendela.
 
-**Hitung nanti — cara menghitung** (kotak kuning *Hitung uang laci* di halaman Shift):
-1. Hitung **semua** uang di laci. Uang penjualan tadi dan kembalian yang sudah keluar **tidak perlu dipisah**.
+**Hitung nanti — cara menghitung** (kotak kuning *Hitung uang shift* di halaman Shift):
+1. Hitung **semua** uang shift. Uang penjualan tadi dan kembalian yang sudah keluar **tidak perlu dipisah**.
 2. **Kirim hitungan** → **Ya, kirim**. Hasil tampil dengan angka, misalnya:
    *Laci Rp 160.000 − masuk sejak buka Rp 15.000 = modal saat buka Rp 145.000. Kemarin ditinggal Rp 150.000 →
    selisih semalam −Rp 5.000.*
@@ -99,9 +99,9 @@ Konfirmasi menampilkan modal awal dengan huruf besar: **Enter** = buka, **Esc** 
 tercatat. Setelah ada transaksi tunai, tombolnya **Minta persetujuan…** → **Kirim kode ke atasan** → ketik kode →
 **Setujui dengan kode**. Jendela kode tertutup sebelum kode diketik? Buka lagi: kode yang sama masih berlaku.
 
-**Tambah uang laci** (mis. receh habis) atau **Setor ke owner**: catat di *Kas masuk / keluar*. Bukan penjualan.
+**Tambah uang shift** (mis. receh habis) atau **Setor ke owner**: catat di *Kas masuk / keluar*. Bukan penjualan.
 
-**Shift kemarin belum ditutup**: uang tunai tidak bisa dicatat. Tutup dulu (hitung laci), lalu buka shift baru.
+**Shift kemarin belum ditutup**: uang tunai tidak bisa dicatat. Tutup dulu (hitung uang shift), lalu buka shift baru.
 
 **Pembeli datang setelah shift ditutup**: buka shift baru → **Enter** (pakai uang yang tadi ditinggal) → **Enter**.
 
@@ -133,7 +133,7 @@ di layar kasir seperti order antrean.
   Normal) mencapai syarat sebuah tier, semua barang memakai harga tier itu ("· Grosir otomatis"); di atas total
   tertulis berapa rupiah lagi menuju tier berikutnya. Potongan promo dihitung dari harga tier tersebut. Tier
   tidak bisa dipilih sendiri.
-- **Menu baris (⋮ atau M)**: setiap barang di daftar punya tombol ⋮ berisi ubah qty, ganti satuan, diskon,
+- **Menu baris (⋮ atau M)**: setiap barang di daftar punya tombol ⋮ berisi ubah qty, ganti satuan,
   lepas promo, dan hapus (sama dengan tombol keyboardnya). Nama barang panjang tampil utuh (dua baris) berikut
   atributnya.
 - **Catatan order** dari staf tampil di tiket antrean dan di atas daftar barang saat order dibuka.
@@ -209,7 +209,7 @@ pelunasan.
 - **Persetujuan retur/void**: setelah diajukan muncul dialog *Persetujuan*. Tekan **Kirim kode ke atasan**:
   Admin/Owner menerima pesan Telegram/email berisi rincian permintaan dan **kode 6 angka**. Hubungi atasan; bila
   setuju ia menyebutkan kodenya → ketik → **Setujui dengan kode** (tercatat atas nama atasan; uang kembali dari
-  laci toko). Kode berlaku 10 menit, sekali pakai. Belum bisa menghubungi atasan: **Nanti saja, tunggu
+  uang shift). Kode berlaku 10 menit, sekali pakai. Belum bisa menghubungi atasan: **Nanti saja, tunggu
   persetujuan**, lalu lanjutkan dari tab *Menunggu persetujuan* → **Setujui dengan kode**. Retur/void bernilai
   kecil (batas di Pengaturan) langsung jadi tanpa dialog. Anda tidak pernah diminta password atasan.
 - **Salah input?** Selama masih *Menunggu*, buka tab **Menunggu persetujuan** → **Batalkan** (isi alasan), lalu
@@ -229,23 +229,23 @@ yang sudah ada, menonaktifkan, atau mengaktifkannya kembali butuh persetujuan at
 5. Term, limit kredit, dan golongan tidak bisa Anda ubah, dengan atau tanpa kode: itu wewenang Admin/Owner.
 
 **Kembalian tidak diambil pembeli**: di layar bayar centang **Kembalian tidak diambil** (tombol **K**). Uangnya
-tercatat masuk laci, bukan penjualan, jadi laci tetap cocok.
+tercatat masuk uang shift, bukan penjualan, jadi hitungan tetap cocok.
 
 **Tutup shift** (*Shift & Clerical Check*, kotak **Tutup shift**):
 1. **Order belum selesai** tampil di atas: pilih per order **Ke antrean**, **Simpan nanti**, **Ke draf**, atau
    **Batalkan**. Yang tidak diubah tetap di antrean. **Retur/void menunggu persetujuan** tampil sebagai informasi:
-   uangnya belum keluar dari laci.
-2. **Hitung dan kirim** semua uang di laci. Angka sistem belum tampil (hitungan jujur). Setelah dikirim, shift
+   uangnya belum keluar dari uang shift.
+2. **Hitung dan kirim** semua uang shift. Angka sistem belum tampil (hitungan jujur). Setelah dikirim, shift
    berhenti menerima uang.
 3. **Lihat hasil**: selisih (hijau cocok, abu-abu receh, merah kurang, kuning lebih), *Tinjauan shift*, dan
    *Bantuan mencari selisih* (mis. "sama dengan kembalian STR-…"). Selisih besar: **Hitung ulang (sekali)**.
    Masih berselisih: isi **Keterangan selisih**.
-4. Isi **Uang ditinggal di laci** (untuk besok; sisanya disetor) → **Tutup shift** → **Ya, tutup shift**.
+4. Isi **Uang ditinggal** (untuk besok; sisanya disetor) → **Tutup shift** → **Ya, tutup shift**.
 
 - Bila toko mengatur jam tutup: 15 menit sebelumnya muncul pengingat biru di atas halaman; setelah lewat,
   peringatan kuning. Anda **masih bisa menjual** (pembeli yang datang terlambat tetap dilayani), tetapi tutuplah
   shift begitu pembeli terakhir selesai. Atasan ikut diberi tahu.
-- Sistem **tidak pernah menutup shift sendiri**, karena menutup shift berarti menghitung uang di laci. Shift
+- Sistem **tidak pernah menutup shift sendiri**, karena menutup shift berarti menghitung uang shift. Shift
   yang terbawa ke hari berikutnya mengunci pekerjaan Anda (lihat *Awal hari*).
 
 **Laporan** (*Laporan*): penjualan per periode, produk terlaris, detail invoice, retur, piutang, daftar harga
@@ -334,7 +334,7 @@ Semua tugas kasir, ditambah:
   buka satu shift toko.
 - **Menyetujui koreksi modal**: bila kasir meminta kode *Koreksi modal*, pesan Telegram/email memuat nomor shift,
   modal lama → baru, dan alasannya. Berikan kodenya hanya bila Anda yakin angka barunya benar (mis. sudah melihat
-  sendiri isi laci). Admin/Owner juga bisa mengoreksi modal langsung tanpa kode selama shift masih berjalan.
+  sendiri uang shift). Admin/Owner juga bisa mengoreksi modal langsung tanpa kode selama shift masih berjalan.
 - **Penjelasan selisih** (setelah shift ditutup): buka shift yang berselisih di *Semua shift*, isi **Penjelasan
   selisih (Admin/Owner)**, mis. "uang Rp 50.000 terselip di bawah laci, sudah disetor", lalu **Tandai
   terjelaskan**. Angka clerical tidak berubah; penjelasan, nama, dan waktunya tercatat.
@@ -367,10 +367,10 @@ Semua tugas kasir, ditambah:
   alasan wajib).
 - **Retur ke pemasok** (*Persediaan › Retur ke Pemasok*): pilih pemasok, barang (dari stok baik atau rusak), alasan,
   dan penyelesaian: **Potong hutang** (pilih penerimaan tempo yang dipotong), **Ganti barang** (barang pengganti
-  langsung tercatat masuk), **Uang kembali** (tunai ke laci toko atau transfer), **Pengembalian titipan**
+  langsung tercatat masuk), **Uang kembali** (tunai ke uang shift atau transfer), **Pengembalian titipan**
   (barang konsinyasi). Retur tidak bisa diubah setelah disimpan. **Cetak nota retur** untuk ditandatangani pemasok.
 - **Hutang pemasok** (*Persediaan › Hutang Pemasok*): pembelian tempo yang belum lunas, umurnya, dan yang lewat
-  jatuh tempo (juga muncul di lonceng). **Bayar**: transfer (isi rekening tujuan milik pemasok) atau tunai dari laci toko;
+  jatuh tempo (juga muncul di lonceng). **Bayar**: transfer (isi rekening tujuan milik pemasok) atau tunai dari uang shift toko;
   boleh sebagian. Ikon jam menampilkan riwayat pembayaran.
 - **Konsinyasi** (*Persediaan › Konsinyasi*): (1) daftarkan barang titipan (barang baru: tombol *Daftarkan barang
   titipan*; barang yang sudah ada di toko: *Data Barang* › ⋯ › **Daftarkan versi titipan**, lalu pilih penitip
@@ -403,7 +403,7 @@ Semua tugas kasir, ditambah:
   piutang, konsinyasi. Daftar laporan di kiri berupa tiga kelompok (Persediaan, Penjualan, Keuangan) yang bisa
   dibuka dan ditutup dengan mengklik namanya; pilihan itu diingat di komputer tersebut.
 - **Pengaturan**: profil toko & logo, struk & printer, penomoran, aturan operasional (termasuk jadwal shift),
-  pembayaran (rekening toko), harga & diskon, promo, keamanan, persetujuan.
+  pembayaran (rekening toko), harga, promo, keamanan, persetujuan.
 - **Mencetak laporan, invoice, atau surat jalan** (kertas A4): di jendela cetak, periksa kotak **Printer**
   lebih dulu. Peramban mengingat printer yang terakhir dipakai, jadi bila sebelumnya mencetak ke printer struk,
   ganti ke printer A4. Ukuran dan arah kertas sudah diatur tiap dokumen. Agar tidak perlu berganti-ganti,

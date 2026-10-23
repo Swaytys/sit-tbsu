@@ -79,7 +79,7 @@ export const LABEL_STATUS_PENGIRIMAN: Record<StatusPengiriman, string> = {
 export const LABEL_JENIS_KAS: Record<JenisKasShift, string> = {
   KASBON: 'Kasbon',
   SETOR_OWNER: 'Setor ke owner',
-  TARIK_OWNER: 'Tambah uang laci',
+  TARIK_OWNER: 'Tambah uang shift',
   REFUND_RETUR: 'Refund retur',
   REFUND_VOID: 'Refund void',
   BAYAR_PEMASOK: 'Bayar pemasok',

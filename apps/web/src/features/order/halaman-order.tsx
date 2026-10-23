@@ -9,7 +9,6 @@ import {
   Package,
   Pencil,
   Phone,
-  Plus,
   Search,
   Send,
   Unlock,
@@ -297,7 +296,7 @@ function PanelDetail({ id }: { id: number }) {
         <div className="flex min-w-0 flex-wrap justify-end gap-2">
           {bolehUbah && (
             <Button variant="outline" asChild>
-              <Link to={`/order/${d.id}/ubah`}>
+              <Link to={`/order?ubah=${d.id}`}>
                 <Pencil /> Ubah
               </Link>
             </Button>
@@ -510,11 +509,6 @@ function DaftarOrder() {
         <p className="text-sm text-slate-500">
           {semua ? 'Semua order.' : 'Order yang Anda buat.'} {KET_SARING[saring]}
         </p>
-        <Button asChild variant="outline">
-          <Link to="/order/baru">
-            <Plus /> Form order lengkap
-          </Link>
-        </Button>
       </div>
 
       <div className="flex min-h-[560px] flex-1 gap-4 overflow-hidden">

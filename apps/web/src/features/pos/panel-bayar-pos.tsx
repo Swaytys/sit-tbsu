@@ -506,7 +506,7 @@ export function PanelBayarPos({
                   ? 'border-amber-400 bg-amber-50 font-semibold text-amber-900'
                   : 'text-slate-600',
               )}
-              title="Pembeli tidak mengambil kembaliannya. Dicatat sebagai uang masuk laci, bukan penjualan."
+              title="Pembeli tidak mengambil kembaliannya. Dicatat sebagai uang shift masuk, bukan penjualan."
             >
               <input
                 type="checkbox"

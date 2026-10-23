@@ -22,21 +22,19 @@ import { formatDesimal } from '@/lib/format';
 import { qtySah } from '@/lib/qty';
 import { cn } from '@/lib/utils';
 import {
-  digitSaja,
   hargaBaris,
   qtyDasarBaris,
   rapikanQty,
   satuanBerikut,
   subtotalBaris,
-  tampilRibuan,
   type BarisPos,
 } from './model';
 
-type Sunting = { jenis: 'qty' | 'diskon'; nilai: string } | null;
+type Sunting = { jenis: 'qty'; nilai: string } | null;
 
 /**
  * Daftar barang transaksi POS (K-073). Keyboard: ↑/↓ pilih baris, + / − ubah qty 1, ketik angka = qty baru
- * (Enter simpan), % = diskon rupiah (berizin), P = lepas/pasang promo (berizin), S = ganti satuan (satuan
+ * (Enter simpan), P = lepas/pasang promo (berizin), S = ganti satuan (satuan
  * dasar ↔ kemasan, K-091), M = menu baris, Delete = hapus, Enter = lanjut bayar, Esc/↑ di baris pertama =
  * kembali ke kotak cari. Setiap aksi juga ada di menu ⋮ baris untuk pengguna mouse (K-099). Harga, tier,
  * promo, dan subtotal diambil dari pratinjau API bila sudah tersedia; tier selalu otomatis.
@@ -54,7 +52,6 @@ export function KeranjangPos({
   onKeluar,
   onLanjut,
   onFokus,
-  bolehDiskon,
   bolehLepasPromo,
   pratinjau,
 }: {
@@ -70,7 +67,6 @@ export function KeranjangPos({
   onKeluar: () => void;
   onLanjut: () => void;
   onFokus: () => void;
-  bolehDiskon: boolean;
   bolehLepasPromo: boolean;
   /** Hasil pratinjau API per baris (`kunciBaris`): harga, promo, subtotal, tier. */
   pratinjau: ReadonlyMap<string, BarisPratinjau>;
@@ -79,7 +75,7 @@ export function KeranjangPos({
   /** Indeks baris yang menu ⋮-nya terbuka. */
   const [menu, setMenu] = useState<number | null>(null);
   const wadah = useRef<HTMLDivElement>(null);
-  /** Aksi menu yang membuka isian (qty/diskon): dijalankan setelah menu tertutup agar fokusnya tidak direbut. */
+  /** Aksi menu yang membuka isian qty: dijalankan setelah menu tertutup agar fokusnya tidak direbut. */
   const setelahMenu = useRef<(() => void) | null>(null);
   const b = baris[indeks];
 
@@ -94,16 +90,12 @@ export function KeranjangPos({
 
   function simpanSunting() {
     if (!sunting || !b) return kembaliFokus();
-    if (sunting.jenis === 'qty') {
-      const q = sunting.nilai.replace(',', '.');
-      if (!qtySah(q)) {
-        toast.error('Qty harus angka lebih dari 0 (maks. 3 desimal).');
-        return;
-      }
-      onUbah(indeks, { qty: rapikanQty(q) });
-    } else {
-      onUbah(indeks, { diskonBaris: Number(digitSaja(sunting.nilai) || '0') });
+    const q = sunting.nilai.replace(',', '.');
+    if (!qtySah(q)) {
+      toast.error('Qty harus angka lebih dari 0 (maks. 3 desimal).');
+      return;
     }
+    onUbah(indeks, { qty: rapikanQty(q) });
     kembaliFokus();
   }
 
@@ -115,14 +107,11 @@ export function KeranjangPos({
     if (bandingQty(q, 0) > 0) onUbah(i, { qty: rapikanQty(q) });
   }
 
-  function mulaiSunting(i: number, jenis: 'qty' | 'diskon', awal?: string) {
+  function mulaiSunting(i: number, jenis: 'qty', awal?: string) {
     const r = baris[i];
     if (!r) return;
     onIndeks(i);
-    setSunting({
-      jenis,
-      nilai: awal ?? (jenis === 'qty' ? r.qty : r.diskonBaris ? String(r.diskonBaris) : ''),
-    });
+    setSunting({ jenis, nilai: awal ?? r.qty });
   }
 
   function gantiSatuan(i: number) {
@@ -176,9 +165,6 @@ export function KeranjangPos({
     } else if (/^[\d.,]$/.test(e.key)) {
       e.preventDefault();
       mulaiSunting(indeks, 'qty', e.key);
-    } else if (e.key === '%' && bolehDiskon) {
-      e.preventDefault();
-      mulaiSunting(indeks, 'diskon');
     } else if (e.key === 'p' || e.key === 'P') {
       e.preventDefault();
       alihPromo(indeks);
@@ -321,29 +307,7 @@ export function KeranjangPos({
                     )}
                   </td>
                   <td className="w-28 py-1.5 text-right font-semibold whitespace-nowrap tabular-nums">
-                    {menyunting?.jenis === 'diskon' ? (
-                      <input
-                        autoFocus
-                        aria-label={`Diskon ${r.nama}`}
-                        placeholder="diskon Rp"
-                        value={tampilRibuan(digitSaja(menyunting.nilai))}
-                        inputMode="numeric"
-                        onChange={(e) => setSunting({ jenis: 'diskon', nilai: e.target.value })}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            simpanSunting();
-                          } else if (e.key === 'Escape') {
-                            e.preventDefault();
-                            kembaliFokus();
-                          }
-                        }}
-                        onBlur={() => setSunting(null)}
-                        className="h-7 w-24 rounded border border-blue-500 px-1 text-right"
-                      />
-                    ) : (
-                      formatRupiah(pr?.subtotal ?? subtotalBaris(r, tierBawaan))
-                    )}
+                    {formatRupiah(pr?.subtotal ?? subtotalBaris(r, tierBawaan))}
                   </td>
                   <td className="w-8 py-1.5 pr-1 text-right">
                     <DropdownMenu
@@ -386,15 +350,6 @@ export function KeranjangPos({
                           <DropdownMenuItem onSelect={() => gantiSatuan(i)}>
                             Ganti satuan ke {berikut.satuan}
                             <DropdownMenuShortcut>S</DropdownMenuShortcut>
-                          </DropdownMenuItem>
-                        )}
-                        {bolehDiskon && (
-                          <DropdownMenuItem
-                            onSelect={() => {
-                              setelahMenu.current = () => mulaiSunting(i, 'diskon');
-                            }}
-                          >
-                            Diskon (Rp)<DropdownMenuShortcut>%</DropdownMenuShortcut>
                           </DropdownMenuItem>
                         )}
                         {bisaAlihPromo(r) && (

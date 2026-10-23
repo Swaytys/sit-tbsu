@@ -51,8 +51,8 @@ export function PeringatanShift() {
             <>
               <b>
                 {shift.hitungBuka
-                  ? 'Hasil hitung laci belum disimpan'
-                  : 'Hitung uang laci belum dikirim'}
+                  ? 'Hasil hitung uang shift belum disimpan'
+                  : 'Hitung uang shift belum dikirim'}
               </b>{' '}
               (shift dibuka "hitung nanti", batas{' '}
               {new Date(shift.batasHitungBuka ?? '').toLocaleTimeString('id-ID', {
@@ -63,7 +63,7 @@ export function PeringatanShift() {
               {lewatHitung ? ', sudah lewat' : ''}).{' '}
               {shift.hitungBuka
                 ? 'Periksa hasilnya, lalu Simpan hasil.'
-                : 'Hitung semua uang laci.'}
+                : 'Hitung semua uang shift.'}
             </>
           )}
         </span>

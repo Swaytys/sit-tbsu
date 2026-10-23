@@ -172,24 +172,24 @@ describe('void transaksi (docs/05 §9)', () => {
     ]);
   });
 
-  it('K-017/V2 Admin langsung disetujui; void transaksi penuh membuat tagihan 0 (termasuk diskon transaksi)', async () => {
+  it('K-017/V2 Admin langsung disetujui; void transaksi penuh membuat tagihan 0', async () => {
     const pj = await jual(
       admin,
       [{ idBarang: m.semen, qty: '3' }],
       [{ metode: 'TUNAI', uangDiterima: 5000 }],
-      { idPelanggan: plg, diskonTransaksi: 1000 },
-    ); // neto 29.000, dibayar 5.000 (DP)
+      { idPelanggan: plg },
+    ); // neto 30.000, dibayar 5.000 (DP)
     const v = await kirim<BarisVoid>(admin, '/api/void', {
       idPenjualan: pj.id,
       lingkup: 'TRANSAKSI',
       alasan: 'Pembeli batal',
       persetujuan: { metodeRefund: 'TRANSFER', rekeningRefund: 'BCA 9' },
     });
-    expect(v).toMatchObject({ status: 'DISETUJUI', nominalVoid: 29000, nominalRefund: 5000 });
+    expect(v).toMatchObject({ status: 'DISETUJUI', nominalVoid: 30000, nominalRefund: 5000 });
     const d = await ambil<DetailPenjualan>(admin, `/api/penjualan/${pj.id}`);
     expect(d).toMatchObject({
       statusTransaksi: 'VOID',
-      totalVoid: 29000,
+      totalVoid: 30000,
       totalRefund: 5000,
       sisaTagihan: 0,
       statusPembayaran: 'LUNAS',

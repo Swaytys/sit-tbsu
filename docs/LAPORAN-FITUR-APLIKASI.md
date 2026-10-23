@@ -140,7 +140,7 @@ Sumber izin: `[KODE: shared/roles.ts:9-76]`; izin per endpoint: daftar di Lampir
 | Data Pemasok | — | — | L T U N | L T U N |
 | Data Pengguna | — | — | — | L T U N, reset password, cabut sesi |
 | Order Penjualan | T U kirim, batal milik sendiri | + lihat semua, batal | + lepas kunci paksa | sama |
-| Penjualan Langsung / Pengantaran (checkout) | — | T, diskon (batas %), C struk/invoice | + harga manual | sama |
+| Penjualan Langsung / Pengantaran (checkout) | — | T, C struk/invoice | + harga manual | sama |
 | Pembayaran & Piutang | — | L T (terima pembayaran) | sama | sama |
 | Surat jalan | — | T U (status), batal | sama | sama |
 | Retur penjualan / Void | — | T (ajukan), batal pengajuan sendiri; S dengan kode atasan | + S, tolak | sama |
@@ -155,7 +155,7 @@ Sumber izin: `[KODE: shared/roles.ts:9-76]`; izin per endpoint: daftar di Lampir
 | Pengaturan › Cadangan, Log aktivitas | — | — | — | L, jalankan cadangan/uji pulih |
 
 Catatan matriks:
-- Batas diskon manual per peran bawaan: Staf 0 %, Kasir 0 %, Admin 100 %, Owner 100 % `[KONFIG: apps/api/src/db/data-awal.ts:130-152]`
+- Diskon manual tidak ada (K-146, 23 Okt); potongan harga hanya lewat Promo.
   `[KODE: api/modules/penjualan/harga-baris.ts:114]`.
 - Retur/void bernilai di bawah batas tanpa persetujuan (bawaan Rp 0) langsung disetujui
   `[KONFIG: apps/api/src/db/data-awal.ts:154-165]`.
@@ -192,7 +192,7 @@ bergantung konfigurasi.
 **F3. Pengaturan toko** | Pengaturan | Admin, Owner | desktop
 - Fungsi: tab Profil toko (nama, alamat, logo), Struk & printer, Penomoran (prefix dokumen), Operasional
   (baris per halaman, ambang restock, batas order, jadwal shift, batas tanpa persetujuan), Pembayaran (rekening
-  toko), Harga & diskon (dasar markup, pembulatan, batas diskon per peran), Promo, Keamanan, Persetujuan
+  toko), Harga (dasar markup, pembulatan), Promo, Keamanan, Persetujuan
   (Telegram/email), Cadangan (Owner), Log aktivitas (Owner).
 - Tabel: `konfigurasi`, `rekening_toko`, `promo`, `cadangan`, `log_aktivitas`.
 - Bukti: `[KODE: web/features/pengaturan/halaman-pengaturan.tsx:61-71]` `[KODE: api/modules/sistem/pengaturan/routes.ts:28-46]`.
@@ -216,7 +216,7 @@ bergantung konfigurasi.
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
-  hitung uang laci susulan belum dikirim (K-121), order disimpan lewat tanggal ambil (K-122),
+  hitung uang shift susulan belum dikirim (K-121), order disimpan lewat tanggal ambil (K-122),
   pembayaran non-tunai belum dicek, non-tunai tidak masuk.
 - Bukti: `[KODE: shared/schemas/notifikasi.ts:7-20]` `[KODE: api/modules/sistem/notifikasi/service.ts:14]`.
 - Status: BERFUNGSI.
@@ -398,7 +398,7 @@ Admin/Owner menerima | desktop + Telegram/email atasan
   - **Kembalian tidak diambil** pembeli (tombol K di layar bayar) dicatat kas masuk khusus, bukan penjualan.
   - Admin/Owner menambah **penjelasan selisih** setelah shift ditutup (angka tetap).
   - Shift yang lewat hari mengunci pencatatan; jadwal buka/tutup dengan pengingat.
-- Tabel: `shift_kasir`, `kas_shift`, `clerical_check`, `hitung_kas` (setiap hitungan uang laci).
+- Tabel: `shift_kasir`, `kas_shift`, `clerical_check`, `hitung_kas` (setiap hitungan uang shift).
 - Bukti: `[KODE: api/modules/kas/shift/service.ts:182,511,624,765,838,931]`
   `[KODE: api/modules/kas/shift/bantuan.ts:53,135]` `[KODE: web/features/shift/dialog-buka-shift.tsx]`
   `[KODE: web/features/shift/alur-tutup-shift.tsx]` `[TES: api/modules/kas/shift.test.ts K15–K23]`
@@ -595,7 +595,7 @@ Riwayat Harga Beli.
   `[KODE: api/modules/promo/hitung.ts:116-150]`.
 - **Rumus potongan:** persen = bulat(qty × harga × persen ÷ 100), dibatasi batas potongan baris; nominal =
   bulat(qty × potongan per satuan); selalu 0 ≤ potongan ≤ bruto `[KODE: api/modules/promo/hitung.ts:90-100]`.
-- **Urutan harga baris:** harga tier transaksi → potongan promo dari harga tier itu → diskon manual
+- **Urutan harga baris:** harga tier transaksi → potongan promo dari harga tier itu (diskon manual dihapus, K-146)
   `[KODE: api/modules/penjualan/harga-baris.ts:204]` `[DOK: K-098]`.
 - **Anggaran & batas per pembeli:** potongan dibatasi sisa anggaran/sisa batas; promo berbatas dikunci saat checkout
   agar dua kasir tidak memakai sisa yang sama `[KODE: api/modules/promo/hitung.ts:41-48]`
@@ -611,8 +611,8 @@ Riwayat Harga Beli.
   `[KODE: api/modules/penjualan/harga-baris.ts:174-196]` `[KODE: web/components/info-tier-belanja.tsx:13]`.
 - **Tercatat:** setiap baris penjualan menyimpan `id_promo` dan `diskon_promo`; laporan Promo merangkum potongan per
   promo; daftar promo menampilkan potongan yang sudah diberikan `[KODE: api/modules/laporan/promo.ts]`.
-- **Diskon manual** per baris dan per transaksi dibatasi persen per peran (Kasir bawaan 0 %)
-  `[KODE: api/modules/penjualan/harga-baris.ts:114,247]`.
+- **Diskon manual dihapus** (K-146): API menolak potongan selain promo; diskon lama yang tersimpan tetap dihitung
+  laporan `[KODE: api/modules/penjualan/harga-baris.ts]`.
 
 ### 5f. Harga
 
@@ -630,7 +630,7 @@ Riwayat Harga Beli.
 ### 5g. Notifikasi dan peringatan
 
 Selain lonceng (F6): peringatan shift di atas halaman (biru 15 menit sebelum jam tutup, kuning lewat jam tutup,
-merah bila shift lewat hari; kuning/merah bila hitung uang laci susulan belum dikirim; kuning bila shift sedang
+merah bila shift lewat hari; kuning/merah bila hitung uang shift susulan belum dikirim; kuning bila shift sedang
 ditutup) `[KODE: web/components/layout/peringatan-shift.tsx]`; pesan Telegram/email ke
 atasan untuk shift yang perlu ditutup (paling banyak sekali sehari per shift)
 `[KODE: api/modules/kas/shift/service.ts:370]`; dialog limit kredit terlampaui `[KODE: web/features/pos/layar-pos.tsx:465]`.
@@ -1074,3 +1074,4 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-18 — F28 shift diperbarui (tiga cara buka, hitung susulan, koreksi modal, tutup dua langkah, tinjauan, bantuan selisih, penjelasan atasan; K-121); notifikasi ke-16; tabel ke-49 `hitung_kas`; 7 endpoint shift baru.
 - 2026-10-18 — F18 order disimpan, kembali ke draf, peringatan draf lain, buka draf otomatis, panel rincian di input cepat (K-122); notifikasi ke-17; 3 endpoint order baru; F28 pilihan order saat tutup shift.
 - 2026-10-18 — F28 satu shift toko, hitung susulan dua langkah, order belum selesai + retur/void menunggu saat tutup, kembalian tidak diambil, hitung pecahan −/+; kode atasan bisa dilanjutkan; indikator shift di topbar (K-132–K-142); 6 endpoint baru.
+- 2026-10-23 — Diskon manual dihapus, form order lengkap dihapus (Ubah lewat input cepat), istilah "uang shift" (K-146, K-147, K-129).

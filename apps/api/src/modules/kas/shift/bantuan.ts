@@ -35,7 +35,7 @@ export type KasShiftRingkas = {
 const LABEL_KAS: Record<JenisKasShift, string> = {
   KASBON: 'Kasbon',
   SETOR_OWNER: 'Setor ke owner',
-  TARIK_OWNER: 'Tambah uang laci',
+  TARIK_OWNER: 'Tambah uang shift',
   REFUND_RETUR: 'Refund retur',
   REFUND_VOID: 'Refund void',
   BAYAR_PEMASOK: 'Bayar pemasok',
@@ -116,10 +116,10 @@ export function linimasaTunai(
 }
 
 const PERIKSA_KURANG = [
-  'Uang yang keluar dari laci tetapi belum dicatat: kasbon, beli keperluan toko, setor ke owner.',
+  'Uang shift yang keluar tetapi belum dicatat: kasbon, beli keperluan toko, setor ke owner.',
   'Kembalian yang diberikan berlebih, atau uang pecahan besar dikira pecahan kecil.',
   'Pembayaran yang dicatat Tunai padahal pembeli membayar lewat transfer/EDC/QRIS.',
-  'Uang yang terselip di luar laci (bawah laci, dompet kasir, meja).',
+  'Uang yang terselip di luar tempat uang shift (bawah laci, dompet kasir, meja).',
 ];
 
 const PERIKSA_LEBIH = [
@@ -159,7 +159,7 @@ export function bantuanSelisih(
       p.push({
         judul: `Sama dengan pembayaran tunai ${b.nomorPenjualan} (${formatRupiah(b.nominal)})`,
         rincian:
-          'Periksa apakah uangnya benar-benar masuk laci, atau pembeli sebenarnya membayar lewat transfer/EDC/QRIS.',
+          'Periksa apakah uangnya benar-benar masuk uang shift, atau pembeli sebenarnya membayar lewat transfer/EDC/QRIS.',
         nomor: b.nomorPenjualan,
       });
     }
@@ -174,7 +174,8 @@ export function bantuanSelisih(
     for (const k of kas.filter((x) => x.arah === 'MASUK' && x.nominal === nilai)) {
       p.push({
         judul: `Sama dengan ${labelKas(k)} (${formatRupiah(k.nominal)})`,
-        rincian: 'Kas masuk ini tercatat; periksa apakah uangnya benar-benar dimasukkan ke laci.',
+        rincian:
+          'Kas masuk ini tercatat; periksa apakah uangnya benar-benar dimasukkan ke uang shift.',
         nomor: k.nomorDokumen,
       });
     }
@@ -197,7 +198,7 @@ export function bantuanSelisih(
       p.push({
         judul: `Sama dengan ${labelKas(k)} (${formatRupiah(k.nominal)})`,
         rincian:
-          'Kas keluar ini tercatat; periksa apakah uangnya benar-benar sudah diambil dari laci.',
+          'Kas keluar ini tercatat; periksa apakah uangnya benar-benar sudah diambil dari uang shift.',
         nomor: k.nomorDokumen,
       });
     }

@@ -19,6 +19,8 @@ import {
   logAktivitas,
   mutasiPersediaan,
   pelanggan,
+  penjualan,
+  penjualanDetail,
   returPenjualan,
   returPenjualanDetail,
   shiftKasir,
@@ -149,14 +151,23 @@ beforeAll(async () => {
       idPelanggan: plg!.id,
       alamatKirim: 'Jl. A',
       ongkir: 20000,
-      diskonTransaksi: 10000,
       baris: [
-        { idBarang: m.semen, qty: '10', diskonBaris: 5000 },
+        { idBarang: m.semen, qty: '10' },
         { idBarang: m.pasir, qty: '5' },
       ],
     },
     pembayaran: [{ metode: 'TRANSFER', nominal: 50000, rekening: 'BCA 123' }],
   });
+  // K-146: diskon manual tidak bisa dibuat lagi, tetapi penjualan lama bisa memuatnya; laporan harus tetap
+  // menghitungnya. Diskon baris 5.000 (semen) dan diskon transaksi 10.000 ditulis langsung sebagai data lama.
+  await db
+    .update(penjualanDetail)
+    .set({ diskonBaris: 5000, subtotal: 95000 })
+    .where(and(eq(penjualanDetail.idPenjualan, pjB.id), eq(penjualanDetail.idBarang, m.semen)));
+  await db
+    .update(penjualan)
+    .set({ diskonTransaksi: 10000, totalDiskon: 15000, totalNeto: 120000 })
+    .where(eq(penjualan.id, pjB.id));
   await jualLangsung([{ idBarang: m.titip, qty: '1' }]);
   const pjD = await jualLangsung([
     { idBarang: m.semen, qty: '2' },

@@ -165,21 +165,21 @@ describe('retur penjualan (docs/05 §8)', () => {
     for (const id of [m.semen]) expect((await hitungUlangCache(db, id)).cocok).toBe(true);
   });
 
-  it('T2 harga efektif sudah bersih diskon baris; T5 tukar barang tidak mengubah tagihan; T7 potong tagihan', async () => {
+  it('T2 harga efektif per satuan; T5 tukar barang tidak mengubah tagihan; T7 potong tagihan', async () => {
     const pj = await jual(
       admin,
-      [{ idBarang: m.semen, qty: '3', diskonBaris: 3000 }],
-      [{ metode: 'TUNAI', uangDiterima: 10000 }],
+      [{ idBarang: m.semen, qty: '3' }],
+      [{ metode: 'TUNAI', uangDiterima: 15000 }],
       { idPelanggan: plg },
-    ); // subtotal 27.000 (efektif 9.000/sak), dibayar 10.000, sisa 17.000
+    ); // subtotal 30.000 (10.000/sak), dibayar 15.000, sisa 15.000
     const kandidat = await ambil<KandidatRetur[]>(admin, `/api/retur/kandidat?cari=${pj.nomor}`);
     expect(kandidat[0]?.baris[0]).toMatchObject({
-      hargaSatuanEfektif: 9000,
+      hargaSatuanEfektif: 10000,
       qtyBisaRetur: '3.000',
     });
     // K-106: tanpa kata cari = transaksi terbaru (yang baru dijual ada paling atas), beserta sisa tagihannya.
     const terbaru = await ambil<KandidatRetur[]>(admin, '/api/retur/kandidat');
-    expect(terbaru[0]).toMatchObject({ id: pj.id, sisaTagihan: 17000 });
+    expect(terbaru[0]).toMatchObject({ id: pj.id, sisaTagihan: 15000 });
 
     const tukar = await kirim<BarisRetur>(admin, '/api/retur', {
       idPenjualan: pj.id,
@@ -190,7 +190,7 @@ describe('retur penjualan (docs/05 §8)', () => {
     expect(tukar.status).toBe('DISETUJUI');
     expect(await stok(m.semen)).toEqual({ baik: '16.000', rusak: '1.000' }); // 17 − 1 pengganti
     let d = await ambil<DetailPenjualan>(admin, `/api/penjualan/${pj.id}`);
-    expect(d).toMatchObject({ totalRetur: 0, sisaTagihan: 17000 });
+    expect(d).toMatchObject({ totalRetur: 0, sisaTagihan: 15000 });
 
     const terlalu = await galat(admin, '/api/retur', {
       idPenjualan: pj.id,
@@ -198,7 +198,7 @@ describe('retur penjualan (docs/05 §8)', () => {
       penyelesaian: 'POTONG_TAGIHAN',
       baris: [{ idPenjualanDetail: pj.baris[0]!.id, qtyRetur: '2', kondisi: 'BAIK' }],
     });
-    expect(terlalu.pesan).toContain('melebihi sisa tagihan'); // 18.000 > 17.000
+    expect(terlalu.pesan).toContain('melebihi sisa tagihan'); // 20.000 > 15.000
     await kirim(admin, '/api/retur', {
       idPenjualan: pj.id,
       alasan: 'potong',
@@ -207,9 +207,9 @@ describe('retur penjualan (docs/05 §8)', () => {
     });
     d = await ambil<DetailPenjualan>(admin, `/api/penjualan/${pj.id}`);
     expect(d).toMatchObject({
-      totalRetur: 9000,
+      totalRetur: 10000,
       totalRefund: 0,
-      sisaTagihan: 8000,
+      sisaTagihan: 5000,
       statusPembayaran: 'DP',
     });
   });

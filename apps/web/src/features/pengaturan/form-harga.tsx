@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LABEL_PERAN, PERAN, skemaHargaDiskon, type Pengaturan } from '@sit/shared';
+import { skemaHargaDiskon, type Pengaturan } from '@sit/shared';
 import { Tag } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
@@ -90,27 +90,6 @@ export function FormHarga({ pengaturan }: { pengaturan: Pengaturan }) {
                 </FormItem>
               )}
             />
-          </div>
-          <div>
-            <p className="mb-2 text-sm font-medium text-slate-700">Batas diskon per peran (%)</p>
-            <div className="grid grid-cols-4 gap-4">
-              {PERAN.map((peran) => (
-                <FormField
-                  key={peran}
-                  control={form.control}
-                  name={`batasDiskonPersen.${peran}`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-normal">{LABEL_PERAN[peran]}</FormLabel>
-                      <FormControl>
-                        <InputAngka {...field} min={0} max={100} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
-            </div>
           </div>
         </KartuBagian>
       </form>

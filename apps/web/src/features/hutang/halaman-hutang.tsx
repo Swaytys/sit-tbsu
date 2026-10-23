@@ -426,7 +426,7 @@ export function DialogBayarHutang({ h, onTutup }: { h: DokumenBayar; onTutup: ()
                         variant={field.value === m ? 'default' : 'outline'}
                         onClick={() => field.onChange(m)}
                       >
-                        {m === 'TUNAI' ? 'Tunai dari laci' : 'Transfer'}
+                        {m === 'TUNAI' ? 'Tunai (uang shift)' : 'Transfer'}
                       </Button>
                     ))}
                   </div>

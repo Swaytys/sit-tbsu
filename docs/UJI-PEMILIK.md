@@ -16,6 +16,17 @@ sebagian sudah dicoba.
 
 ## Belum dicoba / perlu dicoba ulang
 
+### Diskon dihapus, mode ubah order, istilah uang shift (23 Oktober, K-146–K-148)
+
+| No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
+|---|---|---|---|---|---|
+| U44 | Diskon manual hilang | Di Order, Langsung, dan Pengantaran: tambah barang → tombol ⋮ (atau `M`) di baris | Menu hanya berisi ubah qty, ganti satuan, lepas promo (bila ada), hapus; tidak ada *Diskon*, tombol `%` tidak berbuat apa-apa | Belum | Potongan harga lewat Pengaturan › Promo |
+| U45 | Pengaturan tanpa batas diskon | Pengaturan › Harga | Bagian "batas diskon per peran" tidak ada lagi | Belum | |
+| U46 | Ubah order dari Daftar order | Order Penjualan › Daftar order → pilih order *Menunggu kasir* → **Ubah** | Input cepat terbuka dengan pita kuning "Mengubah ORD-…"; tambah/kurangi barang → `F8` → "Perubahan order … disimpan"; antrean kasir ikut berubah | Belum | Form order lengkap sudah tidak ada |
+| U47 | Buang perubahan | Seperti U46, ubah qty → `F9` → **Ya, buang perubahan** | Form kosong; order tetap seperti semula (cek di Daftar order) | Belum | |
+| U48 | Istilah uang shift | Buka halaman Shift, kotak hitung, tutup shift, panel bayar tunai | Tulisan memakai "uang shift" (mis. *Hitung uang shift*, *Total uang shift*); kata "laci" hanya untuk laci kas printer | Belum | |
+| U49 | Koreksi modal terkunci saat hitung susulan | **Buka shift** → `N` (hitung nanti) → `Enter` → lihat tombol **Koreksi modal** | Tombol nonaktif dengan keterangan "Tersedia setelah hitung uang shift disimpan"; aktif setelah **Simpan hasil** | Belum | |
+
 ### Satu shift toko dan perbaikan uji (19 Oktober, K-132–K-142)
 
 **Catatan:** 3 shift terbuka dari aturan lama (Owner, Admin, Kasir) sudah ditutup oleh persiapan tes otomatis
@@ -26,7 +37,7 @@ dengan uang fisik = saldo sistem (selisih 0) dan keterangan "ditutup otomatis �
 |---|---|---|---|---|---|
 | U35 | Satu shift toko | Kasir membuka shift; lalu login Admin di jendela lain dan coba **Buka shift** | Admin ditolak: "Shift toko SHF-… sudah dibuka Demo Kasir"; penjualan tunai Admin masuk shift yang sama | Belum | |
 | U36 | Indikator shift untuk Staf | Login **Staf** | Di atas layar tampil *Shift buka* / *Shift tutup* | Belum | |
-| U37 | Hitung nanti dua langkah | **Buka shift** → `N` → `Enter` → jual tunai → di kotak *Hitung uang laci* isi laci (sengaja beda) → **Kirim hitungan** → **Ya, kirim** | Hasil berangka: laci − uang masuk = modal saat buka, dibanding uang kemarin; **Hitung ulang (sekali)**; **Simpan hasil**; Koreksi modal baru aktif setelah disimpan | Belum | |
+| U37 | Hitung nanti dua langkah | **Buka shift** → `N` → `Enter` → jual tunai → di kotak *Hitung uang shift* isi laci (sengaja beda) → **Kirim hitungan** → **Ya, kirim** | Hasil berangka: laci − uang masuk = modal saat buka, dibanding uang kemarin; **Hitung ulang (sekali)**; **Simpan hasil**; Koreksi modal baru aktif setelah disimpan | Belum | |
 | U38 | Hitung per pecahan | Di kotak hitung: ketik angka, `↑` `↓`, `+` `−`, `Del`, `Shift+Del`, tombol −/+ dan × | Pindah/ubah/kosongkan sesuai tombol; tombol −/+/× tidak ikut `Tab` | Belum | |
 | U39 | Tutup shift dengan order di antrean | Staf mengirim 1 order ke antrean; lalu buka kotak *Tutup shift* | Kotak "1 order belum selesai" dengan pilihan **Simpan nanti / Ke draf / Batalkan** (dan **Ke antrean** bila sedang di kasir) | Belum | Pengganti U34 |
 | U40 | Retur menunggu saat tutup | Ajukan retur tunai (jangan disetujui), lalu lihat kotak *Tutup shift* | Kotak biru "retur/void menunggu persetujuan"; uangnya belum dihitung keluar | Belum | |
@@ -49,9 +60,9 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 | No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
 |---|---|---|---|---|---|
 | U22 | Tutup shift dua langkah | Kotak **Tutup shift & clerical check** → hitung uang (sengaja salah, mis. kurang Rp 50.000) → **Kirim hitungan** → **Ya, kirim** | Angka sistem baru tampil setelah dikirim; selisih merah "Kurang"; kotak *Bantuan mencari selisih* (mis. "1 lembar Rp 50.000"); *Tinjauan shift* di kanan | Belum | |
-| U23 | Hitung ulang sekali, keterangan, uang ditinggal | Lanjutan U22: buka **Hitung ulang (sekali)** → kirim angka benar → isi **Uang ditinggal di laci** → **Tutup shift** → **Ya, tutup shift** | Hitung ulang hanya sekali; bila masih selisih di luar Rp 1.000 keterangan wajib; hasil clerical tampil | Belum | |
+| U23 | Hitung ulang sekali, keterangan, uang ditinggal | Lanjutan U22: buka **Hitung ulang (sekali)** → kirim angka benar → isi **Uang ditinggal** → **Tutup shift** → **Ya, tutup shift** | Hitung ulang hanya sekali; bila masih selisih di luar Rp 1.000 keterangan wajib; hasil clerical tampil | Belum | |
 | U24 | Uang ditinggal jadi usulan modal | Setelah U23: **Buka shift** lagi | Pilihan `Enter` menulis "Sama dengan uang ditinggal kemarin: Rp …" sesuai isian U23 | Belum | |
-| U25 | Buka dulu, hitung nanti | **Buka shift** → `N` → `Enter`; lakukan satu penjualan tunai; lalu di kotak kuning **Hitung uang laci** isi total laci → **Kirim hitungan susulan** → **Ya, kirim** | Spanduk kuning "Hitung uang laci belum dikirim" muncul di semua halaman sampai dikirim; bila laci berbeda dari modal sementara + penjualan, tampil "Modal saat buka dikoreksi … (selisih semalam)" | Belum | |
+| U25 | Buka dulu, hitung nanti | **Buka shift** → `N` → `Enter`; lakukan satu penjualan tunai; lalu di kotak kuning **Hitung uang shift** isi total laci → **Kirim hitungan susulan** → **Ya, kirim** | Spanduk kuning "Hitung uang shift belum dikirim" muncul di semua halaman sampai dikirim; bila laci berbeda dari modal sementara + penjualan, tampil "Modal saat buka dikoreksi … (selisih semalam)" | Belum | |
 | U26 | Penjelasan selisih (Owner/Admin) | *Semua shift* → klik shift yang berselisih → isi **Penjelasan selisih** → **Tandai terjelaskan** | Penjelasan, nama, dan waktu tersimpan; angka tidak berubah | Belum | |
 | U27 | Pengaturan toleransi | *Pengaturan › Operasional*: ubah **Toleransi selisih kas** dan **Batas hitung susulan** | Tersimpan; selisih di bawah toleransi ditandai "Selisih receh" tanpa keterangan wajib | Belum | |
 
@@ -106,3 +117,4 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-18 — U28–U34 order disimpan, kembali ke draf, peringatan draf lain (K-122).
 - 2026-10-18 — Hasil uji pemilik: U17–U21, U28, U29, U31–U33 OK; U30, U34 Masalah; masukan dicatat K-128–K-145.
 - 2026-10-19 — U35–U43 satu shift toko dan perbaikan uji (K-132–K-142); U30 diperbaiki, coba ulang.
+- 2026-10-23 — U44–U49 diskon manual dihapus, mode ubah order, istilah uang shift, koreksi modal saat hitung susulan (K-146–K-148).

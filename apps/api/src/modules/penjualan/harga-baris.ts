@@ -21,7 +21,6 @@ import { dasarMarkup, muatKonteksHarga } from '../master/harga/service';
 import { muatSatuanJual } from '../master/satuan-jual/service';
 import { pakaiSisaPromo, petaSisaPromo, pilihPromo, type KandidatPromo } from '../promo/hitung';
 import { kandidatPromo, kunciPromoBerbatas, type PembeliPromo } from '../promo/repo';
-import { ambilAngka } from '../sistem/konfigurasi/service';
 
 /*
  * Harga, promo, diskon, dan total baris penjualan (docs/05 P2–P4, docs/06 H8–H9, D1–D5, PR1–PR9). Dipakai
@@ -102,23 +101,8 @@ export type OpsiHitung = {
   tanggal?: string;
 };
 
-/** Nilai bawaan bila konfigurasi belum ada (sama dengan seed K-012). */
-const BATAS_DISKON_BAWAAN: Record<PenggunaAktif['peran'], number> = {
-  STAF_PENJUALAN: 0,
-  KASIR: 0,
-  ADMIN: 100,
-  OWNER: 100,
-};
-
-/** D2: batas diskon peran dalam persen (konfigurasi). */
-async function batasDiskon(tx: Tx, pelaku: PenggunaAktif): Promise<number> {
-  return ambilAngka(`batas_diskon_persen_${pelaku.peran}`, BATAS_DISKON_BAWAAN[pelaku.peran], tx);
-}
-
-/** D2 dengan bilangan bulat: diskon ÷ dasar × 100 > batas ⇔ diskon × 100 > batas × dasar. */
-function melebihiBatas(diskon: number, dasar: number, batas: number): boolean {
-  return diskon * 100 > batas * dasar;
-}
+/** K-146: diskon manual tidak ada lagi; harga khusus hanya lewat Promo. */
+const POTONGAN_LEWAT_PROMO = 'Potongan harga hanya lewat Promo (Pengaturan › Promo).';
 
 /** Tier dasar (P3, K-098): harga semua transaksi sebelum nilai belanja tier lain tercapai. */
 export async function tierDefault(tx: Tx): Promise<number> {
@@ -244,8 +228,6 @@ export async function hitungBarisJual(
     harga.get(idSj === null ? `${idBrg}:${idTier}` : `${idSj}#${idTier}`);
   const idDefault = await tierDefault(tx);
   const konteks = await muatKonteksHarga(tx);
-  const batas = await batasDiskon(tx, pelaku);
-  const bolehDiskon = pelaku.izin.has('penjualan.diskon');
   // PR6: pelaku yang boleh menjual di bawah modal (izin harga manual, H9) tidak dibatasi modal.
   const bebasModal = pelaku.izin.has('penjualan.harga_manual');
 
@@ -431,13 +413,9 @@ export async function hitungBarisJual(
         ? persenKeRupiah(dasarManual, b.diskonBarisPersen)
         : b.diskonBaris;
     const diskonSama = lama !== undefined && lama.diskonBaris === diskonBaris;
+    // K-146: diskon manual dihapus; potongan hanya lewat Promo. Diskon yang sudah tersimpan sebelumnya tetap sah.
     if (diskonBaris > 0 && !diskonSama) {
-      if (!bolehDiskon) {
-        throw new AppError('TIDAK_BERIZIN', 'Anda tidak berizin memberi diskon.', 403);
-      }
-      if (melebihiBatas(diskonBaris, dasarManual, batas)) {
-        throw galatBaris(i, 'diskonBaris', `Diskon melebihi batas peran Anda (${batas}%).`);
-      }
+      throw galatBaris(i, 'diskonBaris', POTONGAN_LEWAT_PROMO);
     }
     if (diskonBaris > dasarManual) {
       throw galatBaris(i, 'diskonBaris', 'Diskon melebihi harga baris.');
@@ -481,17 +459,9 @@ export async function hitungBarisJual(
       : input.diskonTransaksi;
   if (diskonTransaksi > 0) {
     if (diskonTransaksi !== opsi.diskonTransaksiLama) {
-      if (!bolehDiskon) {
-        throw new AppError('TIDAK_BERIZIN', 'Anda tidak berizin memberi diskon.', 403);
-      }
-      if (melebihiBatas(diskonTransaksi, subtotal, batas)) {
-        throw new AppError(
-          'VALIDASI',
-          `Diskon transaksi melebihi batas peran Anda (${batas}%).`,
-          400,
-          { kolom: { diskonTransaksi: [`Maksimal ${batas}%.`] } },
-        );
-      }
+      throw new AppError('VALIDASI', POTONGAN_LEWAT_PROMO, 400, {
+        kolom: { diskonTransaksi: [POTONGAN_LEWAT_PROMO] },
+      });
     }
     if (diskonTransaksi > subtotal) {
       throw new AppError(

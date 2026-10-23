@@ -42,8 +42,8 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
       const lewat = new Date(s.batasHitungBuka) <= new Date();
       hasil.push({
         jenis: 'SHIFT_HITUNG_BUKA',
-        judul: lewat ? 'Hitung uang laci lewat batas' : 'Hitung uang laci belum selesai',
-        keterangan: `Shift ${s.nomor} dibuka "hitung nanti". Hitung semua uang laci di menu Shift.`,
+        judul: lewat ? 'Hitung uang shift lewat batas' : 'Hitung uang shift belum selesai',
+        keterangan: `Shift ${s.nomor} dibuka "hitung nanti". Hitung semua uang shift di menu Shift.`,
         jumlah: 1,
         tautan: '/shift',
       });

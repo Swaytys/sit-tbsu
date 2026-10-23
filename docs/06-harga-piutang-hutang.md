@@ -25,6 +25,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 
 | # | Aturan |
 |---|---|
+| D0 | **[K-146] Diskon manual dihapus.** Potongan harga hanya lewat Promo (PR1–PR11). API menolak `diskonBaris`/`diskonTransaksi` baru dengan `VALIDASI` "Potongan harga hanya lewat Promo"; nilai yang sudah tersimpan sebelum K-146 tetap sah saat dokumen diubah atau dilaporkan. D1–D6 di bawah hanya berlaku untuk data lama. |
 | D1 | Diskon baris: dimasukkan sebagai rupiah atau persen; disimpan sebagai rupiah (`diskon_baris`, U4); persen dihitung dari subtotal baris setelah promo (`bruto − diskon_promo`). Diskon transaksi: rupiah atau persen dari Σ subtotal baris (setelah promo dan diskon baris), disimpan rupiah (`diskon_transaksi`). |
 | D2 | Batas per peran: `konfigurasi.batas_diskon_persen_<PERAN>` (seed: STAF 0, KASIR 0, ADMIN 100, OWNER 100). Diskon baris ditolak bila `diskon_baris ÷ (bulatkanRupiah(qty × harga) − diskon_promo) × 100 > batas`; diskon transaksi ditolak bila `diskon_transaksi ÷ Σ subtotal × 100 > batas`. Batas 0 = tidak boleh memberi diskon manual. Pesan menyebut batas peran. Batas diuji untuk nilai yang diberikan/diubah pelaku; diskon yang sudah ada di order dan tidak diubah tetap sah (K-087). |
 | D3 | Diskon manual dan diskon promo disimpan terpisah (`diskon_baris` vs `diskon_promo`); keduanya boleh ada pada baris yang sama hanya bila peran punya batas > 0 (D2 dihitung atas subtotal setelah promo). |
@@ -141,3 +142,4 @@ Konfigurasi: `dasar_markup`, `pembulatan_harga`, `batas_diskon_persen_<PERAN>`, 
 - 2026-10-10 — PT6: melampaui limit kredit dengan persetujuan atasan di tempat (K-101, keputusan pemilik).
 - 2026-10-11 — PT6: persetujuan dengan kode sekali pakai (K-102); limit kredit bawaan pelanggan baru (K-104).
 - 2026-10-12 — PR10 anggaran promo, PR11 batas per pembeli (K-110).
+- 2026-10-23 — D0: diskon manual dihapus; D1–D6 hanya untuk data lama; konfigurasi `batas_diskon_persen_*` tidak dipakai lagi (K-146).
