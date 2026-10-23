@@ -20,6 +20,7 @@ import {
   pesanTerkirim,
   sesiUji,
   siapkanDatabaseSistem,
+  rekeningUji,
 } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
@@ -100,7 +101,9 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
     await jualTunai(kasir, '1'); // 10.000
     await kirim(kasir, '/api/penjualan/checkout', {
       order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '2' }] },
-      pembayaran: [{ metode: 'TRANSFER', rekening: 'BCA' }],
+      pembayaran: [
+        { metode: 'TRANSFER', idRekening: await rekeningUji('TRANSFER'), referensi: 'REF-0001' },
+      ],
     }); // non-tunai: tidak masuk laci
     await kirim(kasir, '/api/shift/kas', {
       jenis: 'KASBON',
@@ -260,7 +263,9 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
     expect(tunai.pesan).toContain('belum ditutup');
     const transfer = await galat(kasir, '/api/penjualan/checkout', {
       order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '1' }] },
-      pembayaran: [{ metode: 'TRANSFER', rekening: 'BCA 123' }],
+      pembayaran: [
+        { metode: 'TRANSFER', idRekening: await rekeningUji('TRANSFER'), referensi: 'REF-0001' },
+      ],
     });
     expect(transfer.status).toBe(409);
     expect(
@@ -568,28 +573,21 @@ describe('satu shift untuk toko (docs/05 K1, K2, K25–K27; K-132, K-141, K-142)
     expect(terbuka).toHaveLength(1);
   });
 
-  it('K-132 sisa shift ganda (aturan lama) menolak pencatatan uang sampai ditutup; Staf melihat status shift', async () => {
+  it('K-132/U10 database menolak shift terbuka kedua (pagar kedua); Staf melihat status shift', async () => {
     const staf = await sesiUji('STAF_PENJUALAN');
     expect((await ambil<{ data: unknown }>(staf, '/api/shift/status')).data).toBeNull();
     const s1 = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 0 });
-    // Shift kedua yang tertinggal dari aturan lama (satu shift per pengguna).
-    const [lama] = await db
-      .insert(shiftKasir)
-      .values({
+    // Lewat API ditolak service; langsung ke tabel pun ditolak indeks unik uq_shift_toko_terbuka.
+    expect((await galat(admin, '/api/shift/buka', { modalAwal: 0 })).status).toBe(409);
+    await expect(
+      db.insert(shiftKasir).values({
         nomor: 'SHF-LAMA-001',
         idKasir: admin.pengguna.id,
         tanggalOperasional: s1.tanggalOperasional,
         waktuBuka: new Date(),
         modalAwal: 0,
-      })
-      .returning();
-    const g = await galat(kasir, '/api/shift/kas', { jenis: 'SETOR_OWNER', nominal: 1000 });
-    expect(g.status).toBe(409);
-    expect(g.pesan).toContain('aturan lama');
-    const aktif = (await ambil<{ data: ShiftAktif }>(kasir, '/api/shift/aktif')).data;
-    expect(aktif.lainTerbuka.map((x) => x.nomor)).toEqual(['SHF-LAMA-001']);
-    await kirim(admin, `/api/shift/${lama!.id}/tutup`, { uangFisik: 0 });
-    await kirim(kasir, '/api/shift/kas', { jenis: 'SETOR_OWNER', nominal: 1000 });
+      }),
+    ).rejects.toThrow();
     const st = (
       await ambil<{ data: { nomor: string; status: string; namaPembuka: string } }>(
         staf,

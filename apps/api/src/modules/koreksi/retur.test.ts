@@ -10,7 +10,7 @@ import type {
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
-import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import { json, minta, rekeningUji, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import {
@@ -263,7 +263,11 @@ describe('retur penjualan (docs/05 §8)', () => {
       [{ metode: 'TUNAI', uangDiterima: 50000 }],
     ); // 20.000
     await jual(kasir, [{ idBarang: m.pasir, qty: '5' }], [{ metode: 'TUNAI' }]); // 15.000
-    await jual(kasir, [{ idBarang: m.semen, qty: '1' }], [{ metode: 'TRANSFER', rekening: 'BCA' }]); // 10.000 non-tunai
+    await jual(
+      kasir,
+      [{ idBarang: m.semen, qty: '1' }],
+      [{ metode: 'TRANSFER', idRekening: await rekeningUji('TRANSFER'), referensi: 'REF-0001' }],
+    ); // 10.000 non-tunai
     const p4 = await jual(kasir, [{ idBarang: m.pasir, qty: '2' }], [{ metode: 'TUNAI' }]); // 6.000
     await jual(kasir, [{ idBarang: m.semen, qty: '3' }], [{ metode: 'TUNAI' }]); // 30.000
     await kirim(kasir, '/api/shift/kas', { jenis: 'KASBON', nominal: 5000, keterangan: 'Sopir' });

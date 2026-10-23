@@ -434,6 +434,27 @@ bersamaan, kembali utuh, ditolak potong tagihan, rusak kirim pengganti/kurangi t
 menunggu lalu ditolak atasan, retur biasa saat barang di jalan, izin); `void.test.ts` memakai perjalanan. E2E
 `pengiriman.spec.ts` (baru) dan `pengantaran.spec.ts` (@kritis) memakai kendaraan/sopir master.
 
+
+### C7. Perbaikan hasil uji 23 Oktober (24 Oktober 2026, K-152–K-159)
+
+**Masalah:** elemen meluap saling menimpa saat layar sempit/zoom; catatan terpotong; rekening non-tunai bisa diketik
+bebas; shift ganda hanya dicegah kode aplikasi; pengingat tidak bisa disembunyikan; dialog shift muncul sendiri.
+
+**Solusi:**
+- Tata letak: halaman kerja cepat `h-full` (bukan `calc(100vh-…)`), tab pembungkus `min-h-0`, tombol bayar kasir
+  dipasang lewat portal ke luar area gulir, form kas dua baris, hitung pecahan dengan container query (`@xl`),
+  menu samping `min-h-0`, topbar diringkas. Detektor luapan (Playwright: elemen keluar kartu, tombol tertutup elemen
+  lain, gulir samping) dijalankan di 37 halaman × 4 lebar sampai bersih.
+- `TeksLipat`, `BannerLipat` (lencana di slot topbar lewat portal, `useSyncExternalStore`), `BilahTombol` bisa
+  diciutkan (`Ctrl+/`, otomatis bila tinggi < 760 px).
+- Skema `skemaPembayaran`: non-tunai wajib `idRekening` dan referensi `POLA_REFERENSI_BAYAR`; API mengabaikan
+  `rekening` teks. Pembantu tes `rekeningUji()`.
+- Migrasi 0024 `uq_shift_toko_terbuka` dengan blok `DO` yang berhenti bila ada shift ganda.
+- Pengaturan Harga dasar + `KalkulatorHargaDasar` (tampilan saja); Cadangan: salin alamat + penjelasan hosting.
+
+**Tes:** rekening.test (tujuan ketik-bebas dan referensi pendek ditolak), shift.test (shift kedua ditolak service dan
+indeks), tes penjualan/retur/laporan/shift memakai rekening terdaftar; e2e penuh.
+
 ---
 
 ## Riwayat dokumen
@@ -445,3 +466,4 @@ menunggu lalu ditolak atasan, retur biasa saat barang di jalan, izin); `void.tes
 - 2026-10-18 — Bagian C4 satu shift toko dan perbaikan uji pemilik (K-132–K-142).
 - 2026-10-23 — Bagian C5 diskon manual dihapus, mode ubah order, istilah uang shift (K-146–K-148).
 - 2026-10-23 — Bagian C6 hasil pengantaran per barang dan FMS inti (K-149–K-151).
+- 2026-10-24 — Bagian C7 perbaikan hasil uji 23 Oktober (K-152–K-159).

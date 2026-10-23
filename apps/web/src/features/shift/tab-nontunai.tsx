@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
+import { TeksLipat } from '@/components/teks-lipat';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { useDaftarNonTunai, useDaftarRekening, useVerifikasiNonTunai } from '@/api/rekening';
 import { BadgeVerifikasi } from '@/components/badge-verifikasi';
@@ -226,9 +227,7 @@ export function TabNonTunai() {
             </div>
           )}
           {p.catatanVerifikasi && (
-            <div className="max-w-56 truncate text-xs text-slate-500" title={p.catatanVerifikasi}>
-              {p.catatanVerifikasi}
-            </div>
+            <TeksLipat teks={p.catatanVerifikasi} className="max-w-64 text-xs text-slate-500" />
           )}
         </div>
       ),
@@ -290,13 +289,13 @@ export function TabNonTunai() {
             <li>
               <b>Kenapa perlu dicek.</b> Saat pembeli membayar lewat transfer, EDC, atau QRIS, kasir
               hanya melihat bukti di HP pembeli atau struk mesin. Uangnya baru pasti setelah tampil
-              di rekening toko. Sistem tidak tersambung ke bank, jadi kepastian itu dicatat di sini
-              oleh Admin/Owner.
+              di rekening penerimaan toko. Sistem tidak tersambung ke bank, jadi kepastian itu
+              dicatat di sini oleh Admin/Owner.
             </li>
             <li>
-              <b>Langkah harian.</b> (1) Buka m-banking atau internet banking rekening toko, lihat
-              mutasi hari itu. Untuk EDC lihat rekap <i>settlement</i> mesin; untuk QRIS lihat
-              riwayat transaksi di aplikasi merchant. (2) Di halaman ini biarkan saringan{' '}
+              <b>Langkah harian.</b> (1) Buka m-banking atau internet banking rekening penerimaan
+              toko, lihat mutasi hari itu. Untuk EDC lihat rekap <i>settlement</i> mesin; untuk QRIS
+              lihat riwayat transaksi di aplikasi merchant. (2) Di halaman ini biarkan saringan{' '}
               <i>Belum dicek</i>. (3) Untuk tiap baris, cari uang masuk dengan nominal dan waktu
               yang sama. Ada: tekan <b>Sudah masuk</b>. Tidak ada: tekan <b>Tidak masuk…</b> dan
               tulis apa yang ditemukan.

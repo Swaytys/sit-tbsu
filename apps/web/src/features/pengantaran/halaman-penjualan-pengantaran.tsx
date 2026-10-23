@@ -16,8 +16,9 @@ export function HalamanPenjualanPengantaran() {
   const idOrder = Number(url.get('order')) || null;
   const tab: Tab = idOrder ? 'antrean' : (TAB.find((t) => t === url.get('tab')) ?? 'antrean');
   return (
-    <div className="flex flex-col gap-2 p-3">
+    <div className="flex h-full min-h-0 flex-col gap-2 p-3">
       <Tabs
+        className="min-h-0 flex-1"
         value={tab}
         onValueChange={(v) => setUrl(v === 'antrean' ? {} : { tab: v }, { replace: true })}
       >
@@ -26,13 +27,13 @@ export function HalamanPenjualanPengantaran() {
           <TabsTrigger value="invoice">Invoice</TabsTrigger>
           <TabsTrigger value="pengiriman">Pengiriman aktif</TabsTrigger>
         </TabsList>
-        <TabsContent value="antrean">
+        <TabsContent value="antrean" className="min-h-0">
           <LayarPos jenis="PENGANTARAN" idOrderAwal={idOrder} />
         </TabsContent>
         <TabsContent value="invoice">
           <TabRiwayatPenjualan jenis="PENGANTARAN" />
         </TabsContent>
-        <TabsContent value="pengiriman">
+        <TabsContent value="pengiriman" className="min-h-0">
           <PapanPengiriman />
         </TabsContent>
       </Tabs>

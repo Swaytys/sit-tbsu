@@ -124,6 +124,11 @@ export const shiftKasir = pgTable(
     uniqueIndex('uq_shift_buka_per_kasir')
       .on(t.idKasir)
       .where(sql`status <> 'TUTUP'`),
+    // K-132, U10 (migrasi 0024): satu shift belum tutup untuk seluruh toko, dijaga database (pagar kedua setelah
+    // kunci transaksi di service).
+    uniqueIndex('uq_shift_toko_terbuka')
+      .on(sql`(true)`)
+      .where(sql`status <> 'TUTUP'`),
     index('idx_shift_tanggal').on(t.tanggalOperasional),
   ],
 );

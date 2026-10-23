@@ -53,7 +53,7 @@ test('catatan order tampil di kasir; Alt+2 pindah layar; menu baris mengubah qty
     await kasir.keyboard.press('Alt+2');
     await expect(kasir).toHaveURL(/\/penjualan-langsung$/);
     await expect(kasir.getByRole('navigation', { name: 'Pindah layar penjualan' })).toBeVisible();
-    const tiket = kasir.getByRole('option', { name: `Antrean ${noAntrean}` });
+    const tiket = kasir.getByRole('option', { name: `Antrean ${noAntrean}`, exact: true });
     await expect(tiket).toContainText('Catatan: Pembeli menunggu di depan');
     await tiket.click();
     await expect(kasir.getByTestId('catatan-order')).toContainText('Pembeli menunggu di depan');

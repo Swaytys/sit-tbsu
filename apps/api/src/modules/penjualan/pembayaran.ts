@@ -97,9 +97,14 @@ export async function catatPembayaran(
         kolom: { [`pembayaran.${i}.uangDiterima`]: ['Uang diterima kurang dari nominal.'] },
       });
     }
-    // K-111: rekening tujuan non-tunai dipilih dari daftar rekening toko (label disalin ke pembayaran);
-    // teks bebas hanya untuk toko yang belum mendaftarkan rekeningnya.
+    // K-111, U12: rekening tujuan non-tunai hanya dari daftar rekening penerimaan (label disalin ke
+    // pembayaran); tujuan ketik-bebas ditolak skema, `p.rekening` diabaikan.
     const tunai = p.metode === 'TUNAI';
+    if (!tunai && p.idRekening === null) {
+      throw new AppError('VALIDASI', 'Pilih rekening penerimaan dari daftar.', 400, {
+        kolom: { [`pembayaran.${i}.idRekening`]: ['Pilih rekening penerimaan dari daftar.'] },
+      });
+    }
     const rekening =
       tunai || p.idRekening === null
         ? null
@@ -117,7 +122,7 @@ export async function catatPembayaran(
       uangDiterima,
       kembalian: uangDiterima === null ? 0 : uangDiterima - nominal,
       idRekening: rekening?.id ?? null,
-      rekening: tunai ? null : (rekening?.nama ?? p.rekening ?? null),
+      rekening: tunai ? null : (rekening?.nama ?? null),
       referensi: tunai ? null : (p.referensi ?? null),
       catatan: p.catatan ?? null,
       // Uang non-tunai belum tentu sudah sampai: menunggu dicek atasan (K-111).

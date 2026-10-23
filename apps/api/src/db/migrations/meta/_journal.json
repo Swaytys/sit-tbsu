@@ -169,6 +169,13 @@
       "when": 1792760265080,
       "tag": "0023_pengantaran_fms",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792775067905,
+      "tag": "0024_satu_shift_toko",
+      "breakpoints": true
     }
   ]
 }

@@ -77,7 +77,7 @@ test(
       await expect(staf.getByLabel('Cari barang')).toBeFocused();
 
       // Kasir: tiket muncul sendiri (siaran) dengan isi barang terbaca.
-      const tiket = kasir.getByRole('option', { name: `Antrean ${noAntrean}` });
+      const tiket = kasir.getByRole('option', { name: `Antrean ${noAntrean}`, exact: true });
       await expect(tiket).toContainText(`Paku POS ${kode}`);
       await expect(tiket).toContainText('3 sak');
       await expect(tiket).toContainText('Rp 68.000');
@@ -94,7 +94,9 @@ test(
       const hasil = kasir.getByTestId('hasil-transaksi');
       await expect(hasil).toContainText('LUNAS');
       await expect(hasil).toContainText('Rp 32.000');
-      await expect(kasir.getByRole('option', { name: `Antrean ${noAntrean}` })).toHaveCount(0);
+      await expect(
+        kasir.getByRole('option', { name: `Antrean ${noAntrean}`, exact: true }),
+      ).toHaveCount(0);
       // Struk tercetak otomatis: nomor STR, barang, total, kembalian.
       await expect
         .poll(() => kasir.evaluate(() => document.body.dataset.terakhirDicetak ?? ''))
@@ -171,8 +173,8 @@ test('Kasir: FIFO menyorot order terlama; kasir boleh memilih order lain lalu me
     await bukaShift(kasir);
     await kasir.goto('/penjualan-langsung');
     // Order lain dari sesi uji sebelumnya mungkin masih di antrean; FIFO: o1 sebelum o2.
-    const t1 = kasir.getByRole('option', { name: `Antrean ${o1.noAntrean}` });
-    const t2 = kasir.getByRole('option', { name: `Antrean ${o2.noAntrean}` });
+    const t1 = kasir.getByRole('option', { name: `Antrean ${o1.noAntrean}`, exact: true });
+    const t2 = kasir.getByRole('option', { name: `Antrean ${o2.noAntrean}`, exact: true });
     await expect(t1).toBeVisible();
     await expect(t2).toBeVisible();
     await kasir.keyboard.press('F3');
@@ -246,9 +248,9 @@ test('Pengantaran: order → invoice DP transfer → surat jalan semua barang, h
     await masukCepat(kasir, 'KASIR');
     await bukaShift(kasir);
     await kasir.goto('/penjualan-pengantaran');
-    await expect(kasir.getByRole('option', { name: `Antrean ${o.noAntrean}` })).toContainText(
-      `CV POS ${kode}`,
-    );
+    await expect(
+      kasir.getByRole('option', { name: `Antrean ${o.noAntrean}`, exact: true }),
+    ).toContainText(`CV POS ${kode}`);
     await kasir.keyboard.press('F3');
     await kasir.keyboard.type(String(o.noAntrean));
     await kasir.keyboard.press('Enter');
@@ -257,8 +259,9 @@ test('Pengantaran: order → invoice DP transfer → surat jalan semua barang, h
     await kasir.keyboard.press('u'); // DP: sebagian sekarang, sisanya piutang
     await kasir.keyboard.press('b'); // transfer
     await kasir.keyboard.type('200000');
-    await kasir.keyboard.press('Tab');
-    await kasir.keyboard.type('BCA 123');
+    await kasir.keyboard.press('Tab'); // rekening tujuan (bawaan terpilih)
+    await kasir.keyboard.press('Tab'); // No. referensi (wajib, K-154)
+    await kasir.keyboard.type('TRX-123');
     await kasir.keyboard.press('Enter');
     const hasil = kasir.getByTestId('hasil-transaksi');
     await expect(hasil).toContainText(/Invoice INV-\d{6}-\d{3,} dibuat/);

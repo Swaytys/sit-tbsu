@@ -389,6 +389,9 @@ definisi selesai:
 3b. **Tinjauan pemilik 23 Okt** (K-146–K-151, `keputusan/2026-10-23-pengantaran-fms.md`): diskon manual dihapus,
    istilah uang shift, koreksi modal saat hitung susulan — **selesai 2026-10-23**; hasil pengantaran per barang,
    kendaraan & sopir, perjalanan (migrasi 0023) — **selesai 2026-10-23**.
+3c. **Hasil uji 23 Okt** (K-152–K-167, `keputusan/2026-10-24-masukan-uji-dan-fms-lanjutan.md`): perbaikan tampilan,
+   rekening wajib, satu shift dijamin database, pengingat diciutkan, harga dasar, cadangan (K-152–K-159) — **selesai
+   2026-10-24**; berikutnya K-164, K-167, K-161, K-160, K-162, K-163, K-165, K-166.
 4. **Pencarian dan tampilan** (K-123): atribut dicocokkan sebagian, label keterjualan, angka stok merah tebal,
    teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan.
 5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),
@@ -431,6 +434,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-10-24 — Fase 14 butir 3c(perbaikan) selesai: K-152–K-159 (migrasi 0024).
 - 2026-10-23 — Fase 14 butir 3b selesai: diskon manual dihapus, istilah uang shift (K-146–K-148); hasil pengantaran per barang, kendaraan & sopir, perjalanan (K-149–K-151, migrasi 0023).
 - 2026-10-18 — Fase 14 butir 3a(i) selesai: satu shift toko, hitung susulan dua langkah, kembalian tidak diambil, kode atasan dilanjutkan (K-132–K-142, migrasi 0022).
 - 2026-10-18 — Fase 14 butir 3 selesai: order disimpan, kembali ke draf, peringatan draf lain (K-122, docs/05 R11–R14, migrasi 0021).

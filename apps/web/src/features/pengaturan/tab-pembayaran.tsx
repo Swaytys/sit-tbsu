@@ -114,7 +114,9 @@ function DialogRekening({
     <Dialog open onOpenChange={(buka) => !buka && onTutup()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{rekening ? 'Ubah rekening toko' : 'Tambah rekening toko'}</DialogTitle>
+          <DialogTitle>
+            {rekening ? 'Ubah rekening penerimaan' : 'Tambah rekening penerimaan'}
+          </DialogTitle>
           <DialogDescription>
             Rekening, mesin EDC, atau QRIS tempat toko menerima pembayaran non-tunai. Kasir memilih
             dari daftar ini, jadi tulis sejelas yang ingin terbaca di layar kasir.
@@ -241,7 +243,7 @@ function DialogRekening({
 }
 
 /**
- * Pengaturan › Pembayaran (K-111): daftar rekening bank, mesin EDC, dan QRIS milik toko. Kasir memilih dari
+ * Pengaturan › Pembayaran (K-111, U12): daftar rekening penerimaan (bank/e-wallet, EDC, QRIS) milik toko. Kasir memilih dari
  * daftar ini saat menerima pembayaran non-tunai (tidak mengetik nomor), dan daftar yang sama dipakai untuk
  * refund lewat transfer serta pengecekan uang masuk. Rekening tidak dihapus; dinonaktifkan.
  */
@@ -268,17 +270,19 @@ export function TabPembayaran() {
         <div className="min-w-0 flex-1 basis-80 space-y-1 text-sm text-slate-600">
           <h2 className="font-semibold text-slate-900">Rekening penerima pembayaran non-tunai</h2>
           <p>
-            Daftarkan sekali rekening bank, mesin EDC, dan QRIS milik toko. Saat kasir memilih
-            Transfer, EDC, atau QRIS, tujuannya tinggal dipilih dari daftar ini (yang bertanda{' '}
-            <b>Bawaan</b> terpilih sendiri), jadi tidak ada nomor rekening yang diketik ulang.
+            Daftarkan sekali semua tempat toko menerima uang non-tunai: rekening bank dan e-wallet
+            (OVO, GoPay, DANA, ShopeePay; dipilih saat <b>Transfer</b>), mesin EDC, dan QRIS. Kasir
+            hanya memilih dari daftar ini (yang bertanda <b>Bawaan</b> terpilih sendiri) dan mengisi
+            No. referensinya; tujuan tidak bisa diketik. Cara bayar yang belum punya rekening di
+            sini tidak bisa dipakai di kasir.
           </p>
         </div>
-        <Penjelasan judul="Cara kerja rekening toko dan pengecekan uang masuk">
+        <Penjelasan judul="Cara kerja rekening penerimaan dan pengecekan uang masuk">
           <ButirPenjelasan>
             <li>
-              <b>Tiga jenis.</b> <i>Rekening bank</i> muncul saat kasir memilih Transfer,{' '}
-              <i>Mesin EDC</i> saat memilih EDC (kartu debit/kredit), dan <i>QRIS</i> saat memilih
-              QRIS.
+              <b>Tiga jenis.</b> <i>Rekening bank / e-wallet</i> muncul saat kasir memilih Transfer
+              (e-wallet seperti OVO/GoPay/DANA termasuk di sini), <i>Mesin EDC</i> saat memilih EDC
+              (kartu debit/kredit), dan <i>QRIS</i> saat memilih QRIS.
             </li>
             <li>
               <b>Bawaan.</b> Tiap jenis boleh punya satu rekening bawaan; itulah yang langsung
@@ -303,8 +307,13 @@ export function TabPembayaran() {
               menjadi dasarnya.
             </li>
             <li>
-              <b>Refund retur/void lewat transfer</b> juga memilih rekening toko asal uangnya dari
-              daftar ini.
+              <b>Refund retur/void lewat transfer</b> juga memilih rekening asal uangnya dari daftar
+              ini.
+            </li>
+            <li>
+              <b>No. referensi wajib</b> (4–40 huruf/angka) untuk tiap pembayaran non-tunai: nomor
+              referensi di bukti transfer, nomor approval/trace di struk EDC, atau nomor referensi
+              di notifikasi QRIS. Nomor inilah yang dicocokkan saat cek uang masuk.
             </li>
           </ButirPenjelasan>
         </Penjelasan>

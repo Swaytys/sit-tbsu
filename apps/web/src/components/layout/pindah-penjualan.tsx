@@ -49,7 +49,7 @@ export function PindahPenjualan() {
           title={`Buka ${l.label} (Alt+${l.angka})`}
           className={({ isActive }) =>
             cn(
-              'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium',
+              'flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap',
               isActive
                 ? 'border-blue-600 bg-blue-50 text-blue-700'
                 : 'border-slate-200 text-slate-600 hover:bg-slate-100',
@@ -57,7 +57,7 @@ export function PindahPenjualan() {
           }
         >
           {l.label}
-          <kbd className="rounded bg-slate-200 px-1 font-mono text-[10px] text-slate-600">
+          <kbd className="hidden rounded bg-slate-200 px-1 font-mono text-[10px] text-slate-600 2xl:inline">
             Alt+{l.angka}
           </kbd>
         </NavLink>

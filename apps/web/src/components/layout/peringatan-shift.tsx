@@ -4,7 +4,7 @@ import { usePengguna } from '@/api/auth';
 import { useShiftSaya } from '@/api/penjualan';
 import { useSekarang } from '@/features/pos/use-sekarang';
 import { formatTanggal } from '@/lib/format';
-import { cn } from '@/lib/utils';
+import { BannerLipat } from '@/components/banner-lipat';
 
 /** Berapa menit sebelum jam tutup pengingat "sebentar lagi tutup" mulai tampil. */
 const MENIT_PENGINGAT = 15;
@@ -29,23 +29,18 @@ export function PeringatanShift() {
     const lewatHitung =
       !dihitung && shift.batasHitungBuka !== null && Date.parse(shift.batasHitungBuka) <= kini;
     return (
-      <div
-        role="alert"
-        data-testid="peringatan-shift"
-        className={cn(
-          'flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-6 py-2 text-sm print:hidden',
-          lewatHitung
-            ? 'border-red-300 bg-red-50 text-red-900'
-            : 'border-amber-300 bg-amber-50 text-amber-900',
-        )}
+      <BannerLipat
+        kunci={`shift-${shift.id}-${dihitung ? 'dihitung' : lewatHitung ? 'hitung-lewat' : 'hitung'}`}
+        warna={lewatHitung ? 'merah' : 'kuning'}
+        ringkas={dihitung ? 'Penutupan shift belum selesai' : 'Hitung uang shift'}
+        testId="peringatan-shift"
       >
         <AlarmClock className="size-4 shrink-0" />
         <span className="min-w-0 flex-1">
           {dihitung ? (
             <>
               <b>Shift {shift.nomor} sedang ditutup.</b> Hitungan uang sudah dikirim; uang baru
-              tidak bisa dicatat sampai penutupan diselesaikan (keterangan dan uang ditinggal di
-              laci).
+              tidak bisa dicatat sampai penutupan diselesaikan (keterangan dan uang ditinggal).
             </>
           ) : (
             <>
@@ -75,7 +70,7 @@ export function PeringatanShift() {
             {dihitung ? 'Selesaikan penutupan' : 'Hitung sekarang'}
           </Link>
         )}
-      </div>
+      </BannerLipat>
     );
   }
 
@@ -92,15 +87,18 @@ export function PeringatanShift() {
   if (tingkat === null) return null;
 
   return (
-    <div
+    <BannerLipat
+      kunci={`shift-${shift.id}-${tingkat}`}
+      warna={tingkat === 'terlewat' ? 'merah' : tingkat === 'lewat' ? 'kuning' : 'biru'}
+      ringkas={
+        tingkat === 'terlewat'
+          ? 'Shift kemarin belum ditutup'
+          : tingkat === 'lewat'
+            ? 'Lewat jam tutup shift'
+            : `Tutup shift ${sisaMenit} mnt lagi`
+      }
       role={tingkat === 'segera' ? 'status' : 'alert'}
-      data-testid="peringatan-shift"
-      className={cn(
-        'flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-6 py-2 text-sm print:hidden',
-        tingkat === 'terlewat' && 'border-red-300 bg-red-50 text-red-900',
-        tingkat === 'lewat' && 'border-amber-300 bg-amber-50 text-amber-900',
-        tingkat === 'segera' && 'border-blue-200 bg-blue-50 text-blue-900',
-      )}
+      testId="peringatan-shift"
     >
       {tingkat === 'terlewat' ? (
         <Lock className="size-4 shrink-0" />
@@ -113,21 +111,21 @@ export function PeringatanShift() {
             <b>
               Shift {shift.nomor} tanggal {formatTanggal(shift.tanggalOperasional)} belum ditutup.
             </b>{' '}
-            Penjualan dan pencatatan uang Anda terkunci sampai shift itu ditutup: hitung uang di
-            laci, tutup shift, lalu buka shift baru untuk hari ini.
+            Penjualan dan pencatatan uang Anda terkunci sampai shift itu ditutup: hitung uang shift,
+            tutup shift, lalu buka shift baru untuk hari ini.
           </>
         )}
         {tingkat === 'lewat' && (
           <>
             <b>Sudah lewat jam tutup shift ({shift.jadwalTutup}).</b> Selesaikan transaksi yang
-            sedang berjalan, lalu hitung uang di laci dan tutup shift {shift.nomor}. Admin/Owner
-            sudah diberi tahu.
+            sedang berjalan, lalu hitung uang shift dan tutup shift {shift.nomor}. Admin/Owner sudah
+            diberi tahu.
           </>
         )}
         {tingkat === 'segera' && (
           <>
             Shift dijadwalkan tutup pukul <b>{shift.jadwalTutup}</b> ({sisaMenit} menit lagi).
-            Siapkan penutupan: selesaikan antrean dan hitung uang di laci.
+            Siapkan penutupan: selesaikan antrean dan hitung uang shift.
           </>
         )}
       </span>
@@ -139,6 +137,6 @@ export function PeringatanShift() {
           {tingkat === 'segera' ? 'Buka halaman shift' : 'Tutup shift sekarang'}
         </Link>
       )}
-    </div>
+    </BannerLipat>
   );
 }

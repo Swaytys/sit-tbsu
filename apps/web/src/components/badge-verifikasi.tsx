@@ -11,9 +11,9 @@ const WARNA: Record<StatusVerifikasi, string> = {
 const ARTI: Record<StatusVerifikasi, string> = {
   BELUM_DICEK:
     'Kasir sudah mencatat pembayaran ini, tetapi Admin/Owner belum mencocokkannya dengan mutasi rekening.',
-  SUDAH_MASUK: 'Admin/Owner sudah memastikan uangnya masuk ke rekening toko.',
+  SUDAH_MASUK: 'Admin/Owner sudah memastikan uangnya masuk ke rekening penerimaan toko.',
   TIDAK_MASUK:
-    'Admin/Owner tidak menemukan uangnya di rekening toko. Perlu ditindaklanjuti (tagih pembeli, atau koreksi penjualan).',
+    'Admin/Owner tidak menemukan uangnya di rekening penerimaan toko. Perlu ditindaklanjuti (tagih pembeli, atau koreksi penjualan).',
 };
 
 /** Hasil pengecekan uang masuk sebuah pembayaran non-tunai (K-111). */

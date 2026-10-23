@@ -191,7 +191,7 @@ export function KeranjangPos({
       onFocus={onFokus}
       className={cn(
         // Minimal ±4 baris tetap terlihat walau panel bayar membesar (transfer/EDC/campuran).
-        'min-h-40 flex-1 overflow-y-auto rounded-md border bg-white outline-none',
+        'min-h-24 flex-1 overflow-y-auto rounded-md border bg-white outline-none',
         aktif && 'ring-2 ring-blue-500',
       )}
     >

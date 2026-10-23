@@ -1,12 +1,15 @@
 import {
   formatRupiah,
   LABEL_METODE_PEMBAYARAN,
+  PESAN_REFERENSI_BAYAR,
+  POLA_REFERENSI_BAYAR,
   type DataPembayaran,
   type MetodePembayaran,
   type RekeningToko,
 } from '@sit/shared';
 import { X } from 'lucide-react';
 import { useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { digitSaja, tampilRibuan } from './model';
 
@@ -38,6 +41,15 @@ const METODE: { nilai: MetodePembayaran; huruf: string }[] = [
   { nilai: 'EDC', huruf: 'E' },
   { nilai: 'QRIS', huruf: 'Q' },
 ];
+
+/** U12: No. referensi wajib untuk non-tunai, sama dengan aturan API (packages/shared). */
+const POLA_REFERENSI = POLA_REFERENSI_BAYAR;
+const PESAN_REFERENSI = PESAN_REFERENSI_BAYAR;
+const PETUNJUK_REFERENSI: Partial<Record<MetodePembayaran, string>> = {
+  TRANSFER: 'No. referensi transfer (wajib)',
+  EDC: 'No. approval/trace struk EDC (wajib)',
+  QRIS: 'No. referensi QRIS (wajib)',
+};
 
 /** Rekening bawaan (atau yang pertama) untuk satu metode non-tunai; `null` bila belum ada yang terdaftar. */
 function rekeningBawaan(daftar: RekeningToko[], metode: MetodePembayaran): number | null {
@@ -80,6 +92,7 @@ export function PanelBayarPos({
   onBayar,
   onFokus,
   onEsc,
+  slotTombol = null,
 }: {
   id: string;
   aktif: boolean;
@@ -101,12 +114,12 @@ export function PanelBayarPos({
   onBayar: (pembayaran: DataPembayaran[]) => void;
   onFokus: () => void;
   onEsc: () => void;
+  /** Bila diisi, tombol bayar dipasang di elemen ini (di luar area gulir), bukan di bawah panel. */
+  slotTombol?: HTMLElement | null;
 }) {
   const [metode, setMetode] = useState<MetodePembayaran>('TUNAI');
   const [digit, setDigit] = useState('');
   const [idRekening, setIdRekening] = useState<number | null>(null);
-  /** Hanya dipakai bila toko belum mendaftarkan rekening untuk metode itu. */
-  const [rekening, setRekening] = useState('');
   const [referensi, setReferensi] = useState('');
   const [daftar, setDaftar] = useState<DataPembayaran[]>([]);
   const [galat, setGalat] = useState('');
@@ -141,10 +154,19 @@ export function PanelBayarPos({
   const pilihanRekening = daftarRekening.filter((r) => r.jenis === metode);
   const namaRekening = (id: number | null) => daftarRekening.find((r) => r.id === id)?.nama ?? null;
 
+  /** U12: non-tunai hanya bila rekening penerimaannya sudah didaftarkan (tidak ada tujuan ketik-bebas). */
+  const adaRekening = (m: MetodePembayaran) =>
+    m === 'TUNAI' || daftarRekening.some((r) => r.jenis === m);
+
   function gantiMetode(m: MetodePembayaran) {
+    if (!adaRekening(m)) {
+      setGalat(
+        `${LABEL_METODE_PEMBAYARAN[m]} belum bisa dipakai: rekening penerimaannya belum didaftarkan. Admin/Owner menambahkannya di Pengaturan › Pembayaran. Sementara pakai cara bayar lain.`,
+      );
+      return;
+    }
     setMetode(m);
     setIdRekening(rekeningBawaan(daftarRekening, m));
-    setRekening('');
     setReferensi('');
     setGalat('');
   }
@@ -164,14 +186,13 @@ export function PanelBayarPos({
     if (tanpaBayar) return null;
     if (angka === null && !kosongBerartiLunas) return null;
     if (angka === 0) return null;
-    if (!tunai && pilihanRekening.length > 0 && idRekening === null) {
+    if (!tunai && idRekening === null) {
       setGalat('Pilih rekening tujuan dari daftar di bawah kotak bayar.');
       return 'galat';
     }
-    if (!tunai && pilihanRekening.length === 0 && !rekening.trim()) {
-      setGalat(
-        `Belum ada rekening ${LABEL_METODE_PEMBAYARAN[metode]} yang didaftarkan toko. Ketik tujuannya di kolom di bawah, dan minta Admin/Owner mendaftarkannya di Pengaturan › Pembayaran.`,
-      );
+    if (!tunai && !POLA_REFERENSI.test(referensi.trim())) {
+      setGalat(PESAN_REFERENSI);
+      document.getElementById(`${id}-referensi`)?.focus();
       return 'galat';
     }
     if (!tunai && angka !== null && angka > sisa) {
@@ -184,8 +205,8 @@ export function PanelBayarPos({
       nominal: tunai ? null : angka,
       uangDiterima: tunai ? angka : null,
       idRekening: tunai ? null : idRekening,
-      rekening: tunai || idRekening !== null ? null : rekening.trim(),
-      referensi: tunai ? null : referensi.trim() || null,
+      rekening: null,
+      referensi: tunai ? null : referensi.trim(),
       catatan: null,
       kembalianTidakDiambil: tunai && kembalianDitinggal && kembalian > 0,
     };
@@ -240,7 +261,11 @@ export function PanelBayarPos({
     if (!e || e === 'galat') return;
     setDaftar((d) => [...d, { ...e, nominal: angka, uangDiterima: tunai ? angka : null }]);
     setDigit('');
-    gantiMetode(tunai ? 'TRANSFER' : 'TUNAI');
+    // Bagian berikutnya: tunai bila tadi non-tunai; bila tadi tunai, cara non-tunai pertama yang terdaftar.
+    const berikut = tunai
+      ? METODE.map((x) => x.nilai).find((m) => m !== 'TUNAI' && adaRekening(m))
+      : 'TUNAI';
+    if (berikut) gantiMetode(berikut);
   }
 
   function hapusBagian(i: number) {
@@ -295,6 +320,14 @@ export function PanelBayarPos({
   const labelTombol =
     rencana === 'LUNAS' || mode === 'pengantaran' ? labelBayar : 'Simpan sebagai piutang';
 
+  const tombolBayar = (
+    <TombolBayar
+      onBayar={bayar}
+      nonaktif={nonaktif || memproses}
+      label={memproses ? 'Memproses…' : `${labelTombol} (Enter)`}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-2">
       {pakaiRencana && (
@@ -337,9 +370,16 @@ export function PanelBayarPos({
               tabIndex={-1}
               onMouseDown={tahanFokus}
               onClick={() => gantiMetode(m)}
+              aria-disabled={!adaRekening(m)}
+              title={
+                adaRekening(m)
+                  ? undefined
+                  : 'Rekening penerimaan belum didaftarkan (Pengaturan › Pembayaran)'
+              }
               className={cn(
                 'rounded-md border-2 py-1 font-semibold',
                 metode === m ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200',
+                !adaRekening(m) && 'cursor-not-allowed border-dashed text-slate-300',
               )}
             >
               <span className="mr-1 font-mono text-xs opacity-60">{huruf}</span>
@@ -364,9 +404,9 @@ export function PanelBayarPos({
                 setDaftar([]);
                 setGalat('');
               }}
-              className="font-medium text-red-600 hover:underline"
+              className="inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2 py-0.5 font-medium text-red-700 shadow-sm hover:bg-red-50"
             >
-              Hapus semua
+              <X className="size-3" /> Hapus semua
             </button>
           </div>
           <ul className="space-y-0.5">
@@ -385,9 +425,9 @@ export function PanelBayarPos({
                   onClick={() => hapusBagian(i)}
                   aria-label={`Hapus bagian ${i + 1}`}
                   title="Hapus bagian ini"
-                  className="rounded p-0.5 text-slate-500 hover:bg-red-100 hover:text-red-600"
+                  className="inline-flex items-center gap-0.5 rounded-md border border-slate-300 bg-white px-1.5 py-0.5 text-xs text-slate-600 shadow-sm hover:border-red-300 hover:bg-red-50 hover:text-red-700"
                 >
-                  <X className="size-3.5" />
+                  <X className="size-3" /> Hapus
                 </button>
               </li>
             ))}
@@ -429,48 +469,35 @@ export function PanelBayarPos({
       />
       {!tunai && !tanpaBayar && (
         <div className="grid grid-cols-2 gap-1.5">
-          {pilihanRekening.length > 0 ? (
-            <select
-              value={idRekening ?? ''}
-              onChange={(e) => {
-                setIdRekening(e.target.value ? Number(e.target.value) : null);
-                setGalat('');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  bayar();
-                }
-              }}
-              aria-label="Rekening tujuan"
-              title="Uang masuk ke rekening/mesin mana? Daftarnya diatur di Pengaturan › Pembayaran."
-              className="h-8 rounded-md border bg-white px-1.5 text-sm"
-            >
-              {pilihanRekening.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.nama}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              value={rekening}
-              onChange={(e) => setRekening(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  bayar();
-                }
-              }}
-              maxLength={60}
-              placeholder={`Tujuan ${LABEL_METODE_PEMBAYARAN[metode]} (belum terdaftar)`}
-              aria-label="Rekening tujuan"
-              className="h-8 rounded-md border border-amber-400 bg-amber-50 px-2 text-sm"
-            />
-          )}
+          <select
+            value={idRekening ?? ''}
+            onChange={(e) => {
+              setIdRekening(e.target.value ? Number(e.target.value) : null);
+              setGalat('');
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                bayar();
+              }
+            }}
+            aria-label="Rekening tujuan"
+            title="Uang masuk ke rekening/mesin mana? Daftarnya diatur di Pengaturan › Pembayaran."
+            className="h-8 min-w-0 rounded-md border bg-white px-1.5 text-sm"
+          >
+            {pilihanRekening.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.nama}
+              </option>
+            ))}
+          </select>
           <input
+            id={`${id}-referensi`}
             value={referensi}
-            onChange={(e) => setReferensi(e.target.value)}
+            onChange={(e) => {
+              setReferensi(e.target.value);
+              setGalat('');
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -478,9 +505,10 @@ export function PanelBayarPos({
               }
             }}
             maxLength={60}
-            placeholder="No. referensi (opsional)"
+            placeholder={PETUNJUK_REFERENSI[metode] ?? 'No. referensi'}
+            title={PESAN_REFERENSI}
             aria-label="Nomor referensi"
-            className="h-8 rounded-md border px-2 text-sm"
+            className="h-8 min-w-0 rounded-md border px-2 text-sm"
           />
         </div>
       )}
@@ -569,8 +597,10 @@ export function PanelBayarPos({
               onMouseDown={tahanFokus}
               onClick={() => onDitinggal(!ditinggal)}
               className={cn(
-                'rounded px-1.5 py-0.5',
-                ditinggal ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500',
+                'inline-flex items-center gap-1 rounded-md border px-2 py-1 font-medium shadow-sm transition-colors',
+                ditinggal
+                  ? 'border-amber-400 bg-amber-100 text-amber-900 hover:bg-amber-200'
+                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
               )}
             >
               <kbd className="font-mono font-bold">D</kbd> barang{' '}
@@ -582,7 +612,12 @@ export function PanelBayarPos({
             tabIndex={-1}
             onMouseDown={tahanFokus}
             onClick={campuran}
-            className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-500"
+            className={cn(
+              'inline-flex items-center gap-1 rounded-md border px-2 py-1 font-medium shadow-sm transition-colors',
+              campur
+                ? 'border-blue-400 bg-blue-50 text-blue-900 hover:bg-blue-100'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+            )}
           >
             <kbd className="font-mono font-bold">C</kbd>{' '}
             {campur ? 'tambah bagian lagi' : 'bayar campuran (lebih dari satu cara bayar)'}
@@ -594,15 +629,29 @@ export function PanelBayarPos({
           )}
         </div>
       )}
-      <button
-        type="button"
-        onClick={bayar}
-        disabled={nonaktif || memproses}
-        // Menempel di bawah kolom transaksi: tetap terlihat di layar pendek saat isi kolom digulir.
-        className="sticky bottom-0 h-11 shrink-0 rounded-md bg-emerald-600 text-lg font-black text-white shadow-[0_-6px_8px_-4px_rgb(255_255_255)] hover:bg-emerald-700 disabled:bg-emerald-300"
-      >
-        {memproses ? 'Memproses…' : `${labelTombol} (Enter)`}
-      </button>
+      {slotTombol ? createPortal(tombolBayar, slotTombol) : tombolBayar}
     </div>
+  );
+}
+
+/** Dipisah agar bisa ditaruh di luar area gulir (layar kasir) lewat portal. */
+function TombolBayar({
+  onBayar,
+  nonaktif,
+  label,
+}: {
+  onBayar: () => void;
+  nonaktif: boolean;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onBayar}
+      disabled={nonaktif}
+      className="h-11 w-full shrink-0 rounded-md bg-emerald-600 text-lg font-black text-white hover:bg-emerald-700 disabled:bg-emerald-300"
+    >
+      {label}
+    </button>
   );
 }

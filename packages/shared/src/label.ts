@@ -81,7 +81,7 @@ export const LABEL_METODE_PEMBAYARAN: Record<MetodePembayaran, string> = {
 };
 
 export const LABEL_JENIS_REKENING: Record<JenisRekening, string> = {
-  TRANSFER: 'Rekening bank (transfer)',
+  TRANSFER: 'Rekening bank / e-wallet (transfer)',
   EDC: 'Mesin EDC (kartu)',
   QRIS: 'QRIS',
 };

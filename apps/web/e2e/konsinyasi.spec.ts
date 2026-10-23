@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { api, masukCepat, menuUtama } from './pembantu';
+import { api, idRekening, masukCepat, menuUtama } from './pembantu';
 
 // Fase 11: setoran konsinyasi. Tes menambah satu pemasok, satu barang titipan, penerimaan konsinyasi,
 // penjualan, setoran, dan pembayaran di database pengembangan setiap kali jalan.
@@ -40,7 +40,7 @@ test('Admin membuat setoran konsinyasi dari penjualan titipan lalu melunasinya',
   });
   await api(page, '/penjualan/checkout', 'POST', {
     order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: barang.id, qty: '3' }] },
-    pembayaran: [{ metode: 'TRANSFER', rekening: 'BCA toko' }],
+    pembayaran: [{ metode: 'TRANSFER', idRekening: await idRekening(page), referensi: 'E2E-0001' }],
   });
 
   await menuUtama(page).getByRole('link', { name: 'Konsinyasi' }).click();

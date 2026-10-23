@@ -47,14 +47,14 @@ function Kolom({
 }) {
   return (
     <section className="flex min-h-0 flex-col rounded-md border bg-slate-50">
-      <header className="flex items-center justify-between gap-2 border-b bg-white px-3 py-2">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-slate-800">
+      <header className="space-y-1 border-b bg-white px-3 py-2">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <h2 className="truncate text-sm font-semibold whitespace-nowrap text-slate-800">
             {judul} <span className="text-slate-400">({jumlah})</span>
           </h2>
-          <p className="truncate text-xs text-slate-500">{bantu}</p>
+          {aksi}
         </div>
-        {aksi}
+        <p className="text-xs text-slate-500">{bantu}</p>
       </header>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">{children}</div>
     </section>
@@ -334,7 +334,7 @@ export function PapanPengiriman() {
   });
 
   return (
-    <div className="flex h-[calc(100vh-8.5rem)] min-h-[480px] flex-col gap-2">
+    <div className="flex h-full min-h-[400px] flex-col gap-2">
       <div className="grid min-h-0 flex-1 grid-cols-3 gap-2">
         <Kolom
           judul="Perlu surat jalan"
@@ -355,9 +355,14 @@ export function PapanPengiriman() {
         <Kolom
           judul="Siap berangkat"
           jumlah={siap.length}
-          bantu="Centang yang satu kendaraan, lalu Berangkat"
+          bantu="Centang yang dibawa satu kendaraan, lalu Berangkat (B)"
           aksi={
-            <Button size="sm" disabled={terpilih.length === 0} onClick={berangkat}>
+            <Button
+              size="sm"
+              className="h-7 shrink-0 px-2"
+              disabled={terpilih.length === 0}
+              onClick={berangkat}
+            >
               <Truck /> Berangkat{terpilih.length > 0 ? ` (${terpilih.length})` : ''}
               <kbd className="ml-1 font-mono text-xs opacity-70">B</kbd>
             </Button>

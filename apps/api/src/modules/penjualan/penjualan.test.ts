@@ -2,7 +2,7 @@ import type { DetailOrder, DetailPenjualan } from '@sit/shared';
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
-import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import { json, minta, rekeningUji, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import {
@@ -168,13 +168,27 @@ describe('checkout dan pembayaran (docs/05 §6)', () => {
     const transferKasir = await galat(
       minta2(kasir, '/api/penjualan/checkout', {
         order: isi,
-        pembayaran: [{ metode: 'TRANSFER', nominal: 12000, rekening: 'BCA 123' }],
+        pembayaran: [
+          {
+            metode: 'TRANSFER',
+            nominal: 12000,
+            idRekening: await rekeningUji('TRANSFER'),
+            referensi: 'REF-0001',
+          },
+        ],
       }),
     );
     expect(transferKasir.status).toBe(409);
     const transferAdmin = await kirim(admin, '/api/penjualan/checkout', {
       order: isi,
-      pembayaran: [{ metode: 'TRANSFER', nominal: 12000, rekening: 'BCA 123', referensi: 'TRX9' }],
+      pembayaran: [
+        {
+          metode: 'TRANSFER',
+          nominal: 12000,
+          idRekening: await rekeningUji('TRANSFER'),
+          referensi: 'TRX9',
+        },
+      ],
     });
     expect(transferAdmin.pembayaran[0]).toMatchObject({ metode: 'TRANSFER', referensi: 'TRX9' });
     expect(transferAdmin.nomorShift).toBeNull();
@@ -215,7 +229,12 @@ describe('checkout dan pembayaran (docs/05 §6)', () => {
     expect(await stok(m.semen)).toEqual({ fisik: '8.000', dipesan: '0.000' });
 
     const lunas = await kirim(kasir, `/api/penjualan/${pj.id}/pembayaran`, {
-      pembayaran: { metode: 'EDC', nominal: 14000, rekening: 'EDC BRI' },
+      pembayaran: {
+        metode: 'EDC',
+        nominal: 14000,
+        idRekening: await rekeningUji('EDC'),
+        referensi: 'REF-0001',
+      },
     });
     expect(lunas).toMatchObject({ statusPembayaran: 'LUNAS', sisaTagihan: 0, totalDibayar: 24000 });
     expect(lunas.pembayaran.map((p) => p.jenis)).toEqual(['DP', 'PELUNASAN']);
@@ -227,7 +246,15 @@ describe('checkout dan pembayaran (docs/05 §6)', () => {
     // Bayar campuran saat checkout: tunai + transfer = lunas.
     const campur = await kirim(kasir, '/api/penjualan/checkout', {
       order: keranjang([{ idBarang: m.pasir, qty: '3' }]),
-      pembayaran: [tunai(5000), { metode: 'TRANSFER', nominal: 7000, rekening: 'BCA' }],
+      pembayaran: [
+        tunai(5000),
+        {
+          metode: 'TRANSFER',
+          nominal: 7000,
+          idRekening: await rekeningUji('TRANSFER'),
+          referensi: 'REF-0001',
+        },
+      ],
     });
     expect(campur.statusPembayaran).toBe('LUNAS');
     expect(campur.pembayaran.map((p) => p.jenis)).toEqual(['DP', 'PELUNASAN']);
@@ -328,7 +355,9 @@ describe('checkout dan pembayaran (docs/05 §6)', () => {
     expect(pas.pembayaran[0]).toMatchObject({ nominal: 4000, uangDiterima: 4000, kembalian: 0 });
     const transfer = await kirim(kasir, '/api/penjualan/checkout', {
       order: keranjang([{ idBarang: m.pasir, qty: '1' }]),
-      pembayaran: [{ metode: 'TRANSFER', rekening: 'BCA 1' }],
+      pembayaran: [
+        { metode: 'TRANSFER', idRekening: await rekeningUji('TRANSFER'), referensi: 'REF-0001' },
+      ],
     });
     expect(transfer).toMatchObject({ statusPembayaran: 'LUNAS', totalDibayar: 4000 });
 
