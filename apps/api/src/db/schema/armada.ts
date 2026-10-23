@@ -4,6 +4,7 @@ import {
   foreignKey,
   index,
   integer,
+  numeric,
   pgTable,
   uniqueIndex,
   varchar,
@@ -16,6 +17,7 @@ import {
   kolomId,
   kolomRef,
   statusAktif,
+  tanggal,
   timestamptz,
 } from './kolom';
 import { pengguna } from './sistem';
@@ -38,10 +40,22 @@ export const kendaraan = pgTable(
     statusAktif: statusAktif(),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    // K-161 (migrasi 0026): ukuran bak (cm). `kapasitas_kg` = daya angkut dari buku KIR/STNK.
+    bakPanjangCm: integer('bak_panjang_cm'),
+    bakLebarCm: integer('bak_lebar_cm'),
+    bakTinggiCm: integer('bak_tinggi_cm'),
+    // K-162: masa berlaku dokumen kendaraan (pengingat).
+    berlakuStnk: tanggal('berlaku_stnk'),
+    berlakuKir: tanggal('berlaku_kir'),
   },
   () => [
     check('chk_kendaraan_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
     check('chk_kendaraan_kapasitas', sql`kapasitas_kg is null or kapasitas_kg > 0`),
+    check(
+      'chk_kendaraan_bak',
+      sql`(bak_panjang_cm is null or bak_panjang_cm > 0) and (bak_lebar_cm is null or bak_lebar_cm > 0)
+        and (bak_tinggi_cm is null or bak_tinggi_cm > 0)`,
+    ),
     uniqueIndex('uq_kendaraan_plat').on(sql`upper(plat)`),
   ],
 );
@@ -79,6 +93,10 @@ export const perjalanan = pgTable(
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    // K-161 (migrasi 0026): muatan saat berangkat (riwayat & utilisasi) dan alasan bila melewati batas lunak.
+    muatanBeratKg: numeric('muatan_berat_kg', { precision: 12, scale: 3 }),
+    muatanVolumeM3: numeric('muatan_volume_m3', { precision: 12, scale: 4 }),
+    alasanMuatan: varchar('alasan_muatan', { length: 500 }),
   },
   (t) => [
     foreignKey({

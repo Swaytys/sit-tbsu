@@ -6,6 +6,8 @@ import {
   type AtributBarang,
   type BarisBarang,
   type DataBarang,
+  type DataMuatanBarang,
+  type MuatanBarang,
   type DetailBarang,
   type HargaTierBarang,
   type Izin,
@@ -211,8 +213,60 @@ export async function detailBarang(id: number, izin: ReadonlySet<Izin>): Promise
     keterangan: b.keterangan,
     atribut,
     sudahAdaMutasi: b.terakhirMutasi !== null,
+    muatan: rapikanMuatan(await repo.muatanBarang(db, id)),
     versi: (await ambilVersi(db, barang, id)) ?? '',
   };
+}
+
+// --- Data muatan (K-161) ---
+
+type BarisMuatan = NonNullable<Awaited<ReturnType<typeof repo.muatanBarang>>>;
+
+/** Angka dari database (`12.500`) ditampilkan ringkas (`12.5`); kosong tetap `null`. */
+function rapikanMuatan(m: BarisMuatan | undefined): MuatanBarang {
+  const r = (v: string | null) => (v === null ? null : rapikanAngka(v));
+  return {
+    beratKg: r(m?.beratKg ?? null),
+    panjangCm: r(m?.panjangCm ?? null),
+    lebarCm: r(m?.lebarCm ?? null),
+    tinggiCm: r(m?.tinggiCm ?? null),
+    curah: m?.curah ?? false,
+    volumeM3: r(m?.volumeM3 ?? null),
+  };
+}
+
+/** Menyimpan data muatan bila berubah, dengan log BARANG_UBAH (dalam transaksi pemanggil). */
+async function simpanMuatan(
+  tx: Tx,
+  id: number,
+  input: DataMuatanBarang,
+  label: string,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+) {
+  const lama = rapikanMuatan(await repo.muatanBarang(tx, id));
+  // Barang curah tidak punya ukuran per buah.
+  const baru: MuatanBarang = {
+    beratKg: input.beratKg === null ? null : rapikanAngka(input.beratKg),
+    panjangCm: input.curah || input.panjangCm === null ? null : rapikanAngka(input.panjangCm),
+    lebarCm: input.curah || input.lebarCm === null ? null : rapikanAngka(input.lebarCm),
+    tinggiCm: input.curah || input.tinggiCm === null ? null : rapikanAngka(input.tinggiCm),
+    curah: input.curah,
+    volumeM3: input.volumeM3 === null ? null : rapikanAngka(input.volumeM3),
+  };
+  const beda = selisih(lama, baru);
+  if (beda.kolom.length === 0) return;
+  await repo.ubahMuatan(tx, id, baru, sekarang());
+  await catatLog(tx, {
+    aksi: 'BARANG_UBAH',
+    idPengguna: pelaku.id,
+    entitas: 'barang',
+    idEntitas: id,
+    ringkasan: `Data muatan ${label}: ${beda.kolom.join(', ')}`,
+    dataLama: beda.dataLama,
+    dataBaru: beda.dataBaru,
+    ip: asal.ip,
+  });
 }
 
 // --- Validasi ---
@@ -484,6 +538,16 @@ export async function tambahBarang(
   const id = await dalamTransaksi(async (tx) => {
     const baru = await buatBarang(tx, input, pelaku.id);
     await catatLogBarangBaru(tx, baru, pelaku, asal);
+    if (input.muatan) {
+      await simpanMuatan(
+        tx,
+        baru.id,
+        input.muatan,
+        `${baru.nilai.kode} ${baru.nilai.namaBarang}`,
+        pelaku,
+        asal,
+      );
+    }
     return baru.id;
   });
   return detailBarang(id, pelaku.izin);
@@ -632,6 +696,9 @@ export async function ubahBarang(
       });
     }
     await catatLogHarga(tx, id, nilai.namaBarang, perubahanHarga, pelaku, asal);
+    if (input.muatan) {
+      await simpanMuatan(tx, id, input.muatan, `${kode} ${nilai.namaBarang}`, pelaku, asal);
+    }
   });
   return detailBarang(id, pelaku.izin);
 }

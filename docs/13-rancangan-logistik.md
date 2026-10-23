@@ -65,7 +65,7 @@ Untuk semua baris surat jalan di satu rit (qty kirim × data barang per satuan):
 dan langsung membahayakan rem, ban, dan sumbu. Volume dan panjang diberi ruang konfirmasi karena barang kadang
 ditumpuk lebih tinggi dari dinding bak (terpal, diikat) atau menjulur sedikit; keputusan itu diserahkan kepada orang yang
 memuat, dengan **alasan yang tercatat** (mis. "besi 12 m menjulur 80 cm, diberi bendera merah, rute dalam kota").
-Julur belakang yang diizinkan diatur di Pengaturan (bawaan 0 cm: toko yang memilih).
+Julur yang diizinkan diatur di Pengaturan (`muatan_julur_maks_cm`, bawaan 100 cm; sesuaikan dengan kebijakan toko).
 
 ### 3.2 Saran efisiensi
 
@@ -116,10 +116,12 @@ STNK/KIR-nya hampir habis, jadwal servis (km atau tanggal), catatan BBM per rit 
 
 ## 6. Urutan pengerjaan
 
-1. Data muatan barang + kendaraan, konversi satuan, laporan kelengkapan, perhitungan muatan per rit + uji (K-161).
+1. Data muatan barang + kendaraan, konversi satuan, perhitungan muatan per rit + uji (K-161) — **selesai 24 Okt**;
+   laporan kelengkapan dan isi massal lewat Excel menyusul.
 2. Rit rencana (DIRENCANAKAN) + papan Pengiriman dengan seret-lepas (K-160).
 3. STNK/KIR, servis, BBM, dashboard (K-162).
 
 ## Riwayat
 
 - 2026-10-24 — v1 dibuat (rancangan K-160–K-162).
+- 2026-10-24 — Langkah 1 (K-161) selesai sebagian; julur bawaan 100 cm.

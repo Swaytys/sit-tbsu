@@ -183,6 +183,13 @@
       "when": 1792779087091,
       "tag": "0025_kunci_idempoten",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792781485536,
+      "tag": "0026_data_muatan",
+      "breakpoints": true
     }
   ]
 }

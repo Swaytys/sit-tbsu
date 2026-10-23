@@ -96,6 +96,15 @@ atau gabungkan). **Teknis rencana:** ambang mengacu praktik FMS dan aturan ODOL 
 LLAJ dan PP 55/2012): berat tidak pernah boleh melebihi payload; dimensi dibandingkan per sumbu dengan toleransi
 julur belakang yang diatur di Pengaturan. Barang lama tanpa dimensi ditandai "belum lengkap" dan dihitung terpisah.
 
+**Selesai 24 Okt (bagian 1):** migrasi 0026 (data muatan barang per satuan dasar: berat kg, ukuran cm, curah,
+volume m³; kendaraan: daya angkut = `kapasitas_kg`, ukuran bak, STNK/KIR; perjalanan: snapshot berat/volume dan
+alasan muatan), isian di form barang dengan pilihan satuan (g/kg/ton, mm/cm/dm/m, L/m³), pratinjau muatan di dialog
+Berangkat (bar berat/volume/panjang, pesan, saran) dan penegakan di API: berat > daya angkut ditolak; volume
+100–115% atau barang menjulur ≤ julur yang diizinkan wajib alasan (≥ 10 huruf, tercatat); lebih dari itu ditolak.
+Pengaturan bawaan: faktor isi 85%, julur 100 cm (`muatan_faktor_isi_persen`, `muatan_julur_maks_cm`). Rincian
+rancangan di `docs/13-rancangan-logistik.md`. Saringan **Data muatan belum lengkap** di Data Barang dan isian faktor isi/julur di Pengaturan ›
+Operasional ikut selesai. **Sisa:** isi data muatan massal lewat Excel.
+
 ### K-162 — FMS pendukung
 
 **Keputusan (pemilik):** catatan dan statistik pendukung armada. **Rencana:** utilisasi muatan per rit, jumlah rit dan
@@ -158,7 +167,7 @@ Enter membuka, Esc menutup. Daftar Barang/Pelanggan/Pemasok membaca `?cari=`.
 
 1. A (K-152–K-159): selesai, di-push bersama keputusan ini.
 2. K-164 (idempoten + cek versi) dan K-167 (pencarian universal) — **selesai 24 Okt**.
-3. K-161 data dimensi/berat barang dan kendaraan (riset + rancangan diajukan), lalu K-160 halaman Pengiriman, lalu K-162.
+3. K-161 data dimensi/berat barang dan kendaraan — **bagian 1 selesai 24 Okt** (rancangan docs/13); lalu K-160 halaman Pengiriman, lalu K-162.
 4. K-163 editor kampanye promo.
 5. K-165 dan K-166 (alur arsip dan pembaruan), bersama sisa gelombang 3–4 lama (K-129 sisa, K-131, K-137, K-138, K-139,
    K-143) dan K-123 dst.

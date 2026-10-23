@@ -217,8 +217,16 @@ invoice** → **P** cetak invoice, **S** buat surat jalan & cetak.
 
 Uang yang dibawa pulang sopir (bayar di tempat) dicatat lewat **Terima pembayaran** di invoice-nya.
 
+**Muatan kendaraan** (saat **Berangkat**): setelah kendaraan dipilih, tampil bar **Berat** (dibanding daya angkut),
+**Volume** (dibanding ruang bak), dan **Barang terpanjang**. Hijau = aman; kuning = hampir penuh (periksa setelah
+dimuat); oranye = melewati batas wajar, **wajib tulis alasan** kenapa tetap aman (mis. ditumpuk di atas dinding,
+diikat, ditutup terpal); merah = **ditolak**, tombol Berangkat mati: kurangi surat jalan atau pilih kendaraan lain.
+Berat tidak pernah boleh melebihi daya angkut. Perhitungan butuh **Data muatan** barang: di *Data Barang › Ubah*,
+kartu *Data muatan*, isi berat dan ukuran kemasan untuk 1 satuan dasar (boleh dalam g/kg/ton dan mm/cm/m; centang
+*Barang curah* untuk pasir/batu dan isi volumenya).
+
 **Kendaraan & Sopir** (*Data Master › Kendaraan & Sopir*): daftar kendaraan (plat seperti di STNK, mis. `S 1234 AB`,
-jenis, kapasitas) dan sopir (nama, No. HP). Admin/Owner menambah dan mengubahnya; kasir melihat. Klik angka di
+jenis, **daya angkut** dari buku KIR/STNK, **ukuran bak** dalam cm, masa berlaku STNK/KIR) dan sopir (nama, No. HP). Admin/Owner menambah dan mengubahnya; kasir melihat. Klik angka di
 kolom **Perjalanan** untuk melihat riwayat perjalanannya. Kendaraan/sopir yang tidak dipakai lagi dinonaktifkan
 (tidak bisa selama masih di jalan). Plat dan nama sopir yang sudah ada tidak bisa didaftarkan dua kali.
 

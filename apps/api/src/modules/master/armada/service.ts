@@ -69,6 +69,20 @@ export function masihJalan(apa: string, j: { nomor: string; waktuBerangkat: Date
 
 // --- Kendaraan ---
 
+function nilaiKendaraan(input: DataKendaraan): repo.NilaiKendaraan {
+  return {
+    plat: input.plat,
+    jenis: input.jenis,
+    kapasitasKg: input.kapasitasKg,
+    bakPanjangCm: input.bakPanjangCm,
+    bakLebarCm: input.bakLebarCm,
+    bakTinggiCm: input.bakTinggiCm,
+    berlakuStnk: input.berlakuStnk,
+    berlakuKir: input.berlakuKir,
+    catatan: input.catatan ?? null,
+  };
+}
+
 export async function daftarKendaraan(status: StatusAktif | 'SEMUA'): Promise<Kendaraan[]> {
   return (await repo.daftarKendaraan(db, status)).map(keKendaraan);
 }
@@ -78,12 +92,7 @@ export async function tambahKendaraan(
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<Kendaraan> {
-  const data = {
-    plat: input.plat,
-    jenis: input.jenis,
-    kapasitasKg: input.kapasitasKg,
-    catatan: input.catatan ?? null,
-  };
+  const data = nilaiKendaraan(input);
   const id = await dalamTransaksi(async (tx) => {
     if (await repo.platDipakai(tx, data.plat)) {
       throw galatKolom('plat', `Kendaraan ${data.plat} sudah terdaftar.`, 'KONFLIK');
@@ -112,12 +121,7 @@ export async function ubahKendaraan(
   await dalamTransaksi(async (tx) => {
     const lama = await repo.kunciKendaraan(tx, id);
     if (!lama) throw new AppError('TIDAK_DITEMUKAN', 'Kendaraan tidak ditemukan.', 404);
-    const baru = {
-      plat: input.plat,
-      jenis: input.jenis,
-      kapasitasKg: input.kapasitasKg,
-      catatan: input.catatan ?? null,
-    };
+    const baru = nilaiKendaraan(input);
     const beda = selisih(lama, baru);
     if (beda.kolom.length === 0) return;
     if (beda.kolom.includes('plat') && (await repo.platDipakai(tx, baru.plat, id))) {

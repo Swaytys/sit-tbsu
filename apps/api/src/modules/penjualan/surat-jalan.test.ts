@@ -1,4 +1,6 @@
 import type {
+  DetailBarang,
+  Muatan,
   BarisRetur,
   BarisSuratJalan,
   DetailPenjualan,
@@ -13,7 +15,15 @@ import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur
 import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
-import { hargaBarang, kendaraan, pelanggan, persediaan, shiftKasir, sopir } from '../../db/schema';
+import {
+  barang,
+  hargaBarang,
+  kendaraan,
+  pelanggan,
+  persediaan,
+  shiftKasir,
+  sopir,
+} from '../../db/schema';
 
 type Sesi = Awaited<ReturnType<typeof sesiUji>>;
 type Galat = { error: { kode: string; pesan: string } };
@@ -543,5 +553,100 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
         })
       ).status,
     ).toBe(403);
+  });
+});
+
+describe('muatan kendaraan (K-161, docs/13 §3)', () => {
+  async function siapkanMuatan() {
+    // Semen 50 kg/sak, kemasan 70 × 45 × 12 cm (0,0378 m³).
+    await db
+      .update(barang)
+      .set({ beratKg: '50', panjangCm: '70', lebarCm: '45', tinggiCm: '12' })
+      .where(eq(barang.id, m.semen));
+  }
+
+  it('data muatan disimpan lewat ubah barang dan tampil di detail', async () => {
+    const d = await ambil<DetailBarang>(admin, `/api/barang/${m.semen}`);
+    const r = await minta(`/api/barang/${m.semen}`, {
+      method: 'PATCH',
+      cookie: admin.cookie,
+      body: {
+        kode: d.kode,
+        namaBarang: d.namaBarang,
+        idKategori: d.idKategori,
+        idSatuanDasar: d.idSatuanDasar,
+        stokMinimum: d.stokMinimum,
+        hargaModalAwal: d.hargaModalAwal,
+        kepemilikan: d.kepemilikan,
+        atribut: [],
+        muatan: { beratKg: '50,5', panjangCm: '70', lebarCm: '45', tinggiCm: '12' },
+      },
+    });
+    expect(r.status).toBe(200);
+    const baru = await ambil<DetailBarang>(admin, `/api/barang/${m.semen}`);
+    expect(baru.muatan).toMatchObject({ beratKg: '50.5', panjangCm: '70', curah: false });
+    const salah = await minta(`/api/barang/${m.semen}`, {
+      method: 'PATCH',
+      cookie: admin.cookie,
+      body: {
+        kode: d.kode,
+        namaBarang: d.namaBarang,
+        idKategori: d.idKategori,
+        idSatuanDasar: d.idSatuanDasar,
+        kepemilikan: d.kepemilikan,
+        atribut: [],
+        muatan: { beratKg: '1', panjangCm: '70', lebarCm: null, tinggiCm: null },
+      },
+    });
+    expect(salah.status).toBe(400);
+  });
+
+  it('berat di atas daya angkut ditolak; volume sedikit lebih butuh alasan; aman tercatat di perjalanan', async () => {
+    await siapkanMuatan();
+    const inv = await invoice(); // semen 5 sak = 250 kg, 0,189 m³ (pasir tanpa data)
+    const sj = await kirim<BarisSuratJalan>(kasir, `/api/penjualan/${inv.id}/surat-jalan`, {
+      baris: [{ idPenjualanDetail: inv.baris[0]!.id, qtyKirim: '5' }],
+    });
+    const kecil = await kirim<Kendaraan>(admin, '/api/kendaraan', {
+      plat: 'L 1 KC',
+      jenis: 'Motor roda tiga',
+      kapasitasKg: 200,
+    });
+    const tolak = await galat(kasir, '/api/perjalanan', {
+      idKendaraan: kecil.id,
+      idSopir: slamet.id,
+      idSuratJalan: [sj.id],
+    });
+    expect(tolak.status).toBe(409);
+    expect(tolak.pesan).toContain('melebihi daya angkut');
+
+    // Bak 80 × 60 × 42 cm × faktor isi 85% = 0,171 m³ → volume 110%: perlu alasan.
+    const pas = await kirim<Kendaraan>(admin, '/api/kendaraan', {
+      plat: 'L 2 KC',
+      jenis: 'Pikap kecil',
+      kapasitasKg: 1000,
+      bakPanjangCm: 80,
+      bakLebarCm: 60,
+      bakTinggiCm: 42,
+    });
+    const pr = await kirim<Muatan>(kasir, '/api/perjalanan/pratinjau-muatan', {
+      idKendaraan: pas.id,
+      idSuratJalan: [sj.id],
+    });
+    expect(pr).toMatchObject({ beratKg: '250', kesimpulan: 'KONFIRMASI', persenBerat: 25 });
+    expect(pr.tingkat).toEqual({ berat: 'AMAN', volume: 'KONFIRMASI', panjang: 'AMAN' });
+    const tanpaAlasan = await galat(kasir, '/api/perjalanan', {
+      idKendaraan: pas.id,
+      idSopir: slamet.id,
+      idSuratJalan: [sj.id],
+    });
+    expect(tanpaAlasan.status).toBe(400);
+    const trip = await kirim<Perjalanan>(kasir, '/api/perjalanan', {
+      idKendaraan: pas.id,
+      idSopir: slamet.id,
+      idSuratJalan: [sj.id],
+      alasanMuatan: 'Sak ditumpuk satu lapis di atas dinding bak, diikat tali dan ditutup terpal.',
+    });
+    expect(trip.status).toBe('JALAN');
   });
 });

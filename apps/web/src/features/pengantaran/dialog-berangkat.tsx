@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
-import { useBerangkat, useDaftarKendaraan, useDaftarSopir } from '@/api/armada';
+import { useBerangkat, useDaftarKendaraan, useDaftarSopir, usePratinjauMuatan } from '@/api/armada';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { formatWaktu } from '@/lib/format';
+import { PanelMuatan } from './panel-muatan';
 
 const kelasPilih =
   'h-10 w-full rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200';
@@ -39,6 +40,13 @@ export function DialogBerangkat({
   const [idKendaraan, setIdKendaraan] = useState('');
   const [idSopir, setIdSopir] = useState('');
   const [catatan, setCatatan] = useState('');
+  const [alasan, setAlasan] = useState('');
+  const muatan = usePratinjauMuatan(
+    idKendaraan ? Number(idKendaraan) : null,
+    suratJalan.map((s) => s.id),
+  ).data;
+  const ditolak = muatan?.kesimpulan === 'DITOLAK';
+  const perluAlasan = muatan?.kesimpulan === 'KONFIRMASI';
   const memuat = kendaraan.isLoading || sopir.isLoading;
   const kosong =
     !memuat && ((kendaraan.data ?? []).length === 0 || (sopir.data ?? []).length === 0);
@@ -48,12 +56,24 @@ export function DialogBerangkat({
       toast.error(!idKendaraan ? 'Pilih kendaraan.' : 'Pilih sopir.');
       return;
     }
+    if (ditolak) {
+      toast.error(
+        'Muatan melebihi batas kendaraan ini. Kurangi surat jalan atau pilih kendaraan lain.',
+      );
+      return;
+    }
+    if (perluAlasan && alasan.trim().length < 10) {
+      toast.error('Tulis alasan kenapa muatan tetap aman (minimal 10 huruf).');
+      document.getElementById('alasan-muatan')?.focus();
+      return;
+    }
     berangkat
       .mutateAsync({
         idKendaraan: Number(idKendaraan),
         idSopir: Number(idSopir),
         idSuratJalan: suratJalan.map((s) => s.id),
         catatan: catatan.trim() || null,
+        alasanMuatan: perluAlasan ? alasan.trim() : null,
       })
       .then((p) => {
         toast.success(`${p.nomor} berangkat: ${p.plat}, sopir ${p.namaSopir}.`);
@@ -138,6 +158,24 @@ export function DialogBerangkat({
                 ))}
               </select>
             </label>
+            {muatan && <PanelMuatan m={muatan} />}
+            {perluAlasan && (
+              <label className="grid gap-1">
+                <span className="font-medium text-orange-800">
+                  Alasan muatan tetap aman (wajib, tercatat)
+                </span>
+                <textarea
+                  id="alasan-muatan"
+                  rows={2}
+                  maxLength={500}
+                  value={alasan}
+                  onChange={(e) => setAlasan(e.target.value)}
+                  placeholder="Urut kejadiannya, mis. sak ditumpuk satu lapis di atas dinding bak, diikat tali, ditutup terpal; sudah dicek sopir."
+                  className="rounded-md border border-orange-300 px-2 py-1 text-sm"
+                  aria-label="Alasan muatan"
+                />
+              </label>
+            )}
             <Input
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
@@ -150,7 +188,7 @@ export function DialogBerangkat({
           <Button variant="outline" onClick={onTutup}>
             Batal
           </Button>
-          <Button disabled={berangkat.isPending || kosong} onClick={kirim}>
+          <Button disabled={berangkat.isPending || kosong || ditolak} onClick={kirim}>
             <Truck /> {berangkat.isPending ? 'Menyimpan…' : 'Berangkat (Enter)'}
           </Button>
         </DialogFooter>

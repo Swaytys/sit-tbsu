@@ -58,6 +58,7 @@ import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { rapikanPersen, teksMargin } from '../harga-jual/isian-harga';
+import { KartuMuatan } from './kartu-muatan';
 import { KartuSatuanJual, KELIPATAN_PERKIRAAN } from './kartu-satuan-jual';
 
 type Referensi = {
@@ -185,6 +186,15 @@ function nilaiAwal(
     }),
     // K-094: barang baru berharga otomatis.
     hargaOtomatis: b?.hargaOtomatis ?? true,
+    // K-161: data muatan (kg, cm, m³ per satuan dasar).
+    muatan: b?.muatan ?? {
+      beratKg: null,
+      panjangCm: null,
+      lebarCm: null,
+      tinggiCm: null,
+      curah: false,
+      volumeM3: null,
+    },
     // K-164: versi saat form dibuka; API menolak bila orang lain sudah mengubahnya.
     versi: b?.versi ?? null,
   };
@@ -300,10 +310,12 @@ function FormBarang({
     return sah;
   }
   const atribut = useFieldArray({ control: form.control, name: 'atribut' });
-  const [kepemilikan, atributDiisi, modalDiisi, titipDiisi, tierDiisi] = useWatch({
+  const [kepemilikan, atributDiisi, modalDiisi, titipDiisi, tierDiisi, idSatuanDipilih] = useWatch({
     control: form.control,
-    name: ['kepemilikan', 'atribut', 'hargaModalAwal', 'hargaTitip', 'hargaTier'],
+    name: ['kepemilikan', 'atribut', 'hargaModalAwal', 'hargaTitip', 'hargaTier', 'idSatuanDasar'],
   });
+  const kodeSatuanDasar =
+    satuanPilihan.find((x) => x.id === idSatuanDipilih)?.kode ?? 'satuan dasar';
   // Perkiraan harga barang baru dari modal (H3/H4) untuk tampilan; nilai final dihitung API.
   const dasarKira = kepemilikan === 'KONSINYASI' ? titipDiisi : modalDiisi;
   function kiraDari(isian: unknown): number | null {
@@ -717,6 +729,8 @@ function FormBarang({
                 )}
               </CardContent>
             </Card>
+
+            <KartuMuatan kodeSatuan={kodeSatuanDasar} />
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">

@@ -2,13 +2,16 @@ import { and, count, desc, eq, inArray, ne, type SQL } from 'drizzle-orm';
 import type { StatusPerjalanan } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
+  barang,
   kendaraan,
   pelanggan,
   pengguna,
   penjualan,
   perjalanan,
   sopir,
+  penjualanDetail,
   suratJalan,
+  suratJalanDetail,
 } from '../../../db/schema';
 
 /* Perjalanan pengantaran (S9, S12). */
@@ -93,6 +96,9 @@ export async function tambah(
     idPengguna: number;
     waktuBerangkat: Date;
     catatan: string | null;
+    muatanBeratKg: string;
+    muatanVolumeM3: string;
+    alasanMuatan: string | null;
   },
 ): Promise<number> {
   const [b] = await tx.insert(perjalanan).values(nilai).returning({ id: perjalanan.id });
@@ -130,4 +136,25 @@ export async function selesaikan(tx: Tx, id: number, waktu: Date) {
     .update(perjalanan)
     .set({ status: 'SELESAI', waktuKembali: waktu, diubahPada: waktu })
     .where(eq(perjalanan.id, id));
+}
+
+/** K-161: baris surat jalan beserta data muatan barangnya (per satuan dasar) untuk hitung muatan. */
+export function barisMuatan(ex: Executor, idSuratJalan: number[]) {
+  if (idSuratJalan.length === 0) return Promise.resolve([]);
+  return ex
+    .select({
+      namaBarang: barang.namaBarang,
+      qtyKirim: suratJalanDetail.qtyKirim,
+      faktor: penjualanDetail.faktor,
+      beratKg: barang.beratKg,
+      panjangCm: barang.panjangCm,
+      lebarCm: barang.lebarCm,
+      tinggiCm: barang.tinggiCm,
+      curah: barang.curah,
+      volumeM3: barang.volumeM3,
+    })
+    .from(suratJalanDetail)
+    .innerJoin(penjualanDetail, eq(penjualanDetail.id, suratJalanDetail.idPenjualanDetail))
+    .innerJoin(barang, eq(barang.id, penjualanDetail.idBarang))
+    .where(inArray(suratJalanDetail.idSuratJalan, idSuratJalan));
 }

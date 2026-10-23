@@ -471,6 +471,18 @@ sama saling menimpa tanpa tahu; tidak ada cara cepat mencari di seluruh aplikasi
 
 **Tes:** idempoten.test (5 kasus), versi.test (2), cari.test (2), e2e cari.spec.
 
+
+### C9. Data muatan dan pemeriksaan muatan saat berangkat (24 Oktober 2026, K-161 bagian 1)
+
+**Masalah:** tidak ada cara mengetahui apakah barang satu rit muat di kendaraan (berat, volume, panjang).
+
+**Solusi:** migrasi 0026 (lihat docs/03 v3.23); `packages/shared/src/satuan-muatan.ts` (konversi isian g/kg/ton,
+mm/cm/dm/m, L/m³ ke satuan simpan, decimal.js); `skemaMuatanBarang`; `KartuMuatan` di form barang; `hitungMuatan`
+di `perjalanan/service.ts` (qty dasar lewat helper qty, berat/volume sebagai perkiraan fisik) dipakai pratinjau dan
+`berangkat`; `PanelMuatan` di dialog Berangkat. Rancangan lengkap: docs/13.
+
+**Tes:** surat-jalan.test (+2: simpan data muatan, ditolak/perlu alasan/berhasil), e2e muatan.spec.
+
 ---
 
 ## Riwayat dokumen
@@ -484,3 +496,4 @@ sama saling menimpa tanpa tahu; tidak ada cara cepat mencari di seluruh aplikasi
 - 2026-10-23 — Bagian C6 hasil pengantaran per barang dan FMS inti (K-149–K-151).
 - 2026-10-24 — Bagian C7 perbaikan hasil uji 23 Oktober (K-152–K-159).
 - 2026-10-24 — Bagian C8 kunci idempoten, cek versi, pencarian universal (K-164, K-167).
+- 2026-10-24 — Bagian C9 data muatan (K-161 bagian 1).

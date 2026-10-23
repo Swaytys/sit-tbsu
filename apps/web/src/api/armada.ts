@@ -122,3 +122,17 @@ export function useCatatHasil() {
     ambilData(await api['surat-jalan'][':id'].hasil.$post({ param: paramId(id), json })),
   );
 }
+
+/** K-161: pratinjau muatan rit sebelum berangkat (dihitung API; tidak menulis apa pun). */
+export function usePratinjauMuatan(idKendaraan: number | null, idSuratJalan: number[]) {
+  return useQuery({
+    queryKey: ['armada', 'muatan', idKendaraan, idSuratJalan],
+    queryFn: async () =>
+      ambilData(
+        await api.perjalanan['pratinjau-muatan'].$post({
+          json: { idKendaraan: idKendaraan ?? 0, idSuratJalan },
+        }),
+      ),
+    enabled: idKendaraan !== null && idSuratJalan.length > 0,
+  });
+}
