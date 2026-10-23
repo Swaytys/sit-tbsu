@@ -109,7 +109,7 @@ export const skemaBukaShift = z
       ctx.addIssue({
         code: 'custom',
         path: ['modalAwal'],
-        message: 'Isi hasil hitungan uang di laci.',
+        message: 'Isi hasil hitungan uang shift.',
       });
     }
   });

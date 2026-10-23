@@ -267,11 +267,18 @@ describe('void transaksi (docs/05 §9)', () => {
       },
     });
     const sj2 = await kirim<{ id: number }>(admin, `/api/penjualan/${inv2.id}/surat-jalan`, {
-      sopir: 'Budi',
       baris: [{ idPenjualanDetail: inv2.baris[0]!.id, qtyKirim: '1' }],
     });
-    await kirim(admin, `/api/surat-jalan/${sj2.id}/status`, { status: 'DIMUAT' });
-    await kirim(admin, `/api/surat-jalan/${sj2.id}/status`, { status: 'DIKIRIM' });
+    const k = await kirim<{ id: number }>(admin, '/api/kendaraan', {
+      plat: `S ${Date.now() % 10000} VD`,
+      jenis: 'Pikap',
+    });
+    const s = await kirim<{ id: number }>(admin, '/api/sopir', { nama: `Budi ${Date.now()}` });
+    await kirim(admin, '/api/perjalanan', {
+      idKendaraan: k.id,
+      idSopir: s.id,
+      idSuratJalan: [sj2.id],
+    });
     const ditolak = await galat(admin, '/api/void', {
       idPenjualan: inv2.id,
       lingkup: 'TRANSAKSI',

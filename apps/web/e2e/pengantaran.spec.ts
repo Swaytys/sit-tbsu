@@ -32,6 +32,14 @@ test(
       noHp: '081200000000',
       alamat: 'Jl. Proyek No. 7',
     });
+    // K-150: kendaraan dan sopir dari data master (unik per jalannya tes, dinonaktifkan di akhir).
+    const truk = await api<{ id: number; plat: string }>(admin, '/kendaraan', 'POST', {
+      plat: `L ${kode % 10000} EE`,
+      jenis: 'Pikap E2E',
+    });
+    const sopir = await api<{ id: number }>(admin, '/sopir', 'POST', {
+      nama: `Slamet E2E ${kode}`,
+    });
     try {
       const staf = await browser.newPage();
       await masukCepat(staf, 'STAF_PENJUALAN');
@@ -49,6 +57,7 @@ test(
         data: { modalAwal: 0 },
         headers: { origin: new URL(kasir.url()).origin },
       }); // 409 bila shift sudah terbuka: diabaikan
+      await kasir.reload(); // dialog buka shift yang sempat muncul sebelum shift dibuka lewat API ditutup
 
       // 1. Invoice dengan DP transfer Rp 200.000 lewat layar POS (keyboard).
       await menuUtama(kasir).getByRole('link', { name: 'Penjualan Pengantaran' }).click();
@@ -80,10 +89,17 @@ test(
       await sj1.getByRole('button', { name: 'Selesai dimuat' }).click();
       await expect(sj1).toContainText('Barang dimuat');
       await sj1.getByRole('button', { name: 'Berangkat kirim' }).click();
-      await kasir.getByLabel('Nama sopir').fill('Pak Slamet');
-      await kasir.getByRole('dialog').getByRole('button', { name: 'Berangkat' }).click();
-      await sj1.getByRole('button', { name: 'Sudah diterima' }).click();
-      await expect(sj1).toContainText('Diterima');
+      await kasir.getByLabel('Kendaraan').selectOption(String(truk.id));
+      await kasir.getByLabel('Sopir').selectOption(String(sopir.id));
+      await kasir
+        .getByRole('dialog')
+        .getByRole('button', { name: /^Berangkat/ })
+        .click();
+      await expect(sj1).toContainText('Di jalan');
+      await expect(sj1).toContainText(truk.plat);
+      await sj1.getByRole('button', { name: 'Catat hasil' }).click();
+      await kasir.getByRole('button', { name: /Semua diterima/ }).click();
+      await expect(sj1.getByTestId('ringkas-hasil')).toContainText('Semua diterima');
       await expect(kasir.getByText('Dikirim sebagian')).toBeVisible();
 
       // 3. Surat jalan kedua: sisa 3.
@@ -92,10 +108,14 @@ test(
       await kasir.getByRole('dialog').getByRole('button', { name: 'Buat surat jalan' }).click();
       const sj2 = kasir.locator('[data-testid^="sj-SJ-"]').first();
       await sj2.getByRole('button', { name: 'Selesai dimuat' }).click();
+      // Kendaraan & sopir bebas lagi setelah hasil SJ pertama dicatat.
       await sj2.getByRole('button', { name: 'Berangkat kirim' }).click();
-      await kasir.getByLabel('Nama sopir').fill('Pak Slamet');
-      await kasir.getByRole('dialog').getByRole('button', { name: 'Berangkat' }).click();
-      await sj2.getByRole('button', { name: 'Sudah diterima' }).click();
+      await kasir.getByLabel('Kendaraan').selectOption(String(truk.id));
+      await kasir.getByLabel('Sopir').selectOption(String(sopir.id));
+      await kasir.keyboard.press('Enter');
+      await sj2.getByRole('button', { name: 'Catat hasil' }).click();
+      await kasir.keyboard.press('Enter'); // fokus awal di "Semua diterima"
+      await expect(sj2.getByTestId('ringkas-hasil')).toContainText('Semua diterima');
       await expect(kasir.getByText('Terkirim', { exact: true })).toBeVisible();
       await expect(kasir.getByRole('button', { name: 'Buat surat jalan' })).toHaveCount(0);
 
@@ -113,6 +133,8 @@ test(
     } finally {
       await api(admin, `/barang/${barang.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
       await api(admin, `/pelanggan/${plg.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+      await api(admin, `/kendaraan/${truk.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+      await api(admin, `/sopir/${sopir.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
     }
   },
 );

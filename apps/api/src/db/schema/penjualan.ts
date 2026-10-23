@@ -24,6 +24,7 @@ import {
   STATUS_SURAT_JALAN,
   STATUS_TRANSAKSI,
 } from '@sit/shared';
+import { perjalanan } from './armada';
 import { rekeningToko, shiftKasir } from './kas';
 import {
   dalamDaftar,
@@ -376,8 +377,16 @@ export const suratJalan = pgTable(
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /** K-150: perjalanan yang membawanya (diisi saat berangkat, S9). */
+    idPerjalanan: kolomRef('id_perjalanan'),
   },
   (t) => [
+    foreignKey({
+      name: 'surat_jalan_id_perjalanan_fkey',
+      columns: [t.idPerjalanan],
+      foreignColumns: [perjalanan.id],
+    }),
+    index('idx_surat_jalan_perjalanan').on(t.idPerjalanan),
     foreignKey({
       name: 'surat_jalan_id_penjualan_fkey',
       columns: [t.idPenjualan],

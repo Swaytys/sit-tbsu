@@ -27,6 +27,7 @@ import { sekarang, tanggalOperasional } from '../../../lib/waktu';
 import { catatMutasi } from '../../persediaan/ledger';
 import { hitungTagihan } from '../../penjualan/pembayaran';
 import * as pjRepo from '../../penjualan/penjualan/repo';
+import * as sjRepo from '../../penjualan/surat-jalan/repo';
 import {
   mintaKode,
   pakaiKode,
@@ -178,122 +179,151 @@ export async function ajukanRetur(
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<BarisRetur> {
+  const { id } = await dalamTransaksi((tx) => ajukanReturTx(tx, input, pelaku, asal));
+  return detailRetur(id);
+}
+
+/**
+ * Pengajuan retur di dalam transaksi pemanggil (juga dipakai hasil pengantaran, docs/05 S10). `disetujui` = retur
+ * langsung diterapkan (pengaju berwenang atau di bawah batas bebas, K-099).
+ */
+export async function ajukanReturTx(
+  tx: Tx,
+  input: DataRetur,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<{ id: number; nomor: string; disetujui: boolean }> {
   const berwenang = pelaku.izin.has('retur.setujui');
-  const id = await dalamTransaksi(async (tx) => {
-    const pj = await pjRepo.kunciPenjualan(tx, input.idPenjualan);
-    if (!pj) throw new AppError('TIDAK_DITEMUKAN', 'Penjualan tidak ditemukan.', 404);
-    if (pj.statusTransaksi === 'VOID') throw statusTidakBisa(pj.nomor);
-    if (input.penyelesaian === 'REFUND' && !input.persetujuan.metodeRefund) {
-      throw new AppError('VALIDASI', 'Pilih cara pengembalian uang (tunai/transfer).', 400, {
-        kolom: { metodeRefund: ['Pilih metode refund.'] },
-      });
-    }
-    const baris = await repo.barisPenjualan(tx, pj.id);
-    const terlihat = new Set<number>();
-    const isi = input.baris.map((r, i) => {
-      const b = baris.find((x) => x.id === r.idPenjualanDetail);
-      if (!b || terlihat.has(r.idPenjualanDetail)) {
-        throw new AppError('VALIDASI', `Baris ${i + 1}: barang tidak ada di transaksi ini.`, 400);
-      }
-      terlihat.add(b.id);
-      const sisaDasar = bisaRetur(b);
-      const qty = keQty(r.qtyRetur);
-      // K-091: qty retur dalam satuan baris; batas diperiksa dalam satuan dasar.
-      const qtyDasar = kaliQty(qty, b.faktor);
-      if (bandingQty(qtyDasar, sisaDasar) > 0) {
-        const sisa = bagiQty(sisaDasar, b.faktor);
-        throw new AppError(
-          'STATUS_TIDAK_VALID',
-          `${b.namaBarang}: qty retur ${teksQty(qty)} melebihi yang bisa diretur ` +
-            `(${teksQty(sisa)} ${b.kodeSatuan}).`,
-          409,
-          { kolom: { [`baris.${i}.qtyRetur`]: [`Maksimal ${teksQty(sisa)} ${b.kodeSatuan}.`] } },
-        );
-      }
-      const hse = hargaSatuanEfektif(b.subtotal, b.qty);
-      return { r, b, qty, qtyDasar, hse, nominal: subtotalRupiah(qty, hse) };
+  const pj = await pjRepo.kunciPenjualan(tx, input.idPenjualan);
+  if (!pj) throw new AppError('TIDAK_DITEMUKAN', 'Penjualan tidak ditemukan.', 404);
+  if (pj.statusTransaksi === 'VOID') throw statusTidakBisa(pj.nomor);
+  if (input.penyelesaian === 'REFUND' && !input.persetujuan.metodeRefund) {
+    throw new AppError('VALIDASI', 'Pilih cara pengembalian uang (tunai/transfer).', 400, {
+      kolom: { metodeRefund: ['Pilih metode refund.'] },
     });
-    // T5: tukar butuh stok baik untuk barang pengganti. Dicek sejak pengajuan agar kasir langsung tahu;
-    // bila stok kurang, tukar sebagian dan ajukan sisanya sebagai retur uang kembali/potong tagihan.
-    if (input.penyelesaian === 'TUKAR_BARANG') {
-      for (const x of isi) {
-        const tersedia = await repo.stokTersedia(tx, x.b.idBarang);
-        if (bandingQty(x.qtyDasar, tersedia) > 0) {
-          const bisa = bagiQty(tersedia, x.b.faktor);
-          throw new AppError(
-            'STOK_TIDAK_CUKUP',
-            `Stok ${x.b.namaBarang} untuk pengganti tinggal ${teksQty(bisa)} ${x.b.kodeSatuan}. ` +
-              `Ajukan tukar ${teksQty(bisa)} saja, lalu sisanya sebagai retur dengan uang kembali atau potong tagihan.`,
-            409,
-          );
-        }
-      }
+  }
+  const baris = await repo.barisPenjualan(tx, pj.id);
+  const terlihat = new Set<number>();
+  const isi = input.baris.map((r, i) => {
+    const b = baris.find((x) => x.id === r.idPenjualanDetail);
+    if (!b || terlihat.has(r.idPenjualanDetail)) {
+      throw new AppError('VALIDASI', `Baris ${i + 1}: barang tidak ada di transaksi ini.`, 400);
     }
-    const total = isi.reduce((t, x) => t + x.nominal, 0);
-    if (input.penyelesaian === 'POTONG_TAGIHAN' && total > hitungTagihan(pj).sisa) {
+    terlihat.add(b.id);
+    const sisaDasar = bisaRetur(b);
+    const qty = keQty(r.qtyRetur);
+    // K-091: qty retur dalam satuan baris; batas diperiksa dalam satuan dasar.
+    const qtyDasar = kaliQty(qty, b.faktor);
+    if (bandingQty(qtyDasar, sisaDasar) > 0) {
+      const sisa = bagiQty(sisaDasar, b.faktor);
       throw new AppError(
         'STATUS_TIDAK_VALID',
-        `Nilai retur ${formatRupiah(total)} melebihi sisa tagihan ${formatRupiah(hitungTagihan(pj).sisa)}; gunakan refund.`,
+        `${b.namaBarang}: qty retur ${teksQty(qty)} melebihi yang bisa diretur ` +
+          `(${teksQty(sisa)} ${b.kodeSatuan}).`,
         409,
+        { kolom: { [`baris.${i}.qtyRetur`]: [`Maksimal ${teksQty(sisa)} ${b.kodeSatuan}.`] } },
       );
     }
-    // K-099: batas bebas dihitung per transaksi (retur sebelumnya ikut dijumlah), sebelum dokumen ini ditulis.
-    const batas = await ambilAngka(KUNCI_BATAS_BEBAS, 0, tx);
-    const berjalan = (await repo.nilaiBerjalan(tx, [pj.id])).get(pj.id) ?? 0;
-    const langsung = persetujuanLangsung({
-      pengaju: pelaku,
-      berwenang,
-      batasBebas: batas > 0 && berjalan + total <= batas ? batas : null,
-    });
-    const tanggal = tanggalOperasional();
-    const nomor = await terbitkanNomor(tx, 'RTR', tanggal);
-    const p = input.persetujuan;
-    const idRetur = await repo.tambahHeader(tx, {
-      nomor,
-      idPenjualan: pj.id,
-      tanggalOperasional: tanggal,
-      idPengaju: pelaku.id,
-      alasan: input.alasan,
-      penyelesaian: input.penyelesaian,
-      totalRetur: total,
-      metodeRefund: input.penyelesaian === 'REFUND' ? p.metodeRefund : null,
-      rekeningRefund: input.penyelesaian === 'REFUND' ? (p.rekeningRefund ?? null) : null,
-      referensiRefund: input.penyelesaian === 'REFUND' ? (p.referensiRefund ?? null) : null,
-      catatan: input.catatan ?? null,
-    });
-    await repo.tambahDetail(
-      tx,
-      isi.map((x) => ({
-        idRetur,
-        idPenjualanDetail: x.b.id,
-        idBarang: x.b.idBarang,
-        qtyRetur: x.qty,
-        qtyReturDasar: x.qtyDasar,
-        hargaSatuanEfektif: x.hse,
-        nominalRetur: x.nominal,
-        kondisi: x.r.kondisi,
-        // T5: tukar hanya barang yang sama dengan qty sama.
-        idBarangPengganti: input.penyelesaian === 'TUKAR_BARANG' ? x.b.idBarang : null,
-        qtyPenggantiDasar: input.penyelesaian === 'TUKAR_BARANG' ? x.qtyDasar : null,
-        keterangan: x.r.keterangan ?? null,
-      })),
-    );
-    await catatLog(tx, {
-      aksi: 'RETUR_AJUKAN',
-      idPengguna: pelaku.id,
-      entitas: 'retur_penjualan',
-      idEntitas: idRetur,
-      nomorDokumen: nomor,
-      ringkasan: `Ajukan retur ${pj.nomor} (${input.penyelesaian.toLowerCase().replace('_', ' ')}): ${isi.length} barang, ${formatRupiah(total)} — ${input.alasan}`,
-      ip: asal.ip,
-    });
-    if (langsung) {
-      const h = await terapkan(tx, idRetur, input.persetujuan, langsung);
-      await logSetujui(tx, idRetur, nomor, h, langsung, asal);
-    }
-    return idRetur;
+    const hse = hargaSatuanEfektif(b.subtotal, b.qty);
+    return { r, b, qty, qtyDasar, hse, nominal: subtotalRupiah(qty, hse) };
   });
-  return detailRetur(id);
+  // K-149: barang yang masih di surat jalan berjalan diselesaikan lewat catat hasil pengantaran (S10), bukan
+  // retur biasa, supaya qty kirim dan qty retur tidak saling tumpang.
+  if (pj.jenisPenjualan === 'PENGANTARAN') {
+    const kirim = new Map((await sjRepo.qtyBaris(tx, pj.id)).map((k) => [k.id, k]));
+    for (const x of isi) {
+      const jalan = kirim.get(x.b.id)?.qtyDalamPerjalanan ?? '0';
+      if (bandingQty(jalan, 0) <= 0) continue;
+      const bebasDasar = kurangQty(bisaRetur(x.b), kaliQty(jalan, x.b.faktor));
+      if (bandingQty(x.qtyDasar, bebasDasar) > 0) {
+        throw new AppError(
+          'STATUS_TIDAK_VALID',
+          `${x.b.namaBarang}: ${teksQty(keQty(jalan))} ${x.b.kodeSatuan} masih di surat jalan yang belum selesai. ` +
+            'Catat hasil pengantarannya (Pengiriman aktif) atau batalkan surat jalannya dulu.',
+          409,
+        );
+      }
+    }
+  }
+  // T5: tukar butuh stok baik untuk barang pengganti. Dicek sejak pengajuan agar kasir langsung tahu;
+  // bila stok kurang, tukar sebagian dan ajukan sisanya sebagai retur uang kembali/potong tagihan.
+  if (input.penyelesaian === 'TUKAR_BARANG') {
+    for (const x of isi) {
+      const tersedia = await repo.stokTersedia(tx, x.b.idBarang);
+      if (bandingQty(x.qtyDasar, tersedia) > 0) {
+        const bisa = bagiQty(tersedia, x.b.faktor);
+        throw new AppError(
+          'STOK_TIDAK_CUKUP',
+          `Stok ${x.b.namaBarang} untuk pengganti tinggal ${teksQty(bisa)} ${x.b.kodeSatuan}. ` +
+            `Ajukan tukar ${teksQty(bisa)} saja, lalu sisanya sebagai retur dengan uang kembali atau potong tagihan.`,
+          409,
+        );
+      }
+    }
+  }
+  const total = isi.reduce((t, x) => t + x.nominal, 0);
+  if (input.penyelesaian === 'POTONG_TAGIHAN' && total > hitungTagihan(pj).sisa) {
+    throw new AppError(
+      'STATUS_TIDAK_VALID',
+      `Nilai retur ${formatRupiah(total)} melebihi sisa tagihan ${formatRupiah(hitungTagihan(pj).sisa)}; gunakan refund.`,
+      409,
+    );
+  }
+  // K-099: batas bebas dihitung per transaksi (retur sebelumnya ikut dijumlah), sebelum dokumen ini ditulis.
+  const batas = await ambilAngka(KUNCI_BATAS_BEBAS, 0, tx);
+  const berjalan = (await repo.nilaiBerjalan(tx, [pj.id])).get(pj.id) ?? 0;
+  const langsung = persetujuanLangsung({
+    pengaju: pelaku,
+    berwenang,
+    batasBebas: batas > 0 && berjalan + total <= batas ? batas : null,
+  });
+  const tanggal = tanggalOperasional();
+  const nomor = await terbitkanNomor(tx, 'RTR', tanggal);
+  const p = input.persetujuan;
+  const idRetur = await repo.tambahHeader(tx, {
+    nomor,
+    idPenjualan: pj.id,
+    tanggalOperasional: tanggal,
+    idPengaju: pelaku.id,
+    alasan: input.alasan,
+    penyelesaian: input.penyelesaian,
+    totalRetur: total,
+    metodeRefund: input.penyelesaian === 'REFUND' ? p.metodeRefund : null,
+    rekeningRefund: input.penyelesaian === 'REFUND' ? (p.rekeningRefund ?? null) : null,
+    referensiRefund: input.penyelesaian === 'REFUND' ? (p.referensiRefund ?? null) : null,
+    catatan: input.catatan ?? null,
+  });
+  await repo.tambahDetail(
+    tx,
+    isi.map((x) => ({
+      idRetur,
+      idPenjualanDetail: x.b.id,
+      idBarang: x.b.idBarang,
+      qtyRetur: x.qty,
+      qtyReturDasar: x.qtyDasar,
+      hargaSatuanEfektif: x.hse,
+      nominalRetur: x.nominal,
+      kondisi: x.r.kondisi,
+      // T5: tukar hanya barang yang sama dengan qty sama.
+      idBarangPengganti: input.penyelesaian === 'TUKAR_BARANG' ? x.b.idBarang : null,
+      qtyPenggantiDasar: input.penyelesaian === 'TUKAR_BARANG' ? x.qtyDasar : null,
+      keterangan: x.r.keterangan ?? null,
+    })),
+  );
+  await catatLog(tx, {
+    aksi: 'RETUR_AJUKAN',
+    idPengguna: pelaku.id,
+    entitas: 'retur_penjualan',
+    idEntitas: idRetur,
+    nomorDokumen: nomor,
+    ringkasan: `Ajukan retur ${pj.nomor} (${input.penyelesaian.toLowerCase().replace('_', ' ')}): ${isi.length} barang, ${formatRupiah(total)} — ${input.alasan}`,
+    ip: asal.ip,
+  });
+  if (langsung) {
+    const h = await terapkan(tx, idRetur, input.persetujuan, langsung);
+    await logSetujui(tx, idRetur, nomor, h, langsung, asal);
+  }
+  return { id: idRetur, nomor, disetujui: langsung !== null };
 }
 
 /** T4–T8: efek retur yang disetujui, dalam transaksi pemanggil. */

@@ -35,6 +35,7 @@ memakai kode di luar daftar gagal typecheck.
 | `master.pelanggan.atur_kredit` | Atur golongan, term hari, dan limit kredit pelanggan (K-059); ubah/nonaktifkan pelanggan tanpa kode; kodenya menyetujui perubahan pelanggan dan melampaui limit kredit (K-107) |
 | `master.pemasok.lihat` | Lihat pemasok |
 | `master.pemasok.kelola` | Tambah/ubah/nonaktifkan pemasok |
+| `master.armada.kelola` | Tambah/ubah/nonaktifkan kendaraan dan sopir (K-150). Daftarnya dibaca pemegang `penjualan.surat_jalan.kelola` |
 | `master.import.jalankan` | Import Excel barang / saldo awal |
 
 ### Penjualan
@@ -49,7 +50,7 @@ memakai kode di luar daftar gagal typecheck.
 | `penjualan.checkout` | Proses order menjadi penjualan (langsung dan pengantaran) |
 | `penjualan.harga_manual` | Mengisi harga di luar tier |
 | `penjualan.pembayaran.catat` | Catat pembayaran (termasuk DP, pelunasan, bayar saat terima) |
-| `penjualan.surat_jalan.kelola` | Buat surat jalan, ubah status kirim, isi sopir/kendaraan |
+| `penjualan.surat_jalan.kelola` | Buat surat jalan, berangkatkan perjalanan, catat hasil pengantaran |
 | `penjualan.riwayat.lihat` | Lihat daftar dan detail penjualan |
 | `penjualan.piutang.lihat` | Lihat daftar piutang dan jatuh tempo |
 
@@ -125,6 +126,7 @@ memakai kode di luar daftar gagal typecheck.
 | master.pelanggan.atur_kredit | | | ✓ | ✓ |
 | master.pemasok.lihat | | | ✓ | ✓ |
 | master.pemasok.kelola | | | ✓ | ✓ |
+| master.armada.kelola | | | ✓ | ✓ |
 | master.import.jalankan | | | ✓ | ✓ |
 | penjualan.order.buat | ✓ | ✓ | ✓ | ✓ |
 | penjualan.order.batal_sendiri | ✓ | ✓ | ✓ | ✓ |
@@ -320,3 +322,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-18 — Order disimpan dan kembali ke draf memakai izin `penjualan.order.buat` dengan pemeriksaan pemilik/kunci di service (pembuat, pemegang `penjualan.checkout`, atau kasir pemegang kunci; docs/05 R11–R13); daftar draf lain per barang untuk peringatan (R14) (K-122).
 - 2026-10-18 — Satu shift toko (K-132): arti izin shift diperbarui; `GET /api/shift/status` (semua pengguna login, indikator topbar) dan `GET /api/persetujuan/:id` (pengaju melanjutkan permintaan kode, K-136).
 - 2026-10-23 — Izin `penjualan.diskon` dihapus: diskon manual tidak ada lagi, potongan hanya lewat Promo (K-146).
+- 2026-10-23 — Izin `master.armada.kelola` (Admin, Owner); `penjualan.surat_jalan.kelola` mencakup berangkat dan catat hasil (K-149, K-150).

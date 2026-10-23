@@ -16,6 +16,24 @@ sebagian sudah dicoba.
 
 ## Belum dicoba / perlu dicoba ulang
 
+### Pengantaran: kendaraan, sopir, hasil per barang (23 Oktober, K-149–K-151)
+
+**Sebelum menguji:** jalankan `pnpm db:migrate` (migrasi 0023), lalu isi minimal 2 kendaraan dan 2 sopir di
+*Data Master › Kendaraan & Sopir* (login Admin/Owner).
+
+| No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
+|---|---|---|---|---|---|
+| U50 | Data kendaraan & sopir | Tambah kendaraan plat `s 1234 ab`; tambah lagi plat `S 1234 AB`; tambah sopir "Budi" lalu "budi" | Plat tersimpan `S 1234 AB`; yang kedua ditolak "sudah terdaftar"; "budi" ditolak "sudah ada" | Belum | |
+| U51 | Papan Pengiriman aktif | Buat 2 invoice pengantaran → *Penjualan Pengantaran* › **Pengiriman aktif** | Tiga kolom pas layar; kedua invoice ada di *Perlu surat jalan* | Belum | |
+| U52 | Berangkat bersama | **Buat surat jalan** untuk keduanya → centang keduanya (atau `A`) → `B` → pilih kendaraan & sopir → `Enter` | Satu kartu TRP di *Di jalan* berisi 2 surat jalan; kendaraan itu di Data Master tertulis *Sedang jalan* | Belum | |
+| U53 | Kendaraan terkunci | Buat invoice ketiga + surat jalannya → **Berangkat** | Kendaraan & sopir tadi abu-abu "sedang jalan (TRP-…)", tidak bisa dipilih | Belum | |
+| U54 | Semua diterima | Di kartu TRP: **Catat hasil** surat jalan pertama → `Enter` | Surat jalan hilang dari kartu; kartu TRP masih ada (surat jalan kedua belum) | Belum | |
+| U55 | Kembali utuh | Surat jalan kedua: **Catat hasil** → isi *Kembali utuh* 1 → **Simpan hasil** | Kolom *Diterima* berkurang otomatis; kartu TRP hilang; invoice muncul lagi di *Perlu surat jalan* bertanda *Kirim ulang* qty 1; stok tidak berubah | Belum | |
+| U56 | Rusak di jalan | Kirim lagi, lalu **Catat hasil** → *Rusak di jalan* 1 → pilih **Dikirim pengganti** → simpan | Stok jual −1, stok rusak +1, tagihan tetap, pengganti muncul di *Perlu surat jalan* | Belum | Coba juga **Tagihan dikurangi**: sisa tagihan turun |
+| U57 | Ditolak pembeli (kasir) | Login Kasir → catat hasil dengan *Ditolak* 1 → simpan | Toast "Retur RTR-… menunggu persetujuan atasan"; surat jalan menulis *menunggu atasan*; barang itu belum muncul di *Perlu surat jalan* | Belum | Setujui/tolak di Retur Penjualan |
+| U58 | Ditolak saat invoice lunas | Invoice lunas tunai → catat hasil *Ditolak* 1 tanpa memilih cara uang kembali | Ditolak "pilih cara uang dikembalikan"; pilih **Tunai** → berhasil, uang keluar dari uang shift | Belum | |
+| U59 | Riwayat perjalanan | *Data Master › Kendaraan & Sopir* → klik angka di kolom **Perjalanan** | Daftar perjalanan: nomor, berangkat, kembali, surat jalan | Belum | |
+
 ### Diskon dihapus, mode ubah order, istilah uang shift (23 Oktober, K-146–K-148)
 
 | No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
@@ -118,3 +136,4 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-18 — Hasil uji pemilik: U17–U21, U28, U29, U31–U33 OK; U30, U34 Masalah; masukan dicatat K-128–K-145.
 - 2026-10-19 — U35–U43 satu shift toko dan perbaikan uji (K-132–K-142); U30 diperbaiki, coba ulang.
 - 2026-10-23 — U44–U49 diskon manual dihapus, mode ubah order, istilah uang shift, koreksi modal saat hitung susulan (K-146–K-148).
+- 2026-10-23 — U50–U59 kendaraan & sopir, papan Pengiriman aktif, hasil per barang (K-149–K-151).

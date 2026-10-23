@@ -4,11 +4,12 @@ import {
   type DetailPenjualan,
   type StatusSuratJalan,
 } from '@sit/shared';
-import { Check, Printer, Truck, X } from 'lucide-react';
+import { Check, ClipboardCheck, Printer, Truck, X } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
-import { useBatalSuratJalan, useBuatSuratJalan, useStatusSuratJalan } from '@/api/penjualan';
+import { useBatalSuratJalan, useBuatSuratJalan, useMuatSuratJalan } from '@/api/penjualan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -23,21 +24,70 @@ import {
 import { Input } from '@/components/ui/input';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { DialogBerangkat } from './dialog-berangkat';
+import { DialogHasil } from './dialog-hasil';
 
 const LABEL_SJ: Record<StatusSuratJalan, string> = {
-  DIPROSES: 'Surat jalan dicetak',
+  DIPROSES: 'Surat jalan dibuat',
   DIMUAT: 'Barang dimuat',
-  DIKIRIM: 'Sedang dikirim',
-  SELESAI: 'Diterima',
+  DIKIRIM: 'Di jalan',
+  SELESAI: 'Hasil dicatat',
   BATAL: 'Batal',
 };
 const URUTAN: StatusSuratJalan[] = ['DIPROSES', 'DIMUAT', 'DIKIRIM', 'SELESAI'];
-const BERIKUT = { DIPROSES: 'DIMUAT', DIMUAT: 'DIKIRIM', DIKIRIM: 'SELESAI' } as const;
-const LABEL_AKSI = {
-  DIMUAT: 'Selesai dimuat',
-  DIKIRIM: 'Berangkat kirim',
-  SELESAI: 'Sudah diterima',
-};
+
+/** Ringkasan hasil pengantaran per barang (K-149): hanya yang tidak diterima disebut. */
+export function RingkasHasil({ sj }: { sj: BarisSuratJalan }) {
+  const h = sj.hasil;
+  if (!h) return null;
+  const nama = new Map(sj.baris.map((b) => [b.idPenjualanDetail, b]));
+  const catatan = h.baris.flatMap((r) => {
+    const b = nama.get(r.idPenjualanDetail);
+    const satuan = b?.kodeSatuan ?? '';
+    const teks: string[] = [];
+    if (/[1-9]/.test(r.qtyKembali))
+      teks.push(`kembali utuh ${formatDesimal(r.qtyKembali)} ${satuan}`);
+    if (/[1-9]/.test(r.qtyRusak)) teks.push(`rusak ${formatDesimal(r.qtyRusak)} ${satuan}`);
+    if (/[1-9]/.test(r.qtyDitolak)) teks.push(`ditolak ${formatDesimal(r.qtyDitolak)} ${satuan}`);
+    return teks.length ? [`${b?.namaBarang ?? '?'}: ${teks.join(', ')}`] : [];
+  });
+  return (
+    <div
+      className="rounded-md border bg-slate-50 px-3 py-2 text-xs text-slate-700"
+      data-testid="ringkas-hasil"
+    >
+      <div>
+        {catatan.length === 0 ? (
+          <span className="font-semibold text-emerald-700">Semua diterima</span>
+        ) : (
+          catatan.join(' · ')
+        )}
+        {h.namaPenerima && ` · diterima ${h.namaPenerima}`}
+        {h.penangananRusak &&
+          ` · rusak: ${h.penangananRusak === 'KIRIM_PENGGANTI' ? 'dikirim pengganti' : 'tagihan dikurangi'}`}
+      </div>
+      <div className="text-slate-500">
+        Dicatat {h.namaPengguna}, {formatWaktu(h.waktu)}
+        {[h.returUang, h.returTukar].map(
+          (r) =>
+            r && (
+              <span key={r.id}>
+                {' · '}
+                <Link to="/retur" className="text-blue-700 hover:underline">
+                  {r.nomor}
+                </Link>{' '}
+                {r.status === 'MENUNGGU' ? (
+                  <b className="text-amber-700">menunggu atasan</b>
+                ) : (
+                  r.status.toLowerCase()
+                )}
+              </span>
+            ),
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function BadgeSuratJalan({ status }: { status: StatusSuratJalan }) {
   const warna: Record<StatusSuratJalan, string> = {
@@ -54,7 +104,7 @@ export function BadgeSuratJalan({ status }: { status: StatusSuratJalan }) {
   );
 }
 
-function DialogBuat({ p, onTutup }: { p: DetailPenjualan; onTutup: () => void }) {
+export function DialogBuat({ p, onTutup }: { p: DetailPenjualan; onTutup: () => void }) {
   const buat = useBuatSuratJalan();
   const [qty, setQty] = useState<Record<number, string>>(() =>
     Object.fromEntries(p.baris.map((b) => [b.id, b.qtyBelumDikirim.replace(/\.?0+$/, '') || '0'])),
@@ -62,16 +112,12 @@ function DialogBuat({ p, onTutup }: { p: DetailPenjualan; onTutup: () => void })
   const [penerima, setPenerima] = useState(p.namaPelanggan ?? '');
   const [noHp, setNoHp] = useState(p.noHpPelanggan ?? '');
   const [alamat, setAlamat] = useState(p.alamatKirim ?? '');
-  const [sopir, setSopir] = useState('');
-  const [kendaraan, setKendaraan] = useState('');
 
   function simpan() {
     const data = skemaSuratJalan.safeParse({
       alamatKirim: alamat,
       namaPenerima: penerima,
       noHpPenerima: noHp,
-      sopir,
-      kendaraan,
       baris: p.baris
         .filter((b) => /[1-9]/.test(qty[b.id] ?? ''))
         .map((b) => ({ idPenjualanDetail: b.id, qtyKirim: qty[b.id] })),
@@ -119,18 +165,6 @@ function DialogBuat({ p, onTutup }: { p: DetailPenjualan; onTutup: () => void })
             placeholder="Alamat kirim"
             aria-label="Alamat kirim"
           />
-          <Input
-            value={sopir}
-            onChange={(e) => setSopir(e.target.value)}
-            placeholder="Sopir (boleh diisi nanti)"
-            aria-label="Sopir"
-          />
-          <Input
-            value={kendaraan}
-            onChange={(e) => setKendaraan(e.target.value)}
-            placeholder="Kendaraan / no. polisi"
-            aria-label="Kendaraan"
-          />
         </div>
         <table className="w-full text-sm">
           <thead className="text-xs text-slate-500">
@@ -175,89 +209,24 @@ function DialogBuat({ p, onTutup }: { p: DetailPenjualan; onTutup: () => void })
   );
 }
 
-function DialogBerangkat({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () => void }) {
-  const status = useStatusSuratJalan();
-  const [sopir, setSopir] = useState(sj.sopir ?? '');
-  const [kendaraan, setKendaraan] = useState(sj.kendaraan ?? '');
-  return (
-    <Dialog open onOpenChange={(b) => !b && onTutup()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Berangkat kirim {sj.nomor}</DialogTitle>
-          <DialogDescription>Nama sopir wajib diisi sebelum barang berangkat.</DialogDescription>
-        </DialogHeader>
-        <Input
-          value={sopir}
-          onChange={(e) => setSopir(e.target.value)}
-          placeholder="Nama sopir"
-          aria-label="Nama sopir"
-          autoFocus
-        />
-        <Input
-          value={kendaraan}
-          onChange={(e) => setKendaraan(e.target.value)}
-          placeholder="Kendaraan"
-          aria-label="Kendaraan"
-        />
-        <DialogFooter>
-          <Button variant="outline" onClick={onTutup}>
-            Batal
-          </Button>
-          <Button
-            disabled={!sopir.trim() || status.isPending}
-            onClick={() =>
-              void status
-                .mutateAsync({
-                  id: sj.id,
-                  status: 'DIKIRIM',
-                  sopir: sopir.trim(),
-                  kendaraan: kendaraan.trim() || null,
-                })
-                .then(() => {
-                  toast.success(`${sj.nomor} berangkat.`);
-                  onTutup();
-                })
-                .catch((err: unknown) => toast.error(pesanGalat(err)))
-            }
-          >
-            Berangkat
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function KartuSuratJalan({
+export function KartuSuratJalan({
   sj,
   onCetak,
 }: {
   sj: BarisSuratJalan;
-  onCetak: (sj: BarisSuratJalan) => void;
+  onCetak?: (sj: BarisSuratJalan) => void;
 }) {
-  const status = useStatusSuratJalan();
+  const muat = useMuatSuratJalan();
   const batal = useBatalSuratJalan();
-  const [berangkat, setBerangkat] = useState(false);
+  const [dialog, setDialog] = useState<'berangkat' | 'hasil' | null>(null);
   const langkah = sj.status === 'BATAL' ? -1 : URUTAN.indexOf(sj.status);
-  const berikut = sj.status in BERIKUT ? BERIKUT[sj.status as keyof typeof BERIKUT] : null;
   const waktu: Record<string, string | null> = {
     DIPROSES: sj.tanggal,
     DIMUAT: sj.waktuDimuat,
     DIKIRIM: sj.waktuDikirim,
     SELESAI: sj.waktuSelesai,
   };
-
-  function maju() {
-    if (!berikut) return;
-    if (berikut === 'DIKIRIM') {
-      setBerangkat(true);
-      return;
-    }
-    void status
-      .mutateAsync({ id: sj.id, status: berikut })
-      .then(() => toast.success(`${sj.nomor}: ${LABEL_SJ[berikut].toLowerCase()}.`))
-      .catch((err: unknown) => toast.error(pesanGalat(err)));
-  }
+  const siap = sj.status === 'DIPROSES' || sj.status === 'DIMUAT';
 
   return (
     <Card className="gap-3 p-4" data-testid={`sj-${sj.nomor}`}>
@@ -266,18 +235,23 @@ function KartuSuratJalan({
           <div className="flex items-center gap-2">
             <span className="font-mono font-semibold">{sj.nomor}</span>
             <BadgeSuratJalan status={sj.status} />
+            {sj.nomorPerjalanan && (
+              <span className="font-mono text-xs text-slate-500">{sj.nomorPerjalanan}</span>
+            )}
           </div>
           <div className="text-xs text-slate-500">
-            {sj.sopir ? `Sopir ${sj.sopir}` : 'Sopir belum diisi'}
+            {sj.sopir ? `Sopir ${sj.sopir}` : 'Kendaraan & sopir dipilih saat berangkat'}
             {sj.kendaraan && ` · ${sj.kendaraan}`} · {sj.alamatKirim}
           </div>
           {sj.alasanBatal && <div className="text-xs text-red-600">Batal: {sj.alasanBatal}</div>}
         </div>
         <div className="flex flex-wrap justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={() => onCetak(sj)}>
-            <Printer /> Cetak
-          </Button>
-          {(sj.status === 'DIPROSES' || sj.status === 'DIMUAT') && (
+          {onCetak && (
+            <Button size="sm" variant="outline" onClick={() => onCetak(sj)}>
+              <Printer /> Cetak
+            </Button>
+          )}
+          {siap && (
             <Button
               size="sm"
               variant="outline"
@@ -294,9 +268,29 @@ function KartuSuratJalan({
               <X /> Batalkan
             </Button>
           )}
-          {berikut && (
-            <Button size="sm" disabled={status.isPending} onClick={maju}>
-              {berikut === 'DIKIRIM' ? <Truck /> : <Check />} {LABEL_AKSI[berikut]}
+          {sj.status === 'DIPROSES' && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={muat.isPending}
+              onClick={() =>
+                void muat
+                  .mutateAsync(sj.id)
+                  .then(() => toast.success(`${sj.nomor}: barang dimuat.`))
+                  .catch((err: unknown) => toast.error(pesanGalat(err)))
+              }
+            >
+              <Check /> Selesai dimuat
+            </Button>
+          )}
+          {siap && (
+            <Button size="sm" onClick={() => setDialog('berangkat')}>
+              <Truck /> Berangkat kirim
+            </Button>
+          )}
+          {sj.status === 'DIKIRIM' && (
+            <Button size="sm" onClick={() => setDialog('hasil')}>
+              <ClipboardCheck /> Catat hasil
             </Button>
           )}
         </div>
@@ -322,7 +316,11 @@ function KartuSuratJalan({
           .map((b) => `${b.namaBarang} ${formatDesimal(b.qtyKirim)} ${b.kodeSatuan}`)
           .join(' · ')}
       </div>
-      {berangkat && <DialogBerangkat sj={sj} onTutup={() => setBerangkat(false)} />}
+      <RingkasHasil sj={sj} />
+      {dialog === 'berangkat' && (
+        <DialogBerangkat suratJalan={[sj]} onTutup={() => setDialog(null)} />
+      )}
+      {dialog === 'hasil' && <DialogHasil sj={sj} onTutup={() => setDialog(null)} />}
     </Card>
   );
 }
