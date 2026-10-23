@@ -3,6 +3,7 @@ import { Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
+import { useCariUrl } from '@/lib/use-cari-url';
 import { TeksLipat } from '@/components/teks-lipat';
 import { pesanGalat } from '@/api/client';
 import { useDaftarPelanggan, useMintaKodePelanggan, useStatusPelanggan } from '@/api/mitra';
@@ -53,7 +54,7 @@ function SelJatuhTempo({ p }: { p: Pelanggan }) {
 }
 
 export function HalamanPelanggan() {
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useCariUrl();
   const cariTertunda = useTunda(cari, 300);
   const [status, setStatus] = useState<SaringStatus>('SEMUA');
   const [halaman, setHalaman] = useState(1);

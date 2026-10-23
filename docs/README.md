@@ -21,6 +21,7 @@ Nama repo: `sit-tbsu`. Nama tampil di aplikasi: **BonsaiUrip** (K-044).
 | `10-ringkasan-keputusan.md` | Ringkasan seluruh keputusan K-001 s.d. K-167: garis waktu, yang berlaku sekarang per topik, keputusan yang diganti, daftar lengkap | Saat ingin gambaran utuh tanpa membaca 31 berkas keputusan |
 | `11-riwayat-teknis.md` | Riwayat teknis runtut: kerangka bersama (ledger, izin, penomoran, log, tes) lalu apa yang dibangun di setiap tahap dan bagaimana; ditambah setiap fitur baru (K-118) | Saat perlu memahami cara kerja dan sejarah teknis aplikasi |
 | `12-anomali-alur-kerja.md` | Katalog anomali alur kerja per fitur (salah ketik, urutan terbalik, lupa, curang) dengan jawaban atasi, cegah, ajari dan statusnya (K-120) | Sebelum merancang atau mengubah fitur; setiap fitur baru menambah barisnya |
+| `13-rancangan-logistik.md` | Rancangan muatan (berat, ukuran, daya angkut, tingkat peringatan), rit, dan papan Pengiriman (K-160–K-162) | Sebelum mengerjakan fitur Logistik |
 | `UJI-PEMILIK.md` | Daftar hal yang perlu dicoba pemilik (U1, U2, …) dengan langkah, hasil yang diharapkan, dan status | Setiap selesai fitur (baris baru) dan setiap pemilik melapor hasil uji |
 | `LAPORAN-FITUR-APLIKASI.md` | Inventaris fitur faktual dengan rujukan `berkas:baris` (peran & hak akses, fitur per modul, rumus bisnis, laporan, jejak data, daftar endpoint dan tabel); bahan Proposal TA | Saat perlu tahu fitur apa yang sudah ada dan di mana kodenya; diperbarui setiap fitur baru |
 | `keputusan/` | Log keputusan bernomor K-001, K-002, … beserta alasan dan alternatif yang ditolak | Saat bertanya "kenapa begini?" |
@@ -89,6 +90,7 @@ Jangan pakai mode auto-accept.
 | 08-backlog.md | Hidup (v2.0.0, v3.0.0; temuan tinjauan kode D-K1–D-K12; A12 payment gateway; F8 katalog bergambar) | 2026-10-12 |
 | 11-riwayat-teknis.md | Hidup (v1, sampai satu shift toko) | 2026-10-18 |
 | 12-anomali-alur-kerja.md | Hidup (v1: shift S1–S21, order O1–O5, penjualan P1–P3) | 2026-10-18 |
+| 13-rancangan-logistik.md | Rancangan v1 (K-160–K-162) | 2026-10-24 |
 | 10-ringkasan-keputusan.md | Hidup (ringkasan K-001 s.d. K-167) | 2026-10-18 |
 | UJI-PEMILIK.md | Hidup (U1–U34) | 2026-10-18 |
 | LAPORAN-FITUR-APLIKASI.md | Hidup (inventaris fitur dari kode; diperbarui tiap fitur, terakhir shift K-121) | 2026-10-18 |

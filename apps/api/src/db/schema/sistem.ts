@@ -177,3 +177,34 @@ export const cadangan = pgTable(
     index('idx_cadangan_waktu').on(t.waktuMulai),
   ],
 );
+
+/**
+ * K-164 (migrasi 0025): kunci idempoten kiriman data. Browser memberi tiap kiriman perubahan header
+ * `Idempotency-Key`; kiriman ulang dengan kunci sama (mis. jaringan putus sebelum jawaban sampai) mendapat jawaban
+ * yang tersimpan, tidak dijalankan dua kali. Data teknis: dibersihkan otomatis setelah 24 jam.
+ */
+export const kunciIdempoten = pgTable(
+  'kunci_idempoten',
+  {
+    kunci: varchar('kunci', { length: 64 }).notNull(),
+    idPengguna: kolomRef('id_pengguna').notNull(),
+    metode: varchar('metode', { length: 8 }).notNull(),
+    jalur: varchar('jalur', { length: 255 }).notNull(),
+    hashBody: char('hash_body', { length: 64 }).notNull(),
+    /** PROSES = sedang dijalankan; SELESAI = jawaban tersimpan. */
+    status: varchar('status', { length: 10 }).notNull().default('PROSES'),
+    kodeHttp: integer('kode_http'),
+    respons: text('respons'),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    primaryKey({ name: 'kunci_idempoten_pkey', columns: [t.kunci, t.idPengguna] }),
+    foreignKey({
+      name: 'kunci_idempoten_id_pengguna_fkey',
+      columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_kunci_idempoten_status', sql`status in ('PROSES','SELESAI')`),
+    index('idx_kunci_idempoten_dibuat').on(t.dibuatPada),
+  ],
+);

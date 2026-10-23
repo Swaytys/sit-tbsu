@@ -1,5 +1,6 @@
 import { LABEL_PERAN } from '@sit/shared';
 import { ID_SLOT_LENCANA } from '@/components/banner-lipat';
+import { KotakCari } from './kotak-cari';
 import { Bell, ChevronDown, KeyRound, LockKeyhole, LogOut, Menu, Store } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
@@ -127,6 +128,7 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
       <span className="min-w-0 flex-1 truncate text-sm font-semibold whitespace-nowrap text-slate-800">
         {judul}
       </span>
+      <KotakCari />
       <div id={ID_SLOT_LENCANA} className="flex items-center gap-1.5" />
       <PindahPenjualan />
       <IndikatorShift />

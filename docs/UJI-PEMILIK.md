@@ -34,6 +34,9 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U68 | Dialog shift tidak muncul sendiri | Tanpa shift terbuka, buka *Penjualan Langsung* | Tidak ada dialog; pita kuning "Shift toko belum dibuka" dengan tombol **Buka shift** | Belum | K-130 |
 | U69 | Harga dasar | *Pengaturan › Harga dasar*: tombol "?" dan kalkulator | Penjelasan Average, harga beli terakhir, LIFO, FIFO; kalkulator berubah saat angka diubah, baris metode toko disorot | Belum | |
 | U70 | Cadangan | *Pengaturan › Cadangan*: **Salin alamat folder**, tombol "?" di kotak Lokasi | Alamat tersalin (tempel di File Explorer komputer server); penjelasan server toko vs cloud | Belum | |
+| U71 | Cari universal | Tekan `Ctrl+K` di halaman mana pun → ketik `semen` → panah bawah → Enter | Daftar halaman/barang/pelanggan; Enter membuka barang itu (Admin) | Belum | Coba juga nomor dokumen, mis. sebagian nomor invoice |
+| U72 | Dua admin mengubah data sama | Dua jendela (Admin dan Owner) membuka **Ubah** pemasok yang sama → Admin simpan → Owner simpan | Owner mendapat "sudah diubah orang lain…"; data Admin tidak tertimpa | Belum | |
+| U73 | Kiriman tidak ganda | Di kasir, cabut kabel/Wi-Fi tepat setelah menekan Bayar, sambungkan lagi, tekan Bayar lagi | Hanya satu penjualan tercatat (cek Riwayat) | Belum | Opsional, sulit dipraktikkan |
 
 ### Pengantaran: kendaraan, sopir, hasil per barang (23 Oktober, K-149–K-151)
 
@@ -152,3 +155,4 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-23 — U44–U49 diskon manual dihapus, mode ubah order, istilah uang shift, koreksi modal saat hitung susulan (K-146–K-148).
 - 2026-10-23 — U50–U59 kendaraan & sopir, papan Pengiriman aktif, hasil per barang (K-149–K-151).
 - 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.
+- 2026-10-24 — U71–U73 pencarian universal, cek versi, kiriman tidak ganda (K-164, K-167).

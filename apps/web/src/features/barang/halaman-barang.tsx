@@ -12,6 +12,7 @@ import {
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePengguna } from '@/api/auth';
+import { useCariUrl } from '@/lib/use-cari-url';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { useDaftarBarang, useStatusBarang } from '@/api/barang';
 import { useDaftarTingkatHarga } from '@/api/mitra';
@@ -69,7 +70,7 @@ function GambarKecil({ b }: { b: BarisBarang }) {
 export function HalamanBarang() {
   const navigasi = useNavigate();
   const bolehImport = usePengguna().izin.includes('master.import.jalankan');
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useCariUrl();
   const cariTertunda = useTunda(cari, 300);
   const [status, setStatus] = useState<SaringStatus>('SEMUA');
   const [idKategori, setIdKategori] = useState<number | null>(null);

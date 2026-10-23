@@ -455,6 +455,22 @@ bebas; shift ganda hanya dicegah kode aplikasi; pengingat tidak bisa disembunyik
 **Tes:** rekening.test (tujuan ketik-bebas dan referensi pendek ditolak), shift.test (shift kedua ditolak service dan
 indeks), tes penjualan/retur/laporan/shift memakai rekening terdaftar; e2e penuh.
 
+
+### C8. Kebal kiriman ganda, cek versi, dan pencarian universal (24 Oktober 2026, K-164, K-167)
+
+**Masalah:** kiriman yang diulang setelah jaringan putus bisa tercatat dua kali; dua admin yang mengubah data yang
+sama saling menimpa tanpa tahu; tidak ada cara cepat mencari di seluruh aplikasi.
+
+**Solusi:**
+- `middleware/idempoten.ts` + tabel `kunci_idempoten` (migrasi 0025); klien `api/client.ts` membungkus `fetch` milik
+  `hc` dan memberi kunci acak (`crypto.getRandomValues`, karena `randomUUID` tidak ada di alamat http jaringan toko);
+  job 15 menit membersihkan kunci > 24 jam.
+- `lib/versi.ts` (`ambilVersi`, `pastikanVersi`); skema Barang/Pelanggan/Pemasok punya `versi` opsional; respons
+  memuat `versi`.
+- `modules/sistem/cari` + `components/layout/kotak-cari.tsx` (palet Ctrl+K); `lib/use-cari-url.ts` untuk `?cari=`.
+
+**Tes:** idempoten.test (5 kasus), versi.test (2), cari.test (2), e2e cari.spec.
+
 ---
 
 ## Riwayat dokumen
@@ -467,3 +483,4 @@ indeks), tes penjualan/retur/laporan/shift memakai rekening terdaftar; e2e penuh
 - 2026-10-23 — Bagian C5 diskon manual dihapus, mode ubah order, istilah uang shift (K-146–K-148).
 - 2026-10-23 — Bagian C6 hasil pengantaran per barang dan FMS inti (K-149–K-151).
 - 2026-10-24 — Bagian C7 perbaikan hasil uji 23 Oktober (K-152–K-159).
+- 2026-10-24 — Bagian C8 kunci idempoten, cek versi, pencarian universal (K-164, K-167).

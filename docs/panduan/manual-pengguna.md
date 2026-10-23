@@ -463,6 +463,14 @@ Semua tugas admin, ditambah:
 
 ## Tips umum
 
+- **Cari apa saja**: tekan **Ctrl+K** (atau klik kotak *Cari* di atas). Ketik nama halaman, barang, pelanggan,
+  pemasok, atau nomor dokumen (boleh sebagian, mis. `261024-0`). Panah atas/bawah memilih, **Enter** membuka,
+  **Esc** menutup. Hasil hanya yang boleh Anda lihat.
+- **"Sudah diubah orang lain sejak Anda membukanya"**: orang lain menyimpan data yang sama lebih dulu. Tutup jendela,
+  muat ulang halaman (F5), buka lagi datanya (perubahan orang itu sudah tampil), lalu ulangi perubahan Anda.
+- **Jaringan putus saat menyimpan**: tekan tombol simpan/bayar lagi. Bila kiriman pertama ternyata sudah sampai,
+  aplikasi mengenalinya dan tidak mencatatnya dua kali.
+
 - **Pengingat di atas halaman** (mis. jam tutup shift): klik **Ciutkan** untuk menyembunyikannya; ia berubah menjadi
   lencana kecil berdenyut di bagian atas layar. Klik lencananya untuk menampilkan lagi. Bila keadaannya makin
   penting (mis. dari biru menjadi kuning), pengingat tampil penuh lagi.

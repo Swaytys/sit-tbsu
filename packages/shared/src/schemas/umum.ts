@@ -39,3 +39,25 @@ export const skemaRupiah = z
   .int('Nilai rupiah harus bilangan bulat.')
   .min(0, 'Nilai rupiah tidak boleh negatif.')
   .max(RUPIAH_MAKS, 'Nilai rupiah terlalu besar.');
+
+/** K-167: pencarian universal di topbar. */
+export const skemaCari = z.object({ q: z.string().trim().max(100).default('') });
+
+export type JenisHasilCari =
+  | 'BARANG'
+  | 'PELANGGAN'
+  | 'PEMASOK'
+  | 'PENJUALAN'
+  | 'ORDER'
+  | 'SURAT_JALAN'
+  | 'RETUR'
+  | 'VOID'
+  | 'PENERIMAAN';
+
+export type HasilCari = {
+  jenis: JenisHasilCari;
+  judul: string;
+  keterangan: string;
+  /** Halaman tujuan; `null` = hanya informasi (mis. Staf melihat stok barang). */
+  tautan: string | null;
+};

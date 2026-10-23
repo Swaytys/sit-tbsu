@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { pelanggan } from '../../../db/schema';
 import {
   formatRupiah,
   type BawaanPelanggan,
@@ -14,6 +15,7 @@ import {
 } from '@sit/shared';
 import { db, type Executor, type Tx } from '../../../db/client';
 import { AppError, galatKolom } from '../../../lib/errors';
+import { ambilVersi, pastikanVersi } from '../../../lib/versi';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { selisih } from '../../../lib/perubahan';
@@ -77,9 +79,10 @@ async function keRespons(ex: Executor, baris: BarisPelanggan[]): Promise<Pelangg
       )
     ).map((k) => [k.idPelanggan, k]),
   );
-  return baris.map((b) => ({
+  return baris.map(({ diubahPada, ...b }) => ({
     ...b,
     dibuatPada: b.dibuatPada.toISOString(),
+    versi: (diubahPada ?? b.dibuatPada).toISOString(),
     kredit: posisiKredit(b.limitKredit, kredit.get(b.id), hariIni),
   }));
 }
@@ -354,6 +357,11 @@ export async function ubahPelanggan(
   await dalamTransaksi(async (tx) => {
     const lama = await repo.kunciPelanggan(tx, id);
     if (!lama) throw tidakDitemukan();
+    pastikanVersi(
+      input.versi,
+      await ambilVersi(tx, pelanggan, id),
+      `Pelanggan ${lama.namaPelanggan}`,
+    );
     const kredit = tentukanKredit(input, lama, pelaku.izin);
     if (kredit.idGolongan !== lama.idGolongan) {
       await pastikanGolonganAktif(tx, kredit.idGolongan);

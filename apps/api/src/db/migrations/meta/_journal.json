@@ -176,6 +176,13 @@
       "when": 1792775067905,
       "tag": "0024_satu_shift_toko",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792779087091,
+      "tag": "0025_kunci_idempoten",
+      "breakpoints": true
     }
   ]
 }

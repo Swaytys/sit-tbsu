@@ -391,7 +391,7 @@ definisi selesai:
    kendaraan & sopir, perjalanan (migrasi 0023) — **selesai 2026-10-23**.
 3c. **Hasil uji 23 Okt** (K-152–K-167, `keputusan/2026-10-24-masukan-uji-dan-fms-lanjutan.md`): perbaikan tampilan,
    rekening wajib, satu shift dijamin database, pengingat diciutkan, harga dasar, cadangan (K-152–K-159) — **selesai
-   2026-10-24**; berikutnya K-164, K-167, K-161, K-160, K-162, K-163, K-165, K-166.
+   2026-10-24**; K-164 dan K-167 **selesai 2026-10-24**; berikutnya K-161, K-160, K-162, K-163, K-165, K-166.
 4. **Pencarian dan tampilan** (K-123): atribut dicocokkan sebagian, label keterjualan, angka stok merah tebal,
    teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan.
 5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),

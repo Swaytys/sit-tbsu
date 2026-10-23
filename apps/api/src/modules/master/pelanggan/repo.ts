@@ -18,6 +18,7 @@ const kolom = {
   limitKredit: pelanggan.limitKredit,
   statusAktif: pelanggan.statusAktif,
   dibuatPada: pelanggan.dibuatPada,
+  diubahPada: pelanggan.diubahPada,
 };
 
 function syarat(p: { cari?: string | undefined; status: StatusAktif | 'SEMUA' }): SQL | undefined {

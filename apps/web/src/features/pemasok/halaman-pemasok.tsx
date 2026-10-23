@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useDaftarPemasok, useSimpanPemasok, useStatusPemasok } from '@/api/mitra';
+import { useCariUrl } from '@/lib/use-cari-url';
 import { TeksLipat } from '@/components/teks-lipat';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { BilahSaring, type SaringStatus } from '@/components/bilah-saring';
@@ -53,6 +54,7 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
       keterangan: pemasok?.keterangan ?? '',
       lamaKirimHari: pemasok?.lamaKirimHari ?? '',
       jarakBelanjaHari: pemasok?.jarakBelanjaHari ?? '',
+      versi: pemasok?.versi ?? null,
     },
   });
 
@@ -209,7 +211,7 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
 }
 
 export function HalamanPemasok() {
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useCariUrl();
   const cariTertunda = useTunda(cari, 300);
   const [status, setStatus] = useState<SaringStatus>('SEMUA');
   const [halaman, setHalaman] = useState(1);
