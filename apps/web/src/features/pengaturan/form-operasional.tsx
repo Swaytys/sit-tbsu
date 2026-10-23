@@ -89,6 +89,18 @@ const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: strin
     ket: 'Dipakai bila jarak belanja di Data Pemasok kosong.',
   },
   {
+    nama: 'muatanFaktorIsiPersen',
+    label: 'Muatan: faktor isi bak',
+    satuan: '%',
+    ket: 'Bagian ruang bak yang realistis terisi barang (barang tidak pernah rapat 100%). Bawaan 85%.',
+  },
+  {
+    nama: 'muatanJulurMaksCm',
+    label: 'Muatan: julur maksimum',
+    satuan: 'cm',
+    ket: 'Barang boleh lebih panjang dari bak sampai sekian cm, dengan alasan tertulis. Sesuaikan aturan/kebijakan toko.',
+  },
+  {
     nama: 'batasUmurOrderJam',
     label: 'Batas umur order',
     satuan: 'jam',

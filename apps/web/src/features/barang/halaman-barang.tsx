@@ -77,6 +77,7 @@ export function HalamanBarang() {
   const [idMerk, setIdMerk] = useState<number | null>(null);
   const [kepemilikan, setKepemilikan] = useState<Kepemilikan | null>(null);
   const [perluTinjau, setPerluTinjau] = useState(false);
+  const [muatanBelum, setMuatanBelum] = useState(false);
   const [halaman, setHalaman] = useState(1);
   const saring = useKolomTampil(
     'saring-barang',
@@ -107,6 +108,7 @@ export function HalamanBarang() {
     idMerk,
     status,
     perluTinjau,
+    muatanBelum,
     kepemilikan,
     halaman,
     perHalaman: barisPerHalaman,
@@ -425,6 +427,19 @@ export function HalamanBarang() {
               Perlu tinjau harga
             </label>
           )}
+          <label
+            className="flex items-center gap-2 text-sm text-slate-600"
+            title="Barang tanpa berat atau ukuran kemasan: muatannya tidak bisa dihitung saat dikirim (K-161)."
+          >
+            <Switch
+              checked={muatanBelum}
+              onCheckedChange={(v) => {
+                setMuatanBelum(v);
+                setHalaman(1);
+              }}
+            />
+            Data muatan belum lengkap
+          </label>
         </BilahSaring>
         <DataTable
           kolom={kolom}

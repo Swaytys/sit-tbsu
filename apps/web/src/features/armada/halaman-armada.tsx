@@ -63,6 +63,27 @@ export function BadgeJalan({ jalan }: { jalan: SedangJalan | null }) {
   );
 }
 
+/** Isian bilangan bulat (kg/cm); kosong = null. */
+function IsianBulat({
+  value,
+  onChange,
+}: {
+  value: number | null | undefined;
+  onChange: (v: number | null) => void;
+}) {
+  return (
+    <Input
+      inputMode="numeric"
+      className="text-right"
+      value={value ?? ''}
+      onChange={(e) => {
+        const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+        onChange(v === '' ? null : Number(v));
+      }}
+    />
+  );
+}
+
 function DialogKendaraan({ k, onTutup }: { k: Kendaraan | null; onTutup: () => void }) {
   const simpan = useSimpanKendaraan();
   const form = useForm<InputKendaraan, unknown, DataKendaraan>({
@@ -71,6 +92,11 @@ function DialogKendaraan({ k, onTutup }: { k: Kendaraan | null; onTutup: () => v
       plat: k?.plat ?? '',
       jenis: k?.jenis ?? '',
       kapasitasKg: k?.kapasitasKg ?? null,
+      bakPanjangCm: k?.bakPanjangCm ?? null,
+      bakLebarCm: k?.bakLebarCm ?? null,
+      bakTinggiCm: k?.bakTinggiCm ?? null,
+      berlakuStnk: k?.berlakuStnk ?? null,
+      berlakuKir: k?.berlakuKir ?? null,
       catatan: k?.catatan ?? '',
     },
   });
@@ -123,21 +149,72 @@ function DialogKendaraan({ k, onTutup }: { k: Kendaraan | null; onTutup: () => v
               name="kapasitasKg"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Kapasitas (kg, boleh kosong)</FormLabel>
+                  <FormLabel>Daya angkut (kg)</FormLabel>
                   <FormControl>
-                    <Input
-                      inputMode="numeric"
-                      value={field.value ?? ''}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/\D/g, '');
-                        field.onChange(v === '' ? null : Number(v));
-                      }}
-                    />
+                    <IsianBulat value={field.value} onChange={field.onChange} />
                   </FormControl>
+                  <p className="text-xs text-slate-500">
+                    Dari buku uji KIR / STNK (JBI dikurangi berat kosong). Kosong = berat muatan
+                    tidak diperiksa.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            <div>
+              <p className="mb-1 text-sm font-medium">Ukuran bak (cm, bagian dalam)</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ['bakPanjangCm', 'Panjang'],
+                    ['bakLebarCm', 'Lebar'],
+                    ['bakTinggiCm', 'Tinggi dinding'],
+                  ] as const
+                ).map(([nama, label]) => (
+                  <FormField
+                    key={nama}
+                    control={form.control}
+                    name={nama}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs text-slate-600">{label}</FormLabel>
+                        <FormControl>
+                          <IsianBulat value={field.value} onChange={field.onChange} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ['berlakuStnk', 'STNK berlaku sampai'],
+                  ['berlakuKir', 'KIR berlaku sampai'],
+                ] as const
+              ).map(([nama, label]) => (
+                <FormField
+                  key={nama}
+                  control={form.control}
+                  name={nama}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs text-slate-600">{label}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
             <FormField
               control={form.control}
               name="catatan"
@@ -328,9 +405,18 @@ function TabKendaraan({ bolehKelola }: { bolehKelola: boolean }) {
     { kunci: 'jenis', judul: 'Jenis', sel: (k) => k.jenis },
     {
       kunci: 'kapasitas',
-      judul: 'Kapasitas',
-      className: 'w-28 text-right',
-      sel: (k) => (k.kapasitasKg ? `${k.kapasitasKg.toLocaleString('id-ID')} kg` : '—'),
+      judul: 'Daya angkut · bak',
+      className: 'w-44 text-right',
+      sel: (k) => (
+        <div className="text-right">
+          <div>{k.kapasitasKg ? `${k.kapasitasKg.toLocaleString('id-ID')} kg` : '—'}</div>
+          <div className="text-xs text-slate-500">
+            {k.bakPanjangCm && k.bakLebarCm && k.bakTinggiCm
+              ? `${k.bakPanjangCm}×${k.bakLebarCm}×${k.bakTinggiCm} cm`
+              : 'bak belum diisi'}
+          </div>
+        </div>
+      ),
     },
     { kunci: 'jalan', judul: 'Posisi', sel: (k) => <BadgeJalan jalan={k.sedangJalan} /> },
     {

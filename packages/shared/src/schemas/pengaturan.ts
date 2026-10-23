@@ -105,6 +105,9 @@ export const skemaOperasional = z
     saranPesanHariPengaman: bulat('Hari stok pengaman', 0, 60),
     saranPesanLamaKirim: bulat('Lama kirim bawaan', 0, 365),
     saranPesanJarakBelanja: bulat('Jarak belanja bawaan', 1, 365),
+    /** K-161: muatan kendaraan (docs/13 §3). */
+    muatanFaktorIsiPersen: bulat('Faktor isi bak', 40, 100),
+    muatanJulurMaksCm: bulat('Julur maksimum', 0, 300),
     /**
      * K-099: nilai retur/void per transaksi yang boleh diproses Kasir tanpa persetujuan Admin/Owner
      * (rupiah; 0 = selalu butuh persetujuan).

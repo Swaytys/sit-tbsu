@@ -25,6 +25,8 @@ export type ParamDaftarBarang = {
   perluTinjau: boolean;
   /** Hanya barang yang punya stok rusak. */
   adaRusak?: boolean;
+  /** K-161: hanya barang yang data muatannya belum lengkap. */
+  muatanBelum?: boolean;
   kepemilikan?: Kepemilikan | null;
   halaman: number;
   perHalaman: number;
@@ -43,6 +45,7 @@ export function useDaftarBarang(p: ParamDaftarBarang) {
             status: p.status,
             perluTinjau: p.perluTinjau ? 'true' : undefined,
             adaRusak: p.adaRusak ? 'true' : undefined,
+            muatanBelum: p.muatanBelum ? 'true' : undefined,
             kepemilikan: p.kepemilikan ?? undefined,
             halaman: String(p.halaman),
             perHalaman: String(p.perHalaman),

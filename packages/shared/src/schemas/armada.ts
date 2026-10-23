@@ -32,6 +32,22 @@ export const skemaPlat = z
       ),
   );
 
+/** Ukuran bak dalam cm (bilangan bulat), boleh kosong. */
+const ukuranBak = (label: string) =>
+  z
+    .number(`${label} harus angka (cm).`)
+    .int(`${label} dalam cm bulat.`)
+    .min(10, `${label} minimal 10 cm.`)
+    .max(2_000, `${label} terlalu besar.`)
+    .nullable()
+    .default(null);
+
+const tanggalOpsional = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal tidak valid.')
+  .nullable()
+  .default(null);
+
 export const skemaKendaraan = z.object({
   plat: skemaPlat,
   jenis: z
@@ -39,13 +55,19 @@ export const skemaKendaraan = z.object({
     .trim()
     .min(1, 'Jenis kendaraan wajib diisi.')
     .max(30, 'Jenis kendaraan maksimal 30 karakter.'),
+  /** Daya angkut (kg) dari buku uji KIR/STNK: JBI dikurangi berat kosong (K-161). */
   kapasitasKg: z
-    .number('Kapasitas harus angka.')
-    .int('Kapasitas harus bilangan bulat (kg).')
-    .min(1, 'Kapasitas minimal 1 kg.')
-    .max(100_000, 'Kapasitas terlalu besar.')
+    .number('Daya angkut harus angka.')
+    .int('Daya angkut harus bilangan bulat (kg).')
+    .min(1, 'Daya angkut minimal 1 kg.')
+    .max(100_000, 'Daya angkut terlalu besar.')
     .nullable()
     .default(null),
+  bakPanjangCm: ukuranBak('Panjang bak'),
+  bakLebarCm: ukuranBak('Lebar bak'),
+  bakTinggiCm: ukuranBak('Tinggi bak'),
+  berlakuStnk: tanggalOpsional,
+  berlakuKir: tanggalOpsional,
   catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
 });
 export type InputKendaraan = z.input<typeof skemaKendaraan>;
@@ -81,6 +103,11 @@ export type Kendaraan = {
   plat: string;
   jenis: string;
   kapasitasKg: number | null;
+  bakPanjangCm: number | null;
+  bakLebarCm: number | null;
+  bakTinggiCm: number | null;
+  berlakuStnk: string | null;
+  berlakuKir: string | null;
   catatan: string | null;
   statusAktif: StatusAktif;
   jumlahPerjalanan: number;
@@ -107,9 +134,42 @@ export const skemaBerangkat = z.object({
     .min(1, 'Pilih minimal satu surat jalan.')
     .max(30, 'Maksimal 30 surat jalan per perjalanan.'),
   catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+  /** K-161: wajib bila muatan melewati batas lunak (volume/panjang); kronologis dan logis. */
+  alasanMuatan: teksOpsional(500, 'Alasan maksimal 500 karakter.'),
 });
 export type InputBerangkat = z.input<typeof skemaBerangkat>;
 export type DataBerangkat = z.output<typeof skemaBerangkat>;
+
+/** K-161: pratinjau muatan sebelum berangkat. */
+export const skemaPratinjauMuatan = z.object({
+  idKendaraan: z.number().int().positive(),
+  idSuratJalan: z.array(z.number().int().positive()).min(1).max(30),
+});
+
+export type TingkatMuatan = 'AMAN' | 'HAMPIR_PENUH' | 'KONFIRMASI' | 'DITOLAK' | 'TIDAK_DIKETAHUI';
+
+/** Hasil hitung muatan satu rit (docs/13 §3); dihitung API. */
+export type Muatan = {
+  beratKg: string;
+  volumeM3: string;
+  /** Sisi kemasan terpanjang (cm); `null` bila tidak ada data ukuran. */
+  terpanjangCm: string | null;
+  dayaAngkutKg: number | null;
+  /** Volume bak × faktor isi (m³); `null` bila ukuran bak belum diisi. */
+  volumeBakM3: string | null;
+  panjangBakCm: number | null;
+  julurMaksCm: number;
+  faktorIsiPersen: number;
+  persenBerat: number | null;
+  persenVolume: number | null;
+  tingkat: { berat: TingkatMuatan; volume: TingkatMuatan; panjang: TingkatMuatan };
+  /** Tingkat terburuk: menentukan boleh berangkat, perlu alasan, atau ditolak. */
+  kesimpulan: Exclude<TingkatMuatan, 'TIDAK_DIKETAHUI'>;
+  /** Barang yang berat/ukurannya belum diisi (dihitung 0). */
+  barangTanpaData: string[];
+  pesan: string[];
+  saran: string[];
+};
 
 export const skemaCariPerjalanan = skemaHalaman.extend({
   status: z.enum(['JALAN', 'SELESAI'] as const).optional(),

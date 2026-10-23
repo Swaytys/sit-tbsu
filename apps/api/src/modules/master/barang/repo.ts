@@ -64,6 +64,7 @@ export type SaringBarang = {
   status: StatusAktif | 'SEMUA';
   perluTinjau?: boolean | undefined;
   adaRusak?: boolean | undefined;
+  muatanBelum?: boolean | undefined;
   kepemilikan?: Kepemilikan | undefined;
 };
 
@@ -140,6 +141,11 @@ function syarat(p: SaringBarang): SQL | undefined {
     p.idMerk === undefined ? undefined : eq(barang.idMerk, p.idMerk),
     p.perluTinjau === undefined ? undefined : eq(barang.perluTinjauHarga, p.perluTinjau),
     p.adaRusak ? gt(persediaan.stokRusak, '0') : undefined,
+    p.muatanBelum
+      ? sql`(${barang.beratKg} is null
+          or (not ${barang.curah} and ${barang.panjangCm} is null and ${barang.volumeM3} is null)
+          or (${barang.curah} and ${barang.volumeM3} is null))`
+      : undefined,
     p.kepemilikan === undefined ? undefined : eq(barang.kepemilikan, p.kepemilikan),
     ...(p.cari ? cocokCari(p.cari) : []),
   );
@@ -376,4 +382,40 @@ export async function gantiAtribut(tx: Tx, idBarang: number, atribut: NilaiAtrib
   if (atribut.length > 0) {
     await tx.insert(barangAtribut).values(atribut.map((a) => ({ ...a, idBarang })));
   }
+}
+
+/** K-161: data muatan per satuan dasar. */
+export async function muatanBarang(ex: Executor, id: number) {
+  const [b] = await ex
+    .select({
+      beratKg: barang.beratKg,
+      panjangCm: barang.panjangCm,
+      lebarCm: barang.lebarCm,
+      tinggiCm: barang.tinggiCm,
+      curah: barang.curah,
+      volumeM3: barang.volumeM3,
+    })
+    .from(barang)
+    .where(eq(barang.id, id))
+    .limit(1);
+  return b;
+}
+
+export async function ubahMuatan(
+  tx: Tx,
+  id: number,
+  m: {
+    beratKg: string | null;
+    panjangCm: string | null;
+    lebarCm: string | null;
+    tinggiCm: string | null;
+    curah: boolean;
+    volumeM3: string | null;
+  },
+  waktu: Date,
+) {
+  await tx
+    .update(barang)
+    .set({ ...m, diubahPada: waktu })
+    .where(eq(barang.id, id));
 }

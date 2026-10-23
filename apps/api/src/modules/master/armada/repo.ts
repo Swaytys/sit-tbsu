@@ -29,6 +29,11 @@ const kolomKendaraan = {
   plat: kendaraan.plat,
   jenis: kendaraan.jenis,
   kapasitasKg: kendaraan.kapasitasKg,
+  bakPanjangCm: kendaraan.bakPanjangCm,
+  bakLebarCm: kendaraan.bakLebarCm,
+  bakTinggiCm: kendaraan.bakTinggiCm,
+  berlakuStnk: kendaraan.berlakuStnk,
+  berlakuKir: kendaraan.berlakuKir,
   catatan: kendaraan.catatan,
   statusAktif: kendaraan.statusAktif,
   jumlahPerjalanan: tripKendaraan,
@@ -65,6 +70,11 @@ export async function kunciKendaraan(tx: Tx, id: number) {
       plat: kendaraan.plat,
       jenis: kendaraan.jenis,
       kapasitasKg: kendaraan.kapasitasKg,
+      bakPanjangCm: kendaraan.bakPanjangCm,
+      bakLebarCm: kendaraan.bakLebarCm,
+      bakTinggiCm: kendaraan.bakTinggiCm,
+      berlakuStnk: kendaraan.berlakuStnk,
+      berlakuKir: kendaraan.berlakuKir,
       catatan: kendaraan.catatan,
       statusAktif: kendaraan.statusAktif,
     })
@@ -74,6 +84,18 @@ export async function kunciKendaraan(tx: Tx, id: number) {
     .for('update');
   return b;
 }
+
+export type NilaiKendaraan = {
+  plat: string;
+  jenis: string;
+  kapasitasKg: number | null;
+  bakPanjangCm: number | null;
+  bakLebarCm: number | null;
+  bakTinggiCm: number | null;
+  berlakuStnk: string | null;
+  berlakuKir: string | null;
+  catatan: string | null;
+};
 
 export async function platDipakai(ex: Executor, plat: string, kecualiId?: number) {
   const [b] = await ex
@@ -89,10 +111,7 @@ export async function platDipakai(ex: Executor, plat: string, kecualiId?: number
   return b !== undefined;
 }
 
-export async function tambahKendaraan(
-  tx: Tx,
-  nilai: { plat: string; jenis: string; kapasitasKg: number | null; catatan: string | null },
-): Promise<number> {
+export async function tambahKendaraan(tx: Tx, nilai: NilaiKendaraan): Promise<number> {
   const [b] = await tx.insert(kendaraan).values(nilai).returning({ id: kendaraan.id });
   if (!b) throw new Error('Kendaraan gagal disimpan');
   return b.id;
@@ -101,13 +120,7 @@ export async function tambahKendaraan(
 export async function ubahKendaraan(
   tx: Tx,
   id: number,
-  nilai: Partial<{
-    plat: string;
-    jenis: string;
-    kapasitasKg: number | null;
-    catatan: string | null;
-    statusAktif: StatusAktif;
-  }>,
+  nilai: Partial<NilaiKendaraan & { statusAktif: StatusAktif }>,
   waktu: Date,
 ) {
   await tx

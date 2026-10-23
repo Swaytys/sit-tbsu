@@ -264,6 +264,14 @@ export const barang = pgTable(
     diubahPada: diubahPada(),
     // Ditambahkan migrasi 0001 (K-063); di akhir agar urutan kolom sama dengan database.
     idMerk: kolomRef('id_merk'),
+    // K-161 (migrasi 0026): data muatan per satuan dasar, untuk menghitung muatan kendaraan (docs/13 §2.1).
+    beratKg: numeric('berat_kg', { precision: 12, scale: 3 }),
+    panjangCm: numeric('panjang_cm', { precision: 10, scale: 1 }),
+    lebarCm: numeric('lebar_cm', { precision: 10, scale: 1 }),
+    tinggiCm: numeric('tinggi_cm', { precision: 10, scale: 1 }),
+    /** Pasir, batu, tanah: tanpa ukuran per buah; volume dari `volume_m3`. */
+    curah: boolean('curah').notNull().default(false),
+    volumeM3: numeric('volume_m3', { precision: 12, scale: 4 }),
   },
   (t) => [
     foreignKey({
@@ -287,6 +295,12 @@ export const barang = pgTable(
       foreignColumns: [pemasok.id],
     }),
     check('chk_barang_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
+    check(
+      'chk_barang_muatan',
+      sql`(berat_kg is null or berat_kg >= 0) and (panjang_cm is null or panjang_cm > 0)
+        and (lebar_cm is null or lebar_cm > 0) and (tinggi_cm is null or tinggi_cm > 0)
+        and (volume_m3 is null or volume_m3 > 0)`,
+    ),
     check('chk_barang_kepemilikan', dalamDaftar('kepemilikan', KEPEMILIKAN)),
     check(
       'chk_barang_konsinyasi',

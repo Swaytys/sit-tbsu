@@ -96,6 +96,9 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | A8 | Rusak di jalan, tetapi stok pengganti habis | Tidak bisa tukar | Pilih *Tagihan dikurangi*, atau tambah stok lalu catat | Ditolak dengan saran | Pesan menyebut sisa stok | Ada |
 | A9 | Invoice sudah lunas lalu barang ditolak | Uang pembeli harus kembali | Pilih tunai (uang shift) atau transfer | API meminta cara pengembalian bila nilai melebihi sisa tagihan | Isian muncul di dialog | Ada |
 | A10 | Kendaraan/sopir dinonaktifkan saat sedang jalan | Perjalanan tak bisa diselesaikan rapi | — | Ditolak sampai hasil dicatat | Pesan menyebut nomor perjalanan | Ada |
+| A12 | Barang dimuat melebihi daya angkut kendaraan | Rem/ban/sumbu berbahaya, pelanggaran ODOL | Pakai kendaraan lain atau bagi dua rit | Berangkat ditolak bila berat > daya angkut | Panel muatan menjelaskan sebab dan saran | Ada (K-161) |
+| A13 | Barang sedikit melebihi bak (ditumpuk/menjulur) | Barang jatuh, kendaraan tidak stabil | Periksa setelah dimuat | Alasan tertulis wajib (tercatat di rit dan log); jauh melebihi ditolak | Contoh alasan di isian | Ada (K-161) |
+| A14 | Berat/ukuran barang atau bak belum diisi | Muatan tidak bisa diperiksa | Lengkapi data | Peringatan "belum punya berat/ukuran" di panel muatan | Petunjuk tempat mengisinya | Ada sebagian (laporan kelengkapan menyusul) |
 | A11 | Plat/nama sopir diketik beda-beda | Data ganda, riwayat terpecah | Ubah data master | Plat dirapikan huruf besar + satu spasi, unik; nama sopir unik tanpa beda huruf | Contoh format di form | Ada |
 
 ---
@@ -110,3 +113,4 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-18 — S11 diperbarui; S22–S26 (setelah tutup, kembalian tidak diambil, retur lintas shift, salah hitung susulan, dialog kode) (K-132–K-142).
 - 2026-10-23 — Bagian 4 pengantaran A1–A11 (K-149–K-151).
 - 2026-10-24 — Shift ganda kini mustahil (indeks unik, K-155); pembayaran non-tunai tanpa rekening terdaftar/referensi dicegah (K-154).
+- 2026-10-24 — A12–A14 muatan kendaraan (K-161).

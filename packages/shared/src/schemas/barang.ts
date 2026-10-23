@@ -21,6 +21,58 @@ const kosongJadiUndefined = (v: unknown) => (v === '' || v === null ? undefined 
 const angkaKeTeks = (v: unknown) =>
   typeof v === 'number' ? String(v) : typeof v === 'string' ? v.trim().replace(',', '.') : v;
 
+/**
+ * Angka desimal opsional untuk data muatan (K-161): kosong = `null`, koma boleh, `desimal` angka di belakang koma,
+ * harus > 0 kecuali `bolehNol`.
+ */
+const angkaMuatan = (label: string, desimal: number, maks: number, bolehNol = false) =>
+  z.preprocess(
+    (v) => (v === '' || v === undefined ? null : angkaKeTeks(v)),
+    z
+      .string()
+      .regex(
+        new RegExp(String.raw`^\d+(\.\d{1,${desimal}})?$`),
+        `${label} harus angka dengan paling banyak ${desimal} angka di belakang koma.`,
+      )
+      .refine((v) => (bolehNol ? Number(v) >= 0 : Number(v) > 0), `${label} harus lebih dari 0.`)
+      .refine((v) => Number(v) <= maks, `${label} terlalu besar.`)
+      .nullable(),
+  );
+
+/**
+ * K-161: data muatan per satuan dasar (berat dan ukuran kemasan, untuk menghitung muatan kendaraan). Disimpan
+ * dalam kg, cm, dan m³; form boleh memakai satuan lain yang sejenis lalu mengonversinya dengan `konversiKe`.
+ */
+export const skemaMuatanBarang = z
+  .object({
+    beratKg: angkaMuatan('Berat', 3, 100_000, true),
+    panjangCm: angkaMuatan('Panjang', 1, 100_000),
+    lebarCm: angkaMuatan('Lebar', 1, 100_000),
+    tinggiCm: angkaMuatan('Tinggi', 1, 100_000),
+    curah: z.boolean().default(false),
+    volumeM3: angkaMuatan('Volume', 4, 10_000),
+  })
+  .superRefine((m, ctx) => {
+    const ukuran = [m.panjangCm, m.lebarCm, m.tinggiCm];
+    if (!m.curah && ukuran.some((u) => u !== null) && ukuran.some((u) => u === null)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['panjangCm'],
+        message: 'Isi panjang, lebar, dan tinggi sekaligus (atau kosongkan ketiganya).',
+      });
+    }
+    if (m.curah && m.volumeM3 === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['volumeM3'],
+        message: 'Barang curah wajib punya volume per satuan dasar (mis. 1 m³).',
+      });
+    }
+  });
+export type InputMuatanBarang = z.input<typeof skemaMuatanBarang>;
+export type DataMuatanBarang = z.output<typeof skemaMuatanBarang>;
+export type MuatanBarang = DataMuatanBarang;
+
 /** Kode barang: huruf besar, angka, titik, garis bawah, strip; maks. 12 (N5: boleh kode sendiri). */
 export const skemaKodeBarang = z
   .string()
@@ -126,6 +178,8 @@ export const skemaBarang = z
      * K-086). Tidak dikirim = tetap (barang baru: otomatis, K-094). Mengubahnya butuh `master.harga.kelola`.
      */
     hargaOtomatis: z.boolean().optional(),
+    /** K-161: data muatan; tidak dikirim saat ubah = tidak diubah. */
+    muatan: skemaMuatanBarang.optional(),
     /** K-164: versi data yang dimuat form (waktu ubah terakhir); beda dengan versi sekarang = ditolak. */
     versi: z.string().max(40).nullable().optional(),
   })
@@ -169,6 +223,11 @@ export const skemaCariBarang = skemaHalaman.extend({
   kepemilikan: z.enum(KEPEMILIKAN).optional(),
   /** Hanya barang yang punya stok rusak (tab Stok Rusak, SR1). */
   adaRusak: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
+  /** K-161: hanya barang yang data muatannya (berat, ukuran/volume) belum lengkap. */
+  muatanBelum: z
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
     .optional(),
@@ -262,6 +321,8 @@ export type DetailBarang = BarisBarang & {
   atribut: AtributBarang[];
   /** Sudah ada mutasi stok: satuan dasar dan harga modal awal dikunci (K-060). */
   sudahAdaMutasi: boolean;
+  /** K-161: data muatan per satuan dasar. */
+  muatan: MuatanBarang;
   /** K-164: waktu ubah terakhir (ISO), dikirim balik saat menyimpan perubahan. */
   versi: string;
 };

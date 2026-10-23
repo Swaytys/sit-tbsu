@@ -37,6 +37,10 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U71 | Cari universal | Tekan `Ctrl+K` di halaman mana pun → ketik `semen` → panah bawah → Enter | Daftar halaman/barang/pelanggan; Enter membuka barang itu (Admin) | Belum | Coba juga nomor dokumen, mis. sebagian nomor invoice |
 | U72 | Dua admin mengubah data sama | Dua jendela (Admin dan Owner) membuka **Ubah** pemasok yang sama → Admin simpan → Owner simpan | Owner mendapat "sudah diubah orang lain…"; data Admin tidak tertimpa | Belum | |
 | U73 | Kiriman tidak ganda | Di kasir, cabut kabel/Wi-Fi tepat setelah menekan Bayar, sambungkan lagi, tekan Bayar lagi | Hanya satu penjualan tercatat (cek Riwayat) | Belum | Opsional, sulit dipraktikkan |
+| U74 | Data muatan barang | *Data Barang › Ubah* semen → kartu *Data muatan*: pilih **g**, isi 50000; pilih **mm**, isi 700 × 450 × 120 → Simpan | Tersimpan sebagai 50 kg dan 70 × 45 × 12 cm (buka lagi: angka tampil dalam kg/cm) | Belum | Coba juga *Barang curah* untuk pasir |
+| U77 | Barang belum lengkap & pengaturan muatan | *Data Barang*: nyalakan **Data muatan belum lengkap**; *Pengaturan › Operasional*: ubah faktor isi/julur | Daftar hanya barang tanpa berat/ukuran; pengaturan tersimpan dan dipakai saat Berangkat | Belum | |
+| U75 | Data kendaraan | *Kendaraan & Sopir* → ubah kendaraan: isi daya angkut, ukuran bak, STNK/KIR | Kolom *Daya angkut · bak* terisi | Belum | |
+| U76 | Muatan saat berangkat | Buat surat jalan berisi barang yang datanya sudah diisi → **Berangkat** → pilih kendaraan kecil lalu besar | Bar berat/volume/panjang berwarna; merah = tombol mati; oranye = wajib alasan | Belum | |
 
 ### Pengantaran: kendaraan, sopir, hasil per barang (23 Oktober, K-149–K-151)
 
@@ -156,3 +160,4 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-23 — U50–U59 kendaraan & sopir, papan Pengiriman aktif, hasil per barang (K-149–K-151).
 - 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.
 - 2026-10-24 — U71–U73 pencarian universal, cek versi, kiriman tidak ganda (K-164, K-167).
+- 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).

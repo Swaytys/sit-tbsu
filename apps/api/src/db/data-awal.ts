@@ -247,6 +247,18 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     tipe: 'ANGKA',
     deskripsi: 'Jarak belanja (hari) bila pemasok belum diisi (RO4)',
   },
+  {
+    kode: 'muatan_faktor_isi_persen',
+    nilai: '85',
+    tipe: 'ANGKA',
+    deskripsi: 'Bagian volume bak yang realistis terisi barang (K-161, docs/13 §3)',
+  },
+  {
+    kode: 'muatan_julur_maks_cm',
+    nilai: '100',
+    tipe: 'ANGKA',
+    deskripsi: 'Barang boleh lebih panjang dari bak sampai sekian cm, dengan alasan (K-161)',
+  },
   // Rekening bawaan layar kasir (K-073) sejak K-111 ada di tabel rekening_toko (Pengaturan › Pembayaran).
 ];
 
