@@ -22,6 +22,7 @@ export const DAFTAR_IZIN = {
     'Atur golongan, term hari, dan limit kredit; ubah/nonaktifkan pelanggan tanpa kode; menyetujui perubahan pelanggan',
   'master.pemasok.lihat': 'Lihat pemasok',
   'master.pemasok.kelola': 'Tambah/ubah/nonaktifkan pemasok',
+  'master.armada.kelola': 'Tambah/ubah/nonaktifkan kendaraan dan sopir (K-150)',
   'master.import.jalankan': 'Import Excel barang / saldo awal',
   // Penjualan
   'penjualan.order.buat': 'Buat order, kirim ke antrean, ubah order DRAFT miliknya',
@@ -32,7 +33,8 @@ export const DAFTAR_IZIN = {
   'penjualan.checkout': 'Proses order menjadi penjualan (langsung dan pengantaran)',
   'penjualan.harga_manual': 'Mengisi harga di luar tier',
   'penjualan.pembayaran.catat': 'Catat pembayaran (termasuk DP, pelunasan, bayar saat terima)',
-  'penjualan.surat_jalan.kelola': 'Buat surat jalan, ubah status kirim, isi sopir/kendaraan',
+  'penjualan.surat_jalan.kelola':
+    'Buat surat jalan, berangkatkan perjalanan, catat hasil pengantaran (S9–S10)',
   'penjualan.riwayat.lihat': 'Lihat daftar dan detail penjualan',
   'penjualan.piutang.lihat': 'Lihat daftar piutang dan jatuh tempo',
   // Retur dan void

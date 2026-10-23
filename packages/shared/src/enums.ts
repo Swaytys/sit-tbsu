@@ -150,6 +150,14 @@ export type StatusPengiriman = (typeof STATUS_PENGIRIMAN)[number];
 export const STATUS_SURAT_JALAN = ['DIPROSES', 'DIMUAT', 'DIKIRIM', 'SELESAI', 'BATAL'] as const;
 export type StatusSuratJalan = (typeof STATUS_SURAT_JALAN)[number];
 
+/** K-150: perjalanan (trip) pengantaran; JALAN = kendaraan dan sopirnya sedang di jalan. */
+export const STATUS_PERJALANAN = ['JALAN', 'SELESAI'] as const;
+export type StatusPerjalanan = (typeof STATUS_PERJALANAN)[number];
+
+/** K-151: pilihan pembeli untuk barang rusak di jalan. */
+export const PENANGANAN_RUSAK = ['KIRIM_PENGGANTI', 'KURANGI_TAGIHAN'] as const;
+export type PenangananRusak = (typeof PENANGANAN_RUSAK)[number];
+
 export const JENIS_PEMBAYARAN = ['PENUH', 'DP', 'PELUNASAN'] as const;
 export type JenisPembayaran = (typeof JENIS_PEMBAYARAN)[number];
 

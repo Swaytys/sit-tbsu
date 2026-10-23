@@ -3,6 +3,7 @@ import {
   Boxes,
   Building2,
   Calculator,
+  Car,
   Download,
   FileText,
   HandCoins,
@@ -71,6 +72,12 @@ export const MENU: EntriMenu[] = [
         ikon: Building2,
         izin: 'master.pemasok.lihat',
         fase: 3,
+      },
+      {
+        path: '/armada',
+        label: 'Kendaraan & Sopir',
+        ikon: Car,
+        izin: ['master.armada.kelola', 'penjualan.surat_jalan.kelola'],
       },
       {
         path: '/pengguna',

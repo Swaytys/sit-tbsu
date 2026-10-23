@@ -313,25 +313,15 @@ export function useBuatSuratJalan() {
   );
 }
 
-export function useStatusSuratJalan() {
-  return useMutasiPenjualan(
-    async ({
-      id,
-      status,
-      sopir,
-      kendaraan,
-    }: {
-      id: number;
-      status: 'DIMUAT' | 'DIKIRIM' | 'SELESAI';
-      sopir?: string | null;
-      kendaraan?: string | null;
-    }) =>
-      ambilData(
-        await api['surat-jalan'][':id'].status.$post({
-          param: paramId(id),
-          json: { status, sopir, kendaraan },
-        }),
-      ),
+/** S3: hanya DIPROSES → DIMUAT; berangkat dan catat hasil ada di api/armada.ts. */
+export function useMuatSuratJalan() {
+  return useMutasiPenjualan(async (id: number) =>
+    ambilData(
+      await api['surat-jalan'][':id'].status.$post({
+        param: paramId(id),
+        json: { status: 'DIMUAT' },
+      }),
+    ),
   );
 }
 

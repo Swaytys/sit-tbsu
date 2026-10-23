@@ -142,7 +142,8 @@ Sumber izin: `[KODE: shared/roles.ts:9-76]`; izin per endpoint: daftar di Lampir
 | Order Penjualan | T U kirim, batal milik sendiri | + lihat semua, batal | + lepas kunci paksa | sama |
 | Penjualan Langsung / Pengantaran (checkout) | — | T, C struk/invoice | + harga manual | sama |
 | Pembayaran & Piutang | — | L T (terima pembayaran) | sama | sama |
-| Surat jalan | — | T U (status), batal | sama | sama |
+| Surat jalan, berangkat, catat hasil antar | — | T U (dimuat, berangkat, hasil), batal | sama | sama |
+| Kendaraan & sopir | — | L (memilih saat berangkat), riwayat perjalanan | L T U N | sama |
 | Retur penjualan / Void | — | T (ajukan), batal pengajuan sendiri; S dengan kode atasan | + S, tolak | sama |
 | Shift & clerical check | — (melihat status shift di topbar) | shift toko: buka, kas, koreksi modal (setelah ada transaksi tunai: kode atasan), tutup | + angka sistem sebelum dihitung, setujui koreksi modal, penjelasan selisih | sama |
 | Rekening toko | — | L (memilih saat bayar) | L T U N | sama |
@@ -344,10 +345,30 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 - Bukti: sama dengan F21 (`checkout`) `[DOK: K-104]`. Status: BERFUNGSI.
 
 **F23. Surat jalan** | Detail penjualan | Kasir+ | desktop
-- Fungsi: satu invoice boleh beberapa surat jalan (kirim bertahap); status dicetak → dimuat → dikirim (sopir
-  wajib) → diterima; batal sebelum berangkat; status pengiriman invoice dihitung ulang.
-- Tabel: `surat_jalan`, `surat_jalan_detail`.
-- Bukti: `[KODE: api/modules/penjualan/surat-jalan/service.ts:36,49,110,193,248]`. Status: BERFUNGSI.
+- Fungsi: satu invoice boleh beberapa surat jalan (kirim bertahap); status dibuat → dimuat → di jalan (lewat
+  perjalanan) → hasil dicatat; batal sebelum berangkat; status pengiriman invoice dihitung ulang dari qty yang
+  benar-benar diterima pembeli (K-149).
+- **Pengiriman aktif** (Penjualan Pengantaran, 23 Okt): papan tiga kolom *Perlu surat jalan* → *Siap berangkat*
+  (centang beberapa surat jalan, satu kendaraan) → *Di jalan* (kartu per perjalanan: plat, sopir, lama di jalan;
+  kuning bila > 6 jam).
+- **Catat hasil per barang** (K-149, K-151): diterima / kembali utuh (dikirim ulang, stok tetap) / rusak di jalan
+  (ditanggung toko: kirim pengganti = retur tukar, atau tagihan dikurangi) / ditolak pembeli (retur otomatis,
+  potong tagihan atau uang kembali). Retur mengikuti aturan persetujuan yang sama dengan retur biasa.
+- Tabel: `surat_jalan`, `surat_jalan_detail`, `surat_jalan_hasil`, `surat_jalan_hasil_detail`.
+- Bukti: `[KODE: api/modules/penjualan/surat-jalan/service.ts]` (`catatHasil`, `sisaKirim`,
+  `sinkronStatusPengiriman`), `[KODE: web/features/pengantaran/papan-pengiriman.tsx]`; tes
+  `api/modules/penjualan/surat-jalan.test.ts` (13 kasus), e2e `pengiriman.spec.ts`, `pengantaran.spec.ts`.
+  Status: BERFUNGSI.
+
+**F41. Kendaraan, sopir, dan perjalanan (FMS inti)** | Data Master › Kendaraan & Sopir; Pengiriman aktif | Kasir
+(lihat), Admin/Owner (kelola) | desktop
+- Fungsi: kendaraan (plat unik dirapikan, jenis, kapasitas) dan sopir (nama unik, No. HP) sebagai data master;
+  dipilih saat berangkat, tidak diketik ulang. Satu perjalanan (nomor TRP) membawa beberapa surat jalan; kendaraan
+  dan sopir yang sedang jalan terkunci sampai hasil semua surat jalannya dicatat (dijaga service + indeks unik
+  parsial). Riwayat perjalanan per kendaraan dan per sopir.
+- Tabel: `kendaraan`, `sopir`, `perjalanan`, kolom `surat_jalan.id_perjalanan` (migrasi 0023).
+- Bukti: `[KODE: api/modules/master/armada/]`, `[KODE: api/modules/penjualan/perjalanan/service.ts]` (`berangkat`);
+  `[DOK: K-150]`. Status: BERFUNGSI.
 
 **F24. Piutang** | Transaksi › Piutang | Kasir+ | desktop
 - Fungsi: daftar tagihan belum lunas dengan jatuh tempo dan umur; terima pembayaran; ringkasan per pelanggan.
@@ -507,7 +528,8 @@ Status dokumen `[KODE: shared/enums.ts:122-161]`:
 | Penjualan (transaksi) | SELESAI, VOID_SEBAGIAN, VOID |
 | Pembayaran penjualan | BELUM_BAYAR, DP, LUNAS |
 | Pengiriman invoice | BELUM, SEBAGIAN, SELESAI |
-| Surat jalan | DIPROSES → DIMUAT → DIKIRIM → SELESAI, atau BATAL |
+| Surat jalan | DIPROSES → DIMUAT → DIKIRIM (berangkat) → SELESAI (hasil dicatat), atau BATAL |
+| Perjalanan | JALAN → SELESAI (otomatis saat hasil semua surat jalannya dicatat) |
 | Retur / void | MENUNGGU → DISETUJUI / DITOLAK / DIBATALKAN |
 
 ### 5b. Penjualan langsung vs pengantaran; retur; surat jalan; status
@@ -529,8 +551,9 @@ Status dokumen `[KODE: shared/enums.ts:122-161]`:
   kondisi baik kembali ke stok jual, rusak/cacat ke stok rusak `[DOK: K-077]`.
 - **Void:** nominal = Σ subtotal baris yang di-void; bila seluruh baris di-void = seluruh sisa tagihan
   `[KODE: api/modules/koreksi/void/service.ts:226,314]`.
-- **Surat jalan:** qty kirim ≤ qty − retur − qty di surat jalan lain yang belum batal
-  `[KODE: api/modules/penjualan/surat-jalan/service.ts:36]`; status pengiriman invoice disinkronkan setiap
+- **Surat jalan:** qty kirim ≤ qty − retur (disetujui dan menunggu) − qty terpakai di surat jalan lain yang belum
+  batal (qty diterima bila hasilnya sudah dicatat, selain itu qty kirim) `[KODE: api/modules/penjualan/surat-jalan/service.ts]`
+  (`sisaKirim`); status pengiriman invoice disinkronkan setiap
   perubahan `[KODE: api/modules/penjualan/surat-jalan/service.ts:49]`.
 
 ### 5c. Mutasi stok
@@ -1075,3 +1098,4 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-18 — F18 order disimpan, kembali ke draf, peringatan draf lain, buka draf otomatis, panel rincian di input cepat (K-122); notifikasi ke-17; 3 endpoint order baru; F28 pilihan order saat tutup shift.
 - 2026-10-18 — F28 satu shift toko, hitung susulan dua langkah, order belum selesai + retur/void menunggu saat tutup, kembalian tidak diambil, hitung pecahan −/+; kode atasan bisa dilanjutkan; indikator shift di topbar (K-132–K-142); 6 endpoint baru.
 - 2026-10-23 — Diskon manual dihapus, form order lengkap dihapus (Ubah lewat input cepat), istilah "uang shift" (K-146, K-147, K-129).
+- 2026-10-23 — F23 diperbarui (Pengiriman aktif, hasil per barang); F41 kendaraan, sopir, perjalanan (K-149–K-151).

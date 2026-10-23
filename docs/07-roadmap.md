@@ -385,7 +385,10 @@ definisi selesai:
 3a. **Perbaikan uji pemilik 18 Okt** (K-128–K-145, `keputusan/2026-10-18-uji-pemilik-lanjutan.md`):
    (i) perbaikan cepat dan **satu shift toko** (K-132–K-136, K-140–K-142) — **selesai 2026-10-18**;
    (ii) pemberitahuan tidak mengagetkan dan hot page pas layar (K-129, K-130, K-131, K-138, K-139, K-143);
-   (iii) data bersih dan diskon dengan kode (K-137, K-144); (iv) pengaturan hotkey (K-145) setelah butir lain.
+   (iii) data bersih (K-137; K-144 diganti K-146); (iv) pengaturan hotkey (K-145) setelah butir lain.
+3b. **Tinjauan pemilik 23 Okt** (K-146–K-151, `keputusan/2026-10-23-pengantaran-fms.md`): diskon manual dihapus,
+   istilah uang shift, koreksi modal saat hitung susulan — **selesai 2026-10-23**; hasil pengantaran per barang,
+   kendaraan & sopir, perjalanan (migrasi 0023) — **selesai 2026-10-23**.
 4. **Pencarian dan tampilan** (K-123): atribut dicocokkan sebagian, label keterjualan, angka stok merah tebal,
    teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan.
 5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),
@@ -428,6 +431,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-10-23 — Fase 14 butir 3b selesai: diskon manual dihapus, istilah uang shift (K-146–K-148); hasil pengantaran per barang, kendaraan & sopir, perjalanan (K-149–K-151, migrasi 0023).
 - 2026-10-18 — Fase 14 butir 3a(i) selesai: satu shift toko, hitung susulan dua langkah, kembalian tidak diambil, kode atasan dilanjutkan (K-132–K-142, migrasi 0022).
 - 2026-10-18 — Fase 14 butir 3 selesai: order disimpan, kembali ke draf, peringatan draf lain (K-122, docs/05 R11–R14, migrasi 0021).
 - 2026-10-18 — Fase 14 diperluas dengan lingkup v1.0.0 dari tinjauan pemilik 18 Okt (K-120–K-127); butir 2 shift anti-anomali selesai (K-121, docs/05 K15–K24, migrasi 0020).

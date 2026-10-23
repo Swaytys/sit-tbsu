@@ -82,6 +82,24 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 
 ---
 
+## 4. Pengantaran (K-149–K-151)
+
+| # | Anomali | Akibat | Atasi | Cegah | Ajari | Status |
+|---|---|---|---|---|---|---|
+| A1 | Satu truk dipakai dua surat jalan berbeda rute pada saat bersamaan | Jadwal kacau; sopir "dua tempat" | — | Kendaraan dan sopir yang sedang jalan tidak bisa dipilih (dicek service + indeks unik; dua keberangkatan bersamaan diserialkan kunci baris) | Pilihan bertanda "sedang jalan (TRP-…)" | Ada |
+| A2 | Hasil antar lupa dicatat; kendaraan terkunci terus | Kendaraan tidak bisa berangkat lagi | Catat hasil dari kartu *Di jalan* | Kartu perjalanan menguning setelah 6 jam atau ganti hari | Pesan "catat hasilnya agar kendaraan & sopir bebas" | Ada |
+| A3 | Hasil dicatat dua kali (dua kasir bersamaan) | Retur/stok ganda | — | Surat jalan dikunci; hasil unik per surat jalan; kedua kali ditolak "sudah dicatat" | — | Ada |
+| A4 | Jumlah hasil tidak sama dengan qty kirim | Barang "hilang" dari catatan | — | Diterima dihitung otomatis = kirim − (kembali + rusak + ditolak); angka merah bila lebih; API menolak | Kolom *Diterima* tampil langsung | Ada |
+| A5 | Barang kembali utuh lalu terlupa | Pembeli tidak menerima barangnya | Kirim ulang dari kolom *Perlu surat jalan* | Sisa otomatis masuk kolom itu dengan tanda *Kirim ulang* | Toast setelah simpan hasil | Ada |
+| A6 | Barang ditolak/rusak dikirim ulang padahal retur masih menunggu atasan | Barang terkirim ganda | Putusan atasan menentukan | Qty dengan retur menunggu tidak dihitung "belum dikirim" | Ringkasan hasil menandai "menunggu atasan" | Ada |
+| A7 | Retur biasa dibuat untuk barang yang masih di surat jalan | Stok masuk padahal barang di truk | Catat hasil dulu atau batalkan surat jalan | Retur ditolak dengan pesan itu | Pesan menyebut jalan keluarnya | Ada |
+| A8 | Rusak di jalan, tetapi stok pengganti habis | Tidak bisa tukar | Pilih *Tagihan dikurangi*, atau tambah stok lalu catat | Ditolak dengan saran | Pesan menyebut sisa stok | Ada |
+| A9 | Invoice sudah lunas lalu barang ditolak | Uang pembeli harus kembali | Pilih tunai (uang shift) atau transfer | API meminta cara pengembalian bila nilai melebihi sisa tagihan | Isian muncul di dialog | Ada |
+| A10 | Kendaraan/sopir dinonaktifkan saat sedang jalan | Perjalanan tak bisa diselesaikan rapi | — | Ditolak sampai hasil dicatat | Pesan menyebut nomor perjalanan | Ada |
+| A11 | Plat/nama sopir diketik beda-beda | Data ganda, riwayat terpecah | Ubah data master | Plat dirapikan huruf besar + satu spasi, unik; nama sopir unik tanpa beda huruf | Contoh format di form | Ada |
+
+---
+
 ## Riwayat
 
 - 2026-10-18 — v1: anomali Shift & Clerical Check (S1–S21), order penjualan (O1–O5), penjualan/retur/void (P1–P3)
@@ -90,3 +108,4 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
   S17 menunggu K-122.
 - 2026-10-18 — O1–O4 dan S17 menjadi *Ada* (order disimpan, kembali ke draf, peringatan draf lain, pilihan order saat tutup shift; K-122).
 - 2026-10-18 — S11 diperbarui; S22–S26 (setelah tutup, kembalian tidak diambil, retur lintas shift, salah hitung susulan, dialog kode) (K-132–K-142).
+- 2026-10-23 — Bagian 4 pengantaran A1–A11 (K-149–K-151).

@@ -198,6 +198,24 @@ dibayar bersih = dibayar − refund. CHECK: void + retur ≤ neto; refund ≤ di
 **`surat_jalan`** + **`surat_jalan_detail`** — banyak surat jalan per invoice (K-024). `status` DIPROSES → DIMUAT →
 DIKIRIM → SELESAI, atau BATAL (hanya sebelum DIKIRIM), dengan waktu tiap status. Detail: `qty_kirim` per baris
 invoice; service menjaga Σ qty_kirim (SJ tidak batal) ≤ qty baris − qty void − qty retur.
+v3.20 (K-149, K-150, migrasi 0023): `surat_jalan.id_perjalanan` (diisi saat berangkat); kolom teks `sopir` dan
+`kendaraan` tetap sebagai salinan untuk cetakan dan data lama. DIKIRIM hanya lewat perjalanan, SELESAI hanya lewat
+catat hasil.
+
+**`kendaraan`**, **`sopir`** [MASTER] (v3.20, K-150) — kendaraan: `plat` (unik tanpa beda huruf, indeks
+`upper(plat)`), `jenis`, `kapasitas_kg` (opsional, > 0), `catatan`, `status_aktif`. Sopir: `nama` (unik tanpa beda
+huruf, indeks `lower(nama)`), `no_hp`, `catatan`, `status_aktif`. Sopir tidak punya akun.
+
+**`perjalanan`** [APPEND kecuali status dan `waktu_kembali`] (v3.20, K-150) — satu kendaraan + satu sopir membawa
+satu atau lebih surat jalan. Nomor `TRP`. `status` JALAN → SELESAI (CHECK: `waktu_kembali` terisi tepat saat
+SELESAI). Indeks unik parsial `uq_perjalanan_kendaraan_jalan` dan `uq_perjalanan_sopir_jalan` (`where status =
+'JALAN'`): satu perjalanan berjalan per kendaraan dan per sopir.
+
+**`surat_jalan_hasil`** + **`surat_jalan_hasil_detail`** [APPEND] (v3.20, K-149, K-151) — hasil pengantaran, sekali per
+surat jalan (UNIQUE `id_surat_jalan`). Header: pencatat, waktu, `nama_penerima`, `penanganan_rusak`
+(KIRIM_PENGGANTI/KURANGI_TAGIHAN), `id_retur_tukar` dan `id_retur_uang` (retur yang dibuatnya), `catatan`. Detail per
+baris surat jalan (UNIQUE `id_surat_jalan_detail`): `qty_diterima`, `qty_kembali`, `qty_rusak`, `qty_ditolak`
+(semua ≥ 0; jumlahnya = `qty_kirim`, dijaga service), `kondisi_ditolak`.
 
 **`pembayaran_penjualan`** [APPEND] — `jenis` PENUH/DP/PELUNASAN; `metode` TUNAI/TRANSFER/EDC/QRIS; TUNAI wajib
 `id_shift` (CHECK); `uang_diterima` dan `kembalian` untuk tunai; `rekening`, `referensi` untuk non-tunai. Nomor `BYR`.
@@ -294,7 +312,7 @@ Semua sinkronisasi terjadi **di transaksi DB yang sama** dengan penulisan sumber
 | `penjualan.total_retur`, `total_refund` | `retur_penjualan` DISETUJUI (REFUND, POTONG_TAGIHAN) | service retur |
 | `penjualan.total_void`, `total_refund` | `void_transaksi` DISETUJUI | service void |
 | `penjualan.status_transaksi`, `penjualan_detail.status_item` | `void_transaksi` DISETUJUI, retur | service void / retur |
-| `penjualan.status_pengiriman` | `surat_jalan` + detail | service surat jalan |
+| `penjualan.status_pengiriman` | `surat_jalan` + detail + `surat_jalan_hasil_detail.qty_diterima` | service surat jalan (buat, batal, catat hasil) |
 | `penjualan_detail.qty_retur_dasar` | `retur_penjualan_detail` DISETUJUI | service retur |
 | `penerimaan_barang.total_faktur` | detail | service penerimaan (sekali, saat simpan) |
 | `penerimaan_barang.total_dibayar`, `total_retur_potong`, `status_hutang` | `pembayaran_pemasok`, `retur_pemasok` POTONG_HUTANG | service hutang |
@@ -335,6 +353,8 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | status_pengambilan | DIAMBIL, BELUM_DIAMBIL |
 | status_pengiriman (invoice) | BELUM, SEBAGIAN, SELESAI |
 | status_surat_jalan | DIPROSES, DIMUAT, DIKIRIM, SELESAI, BATAL |
+| status_perjalanan | JALAN, SELESAI |
+| penanganan_rusak | KIRIM_PENGGANTI, KURANGI_TAGIHAN |
 | jenis_pembayaran | PENUH, DP, PELUNASAN |
 | metode_pembayaran | TUNAI, TRANSFER, EDC, QRIS |
 | jenis_rekening | TRANSFER, EDC, QRIS |
@@ -486,3 +506,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-18 — v3.17: tabel `hitung_kas`; `shift_kasir.cara_buka`, `modal_usulan`, `rincian_buka`, `batas_hitung_buka`, `hitung_buka_pada`, status DIHITUNG, index satu shift belum tutup per kasir; `clerical_check.uang_ditinggal`, `koreksi_modal`, `toleransi`, `jumlah_hitung`, `penjelasan_atasan`, `dijelaskan_oleh`, `dijelaskan_pada`; jenis kas KOREKSI_MODAL_TAMBAH/KURANG; jenis kode `KOREKSI_KAS` (migrasi 0020; K-121). Kunci konfigurasi baru: `toleransi_selisih_kas`, `batas_hitung_buka_menit`.
 - 2026-10-18 — v3.18: `order_penjualan.no_hp_pembeli`, `order_penjualan.tanggal_ambil`, status DISIMPAN, CHECK `chk_order_disimpan` (status DISIMPAN wajib tanggal ambil dan No. HP) (migrasi 0021; K-122).
 - 2026-10-18 — v3.19: jenis kas `KEMBALIAN_DITINGGAL` (kembalian tidak diambil pembeli; migrasi 0022; K-141). Satu shift toko (K-132) dijaga service dengan kunci transaksi, tanpa constraint baru, agar shift ganda lama tidak menggagalkan migrasi; `shift_kasir.id_kasir` kini berarti pembuka.
+- 2026-10-23 — v3.20: `kendaraan`, `sopir`, `perjalanan`, `surat_jalan_hasil`, `surat_jalan_hasil_detail`, `surat_jalan.id_perjalanan` (migrasi 0023; K-149–K-151). Prefix nomor `TRP`.

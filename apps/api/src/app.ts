@@ -21,6 +21,7 @@ import { importRoutes } from './modules/master/import/routes';
 import { jenisAtributRoutes } from './modules/master/jenis-atribut/routes';
 import { kategoriRoutes } from './modules/master/kategori/routes';
 import { golonganPelangganRoutes } from './modules/master/golongan-pelanggan/routes';
+import { kendaraanRoutes, sopirRoutes } from './modules/master/armada/routes';
 import { merkRoutes } from './modules/master/merk/routes';
 import { pelangganRoutes } from './modules/master/pelanggan/routes';
 import { pemasokRoutes } from './modules/master/pemasok/routes';
@@ -37,6 +38,7 @@ import { orderRoutes } from './modules/penjualan/order/routes';
 import { penjualanRoutes } from './modules/penjualan/penjualan/routes';
 import { piutangRoutes } from './modules/penjualan/piutang/routes';
 import { suratJalanRoutes } from './modules/penjualan/surat-jalan/routes';
+import { perjalananRoutes } from './modules/penjualan/perjalanan/routes';
 import { penerimaanRoutes } from './modules/persediaan/penerimaan/routes';
 import { penyesuaianRoutes } from './modules/persediaan/penyesuaian/routes';
 import { saranPesanRoutes } from './modules/persediaan/saran-pesan/routes';
@@ -72,6 +74,9 @@ const rute = new Hono<EnvApp>()
   .route('/order', orderRoutes)
   .route('/penjualan', penjualanRoutes)
   .route('/surat-jalan', suratJalanRoutes)
+  .route('/perjalanan', perjalananRoutes)
+  .route('/kendaraan', kendaraanRoutes)
+  .route('/sopir', sopirRoutes)
   .route('/piutang', piutangRoutes)
   .route('/shift', shiftRoutes)
   .route('/rekening', rekeningRoutes)

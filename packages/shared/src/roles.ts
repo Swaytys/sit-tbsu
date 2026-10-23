@@ -47,6 +47,7 @@ const IZIN_ADMIN: readonly Izin[] = [
   'master.pelanggan.atur_kredit',
   'master.pemasok.lihat',
   'master.pemasok.kelola',
+  'master.armada.kelola',
   'master.import.jalankan',
   'penjualan.harga_manual',
   'penjualan.order.lepas_paksa',

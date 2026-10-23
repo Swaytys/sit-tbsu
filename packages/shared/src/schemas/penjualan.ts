@@ -23,6 +23,7 @@ import {
   type StatusTransaksi,
   type StatusVerifikasi,
 } from '../enums';
+import type { HasilSuratJalan } from './armada';
 import type { RingkasAtribut } from './barang';
 import { skemaQtyPositif, skemaTanggal } from './persediaan';
 import { skemaKodePersetujuan } from './saluran';
@@ -663,11 +664,9 @@ export const skemaSuratJalan = z.object({
 export type InputSuratJalan = z.input<typeof skemaSuratJalan>;
 export type DataSuratJalan = z.output<typeof skemaSuratJalan>;
 
-/** Maju satu langkah (S3); sopir/kendaraan boleh diisi saat berangkat. */
+/** S3: hanya DIPROSES → DIMUAT; DIKIRIM lewat berangkat (S9), SELESAI lewat catat hasil (S10). */
 export const skemaStatusSuratJalan = z.object({
-  status: z.enum(['DIMUAT', 'DIKIRIM', 'SELESAI'] as const),
-  sopir: teksOpsional(100, 'Nama sopir maksimal 100 karakter.'),
-  kendaraan: teksOpsional(50, 'Kendaraan maksimal 50 karakter.'),
+  status: z.literal('DIMUAT'),
 });
 
 export const skemaBatalSuratJalan = skemaBatalOrder;
@@ -697,6 +696,11 @@ export type BarisSuratJalan = {
   alasanBatal: string | null;
   catatan: string | null;
   namaPengguna: string;
+  /** K-150: perjalanan yang membawanya (null untuk surat jalan sebelum K-150 atau yang belum berangkat). */
+  idPerjalanan: number | null;
+  nomorPerjalanan: string | null;
+  /** K-149: hasil pengantaran (null bila belum dicatat atau surat jalan SELESAI sebelum K-149). */
+  hasil: HasilSuratJalan | null;
   baris: {
     idPenjualanDetail: number;
     namaBarang: string;
@@ -704,6 +708,19 @@ export type BarisSuratJalan = {
     kodeSatuan: string;
     qtyKirim: string;
   }[];
+};
+
+/** Invoice pengantaran yang masih punya barang belum dikirim (kolom "Perlu surat jalan"). */
+export type PerluDikirim = {
+  idPenjualan: number;
+  nomor: string;
+  tanggal: string;
+  namaPelanggan: string | null;
+  alamatKirim: string | null;
+  bayarSaatTerima: boolean;
+  /** Ada surat jalan selesai sebelumnya: sisa ini kiriman ulang/pengganti. */
+  kirimUlang: boolean;
+  baris: { namaBarang: string; kodeSatuan: string; qtyBelumDikirim: string }[];
 };
 
 // --- Piutang (docs/06 PT1–PT4) ---

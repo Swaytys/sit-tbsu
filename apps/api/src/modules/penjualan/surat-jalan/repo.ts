@@ -8,10 +8,17 @@ import {
   pengguna,
   penjualan,
   penjualanDetail,
+  returPenjualan,
+  returPenjualanDetail,
   satuan,
   suratJalan,
   suratJalanDetail,
+  suratJalanHasil,
+  suratJalanHasilDetail,
+  perjalanan,
 } from '../../../db/schema';
+import { alias } from 'drizzle-orm/pg-core';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { kodeSatuanBaris, satuanBaris } from '../satuan-baris';
 import { polaCari } from '../../../lib/paginasi';
 
@@ -34,6 +41,8 @@ const kolom = {
   alasanBatal: suratJalan.alasanBatal,
   catatan: suratJalan.catatan,
   namaPengguna: pengguna.namaPengguna,
+  idPerjalanan: suratJalan.idPerjalanan,
+  nomorPerjalanan: perjalanan.nomor,
 };
 
 function dasar(ex: Executor) {
@@ -42,7 +51,8 @@ function dasar(ex: Executor) {
     .from(suratJalan)
     .innerJoin(penjualan, eq(penjualan.id, suratJalan.idPenjualan))
     .innerJoin(pengguna, eq(pengguna.id, suratJalan.idPengguna))
-    .leftJoin(pelanggan, eq(pelanggan.id, penjualan.idPelanggan));
+    .leftJoin(pelanggan, eq(pelanggan.id, penjualan.idPelanggan))
+    .leftJoin(perjalanan, eq(perjalanan.id, suratJalan.idPerjalanan));
 }
 
 export type SaringSuratJalan = {
@@ -124,6 +134,7 @@ export async function kunci(tx: Tx, id: number) {
       status: suratJalan.status,
       sopir: suratJalan.sopir,
       kendaraan: suratJalan.kendaraan,
+      idPerjalanan: suratJalan.idPerjalanan,
     })
     .from(suratJalan)
     .where(eq(suratJalan.id, id))
@@ -132,11 +143,121 @@ export async function kunci(tx: Tx, id: number) {
   return b;
 }
 
+/** Baris surat jalan untuk dicatat hasilnya (S10). */
+export function detailUntukHasil(ex: Executor, idSuratJalan: number) {
+  return ex
+    .select({
+      id: suratJalanDetail.id,
+      idPenjualanDetail: suratJalanDetail.idPenjualanDetail,
+      qtyKirim: suratJalanDetail.qtyKirim,
+      namaBarang: barang.namaBarang,
+      kodeSatuan: kodeSatuanBaris,
+    })
+    .from(suratJalanDetail)
+    .innerJoin(penjualanDetail, eq(penjualanDetail.id, suratJalanDetail.idPenjualanDetail))
+    .innerJoin(barang, eq(barang.id, penjualanDetail.idBarang))
+    .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .leftJoin(barangSatuanJual, eq(barangSatuanJual.id, penjualanDetail.idSatuanJual))
+    .leftJoin(satuanBaris, eq(satuanBaris.id, barangSatuanJual.idSatuan))
+    .where(eq(suratJalanDetail.idSuratJalan, idSuratJalan))
+    .orderBy(asc(suratJalanDetail.id));
+}
+
+const returTukar = alias(returPenjualan, 'retur_tukar');
+const returUang = alias(returPenjualan, 'retur_uang');
+
+/** Header hasil pengantaran beserta retur yang dibuatnya (S10). */
+export function hasilHeader(ex: Executor, idSuratJalan: number[]) {
+  if (idSuratJalan.length === 0) return Promise.resolve([]);
+  return ex
+    .select({
+      id: suratJalanHasil.id,
+      idSuratJalan: suratJalanHasil.idSuratJalan,
+      waktu: suratJalanHasil.waktu,
+      namaPengguna: pengguna.namaPengguna,
+      namaPenerima: suratJalanHasil.namaPenerima,
+      penangananRusak: suratJalanHasil.penangananRusak,
+      catatan: suratJalanHasil.catatan,
+      idReturTukar: suratJalanHasil.idReturTukar,
+      nomorReturTukar: returTukar.nomor,
+      statusReturTukar: returTukar.status,
+      idReturUang: suratJalanHasil.idReturUang,
+      nomorReturUang: returUang.nomor,
+      statusReturUang: returUang.status,
+    })
+    .from(suratJalanHasil)
+    .innerJoin(pengguna, eq(pengguna.id, suratJalanHasil.idPengguna))
+    .leftJoin(returTukar, eq(returTukar.id, suratJalanHasil.idReturTukar))
+    .leftJoin(returUang, eq(returUang.id, suratJalanHasil.idReturUang))
+    .where(inArray(suratJalanHasil.idSuratJalan, idSuratJalan));
+}
+
+export function hasilDetail(ex: Executor, idHasil: number[]) {
+  if (idHasil.length === 0) return Promise.resolve([]);
+  return ex
+    .select({
+      idHasil: suratJalanHasilDetail.idHasil,
+      idPenjualanDetail: suratJalanDetail.idPenjualanDetail,
+      qtyDiterima: suratJalanHasilDetail.qtyDiterima,
+      qtyKembali: suratJalanHasilDetail.qtyKembali,
+      qtyRusak: suratJalanHasilDetail.qtyRusak,
+      qtyDitolak: suratJalanHasilDetail.qtyDitolak,
+      kondisiDitolak: suratJalanHasilDetail.kondisiDitolak,
+    })
+    .from(suratJalanHasilDetail)
+    .innerJoin(suratJalanDetail, eq(suratJalanDetail.id, suratJalanHasilDetail.idSuratJalanDetail))
+    .where(inArray(suratJalanHasilDetail.idHasil, idHasil))
+    .orderBy(asc(suratJalanHasilDetail.id));
+}
+
+/** Invoice pengantaran yang mungkin masih punya barang belum dikirim (disaring lagi per baris di service). */
+export function calonPerluDikirim(ex: Executor) {
+  return ex
+    .select({
+      idPenjualan: penjualan.id,
+      nomor: penjualan.nomor,
+      tanggal: penjualan.tanggal,
+      namaPelanggan: pelanggan.namaPelanggan,
+      alamatKirim: penjualan.alamatKirim,
+      bayarSaatTerima: penjualan.bayarSaatTerima,
+      kirimUlang: sql<boolean>`exists (select 1 from ${suratJalan} s
+        where s.id_penjualan = ${kolomPenuh(penjualan.id)} and s.status = 'SELESAI')`,
+    })
+    .from(penjualan)
+    .leftJoin(pelanggan, eq(pelanggan.id, penjualan.idPelanggan))
+    .where(
+      and(
+        eq(penjualan.jenisPenjualan, 'PENGANTARAN'),
+        ne(penjualan.statusTransaksi, 'VOID'),
+        ne(penjualan.statusPengiriman, 'SELESAI'),
+      ),
+    )
+    .orderBy(asc(penjualan.tanggal))
+    .limit(100);
+}
+
+/**
+ * Σ qty per baris invoice dari surat jalan yang memenuhi `status`. Surat jalan yang hasilnya sudah dicatat
+ * (S10) dihitung qty diterimanya; yang belum (sedang berjalan, atau SELESAI sebelum K-149) qty kirimnya.
+ */
 const sjAktif = (id: SQL | typeof penjualanDetail.id, status: SQL) => sql<string>`coalesce((
-  select sum(d.qty_kirim) from ${suratJalanDetail} d join ${suratJalan} s on s.id = d.id_surat_jalan
+  select sum(coalesce(h.qty_diterima, d.qty_kirim)) from ${suratJalanDetail} d
+  join ${suratJalan} s on s.id = d.id_surat_jalan
+  left join ${suratJalanHasilDetail} h on h.id_surat_jalan_detail = d.id
   where d.id_penjualan_detail = ${id} and ${status}), 0)::text`;
 
-/** Per baris invoice: qty, retur, status item, qty di SJ non-BATAL, dan qty di SJ SELESAI (S2, S4). */
+/** Qty retur yang masih MENUNGGU persetujuan (satuan dasar). */
+const returMenunggu = sql<string>`coalesce((select sum(d.qty_retur_dasar) from ${returPenjualanDetail} d
+  join ${returPenjualan} r on r.id = d.id_retur
+  where d.id_penjualan_detail = ${kolomPenuh(penjualanDetail.id)} and r.status = 'MENUNGGU'), 0)::text`;
+
+/** Qty di surat jalan yang belum selesai (DIPROSES/DIMUAT/DIKIRIM): barangnya belum jelas nasibnya. */
+const dalamPerjalanan = sql<string>`coalesce((
+  select sum(d.qty_kirim) from ${suratJalanDetail} d join ${suratJalan} s on s.id = d.id_surat_jalan
+  where d.id_penjualan_detail = ${kolomPenuh(penjualanDetail.id)}
+    and s.status in ('DIPROSES', 'DIMUAT', 'DIKIRIM')), 0)::text`;
+
+/** Per baris invoice: qty, retur (disetujui dan menunggu), status item, qty di SJ non-BATAL dan SELESAI (S2, S4). */
 export function qtyBaris(ex: Executor, idPenjualan: number) {
   return ex
     .select({
@@ -147,8 +268,10 @@ export function qtyBaris(ex: Executor, idPenjualan: number) {
       faktor: penjualanDetail.faktor,
       qtyReturDasar: penjualanDetail.qtyReturDasar,
       statusItem: penjualanDetail.statusItem,
+      qtyReturMenungguDasar: returMenunggu,
       qtyDikirim: sjAktif(penjualanDetail.id, sql`s.status <> 'BATAL'`),
       qtyTerkirim: sjAktif(penjualanDetail.id, sql`s.status = 'SELESAI'`),
+      qtyDalamPerjalanan: dalamPerjalanan,
     })
     .from(penjualanDetail)
     .innerJoin(barang, eq(barang.id, penjualanDetail.idBarang))

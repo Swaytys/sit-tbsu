@@ -652,9 +652,9 @@ keputusan lama masih tertulis di berkasnya.
 | K-146 | Diskon manual dihapus; potongan hanya lewat Promo; form order lengkap dihapus. | Berlaku (selesai 23 Okt) |
 | K-147 | Istilah "uang shift" menggantikan "uang laci". | Berlaku (selesai 23 Okt) |
 | K-148 | Koreksi modal hanya setelah hitung susulan disimpan. | Berlaku |
-| K-149 | Hasil pengantaran per barang: diterima, kembali utuh, rusak di jalan, ditolak; dicatat admin/kasir. | Berlaku (rencana) |
-| K-150 | FMS inti: master kendaraan dan sopir, status sedang jalan, riwayat trip. | Berlaku (rencana) |
-| K-151 | Rusak di jalan ditanggung toko; pembeli pilih kiriman pengganti atau tagihan dikurangi. | Berlaku (rencana) |
+| K-149 | Hasil pengantaran per barang: diterima, kembali utuh, rusak di jalan, ditolak; dicatat admin/kasir. | Berlaku (selesai 23 Okt) |
+| K-150 | FMS inti: master kendaraan dan sopir, status sedang jalan, riwayat trip. | Berlaku (selesai 23 Okt) |
+| K-151 | Rusak di jalan ditanggung toko; pembeli pilih kiriman pengganti atau tagihan dikurangi. | Berlaku (selesai 23 Okt) |
 
 ---
 
@@ -687,3 +687,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-18 — K-121 dan K-122 selesai dibangun (status 6.19, 4.5).
 - 2026-10-18 — K-128–K-145 ditambahkan (6.20; 4.8 satu shift toko).
 - 2026-10-23 — K-146–K-151 (6.21).
+- 2026-10-23 — K-149–K-151 selesai (pengantaran per barang, kendaraan & sopir, perjalanan).

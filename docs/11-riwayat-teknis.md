@@ -407,6 +407,33 @@ input cepat; istilah "uang laci" tidak baku.
 lama (`promo`, `laporan`) membuat data diskon langsung di DB. E2E `order.spec` (ubah lewat Daftar order), shift,
 void, pos, order-simpan, dan 5 alur @kritis lulus.
 
+
+### C6. Hasil pengantaran per barang dan FMS inti (23 Oktober 2026, K-149–K-151)
+
+**Masalah:** surat jalan hanya punya status "diterima" untuk seluruh isi; sopir/kendaraan diketik bebas tiap kali;
+tidak ada cara mencatat barang kembali, rusak di jalan, atau ditolak; satu truk bisa tercatat di dua tempat.
+
+**Solusi:**
+- Migrasi 0023: `kendaraan`, `sopir` (master; unik `upper(plat)` dan `lower(nama)`), `perjalanan` (indeks unik
+  parsial per kendaraan/sopir `where status = 'JALAN'`), `surat_jalan_hasil` + `_detail` (append-only, unik per
+  surat jalan/baris), `surat_jalan.id_perjalanan`. Prefix nomor `TRP`.
+- `POST /api/perjalanan` (berangkat): kunci baris kendaraan dan sopir (`FOR UPDATE`) sebelum memeriksa perjalanan
+  berjalan, sehingga dua keberangkatan bersamaan berurutan; satu perjalanan membawa beberapa surat jalan.
+- `POST /api/surat-jalan/:id/hasil`: surat jalan dikunci → SELESAI dulu → retur otomatis lewat `ajukanReturTx`
+  (fungsi retur yang dipecah agar bisa ikut transaksi pemanggil): ditolak + rusak "kurangi tagihan" = satu retur
+  POTONG_TAGIHAN/REFUND; rusak "kirim pengganti" = retur TUKAR_BARANG kondisi RUSAK. Perjalanan selesai bila tidak ada
+  lagi surat jalan DIKIRIM di dalamnya. Kembali utuh tidak menyentuh stok (stok sudah keluar saat checkout).
+- `sisaKirim` memakai qty diterima (bila hasil sudah dicatat) dan mengurangkan retur yang masih menunggu, sehingga
+  barang tidak terkirim ganda. Retur biasa ditolak untuk qty yang masih di surat jalan belum selesai.
+- `/api/surat-jalan/:id/status` kini hanya DIMUAT. `GET /api/surat-jalan/perlu-kirim` untuk kolom papan.
+- Web: `papan-pengiriman.tsx` (tiga kolom, A/B), `dialog-berangkat.tsx`, `dialog-hasil.tsx` (hanya isi
+  pengecualian; diterima dihitung tampilan), `halaman-armada.tsx` (+ riwayat perjalanan), panel surat jalan invoice.
+
+**Tes:** `surat-jalan.test.ts` ditulis ulang (13 kasus: perjalanan dan kunci kendaraan/sopir, dua keberangkatan
+bersamaan, kembali utuh, ditolak potong tagihan, rusak kirim pengganti/kurangi tagihan, refund tunai, retur kasir
+menunggu lalu ditolak atasan, retur biasa saat barang di jalan, izin); `void.test.ts` memakai perjalanan. E2E
+`pengiriman.spec.ts` (baru) dan `pengantaran.spec.ts` (@kritis) memakai kendaraan/sopir master.
+
 ---
 
 ## Riwayat dokumen
@@ -417,3 +444,4 @@ void, pos, order-simpan, dan 5 alur @kritis lulus.
 - 2026-10-18 — Bagian C3 order disimpan, kembali ke draf, peringatan draf lain (K-122).
 - 2026-10-18 — Bagian C4 satu shift toko dan perbaikan uji pemilik (K-132–K-142).
 - 2026-10-23 — Bagian C5 diskon manual dihapus, mode ubah order, istilah uang shift (K-146–K-148).
+- 2026-10-23 — Bagian C6 hasil pengantaran per barang dan FMS inti (K-149–K-151).

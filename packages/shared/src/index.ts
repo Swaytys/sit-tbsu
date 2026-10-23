@@ -12,6 +12,7 @@ export * from './penomoran';
 export * from './permissions';
 export * from './qty';
 export * from './roles';
+export * from './schemas/armada';
 export * from './schemas/auth';
 export * from './schemas/barang';
 export * from './schemas/cadangan';
