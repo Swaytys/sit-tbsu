@@ -1,7 +1,7 @@
-# 10 — Ringkasan Keputusan (K-001 s.d. K-151)
+# 10 — Ringkasan Keputusan (K-001 s.d. K-167)
 
 Dokumen ini merangkum **seluruh keputusan** yang dicatat di folder `keputusan/` selama pengembangan BonsaiUrip
-(SIT TBSU): **151 keputusan dalam 30 berkas**, dari 19 September sampai 18 Oktober 2026.
+(SIT TBSU): **167 keputusan dalam 31 berkas**, dari 19 September sampai 18 Oktober 2026.
 
 Yang dirangkum di sini adalah **apa yang diputuskan** dan **apa yang berlaku sekarang**. Alasan lengkap, pilihan
 yang ditolak, dan rincian teknis tetap ada di berkas keputusan aslinya. Bila ringkasan ini berbeda dengan berkas
@@ -14,7 +14,7 @@ Isi dokumen:
 3. [Tiga konsep yang paling banyak berubah](#3-tiga-konsep-yang-paling-banyak-berubah)
 4. [Yang berlaku sekarang, per topik](#4-yang-berlaku-sekarang-per-topik)
 5. [Keputusan yang diganti atau diubah](#5-keputusan-yang-diganti-atau-diubah)
-6. [Daftar lengkap K-001 s.d. K-151](#6-daftar-lengkap-k-001-sd-k-151)
+6. [Daftar lengkap K-001 s.d. K-167](#6-daftar-lengkap-k-001-sd-k-167)
 7. [Yang dijadwalkan sesudah ini](#7-yang-dijadwalkan-sesudah-ini)
 
 ---
@@ -394,7 +394,7 @@ keputusan lama masih tertulis di berkasnya.
 
 ---
 
-## 6. Daftar lengkap K-001 s.d. K-151
+## 6. Daftar lengkap K-001 s.d. K-167
 
 ### 6.1 Fondasi — `2026-09-19-keputusan-fondasi.md`
 
@@ -658,6 +658,29 @@ keputusan lama masih tertulis di berkasnya.
 
 ---
 
+### 6.22 Hasil uji 23 Oktober dan FMS lanjutan — `2026-10-24-masukan-uji-dan-fms-lanjutan.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-152 | Tata letak tidak saling menimpa di semua lebar/zoom; diperiksa otomatis. | Berlaku (selesai 24 Okt) |
+| K-153 | Teks panjang di tempat sempit bisa dibuka-tutup. | Berlaku (selesai 24 Okt) |
+| K-154 | Non-tunai hanya ke rekening penerimaan terdaftar (termasuk e-wallet); No. referensi wajib. | Berlaku (selesai 24 Okt) |
+| K-155 | Satu shift toko dijamin indeks unik database. | Berlaku (selesai 24 Okt) |
+| K-156 | Pengingat bisa diciutkan jadi lencana; dialog buka shift tidak muncul sendiri; bilah pintasan bisa diciutkan. | Berlaku (selesai 24 Okt) |
+| K-157 | Tombol bayar campuran tampil sebagai tombol. | Berlaku (selesai 24 Okt) |
+| K-158 | Pengaturan "Harga dasar" dengan penjelasan Average/LIFO/FIFO dan kalkulator. | Berlaku (selesai 24 Okt) |
+| K-159 | Cadangan: salin alamat folder, penjelasan server toko vs cloud. | Berlaku (selesai 24 Okt) |
+| K-160 | Halaman Pengiriman tersendiri (menu Logistik), papan kartu order kirim, grup per rit. | Berlaku (rencana) |
+| K-161 | Dimensi & berat barang, kapasitas kendaraan, peringatan muatan bertingkat (ODOL). | Berlaku (rencana) |
+| K-162 | FMS pendukung: utilisasi, rit, STNK/KIR, servis, BBM. | Berlaku (rencana) |
+| K-163 | Editor kampanye promo: syarat + manfaat, jam-menit, banyak barang, templat. | Berlaku (rencana) |
+| K-164 | Kunci idempoten kiriman uang dan cek versi data master. | Berlaku (rencana) |
+| K-165 | Arsip/tutup buku tahunan; dokumen pembukuan disimpan 10 tahun. | Berlaku (rencana) |
+| K-166 | Alur pembaruan aplikasi yang aman bagi data lama. | Berlaku (rencana) |
+| K-167 | Pencarian universal di topbar (Ctrl+K). | Berlaku (rencana) |
+
+---
+
 ## 7. Yang dijadwalkan sesudah ini
 
 Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supaya tidak hilang. Rinciannya di
@@ -688,3 +711,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-18 — K-128–K-145 ditambahkan (6.20; 4.8 satu shift toko).
 - 2026-10-23 — K-146–K-151 (6.21).
 - 2026-10-23 — K-149–K-151 selesai (pengantaran per barang, kendaraan & sopir, perjalanan).
+- 2026-10-24 — K-152–K-167 (6.22).

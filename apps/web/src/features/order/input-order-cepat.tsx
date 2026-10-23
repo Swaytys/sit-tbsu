@@ -644,9 +644,9 @@ export function InputOrderCepat() {
   ];
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] min-h-[520px] flex-col gap-2">
+    <div className="flex h-full min-h-[400px] flex-col gap-2">
       <div className="flex min-h-0 flex-1 gap-3">
-        <section className="flex min-w-0 flex-1 flex-col gap-2">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
           {ubahOrder && (
             <div
               className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-900"

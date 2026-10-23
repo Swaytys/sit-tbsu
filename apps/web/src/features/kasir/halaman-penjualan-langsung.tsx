@@ -14,8 +14,9 @@ export function HalamanPenjualanLangsung() {
   const tab: Tab = idOrder ? 'kasir' : (TAB.find((t) => t === diminta) ?? 'kasir');
 
   return (
-    <div className="flex flex-col gap-2 p-3">
+    <div className="flex h-full min-h-0 flex-col gap-2 p-3">
       <Tabs
+        className="min-h-0 flex-1"
         value={tab}
         onValueChange={(v) => setUrl(v === 'kasir' ? {} : { tab: v }, { replace: true })}
       >
@@ -24,7 +25,7 @@ export function HalamanPenjualanLangsung() {
           <TabsTrigger value="riwayat">Riwayat</TabsTrigger>
           <TabsTrigger value="belum-diambil">Belum diambil</TabsTrigger>
         </TabsList>
-        <TabsContent value="kasir">
+        <TabsContent value="kasir" className="min-h-0">
           <LayarPos jenis="LANGSUNG" idOrderAwal={idOrder} />
         </TabsContent>
         <TabsContent value="riwayat">

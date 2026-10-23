@@ -33,7 +33,7 @@ test('Admin mendaftarkan rekening → Kasir membayar transfer dengan memilihnya 
     await admin.goto('/pengaturan?tab=pembayaran');
     const kartu = admin.getByTestId('rekening-TRANSFER');
     await kartu.getByRole('button', { name: 'Tambah' }).click();
-    const dialog = admin.getByRole('dialog', { name: 'Tambah rekening toko' });
+    const dialog = admin.getByRole('dialog', { name: 'Tambah rekening penerimaan' });
     await dialog.getByLabel('Nama bank').fill(bank);
     await dialog.getByLabel('Nomor rekening').fill('123');
     await expect(dialog.getByText(label, { exact: true })).toBeVisible();
@@ -66,6 +66,11 @@ test('Admin mendaftarkan rekening → Kasir membayar transfer dengan memilihnya 
     await kasir.keyboard.press('b'); // transfer
     const pilih = kasir.getByLabel('Rekening tujuan');
     await expect(pilih.locator('option:checked')).toHaveText(label);
+    // K-154: tanpa No. referensi ditolak, kursor dipindah ke kotaknya.
+    await kasir.keyboard.press('Enter');
+    await expect(kasir.getByText(/No\. referensi wajib/)).toBeVisible();
+    await expect(kasir.getByLabel('Nomor referensi')).toBeFocused();
+    await kasir.keyboard.type('TRX-E2E-1');
     await kasir.keyboard.press('Enter');
     await expect(kasir.getByTestId('hasil-transaksi')).toContainText('LUNAS');
 

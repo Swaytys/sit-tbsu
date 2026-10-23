@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useDaftarGolongan } from '@/api/mitra';
+import { TeksLipat } from '@/components/teks-lipat';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { useDaftarPromo, useSimpanPromo, useStatusPromo } from '@/api/promo';
 import { useDaftarKategori } from '@/api/referensi';
@@ -732,11 +733,7 @@ export function TabPromo() {
     {
       kunci: 'sasaran',
       judul: 'Berlaku untuk',
-      sel: (p) => (
-        <span className="block max-w-56 truncate text-sm" title={uraianSasaran(p)}>
-          {uraianSasaran(p)}
-        </span>
-      ),
+      sel: (p) => <TeksLipat teks={uraianSasaran(p)} className="max-w-56 text-sm" />,
     },
     {
       kunci: 'syarat',

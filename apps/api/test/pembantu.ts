@@ -1,8 +1,15 @@
 import type { Peran, StatusAktif } from '@sit/shared';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { app } from '../src/app';
 import { db } from '../src/db/client';
-import { konfigurasi, logAktivitas, pengguna, penghitungNomor, sesiLogin } from '../src/db/schema';
+import {
+  konfigurasi,
+  logAktivitas,
+  pengguna,
+  penghitungNomor,
+  rekeningToko,
+  sesiLogin,
+} from '../src/db/schema';
 import { resetBatasPercobaan } from '../src/lib/batas-percobaan';
 import { hashPassword } from '../src/lib/password';
 import { NAMA_COOKIE_SESI } from '../src/modules/auth/token';
@@ -140,4 +147,24 @@ export function kodeTerkirim(nama: string): string {
 /** Isi pesan terbaru untuk `nama` (untuk memeriksa apa yang dibaca atasan). */
 export function pesanTerkirim(nama: string): string {
   return kotakKeluarUji().find((x) => x.kepada === nama)?.isi ?? '';
+}
+
+/**
+ * U12: pembayaran non-tunai wajib memakai rekening penerimaan terdaftar. Mengembalikan id rekening AKTIF jenis
+ * itu (dibuat bila belum ada) untuk tes yang tidak sedang menguji rekening.
+ */
+export async function rekeningUji(
+  jenis: 'TRANSFER' | 'EDC' | 'QRIS' = 'TRANSFER',
+): Promise<number> {
+  const [ada] = await db
+    .select({ id: rekeningToko.id })
+    .from(rekeningToko)
+    .where(and(eq(rekeningToko.jenis, jenis), eq(rekeningToko.statusAktif, 'AKTIF')))
+    .limit(1);
+  if (ada) return ada.id;
+  const [baru] = await db
+    .insert(rekeningToko)
+    .values({ jenis, bank: 'BCA', nomor: '123', atasNama: 'Toko', nama: `${jenis} BCA uji` })
+    .returning({ id: rekeningToko.id });
+  return baru!.id;
 }

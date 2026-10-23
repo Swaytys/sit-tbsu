@@ -72,90 +72,92 @@ export function InputHitungUang({
           className="h-12 text-2xl font-bold"
         />
       ) : (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {PECAHAN_UANG.map((p, i) => {
-            const n = nilai.rincian[String(p)] ?? 0;
-            return (
-              <div key={p} className="flex items-center gap-1 text-sm">
-                <label
-                  htmlFor={idBaris(p)}
-                  className="w-20 shrink-0 text-right font-medium tabular-nums"
-                >
-                  {teksPecahan(p)}
-                </label>
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label={`Kurangi ${teksPecahan(p)}`}
-                  onClick={() => aturLembar(p, n - 1)}
-                  className="flex size-7 items-center justify-center rounded border text-slate-500 hover:bg-slate-100"
-                >
-                  <Minus className="size-3.5" />
-                </button>
-                <input
-                  id={idBaris(p)}
-                  aria-label={`Jumlah ${teksPecahan(p)}`}
-                  inputMode="numeric"
-                  autoFocus={autoFocus && i === 0}
-                  value={n === 0 ? '' : String(n)}
-                  placeholder="0"
-                  onFocus={(e) => e.currentTarget.select()}
-                  onChange={(e) =>
-                    aturLembar(p, Number(e.target.value.replace(/\D/g, '').slice(0, 6) || '0'))
-                  }
-                  onKeyDown={(e) => {
-                    const pindah = (k: number) => {
-                      const target = PECAHAN_UANG[i + k];
-                      if (target !== undefined) document.getElementById(idBaris(target))?.focus();
-                    };
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      pindah(1);
-                    } else if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      pindah(-1);
-                    } else if (e.key === '+' || e.key === '=') {
-                      e.preventDefault();
-                      aturLembar(p, n + 1);
-                    } else if (e.key === '-') {
-                      e.preventDefault();
-                      aturLembar(p, n - 1);
-                    } else if (e.key === 'Delete') {
-                      e.preventDefault();
-                      if (e.shiftKey) hapusSemua();
-                      else aturLembar(p, 0);
+        <div className="@container">
+          <div className="grid grid-cols-1 gap-x-4 gap-y-1 @xl:grid-cols-2">
+            {PECAHAN_UANG.map((p, i) => {
+              const n = nilai.rincian[String(p)] ?? 0;
+              return (
+                <div key={p} className="flex min-w-0 items-center gap-1 text-sm">
+                  <label
+                    htmlFor={idBaris(p)}
+                    className="w-[4.75rem] shrink-0 text-right font-medium tabular-nums"
+                  >
+                    {teksPecahan(p)}
+                  </label>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-label={`Kurangi ${teksPecahan(p)}`}
+                    onClick={() => aturLembar(p, n - 1)}
+                    className="flex size-7 shrink-0 items-center justify-center rounded border text-slate-500 hover:bg-slate-100"
+                  >
+                    <Minus className="size-3.5" />
+                  </button>
+                  <input
+                    id={idBaris(p)}
+                    aria-label={`Jumlah ${teksPecahan(p)}`}
+                    inputMode="numeric"
+                    autoFocus={autoFocus && i === 0}
+                    value={n === 0 ? '' : String(n)}
+                    placeholder="0"
+                    onFocus={(e) => e.currentTarget.select()}
+                    onChange={(e) =>
+                      aturLembar(p, Number(e.target.value.replace(/\D/g, '').slice(0, 6) || '0'))
                     }
-                  }}
-                  className="h-8 w-14 rounded border px-2 text-right tabular-nums"
-                />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label={`Tambah ${teksPecahan(p)}`}
-                  onClick={() => aturLembar(p, n + 1)}
-                  className="flex size-7 items-center justify-center rounded border text-slate-500 hover:bg-slate-100"
-                >
-                  <Plus className="size-3.5" />
-                </button>
-                <span className="ml-auto min-w-0 truncate text-xs text-slate-500 tabular-nums">
-                  {n > 0 ? formatRupiah(n * p) : ''}
-                </span>
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label={`Kosongkan ${teksPecahan(p)}`}
-                  title="Kosongkan baris (Del)"
-                  onClick={() => aturLembar(p, 0)}
-                  className={cn(
-                    'flex size-6 shrink-0 items-center justify-center rounded text-slate-400 hover:bg-red-50 hover:text-red-600',
-                    n === 0 && 'invisible',
-                  )}
-                >
-                  <X className="size-3.5" />
-                </button>
-              </div>
-            );
-          })}
+                    onKeyDown={(e) => {
+                      const pindah = (k: number) => {
+                        const target = PECAHAN_UANG[i + k];
+                        if (target !== undefined) document.getElementById(idBaris(target))?.focus();
+                      };
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        pindah(1);
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        pindah(-1);
+                      } else if (e.key === '+' || e.key === '=') {
+                        e.preventDefault();
+                        aturLembar(p, n + 1);
+                      } else if (e.key === '-') {
+                        e.preventDefault();
+                        aturLembar(p, n - 1);
+                      } else if (e.key === 'Delete') {
+                        e.preventDefault();
+                        if (e.shiftKey) hapusSemua();
+                        else aturLembar(p, 0);
+                      }
+                    }}
+                    className="h-8 w-14 shrink-0 rounded border px-2 text-right tabular-nums"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-label={`Tambah ${teksPecahan(p)}`}
+                    onClick={() => aturLembar(p, n + 1)}
+                    className="flex size-7 shrink-0 items-center justify-center rounded border text-slate-500 hover:bg-slate-100"
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
+                  <span className="ml-auto min-w-0 truncate text-xs text-slate-500 tabular-nums">
+                    {n > 0 ? formatRupiah(n * p) : ''}
+                  </span>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-label={`Kosongkan ${teksPecahan(p)}`}
+                    title="Kosongkan baris (Del)"
+                    onClick={() => aturLembar(p, 0)}
+                    className={cn(
+                      'flex size-6 shrink-0 items-center justify-center rounded text-slate-400 hover:bg-red-50 hover:text-red-600',
+                      n === 0 && 'invisible',
+                    )}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
       <div className="flex items-center justify-between gap-2 text-xs text-slate-500">

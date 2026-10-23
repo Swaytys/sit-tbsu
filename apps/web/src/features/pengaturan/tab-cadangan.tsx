@@ -2,6 +2,7 @@ import type { BarisCadangan, StatusTujuanCadangan } from '@sit/shared';
 import {
   AlertTriangle,
   CheckCircle2,
+  Copy,
   CloudUpload,
   DatabaseBackup,
   HardDrive,
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
 import { useJalankanCadangan, useStatusCadangan } from '@/api/pengaturan';
 import { Badge } from '@/components/ui/badge';
+import { ButirPenjelasan, Penjelasan } from '@/components/penjelasan';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -50,6 +52,68 @@ function labelPemicu(b: BarisCadangan): string {
   if (b.pemicu === 'JADWAL') return 'Jadwal';
   if (b.pemicu === 'MANUAL') return b.namaPengguna ?? 'Manual';
   return 'Sebelum pembaruan';
+}
+
+/** Peramban tidak boleh membuka folder komputer dari halaman web, jadi alamatnya disalin untuk Explorer. */
+function SalinAlamat({ teks }: { teks: string }) {
+  return (
+    <button
+      type="button"
+      className="mt-1 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium hover:bg-slate-50"
+      onClick={() =>
+        void navigator.clipboard
+          .writeText(teks)
+          .then(() =>
+            toast.success(
+              'Alamat folder disalin. Di komputer server: buka File Explorer, klik kolom alamat di atas, tempel (Ctrl+V), Enter.',
+            ),
+          )
+          .catch(() =>
+            toast.error('Tidak bisa menyalin otomatis; pilih teks alamatnya lalu Ctrl+C.'),
+          )
+      }
+    >
+      <Copy className="size-3" /> Salin alamat folder
+    </button>
+  );
+}
+
+/** Di mana cadangan berada untuk tiap cara pemasangan server. */
+function PenjelasanLokasi() {
+  return (
+    <Penjelasan judul="Di mana cadangan disimpan, dan bila server di cloud">
+      <ButirPenjelasan>
+        <li>
+          <b>Isi folder cadangan terenkripsi</b> (restic, kata sandi <code>CADANGAN_SANDI</code>).
+          Isinya tidak bisa dibaca langsung; hanya bisa dipulihkan dengan kata sandi itu. Simpan
+          kata sandinya di tempat aman terpisah (mis. dicatat Owner), karena tanpa itu cadangan
+          tidak bisa dibuka.
+        </li>
+        <li>
+          <b>Server di komputer toko</b> (cara sekarang): folder <i>Lokal</i> ada di komputer server
+          (sebaiknya disk kedua atau disk eksternal). Tombol <b>Salin alamat folder</b> menyalin
+          alamatnya; tempel di File Explorer komputer server. Dari komputer kasir lain folder itu
+          tidak terlihat, dan memang sengaja tidak dibagikan.
+        </li>
+        <li>
+          <b>Server di cloud / hosting (VPS)</b>: folder <i>Lokal</i> berada di disk server sewaan,
+          bukan di toko. Karena itu <b>tujuan Cloud wajib diisi</b> (Google Drive atau penyimpanan
+          objek) agar salinan ada di luar server; bila hosting bermasalah, data dipulihkan dari
+          Cloud ke server baru. Tanpa tujuan Cloud, cadangan hanya ada di server itu sendiri (kolom
+          Cloud: "tidak diatur").
+        </li>
+        <li>
+          <b>Memulihkan</b> tidak dilakukan dari halaman ini (agar tidak terpencet). Langkahnya ada
+          di panduan pemasangan server, bagian Cadangan data. <b>Uji pulih</b> di bawah memastikan
+          cadangan terakhir benar-benar bisa dibuka, tanpa mengubah data toko.
+        </li>
+        <li>
+          <b>Sebelum pembaruan aplikasi</b> cadangan dibuat otomatis (pemicu "Sebelum pembaruan"),
+          sehingga bila pembaruan gagal data bisa dikembalikan ke keadaan sebelumnya.
+        </li>
+      </ButirPenjelasan>
+    </Penjelasan>
+  );
 }
 
 /**
@@ -107,7 +171,7 @@ export function TabCadangan() {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid gap-4 lg:grid-cols-3">
           <Card className="gap-1 p-5">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
               <CheckCircle2 className={cn('size-4', t ? 'text-green-600' : 'text-slate-300')} />
@@ -127,14 +191,21 @@ export function TabCadangan() {
           <Card className="gap-1 p-5 text-sm">
             <div className="flex items-center gap-2 font-semibold text-slate-700">
               <HardDrive className="size-4 text-slate-500" /> Lokasi
+              <span className="ml-auto">
+                <PenjelasanLokasi />
+              </span>
             </div>
-            <div className="truncate" title={s.repoLokal ?? ''}>
-              Lokal: <span className="font-mono text-xs">{s.repoLokal}</span>
+            <div className="min-w-0">
+              Lokal (di komputer server):
+              <span className="block font-mono text-xs break-all">{s.repoLokal}</span>
+              {s.repoLokal && <SalinAlamat teks={s.repoLokal} />}
             </div>
-            <div className="flex items-center gap-1 truncate" title={s.repoCloud ?? ''}>
-              <CloudUpload className="size-3.5 text-slate-500" /> Cloud:{' '}
+            <div className="min-w-0">
+              <span className="flex items-center gap-1">
+                <CloudUpload className="size-3.5 text-slate-500" /> Cloud:
+              </span>
               {s.repoCloud ? (
-                <span className="font-mono text-xs">{s.repoCloud}</span>
+                <span className="block font-mono text-xs break-all">{s.repoCloud}</span>
               ) : (
                 'tidak diatur'
               )}

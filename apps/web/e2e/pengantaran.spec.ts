@@ -61,7 +61,7 @@ test(
 
       // 1. Invoice dengan DP transfer Rp 200.000 lewat layar POS (keyboard).
       await menuUtama(kasir).getByRole('link', { name: 'Penjualan Pengantaran' }).click();
-      const tiket = kasir.getByRole('option', { name: `Antrean ${o.noAntrean}` });
+      const tiket = kasir.getByRole('option', { name: `Antrean ${o.noAntrean}`, exact: true });
       await expect(tiket).toContainText(`CV Proyek E2E ${kode}`);
       await kasir.keyboard.press('F3');
       await kasir.keyboard.type(String(o.noAntrean));
@@ -70,8 +70,9 @@ test(
       await kasir.keyboard.press('u'); // DP: sebagian sekarang, sisanya piutang
       await kasir.keyboard.press('b');
       await kasir.keyboard.type('200000');
-      await kasir.keyboard.press('Tab');
-      await kasir.keyboard.type('BCA 123456');
+      await kasir.keyboard.press('Tab'); // rekening tujuan (bawaan terpilih)
+      await kasir.keyboard.press('Tab'); // No. referensi (wajib, K-154)
+      await kasir.keyboard.type('TRX123456');
       await kasir.keyboard.press('Enter');
       await expect(kasir.getByTestId('hasil-transaksi')).toContainText('sisa Rp 300.000');
       const [inv] = await api<{ id: number }[]>(
@@ -125,7 +126,8 @@ test(
       await expect(dialog.getByLabel('Bayar')).toBeFocused();
       await kasir.keyboard.press('e'); // EDC; kotak kosong = lunasi sisa
       await kasir.keyboard.press('Tab');
-      await kasir.keyboard.type('EDC BRI');
+      await kasir.keyboard.press('Tab');
+      await kasir.keyboard.type('APPR01');
       await kasir.keyboard.press('Enter');
       await expect(kasir.getByText(/INV-\d{6}-\d{3,} lunas\./)).toBeVisible();
       await expect(kasir.getByRole('heading', { name: /^INV-/ })).toContainText('Lunas');

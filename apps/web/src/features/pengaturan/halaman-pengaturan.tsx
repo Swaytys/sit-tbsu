@@ -63,7 +63,7 @@ export function HalamanPengaturan() {
             <TabsTrigger value="penomoran">Penomoran</TabsTrigger>
             <TabsTrigger value="operasional">Operasional</TabsTrigger>
             <TabsTrigger value="pembayaran">Pembayaran</TabsTrigger>
-            <TabsTrigger value="harga">Harga &amp; diskon</TabsTrigger>
+            <TabsTrigger value="harga">Harga dasar</TabsTrigger>
             {bolehPromo && <TabsTrigger value="promo">Promo</TabsTrigger>}
             <TabsTrigger value="keamanan">Keamanan</TabsTrigger>
             <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>

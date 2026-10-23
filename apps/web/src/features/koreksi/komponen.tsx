@@ -110,6 +110,13 @@ export function IsianRefund({
           <button
             key={m}
             type="button"
+            // U12: transfer hanya dari rekening penerimaan terdaftar.
+            disabled={m === 'TRANSFER' && rekeningToko.length === 0}
+            title={
+              m === 'TRANSFER' && rekeningToko.length === 0
+                ? 'Belum ada rekening transfer di Pengaturan › Pembayaran'
+                : undefined
+            }
             onClick={() =>
               onUbah({
                 ...nilai,
@@ -119,7 +126,7 @@ export function IsianRefund({
               })
             }
             className={cn(
-              'rounded-md border-2 py-1.5 text-sm font-semibold',
+              'rounded-md border-2 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:border-dashed disabled:text-slate-300',
               nilai.metodeRefund === m
                 ? 'border-blue-600 bg-blue-50 text-blue-700'
                 : 'border-slate-200',
@@ -132,7 +139,7 @@ export function IsianRefund({
       {nilai.metodeRefund === 'TRANSFER' && (
         <div className="space-y-1.5">
           <div className="grid grid-cols-2 gap-2">
-            {rekeningToko.length > 0 ? (
+            {
               <select
                 aria-label="Rekening refund"
                 title="Dari rekening toko mana uangnya dikirim? Daftarnya diatur di Pengaturan › Pembayaran."
@@ -146,15 +153,7 @@ export function IsianRefund({
                   </option>
                 ))}
               </select>
-            ) : (
-              <Input
-                placeholder="Rekening toko asal uang"
-                aria-label="Rekening refund"
-                value={nilai.rekeningRefund ?? ''}
-                maxLength={60}
-                onChange={(e) => onUbah({ ...nilai, rekeningRefund: e.target.value })}
-              />
-            )}
+            }
             <Input
               placeholder="Rekening pembeli / no. referensi (opsional)"
               aria-label="Referensi refund"

@@ -159,9 +159,12 @@ di layar kasir seperti order antrean.
   **Tidak dicetak**; tombol *Cetak struk* juga ada di layar hasil.
 - **Bayar bukan tunai:** di kotak bayar tekan **B** (Transfer), **E** (EDC/kartu), atau **Q** (QRIS); tombolnya
   juga bisa diklik. Kotak **Rekening tujuan** langsung berisi rekening bawaan toko; bila toko punya lebih dari
-  satu, pilih dari daftar. **Anda tidak mengetik nomor rekening.** Lalu **Enter**. Pembayaran ini tercatat
-  *Belum dicek* sampai Admin/Owner mencocokkannya dengan mutasi bank. Bila daftar rekening kosong, minta
-  Admin/Owner mengisinya di *Pengaturan › Pembayaran*.
+  satu, pilih dari daftar. **Anda tidak mengetik nomor rekening.** Isi **No. referensi** (wajib, minimal 4 huruf/
+  angka): nomor referensi di bukti transfer/e-wallet pembeli, nomor approval/trace di struk EDC, atau nomor
+  referensi di notifikasi QRIS. Lalu **Enter**. Pembayaran ini tercatat *Belum dicek* sampai Admin/Owner
+  mencocokkannya dengan mutasi. Tombol cara bayar bergaris putus-putus = rekeningnya belum didaftarkan, jadi belum
+  bisa dipakai; minta Admin/Owner mengisinya di *Pengaturan › Pembayaran*. E-wallet (OVO, GoPay, DANA, ShopeePay)
+  memakai **Transfer**.
 - **Bayar campuran** (satu tagihan, lebih dari satu cara, mis. sebagian tunai sebagian transfer):
   1. Pilih cara bayar bagian pertama (**T** tunai, **B** transfer, **E** EDC, **Q** QRIS).
   2. Ketik nominal bagian itu, lalu tekan **C**. Bagian itu masuk daftar bernomor dan **sisa tagihan** berkurang.
@@ -234,8 +237,9 @@ pelunasan.
      yang sama, tanpa uang), atau **Potong tagihan**. *Potong tagihan* hanya muncul bila transaksi itu masih
      punya sisa tagihan; sisa tagihannya tertulis di layar. Bila nilai retur lebih besar dari sisa tagihan,
      pakai *Uang dikembalikan*.
-  4. Uang dikembalikan lewat transfer: pilih **rekening toko** asal uangnya dari daftar; rekening pembeli dan
-     nomor referensi boleh diisi sebagai catatan, tidak wajib.
+  4. Uang dikembalikan lewat transfer: pilih **rekening toko** asal uangnya dari daftar (tombol Transfer tidak
+     aktif bila toko belum mendaftarkan rekening); rekening pembeli dan nomor referensi boleh diisi sebagai
+     catatan, tidak wajib.
   5. **Ajukan & minta persetujuan**.
 - **Persetujuan retur/void**: setelah diajukan muncul dialog *Persetujuan*. Tekan **Kirim kode ke atasan**:
   Admin/Owner menerima pesan Telegram/email berisi rincian permintaan dan **kode 6 angka**. Hubungi atasan; bila
@@ -336,8 +340,10 @@ Semua tugas kasir, ditambah:
   "jatuh tempo hari ini", "terlambat 3 hari"); tombol **?** menjelaskan tiap kolom. Admin/Owner mengubah
   pelanggan langsung. Kasir/Staf butuh kode Anda untuk mengubah atau menonaktifkan pelanggan: pesan yang Anda
   terima memuat rincian perubahannya; **baca dulu, sebutkan kodenya hanya bila setuju**.
-- **Rekening toko** (*Pengaturan › Pembayaran*): daftarkan sekali, supaya kasir tinggal memilih.
-  1. Di kartu *Rekening bank (transfer)*, *Mesin EDC (kartu)*, atau *QRIS*, klik **Tambah**.
+- **Rekening penerimaan** (*Pengaturan › Pembayaran*): daftarkan sekali semua tempat toko menerima uang non-tunai,
+  supaya kasir tinggal memilih. Cara bayar yang belum punya rekening di sini tidak bisa dipakai di kasir.
+  1. Di kartu *Rekening bank / e-wallet (transfer)*, *Mesin EDC (kartu)*, atau *QRIS*, klik **Tambah**. E-wallet
+     (OVO, GoPay, DANA, ShopeePay) didaftarkan di kartu pertama.
   2. Isi nama bank/mesin/QRIS (mis. BCA). Rekening bank: isi juga **Nomor rekening**; untuk EDC dan QRIS nomor
      boleh kosong. *Atas nama* boleh kosong. Nama yang tampil di layar kasir disusun otomatis.
   3. Centang **Jadikan bawaan untuk …** bila ini rekening yang paling sering dipakai: ia langsung terpilih di
@@ -366,7 +372,7 @@ Semua tugas kasir, ditambah:
 - **Menyetujui koreksi modal**: bila kasir meminta kode *Koreksi modal*, pesan Telegram/email memuat nomor shift,
   modal lama → baru, dan alasannya. Berikan kodenya hanya bila Anda yakin angka barunya benar (mis. sudah melihat
   sendiri uang shift). Admin/Owner juga bisa mengoreksi modal langsung tanpa kode selama shift masih berjalan.
-- **Penjelasan selisih** (setelah shift ditutup): buka shift yang berselisih di *Semua shift*, isi **Penjelasan
+- **Penjelasan selisih** (setelah shift ditutup): buka shift yang berselisih di tab *Riwayat*, isi **Penjelasan
   selisih (Admin/Owner)**, mis. "uang Rp 50.000 terselip di bawah laci, sudah disetor", lalu **Tandai
   terjelaskan**. Angka clerical tidak berubah; penjelasan, nama, dan waktunya tercatat.
 - **Toleransi dan batas hitung** (*Pengaturan › Operasional*): **Toleransi selisih kas** (rupiah; selisih sampai
@@ -434,7 +440,8 @@ Semua tugas kasir, ditambah:
   piutang, konsinyasi. Daftar laporan di kiri berupa tiga kelompok (Persediaan, Penjualan, Keuangan) yang bisa
   dibuka dan ditutup dengan mengklik namanya; pilihan itu diingat di komputer tersebut.
 - **Pengaturan**: profil toko & logo, struk & printer, penomoran, aturan operasional (termasuk jadwal shift),
-  pembayaran (rekening toko), harga, promo, keamanan, persetujuan.
+  pembayaran (rekening penerimaan), harga dasar (cara menghitung harga jual otomatis, dengan kalkulator contoh),
+  promo, keamanan, persetujuan, cadangan.
 - **Mencetak laporan, invoice, atau surat jalan** (kertas A4): di jendela cetak, periksa kotak **Printer**
   lebih dulu. Peramban mengingat printer yang terakhir dipakai, jadi bila sebelumnya mencetak ke printer struk,
   ganti ke printer A4. Ukuran dan arah kertas sudah diatur tiap dokumen. Agar tidak perlu berganti-ganti,
@@ -455,6 +462,13 @@ Semua tugas admin, ditambah:
 - Dari luar toko: buka alamat Tailscale di HP (panduan server bagian 6).
 
 ## Tips umum
+
+- **Pengingat di atas halaman** (mis. jam tutup shift): klik **Ciutkan** untuk menyembunyikannya; ia berubah menjadi
+  lencana kecil berdenyut di bagian atas layar. Klik lencananya untuk menampilkan lagi. Bila keadaannya makin
+  penting (mis. dari biru menjadi kuning), pengingat tampil penuh lagi.
+- **Daftar tombol keyboard** di bawah layar Order, Penjualan Langsung, Pengantaran, dan Pengiriman bisa diciutkan
+  dengan **Ciutkan** atau **Ctrl+/** (tekan lagi untuk membuka). Di layar pendek ia mulai dalam keadaan tertutup.
+- **Teks yang terpotong** (catatan, alamat): klik **lihat semua** untuk membacanya utuh, **ringkas** untuk menutup.
 
 - Jangan berbagi akun: setiap aksi tercatat atas nama pemilik akun.
 - Transaksi yang sudah tersimpan tidak diedit; koreksi lewat void, retur, atau penyesuaian agar jejaknya jelas.

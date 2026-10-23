@@ -153,6 +153,25 @@ Aturan lapisan:
   dokumen, sehingga nomor tidak lompat atau ganda.
 - Log aktivitas ditulis di transaksi yang sama dengan mutasinya.
 
+### Pengaman *race condition* (banyak pengguna bersamaan)
+
+*Race condition* = dua permintaan yang berjalan bersamaan saling menimpa hasilnya (mis. dua kasir menjual unit
+terakhir). Pengaman yang berlaku:
+
+| Keadaan | Pengaman | Bukti tes |
+|---|---|---|
+| Stok barang yang sama dijual/diubah bersamaan | `FOR UPDATE` baris `persediaan` di `catatMutasi`; urutan kunci per id barang | L11: 20 penjualan paralel dari stok 10 → tepat 10 berhasil |
+| Nomor dokumen | baris `penghitung_nomor` dikunci (upsert) di transaksi dokumen | penomoran.test |
+| Shift toko | `pg_advisory_xact_lock` saat buka + indeks unik `uq_shift_toko_terbuka` (K-155) | shift.test (dua pembukaan bersamaan) |
+| Order diproses dua kasir | status DIPROSES + `id_kasir_proses` dikunci `FOR UPDATE` (R8) | order.test |
+| Pembayaran/retur/void atas penjualan yang sama | `FOR UPDATE` baris `penjualan`; nominal dicek terhadap sisa di dalam kunci | penjualan/retur/void.test |
+| Kode persetujuan dipakai dua kali | status kode dikunci dan ditandai terpakai di transaksi persetujuannya | persetujuan.test |
+| Kendaraan/sopir berangkat dua kali | `FOR UPDATE` kendaraan & sopir + indeks unik parsial perjalanan JALAN | surat-jalan.test (dua keberangkatan bersamaan) |
+| Hasil surat jalan dicatat dua kali | `FOR UPDATE` surat jalan + UNIQUE `surat_jalan_hasil.id_surat_jalan` | surat-jalan.test |
+
+Rencana (K-164): kunci idempoten pada kiriman form uang (kiriman ganda karena jaringan tidak tercatat dua kali) dan
+cek versi `diubah_pada` pada ubah data master.
+
 ### Format respons
 
 ```jsonc
@@ -395,3 +414,4 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
   `requireLogin` (§8) — K-054.
 - 2026-09-29 — Fase 1: versi paket dikunci (§2, K-050); struktur `db/` dan letak seed disesuaikan (§3, K-053);
   cara verifikasi skema dan `db:reset --ya` (§9, K-052).
+- 2026-10-24 — §4 tabel pengaman race condition (K-155, K-164).

@@ -91,3 +91,11 @@ export async function kodePersetujuan(page: Page, nama: string): Promise<string>
   if (!kode) throw new Error(`Tidak ada kode persetujuan untuk ${nama}; jalankan pnpm db:seed.`);
   return kode;
 }
+
+/** K-154: id rekening penerimaan AKTIF untuk pembayaran non-tunai lewat API (dipastikan ada oleh penyiapan global). */
+export async function idRekening(page: Page, jenis: 'TRANSFER' | 'EDC' | 'QRIS' = 'TRANSFER') {
+  const daftar = await api<{ id: number; jenis: string }[]>(page, '/rekening?status=AKTIF');
+  const r = daftar.find((x) => x.jenis === jenis);
+  if (!r) throw new Error(`Tidak ada rekening ${jenis} aktif`);
+  return r.id;
+}

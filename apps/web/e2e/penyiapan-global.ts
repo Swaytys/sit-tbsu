@@ -102,11 +102,33 @@ async function rapikanNonTunai(api: APIRequestContext, mulai: number): Promise<v
   }
 }
 
+/**
+ * K-154: non-tunai hanya ke rekening penerimaan terdaftar. Tes kasir memakai Transfer/EDC/QRIS, jadi tiap jenis
+ * dipastikan punya satu rekening AKTIF (dibuat "E2E …" bila belum ada; data milik toko tidak diubah).
+ */
+async function pastikanRekening(api: APIRequestContext): Promise<void> {
+  const res = await api.get('/api/rekening?status=AKTIF');
+  const ada = ((await res.json()) as { data: { jenis: string }[] }).data;
+  for (const jenis of ['TRANSFER', 'EDC', 'QRIS'] as const) {
+    if (ada.some((r) => r.jenis === jenis)) continue;
+    const r = await api.post('/api/rekening', {
+      data: {
+        jenis,
+        bank: `E2E ${jenis}`,
+        nomor: jenis === 'TRANSFER' ? '0001' : null,
+        isDefault: true,
+      },
+    });
+    if (!r.ok()) throw new Error(`Penyiapan e2e: rekening ${jenis} gagal: ${await r.text()}`);
+  }
+}
+
 export default async function penyiapanGlobal(config: FullConfig) {
   const baseURL = config.projects[0]?.use.baseURL ?? 'http://localhost:5173';
   const api = await masukAdmin(baseURL);
   await pulihkan(api); // sisa penyiapan yang tidak sempat dipulihkan
   await tutupShiftTerlewat(api);
+  await pastikanRekening(api);
   const res = await api.get('/api/tingkat-harga');
   const tier = ((await res.json()) as { data: Tier[] }).data;
   const dimatikan = tier.filter((t) => !t.isDefault && t.statusAktif === 'AKTIF');

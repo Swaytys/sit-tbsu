@@ -3,6 +3,7 @@ import { Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
+import { TeksLipat } from '@/components/teks-lipat';
 import { pesanGalat } from '@/api/client';
 import { useDaftarPelanggan, useMintaKodePelanggan, useStatusPelanggan } from '@/api/mitra';
 import { useBarisPerHalaman } from '@/api/pengaturan';
@@ -96,11 +97,11 @@ export function HalamanPelanggan() {
       sel: (p) => (
         <div className="max-w-60">
           <div className="font-medium">{p.namaPelanggan}</div>
-          <div className="truncate text-xs text-slate-500" title={p.alamat ?? ''}>
-            {p.noHp ?? 'tanpa No. HP'}
-            {p.alamat ? ` · ${p.alamat}` : ''}
-          </div>
-          {p.keterangan && <div className="truncate text-xs text-slate-400">{p.keterangan}</div>}
+          <TeksLipat
+            teks={`${p.noHp ?? 'tanpa No. HP'}${p.alamat ? ` · ${p.alamat}` : ''}`}
+            className="text-xs text-slate-500"
+          />
+          {p.keterangan && <TeksLipat teks={p.keterangan} className="text-xs text-slate-400" />}
         </div>
       ),
     },

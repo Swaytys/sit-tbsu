@@ -52,9 +52,9 @@ test('Limit kredit terlampaui: kode sekali pakai dari Admin di layar Kasir (K-10
 
     // Total Rp 500.000, DP Rp 200.000 → sisa Rp 300.000 jadi piutang, di atas limit Rp 100.000.
     await menuUtama(kasir).getByRole('link', { name: 'Penjualan Pengantaran' }).click();
-    await expect(kasir.getByRole('option', { name: `Antrean ${o.noAntrean}` })).toContainText(
-      namaPlg,
-    );
+    await expect(
+      kasir.getByRole('option', { name: `Antrean ${o.noAntrean}`, exact: true }),
+    ).toContainText(namaPlg);
     await kasir.keyboard.press('F3');
     await kasir.keyboard.type(String(o.noAntrean));
     await kasir.keyboard.press('Enter');
@@ -62,8 +62,9 @@ test('Limit kredit terlampaui: kode sekali pakai dari Admin di layar Kasir (K-10
     await kasir.keyboard.press('u'); // DP: sebagian sekarang, sisanya piutang
     await kasir.keyboard.press('b');
     await kasir.keyboard.type('200000');
-    await kasir.keyboard.press('Tab');
-    await kasir.keyboard.type('BCA 123456');
+    await kasir.keyboard.press('Tab'); // rekening tujuan (bawaan terpilih)
+    await kasir.keyboard.press('Tab'); // No. referensi (wajib, K-154)
+    await kasir.keyboard.type('TRX123456');
     await kasir.keyboard.press('Enter');
 
     const dialog = kasir.getByRole('dialog', { name: 'Limit kredit terlampaui' });

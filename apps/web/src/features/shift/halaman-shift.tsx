@@ -167,13 +167,13 @@ function FormKas() {
   }
   return (
     <form
-      className="grid grid-cols-[11rem_9rem_1fr_auto] items-end gap-2"
+      className="grid grid-cols-2 items-end gap-2"
       onSubmit={(e) => {
         e.preventDefault();
         simpan();
       }}
     >
-      <div className="space-y-1">
+      <div className="min-w-0 space-y-1">
         <Label htmlFor="jenis-kas">Jenis</Label>
         <Select value={jenis} onValueChange={(v) => setJenis(v as JenisKasManual)}>
           <SelectTrigger id="jenis-kas" className="w-full">
@@ -188,23 +188,25 @@ function FormKas() {
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-1">
+      <div className="min-w-0 space-y-1">
         <Label htmlFor="nominal-kas">Nominal</Label>
         <InputRupiah id="nominal-kas" value={nominal} onChange={setNominal} />
       </div>
-      <div className="space-y-1">
-        <Label htmlFor="ket-kas">Keterangan</Label>
-        <Input
-          id="ket-kas"
-          value={ket}
-          maxLength={255}
-          onChange={(e) => setKet(e.target.value)}
-          placeholder={jenis === 'KASBON' ? 'Siapa & untuk apa' : 'Opsional'}
-        />
+      <div className="col-span-2 flex min-w-0 items-end gap-2">
+        <div className="min-w-0 flex-1 space-y-1">
+          <Label htmlFor="ket-kas">Keterangan</Label>
+          <Input
+            id="ket-kas"
+            value={ket}
+            maxLength={255}
+            onChange={(e) => setKet(e.target.value)}
+            placeholder={jenis === 'KASBON' ? 'Siapa & untuk apa' : 'Opsional'}
+          />
+        </div>
+        <Button type="submit" className="shrink-0" disabled={!nominal || catat.isPending}>
+          <Plus /> Catat
+        </Button>
       </div>
-      <Button type="submit" disabled={!nominal || catat.isPending}>
-        <Plus /> Catat
-      </Button>
     </form>
   );
 }
@@ -413,29 +415,6 @@ function KartuHitungSusulan({ s }: { s: ShiftAktif }) {
   );
 }
 
-/** K-132: sisa shift ganda dari aturan lama (satu shift per pengguna) harus ditutup dulu. */
-function ShiftGanda({ s }: { s: ShiftAktif }) {
-  const [buka, setBuka] = useState<number | null>(null);
-  const semua = [{ id: s.id, nomor: s.nomor, namaPembuka: s.namaPembuka }, ...s.lainTerbuka];
-  return (
-    <Card className="gap-2 border-red-300 bg-red-50 p-4 text-sm text-red-900">
-      <p>
-        <b>{semua.length} shift masih terbuka</b> dari aturan lama. Toko kini memakai satu shift:
-        tutup semuanya (hitung laci), lalu buka satu shift. Uang tunai tidak bisa dicatat sampai
-        tersisa satu.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {semua.map((x) => (
-          <Button key={x.id} size="sm" variant="outline" onClick={() => setBuka(x.id)}>
-            Tutup {x.nomor} ({x.namaPembuka})
-          </Button>
-        ))}
-      </div>
-      {buka !== null && <DialogShift id={buka} onTutup={() => setBuka(null)} />}
-    </Card>
-  );
-}
-
 function ShiftSaya() {
   const saya = useShiftSaya();
   const pengguna = usePengguna();
@@ -493,10 +472,9 @@ function ShiftSaya() {
   const menungguHitung = s.batasHitungBuka !== null;
   return (
     <div className="space-y-4">
-      {s.lainTerbuka.length > 0 && <ShiftGanda s={s} />}
       {menungguHitung && <KartuHitungSusulan s={s} />}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="gap-3 p-5">
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card className="min-w-0 gap-3 p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-semibold">
               Shift toko {s.nomor} <TandaBuka s={{ waktu: s }} />
@@ -540,7 +518,7 @@ function ShiftSaya() {
           <FormKas />
           {detail.data && <DaftarKas d={detail.data} />}
         </Card>
-        <Card className="gap-3 p-5">
+        <Card className="min-w-0 gap-3 p-5">
           <h2 className="font-semibold">Tutup shift</h2>
           <AlurTutupShift idShift={s.id} status="BUKA" onSelesai={setHasil} />
         </Card>
@@ -583,9 +561,10 @@ function FormPenjelasan({ id }: { id: number }) {
 function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
   const d = useDetailShift(id).data;
   const saya = usePengguna();
-  // K-132: shift toko bisa ditutup siapa pun yang punya akses halaman ini.
+  const [, setUrl] = useSearchParams();
   const semua = saya.izin.includes('kas.shift.lihat_semua');
-  const bolehTutup = d !== undefined && d.status !== 'TUTUP';
+  // K-132, U10: hanya ada satu shift terbuka; ia ditutup di tab Shift toko, bukan dari riwayat.
+  const berjalan = d !== undefined && d.status !== 'TUTUP';
   return (
     <Dialog open onOpenChange={(b) => !b && onTutup()}>
       <DialogContent className="sm:max-w-4xl">
@@ -624,14 +603,20 @@ function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
                 </div>
               </details>
             )}
-            {bolehTutup && (
-              <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
-                <h3 className="text-sm font-semibold text-amber-900">Tutup shift ini</h3>
-                <AlurTutupShift
-                  idShift={d.id}
-                  status={d.status === 'DIHITUNG' ? 'DIHITUNG' : 'BUKA'}
-                  onSelesai={() => toast.success(`Shift ${d.nomor} ditutup.`)}
-                />
+            {berjalan && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                <span>
+                  Ini shift toko yang sedang berjalan. Hitung dan tutup di tab Shift toko.
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    onTutup();
+                    setUrl({}, { replace: true });
+                  }}
+                >
+                  Ke tab Shift toko
+                </Button>
               </div>
             )}
           </div>
@@ -642,17 +627,13 @@ function DialogShift({ id, onTutup }: { id: number; onTutup: () => void }) {
 }
 
 function Riwayat() {
-  const [url] = useSearchParams();
   const [halaman, setHalaman] = useState(1);
   const [selisih, setSelisih] = useState(false);
-  // Dibuka dari notifikasi "Shift perlu ditutup" (…?perlu=1): langsung disaring.
-  const [perlu, setPerlu] = useState(url.get('perlu') === '1');
   const [buka, setBuka] = useState<number | null>(null);
   const perHalaman = useBarisPerHalaman();
   const daftar = useDaftarShift({
     status: null,
     adaSelisih: selisih,
-    perluDitutup: perlu,
     halaman,
     perHalaman,
   });
@@ -737,17 +718,6 @@ function Riwayat() {
             }}
           />
           Hanya yang ada selisih
-        </label>
-        <label className="flex items-center gap-1.5">
-          <input
-            type="checkbox"
-            checked={perlu}
-            onChange={(e) => {
-              setPerlu(e.target.checked);
-              setHalaman(1);
-            }}
-          />
-          Hanya yang perlu ditutup (lewat jam tutup atau lewat hari)
         </label>
         <span className="ml-auto text-xs text-slate-500">Klik nomor shift untuk rinciannya.</span>
       </div>

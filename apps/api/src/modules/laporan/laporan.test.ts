@@ -8,7 +8,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import ExcelJS from 'exceljs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
-import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import { json, minta, rekeningUji, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import {
@@ -156,7 +156,14 @@ beforeAll(async () => {
         { idBarang: m.pasir, qty: '5' },
       ],
     },
-    pembayaran: [{ metode: 'TRANSFER', nominal: 50000, rekening: 'BCA 123' }],
+    pembayaran: [
+      {
+        metode: 'TRANSFER',
+        nominal: 50000,
+        idRekening: await rekeningUji('TRANSFER'),
+        referensi: 'REF-0001',
+      },
+    ],
   });
   // K-146: diskon manual tidak bisa dibuat lagi, tetapi penjualan lama bisa memuatnya; laporan harus tetap
   // menghitungnya. Diskon baris 5.000 (semen) dan diskon transaksi 10.000 ditulis langsung sebagai data lama.

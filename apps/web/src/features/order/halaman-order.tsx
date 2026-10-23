@@ -585,7 +585,7 @@ export function HalamanOrder() {
           <TabsTrigger value="daftar">Daftar order</TabsTrigger>
         </TabsList>
       </Tabs>
-      {daftar ? <DaftarOrder /> : <InputOrderCepat />}
+      <div className="min-h-0 flex-1">{daftar ? <DaftarOrder /> : <InputOrderCepat />}</div>
     </div>
   );
 }

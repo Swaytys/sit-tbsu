@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { api, masukCepat, menuUtama } from './pembantu';
+import { api, idRekening, masukCepat, menuUtama } from './pembantu';
 
 // Menambah barang, pelanggan, dan penjualan belum lunas di database pengembangan (dinonaktifkan di akhir).
 
@@ -36,7 +36,14 @@ test('Kasir: piutang pelanggan tampil dengan peringatan, dilunasi dari halaman P
         idPelanggan: plg.id,
         baris: [{ idBarang: barang.id, qty: '2' }],
       },
-      pembayaran: [{ metode: 'TRANSFER', nominal: 40000, rekening: 'BCA 1' }],
+      pembayaran: [
+        {
+          metode: 'TRANSFER',
+          nominal: 40000,
+          idRekening: await idRekening(admin),
+          referensi: 'E2E-0001',
+        },
+      ],
     });
 
     const kasir = await browser.newPage();

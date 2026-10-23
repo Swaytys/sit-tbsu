@@ -376,6 +376,14 @@ export type BarisStokTertahan = {
 
 // --- Checkout & pembayaran (docs/05 P1–P13) ---
 
+/**
+ * U12: No. referensi pembayaran non-tunai wajib, 4–40 karakter huruf/angka (boleh spasi . / -). Panjang aslinya
+ * berbeda per bank/penyedia (approval EDC 6, RRN QRIS 12, referensi transfer 8–20), jadi dibatasi longgar.
+ */
+export const POLA_REFERENSI_BAYAR = /^[A-Za-z0-9][A-Za-z0-9 ./-]{3,39}$/;
+export const PESAN_REFERENSI_BAYAR =
+  'No. referensi wajib, 4–40 huruf/angka: lihat bukti transfer, struk EDC, atau notifikasi QRIS.';
+
 export const skemaPembayaran = z
   .object({
     metode: z.enum(METODE_PEMBAYARAN, 'Metode bayar tidak valid.'),
@@ -415,12 +423,17 @@ export const skemaPembayaran = z
         message: 'Uang diterima kurang dari nominal.',
       });
     }
-    if (p.metode !== 'TUNAI' && !p.rekening && p.idRekening === null) {
+    // U12: tujuan non-tunai hanya dari rekening penerimaan terdaftar (tidak ada tujuan ketik-bebas).
+    if (p.metode !== 'TUNAI' && p.idRekening === null) {
       ctx.addIssue({
         code: 'custom',
-        path: ['rekening'],
-        message: 'Pilih rekening tujuan untuk pembayaran transfer, EDC, atau QRIS.',
+        path: ['idRekening'],
+        message:
+          'Pilih rekening penerimaan dari daftar. Belum ada? Admin/Owner menambahkannya di Pengaturan › Pembayaran.',
       });
+    }
+    if (p.metode !== 'TUNAI' && !POLA_REFERENSI_BAYAR.test(p.referensi ?? '')) {
+      ctx.addIssue({ code: 'custom', path: ['referensi'], message: PESAN_REFERENSI_BAYAR });
     }
   });
 export type InputPembayaran = z.input<typeof skemaPembayaran>;

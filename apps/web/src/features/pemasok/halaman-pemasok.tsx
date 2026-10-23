@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useDaftarPemasok, useSimpanPemasok, useStatusPemasok } from '@/api/mitra';
+import { TeksLipat } from '@/components/teks-lipat';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { BilahSaring, type SaringStatus } from '@/components/bilah-saring';
 import { DataTable, type KolomTabel } from '@/components/data-table';
@@ -245,11 +246,7 @@ export function HalamanPemasok() {
     {
       kunci: 'alamat',
       judul: 'Alamat',
-      sel: (p) => (
-        <span className="block max-w-64 truncate text-xs text-slate-500" title={p.alamat ?? ''}>
-          {p.alamat ?? '—'}
-        </span>
-      ),
+      sel: (p) => <TeksLipat teks={p.alamat ?? '—'} className="max-w-64 text-xs text-slate-500" />,
     },
     { kunci: 'status', judul: 'Status', sel: (p) => <BadgeStatusAktif status={p.statusAktif} /> },
     {

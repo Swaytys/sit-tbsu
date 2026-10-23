@@ -16,6 +16,25 @@ sebagian sudah dicoba.
 
 ## Belum dicoba / perlu dicoba ulang
 
+### Perbaikan hasil uji 23 Oktober (24 Oktober, K-152–K-159)
+
+**Sebelum menguji:** `pnpm db:migrate` (migrasi 0024). Bila migrasi berhenti dengan pesan "Masih ada lebih dari satu
+shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
+
+| No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
+|---|---|---|---|---|---|
+| U60 | Halaman Shift tidak menimpa | Buka shift → halaman *Shift & Clerical Check*, coba juga dengan zoom peramban 125% dan 150% (`Ctrl` `+`) | Form kas (Jenis, Nominal / Keterangan + Catat) tidak masuk ke kotak *Tutup shift*; hitung pecahan jadi satu kolom bila sempit | Belum | Pengganti masalah foto 1 |
+| U61 | Catatan panjang | *Cek uang non-tunai*: tandai *Tidak masuk* dengan catatan panjang | Catatan tampil satu baris + **lihat semua**; diklik terbuka penuh, **ringkas** menutupnya | Belum | Sama di Data Pelanggan, Data Pemasok, Promo |
+| U62 | Tombol bayar campuran | Di kasir: lihat tombol **C** dan **D**; bayar campuran 2 bagian | C, D, *Hapus*, *Hapus semua* tampil sebagai tombol berbingkai | Belum | Masukan U14 |
+| U63 | Rekening wajib dipilih | Nonaktifkan semua rekening EDC di *Pengaturan › Pembayaran* → di kasir tekan `E` | Tombol EDC putus-putus; pesan "belum bisa dipakai: rekening penerimaannya belum didaftarkan"; tidak ada kotak ketik rekening | Belum | Masukan U12 |
+| U64 | No. referensi wajib | Di kasir pilih Transfer, kosongkan No. referensi → Enter | Ditolak "No. referensi wajib, 4–40 huruf/angka"; kursor ke kotak referensi | Belum | |
+| U65 | Satu shift toko mutlak | Shift terbuka → login lain → **Buka shift** | Ditolak "Shift toko SHF-… sudah dibuka …"; tab *Riwayat* tidak punya tombol tutup (ada **Ke tab Shift toko**) | Belum | Pengganti U10 |
+| U66 | Pengingat diciutkan | Atur jam tutup shift 10 menit dari sekarang → pita biru muncul → **Ciutkan** | Pita hilang, lencana berdenyut di topbar; klik lencana = pita kembali. Saat jadi kuning (lewat jam) pita tampil lagi | Belum | Masukan U9 |
+| U67 | Order pas layar | *Order Penjualan* dengan zoom 125%: isi 3 barang | Tombol **Kirim ke antrean (F8)** terlihat, tidak tertutup; bilah pintasan bisa diciutkan (klik **Ciutkan** atau `Ctrl+/`) | Belum | Sama di Langsung dan Pengantaran |
+| U68 | Dialog shift tidak muncul sendiri | Tanpa shift terbuka, buka *Penjualan Langsung* | Tidak ada dialog; pita kuning "Shift toko belum dibuka" dengan tombol **Buka shift** | Belum | K-130 |
+| U69 | Harga dasar | *Pengaturan › Harga dasar*: tombol "?" dan kalkulator | Penjelasan Average, harga beli terakhir, LIFO, FIFO; kalkulator berubah saat angka diubah, baris metode toko disorot | Belum | |
+| U70 | Cadangan | *Pengaturan › Cadangan*: **Salin alamat folder**, tombol "?" di kotak Lokasi | Alamat tersalin (tempel di File Explorer komputer server); penjelasan server toko vs cloud | Belum | |
+
 ### Pengantaran: kendaraan, sopir, hasil per barang (23 Oktober, K-149–K-151)
 
 **Sebelum menguji:** jalankan `pnpm db:migrate` (migrasi 0023), lalu isi minimal 2 kendaraan dan 2 sopir di
@@ -92,19 +111,6 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 | U4 | Saran pesan | *Stok Persediaan › Saran pesan*: klik kotak status, saringan pemasok, tombol "?", **Cetak / Excel** | Daftar tersaring; "?" menjelaskan rumus; cetak dan Excel berisi angka yang sama. Penjualan hari ini belum dihitung (periode sampai kemarin) | Sebagian | Masukan 18 Okt (metode lain, "?" kelebihan/kekurangan) dikerjakan di K-127 |
 | U5 | Isian Saran pesan | *Pengaturan › Operasional*: empat isian "Saran pesan" | Tersimpan dan mengubah hasil Saran pesan | Belum | |
 
-### Dari 12 Oktober
-
-| No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
-|---|---|---|---|---|---|
-| U7 | Ubah pelanggan dengan kode | Login Kasir → *Data Pelanggan* → **Ubah** → **Simpan dengan persetujuan…** → kode dari Telegram/email | Tanpa kode tidak tersimpan; kolom limit, tagihan, jatuh tempo tampil | Belum | |
-| U9 | Jadwal shift | *Pengaturan › Operasional › Jadwal shift*: isi jam tutup ±10 menit dari sekarang, tutup lalu buka shift baru | Pengingat biru 15 menit sebelum, lalu kuning setelah lewat | Belum | |
-| U10 | Menutup shift orang lain | *Shift & Clerical Check › Semua shift* → centang **Hanya yang perlu ditutup** → klik shift → tutup | Shift tertutup atas nama Anda (alur dua langkah yang sama dengan U22–U23) | Belum | |
-| U11 | Promo | *Pengaturan › Promo*: kolom *Potongan diberikan*, isian *Anggaran* dan *Batas per pembeli* | Tersimpan; promo berhenti saat anggaran habis | Belum | |
-| U12 | Rekening toko | *Pengaturan › Pembayaran*: tambah rekening, lalu di kasir tekan `B` atau `Q` | Rekening bawaan terpilih otomatis | Belum | |
-| U13 | Cek uang non-tunai | *Shift & Clerical Check › Cek uang non-tunai*: tandai *Sudah masuk* / *Tidak masuk* | Status berubah; *Tidak masuk* wajib catatan | Belum | |
-| U14 | Bayar campuran | Di kasir, bayar dengan dua cara, lalu hapus satu bagian | Galat tampil di bawah kotak bayar | Belum | |
-| U16 | Retur | *Retur Penjualan*: daftar transaksi langsung tampil | *Potong tagihan* hanya muncul bila ada sisa tagihan | Belum | |
-
 ---
 
 ## Sudah dicoba
@@ -126,6 +132,14 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 | U31 | Kasir F9 dengan order terbuka (A/S/D) | OK | 18 Okt | |
 | U32 | Peringatan draf lain | OK | 18 Okt | Masukan: tampilkan siapa penginput di semua halaman bersama (K-138) |
 | U33 | Buka draf otomatis | OK | 18 Okt | |
+| U7 | Ubah pelanggan dengan kode | OK | 23 Okt | |
+| U9 | Jadwal shift (pengingat biru/kuning) | OK | 23 Okt | Masukan: pengingat bisa diciutkan jadi lencana → K-156, uji U66 |
+| U10 | Menutup shift orang lain | Tidak relevan | 23 Okt | Satu shift toko (K-132, K-155): tidak ada shift orang lain; diganti U65 |
+| U11 | Promo (anggaran, batas per pembeli) | OK | 23 Okt | Masukan besar: editor kampanye (syarat + manfaat, jam-menit, banyak barang, templat) → K-163 |
+| U12 | Rekening toko | OK | 23 Okt | Masukan: tanpa rekening terdaftar non-tunai tidak boleh; istilah e-wallet → K-154, uji U63–U64 |
+| U13 | Cek uang non-tunai | OK | 23 Okt | Masukan: catatan terpotong → K-153, uji U61 |
+| U14 | Bayar campuran | OK | 23 Okt | Masukan: tombol diperjelas → K-157, uji U62 |
+| U16 | Retur | OK | 23 Okt | |
 
 ---
 
@@ -137,3 +151,4 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-19 — U35–U43 satu shift toko dan perbaikan uji (K-132–K-142); U30 diperbaiki, coba ulang.
 - 2026-10-23 — U44–U49 diskon manual dihapus, mode ubah order, istilah uang shift, koreksi modal saat hitung susulan (K-146–K-148).
 - 2026-10-23 — U50–U59 kendaraan & sopir, papan Pengiriman aktif, hasil per barang (K-149–K-151).
+- 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.

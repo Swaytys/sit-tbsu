@@ -150,7 +150,7 @@ describe('rekening toko (K-111)', () => {
       statusVerifikasi: 'BELUM_DICEK',
     });
     // Metode QRIS dengan rekening QRIS.
-    const pq = await jual([{ metode: 'QRIS', idRekening: qris.id }]);
+    const pq = await jual([{ metode: 'QRIS', idRekening: qris.id, referensi: 'REF-0001' }]);
     expect(pq.pembayaran[0]).toMatchObject({
       metode: 'QRIS',
       rekening: 'QRIS BCA a.n. Sumber Urip',
@@ -159,7 +159,7 @@ describe('rekening toko (K-111)', () => {
     const salah = await galat(
       kirim(kasir, '/api/penjualan/checkout', {
         order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '1' }] },
-        pembayaran: [{ metode: 'EDC', idRekening: bca.id }],
+        pembayaran: [{ metode: 'EDC', idRekening: bca.id, referensi: 'REF-0001' }],
       }),
     );
     expect(salah.status).toBe(400);
@@ -167,15 +167,32 @@ describe('rekening toko (K-111)', () => {
     const kosong = await galat(
       kirim(kasir, '/api/penjualan/checkout', {
         order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '1' }] },
-        pembayaran: [{ metode: 'TRANSFER' }],
+        pembayaran: [{ metode: 'TRANSFER', referensi: 'REF-0001' }],
       }),
     );
     expect(kosong.status).toBe(400);
+    // U12: tujuan ketik-bebas dan non-tunai tanpa No. referensi ditolak.
+    const ketik = await galat(
+      kirim(kasir, '/api/penjualan/checkout', {
+        order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '1' }] },
+        pembayaran: [{ metode: 'TRANSFER', rekening: 'BCA 999', referensi: 'REF-0001' }],
+      }),
+    );
+    expect(ketik.status).toBe(400);
+    expect(JSON.stringify(ketik)).toContain('Pilih rekening penerimaan');
+    const tanpaRef = await galat(
+      kirim(kasir, '/api/penjualan/checkout', {
+        order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '1' }] },
+        pembayaran: [{ metode: 'TRANSFER', idRekening: bca.id, referensi: 'ab' }],
+      }),
+    );
+    expect(tanpaRef.status).toBe(400);
+    expect(JSON.stringify(tanpaRef)).toContain('No. referensi wajib');
 
     // Campuran: bagian tunai tidak punya status pengecekan.
     const campur = await jual(
       [
-        { metode: 'TRANSFER', idRekening: bca.id, nominal: 15000 },
+        { metode: 'TRANSFER', idRekening: bca.id, nominal: 15000, referensi: 'REF-0001' },
         { metode: 'TUNAI', uangDiterima: 5000 },
       ],
       '2',
@@ -188,8 +205,8 @@ describe('rekening toko (K-111)', () => {
 
   it('K14 Admin mengecek uang masuk: daftar dan total per rekening, tidak masuk wajib catatan, notifikasi, log; Kasir ditolak', async () => {
     const bca = await data<RekeningToko>(kirim(admin, '/api/rekening', rekening()));
-    const a = await jual([{ metode: 'TRANSFER', idRekening: bca.id }]);
-    const b = await jual([{ metode: 'TRANSFER', idRekening: bca.id }], '2');
+    const a = await jual([{ metode: 'TRANSFER', idRekening: bca.id, referensi: 'REF-0001' }]);
+    const b = await jual([{ metode: 'TRANSFER', idRekening: bca.id, referensi: 'REF-0001' }], '2');
     await jual([{ metode: 'TUNAI', uangDiterima: 10000 }]);
 
     expect((await minta('/api/pembayaran-nontunai', { cookie: kasir.cookie })).status).toBe(403);

@@ -80,7 +80,7 @@ export function Sidebar({ terbuka }: { terbuka: boolean }) {
         )}
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto py-3" aria-label="Menu utama">
+      <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto py-3" aria-label="Menu utama">
         {menu.map((entri) => {
           if (entri.jenis === 'item') {
             if (!terbuka) return <TautanIkon key={entri.path} item={entri} />;

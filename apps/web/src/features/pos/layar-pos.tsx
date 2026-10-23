@@ -197,7 +197,7 @@ export function LayarPos({
   const [cetak, setCetak] = useState<Cetakan>(null);
   const [kunciPanel, setKunciPanel] = useState(0);
   const [dialogShift, setDialogShift] = useState(false);
-  const [shiftDitunda, setShiftDitunda] = useState(false);
+  const [slotBayar, setSlotBayar] = useState<HTMLDivElement | null>(null);
   const [sedangProses, setSedangProses] = useState(false);
   const [pelangganBaru, setPelangganBaru] = useState(false);
   /** K-106: F9 / tombol "Mulai dari awal" selalu bertanya dulu, supaya tidak terpencet tanpa sengaja. */
@@ -521,17 +521,20 @@ export function LayarPos({
 
   const kembalianTerakhir = hasil?.pembayaran.reduce((t, b) => t + b.kembalian, 0) ?? 0;
   const tombol = [...TOMBOL_UMUM, ...TOMBOL_ZONA[zona]];
-  // Shift dibuka sekali sehari: dialog muncul sendiri saat layar dibuka tanpa shift (Esc = nanti).
-  const tampilDialogShift = dialogShift || (tanpaShift && !shiftDitunda);
+  // K-130: dialog buka shift tidak muncul sendiri; pita kuning di atas memberi tahu dan menyediakan tombolnya.
+  const tampilDialogShift = dialogShift;
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-[560px] flex-col gap-2">
+    <div className="flex h-full min-h-[400px] flex-col gap-2">
       {tanpaShift && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-800">
-          Shift toko belum dibuka — tunai belum bisa diterima.{' '}
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-800">
+          <span className="min-w-0 flex-1">
+            Shift toko belum dibuka: pembayaran tunai belum bisa diterima (non-tunai dan order tetap
+            bisa).
+          </span>
           <button
             type="button"
-            className="font-semibold underline"
+            className="shrink-0 rounded-md border border-amber-400 bg-white px-2.5 py-0.5 text-xs font-semibold shadow-sm hover:bg-amber-100"
             onClick={() => setDialogShift(true)}
           >
             Buka shift
@@ -570,269 +573,276 @@ export function LayarPos({
         </section>
 
         {/* Kanan: transaksi aktif */}
-        <section className="flex min-h-0 w-1/2 min-w-0 flex-col gap-2 overflow-y-auto pr-1">
-          <div className="rounded-md border bg-white px-3 py-2 text-sm">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="font-semibold">
-                {order ? (
-                  <>
-                    Antrean <span className="text-lg font-black">{order.noAntrean}</span>{' '}
-                    <span className="font-mono text-xs text-slate-500">{order.nomor}</span>
-                  </>
-                ) : pengantaran ? (
-                  'Pengantaran baru tanpa order'
-                ) : (
-                  'Jual langsung tanpa order'
-                )}
-              </span>
-              <span className="flex items-center gap-2">
-                {order?.diskonTransaksi ? (
-                  <span className="text-xs text-slate-500">
-                    diskon {formatRupiah(order.diskonTransaksi)}
-                  </span>
-                ) : null}
-                {adaTransaksi && (
+        <div className="flex min-h-0 w-1/2 min-w-0 flex-col gap-2">
+          <section className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+            <div className="rounded-md border bg-white px-3 py-2 text-sm">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-semibold">
+                  {order ? (
+                    <>
+                      Antrean <span className="text-lg font-black">{order.noAntrean}</span>{' '}
+                      <span className="font-mono text-xs text-slate-500">{order.nomor}</span>
+                    </>
+                  ) : pengantaran ? (
+                    'Pengantaran baru tanpa order'
+                  ) : (
+                    'Jual langsung tanpa order'
+                  )}
+                </span>
+                <span className="flex items-center gap-2">
+                  {order?.diskonTransaksi ? (
+                    <span className="text-xs text-slate-500">
+                      diskon {formatRupiah(order.diskonTransaksi)}
+                    </span>
+                  ) : null}
+                  {adaTransaksi && (
+                    <button
+                      type="button"
+                      onClick={mintaMulaiDariAwal}
+                      title="Kosongkan layar ini dan mulai dari awal (F9). Akan ditanya dulu."
+                      className="flex items-center gap-1 rounded border border-slate-300 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <RotateCcw className="size-3" /> Mulai dari awal
+                      <kbd className="font-mono opacity-60">F9</kbd>
+                    </button>
+                  )}
+                </span>
+              </div>
+              {zona === 'pelanggan' ? (
+                <div className="mt-1" id={ID.pelanggan}>
+                  <CariPelangganPos
+                    id="pos-cari-pelanggan"
+                    wajib={pengantaran}
+                    onPilih={pilihPelanggan}
+                    onTambahBaru={() => setPelangganBaru(true)}
+                    onEsc={() => setZona(tr.t.baris.length > 0 ? 'bayar' : 'cari')}
+                  />
+                </div>
+              ) : (
+                <div className="mt-1 flex items-center gap-2 text-sm">
                   <button
                     type="button"
-                    onClick={mintaMulaiDariAwal}
-                    title="Kosongkan layar ini dan mulai dari awal (F9). Akan ditanya dulu."
-                    className="flex items-center gap-1 rounded border border-slate-300 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => setZona('pelanggan')}
+                    title="Pilih atau ganti pelanggan (F4)"
+                    className={cn(
+                      'rounded border border-dashed px-2 py-0.5 text-left hover:border-blue-500 hover:bg-blue-50',
+                      pengantaran && !tr.t.pelanggan
+                        ? 'border-blue-500 bg-blue-50 text-blue-800'
+                        : 'border-slate-300',
+                    )}
                   >
-                    <RotateCcw className="size-3" /> Mulai dari awal
-                    <kbd className="font-mono opacity-60">F9</kbd>
+                    <span className="text-slate-500">
+                      Pelanggan <kbd className="font-mono text-xs">F4</kbd>:
+                    </span>{' '}
+                    <span className="font-medium">
+                      {tr.t.pelanggan?.nama ??
+                        (pengantaran ? 'klik untuk memilih pelanggan' : 'Pembeli umum')}
+                    </span>
                   </button>
-                )}
-              </span>
+                  {!tr.t.pelanggan && !pengantaran && (
+                    <input
+                      value={tr.t.namaPembeli}
+                      onChange={(e) => tr.aturNamaPembeli(e.target.value)}
+                      maxLength={100}
+                      placeholder="ciri/nama (opsional)"
+                      aria-label="Nama pembeli"
+                      className="h-7 min-w-0 flex-1 rounded border px-2 text-xs"
+                    />
+                  )}
+                </div>
+              )}
+              {pengantaran && (order !== null || tr.t.pelanggan !== null) && (
+                <div className="mt-1.5 grid grid-cols-6 gap-1.5 text-xs">
+                  <input
+                    value={tr.t.kirim.alamat}
+                    onChange={(e) => tr.aturKirim({ alamat: e.target.value })}
+                    maxLength={255}
+                    placeholder="Alamat kirim (wajib)"
+                    aria-label="Alamat kirim"
+                    className={cn(
+                      'col-span-3 h-7 rounded border px-2',
+                      !tr.t.kirim.alamat.trim() && 'border-amber-400 bg-amber-50',
+                    )}
+                  />
+                  <input
+                    value={tampilRibuan(tr.t.kirim.ongkir ? String(tr.t.kirim.ongkir) : '')}
+                    onChange={(e) =>
+                      tr.aturKirim({ ongkir: Number(digitSaja(e.target.value) || '0') })
+                    }
+                    inputMode="numeric"
+                    placeholder="Ongkir"
+                    aria-label="Ongkos kirim"
+                    className="h-7 rounded border px-2 text-right"
+                  />
+                  <input
+                    value={tr.t.kirim.catatan}
+                    onChange={(e) => tr.aturKirim({ catatan: e.target.value })}
+                    maxLength={255}
+                    placeholder="Catatan kirim"
+                    aria-label="Catatan kirim"
+                    className="col-span-2 h-7 rounded border px-2"
+                  />
+                </div>
+              )}
+              {order?.catatan && (
+                <div
+                  className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900"
+                  data-testid="catatan-order"
+                >
+                  <b>Catatan order:</b> {order.catatan}
+                </div>
+              )}
+              <PeringatanPiutang idPelanggan={tr.t.pelanggan?.id ?? null} />
             </div>
-            {zona === 'pelanggan' ? (
-              <div className="mt-1" id={ID.pelanggan}>
-                <CariPelangganPos
-                  id="pos-cari-pelanggan"
-                  wajib={pengantaran}
-                  onPilih={pilihPelanggan}
-                  onTambahBaru={() => setPelangganBaru(true)}
-                  onEsc={() => setZona(tr.t.baris.length > 0 ? 'bayar' : 'cari')}
-                />
+
+            <CariBarangPos
+              id={ID.cari}
+              aktif={zona === 'cari'}
+              tierBawaan={tr.tierBawaan}
+              onTambah={tambahBarang}
+              onKosongEnter={() => setZona('bayar')}
+              onTurun={() => tr.t.baris.length > 0 && setZona('keranjang')}
+              onEsc={() => setZona('antrean')}
+              onFokus={() => setZona('cari')}
+              onSorot={setSorotBarang}
+            />
+
+            {!adaTransaksi && hasil && !pengantaran ? (
+              <div
+                className="flex flex-1 flex-col items-center justify-center rounded-md border-2 border-emerald-400 bg-emerald-50 p-4 text-center"
+                data-testid="hasil-transaksi"
+              >
+                <div className="text-sm text-emerald-800">
+                  {hasil.nomor} ·{' '}
+                  {hasil.statusPembayaran === 'LUNAS'
+                    ? 'LUNAS'
+                    : `sisa ${formatRupiah(hasil.sisaTagihan)}`}
+                </div>
+                <div className="text-xs tracking-widest text-emerald-700 uppercase">Kembalian</div>
+                <div className="text-5xl font-black text-emerald-700 tabular-nums">
+                  {formatRupiah(kembalianTerakhir)}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => cetakStruk(hasil, strukTercetak)}
+                >
+                  <Printer /> {strukTercetak ? 'Cetak struk lagi' : 'Cetak struk'}
+                </Button>
               </div>
             ) : (
-              <div className="mt-1 flex items-center gap-2 text-sm">
-                <button
-                  type="button"
-                  onClick={() => setZona('pelanggan')}
-                  title="Pilih atau ganti pelanggan (F4)"
-                  className={cn(
-                    'rounded border border-dashed px-2 py-0.5 text-left hover:border-blue-500 hover:bg-blue-50',
-                    pengantaran && !tr.t.pelanggan
-                      ? 'border-blue-500 bg-blue-50 text-blue-800'
-                      : 'border-slate-300',
-                  )}
-                >
-                  <span className="text-slate-500">
-                    Pelanggan <kbd className="font-mono text-xs">F4</kbd>:
-                  </span>{' '}
-                  <span className="font-medium">
-                    {tr.t.pelanggan?.nama ??
-                      (pengantaran ? 'klik untuk memilih pelanggan' : 'Pembeli umum')}
-                  </span>
-                </button>
-                {!tr.t.pelanggan && !pengantaran && (
-                  <input
-                    value={tr.t.namaPembeli}
-                    onChange={(e) => tr.aturNamaPembeli(e.target.value)}
-                    maxLength={100}
-                    placeholder="ciri/nama (opsional)"
-                    aria-label="Nama pembeli"
-                    className="h-7 min-w-0 flex-1 rounded border px-2 text-xs"
-                  />
-                )}
-              </div>
+              <KeranjangPos
+                id={ID.keranjang}
+                baris={tr.t.baris}
+                tierBawaan={tr.tierBawaan}
+                namaTier={(id) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain'}
+                indeks={Math.min(indeksBaris, Math.max(0, tr.t.baris.length - 1))}
+                onIndeks={setIndeksBaris}
+                aktif={zona === 'keranjang'}
+                onUbah={tr.ubah}
+                onHapus={(i) => {
+                  tr.hapus(i);
+                  setIndeksBaris(Math.max(0, i - 1));
+                }}
+                onKeluar={() => setZona('cari')}
+                onLanjut={() => setZona('bayar')}
+                onFokus={() => setZona('keranjang')}
+                bolehLepasPromo={saya.izin.includes('penjualan.checkout')}
+                pratinjau={pratinjauBaris}
+              />
             )}
-            {pengantaran && (order !== null || tr.t.pelanggan !== null) && (
-              <div className="mt-1.5 grid grid-cols-6 gap-1.5 text-xs">
-                <input
-                  value={tr.t.kirim.alamat}
-                  onChange={(e) => tr.aturKirim({ alamat: e.target.value })}
-                  maxLength={255}
-                  placeholder="Alamat kirim (wajib)"
-                  aria-label="Alamat kirim"
-                  className={cn(
-                    'col-span-3 h-7 rounded border px-2',
-                    !tr.t.kirim.alamat.trim() && 'border-amber-400 bg-amber-50',
-                  )}
-                />
-                <input
-                  value={tampilRibuan(tr.t.kirim.ongkir ? String(tr.t.kirim.ongkir) : '')}
-                  onChange={(e) =>
-                    tr.aturKirim({ ongkir: Number(digitSaja(e.target.value) || '0') })
-                  }
-                  inputMode="numeric"
-                  placeholder="Ongkir"
-                  aria-label="Ongkos kirim"
-                  className="h-7 rounded border px-2 text-right"
-                />
-                <input
-                  value={tr.t.kirim.catatan}
-                  onChange={(e) => tr.aturKirim({ catatan: e.target.value })}
-                  maxLength={255}
-                  placeholder="Catatan kirim"
-                  aria-label="Catatan kirim"
-                  className="col-span-2 h-7 rounded border px-2"
-                />
-              </div>
-            )}
-            {order?.catatan && (
+
+            {pengantaran && hasil && (
               <div
-                className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900"
-                data-testid="catatan-order"
+                id={ID.hasil}
+                tabIndex={0}
+                onFocus={() => setZona('hasil')}
+                onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === 's' || e.key === 'S') {
+                    e.preventDefault();
+                    suratJalanSemua();
+                  } else if (e.key === 'p' || e.key === 'P') {
+                    e.preventDefault();
+                    setCetak({ jenis: 'invoice', p: hasil });
+                  } else if (e.key === 'Enter' || e.key === 'Escape') {
+                    e.preventDefault();
+                    setHasil(null);
+                    setZona('antrean');
+                  }
+                }}
+                className={cn(
+                  'rounded-md border-2 border-emerald-400 bg-emerald-50 p-3 text-sm outline-none',
+                  zona === 'hasil' && 'ring-2 ring-blue-500',
+                )}
+                data-testid="hasil-transaksi"
               >
-                <b>Catatan order:</b> {order.catatan}
+                <div className="font-semibold text-emerald-800">
+                  Invoice {hasil.nomor} dibuat (
+                  {hasil.statusPembayaran === 'LUNAS'
+                    ? 'lunas'
+                    : `sisa ${formatRupiah(hasil.sisaTagihan)}`}
+                  ).
+                </div>
+                <div className="mt-1 text-slate-700">
+                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">P</kbd> cetak
+                  invoice ·{' '}
+                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">S</kbd> buat
+                  surat jalan semua barang &amp; cetak ·{' '}
+                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">Enter</kbd>{' '}
+                  lanjut
+                </div>
               </div>
             )}
-            <PeringatanPiutang idPelanggan={tr.t.pelanggan?.id ?? null} />
-          </div>
 
-          <CariBarangPos
-            id={ID.cari}
-            aktif={zona === 'cari'}
-            tierBawaan={tr.tierBawaan}
-            onTambah={tambahBarang}
-            onKosongEnter={() => setZona('bayar')}
-            onTurun={() => tr.t.baris.length > 0 && setZona('keranjang')}
-            onEsc={() => setZona('antrean')}
-            onFokus={() => setZona('cari')}
-            onSorot={setSorotBarang}
-          />
-
-          {!adaTransaksi && hasil && !pengantaran ? (
-            <div
-              className="flex flex-1 flex-col items-center justify-center rounded-md border-2 border-emerald-400 bg-emerald-50 p-4 text-center"
-              data-testid="hasil-transaksi"
-            >
-              <div className="text-sm text-emerald-800">
-                {hasil.nomor} ·{' '}
-                {hasil.statusPembayaran === 'LUNAS'
-                  ? 'LUNAS'
-                  : `sisa ${formatRupiah(hasil.sisaTagihan)}`}
-              </div>
-              <div className="text-xs tracking-widest text-emerald-700 uppercase">Kembalian</div>
-              <div className="text-5xl font-black text-emerald-700 tabular-nums">
-                {formatRupiah(kembalianTerakhir)}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={() => cetakStruk(hasil, strukTercetak)}
-              >
-                <Printer /> {strukTercetak ? 'Cetak struk lagi' : 'Cetak struk'}
-              </Button>
-            </div>
-          ) : (
-            <KeranjangPos
-              id={ID.keranjang}
-              baris={tr.t.baris}
-              tierBawaan={tr.tierBawaan}
+            <InfoTierBelanja
+              info={pratinjau.data?.tierBelanja}
+              idTierDasar={tierDefault}
               namaTier={(id) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain'}
-              indeks={Math.min(indeksBaris, Math.max(0, tr.t.baris.length - 1))}
-              onIndeks={setIndeksBaris}
-              aktif={zona === 'keranjang'}
-              onUbah={tr.ubah}
-              onHapus={(i) => {
-                tr.hapus(i);
-                setIndeksBaris(Math.max(0, i - 1));
-              }}
-              onKeluar={() => setZona('cari')}
-              onLanjut={() => setZona('bayar')}
-              onFokus={() => setZona('keranjang')}
-              bolehLepasPromo={saya.izin.includes('penjualan.checkout')}
-              pratinjau={pratinjauBaris}
             />
-          )}
-
-          {pengantaran && hasil && (
-            <div
-              id={ID.hasil}
-              tabIndex={0}
-              onFocus={() => setZona('hasil')}
-              onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-                if (e.key === 's' || e.key === 'S') {
-                  e.preventDefault();
-                  suratJalanSemua();
-                } else if (e.key === 'p' || e.key === 'P') {
-                  e.preventDefault();
-                  setCetak({ jenis: 'invoice', p: hasil });
-                } else if (e.key === 'Enter' || e.key === 'Escape') {
-                  e.preventDefault();
-                  setHasil(null);
-                  setZona('antrean');
-                }
-              }}
-              className={cn(
-                'rounded-md border-2 border-emerald-400 bg-emerald-50 p-3 text-sm outline-none',
-                zona === 'hasil' && 'ring-2 ring-blue-500',
-              )}
-              data-testid="hasil-transaksi"
-            >
-              <div className="font-semibold text-emerald-800">
-                Invoice {hasil.nomor} dibuat (
-                {hasil.statusPembayaran === 'LUNAS'
-                  ? 'lunas'
-                  : `sisa ${formatRupiah(hasil.sisaTagihan)}`}
-                ).
-              </div>
-              <div className="mt-1 text-slate-700">
-                <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">P</kbd> cetak
-                invoice · <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">S</kbd>{' '}
-                buat surat jalan semua barang &amp; cetak ·{' '}
-                <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">Enter</kbd> lanjut
-              </div>
+            <div className="flex items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
+              <span className="text-xs tracking-widest text-slate-300 uppercase">
+                Total
+                {tr.t.baris.length > 0 && !pratinjau.segar ? ' (menghitung…)' : ''}
+                {pratinjau.segar && pratinjau.data && pratinjau.data.totalDiskonPromo > 0 && (
+                  <span className="ml-2 tracking-normal text-emerald-300 normal-case">
+                    hemat promo {formatRupiah(pratinjau.data.totalDiskonPromo)}
+                  </span>
+                )}
+              </span>
+              <span
+                className="text-3xl font-black text-emerald-400 tabular-nums"
+                data-testid="total-pos"
+              >
+                {formatRupiah(adaTransaksi ? totalTampil : 0)}
+              </span>
             </div>
-          )}
 
-          <InfoTierBelanja
-            info={pratinjau.data?.tierBelanja}
-            idTierDasar={tierDefault}
-            namaTier={(id) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain'}
-          />
-          <div className="flex items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
-            <span className="text-xs tracking-widest text-slate-300 uppercase">
-              Total
-              {tr.t.baris.length > 0 && !pratinjau.segar ? ' (menghitung…)' : ''}
-              {pratinjau.segar && pratinjau.data && pratinjau.data.totalDiskonPromo > 0 && (
-                <span className="ml-2 tracking-normal text-emerald-300 normal-case">
-                  hemat promo {formatRupiah(pratinjau.data.totalDiskonPromo)}
-                </span>
-              )}
-            </span>
-            <span
-              className="text-3xl font-black text-emerald-400 tabular-nums"
-              data-testid="total-pos"
-            >
-              {formatRupiah(adaTransaksi ? totalTampil : 0)}
-            </span>
-          </div>
-
-          <PanelBayarPos
-            key={kunciPanel}
-            id={ID.bayar}
-            aktif={zona === 'bayar'}
-            total={adaTransaksi ? totalTampil : 0}
-            mode={pengantaran ? 'pengantaran' : 'langsung'}
-            bolehKurang={pengantaran || tr.t.pelanggan !== null}
-            rekening={rekening.data ?? []}
-            memproses={checkout.isPending}
-            nonaktif={!adaTransaksi || tr.t.baris.length === 0}
-            ditinggal={ditinggal}
-            onDitinggal={setDitinggal}
-            onBayarSaatTerima={setBayarSaatTerima}
-            jatuhTempo={jatuhTempo}
-            onJatuhTempo={setJatuhTempo}
-            labelBayar={pengantaran ? 'Buat invoice' : 'Bayar & cetak'}
-            onBayar={bayar}
-            onFokus={() => setZona('bayar')}
-            onEsc={() => setZona('cari')}
-          />
-        </section>
+            <PanelBayarPos
+              key={kunciPanel}
+              id={ID.bayar}
+              aktif={zona === 'bayar'}
+              total={adaTransaksi ? totalTampil : 0}
+              mode={pengantaran ? 'pengantaran' : 'langsung'}
+              bolehKurang={pengantaran || tr.t.pelanggan !== null}
+              rekening={rekening.data ?? []}
+              memproses={checkout.isPending}
+              nonaktif={!adaTransaksi || tr.t.baris.length === 0}
+              ditinggal={ditinggal}
+              onDitinggal={setDitinggal}
+              onBayarSaatTerima={setBayarSaatTerima}
+              jatuhTempo={jatuhTempo}
+              onJatuhTempo={setJatuhTempo}
+              labelBayar={pengantaran ? 'Buat invoice' : 'Bayar & cetak'}
+              onBayar={bayar}
+              onFokus={() => setZona('bayar')}
+              onEsc={() => setZona('cari')}
+              slotTombol={slotBayar}
+            />
+          </section>
+          {/* Tombol bayar di luar area gulir: selalu terlihat dan tidak menutupi isian di atasnya. */}
+          <div ref={setSlotBayar} className="shrink-0" />
+        </div>
       </div>
       <BilahTombol daftar={tombol} />
 
@@ -909,7 +919,6 @@ export function LayarPos({
         <DialogBukaShift
           onTutup={() => {
             setDialogShift(false);
-            setShiftDitunda(true);
             setKunciPanel((k) => k + 1);
           }}
         />

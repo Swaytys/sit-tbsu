@@ -1,4 +1,5 @@
 import { LABEL_PERAN } from '@sit/shared';
+import { ID_SLOT_LENCANA } from '@/components/banner-lipat';
 import { Bell, ChevronDown, KeyRound, LockKeyhole, LogOut, Menu, Store } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
@@ -55,7 +56,7 @@ function IndikatorShift() {
       title={judul}
       data-testid="indikator-shift"
       className={cn(
-        'flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold disabled:cursor-default',
+        'flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold whitespace-nowrap disabled:cursor-default',
         warna,
       )}
     >
@@ -114,7 +115,7 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
   const navigate = useNavigate();
 
   return (
-    <header className="z-20 flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 shadow-sm">
+    <header className="z-20 flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 shadow-sm">
       <button
         type="button"
         onClick={onToggleSidebar}
@@ -123,7 +124,10 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
       >
         <Menu className="size-5" />
       </button>
-      <span className="flex-1 text-sm font-semibold text-slate-800">{judul}</span>
+      <span className="min-w-0 flex-1 truncate text-sm font-semibold whitespace-nowrap text-slate-800">
+        {judul}
+      </span>
+      <div id={ID_SLOT_LENCANA} className="flex items-center gap-1.5" />
       <PindahPenjualan />
       <IndikatorShift />
       <LoncengNotifikasi />
@@ -136,7 +140,7 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
           <div className="flex size-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
             {pengguna.namaPengguna.charAt(0).toUpperCase()}
           </div>
-          <div className="leading-tight">
+          <div className="hidden leading-tight xl:block">
             <div className="text-xs font-semibold text-slate-700">{pengguna.namaPengguna}</div>
             <div className="text-xs text-slate-400">{LABEL_PERAN[pengguna.peran]}</div>
           </div>

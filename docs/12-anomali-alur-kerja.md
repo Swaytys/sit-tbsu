@@ -109,3 +109,4 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-18 — O1–O4 dan S17 menjadi *Ada* (order disimpan, kembali ke draf, peringatan draf lain, pilihan order saat tutup shift; K-122).
 - 2026-10-18 — S11 diperbarui; S22–S26 (setelah tutup, kembalian tidak diambil, retur lintas shift, salah hitung susulan, dialog kode) (K-132–K-142).
 - 2026-10-23 — Bagian 4 pengantaran A1–A11 (K-149–K-151).
+- 2026-10-24 — Shift ganda kini mustahil (indeks unik, K-155); pembayaran non-tunai tanpa rekening terdaftar/referensi dicegah (K-154).
