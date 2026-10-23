@@ -118,6 +118,14 @@ penghitung nomor). Tambahan: **kunci idempoten** pada kiriman form uang (pembaya
 ganda karena jaringan tidak tercatat dua kali, dan **cek versi** (`diubah_pada`) pada ubah data master agar dua admin
 yang mengubah barang yang sama tidak saling menimpa diam-diam.
 
+**Selesai 24 Okt (rincian):** tabel `kunci_idempoten` (migrasi 0025; data teknis, dibersihkan otomatis setelah 24 jam).
+Klien web memberi header `Idempotency-Key` pada setiap kiriman perubahan; kunci dibuang begitu ada jawaban, dan hanya
+dipakai ulang bila jaringan gagal (tanpa jawaban), sehingga pembeli lain dengan transaksi yang kebetulan sama tetap
+tercatat. Server: kunci baru dijalankan dan jawabannya disimpan; kunci selesai dengan isi sama dijawab dari simpanan;
+isi beda ditolak; kunci yang masih diproses ditolak sementara. Cek versi untuk Barang, Pelanggan, dan Pemasok: form
+mengirim `versi` (waktu ubah terakhir saat dibuka); beda dengan sekarang → `KONFLIK` "sudah diubah orang lain sejak
+Anda membukanya". Klien tanpa versi tetap diterima.
+
 ### K-165 — Arsip tahunan dan perapian data
 
 **Keputusan (pemilik):** setelah berbulan-bulan, data rutin (transaksi, mutasi, log, promo lama) dirapikan lewat
@@ -139,12 +147,17 @@ panduan server.
 **Keputusan (pemilik):** kotak cari di topbar (`Ctrl+K`) untuk menu, barang, pelanggan, pemasok, dan nomor dokumen
 (ORD, STR, INV, SJ, RTR, …) sesuai izin. Tombol Order/Langsung/Pengantaran diperkecil agar muat.
 
+**Selesai 24 Okt (rincian):** `GET /api/cari?q=` (izin `dashboard.dasar`, hasil per kelompok disaring izin: barang,
+pelanggan, pemasok, penjualan, order — milik sendiri bila tanpa `lihat_semua` —, surat jalan, retur, void, penerimaan;
+5 per kelompok; nomor dokumen dicari bila kata memuat angka). Menu dicari di peramban. Palet `Ctrl+K`: panah atas/bawah,
+Enter membuka, Esc menutup. Daftar Barang/Pelanggan/Pemasok membaca `?cari=`.
+
 ---
 
 ## Urutan
 
 1. A (K-152–K-159): selesai, di-push bersama keputusan ini.
-2. K-164 (idempoten + cek versi) dan K-167 (pencarian universal).
+2. K-164 (idempoten + cek versi) dan K-167 (pencarian universal) — **selesai 24 Okt**.
 3. K-161 data dimensi/berat barang dan kendaraan (riset + rancangan diajukan), lalu K-160 halaman Pengiriman, lalu K-162.
 4. K-163 editor kampanye promo.
 5. K-165 dan K-166 (alur arsip dan pembaruan), bersama sisa gelombang 3–4 lama (K-129 sisa, K-131, K-137, K-138, K-139,

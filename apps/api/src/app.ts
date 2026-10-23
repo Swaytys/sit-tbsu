@@ -6,6 +6,7 @@ import { env } from './env';
 import type { EnvApp } from './lib/konteks';
 import { webStatis } from './lib/web-statis';
 import { muatSesi } from './middleware/auth';
+import { idempoten } from './middleware/idempoten';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { requestLog } from './middleware/request-log';
 import { periksaDeklarasiIzin } from './middleware/require-permission';
@@ -44,6 +45,7 @@ import { penyesuaianRoutes } from './modules/persediaan/penyesuaian/routes';
 import { saranPesanRoutes } from './modules/persediaan/saran-pesan/routes';
 import { stokRoutes } from './modules/persediaan/stok/routes';
 import { cadanganRoutes } from './modules/sistem/cadangan/routes';
+import { cariRoutes } from './modules/sistem/cari/routes';
 import { healthRoutes } from './modules/sistem/health/routes';
 import { logRoutes } from './modules/sistem/log/routes';
 import { persetujuanRoutes } from './modules/sistem/kode-persetujuan/routes';
@@ -94,7 +96,8 @@ const rute = new Hono<EnvApp>()
   .route('/persetujuan', persetujuanRoutes)
   .route('/dashboard', dashboardRoutes)
   .route('/laporan', laporanRoutes)
-  .route('/cadangan', cadanganRoutes);
+  .route('/cadangan', cadanganRoutes)
+  .route('/cari', cariRoutes);
 
 export const app = new Hono<EnvApp>();
 app.use(requestLog);
@@ -137,6 +140,8 @@ const batasJsonSaja: MiddlewareHandler<EnvApp> = async (c, next) =>
   (c.req.header('content-type') ?? '').includes('json') ? batasJson(c, next) : next();
 app.use('/api/*', batasJsonSaja);
 app.use('/api/*', muatSesi);
+// K-164: kiriman ulang dengan kunci idempoten yang sama dijawab dari hasil pertama.
+app.use('/api/*', idempoten);
 app.route('/api', rute);
 if (env.NODE_ENV === 'development') {
   app.route('/api/auth', authDevRoutes);

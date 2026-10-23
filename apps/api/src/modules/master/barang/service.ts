@@ -15,8 +15,10 @@ import {
   type StatusAktif,
   type StatusStok,
 } from '@sit/shared';
+import { barang } from '../../../db/schema';
 import { db, type Tx } from '../../../db/client';
 import { AppError, galatKolom } from '../../../lib/errors';
+import { ambilVersi, pastikanVersi } from '../../../lib/versi';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { bacaGambar, hapusBerkas, simpanGambar } from '../../../lib/penyimpanan';
@@ -209,6 +211,7 @@ export async function detailBarang(id: number, izin: ReadonlySet<Izin>): Promise
     keterangan: b.keterangan,
     atribut,
     sudahAdaMutasi: b.terakhirMutasi !== null,
+    versi: (await ambilVersi(db, barang, id)) ?? '',
   };
 }
 
@@ -504,6 +507,7 @@ export async function ubahBarang(
   await dalamTransaksi(async (tx) => {
     const lama = await repo.kunciBarang(tx, id);
     if (!lama) throw tidakDitemukan();
+    pastikanVersi(input.versi, await ambilVersi(tx, barang, id), `Barang ${lama.namaBarang}`);
     const stok = await kunciPersediaan(tx, id);
     const sudahAdaMutasi = stok.terakhirMutasi !== null;
 

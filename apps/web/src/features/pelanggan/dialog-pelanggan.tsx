@@ -105,6 +105,7 @@ function IsiDialogPelanggan({
       termHari: pelanggan?.termHari ?? '',
       limitKredit: pelanggan ? pelanggan.limitKredit : (bawaan?.limitKredit ?? null),
       jadikanLimitBawaan: false,
+      versi: pelanggan?.versi ?? null,
     },
   });
 

@@ -52,6 +52,8 @@ export const skemaPelanggan = z.object({
   keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
   /** Golongan pelanggan untuk sasaran promo (K-097); `null` = tanpa golongan. */
   idGolongan: z.number().int().positive().nullable().optional(),
+  /** K-164: versi data yang dimuat form; beda dengan versi sekarang = ditolak. */
+  versi: z.string().max(40).nullable().optional(),
   termHari: z.preprocess(
     kosongJadiUndefined,
     z.coerce
@@ -130,6 +132,8 @@ export type Pelanggan = {
   limitKredit: number | null;
   statusAktif: StatusAktif;
   dibuatPada: string;
+  /** K-164: waktu ubah terakhir (ISO). */
+  versi: string;
   kredit: PosisiKreditPelanggan;
 };
 
@@ -171,6 +175,8 @@ export const skemaPemasok = z.object({
   lamaKirimHari: z.preprocess(kosongJadiNull, hariOpsional('Lama kirim', 0, 365)),
   /** K-113: jarak hari antara dua kali belanja ke pemasok ini; kosong = bawaan toko. */
   jarakBelanjaHari: z.preprocess(kosongJadiNull, hariOpsional('Jarak belanja', 1, 365)),
+  /** K-164: versi data yang dimuat form; beda dengan versi sekarang = ditolak. */
+  versi: z.string().max(40).nullable().optional(),
 });
 export type InputPemasok = z.input<typeof skemaPemasok>;
 export type DataPemasok = z.output<typeof skemaPemasok>;
@@ -187,6 +193,8 @@ export type Pemasok = {
   jarakBelanjaHari: number | null;
   statusAktif: StatusAktif;
   dibuatPada: string;
+  /** K-164: waktu ubah terakhir (ISO). */
+  versi: string;
 };
 
 // --- Tingkat harga (tier) ---

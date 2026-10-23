@@ -126,6 +126,8 @@ export const skemaBarang = z
      * K-086). Tidak dikirim = tetap (barang baru: otomatis, K-094). Mengubahnya butuh `master.harga.kelola`.
      */
     hargaOtomatis: z.boolean().optional(),
+    /** K-164: versi data yang dimuat form (waktu ubah terakhir); beda dengan versi sekarang = ditolak. */
+    versi: z.string().max(40).nullable().optional(),
   })
   .superRefine((d, ctx) => {
     if (d.kepemilikan === 'KONSINYASI') {
@@ -260,6 +262,8 @@ export type DetailBarang = BarisBarang & {
   atribut: AtributBarang[];
   /** Sudah ada mutasi stok: satuan dasar dan harga modal awal dikunci (K-060). */
   sudahAdaMutasi: boolean;
+  /** K-164: waktu ubah terakhir (ISO), dikirim balik saat menyimpan perubahan. */
+  versi: string;
 };
 
 // --- Harga jual massal (halaman Harga Jual, H13) ---

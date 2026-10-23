@@ -1100,3 +1100,4 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-23 — Diskon manual dihapus, form order lengkap dihapus (Ubah lewat input cepat), istilah "uang shift" (K-146, K-147, K-129).
 - 2026-10-23 — F23 diperbarui (Pengiriman aktif, hasil per barang); F41 kendaraan, sopir, perjalanan (K-149–K-151).
 - 2026-10-24 — Rekening penerimaan wajib dipilih + No. referensi wajib (K-154), satu shift dijamin database (K-155), Harga dasar dengan kalkulator (K-158), tampilan pas layar dan pengingat diciutkan (K-152–K-157).
+- 2026-10-24 — Pencarian universal Ctrl+K (K-167); kebal kiriman ganda (kunci idempoten) dan cek versi data master (K-164).

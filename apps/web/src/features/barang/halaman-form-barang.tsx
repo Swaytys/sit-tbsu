@@ -185,6 +185,8 @@ function nilaiAwal(
     }),
     // K-094: barang baru berharga otomatis.
     hargaOtomatis: b?.hargaOtomatis ?? true,
+    // K-164: versi saat form dibuka; API menolak bila orang lain sudah mengubahnya.
+    versi: b?.versi ?? null,
   };
 }
 

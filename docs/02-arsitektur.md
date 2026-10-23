@@ -169,8 +169,8 @@ terakhir). Pengaman yang berlaku:
 | Kendaraan/sopir berangkat dua kali | `FOR UPDATE` kendaraan & sopir + indeks unik parsial perjalanan JALAN | surat-jalan.test (dua keberangkatan bersamaan) |
 | Hasil surat jalan dicatat dua kali | `FOR UPDATE` surat jalan + UNIQUE `surat_jalan_hasil.id_surat_jalan` | surat-jalan.test |
 
-Rencana (K-164): kunci idempoten pada kiriman form uang (kiriman ganda karena jaringan tidak tercatat dua kali) dan
-cek versi `diubah_pada` pada ubah data master.
+| Kiriman yang sama dikirim ulang karena jaringan putus | header `Idempotency-Key` dari klien + tabel `kunci_idempoten`: jawaban pertama dikembalikan, tidak dijalankan dua kali (K-164, `middleware/idempoten.ts`) | idempoten.test (checkout tunai diulang = 1 penjualan) |
+| Dua admin mengubah barang/pelanggan/pemasok yang sama | cek versi (`lib/versi.ts`): versi saat form dibuka ≠ versi sekarang → `KONFLIK` (K-164) | versi.test |
 
 ### Format respons
 
@@ -415,3 +415,4 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 - 2026-09-29 — Fase 1: versi paket dikunci (§2, K-050); struktur `db/` dan letak seed disesuaikan (§3, K-053);
   cara verifikasi skema dan `db:reset --ya` (§9, K-052).
 - 2026-10-24 — §4 tabel pengaman race condition (K-155, K-164).
+- 2026-10-24 — §4 kunci idempoten dan cek versi (K-164).

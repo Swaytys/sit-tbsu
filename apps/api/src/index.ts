@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { bersihkanKunciIdempoten } from './middleware/idempoten';
 import { createServer as createServerHttp } from 'node:http';
 import { createServer as createServerHttps } from 'node:https';
 import { serve } from '@hono/node-server';
@@ -52,6 +53,11 @@ const pengalih =
 /** Job order basi & kunci kadaluarsa (docs/05 R7, R8) tiap 15 menit. */
 const LIMA_BELAS_MENIT = 15 * 60 * 1000;
 const job = setInterval(() => {
+  bersihkanKunciIdempoten()
+    .then((n) => {
+      if (n > 0) logger.info({ jumlah: n }, 'Kunci idempoten lama dibersihkan');
+    })
+    .catch((err: unknown) => logger.error({ err }, 'Pembersihan kunci idempoten gagal'));
   jalankanJobOrder()
     .then((h) => {
       if (h.dibatalkan.length + h.dilepas.length > 0) logger.info(h, 'Job order selesai');

@@ -1,6 +1,8 @@
 import type { DataPemasok, MetaHalaman, Pemasok, StatusAktif } from '@sit/shared';
+import { pemasok } from '../../../db/schema';
 import { db } from '../../../db/client';
 import { AppError } from '../../../lib/errors';
+import { ambilVersi, pastikanVersi } from '../../../lib/versi';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { selisih } from '../../../lib/perubahan';
@@ -15,7 +17,12 @@ import * as repo from './repo';
 type BarisPemasok = NonNullable<Awaited<ReturnType<typeof repo.pemasokById>>>;
 
 function keRespons(b: BarisPemasok): Pemasok {
-  return { ...b, dibuatPada: b.dibuatPada.toISOString() };
+  const { diubahPada, ...isi } = b;
+  return {
+    ...isi,
+    dibuatPada: b.dibuatPada.toISOString(),
+    versi: (diubahPada ?? b.dibuatPada).toISOString(),
+  };
 }
 
 function tidakDitemukan(): AppError {
@@ -81,6 +88,7 @@ export async function ubahPemasok(
   await dalamTransaksi(async (tx) => {
     const lama = await repo.kunciPemasok(tx, id);
     if (!lama) throw tidakDitemukan();
+    pastikanVersi(input.versi, await ambilVersi(tx, pemasok, id), `Pemasok ${lama.namaPemasok}`);
     const baru = nilaiDari(input);
     const beda = selisih(lama, baru);
     if (beda.kolom.length === 0) return;

@@ -16,6 +16,7 @@ const kolom = {
   jarakBelanjaHari: pemasok.jarakBelanjaHari,
   statusAktif: pemasok.statusAktif,
   dibuatPada: pemasok.dibuatPada,
+  diubahPada: pemasok.diubahPada,
 };
 
 function syarat(p: { cari?: string | undefined; status: StatusAktif | 'SEMUA' }): SQL | undefined {
