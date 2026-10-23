@@ -387,6 +387,26 @@ dilanjutkan; tombol order terpotong.
 kembalian tidak diambil, retur menunggu), `persetujuan.test.ts` (melanjutkan permintaan), tes lain yang membuka dua
 shift disesuaikan (refund kini keluar dari laci toko).
 
+
+### C5. Diskon manual dihapus, mode ubah order, istilah uang shift (23 Oktober 2026, K-146–K-148)
+
+**Masalah:** diskon manual per baris/transaksi membuka celah harga di luar Promo; form order lengkap menduplikasi
+input cepat; istilah "uang laci" tidak baku.
+
+**Solusi:**
+- `harga-baris.ts`: diskon baris/transaksi baru ditolak `VALIDASI` "Potongan harga hanya lewat Promo"; nilai lama
+  yang sudah tersimpan tetap diterima saat order diubah (pembanding `diskonSama` / `diskonTransaksiLama`). Izin
+  `penjualan.diskon` dan pengaturan `batasDiskonPersen` dihapus dari shared, API, dan web; konfigurasi lama di DB
+  dibiarkan (tidak dibaca).
+- Web: menu baris tanpa diskon; `halaman-form-order.tsx` dan rute `order/baru`, `order/:id/ubah` dihapus. Tombol
+  **Ubah** membuka `/order?ubah=ID`: input cepat memuat order MENUNGGU/DISIMPAN (mode ubah: pita kuning, `F8` PUT,
+  `F9` buang perubahan tanpa membatalkan order, draf otomatis tidak menyimpan order ini).
+- Istilah: skrip penggantian teks di web dan pesan API ("uang shift"; "laci kas" hanya perangkat keras).
+
+**Tes:** tes diskon di `order.test.ts` diganti penolakan K-146 untuk staf/kasir/admin; tes yang memakai diskon
+lama (`promo`, `laporan`) membuat data diskon langsung di DB. E2E `order.spec` (ubah lewat Daftar order), shift,
+void, pos, order-simpan, dan 5 alur @kritis lulus.
+
 ---
 
 ## Riwayat dokumen
@@ -396,3 +416,4 @@ shift disesuaikan (refund kini keluar dari laci toko).
 - 2026-10-18 — Bagian C2 shift & clerical check anti-anomali (K-120, K-121).
 - 2026-10-18 — Bagian C3 order disimpan, kembali ke draf, peringatan draf lain (K-122).
 - 2026-10-18 — Bagian C4 satu shift toko dan perbaikan uji pemilik (K-132–K-142).
+- 2026-10-23 — Bagian C5 diskon manual dihapus, mode ubah order, istilah uang shift (K-146–K-148).

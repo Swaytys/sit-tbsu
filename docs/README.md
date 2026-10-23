@@ -18,7 +18,7 @@ Nama repo: `sit-tbsu`. Nama tampil di aplikasi: **BonsaiUrip** (K-044).
 | `07-roadmap.md` | Milestone M1/M2, 12 fase, deliverable dan definisi selesai per fase, status; rencana Fase 13 | Awal setiap fase; diperbarui di akhir fase |
 | `08-backlog.md` | Usulan di luar fase: v2.0.0 (produktivitas, peran kustom, keuangan ringan, perbaikan) dan v3.0.0 | Saat ada usulan baru; sebelum merencanakan versi berikut |
 | `09-keamanan.md` | Checklist keamanan (OWASP dasar) beserta bukti tiap butir | Setiap rilis dan setiap modul baru |
-| `10-ringkasan-keputusan.md` | Ringkasan seluruh keputusan K-001 s.d. K-145: garis waktu, yang berlaku sekarang per topik, keputusan yang diganti, daftar lengkap | Saat ingin gambaran utuh tanpa membaca 29 berkas keputusan |
+| `10-ringkasan-keputusan.md` | Ringkasan seluruh keputusan K-001 s.d. K-151: garis waktu, yang berlaku sekarang per topik, keputusan yang diganti, daftar lengkap | Saat ingin gambaran utuh tanpa membaca 30 berkas keputusan |
 | `11-riwayat-teknis.md` | Riwayat teknis runtut: kerangka bersama (ledger, izin, penomoran, log, tes) lalu apa yang dibangun di setiap tahap dan bagaimana; ditambah setiap fitur baru (K-118) | Saat perlu memahami cara kerja dan sejarah teknis aplikasi |
 | `12-anomali-alur-kerja.md` | Katalog anomali alur kerja per fitur (salah ketik, urutan terbalik, lupa, curang) dengan jawaban atasi, cegah, ajari dan statusnya (K-120) | Sebelum merancang atau mengubah fitur; setiap fitur baru menambah barisnya |
 | `UJI-PEMILIK.md` | Daftar hal yang perlu dicoba pemilik (U1, U2, …) dengan langkah, hasil yang diharapkan, dan status | Setiap selesai fitur (baris baru) dan setiap pemilik melapor hasil uji |
@@ -89,7 +89,7 @@ Jangan pakai mode auto-accept.
 | 08-backlog.md | Hidup (v2.0.0, v3.0.0; temuan tinjauan kode D-K1–D-K12; A12 payment gateway; F8 katalog bergambar) | 2026-10-12 |
 | 11-riwayat-teknis.md | Hidup (v1, sampai satu shift toko) | 2026-10-18 |
 | 12-anomali-alur-kerja.md | Hidup (v1: shift S1–S21, order O1–O5, penjualan P1–P3) | 2026-10-18 |
-| 10-ringkasan-keputusan.md | Hidup (ringkasan K-001 s.d. K-145) | 2026-10-18 |
+| 10-ringkasan-keputusan.md | Hidup (ringkasan K-001 s.d. K-151) | 2026-10-18 |
 | UJI-PEMILIK.md | Hidup (U1–U34) | 2026-10-18 |
 | LAPORAN-FITUR-APLIKASI.md | Hidup (inventaris fitur dari kode; diperbarui tiap fitur, terakhir shift K-121) | 2026-10-18 |
 | keputusan/2026-09-19-keputusan-fondasi.md | Final | 2026-09-19 |
@@ -121,6 +121,7 @@ Jangan pakai mode auto-accept.
 | keputusan/2026-10-17-tinjauan-pemilik.md | Final (K-114–K-119) | 2026-10-17 |
 | keputusan/2026-10-18-tinjauan-pemilik.md | Final (K-120–K-127) | 2026-10-18 |
 | keputusan/2026-10-18-uji-pemilik-lanjutan.md | Final (K-128–K-145) | 2026-10-18 |
+| keputusan/2026-10-23-pengantaran-fms.md | Final (K-146–K-151) | 2026-10-23 |
 | panduan/fase-1-setup-lingkungan.md | Final v1 (Windows 11, drive D) | 2026-09-19 |
 | panduan/fase-8-pasang-server.md | Final v1 (server toko Windows, Tailscale, cadangan, pemulihan) | 2026-10-04 |
 | panduan/fase-8-uji-coba.md | Final v1 (persiapan, skenario, daftar temuan) | 2026-10-04 |

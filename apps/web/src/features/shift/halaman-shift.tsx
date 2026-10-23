@@ -102,7 +102,7 @@ export function KartuClerical({ c }: { c: HasilClerical }) {
       {c.jumlahHitung > 1 && (
         <p className="text-xs text-amber-800">Dihitung ulang (2 hitungan tercatat).</p>
       )}
-      <Angka label="Ditinggal di laci (modal berikutnya)" nilai={c.uangDitinggal} />
+      <Angka label="Ditinggal untuk shift berikutnya" nilai={c.uangDitinggal} />
       <Angka label="Disetor" nilai={c.uangFisik - c.uangDitinggal} />
       {c.penjelasanAtasan && (
         <p className="rounded-md border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-900">
@@ -216,7 +216,7 @@ function TandaBuka({ s }: { s: Pick<BarisShift, 'waktu'> & { status?: BarisShift
       <Badge
         variant="outline"
         className="border-blue-300 bg-blue-50 text-blue-800"
-        title="Hitungan uang sudah dikirim; penutupan belum diselesaikan (keterangan dan uang ditinggal di laci)."
+        title="Hitungan uang sudah dikirim; penutupan belum diselesaikan (keterangan dan uang ditinggal)."
       >
         Sedang ditutup
       </Badge>
@@ -238,7 +238,7 @@ function TandaBuka({ s }: { s: Pick<BarisShift, 'waktu'> & { status?: BarisShift
       <Badge
         variant="outline"
         className="border-amber-300 bg-amber-50 text-amber-800"
-        title={`Sudah melewati jam tutup ${s.waktu.jadwalTutup ?? ''}. Segera hitung uang di laci dan tutup shift.`}
+        title={`Sudah melewati jam tutup ${s.waktu.jadwalTutup ?? ''}. Segera hitung uang shift dan tutup shift.`}
       >
         Buka, lewat jam tutup
       </Badge>
@@ -303,7 +303,7 @@ function KartuHitungSusulan({ s }: { s: ShiftAktif }) {
       data-testid="hitung-susulan"
     >
       <h2 className="flex flex-wrap items-center gap-2 font-semibold">
-        <Calculator className="size-4" /> Hitung uang laci
+        <Calculator className="size-4" /> Hitung uang shift
         <span className="text-sm font-normal text-slate-600">
           batas {s.batasHitungBuka ? formatWaktu(s.batasHitungBuka).slice(11) : '—'}
           {lewat && <b className="text-red-700"> (lewat)</b>}
@@ -320,7 +320,7 @@ function KartuHitungSusulan({ s }: { s: ShiftAktif }) {
           }}
         >
           <p className="text-sm text-slate-700">
-            Hitung <b>semua</b> uang di laci, termasuk uang penjualan tadi. Tidak perlu dipisah:
+            Hitung <b>semua</b> uang shift, termasuk uang penjualan tadi. Tidak perlu dipisah:
             sistem tahu uang yang masuk dan kembalian yang keluar.
           </p>
           <InputHitungUang
@@ -361,7 +361,7 @@ function KartuHitungSusulan({ s }: { s: ShiftAktif }) {
       ) : (
         <div className="space-y-3" data-testid="hasil-hitung-susulan">
           <div className="space-y-1 rounded-lg border bg-white p-3 text-sm">
-            <Baris label="Laci dihitung" nilai={formatRupiah(h.laci)} />
+            <Baris label="Uang shift dihitung" nilai={formatRupiah(h.laci)} />
             <Baris label="− Uang masuk sejak buka" nilai={formatRupiah(h.masukSejakBuka)} />
             <Baris label="= Modal saat buka" nilai={formatRupiah(h.modalSaatBuka)} tebal />
             <Baris
@@ -396,7 +396,7 @@ function KartuHitungSusulan({ s }: { s: ShiftAktif }) {
               onClick={() =>
                 void simpan
                   .mutateAsync(s.id)
-                  .then(() => toast.success('Hitung laci disimpan; modal awal sudah benar.'))
+                  .then(() => toast.success('Hitung uang shift disimpan; modal awal sudah benar.'))
                   .catch((err: unknown) => toast.error(pesanGalat(err)))
               }
             >
@@ -518,7 +518,7 @@ function ShiftSaya() {
             </Button>
             <span className="ml-2 text-xs text-slate-500">
               {menungguHitung
-                ? 'Tersedia setelah hitung laci disimpan.'
+                ? 'Tersedia setelah hitung uang shift disimpan.'
                 : s.adaTransaksiTunai && !atasan
                   ? 'Salah ketik modal. Sudah ada transaksi tunai: butuh kode atasan.'
                   : 'Salah ketik modal.'}
@@ -781,21 +781,21 @@ export function HalamanShift() {
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1 basis-80">
           <h1 className="text-xl font-semibold text-slate-900">Shift & Clerical Check</h1>
-          <p className="text-sm text-slate-500">Cocokkan uang laci dan rekening dengan catatan.</p>
+          <p className="text-sm text-slate-500">Cocokkan uang shift dan rekening dengan catatan.</p>
         </div>
         <Penjelasan judul="Cara kerja shift">
           <ButirPenjelasan>
             <li>
-              <b>Shift</b> = masa satu laci toko dipakai, dari buka sampai tutup. Hanya ada{' '}
+              <b>Shift</b> = masa uang tunai toko dipegang, dari buka sampai tutup. Hanya ada{' '}
               <b>satu shift terbuka</b>; siapa pun yang berizin boleh membuka dan menutupnya. Setiap
               uang tunai tercatat di shift itu beserta nama pencatatnya.
             </li>
             <li>
-              <b>Buka shift</b>: <i>Pakai uang kemarin</i> (laci tidak disentuh),{' '}
+              <b>Buka shift</b>: <i>Pakai uang kemarin</i> (uang tidak disentuh),{' '}
               <i>Hitung sekarang</i>, atau <i>Buka dulu, hitung nanti</i> (toko sudah ramai).
             </li>
             <li>
-              <b>Hitung nanti</b>: hitung semua uang laci, tanpa memisah uang penjualan. Contoh:
+              <b>Hitung nanti</b>: hitung semua uang shift, tanpa memisah uang penjualan. Contoh:
               laci Rp 160.000 − masuk sejak buka Rp 15.000 = modal saat buka Rp 145.000. Kemarin
               ditinggal Rp 150.000 → selisih semalam −Rp 5.000 (tercatat untuk Owner). Beda besar:
               hitung ulang sekali, lalu simpan.
@@ -805,11 +805,11 @@ export function HalamanShift() {
               atasan.
             </li>
             <li>
-              <b>Tambah uang laci</b> (mis. receh habis) dan <b>setor ke owner</b>: catat di Kas
+              <b>Tambah uang shift</b> (mis. receh habis) dan <b>setor ke owner</b>: catat di Kas
               masuk / keluar. Bukan penjualan.
             </li>
             <li>
-              <b>Tutup shift</b>: (1) hitung laci tanpa melihat angka sistem, kirim; (2) lihat
+              <b>Tutup shift</b>: (1) hitung uang shift tanpa melihat angka sistem, kirim; (2) lihat
               selisih, tinjauan, dan bantuan mencari selisih; hitung ulang sekali bila perlu; isi
               keterangan bila selisih di atas toleransi; isi uang ditinggal untuk besok.
             </li>

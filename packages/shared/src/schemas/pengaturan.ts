@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AKSI_LOG } from '../log';
-import { PERAN, STRUK_CETAK, type StrukCetak } from '../enums';
+import { STRUK_CETAK, type StrukCetak } from '../enums';
 import { KODE_DOKUMEN } from '../penomoran';
 import { skemaHalaman } from './umum';
 
@@ -128,12 +128,6 @@ export const DASAR_MARKUP = ['HARGA_BELI_TERAKHIR', 'HPP_RATA2'] as const;
 export const skemaHargaDiskon = z.object({
   dasarMarkup: z.enum(DASAR_MARKUP),
   pembulatanHarga: bulat('Pembulatan harga', 1, 100_000),
-  batasDiskonPersen: z.object(
-    Object.fromEntries(PERAN.map((p) => [p, bulat('Batas diskon', 0, 100)])) as Record<
-      (typeof PERAN)[number],
-      ReturnType<typeof bulat>
-    >,
-  ),
 });
 
 export const skemaKeamanan = z.object({

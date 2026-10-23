@@ -371,7 +371,7 @@ describe('buka/tutup shift dan anomali kas (docs/05 §10 K15–K23, K-121)', () 
           alasan: 'salah',
         })
       ).pesan,
-    ).toContain('hitung uang laci dulu');
+    ).toContain('hitung uang shift dulu');
 
     await jualTunai(kasir, '2', 50000); // tunai masuk 20.000 (kembalian 30.000)
     await kirim(kasir, '/api/shift/kas', { jenis: 'KASBON', nominal: 5000, keterangan: 'Budi' });

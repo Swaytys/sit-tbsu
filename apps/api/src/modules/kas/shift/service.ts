@@ -108,7 +108,7 @@ export async function shiftUntukCatat(tx: Tx) {
   if (s && s.status === 'DIHITUNG') {
     throw new AppError(
       'KONFLIK',
-      `Shift ${s.nomor} sedang ditutup (uang laci sudah dihitung). Selesaikan penutupan, lalu buka shift baru.`,
+      `Shift ${s.nomor} sedang ditutup (uang shift sudah dihitung). Selesaikan penutupan, lalu buka shift baru.`,
       409,
       { shiftDihitung: { id: s.id, nomor: s.nomor } },
     );
@@ -116,7 +116,7 @@ export async function shiftUntukCatat(tx: Tx) {
   if (s && s.tanggalOperasional < tanggalOperasional()) {
     throw new AppError(
       'KONFLIK',
-      `Shift ${s.nomor} tanggal ${tglId(s.tanggalOperasional)} belum ditutup. Tutup dulu (hitung uang laci), ` +
+      `Shift ${s.nomor} tanggal ${tglId(s.tanggalOperasional)} belum ditutup. Tutup dulu (hitung uang shift), ` +
         'lalu buka shift hari ini.',
       409,
       { shiftTerlewat: { id: s.id, nomor: s.nomor } },
@@ -228,7 +228,7 @@ export async function bukaShift(
     if (input.cara === 'SAMA_KEMARIN' && usulan === null) {
       throw new AppError(
         'KONFLIK',
-        'Belum ada catatan uang yang ditinggal di laci dari shift sebelumnya. Pilih "Hitung sekarang".',
+        'Belum ada catatan uang yang ditinggal dari shift sebelumnya. Pilih "Hitung sekarang".',
         409,
       );
     }
@@ -323,7 +323,7 @@ export async function catatKas(
   if (!s) {
     throw new AppError(
       'KONFLIK',
-      'Shift toko belum dibuka. Buka shift dulu: uang tunai harus tercatat di laci.',
+      'Shift toko belum dibuka. Buka shift dulu: uang tunai harus tercatat di shift.',
       409,
     );
   }
@@ -608,8 +608,8 @@ export async function hitungBukaSusulan(
     if (hitungan - bersih < 0) {
       throw new AppError(
         'KONFLIK',
-        `Laci ${formatRupiah(hitungan)} lebih kecil dari uang yang masuk sejak buka ` +
-          `(${formatRupiah(bersih)}). Hitung lagi semua uang di laci.`,
+        `Uang shift ${formatRupiah(hitungan)} lebih kecil dari uang yang masuk sejak buka ` +
+          `(${formatRupiah(bersih)}). Hitung lagi semua uang shift.`,
         409,
         { kolom: { uangFisik: ['Lebih kecil dari uang yang masuk sejak buka.'] } },
       );
@@ -630,7 +630,7 @@ export async function hitungBukaSusulan(
       idEntitas: id,
       nomorDokumen: s.nomor,
       ringkasan:
-        `${sebelum ? 'Hitung ulang' : 'Hitung'} susulan shift ${s.nomor}: laci ${formatRupiah(hitungan)}, ` +
+        `${sebelum ? 'Hitung ulang' : 'Hitung'} susulan shift ${s.nomor}: uang shift ${formatRupiah(hitungan)}, ` +
         `masuk sejak buka ${formatRupiah(bersih)}, modal saat buka ${formatRupiah(hitungan - bersih)}`,
       ip: asal.ip,
     });
@@ -659,7 +659,7 @@ export async function simpanHitungBuka(
       );
     }
     const h = await hasilHitungBuka(tx, id, s.modalAwal, s.modalUsulan);
-    if (!h) throw new AppError('VALIDASI', 'Kirim dulu hasil hitung uang laci.', 400);
+    if (!h) throw new AppError('VALIDASI', 'Kirim dulu hasil hitung uang shift.', 400);
     if (h.selisih !== 0) {
       await repo.tambahKas(tx, {
         idShift: id,
@@ -668,7 +668,7 @@ export async function simpanHitungBuka(
         nominal: Math.abs(h.selisih),
         idPengguna: pelaku.id,
         keterangan:
-          `Hitung susulan: laci ${formatRupiah(h.laci)} − masuk sejak buka ${formatRupiah(h.masukSejakBuka)} = ` +
+          `Hitung susulan: uang shift ${formatRupiah(h.laci)} − masuk sejak buka ${formatRupiah(h.masukSejakBuka)} = ` +
           `modal saat buka ${formatRupiah(h.modalSaatBuka)} (selisih semalam ${formatRupiah(h.selisih)})`,
       });
     }
@@ -694,7 +694,7 @@ export async function simpanHitungBuka(
 function galatHitungBukaDulu(): AppError {
   return new AppError(
     'STATUS_TIDAK_VALID',
-    'Selesaikan hitung uang laci dulu; hasil hitungan itulah modal awal yang benar.',
+    'Selesaikan hitung uang shift dulu; hasil hitungan itulah modal awal yang benar.',
     409,
   );
 }
@@ -965,7 +965,7 @@ export async function tutupShift(
     }
     if (s.status === 'BUKA') {
       if (input.uangFisik === undefined && input.rincian === undefined) {
-        throw new AppError('VALIDASI', 'Kirim dulu hasil hitungan uang di laci.', 400, {
+        throw new AppError('VALIDASI', 'Kirim dulu hasil hitungan uang shift.', 400, {
           kolom: { uangFisik: ['Isi hasil hitungan uang.'] },
         });
       }
@@ -996,7 +996,7 @@ export async function tutupShift(
     if (ditinggal > terakhir.uangFisik) {
       throw new AppError(
         'VALIDASI',
-        `Uang ditinggal di laci tidak boleh lebih dari uang yang dihitung (${formatRupiah(terakhir.uangFisik)}).`,
+        `Uang ditinggal tidak boleh lebih dari uang yang dihitung (${formatRupiah(terakhir.uangFisik)}).`,
         400,
         { kolom: { uangDitinggal: ['Lebih dari uang yang dihitung.'] } },
       );
@@ -1033,7 +1033,7 @@ export async function tutupShift(
         `Tutup shift ${s.nomor} (${nomor}): sistem ${formatRupiah(ringkasan.saldoSistem)}, fisik ` +
         `${formatRupiah(terakhir.uangFisik)}, selisih ${formatRupiah(selisih)}` +
         (hitungan.length > 1 ? ' (hitung ulang)' : '') +
-        `, ditinggal di laci ${formatRupiah(ditinggal)}` +
+        `, ditinggal untuk shift berikutnya ${formatRupiah(ditinggal)}` +
         (keterangan ? ` — ${keterangan}` : ''),
       ip: asal.ip,
     });
@@ -1104,7 +1104,7 @@ export async function ingatkanShiftPerluDitutup(): Promise<number> {
         : `sudah melewati jam tutup ${s.jadwalTutup ?? ''}`;
     const isi =
       `Shift ${s.nomor} milik ${s.namaKasir} (dibuka ${tglId(s.tanggalOperasional)} pukul ${jamLokal(s.waktuBuka)}) ${sebab}.\n\n` +
-      'Minta kasir menghitung uang di laci lalu menutup shift di menu Shift & Clerical Check. ' +
+      'Minta kasir menghitung uang shift lalu menutup shift di menu Shift & Clerical Check. ' +
       'Admin/Owner juga bisa menutupnya dari tab Semua shift (klik nomor shift, isi hasil hitung uang).';
     for (const p of penerima) {
       const h = await kirimKePengguna(p, 'BonsaiUrip: shift perlu ditutup', isi);

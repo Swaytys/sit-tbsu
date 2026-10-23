@@ -59,7 +59,7 @@ export function InputHitungUang({
       {nilai.mode === 'TOTAL' ? (
         <InputRupiah
           id={`${id}-total`}
-          aria-label="Total uang di laci"
+          aria-label="Total uang shift"
           value={nilai.total}
           onChange={(v) => onUbah({ ...nilai, total: v })}
           onKeyDown={(e) => {
@@ -179,7 +179,7 @@ export function InputHitungUang({
         </button>
       </div>
       <div className="flex items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
-        <span className="text-sm">Total uang di laci</span>
+        <span className="text-sm">Total uang shift</span>
         <span className="text-2xl font-bold tabular-nums" data-testid={`total-${id}`}>
           {total === null ? 'Rp 0' : formatRupiah(total)}
         </span>

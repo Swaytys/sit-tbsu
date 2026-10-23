@@ -22,7 +22,7 @@ async function siapkanBarang(page: Page, nama: string) {
   return b.id;
 }
 
-test('Staf memakai form order lengkap → antrean → Kasir membuka order di layar POS; stok tersedia berkurang', async ({
+test('Staf membuat order lewat input cepat, mengubahnya dari Daftar order → Kasir membuka di POS; stok tersedia berkurang', async ({
   browser,
 }) => {
   const nama = `Semen Order E2E ${Date.now()}`;
@@ -34,24 +34,30 @@ test('Staf memakai form order lengkap → antrean → Kasir membuka order di lay
     const staf = await browser.newPage();
     await masukCepat(staf, 'STAF_PENJUALAN');
     await menuUtama(staf).getByRole('link', { name: 'Order Penjualan' }).click();
-    await staf.getByRole('tab', { name: 'Daftar order' }).click();
-    await staf.getByRole('link', { name: 'Form order lengkap' }).click();
-    await expect(staf.getByRole('heading', { name: 'Buat order baru' })).toBeVisible();
-
-    await staf.getByLabel('Cari barang').click();
-    await staf.getByLabel('Cari barang').fill(nama);
+    await staf.getByLabel('Cari barang', { exact: true }).fill(`2*${nama}`);
     await expect(staf.getByRole('option', { name: new RegExp(nama) })).toContainText('stok 10');
-    await staf.getByLabel('Cari barang').press('Enter');
-    await staf.getByLabel(`Qty ${nama}`).fill('3');
-    await expect(staf.getByTestId('total-order')).toHaveText('Rp 186.000');
-    // Tier selalu otomatis (tidak ada pilihan tier, K-099); Staf tidak berizin memberi diskon.
-    await expect(staf.getByLabel(`Tier ${nama}`)).toHaveCount(0);
-    await expect(staf.getByLabel(`Diskon ${nama}`)).toHaveCount(0);
-    await staf.getByRole('button', { name: 'Kirim ke antrean' }).click();
-    await expect(staf.getByText(/Order ORD-\d{6}-\d{3,} masuk antrean kasir/)).toBeVisible();
+    await staf.getByLabel('Cari barang', { exact: true }).press('Enter');
+    await expect(staf.getByTestId('total-order')).toHaveText('Rp 124.000');
+    await staf.keyboard.press('F8');
+    await expect(staf.getByTestId('order-terakhir')).toBeVisible();
+
+    // K-129: tidak ada form order lengkap; Ubah membuka order di input cepat (mode ubah, F8 simpan).
+    await staf.getByRole('tab', { name: 'Daftar order' }).click();
+    await expect(staf.getByRole('link', { name: 'Form order lengkap' })).toHaveCount(0);
+    await staf
+      .getByRole('button', { name: new RegExp(nama) })
+      .first()
+      .click();
     await expect(staf.getByRole('heading', { name: /^Order ORD-/ })).toBeVisible();
-    await expect(staf.getByText('Menunggu kasir').first()).toBeVisible();
     idOrder = Number(new URL(staf.url()).searchParams.get('id'));
+    await staf.getByRole('link', { name: 'Ubah' }).click();
+    await expect(staf.getByTestId('mode-ubah')).toBeVisible();
+    await expect(staf.getByTestId('total-order')).toHaveText('Rp 124.000');
+    await staf.getByRole('button', { name: `Tambah 1 ${nama}` }).click();
+    await expect(staf.getByTestId('total-order')).toHaveText('Rp 186.000');
+    await staf.keyboard.press('F8');
+    await expect(staf.getByText(/Perubahan order ORD-\d{6}-\d{3,} disimpan/)).toBeVisible();
+    await expect(staf.getByTestId('mode-ubah')).toHaveCount(0);
 
     const b = await api<{ stokTersedia: string }>(admin, `/barang/${idBarang}`);
     expect(b.stokTersedia).toBe('7.000');

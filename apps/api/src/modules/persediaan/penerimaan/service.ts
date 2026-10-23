@@ -195,7 +195,7 @@ export async function simpanPenerimaan(
       if (input.metodeBayar === 'TUNAI' && !shift) {
         throw new AppError(
           'KONFLIK',
-          'Bayar tunai dari laci butuh shift kasir terbuka. Buka shift dulu, atau pilih transfer.',
+          'Bayar tunai butuh shift toko terbuka. Buka shift dulu, atau pilih transfer.',
           409,
           { kolom: { metodeBayar: ['Butuh shift terbuka.'] } },
         );

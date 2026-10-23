@@ -1,11 +1,9 @@
 import {
   DASAR_MARKUP,
   KODE_DOKUMEN,
-  PERAN,
   PILIHAN_BARIS_PER_HALAMAN,
   type KodeDokumen,
   type Pengaturan,
-  type Peran,
   type StrukCetak,
   type TampilanToko,
   type TipeKonfigurasi,
@@ -105,12 +103,6 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
     harga: {
       dasarMarkup: DASAR_MARKUP.find((d) => d === dasarMarkup) ?? 'HARGA_BELI_TERAKHIR',
       pembulatanHarga: angka(m, 'pembulatan_harga', 100),
-      batasDiskonPersen: Object.fromEntries(
-        PERAN.map((p) => [
-          p,
-          angka(m, `batas_diskon_persen_${p}`, p === 'ADMIN' || p === 'OWNER' ? 100 : 0),
-        ]),
-      ) as Record<Peran, number>,
     },
     keamanan: {
       loginMaksGagal: angka(m, 'login_maks_gagal', 5),
@@ -168,7 +160,6 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
   if (p.harga) {
     t('dasar_markup', p.harga.dasarMarkup);
     a('pembulatan_harga', p.harga.pembulatanHarga);
-    for (const peran of PERAN) a(`batas_diskon_persen_${peran}`, p.harga.batasDiskonPersen[peran]);
   }
   if (p.keamanan) {
     a('login_maks_gagal', p.keamanan.loginMaksGagal);

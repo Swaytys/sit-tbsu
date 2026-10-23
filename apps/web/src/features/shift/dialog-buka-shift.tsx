@@ -86,7 +86,7 @@ export function DialogBukaShift({ onTutup }: { onTutup: () => void }) {
       ket:
         ditinggal === null
           ? 'Belum ada shift ditutup dengan uang ditinggal. Pilih Hitung sekarang.'
-          : `Ditinggal saat ${usulan?.nomorShift ?? ''} ditutup${usulan?.waktuTutup ? `, ${formatWaktu(usulan.waktuTutup)}` : ''}. Laci tidak disentuh sejak itu.`,
+          : `Ditinggal saat ${usulan?.nomorShift ?? ''} ditutup${usulan?.waktuTutup ? `, ${formatWaktu(usulan.waktuTutup)}` : ''}. Uang tidak disentuh sejak itu.`,
       mati: ditinggal === null,
     },
     {
@@ -99,7 +99,7 @@ export function DialogBukaShift({ onTutup }: { onTutup: () => void }) {
       c: 'HITUNG_NANTI',
       tombol: 'N',
       judul: 'Buka dulu, hitung nanti',
-      ket: `Toko sudah ramai. Langsung jualan; hitung laci dalam ${usulan?.batasHitungMenit ?? 60} menit (uang penjualan tidak perlu dipisah).`,
+      ket: `Toko sudah ramai. Langsung jualan; hitung uang shift dalam ${usulan?.batasHitungMenit ?? 60} menit (uang penjualan tidak perlu dipisah).`,
     },
   ];
 
@@ -118,9 +118,9 @@ export function DialogBukaShift({ onTutup }: { onTutup: () => void }) {
           <DialogTitle>Buka shift toko</DialogTitle>
           <DialogDescription>
             {langkah === 'pilih'
-              ? 'Modal awal = uang di laci saat buka.'
+              ? 'Modal awal = uang shift saat dibuka.'
               : langkah === 'hitung'
-                ? 'Hitung semua uang di laci.'
+                ? 'Hitung semua uang shift.'
                 : 'Periksa sekali lagi.'}
           </DialogDescription>
         </DialogHeader>
@@ -186,7 +186,7 @@ export function DialogBukaShift({ onTutup }: { onTutup: () => void }) {
                 {cara === 'SAMA_KEMARIN' && 'uang kemarin'}
                 {cara === 'HITUNG' && 'hasil hitungan'}
                 {cara === 'HITUNG_NANTI' &&
-                  `sementara; hitung laci dalam ${usulan?.batasHitungMenit ?? 60} menit`}
+                  `sementara; hitung uang shift dalam ${usulan?.batasHitungMenit ?? 60} menit`}
               </p>
             </div>
             <p className="text-xs text-slate-500">

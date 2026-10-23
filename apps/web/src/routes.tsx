@@ -95,9 +95,6 @@ const ruteMenu: RouteObject[] = SEMUA_ITEM_MENU.map((item) => {
 const muatFormBarang: MuatHalaman = () =>
   import('@/features/barang/halaman-form-barang').then((m) => m.HalamanFormBarang);
 
-const muatFormOrder: MuatHalaman = () =>
-  import('@/features/order/halaman-form-order').then((m) => m.HalamanFormOrder);
-
 /**
  * Semua halaman. `handle.judul` tampil di topbar dan judul tab browser. `errorElement` dipasang dua lapis:
  * galat di satu halaman tampil di dalam kerangka (menu samping tetap bisa dipakai untuk pindah halaman),
@@ -197,8 +194,6 @@ export const router = createBrowserRouter([
                   (m) => m.HalamanDetailPenjualan,
                 ),
               ),
-              ruteLazy('order/baru', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
-              ruteLazy('order/:id/ubah', 'Order Penjualan', 'penjualan.order.buat', muatFormOrder),
               ruteLazy('barang/label', 'Data Barang', 'master.barang.kelola', () =>
                 import('@/features/barang/halaman-label').then((m) => m.HalamanLabel),
               ),

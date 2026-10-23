@@ -183,7 +183,7 @@ function FormAjukan() {
             <IsianRefund
               nilai={refund}
               onUbah={setRefund}
-              labelTunai={langsung ? 'Tunai (laci toko)' : 'Tunai'}
+              labelTunai={langsung ? 'Tunai (uang shift)' : 'Tunai'}
             />
             <p className="text-xs text-slate-500" data-testid="info-persetujuan">
               {langsungSetuju

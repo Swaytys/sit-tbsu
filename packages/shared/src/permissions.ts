@@ -31,7 +31,6 @@ export const DAFTAR_IZIN = {
   'penjualan.order.lepas_paksa': 'Melepas kunci order DIPROSES milik kasir lain (R8)',
   'penjualan.checkout': 'Proses order menjadi penjualan (langsung dan pengantaran)',
   'penjualan.harga_manual': 'Mengisi harga di luar tier',
-  'penjualan.diskon': 'Memberi diskon baris/transaksi (dibatasi batas diskon per peran)',
   'penjualan.pembayaran.catat': 'Catat pembayaran (termasuk DP, pelunasan, bayar saat terima)',
   'penjualan.surat_jalan.kelola': 'Buat surat jalan, ubah status kirim, isi sopir/kendaraan',
   'penjualan.riwayat.lihat': 'Lihat daftar dan detail penjualan',

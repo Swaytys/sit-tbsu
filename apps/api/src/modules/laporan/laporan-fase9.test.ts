@@ -100,8 +100,8 @@ describe('Laporan Promo (PR7)', () => {
         order: { jenisPenjualan: 'LANGSUNG', baris },
         pembayaran: [{ metode: 'TUNAI', nominal: null, uangDiterima: 1_000_000 }],
       });
-    // T1: semen 2 (24.000, promo 2.400) + pasir 1 (4.000). T2: semen 1 diskon manual 1.000 (bruto 12.000,
-    // promo 1.200 → 10.800 − 1.000 = 9.800). T3: pasir 2 tanpa promo (8.000).
+    // T1: semen 2 (24.000, promo 2.400) + pasir 1 (4.000). T2: semen 1 (bruto 12.000, promo 1.200 → 10.800).
+    // T3: pasir 2 tanpa promo (8.000).
     await jual([
       { idBarang: m.semen, qty: '2' },
       { idBarang: m.pasir, qty: '1' },
@@ -109,14 +109,14 @@ describe('Laporan Promo (PR7)', () => {
     await kirim<DetailPenjualan>(admin, '/api/penjualan/checkout', {
       order: {
         jenisPenjualan: 'LANGSUNG',
-        baris: [{ idBarang: m.semen, qty: '1', diskonBaris: 1000 }],
+        baris: [{ idBarang: m.semen, qty: '1' }],
       },
       pembayaran: [{ metode: 'TUNAI', nominal: null, uangDiterima: 1_000_000 }],
     });
     await jual([{ idBarang: m.pasir, qty: '2' }]);
 
     const h = await hitungLaporanPromo({ dari: hariIni, sampai: hariIni });
-    expect(h.penjualanBarang).toBe(21_600 + 4000 + 9800 + 8000);
+    expect(h.penjualanBarang).toBe(21_600 + 4000 + 10_800 + 8000);
     expect(h.transaksiBerpromo).toBe(2);
     expect(h.promo.map((x) => x.nama)).toEqual(['Semen 10%', 'Belum terpakai']);
     expect(h.promo[0]).toMatchObject({
@@ -126,7 +126,7 @@ describe('Laporan Promo (PR7)', () => {
       baris: 2,
       bruto: 36_000,
       diskonPromo: 3600,
-      bersih: 31_400,
+      bersih: 32_400,
     });
     expect(h.promo[1]).toMatchObject({ transaksi: 0, bruto: 0, potongan: 'Rp 100/satuan' });
     expect(h.barang).toEqual([
@@ -134,7 +134,7 @@ describe('Laporan Promo (PR7)', () => {
         idPromo: semen.id,
         qty: '3.000',
         diskonPromo: 3600,
-        bersih: 31_400,
+        bersih: 32_400,
       }),
     ]);
 

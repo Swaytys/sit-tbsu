@@ -345,16 +345,16 @@ describe('promo di order dan pratinjau (PR1–PR4, PR6)', () => {
     expect(k2.baris[0]).toMatchObject({ idPromo: null, diskonPromo: 0, promoDitolak: true });
   });
 
-  it('harga manual tanpa promo; D3: diskon manual dihitung dari subtotal setelah promo', async () => {
+  it('harga manual tanpa promo; promo dipotong dari bruto (tanpa diskon manual, K-146)', async () => {
     await buatPromo({ potonganPersen: '10' });
     const p = await pratinjau(admin, [
       { idBarang: m.semen, qty: '1', hargaManual: true, hargaSatuan: 11_000 },
-      { idBarang: m.pasir, qty: '2', diskonBarisPersen: '10' },
+      { idBarang: m.pasir, qty: '2' },
     ]);
     expect(p.baris[0]).toMatchObject({ idPromo: null, diskonPromo: 0, subtotal: 11_000 });
-    // Bruto 8.000 − promo 800 = 7.200; diskon 10% = 720.
-    expect(p.baris[1]).toMatchObject({ diskonPromo: 800, diskonBaris: 720, subtotal: 6480 });
-    expect(p).toMatchObject({ totalBruto: 19_000, totalDiskonPromo: 800, totalDiskonBaris: 720 });
+    // Bruto 8.000 − promo 800 = 7.200.
+    expect(p.baris[1]).toMatchObject({ diskonPromo: 800, diskonBaris: 0, subtotal: 7200 });
+    expect(p).toMatchObject({ totalBruto: 19_000, totalDiskonPromo: 800, totalDiskonBaris: 0 });
   });
 });
 
@@ -427,12 +427,17 @@ describe('PR5: lepas promo dan evaluasi ulang saat checkout', () => {
     expect((await logTerakhir('PENJUALAN_CHECKOUT'))?.ringkasan).toContain('promo Rp 1.200');
   });
 
-  it('diskon dari Admin tetap sah saat Kasir mengubah order; diskon baru Kasir diuji batasnya (D2)', async () => {
+  it('K-146: diskon lama (sebelum dihapus) tetap sah saat order diubah; diskon baru ditolak', async () => {
     const o = await kirimData<DetailOrder>(
       admin,
       '/api/order?kirim=true',
-      keranjang([{ idBarang: m.semen, qty: '1', diskonBaris: 2000 }]),
+      keranjang([{ idBarang: m.semen, qty: '1' }]),
     );
+    // Order yang tersimpan sebelum K-146 bisa sudah memuat diskon manual.
+    await db
+      .update(orderPenjualanDetail)
+      .set({ diskonBaris: 2000 })
+      .where(eq(orderPenjualanDetail.idOrder, o.id));
     const ubah = await kirimData<DetailOrder>(
       kasir,
       `/api/order/${o.id}`,
@@ -452,7 +457,7 @@ describe('PR5: lepas promo dan evaluasi ulang saat checkout', () => {
       ),
     );
     expect(tolak).toMatchObject({ status: 400 });
-    expect(tolak.pesan).toContain('batas peran Anda (0%)');
+    expect(tolak.pesan).toContain('hanya lewat Promo');
   });
 });
 

@@ -1,7 +1,7 @@
-# 10 — Ringkasan Keputusan (K-001 s.d. K-145)
+# 10 — Ringkasan Keputusan (K-001 s.d. K-151)
 
 Dokumen ini merangkum **seluruh keputusan** yang dicatat di folder `keputusan/` selama pengembangan BonsaiUrip
-(SIT TBSU): **145 keputusan dalam 29 berkas**, dari 19 September sampai 18 Oktober 2026.
+(SIT TBSU): **151 keputusan dalam 30 berkas**, dari 19 September sampai 18 Oktober 2026.
 
 Yang dirangkum di sini adalah **apa yang diputuskan** dan **apa yang berlaku sekarang**. Alasan lengkap, pilihan
 yang ditolak, dan rincian teknis tetap ada di berkas keputusan aslinya. Bila ringkasan ini berbeda dengan berkas
@@ -14,7 +14,7 @@ Isi dokumen:
 3. [Tiga konsep yang paling banyak berubah](#3-tiga-konsep-yang-paling-banyak-berubah)
 4. [Yang berlaku sekarang, per topik](#4-yang-berlaku-sekarang-per-topik)
 5. [Keputusan yang diganti atau diubah](#5-keputusan-yang-diganti-atau-diubah)
-6. [Daftar lengkap K-001 s.d. K-145](#6-daftar-lengkap-k-001-sd-k-145)
+6. [Daftar lengkap K-001 s.d. K-151](#6-daftar-lengkap-k-001-sd-k-151)
 7. [Yang dijadwalkan sesudah ini](#7-yang-dijadwalkan-sesudah-ini)
 
 ---
@@ -394,7 +394,7 @@ keputusan lama masih tertulis di berkasnya.
 
 ---
 
-## 6. Daftar lengkap K-001 s.d. K-145
+## 6. Daftar lengkap K-001 s.d. K-151
 
 ### 6.1 Fondasi — `2026-09-19-keputusan-fondasi.md`
 
@@ -640,8 +640,21 @@ keputusan lama masih tertulis di berkasnya.
 | K-141 | Kembalian tidak diambil dicatat kas masuk khusus, bukan penjualan. | Berlaku (selesai 18 Okt) |
 | K-142 | Retur/void menunggu tampil saat tutup shift; refund tercatat di shift saat disetujui. | Berlaku (selesai 18 Okt) |
 | K-143 | F9 kasir: pilihan A/S/D dipertahankan, label tombol diperjelas. | Berlaku (rencana label) |
-| K-144 | Diskon manual dipertahankan, terbatas % per peran; di atas batas dengan kode atasan. | Berlaku (rencana kode) |
+| K-144 | Diskon manual dipertahankan, terbatas % per peran; di atas batas dengan kode atasan. | Diganti K-146 |
 | K-145 | Pengaturan hotkey per pengguna setelah v1.0.0 lain selesai. | Berlaku (rencana) |
+
+---
+
+### 6.21 Pengantaran dan FMS 23 Oktober — `2026-10-23-pengantaran-fms.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-146 | Diskon manual dihapus; potongan hanya lewat Promo; form order lengkap dihapus. | Berlaku (selesai 23 Okt) |
+| K-147 | Istilah "uang shift" menggantikan "uang laci". | Berlaku (selesai 23 Okt) |
+| K-148 | Koreksi modal hanya setelah hitung susulan disimpan. | Berlaku |
+| K-149 | Hasil pengantaran per barang: diterima, kembali utuh, rusak di jalan, ditolak; dicatat admin/kasir. | Berlaku (rencana) |
+| K-150 | FMS inti: master kendaraan dan sopir, status sedang jalan, riwayat trip. | Berlaku (rencana) |
+| K-151 | Rusak di jalan ditanggung toko; pembeli pilih kiriman pengganti atau tagihan dikurangi. | Berlaku (rencana) |
 
 ---
 
@@ -673,3 +686,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-18 — K-120–K-127 ditambahkan (daftar lengkap 6.19, garis waktu, 4.8 shift, bagian 5).
 - 2026-10-18 — K-121 dan K-122 selesai dibangun (status 6.19, 4.5).
 - 2026-10-18 — K-128–K-145 ditambahkan (6.20; 4.8 satu shift toko).
+- 2026-10-23 — K-146–K-151 (6.21).

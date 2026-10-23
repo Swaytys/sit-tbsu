@@ -15,6 +15,7 @@ import {
 } from '@sit/shared';
 import { CalendarClock, RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
 import { ambilData, ambilIsi, api, pesanGalat } from '@/api/client';
@@ -211,6 +212,9 @@ export function InputOrderCepat() {
   const tr = useTransaksiPos(tierDefault);
   /** Draf yang sedang diisi (disimpan otomatis saat halaman ditinggalkan, K-095). */
   const idDraf = tr.t.order?.status === 'DRAFT' ? tr.t.order.id : null;
+  /** Order di antrean/disimpan yang sedang diubah (dibuka lewat tombol Ubah di Daftar order). */
+  const ubahOrder = tr.t.order && tr.t.order.status !== 'DRAFT' ? tr.t.order : null;
+  const [url, setUrl] = useSearchParams();
   const [zona, setZona] = useState<Zona>('cari');
   const [indeksBaris, setIndeksBaris] = useState(0);
   const [jenis, setJenis] = useState<JenisPenjualan>('LANGSUNG');
@@ -349,6 +353,22 @@ export function InputOrderCepat() {
   // K-095: draf terakhir milik sendiri dibuka lagi saat halaman dibuka, agar isian tidak hilang
   // (K-122 butir 3: bisa dimatikan lewat "Buka draf otomatis").
   const bukaDrafTerakhir = useEffectEvent(async () => {
+    // Dibuka dari tombol Ubah di Daftar order (…?ubah=ID): order itu yang dimuat, bukan draf terakhir.
+    const idUbah = Number(url.get('ubah')) || null;
+    if (idUbah !== null) {
+      setUrl({}, { replace: true });
+      const d = await ambilData(await api.order[':id'].$get({ param: { id: String(idUbah) } }));
+      if (d.status === 'DRAFT') {
+        muatDraf(d);
+        toast.info(`Draf order ${d.nomor} dibuka.`);
+      } else if (d.status === 'MENUNGGU' || d.status === 'DISIMPAN') {
+        muatDraf(d);
+        toast.info(`Mengubah order ${d.nomor}. Simpan perubahan dengan F8.`);
+      } else {
+        toast.error(`Order ${d.nomor} sudah tidak bisa diubah di sini.`);
+      }
+      return;
+    }
     if (!bacaBukaDrafOtomatis()) return;
     const r = await ambilIsi(
       await api.order.$get({
@@ -364,7 +384,8 @@ export function InputOrderCepat() {
    * pindah menu, muat ulang, atau tab ditutup (`keepalive` agar permintaan tetap terkirim).
    */
   const simpanDraf = useEffectEvent(() => {
-    if (!tr.t.diubah || tr.t.baris.length === 0) return;
+    // Order antrean/disimpan yang sedang diubah tidak disimpan diam-diam; perubahan harus disimpan dengan F8.
+    if (ubahOrder || !tr.t.diubah || tr.t.baris.length === 0) return;
     const data = skemaOrder.safeParse(isianOrder());
     if (!data.success) return;
     void fetch(idDraf === null ? '/api/order?kirim=false' : `/api/order/${idDraf}`, {
@@ -394,7 +415,9 @@ export function InputOrderCepat() {
 
   // PR5: harga, promo, dan total dari API; angka lokal hanya cadangan selama menunggu.
   const pratinjau = usePratinjauOrder(
-    tr.t.baris.length > 0 ? { idOrder: idDraf, order: isianOrder() } : null,
+    tr.t.baris.length > 0
+      ? { idOrder: idDraf ?? ubahOrder?.id ?? null, order: isianOrder() }
+      : null,
   );
   const pratinjauBaris = new Map(
     (pratinjau.data?.baris ?? []).map((b) => [kunciBaris(b.idBarang, b.idSatuanJual), b]),
@@ -410,6 +433,16 @@ export function InputOrderCepat() {
     if (!data.success) {
       toast.error(data.error.issues[0]?.message ?? 'Isian belum lengkap.');
       setZona(data.error.issues[0]?.path[0] === 'idPelanggan' ? 'pelanggan' : 'cari');
+      return;
+    }
+    if (ubahOrder) {
+      simpan
+        .mutateAsync({ id: ubahOrder.id, json: data.data, kirim: false })
+        .then((o) => {
+          toast.success(`Perubahan order ${o.nomor} disimpan.`);
+          bersihkanForm();
+        })
+        .catch((err: unknown) => toast.error(pesanGalat(err)));
       return;
     }
     const kirimDraf = idDraf;
@@ -455,8 +488,29 @@ export function InputOrderCepat() {
     setTanyaUlang(true);
   }
 
-  /** Mengosongkan seluruh isian order di layar ini; draf yang sedang diisi dibuang (dibatalkan). */
+  /** Form kosong lagi tanpa menyentuh order apa pun. */
+  function bersihkanForm() {
+    tr.kosongkan(false);
+    setJenis('LANGSUNG');
+    setAlamat('');
+    setOngkir('');
+    setCatatanKirim('');
+    setCatatan('');
+    setIndeksBaris(0);
+    setZona('cari');
+    document.getElementById(ID.cari)?.focus();
+  }
+
+  /**
+   * Mengosongkan seluruh isian order di layar ini; draf yang sedang diisi dibuang (dibatalkan). Order antrean/
+   * disimpan yang sedang diubah TIDAK dibatalkan: perubahannya saja yang dibuang.
+   */
   async function mulaiDariAwal() {
+    if (ubahOrder) {
+      bersihkanForm();
+      toast.info(`Perubahan dibuang; order ${ubahOrder.nomor} tetap seperti semula.`);
+      return;
+    }
     if (idDraf !== null) {
       // Draf yang dikosongkan dibatalkan agar tidak dibuka lagi.
       try {
@@ -481,6 +535,10 @@ export function InputOrderCepat() {
 
   /** K-122: simpan untuk diambil nanti. Isian disimpan dulu sebagai draf, lalu draf itu disimpan (tahan stok). */
   function mintaSimpanNanti() {
+    if (ubahOrder?.status === 'DISIMPAN') {
+      toast.info('Order ini sudah disimpan untuk nanti. Simpan perubahannya dengan F8.');
+      return;
+    }
     if (tr.t.baris.length === 0) {
       toast.info('Tambahkan barang dulu.');
       return;
@@ -496,6 +554,10 @@ export function InputOrderCepat() {
 
   async function siapkanDraf(): Promise<number> {
     const data = skemaOrder.parse(isianOrder());
+    if (ubahOrder) {
+      if (tr.t.diubah) await simpan.mutateAsync({ id: ubahOrder.id, json: data, kirim: false });
+      return ubahOrder.id;
+    }
     if (idDraf !== null && !tr.t.diubah) return idDraf;
     const o = await simpan.mutateAsync(
       idDraf === null ? { json: data, kirim: false } : { id: idDraf, json: data, kirim: false },
@@ -575,9 +637,9 @@ export function InputOrderCepat() {
     { kunci: 'F1', label: 'Qty (*)' },
     { kunci: 'F4', label: 'Pelanggan' },
     { kunci: 'F3', label: antar ? 'Ubah ke langsung' : 'Ubah ke pengantaran' },
-    { kunci: 'F8', label: 'Kirim ke antrean' },
+    { kunci: 'F8', label: ubahOrder ? 'Simpan perubahan' : 'Kirim ke antrean' },
     { kunci: 'F7', label: 'Simpan untuk nanti' },
-    { kunci: 'F9', label: 'Mulai dari awal' },
+    { kunci: 'F9', label: ubahOrder ? 'Buang perubahan' : 'Mulai dari awal' },
     ...TOMBOL[zona],
   ];
 
@@ -585,6 +647,15 @@ export function InputOrderCepat() {
     <div className="flex h-[calc(100vh-10rem)] min-h-[520px] flex-col gap-2">
       <div className="flex min-h-0 flex-1 gap-3">
         <section className="flex min-w-0 flex-1 flex-col gap-2">
+          {ubahOrder && (
+            <div
+              className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-900"
+              data-testid="mode-ubah"
+            >
+              <span className="font-semibold whitespace-nowrap">Mengubah {ubahOrder.nomor}</span>
+              <span className="truncate text-amber-800">F8 simpan · F9 buang perubahan</span>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
             <span
               className={cn(
@@ -702,7 +773,6 @@ export function InputOrderCepat() {
             onKeluar={() => setZona('cari')}
             onLanjut={() => setZona('kirim')}
             onFokus={() => setZona('keranjang')}
-            bolehDiskon={saya.izin.includes('penjualan.diskon')}
             bolehLepasPromo={saya.izin.includes('penjualan.checkout')}
             pratinjau={pratinjauBaris}
           />
@@ -733,10 +803,14 @@ export function InputOrderCepat() {
               <button
                 type="button"
                 onClick={mintaMulaiDariAwal}
-                title="Kosongkan seluruh isian order ini dan mulai dari awal (F9). Akan ditanya dulu."
+                title={
+                  ubahOrder
+                    ? 'Buang perubahan; order tetap seperti semula (F9). Akan ditanya dulu.'
+                    : 'Kosongkan seluruh isian order ini dan mulai dari awal (F9). Akan ditanya dulu.'
+                }
                 className="flex h-12 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700"
               >
-                <RotateCcw className="size-4" /> Mulai dari awal
+                <RotateCcw className="size-4" /> {ubahOrder ? 'Buang perubahan' : 'Mulai dari awal'}
                 <kbd className="font-mono text-xs opacity-60">F9</kbd>
               </button>
             )}
@@ -751,7 +825,7 @@ export function InputOrderCepat() {
                 <kbd className="font-mono text-xs opacity-60">F7</kbd>
               </button>
             )}
-            {tr.t.baris.length > 0 && (
+            {tr.t.baris.length > 0 && !ubahOrder && (
               <button
                 type="button"
                 onClick={orderBaru}
@@ -780,10 +854,12 @@ export function InputOrderCepat() {
               )}
             >
               {simpan.isPending
-                ? 'Mengirim…'
-                : zona === 'kirim'
-                  ? 'Enter: kirim ke antrean'
-                  : 'Kirim ke antrean (F8)'}
+                ? 'Menyimpan…'
+                : ubahOrder
+                  ? 'Simpan perubahan (F8)'
+                  : zona === 'kirim'
+                    ? 'Enter: kirim ke antrean'
+                    : 'Kirim ke antrean (F8)'}
             </button>
           </div>
           {terakhir && (
@@ -830,7 +906,7 @@ export function InputOrderCepat() {
       <DialogKonfirmasi
         terbuka={tanyaUlang}
         onTutup={() => setTanyaUlang(false)}
-        judul="Mulai dari awal?"
+        judul={ubahOrder ? 'Buang perubahan?' : 'Mulai dari awal?'}
         pesan={
           <>
             <p>
@@ -838,13 +914,15 @@ export function InputOrderCepat() {
               dikosongkan, seperti form yang baru dibuka.
             </p>
             <p className="mt-1">
-              {idDraf !== null
-                ? 'Order ini masih berupa draf (belum masuk antrean kasir), jadi drafnya ikut dibuang. Order lain yang sudah dikirim ke antrean tidak terpengaruh.'
-                : 'Order ini belum dikirim ke antrean, jadi tidak ada order yang terhapus. Bila berubah pikiran, tekan Ctrl+Z untuk mengembalikan daftar barangnya.'}
+              {ubahOrder
+                ? `Perubahan pada order ${ubahOrder.nomor} dibuang; order itu tetap seperti semula.`
+                : idDraf !== null
+                  ? 'Order ini masih berupa draf (belum masuk antrean kasir), jadi drafnya ikut dibuang. Order lain yang sudah dikirim ke antrean tidak terpengaruh.'
+                  : 'Order ini belum dikirim ke antrean, jadi tidak ada order yang terhapus. Bila berubah pikiran, tekan Ctrl+Z untuk mengembalikan daftar barangnya.'}
             </p>
           </>
         }
-        labelKonfirmasi="Ya, mulai dari awal"
+        labelKonfirmasi={ubahOrder ? 'Ya, buang perubahan' : 'Ya, mulai dari awal'}
         bahaya
         onKonfirmasi={mulaiDariAwal}
       />

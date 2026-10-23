@@ -19,7 +19,7 @@ memakai kode di luar daftar gagal typecheck.
 
 | Kode | Arti |
 |---|---|
-| `sistem.pengaturan.kelola` | Ubah profil toko, prefix nomor, ambang, batas diskon, dsb. |
+| `sistem.pengaturan.kelola` | Ubah profil toko, prefix nomor, ambang, dsb. |
 | `sistem.log.lihat` | Lihat log aktivitas semua pengguna |
 | `sistem.cadangan.kelola` | Lihat status cadangan data, cadangkan sekarang, uji pulih (K-084) |
 | `master.pengguna.kelola` | Tambah/ubah/nonaktifkan pengguna, reset password, cabut sesi |
@@ -48,7 +48,6 @@ memakai kode di luar daftar gagal typecheck.
 | `penjualan.order.lepas_paksa` | Melepas kunci order DIPROSES milik kasir lain (R8; K-070) |
 | `penjualan.checkout` | Proses order menjadi penjualan (langsung dan pengantaran) |
 | `penjualan.harga_manual` | Mengisi harga di luar tier |
-| `penjualan.diskon` | Memberi diskon baris/transaksi (dibatasi `konfigurasi.batas_diskon_<peran>`) |
 | `penjualan.pembayaran.catat` | Catat pembayaran (termasuk DP, pelunasan, bayar saat terima) |
 | `penjualan.surat_jalan.kelola` | Buat surat jalan, ubah status kirim, isi sopir/kendaraan |
 | `penjualan.riwayat.lihat` | Lihat daftar dan detail penjualan |
@@ -134,7 +133,6 @@ memakai kode di luar daftar gagal typecheck.
 | penjualan.order.lepas_paksa | | | ✓ | ✓ |
 | penjualan.checkout | | ✓ | ✓ | ✓ |
 | penjualan.harga_manual | | | ✓ | ✓ |
-| penjualan.diskon | | ✓ | ✓ | ✓ |
 | penjualan.pembayaran.catat | | ✓ | ✓ | ✓ |
 | penjualan.surat_jalan.kelola | | ✓ | ✓ | ✓ |
 | penjualan.riwayat.lihat | | ✓ | ✓ | ✓ |
@@ -321,3 +319,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-18 — §2, §6: arti izin shift diperluas (hitung dua langkah, koreksi modal, penjelasan selisih); kode `KOREKSI_KAS` (K-121).
 - 2026-10-18 — Order disimpan dan kembali ke draf memakai izin `penjualan.order.buat` dengan pemeriksaan pemilik/kunci di service (pembuat, pemegang `penjualan.checkout`, atau kasir pemegang kunci; docs/05 R11–R13); daftar draf lain per barang untuk peringatan (R14) (K-122).
 - 2026-10-18 — Satu shift toko (K-132): arti izin shift diperbarui; `GET /api/shift/status` (semua pengguna login, indikator topbar) dan `GET /api/persetujuan/:id` (pengaju melanjutkan permintaan kode, K-136).
+- 2026-10-23 — Izin `penjualan.diskon` dihapus: diskon manual tidak ada lagi, potongan hanya lewat Promo (K-146).

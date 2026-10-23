@@ -57,7 +57,7 @@ export function TampilTinjauan({ t }: { t: TinjauanShift }) {
                 <th className="px-2 py-1 font-medium">Kejadian</th>
                 <th className="px-2 py-1 text-right font-medium">Masuk</th>
                 <th className="px-2 py-1 text-right font-medium">Keluar</th>
-                <th className="px-2 py-1 text-right font-medium">Laci</th>
+                <th className="px-2 py-1 text-right font-medium">Saldo</th>
               </tr>
             </thead>
             <tbody className="divide-y">

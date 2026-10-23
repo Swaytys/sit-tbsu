@@ -146,7 +146,7 @@ export async function simpanReturPemasok(
     if (refundTunai && total > 0 && !(await shiftUntukCatat(tx))) {
       throw new AppError(
         'KONFLIK',
-        'Uang kembali tunai masuk ke laci shift Anda: buka shift dulu, atau pilih transfer.',
+        'Uang kembali tunai masuk uang shift: buka shift dulu, atau pilih transfer.',
         409,
       );
     }
