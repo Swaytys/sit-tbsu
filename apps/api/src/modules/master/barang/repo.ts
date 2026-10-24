@@ -68,6 +68,13 @@ export type SaringBarang = {
   kepemilikan?: Kepemilikan | undefined;
 };
 
+/** K-161: barang yang berat atau ukuran/volumenya belum diisi (muatan rit tidak bisa dihitung penuh). */
+export function syaratMuatanBelum(): SQL {
+  return sql`(${barang.beratKg} is null
+    or (not ${barang.curah} and ${barang.panjangCm} is null and ${barang.volumeM3} is null)
+    or (${barang.curah} and ${barang.volumeM3} is null))`;
+}
+
 /** Paling banyak sekian kata dipakai dari kotak cari (sisanya diabaikan). */
 const MAKS_KATA_CARI = 8;
 
@@ -141,11 +148,7 @@ function syarat(p: SaringBarang): SQL | undefined {
     p.idMerk === undefined ? undefined : eq(barang.idMerk, p.idMerk),
     p.perluTinjau === undefined ? undefined : eq(barang.perluTinjauHarga, p.perluTinjau),
     p.adaRusak ? gt(persediaan.stokRusak, '0') : undefined,
-    p.muatanBelum
-      ? sql`(${barang.beratKg} is null
-          or (not ${barang.curah} and ${barang.panjangCm} is null and ${barang.volumeM3} is null)
-          or (${barang.curah} and ${barang.volumeM3} is null))`
-      : undefined,
+    p.muatanBelum ? syaratMuatanBelum() : undefined,
     p.kepemilikan === undefined ? undefined : eq(barang.kepemilikan, p.kepemilikan),
     ...(p.cari ? cocokCari(p.cari) : []),
   );

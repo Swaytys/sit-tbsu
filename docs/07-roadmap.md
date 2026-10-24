@@ -392,8 +392,8 @@ definisi selesai:
 3c. **Hasil uji 23 Okt** (K-152–K-167, `keputusan/2026-10-24-masukan-uji-dan-fms-lanjutan.md`): perbaikan tampilan,
    rekening wajib, satu shift dijamin database, pengingat diciutkan, harga dasar, cadangan (K-152–K-159) — **selesai
    2026-10-24**; K-164 dan K-167 **selesai 2026-10-24**; K-161 bagian 1 (data dan pemeriksaan muatan) dan K-160
-   (papan Pengiriman, rit rencana, migrasi 0027) **selesai 2026-10-24**; berikutnya sisa K-161 (isi massal Excel),
-   K-162, K-163, K-165, K-166.
+   (papan Pengiriman, rit rencana, migrasi 0027) **selesai 2026-10-24**; sisa K-161 (isi massal Excel) **selesai
+   2026-10-24**; berikutnya K-162, K-163, K-165, K-166.
 4. **Pencarian dan tampilan** (K-123): atribut dicocokkan sebagian, label keterjualan, angka stok merah tebal,
    teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan.
 5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),

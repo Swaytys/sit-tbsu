@@ -8,6 +8,7 @@ import {
   ImageOff,
   Plus,
   Tags,
+  Weight,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -69,7 +70,9 @@ function GambarKecil({ b }: { b: BarisBarang }) {
 
 export function HalamanBarang() {
   const navigasi = useNavigate();
-  const bolehImport = usePengguna().izin.includes('master.import.jalankan');
+  const izin = usePengguna().izin;
+  const bolehImport = izin.includes('master.import.jalankan');
+  const bolehKelola = izin.includes('master.barang.kelola');
   const [cari, setCari] = useCariUrl();
   const cariTertunda = useTunda(cari, 300);
   const [status, setStatus] = useState<SaringStatus>('SEMUA');
@@ -305,6 +308,16 @@ export function HalamanBarang() {
               </Button>
             </>
           )}
+          {bolehKelola && (
+            <Button variant="outline" asChild>
+              <Link
+                to="/barang/muatan-excel"
+                title="Isi berat dan ukuran banyak barang lewat Excel"
+              >
+                <Weight /> Data muatan Excel
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" asChild>
             <Link to="/barang/label">
               <Tags /> Cetak label
@@ -440,6 +453,14 @@ export function HalamanBarang() {
             />
             Data muatan belum lengkap
           </label>
+          {muatanBelum && bolehKelola && (
+            <Link
+              to="/barang/muatan-excel"
+              className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline"
+            >
+              <Weight className="size-4" /> Isi lewat Excel
+            </Link>
+          )}
         </BilahSaring>
         <DataTable
           kolom={kolom}

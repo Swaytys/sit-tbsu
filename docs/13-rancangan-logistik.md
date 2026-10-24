@@ -128,7 +128,8 @@ STNK/KIR-nya hampir habis, jadwal servis (km atau tanggal), catatan BBM per rit 
 ## 6. Urutan pengerjaan
 
 1. Data muatan barang + kendaraan, konversi satuan, perhitungan muatan per rit + uji (K-161) — **selesai 24 Okt**;
-   laporan kelengkapan dan isi massal lewat Excel menyusul.
+   saring *Data muatan belum lengkap* di Data Barang dan isi massal lewat Excel (*Data muatan Excel*: unduh semua
+   atau yang belum lengkap, isi dengan satuan bebas, pratinjau lama → baru, simpan) — **selesai 24 Okt**.
 2. Rit rencana (DIRENCANAKAN) + papan Pengiriman dengan seret-lepas (K-160) — **selesai 24 Okt**.
 3. STNK/KIR, servis, BBM, dashboard (K-162).
 
@@ -136,5 +137,6 @@ STNK/KIR-nya hampir habis, jadwal servis (km atau tanggal), catatan BBM per rit 
 
 - 2026-10-24 — v1 dibuat (rancangan K-160–K-162).
 - 2026-10-24 — Langkah 1 (K-161) selesai sebagian; julur bawaan 100 cm.
+- 2026-10-24 — Langkah 1 lengkap: isi massal data muatan lewat Excel.
 - 2026-10-24 — v2: langkah 2 (K-160) selesai; §4 disesuaikan dengan yang dibangun (Dimuat = lencana, tindak lanjut
   lewat Backlog *Kirim ulang*).

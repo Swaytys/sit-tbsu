@@ -246,6 +246,22 @@ Berat tidak pernah boleh melebihi daya angkut. Perhitungan butuh **Data muatan**
 kartu *Data muatan*, isi berat dan ukuran kemasan untuk 1 satuan dasar (boleh dalam g/kg/ton dan mm/cm/m; centang
 *Barang curah* untuk pasir/batu dan isi volumenya).
 
+**Mengisi data muatan banyak barang sekaligus** (Admin/Owner; *Data Barang* → **Data muatan Excel**):
+1. Klik **Yang belum lengkap** (hanya barang aktif yang berat/ukurannya belum diisi) atau **Semua barang**. Berkas
+   Excel terunduh, berisi kode, nama, satuan dasar, dan data muatan sekarang.
+2. Di Excel, isi kolom `berat_kg`, `panjang_cm`, `lebar_cm`, `tinggi_cm` untuk **1 satuan dasar** (lihat kolom
+   `satuan_dasar`). Tulis angka saja (kg/cm), atau angka dengan satuan: `500 g`, `1,2 ton`, `700 mm`, `0,7 m`.
+   Panjang, lebar, tinggi diisi ketiganya atau dikosongkan ketiganya.
+3. Pasir/batu/tanah: `curah` = **YA**, isi berat dan `volume_m3` (mis. `1` atau `500 L`); ukuran dikosongkan.
+4. Jangan ubah kolom `kode`. Sel yang dikosongkan berarti datanya dihapus; kolom yang Anda hapus dari berkas tidak
+   mengubah apa pun. Simpan berkas.
+5. Kembali ke halaman tadi → **Pilih berkas .xlsx**. Tabel pratinjau menunjukkan tiap barang: **Berubah** (kolom
+   *Perubahan* berisi nilai lama → baru), **Tetap**, atau **Galat** (merah, dengan sebabnya). Belum ada yang
+   tersimpan.
+6. Perbaiki baris bergalat di Excel lalu unggah lagi, atau klik ikon tempat sampah untuk membuang barisnya.
+7. Klik **Simpan n perubahan**. Semua tersimpan sekaligus; tiap barang tercatat di log aktivitas.
+Dari daftar barang, saring **Data muatan belum lengkap** lalu klik **Isi lewat Excel** untuk ke halaman yang sama.
+
 **Kendaraan & Sopir** (*Logistik › Kendaraan & Sopir*): daftar kendaraan (plat seperti di STNK, mis. `S 1234 AB`,
 jenis, **daya angkut** dari buku KIR/STNK, **ukuran bak** dalam cm, masa berlaku STNK/KIR) dan sopir (nama, No. HP). Admin/Owner menambah dan mengubahnya; kasir melihat. Klik angka di
 kolom **Perjalanan** untuk melihat riwayat perjalanannya. Kendaraan/sopir yang tidak dipakai lagi dinonaktifkan

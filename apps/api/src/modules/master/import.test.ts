@@ -378,3 +378,177 @@ describe('ekspor harga jual', () => {
     expect((await minta('/api/harga-barang/ekspor', { cookie: kasir.cookie })).status).toBe(403);
   });
 });
+
+describe('isi massal data muatan (K-161)', () => {
+  type HasilMuatan = {
+    baris: {
+      nomorBaris: number;
+      kode: string | null;
+      status: string;
+      perubahan: string[];
+      pesan: string[];
+    }[];
+    ringkasan: { total: number; berubah: number; sama: number; galat: number; disimpan: number };
+    disimpan: boolean;
+  };
+  type BacaMuatan = {
+    namaBerkas: string;
+    kolom: string[];
+    baris: { nomorBaris: number; nilai: Record<string, string> }[];
+  };
+
+  async function siapkanBarang() {
+    const f = await berkas([
+      { ...SEMEN, kode: 'SMN-1' },
+      { ...SEMEN, kode: 'PSR-1', nama_barang: 'Pasir', harga_normal: 200000 },
+      { ...SEMEN, kode: 'PIPA-1', nama_barang: 'Pipa', kategori: 'Pipa', satuan_dasar: 'batang' },
+    ]);
+    expect((await proses('/api/import/barang', await baca(f))).status).toBe(200);
+  }
+
+  async function bacaMuatan(wb: ExcelJS.Workbook): Promise<BacaMuatan> {
+    const form = new FormData();
+    form.set('berkas', new File([new Uint8Array(await wb.xlsx.writeBuffer())], 'muatan.xlsx'));
+    const res = await mintaForm('/api/import/muatan/baca', form, admin.cookie);
+    if (res.status !== 200) throw new Error(`baca gagal (${res.status}): ${await res.text()}`);
+    return (await json<{ data: BacaMuatan }>(res)).data;
+  }
+
+  it('unduh berisi barang yang ada; isian bersatuan dikonversi; pratinjau tidak menyimpan; simpan mengubah + log', async () => {
+    await siapkanBarang();
+    const wb = await unduh('/api/import/muatan/berkas');
+    const ws = wb.getWorksheet('Data muatan')!;
+    const kunci = kunciBaris1(ws);
+    expect(kunci).toEqual([
+      'kode',
+      'nama_barang',
+      'satuan_dasar',
+      'berat_kg',
+      'panjang_cm',
+      'lebar_cm',
+      'tinggi_cm',
+      'curah',
+      'volume_m3',
+    ]);
+    const baris = new Map<string, number>();
+    ws.eachRow((r, i) => {
+      if (i >= 3) baris.set(r.getCell(1).text, i);
+    });
+    expect([...baris.keys()]).toEqual(['PIPA-1', 'PSR-1', 'SMN-1']);
+    const isi = (kode: string, k: string, v: string | number) => {
+      ws.getRow(baris.get(kode)!).getCell(kunci.indexOf(k) + 1).value = v;
+    };
+    isi('SMN-1', 'berat_kg', '50000 g');
+    isi('SMN-1', 'panjang_cm', '700 mm');
+    isi('SMN-1', 'lebar_cm', 45);
+    isi('SMN-1', 'tinggi_cm', '0,12 m');
+    isi('PSR-1', 'berat_kg', '1,4 ton');
+    isi('PSR-1', 'curah', 'YA');
+    isi('PSR-1', 'volume_m3', '1000 L');
+
+    const dibaca = await bacaMuatan(wb);
+    expect(dibaca.kolom).toEqual([
+      'berat_kg',
+      'panjang_cm',
+      'lebar_cm',
+      'tinggi_cm',
+      'curah',
+      'volume_m3',
+    ]);
+    const res = await proses('/api/import/muatan/pratinjau', dibaca);
+    expect(res.status).toBe(200);
+    const h = (await json<{ data: HasilMuatan }>(res)).data;
+    expect(h.ringkasan).toMatchObject({ total: 3, berubah: 2, sama: 1, galat: 0 });
+    const smn = h.baris.find((b) => b.kode === 'SMN-1')!;
+    expect(smn.perubahan).toEqual([
+      'berat (kosong) → 50 kg',
+      'panjang (kosong) → 70 cm',
+      'lebar (kosong) → 45 cm',
+      'tinggi (kosong) → 12 cm',
+    ]);
+    const [sebelum] = await db.select().from(barang).where(eq(barang.kode, 'SMN-1'));
+    expect(sebelum?.beratKg).toBeNull();
+
+    const simpan = await proses('/api/import/muatan', dibaca);
+    expect(simpan.status).toBe(200);
+    expect((await json<{ data: HasilMuatan }>(simpan)).data.ringkasan.disimpan).toBe(2);
+    const [s] = await db.select().from(barang).where(eq(barang.kode, 'SMN-1'));
+    expect(s).toMatchObject({
+      beratKg: '50.000',
+      panjangCm: '70.0',
+      lebarCm: '45.0',
+      tinggiCm: '12.0',
+    });
+    const [p] = await db.select().from(barang).where(eq(barang.kode, 'PSR-1'));
+    expect(p).toMatchObject({
+      beratKg: '1400.000',
+      curah: true,
+      volumeM3: '1.0000',
+      panjangCm: null,
+    });
+    const [log] = await db
+      .select({ n: count() })
+      .from(logAktivitas)
+      .where(eq(logAktivitas.aksi, 'IMPORT_MUATAN'));
+    expect(log?.n).toBe(1);
+
+    // Berkas "belum lengkap" kini hanya berisi pipa.
+    const belum = (await unduh('/api/import/muatan/berkas?belum=1')).getWorksheet('Data muatan')!;
+    expect(belum.getRow(3).getCell(1).text).toBe('PIPA-1');
+    expect(belum.getRow(4).getCell(1).text).toBe('');
+  });
+
+  it('galat per baris: kode tak dikenal/ganda, satuan salah, ukuran tidak lengkap, curah tanpa volume; simpan ditolak', async () => {
+    await siapkanBarang();
+    const semuaKolom = ['berat_kg', 'panjang_cm', 'lebar_cm', 'tinggi_cm', 'curah', 'volume_m3'];
+    const dibaca = {
+      namaBerkas: 'x.xlsx',
+      kolom: semuaKolom,
+      baris: [
+        { nomorBaris: 3, nilai: { kode: 'TIDAK-ADA', berat_kg: '5' } },
+        { nomorBaris: 4, nilai: { kode: 'SMN-1', berat_kg: '5 liter' } },
+        { nomorBaris: 5, nilai: { kode: 'smn-1', berat_kg: '5' } },
+        { nomorBaris: 6, nilai: { kode: 'PIPA-1', berat_kg: '2', panjang_cm: '600' } },
+        { nomorBaris: 7, nilai: { kode: 'PSR-1', berat_kg: '1400', curah: 'YA' } },
+      ],
+    };
+    const h = (
+      await json<{ data: HasilMuatan }>(await proses('/api/import/muatan/pratinjau', dibaca))
+    ).data;
+    const pesan = (n: number) => h.baris.find((b) => b.nomorBaris === n)!.pesan.join(' ');
+    expect(pesan(3)).toContain('tidak ditemukan');
+    expect(pesan(4)).toContain('bukan angka kg');
+    expect(pesan(5)).toContain('sama dengan baris 4');
+    expect(pesan(6)).toContain('Isi panjang, lebar, dan tinggi sekaligus');
+    expect(pesan(7)).toContain('wajib punya volume');
+    expect(h.ringkasan.galat).toBe(5);
+    expect((await proses('/api/import/muatan', dibaca)).status).toBe(400);
+    const [s] = await db.select().from(barang).where(eq(barang.kode, 'SMN-1'));
+    expect(s?.beratKg).toBeNull();
+
+    // Kolom yang tidak ada di berkas tidak mengubah data.
+    const lengkap = {
+      kode: 'SMN-1',
+      berat_kg: '50',
+      panjang_cm: '70',
+      lebar_cm: '45',
+      tinggi_cm: '12',
+    };
+    await proses('/api/import/muatan', {
+      namaBerkas: 'a.xlsx',
+      kolom: ['berat_kg', 'panjang_cm', 'lebar_cm', 'tinggi_cm'],
+      baris: [{ nomorBaris: 3, nilai: lengkap }],
+    });
+    const hanyaBerat = await proses('/api/import/muatan', {
+      namaBerkas: 'b.xlsx',
+      kolom: ['berat_kg'],
+      baris: [{ nomorBaris: 3, nilai: { kode: 'SMN-1', berat_kg: '40' } }],
+    });
+    expect(hanyaBerat.status).toBe(200);
+    const [s2] = await db.select().from(barang).where(eq(barang.kode, 'SMN-1'));
+    expect(s2).toMatchObject({ beratKg: '40.000', panjangCm: '70.0' });
+
+    const kasir = await sesiUji('KASIR');
+    expect((await minta('/api/import/muatan/berkas', { cookie: kasir.cookie })).status).toBe(403);
+  });
+});

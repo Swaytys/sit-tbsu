@@ -671,7 +671,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-158 | Pengaturan "Harga dasar" dengan penjelasan Average/LIFO/FIFO dan kalkulator. | Berlaku (selesai 24 Okt) |
 | K-159 | Cadangan: salin alamat folder, penjelasan server toko vs cloud. | Berlaku (selesai 24 Okt) |
 | K-160 | Halaman Pengiriman tersendiri (menu Logistik), papan kartu order kirim, grup per rit. | Berlaku (selesai 24 Okt) |
-| K-161 | Dimensi & berat barang, kapasitas kendaraan, peringatan muatan bertingkat (ODOL). | Berlaku (bagian 1 selesai 24 Okt) |
+| K-161 | Dimensi & berat barang, kapasitas kendaraan, peringatan muatan bertingkat (ODOL). | Berlaku (selesai 24 Okt; pengingat STNK/KIR ikut K-162) |
 | K-162 | FMS pendukung: utilisasi, rit, STNK/KIR, servis, BBM. | Berlaku (rencana) |
 | K-163 | Editor kampanye promo: syarat + manfaat, jam-menit, banyak barang, templat. | Berlaku (rencana) |
 | K-164 | Kunci idempoten kiriman uang dan cek versi data master. | Berlaku (selesai 24 Okt) |
@@ -714,3 +714,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-24 — K-152–K-167 (6.22).
 - 2026-10-24 — K-164 dan K-167 selesai.
 - 2026-10-24 — K-161 bagian 1 selesai (data muatan, pratinjau dan penegakan muatan saat berangkat).
+- 2026-10-24 — K-160 selesai (papan Pengiriman, rit rencana); K-161 bagian 2 selesai (isi massal data muatan lewat Excel).

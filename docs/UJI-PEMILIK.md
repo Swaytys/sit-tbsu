@@ -40,6 +40,7 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U74 | Data muatan barang | *Data Barang › Ubah* semen → kartu *Data muatan*: pilih **g**, isi 50000; pilih **mm**, isi 700 × 450 × 120 → Simpan | Tersimpan sebagai 50 kg dan 70 × 45 × 12 cm (buka lagi: angka tampil dalam kg/cm) | Belum | Coba juga *Barang curah* untuk pasir |
 | U77 | Barang belum lengkap & pengaturan muatan | *Data Barang*: nyalakan **Data muatan belum lengkap**; *Pengaturan › Operasional*: ubah faktor isi/julur | Daftar hanya barang tanpa berat/ukuran; pengaturan tersimpan dan dipakai saat Berangkat | Belum | |
 | U75 | Data kendaraan | *Kendaraan & Sopir* → ubah kendaraan: isi daya angkut, ukuran bak, STNK/KIR | Kolom *Daya angkut · bak* terisi | Belum | |
+| U87 | Data muatan lewat Excel | *Data Barang* → **Data muatan Excel** → **Yang belum lengkap** → di Excel isi semen `berat_kg` = `50000 g`, ukuran `700 mm`, `45`, `12`; satu baris pasir `curah` = YA tanpa volume → unggah | Semen: *Berubah* "berat (kosong) → 50 kg …"; pasir: *Galat* "wajib punya volume"; tombol simpan mati sampai pasir diperbaiki/dibuang → simpan | Belum | Cek: semen hilang dari saring *Data muatan belum lengkap* |
 | U76 | Muatan saat berangkat | *Logistik › Pengiriman*: buat rit dengan kendaraan kecil, isi dengan invoice berisi barang yang datanya sudah diisi → **Berangkat**; ulangi dengan kendaraan besar | Bar berat/volume/panjang berwarna; merah = tombol mati; oranye = wajib alasan | Belum | |
 
 ### Papan Pengiriman dan rit rencana (24 Oktober, K-160)
@@ -177,4 +178,5 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.
 - 2026-10-24 — U71–U73 pencarian universal, cek versi, kiriman tidak ganda (K-164, K-167).
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
+- 2026-10-24 — U87 isi massal data muatan lewat Excel (K-161).
 - 2026-10-24 — U78–U86 papan Pengiriman dan rit rencana (K-160); U51–U52 diganti, U53, U55–U57, U59, U76 disesuaikan.

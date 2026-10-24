@@ -501,6 +501,22 @@ dan surat jalan aktif disegarkan tiap 30 detik.
 berangkat menolak perubahan), e2e pengiriman.spec (rit baru lewat R, seret kartu, menu kartu, dimuat, berangkat,
 catat hasil, kirim ulang muncul di Backlog).
 
+### C11. Isi massal data muatan lewat Excel (24 Oktober 2026, K-161 bagian 2)
+
+**Masalah:** ratusan barang lama belum punya berat dan ukuran; mengisinya satu per satu lewat form terlalu lama,
+dan import barang yang ada hanya menambah barang baru.
+
+**Solusi:** `apps/api/src/modules/master/import/muatan.ts` (berkas unduhan berisi barang yang ada, semua atau yang
+belum lengkap memakai `syaratMuatanBelum()` dari repo barang; baca → pratinjau → simpan); `bacaIsianMuatan` di
+`packages/shared/src/satuan-muatan.ts` membaca sel "50000 g", "700 mm", "500 L" (decimal.js, dibulatkan ke
+ketelitian kolom). Penyimpanan memakai `simpanMuatan` yang sama dengan form barang (log per barang), baris barang
+dikunci `FOR UPDATE`, semua atau tidak sama sekali. Izin `master.barang.kelola`. Web: halaman
+`features/barang/halaman-muatan-excel.tsx`, tombol *Data muatan Excel* dan tautan *Isi lewat Excel* saat saring
+*Data muatan belum lengkap* aktif.
+
+**Tes:** import.test (+2: unduh, konversi satuan, pratinjau tanpa simpan, simpan + log, berkas belum lengkap; galat
+per baris, kolom yang tidak ada tidak mengubah data, kasir 403), satuan-muatan.test (shared), e2e muatan-excel.spec.
+
 ---
 
 ## Riwayat dokumen
@@ -516,3 +532,4 @@ catat hasil, kirim ulang muncul di Backlog).
 - 2026-10-24 — Bagian C8 kunci idempoten, cek versi, pencarian universal (K-164, K-167).
 - 2026-10-24 — Bagian C9 data muatan (K-161 bagian 1).
 - 2026-10-24 — Bagian C10 rit rencana dan papan Pengiriman (K-160).
+- 2026-10-24 — Bagian C11 isi massal data muatan lewat Excel (K-161 bagian 2).

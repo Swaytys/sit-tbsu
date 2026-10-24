@@ -223,7 +223,7 @@ export async function detailBarang(id: number, izin: ReadonlySet<Izin>): Promise
 type BarisMuatan = NonNullable<Awaited<ReturnType<typeof repo.muatanBarang>>>;
 
 /** Angka dari database (`12.500`) ditampilkan ringkas (`12.5`); kosong tetap `null`. */
-function rapikanMuatan(m: BarisMuatan | undefined): MuatanBarang {
+export function rapikanMuatan(m: BarisMuatan | undefined): MuatanBarang {
   const r = (v: string | null) => (v === null ? null : rapikanAngka(v));
   return {
     beratKg: r(m?.beratKg ?? null),
@@ -235,15 +235,18 @@ function rapikanMuatan(m: BarisMuatan | undefined): MuatanBarang {
   };
 }
 
-/** Menyimpan data muatan bila berubah, dengan log BARANG_UBAH (dalam transaksi pemanggil). */
-async function simpanMuatan(
+/**
+ * Menyimpan data muatan bila berubah, dengan log BARANG_UBAH (dalam transaksi pemanggil). `true` bila ada yang
+ * berubah. Dipakai form barang dan isi massal Excel (K-161).
+ */
+export async function simpanMuatan(
   tx: Tx,
   id: number,
   input: DataMuatanBarang,
   label: string,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
-) {
+): Promise<boolean> {
   const lama = rapikanMuatan(await repo.muatanBarang(tx, id));
   // Barang curah tidak punya ukuran per buah.
   const baru: MuatanBarang = {
@@ -255,7 +258,7 @@ async function simpanMuatan(
     volumeM3: input.volumeM3 === null ? null : rapikanAngka(input.volumeM3),
   };
   const beda = selisih(lama, baru);
-  if (beda.kolom.length === 0) return;
+  if (beda.kolom.length === 0) return false;
   await repo.ubahMuatan(tx, id, baru, sekarang());
   await catatLog(tx, {
     aksi: 'BARANG_UBAH',
@@ -267,6 +270,7 @@ async function simpanMuatan(
     dataBaru: beda.dataBaru,
     ip: asal.ip,
   });
+  return true;
 }
 
 // --- Validasi ---

@@ -4,8 +4,10 @@ import type {
   DataTingkatHarga,
   DetailBarang,
   BacaImportBarang,
+  BacaImportMuatan,
   InputAbaikanTinjau,
   InputProsesImport,
+  InputProsesMuatan,
   InputHargaOtomatis,
   InputSimpanHarga,
   InputTerapkanTinjau,
@@ -219,5 +221,33 @@ export function usePratinjauImport() {
 export function useSimpanImport() {
   return useMutasi(['barang'], async (json: InputProsesImport) =>
     ambilData(await api.import.barang.$post({ json })),
+  );
+}
+
+// --- Isi massal data muatan lewat Excel (K-161) ---
+
+export function useBacaMuatan() {
+  return useMutation({
+    mutationFn: async (berkas: File): Promise<BacaImportMuatan> => {
+      const form = new FormData();
+      form.set('berkas', berkas);
+      const res = await fetch('/api/import/muatan/baca', { method: 'POST', body: form });
+      if (!res.ok) throw await galatDariRespons(res);
+      return ((await res.json()) as { data: BacaImportMuatan }).data;
+    },
+  });
+}
+
+/** Pratinjau: tidak menyimpan apa pun. */
+export function usePratinjauMuatan() {
+  return useMutation({
+    mutationFn: async (json: InputProsesMuatan) =>
+      ambilData(await api.import.muatan.pratinjau.$post({ json })),
+  });
+}
+
+export function useSimpanMuatan() {
+  return useMutasi(['barang'], async (json: InputProsesMuatan) =>
+    ambilData(await api.import.muatan.$post({ json })),
   );
 }

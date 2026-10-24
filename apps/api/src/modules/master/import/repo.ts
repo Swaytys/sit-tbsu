@@ -11,6 +11,7 @@ import {
   satuan,
   tingkatHarga,
 } from '../../../db/schema';
+import { syaratMuatanBelum } from '../barang/repo';
 
 /** Data referensi untuk templat dan untuk mencocokkan isi sel (nama/kode) ke id. */
 export async function referensiImport(ex: Executor) {
@@ -132,4 +133,41 @@ export async function dataEksporBarang(ex: Executor) {
     .innerJoin(jenisAtribut, eq(jenisAtribut.id, barangAtribut.idJenisAtribut))
     .leftJoin(satuan, eq(satuan.id, barangAtribut.idSatuan));
   return { barang: daftar, harga, atribut };
+}
+
+// --- Isi massal data muatan (K-161) ---
+
+const kolomMuatan = {
+  id: barang.id,
+  kode: barang.kode,
+  namaBarang: barang.namaBarang,
+  satuan: satuan.kode,
+  statusAktif: barang.statusAktif,
+  beratKg: barang.beratKg,
+  panjangCm: barang.panjangCm,
+  lebarCm: barang.lebarCm,
+  tinggiCm: barang.tinggiCm,
+  curah: barang.curah,
+  volumeM3: barang.volumeM3,
+};
+
+/** Barang untuk berkas data muatan: semua barang, atau hanya barang aktif yang datanya belum lengkap. */
+export async function dataMuatan(ex: Executor, belum: boolean) {
+  return ex
+    .select(kolomMuatan)
+    .from(barang)
+    .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .where(belum ? and(eq(barang.statusAktif, 'AKTIF'), syaratMuatanBelum()) : undefined)
+    .orderBy(asc(barang.kode));
+}
+
+/** Barang menurut kode (untuk mencocokkan baris berkas); dikunci saat menyimpan. */
+export async function muatanPerKode(ex: Executor, kode: string[], kunci: boolean) {
+  if (kode.length === 0) return [];
+  const q = ex
+    .select(kolomMuatan)
+    .from(barang)
+    .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .where(inArray(barang.kode, kode));
+  return kunci ? q.for('update', { of: barang }) : q;
 }
