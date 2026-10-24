@@ -416,6 +416,22 @@ Semua tugas kasir, ditambah:
     anggaran diisi, angka ini harus lebih kecil dari anggaran.
   - Anggaran dan batas per pembeli boleh diubah walau promo sudah terpakai; anggaran tidak boleh di bawah yang
     sudah diberikan.
+- **Arsip tahunan** (*Pengaturan › Arsip tahunan*, Owner): satu kartu per tahun berisi ringkasan (penjualan, void,
+  retur, penerimaan, piutang yang belum lunas) dan jumlah baris transaksinya.
+  1. Awal tahun, selesaikan dulu semua dokumen tahun lalu: daftar **penghalang** (kotak kuning) menyebut apa yang
+     belum selesai, mis. order belum selesai/batal, shift belum ditutup, retur menunggu persetujuan, surat jalan atau
+     rit belum selesai.
+  2. Klik **Tutup tahun …** → baca konfirmasinya → **Tutup tahun**. Semua transaksi tahun itu (termasuk void dan
+     retur) disalin ke berkas arsip, dan tahun itu dikunci: tidak bisa mencatat atau mengubah apa pun bertanggal
+     tahun itu. Data **tidak dihapus**: semua layar dan laporan tetap menampilkannya.
+  3. Klik **Periksa**: "Berkas utuh dan sama dengan database" berarti arsip aman. **Unduh berkas** menyimpan salinannya
+     (mis. ke flashdisk).
+  4. Perlu koreksi? **Buka kembali** → tulis alasannya → koreksi → **Tutup tahun** lagi (berkas baru dibuat, yang lama
+     tetap ada).
+  Retur dan pelunasan atas nota tahun lalu tetap bisa dicatat setelah tahun ditutup, karena tercatat dengan tanggal
+  hari ini.
+- **Tentang aplikasi** (menu nama Anda di kanan atas): versi tampilan, versi server, status struktur database, dan
+  daftar perubahan versi terbaru. Bila tertulis server sudah diperbarui, tekan **Ctrl+F5**.
 - **Pelanggan & pemasok** (*Data Pelanggan*, *Data Pemasok*): golongan (untuk sasaran promo; kelola lewat tombol
   **Golongan**), term pembayaran, limit. Daftar Data Pelanggan menampilkan **limit kredit dan sisanya**,
   **tagihan berjalan** (jumlah rupiah dan banyaknya nota), dan **jatuh tempo terdekat** ("5 hari lagi",

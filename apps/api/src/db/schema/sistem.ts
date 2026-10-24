@@ -19,6 +19,7 @@ import {
   STATUS_AKTIF,
   STATUS_CADANGAN,
   STATUS_TUJUAN_CADANGAN,
+  STATUS_TUTUP_TAHUN,
   TIPE_KONFIGURASI,
 } from '@sit/shared';
 import { sql } from 'drizzle-orm';
@@ -206,5 +207,46 @@ export const kunciIdempoten = pgTable(
     }),
     check('chk_kunci_idempoten_status', sql`status in ('PROSES','SELESAI')`),
     index('idx_kunci_idempoten_dibuat').on(t.dibuatPada),
+  ],
+);
+
+/**
+ * K-165 (migrasi 0031): tutup tahun / arsip tahunan. Satu baris per tahun yang pernah ditutup. Tahun DITUTUP
+ * dikunci dari dokumen baru atau perubahan bertanggal tahun itu; isinya diekspor ke berkas arsip (gzip JSON,
+ * ber-SHA-256) di folder penyimpanan yang ikut dicadangkan. Data tetap di database (dibaca seperti biasa).
+ * Kolom status dan kolom buka/tutup berubah saat ditutup ulang atau dibuka kembali.
+ */
+export const tutupTahun = pgTable(
+  'tutup_tahun',
+  {
+    tahun: integer('tahun').primaryKey(),
+    status: varchar('status', { length: 10, enum: STATUS_TUTUP_TAHUN }).notNull(),
+    ditutupPada: timestamptz('ditutup_pada').notNull(),
+    ditutupOleh: kolomRef('ditutup_oleh').notNull(),
+    ringkasan: jsonb('ringkasan').notNull(),
+    berkas: varchar('berkas', { length: 255 }).notNull(),
+    sha256: char('sha256', { length: 64 }).notNull(),
+    ukuran: bigint('ukuran', { mode: 'number' }).notNull(),
+    dibukaPada: timestamptz('dibuka_pada'),
+    dibukaOleh: kolomRef('dibuka_oleh'),
+    alasanBuka: varchar('alasan_buka', { length: 255 }),
+  },
+  (t) => [
+    foreignKey({
+      name: 'tutup_tahun_ditutup_oleh_fkey',
+      columns: [t.ditutupOleh],
+      foreignColumns: [pengguna.id],
+    }),
+    foreignKey({
+      name: 'tutup_tahun_dibuka_oleh_fkey',
+      columns: [t.dibukaOleh],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_tutup_tahun_status', dalamDaftar('status', STATUS_TUTUP_TAHUN)),
+    check('chk_tutup_tahun_tahun', sql`tahun between 2000 and 2999`),
+    check(
+      'chk_tutup_tahun_buka',
+      sql`(status = 'DIBUKA') = (dibuka_pada is not null and alasan_buka is not null)`,
+    ),
   ],
 );

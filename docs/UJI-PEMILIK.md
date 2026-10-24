@@ -40,6 +40,10 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U74 | Data muatan barang | *Data Barang › Ubah* semen → kartu *Data muatan*: pilih **g**, isi 50000; pilih **mm**, isi 700 × 450 × 120 → Simpan | Tersimpan sebagai 50 kg dan 70 × 45 × 12 cm (buka lagi: angka tampil dalam kg/cm) | Belum | Coba juga *Barang curah* untuk pasir |
 | U77 | Barang belum lengkap & pengaturan muatan | *Data Barang*: nyalakan **Data muatan belum lengkap**; *Pengaturan › Operasional*: ubah faktor isi/julur | Daftar hanya barang tanpa berat/ukuran; pengaturan tersimpan dan dipakai saat Berangkat | Belum | |
 | U75 | Data kendaraan | *Kendaraan & Sopir* → ubah kendaraan: isi daya angkut, ukuran bak, STNK/KIR | Kolom *Daya angkut · bak* terisi | Belum | |
+| U98 | Arsip tahunan: penghalang | Login Owner → *Pengaturan › Arsip tahunan* | Kartu 2026 "Belum ditutup", tombol Tutup mati, daftar kuning menyebut "Tahun berjalan belum selesai" dan dokumen yang belum selesai | Belum | |
+| U99 | Tutup, periksa, unduh | (Butuh data tahun lalu) kartu tahun lalu → **Tutup tahun** → **Periksa** → **Unduh berkas** | "Ditutup"; "Berkas utuh dan sama dengan database"; berkas `arsip-<tahun>-….json.gz` terunduh | Belum | Bila belum ada data tahun lalu, cukup baca penjelasan "?" |
+| U100 | Tahun terkunci & buka kembali | Setelah U99: *Kendaraan & Sopir › BBM* → catat BBM bertanggal tahun lalu; lalu **Buka kembali** (alasan) dan ulangi | Pertama ditolak "Tahun … sudah ditutup"; setelah dibuka berhasil; kartu "Dibuka kembali" | Belum | Tutup lagi sesudahnya |
+| U101 | Tentang aplikasi & versi | Menu nama Anda (kanan atas) › **Tentang aplikasi** | Versi tampilan = versi server, struktur database N/N, daftar perubahan versi 1.14.0 | Belum | Setelah pembaruan server: tekan Ctrl+F5 bila versi berbeda |
 | U93 | Promo per barang (beberapa) | *Pengaturan › Promo* → **Buat promo** → Berlaku untuk **Per barang (pilih beberapa)** → tambah 2 barang → 10% → Simpan; jual keduanya di kasir | Kedua baris mendapat "Promo …"; kolom *Berlaku untuk* menyebut kedua barang | Belum | |
 | U94 | Beli X gratis Y | Promo baru: barang semen, **Beli X gratis Y** 10 dan 1 → kasir: semen qty 11, lalu 22 | Qty 11: potongan = harga 1 sak; qty 22: 2 sak; qty 10: tidak ada potongan | Belum | |
 | U95 | Harga khusus | Promo baru: Per merk (pilih merk semen), **Harga khusus** di bawah harga Normal → kasir: 3 sak | Potongan = (harga Normal − harga khusus) × 3 | Belum | Harga khusus di atas harga Normal: promo tidak berlaku |
@@ -188,6 +192,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.
 - 2026-10-24 — U71–U73 pencarian universal, cek versi, kiriman tidak ganda (K-164, K-167).
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
+- 2026-10-24 — U98–U101 arsip tahunan, Tentang aplikasi (K-165, K-166).
 - 2026-10-24 — U93–U97 kampanye promo (K-163 bagian 1).
 - 2026-10-24 — U88–U92 BBM, servis, pengingat, statistik armada (K-162).
 - 2026-10-24 — U87 isi massal data muatan lewat Excel (K-161).

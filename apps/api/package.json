@@ -17,6 +17,7 @@
     "db:check": "drizzle-kit check",
     "db:verifikasi": "tsx src/db/verifikasi-skema.ts",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:uji-migrasi": "tsx src/uji-migrasi.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:reset": "tsx src/db/reset.ts",
     "db:audit": "tsx src/db/audit.ts"

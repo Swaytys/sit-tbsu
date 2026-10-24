@@ -286,3 +286,7 @@ export type PemicuCadangan = (typeof PEMICU_CADANGAN)[number];
 /** Hasil per tujuan cadangan (lokal / cloud). */
 export const STATUS_TUJUAN_CADANGAN = ['BERHASIL', 'GAGAL', 'NONAKTIF'] as const;
 export type StatusTujuanCadangan = (typeof STATUS_TUJUAN_CADANGAN)[number];
+
+/** K-165: status tutup tahun (arsip tahunan). DIBUKA = pernah ditutup lalu dibuka kembali oleh Owner. */
+export const STATUS_TUTUP_TAHUN = ['DITUTUP', 'DIBUKA'] as const;
+export type StatusTutupTahun = (typeof STATUS_TUTUP_TAHUN)[number];

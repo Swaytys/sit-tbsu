@@ -13,6 +13,7 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tanggalOperasional } from '../../../lib/waktu';
+import { pastikanTahunTerbuka } from '../../sistem/arsip/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import * as catatanRepo from './catatan-repo';
 import * as repo from './repo';
@@ -62,6 +63,7 @@ export async function catatBbm(
 ): Promise<{ id: number }> {
   pastikanTanggal(input.tanggal);
   return dalamTransaksi(async (tx) => {
+    await pastikanTahunTerbuka(tx, input.tanggal);
     const k = await kunciKendaraanAktif(tx, input.idKendaraan);
     if (input.idSopir !== null && !(await repo.sopirById(tx, input.idSopir))) {
       throw galatKolom('idSopir', 'Sopir tidak ditemukan.');
@@ -107,6 +109,7 @@ export async function catatServis(
 ): Promise<{ id: number }> {
   pastikanTanggal(input.tanggal);
   return dalamTransaksi(async (tx) => {
+    await pastikanTahunTerbuka(tx, input.tanggal);
     const k = await kunciKendaraanAktif(tx, input.idKendaraan);
     await pastikanOdometer(tx, k.id, input.tanggal, input.odometerKm);
     const id = await catatanRepo.tambahServis(tx, {
@@ -143,6 +146,7 @@ export async function batalCatatan(
     const c = await catatanRepo.kunciCatatan(tx, jenis, id);
     if (!c) throw new AppError('TIDAK_DITEMUKAN', 'Catatan tidak ditemukan.', 404);
     if (c.batalPada) throw new AppError('STATUS_TIDAK_VALID', 'Catatan ini sudah dibatalkan.', 409);
+    await pastikanTahunTerbuka(tx, c.tanggal, 'alasan');
     await catatanRepo.batalkan(tx, jenis, id, {
       batalPada: sekarang(),
       alasanBatal: alasan,

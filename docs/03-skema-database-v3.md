@@ -526,6 +526,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-24 — v3.27: tabel `tutup_tahun` (tahun PK, status DITUTUP/DIBUKA, berkas, sha256, ukuran, ringkasan jsonb,
+  penutup, pembuka + alasan; CHECK status–kolom buka) (migrasi 0031, K-165).
 - 2026-10-24 — v3.26: promo kampanye: kolom waktu, hari/jam, manfaat HARGA_KHUSUS/GRATIS, templat; tabel
   `promo_sasaran`; `promo.id_kategori`/`id_barang` dihapus setelah datanya dipindah (migrasi 0029–0030, K-163).
 - 2026-10-24 — v3.25: tabel `catatan_bbm`, `catatan_servis`; `kendaraan.servis_tiap_km`, `servis_tiap_bulan` (CHECK `chk_kendaraan_servis`) (migrasi 0028, K-162).

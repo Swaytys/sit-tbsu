@@ -334,6 +334,21 @@ API berada di origin yang sama (dev: proxy Vite `/api` → `:3000`; produksi: Ho
   kodenya sudah ada tidak ditimpa.
 - `pnpm db:reset --ya` (hanya dev): kosongkan database `*_dev`, migrasi ulang, seed. Tanpa `--ya` perintah menolak.
 
+### Uji migrasi dan pembaruan aman (K-166)
+
+`pnpm db:uji-migrasi` (produksi: `node apps/api/dist/uji-migrasi.js`) membuat salinan database (`pg_dump` →
+`<db>_ujimigrasi`, butuh hak CREATEDB), menjalankan migrasi baru di salinan, lalu membandingkan jumlah baris semua
+tabel: tabel berisi data yang hilang atau baris yang berkurang = gagal. `scripts/server/perbarui-server.ps1`
+memakainya sebelum migrasi database asli; kegagalan langkah pull/build/uji/migrasi mengembalikan kode ke commit
+sebelumnya (`git reset --keep`) dan menyalakan server lama. Versi aplikasi (`packages/shared/src/versi.ts`) dan
+jumlah migrasi terpasang/tersedia dilaporkan `GET /api/health`.
+
+### Arsip tahunan (K-165)
+
+Data tidak dipindah atau dipartisi; tahun ditutup = dikunci + berkas `STORAGE_DIR/arsip/arsip-<tahun>-*.json.gz`
+(definisi isi di `modules/sistem/arsip/tabel.ts`). Partisi per tahun baru dipertimbangkan bila tabel transaksi
+menembus puluhan juta baris.
+
 ## 10. Testing
 
 - **Service test (utama)**: Vitest menjalankan service terhadap database uji `tbsu_test` (PostgreSQL sungguhan,
@@ -420,3 +435,4 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
 - 2026-10-24 — §4 kunci idempoten dan cek versi (K-164).
 - 2026-10-24 — §4 baris rit rencana (K-160).
 - 2026-10-24 — §4 baris odometer (K-162).
+- 2026-10-24 — §9 uji migrasi, pembaruan aman, arsip tahunan (K-165, K-166).

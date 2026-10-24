@@ -548,6 +548,22 @@ dan tes lama tetap jalan). Web: dialog promo dibagi lima bagian (waktu, barang, 
 
 **Tes:** promo.test (+3: `promoBerlaku` hari/jam/menit, banyak barang + merk + harga khusus + gratis + jam harian,
 validasi + templat + sasaran terkunci), e2e promo.spec (+1 kampanye, templat).
+### C14. Arsip tahunan dan pembaruan aman (24 Oktober 2026, K-165, K-166)
+
+**Masalah:** data bertahun-tahun dikhawatirkan membuat sistem lambat dan berantakan; belum ada cara menutup tahun dan
+menyimpan arsipnya. Pembaruan server belum menguji migrasi pada data nyata dan tidak bisa mundur otomatis; versi
+aplikasi tidak terlihat.
+
+**Solusi:** migrasi 0031 `tutup_tahun`; `modules/sistem/arsip/` (`tabel.ts` daftar isi arsip per tabel dengan kueri
+berparameter, `service.ts` penghalang, ringkasan, tulis berkas gzip + SHA-256 di `STORAGE_DIR/arsip`, kunci tahun
+lewat `pastikanTahunTerbuka`, periksa, buka kembali, unduh); tab *Arsip tahunan* (Owner). K-166:
+`db/uji-migrasi-salinan.ts` + `src/uji-migrasi.ts` (entri build baru), `versi.ts` di shared, health melaporkan versi
+dan migrasi, dialog *Tentang aplikasi*, `perbarui-server.ps1` ditulis ulang (hentikan dulu, cadangan, uji salinan,
+mundur otomatis, periksa setelah menyala). Tab Pengaturan kini membungkus rapi (11 tab).
+
+**Tes:** arsip.test (alur penuh), uji-migrasi-salinan.test (perbandingan jumlah), health.test (versi + migrasi),
+e2e arsip.spec. Uji migrasi penuh tidak bisa dijalankan di mesin pengembangan (user `sit` tanpa CREATEDB; pemasang
+server memberi hak itu).
 
 ---
 
@@ -567,3 +583,4 @@ validasi + templat + sasaran terkunci), e2e promo.spec (+1 kampanye, templat).
 - 2026-10-24 — Bagian C11 isi massal data muatan lewat Excel (K-161 bagian 2).
 - 2026-10-24 — Bagian C12 FMS pendukung (K-162).
 - 2026-10-24 — Bagian C13 kampanye promo (K-163 bagian 1).
+- 2026-10-24 — Bagian C14 arsip tahunan dan pembaruan aman (K-165, K-166).

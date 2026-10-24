@@ -3,8 +3,8 @@ import { defineConfig } from 'tsdown';
 // `pnpm build` api → dist/index.js. Paket workspace (@sit/shared) berupa sumber TypeScript,
 // jadi ikut dibundel; dependency npm lain tetap diimpor dari node_modules.
 export default defineConfig({
-  // cadangan.ts: skrip cadangan untuk perbarui-server.ps1 (K-084).
-  entry: ['src/index.ts', 'src/cadangan.ts'],
+  // cadangan.ts dan uji-migrasi.ts: skrip untuk perbarui-server.ps1 (K-084, K-166).
+  entry: ['src/index.ts', 'src/cadangan.ts', 'src/uji-migrasi.ts'],
   format: 'esm',
   platform: 'node',
   target: 'node24',

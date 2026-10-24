@@ -44,6 +44,7 @@ import { penerimaanRoutes } from './modules/persediaan/penerimaan/routes';
 import { penyesuaianRoutes } from './modules/persediaan/penyesuaian/routes';
 import { saranPesanRoutes } from './modules/persediaan/saran-pesan/routes';
 import { stokRoutes } from './modules/persediaan/stok/routes';
+import { arsipRoutes } from './modules/sistem/arsip/routes';
 import { cadanganRoutes } from './modules/sistem/cadangan/routes';
 import { cariRoutes } from './modules/sistem/cari/routes';
 import { healthRoutes } from './modules/sistem/health/routes';
@@ -98,6 +99,7 @@ const rute = new Hono<EnvApp>()
   .route('/dashboard', dashboardRoutes)
   .route('/laporan', laporanRoutes)
   .route('/cadangan', cadanganRoutes)
+  .route('/arsip', arsipRoutes)
   .route('/cari', cariRoutes);
 
 export const app = new Hono<EnvApp>();

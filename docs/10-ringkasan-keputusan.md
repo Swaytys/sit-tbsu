@@ -675,8 +675,8 @@ keputusan lama masih tertulis di berkasnya.
 | K-162 | FMS pendukung: utilisasi, rit, STNK/KIR, servis, BBM. | Berlaku (selesai 24 Okt) |
 | K-163 | Editor kampanye promo: syarat + manfaat, jam-menit, banyak barang, templat. | Berlaku (bagian 1 selesai 24 Okt; voucher/kupon/atribut menyusul) |
 | K-164 | Kunci idempoten kiriman uang dan cek versi data master. | Berlaku (selesai 24 Okt) |
-| K-165 | Arsip/tutup buku tahunan; dokumen pembukuan disimpan 10 tahun. | Berlaku (rencana) |
-| K-166 | Alur pembaruan aplikasi yang aman bagi data lama. | Berlaku (rencana) |
+| K-165 | Arsip/tutup buku tahunan; dokumen pembukuan disimpan 10 tahun. | Berlaku (selesai 24 Okt; data tetap di satu database, tahun dikunci + berkas arsip) |
+| K-166 | Alur pembaruan aplikasi yang aman bagi data lama. | Berlaku (selesai 24 Okt) |
 | K-167 | Pencarian universal di topbar (Ctrl+K). | Berlaku (selesai 24 Okt) |
 
 ---
@@ -717,3 +717,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-24 — K-160 selesai (papan Pengiriman, rit rencana); K-161 bagian 2 selesai (isi massal data muatan lewat Excel).
 - 2026-10-24 — K-162 selesai (catatan BBM/servis, pengingat servis & STNK/KIR, statistik armada).
 - 2026-10-24 — K-163 bagian 1 selesai (kampanye promo).
+- 2026-10-24 — K-165 (arsip tahunan) dan K-166 (pembaruan aman, versi aplikasi) selesai.

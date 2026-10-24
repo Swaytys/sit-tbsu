@@ -141,5 +141,8 @@ export const AKSI_LOG = [
   // Cadangan data (Fase 8, K-084).
   'CADANGAN_JALANKAN',
   'CADANGAN_UJI_PULIH',
+  'TAHUN_TUTUP',
+  'TAHUN_BUKA',
+  'ARSIP_PERIKSA',
 ] as const;
 export type AksiLog = (typeof AKSI_LOG)[number];
