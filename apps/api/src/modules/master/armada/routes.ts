@@ -1,5 +1,15 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaKendaraan, skemaSaringStatus, skemaSopir, skemaUbahStatus } from '@sit/shared';
+import {
+  skemaBatalCatatan,
+  skemaCariCatatanArmada,
+  skemaCatatBbm,
+  skemaCatatServis,
+  skemaKendaraan,
+  skemaPeriodeStatistik,
+  skemaSaringStatus,
+  skemaSopir,
+  skemaUbahStatus,
+} from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
 import { kaitValidasi, paramId } from '../../../lib/validasi';
@@ -14,6 +24,8 @@ import {
   ubahStatusKendaraan,
   ubahStatusSopir,
 } from './service';
+import { batalCatatan, catatBbm, catatServis, daftarBbm, daftarServis } from './catatan';
+import { statistikArmada } from './statistik';
 
 const kelola = requirePermission('master.armada.kelola');
 /** Daftar dibaca pemegang izin surat jalan (memilih kendaraan/sopir saat berangkat, S9). */
@@ -84,5 +96,60 @@ export const sopirRoutes = new Hono<EnvApp>()
         c.get('asal'),
       );
       return c.json({ data }, 200);
+    },
+  );
+
+/** Catatan BBM dan servis, statistik armada (K-162, docs/13 §5). */
+export const armadaRoutes = new Hono<EnvApp>()
+  .get('/bbm', lihat, zValidator('query', skemaCariCatatanArmada, kaitValidasi), async (c) =>
+    c.json(await daftarBbm(c.req.valid('query')), 200),
+  )
+  // Kasir mencatat struk BBM saat sopir kembali.
+  .post('/bbm', lihat, zValidator('json', skemaCatatBbm, kaitValidasi), async (c) => {
+    const data = await catatBbm(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
+    return c.json({ data }, 201);
+  })
+  .post(
+    '/bbm/:id/batal',
+    kelola,
+    paramId,
+    zValidator('json', skemaBatalCatatan, kaitValidasi),
+    async (c) => {
+      const p = c.req.valid('param');
+      await batalCatatan('bbm', p.id, c.req.valid('json').alasan, penggunaWajib(c), c.get('asal'));
+      return c.json({ data: null }, 200);
+    },
+  )
+  .get('/servis', lihat, zValidator('query', skemaCariCatatanArmada, kaitValidasi), async (c) =>
+    c.json(await daftarServis(c.req.valid('query')), 200),
+  )
+  .post('/servis', kelola, zValidator('json', skemaCatatServis, kaitValidasi), async (c) => {
+    const data = await catatServis(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
+    return c.json({ data }, 201);
+  })
+  .post(
+    '/servis/:id/batal',
+    kelola,
+    paramId,
+    zValidator('json', skemaBatalCatatan, kaitValidasi),
+    async (c) => {
+      const p = c.req.valid('param');
+      await batalCatatan(
+        'servis',
+        p.id,
+        c.req.valid('json').alasan,
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data: null }, 200);
+    },
+  )
+  .get(
+    '/statistik',
+    kelola,
+    zValidator('query', skemaPeriodeStatistik, kaitValidasi),
+    async (c) => {
+      const { dari, sampai } = c.req.valid('query');
+      return c.json({ data: await statistikArmada(dari, sampai) }, 200);
     },
   );

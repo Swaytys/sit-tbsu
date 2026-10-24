@@ -35,7 +35,7 @@ memakai kode di luar daftar gagal typecheck.
 | `master.pelanggan.atur_kredit` | Atur golongan, term hari, dan limit kredit pelanggan (K-059); ubah/nonaktifkan pelanggan tanpa kode; kodenya menyetujui perubahan pelanggan dan melampaui limit kredit (K-107) |
 | `master.pemasok.lihat` | Lihat pemasok |
 | `master.pemasok.kelola` | Tambah/ubah/nonaktifkan pemasok |
-| `master.armada.kelola` | Tambah/ubah/nonaktifkan kendaraan dan sopir (K-150). Daftarnya dibaca pemegang `penjualan.surat_jalan.kelola` |
+| `master.armada.kelola` | Tambah/ubah/nonaktifkan kendaraan dan sopir (K-150); catat servis, batalkan catatan BBM/servis, statistik armada, pengingat servis/STNK/KIR (K-162). Daftar kendaraan/sopir dan catatan BBM dibaca pemegang `penjualan.surat_jalan.kelola`, yang juga boleh mencatat BBM |
 | `master.import.jalankan` | Import Excel barang / saldo awal |
 
 ### Penjualan
@@ -323,3 +323,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-18 — Satu shift toko (K-132): arti izin shift diperbarui; `GET /api/shift/status` (semua pengguna login, indikator topbar) dan `GET /api/persetujuan/:id` (pengaju melanjutkan permintaan kode, K-136).
 - 2026-10-23 — Izin `penjualan.diskon` dihapus: diskon manual tidak ada lagi, potongan hanya lewat Promo (K-146).
 - 2026-10-23 — Izin `master.armada.kelola` (Admin, Owner); `penjualan.surat_jalan.kelola` mencakup berangkat dan catat hasil (K-149, K-150).
+- 2026-10-24 — K-162: catatan BBM (kasir+), servis/batal/statistik (`master.armada.kelola`).

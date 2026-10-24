@@ -40,6 +40,11 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U74 | Data muatan barang | *Data Barang › Ubah* semen → kartu *Data muatan*: pilih **g**, isi 50000; pilih **mm**, isi 700 × 450 × 120 → Simpan | Tersimpan sebagai 50 kg dan 70 × 45 × 12 cm (buka lagi: angka tampil dalam kg/cm) | Belum | Coba juga *Barang curah* untuk pasir |
 | U77 | Barang belum lengkap & pengaturan muatan | *Data Barang*: nyalakan **Data muatan belum lengkap**; *Pengaturan › Operasional*: ubah faktor isi/julur | Daftar hanya barang tanpa berat/ukuran; pengaturan tersimpan dan dipakai saat Berangkat | Belum | |
 | U75 | Data kendaraan | *Kendaraan & Sopir* → ubah kendaraan: isi daya angkut, ukuran bak, STNK/KIR | Kolom *Daya angkut · bak* terisi | Belum | |
+| U88 | Jadwal servis & KIR | *Logistik › Kendaraan & Sopir* → ubah kendaraan: **Tiap … km** 5000, **KIR berlaku sampai** = kemarin → Simpan | Kolom *Odometer · servis · surat*: "Belum ada catatan servis" dan lencana merah *KIR habis*; lonceng notifikasi: "STNK/KIR kendaraan sudah habis" | Belum | Di Pengiriman › Rit baru, kendaraan itu bertanda *KIR habis* |
+| U89 | Catat servis | Tab **Servis** → **Catat servis** → kendaraan tadi, odometer 20000, *Ganti oli*, Rp 450.000 → Simpan | Baris servis muncul; di tab Kendaraan: "Servis berikutnya: 25.000 km" | Belum | |
+| U90 | Catat BBM & odometer mundur | Login Kasir → tab **BBM** → **Catat BBM** → odometer 19500, 40,5 L, Rp 405.000 → Simpan; lalu ubah odometer 24700 → Simpan | Pertama ditolak "lebih kecil dari catatan sebelumnya (20.000 km)"; kedua tersimpan; tab Kendaraan: servis berikutnya kuning (tinggal 300 km) dan notifikasi Admin "Servis kendaraan sudah dekat" | Belum | Kasir tidak melihat tombol Catat servis |
+| U91 | Batalkan catatan salah | Login Admin → tab **BBM** → ikon ⦸ pada catatan → alasan → **Batalkan catatan** | Baris bertanda *Batal: alasan*; tidak dihitung di statistik | Belum | |
+| U92 | Statistik armada | Tab **Statistik** (bulan ini) | Per kendaraan: rit, muatan, tepat jadwal, BBM & servis, km dan km/L; per sopir: rit dan surat jalan bermasalah | Belum | Butuh ≥ 2 catatan odometer untuk km/L |
 | U87 | Data muatan lewat Excel | *Data Barang* → **Data muatan Excel** → **Yang belum lengkap** → di Excel isi semen `berat_kg` = `50000 g`, ukuran `700 mm`, `45`, `12`; satu baris pasir `curah` = YA tanpa volume → unggah | Semen: *Berubah* "berat (kosong) → 50 kg …"; pasir: *Galat* "wajib punya volume"; tombol simpan mati sampai pasir diperbaiki/dibuang → simpan | Belum | Cek: semen hilang dari saring *Data muatan belum lengkap* |
 | U76 | Muatan saat berangkat | *Logistik › Pengiriman*: buat rit dengan kendaraan kecil, isi dengan invoice berisi barang yang datanya sudah diisi → **Berangkat**; ulangi dengan kendaraan besar | Bar berat/volume/panjang berwarna; merah = tombol mati; oranye = wajib alasan | Belum | |
 
@@ -178,5 +183,6 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.
 - 2026-10-24 — U71–U73 pencarian universal, cek versi, kiriman tidak ganda (K-164, K-167).
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
+- 2026-10-24 — U88–U92 BBM, servis, pengingat, statistik armada (K-162).
 - 2026-10-24 — U87 isi massal data muatan lewat Excel (K-161).
 - 2026-10-24 — U78–U86 papan Pengiriman dan rit rencana (K-160); U51–U52 diganti, U53, U55–U57, U59, U76 disesuaikan.

@@ -167,7 +167,8 @@ Enter membuka, Esc menutup. Daftar Barang/Pelanggan/Pemasok membaca `?cari=`.
 
 1. A (K-152–K-159): selesai, di-push bersama keputusan ini.
 2. K-164 (idempoten + cek versi) dan K-167 (pencarian universal) — **selesai 24 Okt**.
-3. K-161 data dimensi/berat barang dan kendaraan — **bagian 1 selesai 24 Okt** (rancangan docs/13); lalu K-160 halaman Pengiriman, lalu K-162.
+3. K-161 data dimensi/berat barang dan kendaraan — **selesai 24 Okt** (rancangan docs/13; termasuk isi massal Excel);
+   K-160 halaman Pengiriman — **selesai 24 Okt**; K-162 FMS pendukung — **selesai 24 Okt** (docs/13 §5).
 4. K-163 editor kampanye promo.
 5. K-165 dan K-166 (alur arsip dan pembaruan), bersama sisa gelombang 3–4 lama (K-129 sisa, K-131, K-137, K-138, K-139,
    K-143) dan K-123 dst.

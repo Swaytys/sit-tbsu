@@ -17,6 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { formatWaktu } from '@/lib/format';
 import { PanelMuatan } from './panel-muatan';
+import { tandaSurat } from '../armada/tanda-surat';
 
 const kelasPilih =
   'h-10 w-full rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200';
@@ -132,6 +133,7 @@ export function DialogBerangkat({
                 {(kendaraan.data ?? []).map((k) => (
                   <option key={k.id} value={k.id} disabled={k.sedangJalan !== null}>
                     {k.plat} · {k.jenis}
+                    {tandaSurat(k)}
                     {k.kapasitasKg ? ` · ${k.kapasitasKg.toLocaleString('id-ID')} kg` : ''}
                     {k.sedangJalan
                       ? ` — sedang jalan (${k.sedangJalan.nomor}, ${formatWaktu(k.sedangJalan.waktuBerangkat).slice(11)})`

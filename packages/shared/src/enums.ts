@@ -158,6 +158,10 @@ export type StatusSuratJalan = (typeof STATUS_SURAT_JALAN)[number];
 export const STATUS_PERJALANAN = ['DIRENCANAKAN', 'JALAN', 'SELESAI', 'BATAL'] as const;
 export type StatusPerjalanan = (typeof STATUS_PERJALANAN)[number];
 
+/** K-162: tingkat pengingat (servis, STNK, KIR): AMAN, SEGERA (≤ 14 hari/500 km; surat ≤ 30 hari), LEWAT. */
+export const TINGKAT_PENGINGAT = ['AMAN', 'SEGERA', 'LEWAT'] as const;
+export type TingkatPengingat = (typeof TINGKAT_PENGINGAT)[number];
+
 /** K-151: pilihan pembeli untuk barang rusak di jalan. */
 export const PENANGANAN_RUSAK = ['KIRIM_PENGGANTI', 'KURANGI_TAGIHAN'] as const;
 export type PenangananRusak = (typeof PENANGANAN_RUSAK)[number];

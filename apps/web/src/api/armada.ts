@@ -4,6 +4,8 @@ import type {
   DataHasilSuratJalan,
   DataKendaraan,
   DataSopir,
+  InputCatatBbm,
+  InputCatatServis,
   StatusAktif,
   StatusPerjalanan,
 } from '@sit/shared';
@@ -192,4 +194,84 @@ export function useBatalRit() {
   return useMutasiArmada(async ({ id, alasan }: { id: number; alasan: string }) =>
     ambilData(await api.perjalanan[':id'].batal.$post({ param: paramId(id), json: { alasan } })),
   );
+}
+
+// --- Catatan BBM dan servis, statistik (K-162) ---
+
+/** Notifikasi ikut dimuat ulang: pengingat servis bergantung pada odometer dan catatan servis. */
+function useMutasiCatatan<TInput, THasil>(fn: (input: TInput) => Promise<THasil>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ['armada'] }),
+        qc.invalidateQueries({ queryKey: ['notifikasi'] }),
+      ]),
+  });
+}
+
+export function useDaftarBbm(p: { idKendaraan?: number; halaman: number }) {
+  return useQuery({
+    queryKey: ['armada', 'bbm', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.armada.bbm.$get({
+          query: {
+            idKendaraan: p.idKendaraan === undefined ? undefined : String(p.idKendaraan),
+            halaman: String(p.halaman),
+            perHalaman: '25',
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useDaftarServis(p: { idKendaraan?: number; halaman: number }) {
+  return useQuery({
+    queryKey: ['armada', 'servis', p],
+    queryFn: async () =>
+      ambilIsi(
+        await api.armada.servis.$get({
+          query: {
+            idKendaraan: p.idKendaraan === undefined ? undefined : String(p.idKendaraan),
+            halaman: String(p.halaman),
+            perHalaman: '25',
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCatatBbm() {
+  return useMutasiCatatan(async (json: InputCatatBbm) =>
+    ambilData(await api.armada.bbm.$post({ json })),
+  );
+}
+
+export function useCatatServis() {
+  return useMutasiCatatan(async (json: InputCatatServis) =>
+    ambilData(await api.armada.servis.$post({ json })),
+  );
+}
+
+export function useBatalCatatan() {
+  return useMutasiCatatan(
+    async ({ jenis, id, alasan }: { jenis: 'bbm' | 'servis'; id: number; alasan: string }) =>
+      ambilData(
+        jenis === 'bbm'
+          ? await api.armada.bbm[':id'].batal.$post({ param: paramId(id), json: { alasan } })
+          : await api.armada.servis[':id'].batal.$post({ param: paramId(id), json: { alasan } }),
+      ),
+  );
+}
+
+export function useStatistikArmada(p: { dari: string; sampai: string }) {
+  return useQuery({
+    queryKey: ['armada', 'statistik', p],
+    queryFn: async () => ambilData(await api.armada.statistik.$get({ query: p })),
+    placeholderData: keepPreviousData,
+  });
 }

@@ -1,7 +1,7 @@
-import { and, asc, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import type { StatusAktif } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
-import { kendaraan, perjalanan, sopir } from '../../../db/schema';
+import { catatanBbm, catatanServis, kendaraan, perjalanan, sopir } from '../../../db/schema';
 import { kolomPenuh } from '../../../db/kolom-penuh';
 
 /*
@@ -34,6 +34,8 @@ const kolomKendaraan = {
   bakTinggiCm: kendaraan.bakTinggiCm,
   berlakuStnk: kendaraan.berlakuStnk,
   berlakuKir: kendaraan.berlakuKir,
+  servisTiapKm: kendaraan.servisTiapKm,
+  servisTiapBulan: kendaraan.servisTiapBulan,
   catatan: kendaraan.catatan,
   statusAktif: kendaraan.statusAktif,
   jumlahPerjalanan: tripKendaraan,
@@ -75,6 +77,8 @@ export async function kunciKendaraan(tx: Tx, id: number) {
       bakTinggiCm: kendaraan.bakTinggiCm,
       berlakuStnk: kendaraan.berlakuStnk,
       berlakuKir: kendaraan.berlakuKir,
+      servisTiapKm: kendaraan.servisTiapKm,
+      servisTiapBulan: kendaraan.servisTiapBulan,
       catatan: kendaraan.catatan,
       statusAktif: kendaraan.statusAktif,
     })
@@ -94,6 +98,8 @@ export type NilaiKendaraan = {
   bakTinggiCm: number | null;
   berlakuStnk: string | null;
   berlakuKir: string | null;
+  servisTiapKm: number | null;
+  servisTiapBulan: number | null;
   catatan: string | null;
 };
 
@@ -217,4 +223,54 @@ export async function perjalananJalan(ex: Executor, p: { idKendaraan?: number; i
     )
     .limit(1);
   return b;
+}
+
+// --- Odometer dan servis (K-162) ---
+
+/** Odometer terbesar per kendaraan dari catatan BBM dan servis yang tidak batal. */
+export async function odometerTerakhir(
+  ex: Executor,
+  idKendaraan: number[],
+): Promise<Map<number, { odometerKm: number; tanggal: string }>> {
+  if (idKendaraan.length === 0) return new Map();
+  const ambil = (t: typeof catatanBbm | typeof catatanServis) =>
+    ex
+      .selectDistinctOn([t.idKendaraan], {
+        idKendaraan: t.idKendaraan,
+        odometerKm: t.odometerKm,
+        tanggal: t.tanggal,
+      })
+      .from(t)
+      .where(and(inArray(t.idKendaraan, idKendaraan), isNull(t.batalPada), isNotNull(t.odometerKm)))
+      .orderBy(t.idKendaraan, desc(t.odometerKm));
+  // Berurutan: di dalam transaksi satu koneksi tidak boleh menjalankan kueri bersamaan.
+  const bbm = await ambil(catatanBbm);
+  const servis = await ambil(catatanServis);
+  const hasil = new Map<number, { odometerKm: number; tanggal: string }>();
+  for (const b of [...bbm, ...servis]) {
+    const lama = hasil.get(b.idKendaraan);
+    if (b.odometerKm !== null && (!lama || b.odometerKm > lama.odometerKm)) {
+      hasil.set(b.idKendaraan, { odometerKm: b.odometerKm, tanggal: b.tanggal });
+    }
+  }
+  return hasil;
+}
+
+/** Servis terakhir (menurut tanggal) per kendaraan, tidak termasuk yang batal. */
+export async function servisTerakhir(
+  ex: Executor,
+  idKendaraan: number[],
+): Promise<Map<number, { tanggal: string; odometerKm: number | null; jenis: string }>> {
+  if (idKendaraan.length === 0) return new Map();
+  const baris = await ex
+    .selectDistinctOn([catatanServis.idKendaraan], {
+      idKendaraan: catatanServis.idKendaraan,
+      tanggal: catatanServis.tanggal,
+      odometerKm: catatanServis.odometerKm,
+      jenis: catatanServis.jenis,
+    })
+    .from(catatanServis)
+    .where(and(inArray(catatanServis.idKendaraan, idKendaraan), isNull(catatanServis.batalPada)))
+    .orderBy(catatanServis.idKendaraan, desc(catatanServis.tanggal), desc(catatanServis.id));
+  return new Map(baris.map((b) => [b.idKendaraan, b]));
 }

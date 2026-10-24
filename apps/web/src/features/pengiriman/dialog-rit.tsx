@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { PanelMuatan } from '../pengantaran/panel-muatan';
+import { tandaSurat } from '../armada/tanda-surat';
 
 const kelasPilih =
   'h-10 w-full rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200';
@@ -90,6 +91,7 @@ export function DialogRitBaru({ onTutup }: { onTutup: () => void }) {
               {(kendaraan.data ?? []).map((k) => (
                 <option key={k.id} value={k.id}>
                   {k.plat} · {k.jenis}
+                  {tandaSurat(k)}
                   {k.kapasitasKg ? ` · ${k.kapasitasKg.toLocaleString('id-ID')} kg` : ''}
                   {k.sedangJalan ? ` (sekarang di jalan: ${k.sedangJalan.nomor})` : ''}
                 </option>

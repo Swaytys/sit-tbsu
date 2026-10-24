@@ -217,6 +217,8 @@ atau DIRENCANAKAN → BATAL. Rit rencana punya `jadwal_berangkat`; `waktu_berang
 keduanya. Indeks unik parsial `uq_perjalanan_kendaraan_jalan` dan `uq_perjalanan_sopir_jalan` (`where status =
 'JALAN'`): satu perjalanan berjalan per kendaraan dan per sopir.
 
+**`catatan_bbm`**, **`catatan_servis`** [APPEND kecuali kolom batal] (v3.25, K-162, docs/13 §5) — catatan BBM (kendaraan, tanggal, sopir dan rit opsional, odometer, liter `numeric(8,2)`, `total_rp`, *isi penuh*) dan servis (kendaraan, tanggal, odometer, jenis, `biaya_rp`, bengkel). Catatan salah tidak diubah/dihapus: `batal_pada`, `alasan_batal`, `dibatalkan_oleh` (CHECK batal_pada dan alasan terisi bersamaan). Odometer tidak boleh mundur menurut tanggal (dicek service dengan kunci baris kendaraan). `kendaraan.servis_tiap_km` (> 0) dan `servis_tiap_bulan` (1–60) untuk pengingat servis berkala. Tidak terhubung ke kas shift.
+
 **`surat_jalan_hasil`** + **`surat_jalan_hasil_detail`** [APPEND] (v3.20, K-149, K-151) — hasil pengantaran, sekali per
 surat jalan (UNIQUE `id_surat_jalan`). Header: pencatat, waktu, `nama_penerima`, `penanganan_rusak`
 (KIRIM_PENGGANTI/KURANGI_TAGIHAN), `id_retur_tukar` dan `id_retur_uang` (retur yang dibuatnya), `catatan`. Detail per
@@ -519,3 +521,4 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-24 — v3.25: tabel `catatan_bbm`, `catatan_servis`; `kendaraan.servis_tiap_km`, `servis_tiap_bulan` (CHECK `chk_kendaraan_servis`) (migrasi 0028, K-162).
