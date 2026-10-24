@@ -16,39 +16,67 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import type { StatusAktif, StatusBerlakuPromo } from '@sit/shared';
+import type { SasaranPromo, StatusAktif, StatusBerlakuPromo } from '@sit/shared';
 import type { Executor, Tx } from '../../db/client';
 import {
   barang,
   golonganPelanggan,
   kategori,
+  merk,
   pelanggan,
   penjualan,
   penjualanDetail,
   promo,
   promoPelanggan,
+  promoSasaran,
 } from '../../db/schema';
 import { kolomPenuh } from '../../db/kolom-penuh';
 import { polaCari } from '../../lib/paginasi';
+import { tanggalOperasional } from '../../lib/waktu';
 import type { KandidatPromo } from './hitung';
 
 const kolomKandidat = {
   id: promo.id,
   kode: promo.kode,
   nama: promo.nama,
-  tanggalMulai: promo.tanggalMulai,
-  tanggalSelesai: promo.tanggalSelesai,
+  mulaiPada: promo.mulaiPada,
+  selesaiPada: promo.selesaiPada,
+  hariBerlaku: promo.hariBerlaku,
+  jamMulai: promo.jamMulai,
+  jamSelesai: promo.jamSelesai,
   statusAktif: promo.statusAktif,
   jenisPotongan: promo.jenisPotongan,
   potonganPersen: promo.potonganPersen,
   potonganNominal: promo.potonganNominal,
   maksPotongan: promo.maksPotongan,
+  hargaKhusus: promo.hargaKhusus,
+  beliQty: promo.beliQty,
+  gratisQty: promo.gratisQty,
   sasaran: promo.sasaran,
-  idKategori: promo.idKategori,
-  idBarang: promo.idBarang,
   minQty: promo.minQty,
   minBelanja: promo.minBelanja,
 };
+
+/** Id sasaran per promo (urut), untuk kandidat dan form. */
+export async function idSasaranPromo(
+  ex: Executor,
+  idPromo: number[],
+): Promise<Map<number, number[]>> {
+  const hasil = new Map<number, number[]>();
+  if (idPromo.length === 0) return hasil;
+  const baris = await ex
+    .select({
+      idPromo: promoSasaran.idPromo,
+      id: sql<number>`coalesce(${promoSasaran.idBarang}, ${promoSasaran.idKategori}, ${promoSasaran.idMerk})`.mapWith(
+        Number,
+      ),
+    })
+    .from(promoSasaran)
+    .where(inArray(promoSasaran.idPromo, idPromo));
+  for (const b of baris) hasil.set(b.idPromo, [...(hasil.get(b.idPromo) ?? []), b.id]);
+  for (const d of hasil.values()) d.sort((a, b) => a - b);
+  return hasil;
+}
 
 /**
  * K-110: jumlah potongan promo yang sudah diberikan = Σ `diskon_promo` baris penjualan yang memakai promo itu,
@@ -83,7 +111,8 @@ export type PembeliPromo = { idPelanggan: number | null; idGolongan: number | nu
  * K-097: belanja neto pelanggan (setelah void dan retur, tanpa transaksi VOID) dalam `hari_belanja` hari
  * terakhir sampai `tanggal`, dibandingkan dengan syarat promo.
  */
-function syaratBelanjaPelanggan(tanggal: string, idPelanggan: number | null): SQL {
+function syaratBelanjaPelanggan(saat: Date, idPelanggan: number | null): SQL {
+  const tanggal = tanggalOperasional(saat);
   if (idPelanggan === null) return isNull(promo.minBelanjaPelanggan);
   const belanja = sql`(
     select coalesce(sum(${kolomPenuh(penjualan.totalNeto)} - ${kolomPenuh(penjualan.totalVoid)} - ${kolomPenuh(penjualan.totalRetur)}), 0)
@@ -96,15 +125,26 @@ function syaratBelanjaPelanggan(tanggal: string, idPelanggan: number | null): SQ
   return or(isNull(promo.minBelanjaPelanggan), sql`${belanja} >= ${promo.minBelanjaPelanggan}`)!;
 }
 
+/** Promo bukan templat yang waktunya mencakup `saat` (hari/jam harian dinilai `promoBerlaku`). */
+function dalamWaktu(saat: Date): SQL {
+  return and(
+    eq(promo.statusAktif, 'AKTIF'),
+    eq(promo.templat, false),
+    lte(promo.mulaiPada, saat),
+    gte(promo.selesaiPada, saat),
+  )!;
+}
+
 /**
- * PR1–PR2 + K-097: promo AKTIF yang berlaku pada `tanggal`, sasarannya bisa mengenai barang/kategori ini,
- * dan pembelinya berhak (semua pembeli, golongan pelanggan, atau pelanggan tertentu; syarat belanja).
+ * PR1–PR2 + K-097 + K-163: promo AKTIF yang berlaku pada `saat`, sasarannya bisa mengenai barang/kategori/merk
+ * ini, dan pembelinya berhak (semua pembeli, golongan pelanggan, atau pelanggan tertentu; syarat belanja).
  */
 export async function kandidatPromo(
   ex: Executor,
-  tanggal: string,
+  saat: Date,
   idBarang: number[],
   idKategori: number[],
+  idMerk: number[],
   pembeli: PembeliPromo,
 ): Promise<KandidatPromo[]> {
   if (idBarang.length === 0) return [];
@@ -121,15 +161,16 @@ export async function kandidatPromo(
     .from(promo)
     .where(
       and(
-        eq(promo.statusAktif, 'AKTIF'),
-        lte(promo.tanggalMulai, tanggal),
-        gte(promo.tanggalSelesai, tanggal),
+        dalamWaktu(saat),
         or(
           eq(promo.sasaran, 'SEMUA'),
-          and(eq(promo.sasaran, 'BARANG'), inArray(promo.idBarang, idBarang)),
-          idKategori.length > 0
-            ? and(eq(promo.sasaran, 'KATEGORI'), inArray(promo.idKategori, idKategori))
-            : undefined,
+          sql`exists (select 1 from ${promoSasaran}
+            where ${kolomPenuh(promoSasaran.idPromo)} = ${kolomPenuh(promo.id)}
+              and (${or(
+                inArray(promoSasaran.idBarang, idBarang),
+                idKategori.length > 0 ? inArray(promoSasaran.idKategori, idKategori) : undefined,
+                idMerk.length > 0 ? inArray(promoSasaran.idMerk, idMerk) : undefined,
+              )}))`,
         ),
         or(
           eq(promo.sasaranPembeli, 'SEMUA'),
@@ -145,34 +186,35 @@ export async function kandidatPromo(
                     and ${kolomPenuh(promoPelanggan.idPelanggan)} = ${pembeli.idPelanggan})`,
               ),
         ),
-        syaratBelanjaPelanggan(tanggal, pembeli.idPelanggan),
+        syaratBelanjaPelanggan(saat, pembeli.idPelanggan),
       ),
     );
+  const sasaran = await idSasaranPromo(
+    ex,
+    baris.map((b) => b.id),
+  );
   return baris.map(({ anggaran, maksPerPembeli, terpakai: t, terpakaiPembeli: tp, ...k }) => {
     const batas = [
       ...(anggaran === null ? [] : [anggaran - t]),
       ...(maksPerPembeli === null ? [] : [maksPerPembeli - tp]),
     ];
-    return { ...k, sisaPotongan: batas.length === 0 ? null : Math.max(0, Math.min(...batas)) };
+    return {
+      ...k,
+      idSasaran: sasaran.get(k.id) ?? [],
+      sisaPotongan: batas.length === 0 ? null : Math.max(0, Math.min(...batas)),
+    };
   });
 }
 
 /**
- * K-110: mengunci promo berbatas yang berlaku pada `tanggal` (urut id) sebelum sisa anggarannya dibaca saat
+ * K-110: mengunci promo berbatas yang berlaku pada `saat` (urut id) sebelum sisa anggarannya dibaca saat
  * checkout, supaya dua checkout bersamaan tidak sama-sama memakai sisa yang sama.
  */
-export async function kunciPromoBerbatas(tx: Tx, tanggal: string): Promise<void> {
+export async function kunciPromoBerbatas(tx: Tx, saat: Date): Promise<void> {
   await tx
     .select({ id: promo.id })
     .from(promo)
-    .where(
-      and(
-        eq(promo.statusAktif, 'AKTIF'),
-        lte(promo.tanggalMulai, tanggal),
-        gte(promo.tanggalSelesai, tanggal),
-        or(isNotNull(promo.anggaran), isNotNull(promo.maksPerPembeli)),
-      ),
-    )
+    .where(and(dalamWaktu(saat), or(isNotNull(promo.anggaran), isNotNull(promo.maksPerPembeli))))
     .orderBy(asc(promo.id))
     .for('update');
 }
@@ -200,9 +242,9 @@ const kolomPembeli = {
 const kolom = {
   ...kolomKandidat,
   ...kolomPembeli,
-  namaKategori: kategori.nama,
-  kodeBarang: barang.kode,
-  namaBarang: barang.namaBarang,
+  tanggalMulai: promo.tanggalMulai,
+  tanggalSelesai: promo.tanggalSelesai,
+  templat: promo.templat,
   namaGolongan: golonganPelanggan.nama,
   keterangan: promo.keterangan,
   jumlahPemakaian: pemakaian,
@@ -215,9 +257,46 @@ function dasar(ex: Executor) {
   return ex
     .select(kolom)
     .from(promo)
-    .leftJoin(kategori, eq(kategori.id, promo.idKategori))
-    .leftJoin(barang, eq(barang.id, promo.idBarang))
     .leftJoin(golonganPelanggan, eq(golonganPelanggan.id, promo.idGolongan));
+}
+
+/** K-163: barang/kategori/merk sasaran per promo dengan nama (untuk tampilan). */
+export async function sasaranPromo(ex: Executor, idPromo: number[]) {
+  if (idPromo.length === 0) return [];
+  return ex
+    .select({
+      idPromo: promoSasaran.idPromo,
+      id: sql<number>`coalesce(${promoSasaran.idBarang}, ${promoSasaran.idKategori}, ${promoSasaran.idMerk})`.mapWith(
+        Number,
+      ),
+      kode: barang.kode,
+      nama: sql<string>`coalesce(${barang.namaBarang}, ${kategori.nama}, ${merk.nama})`,
+    })
+    .from(promoSasaran)
+    .leftJoin(barang, eq(barang.id, promoSasaran.idBarang))
+    .leftJoin(kategori, eq(kategori.id, promoSasaran.idKategori))
+    .leftJoin(merk, eq(merk.id, promoSasaran.idMerk))
+    .where(inArray(promoSasaran.idPromo, idPromo))
+    .orderBy(sql`2`);
+}
+
+/** Sasaran diganti seluruhnya (tabel penghubung master; hanya sebelum promo terpakai, K-087). */
+export async function gantiSasaranPromo(
+  tx: Tx,
+  idPromo: number,
+  sasaran: SasaranPromo,
+  id: number[],
+): Promise<void> {
+  await tx.delete(promoSasaran).where(eq(promoSasaran.idPromo, idPromo));
+  if (sasaran === 'SEMUA' || id.length === 0) return;
+  await tx.insert(promoSasaran).values(
+    id.map((x) => ({
+      idPromo,
+      idBarang: sasaran === 'BARANG' ? x : null,
+      idKategori: sasaran === 'KATEGORI' ? x : null,
+      idMerk: sasaran === 'MERK' ? x : null,
+    })),
+  );
 }
 
 /** Pelanggan yang berhak atas promo (sasaran PELANGGAN), per promo. */
@@ -273,6 +352,8 @@ export type SaringPromo = {
   cari?: string | undefined;
   status: StatusAktif | 'SEMUA';
   berlaku?: StatusBerlakuPromo | undefined;
+  /** K-163: daftar templat kampanye, bukan promo. */
+  templat?: boolean;
   /** Tanggal operasional hari ini (untuk saringan berlaku). */
   hariIni: string;
 };
@@ -280,6 +361,7 @@ export type SaringPromo = {
 function syarat(p: SaringPromo): SQL | undefined {
   const pola = p.cari ? polaCari(p.cari) : undefined;
   return and(
+    eq(promo.templat, p.templat === true),
     p.status === 'SEMUA' ? undefined : eq(promo.statusAktif, p.status),
     p.berlaku === 'TERJADWAL' ? gt(promo.tanggalMulai, p.hariIni) : undefined,
     p.berlaku === 'BERJALAN'
@@ -314,6 +396,9 @@ export async function kunciPromo(tx: Tx, id: number) {
     .select({
       ...kolomKandidat,
       ...kolomPembeli,
+      tanggalMulai: promo.tanggalMulai,
+      tanggalSelesai: promo.tanggalSelesai,
+      templat: promo.templat,
       keterangan: promo.keterangan,
       anggaran: promo.anggaran,
       maksPerPembeli: promo.maksPerPembeli,
@@ -356,24 +441,17 @@ export async function ubahPromo(
     .where(eq(promo.id, id));
 }
 
-/** Kategori dan barang sasaran harus ada dan AKTIF bila baru dipilih. */
-export async function statusSasaran(
+/** K-163: id sasaran yang ada dan AKTIF untuk jenis `sasaran`. */
+export async function sasaranAktif(
   ex: Executor,
-  p: { idKategori: number | null; idBarang: number | null },
-) {
-  const [k] =
-    p.idKategori === null
-      ? [undefined]
-      : await ex
-          .select({ status: kategori.statusAktif, nama: kategori.nama })
-          .from(kategori)
-          .where(eq(kategori.id, p.idKategori));
-  const [b] =
-    p.idBarang === null
-      ? [undefined]
-      : await ex
-          .select({ status: barang.statusAktif, nama: barang.namaBarang })
-          .from(barang)
-          .where(eq(barang.id, p.idBarang));
-  return { kategori: k, barang: b };
+  sasaran: SasaranPromo,
+  id: number[],
+): Promise<Set<number>> {
+  if (sasaran === 'SEMUA' || id.length === 0) return new Set();
+  const tabel = sasaran === 'BARANG' ? barang : sasaran === 'KATEGORI' ? kategori : merk;
+  const baris = await ex
+    .select({ id: tabel.id })
+    .from(tabel)
+    .where(and(inArray(tabel.id, id), eq(tabel.statusAktif, 'AKTIF')));
+  return new Set(baris.map((b) => b.id));
 }

@@ -32,6 +32,7 @@ import {
   qty,
   statusAktif,
   tanggal,
+  timestamptz,
   uang,
 } from './kolom';
 import { pengguna } from './sistem';
@@ -437,13 +438,11 @@ export const promo = pgTable(
     nama: varchar('nama', { length: 100 }).notNull(),
     tanggalMulai: tanggal('tanggal_mulai').notNull(),
     tanggalSelesai: tanggal('tanggal_selesai').notNull(),
-    jenisPotongan: varchar('jenis_potongan', { length: 10, enum: JENIS_POTONGAN }).notNull(),
+    jenisPotongan: varchar('jenis_potongan', { length: 12, enum: JENIS_POTONGAN }).notNull(),
     potonganPersen: numeric('potongan_persen', { precision: 6, scale: 2 }),
     potonganNominal: uang('potongan_nominal'),
     maksPotongan: uang('maks_potongan'),
     sasaran: varchar('sasaran', { length: 10, enum: SASARAN_PROMO }).notNull(),
-    idKategori: kolomRef('id_kategori'),
-    idBarang: kolomRef('id_barang'),
     minQty: qty('min_qty'),
     minBelanja: uang('min_belanja'),
     keterangan: varchar('keterangan', { length: 255 }),
@@ -468,6 +467,22 @@ export const promo = pgTable(
      * terdata: dijumlah dari semua transaksinya; pembeli umum: per transaksi.
      */
     maksPerPembeli: uang('maks_per_pembeli'),
+    // K-163 (migrasi 0029): waktu berlaku sampai menit; tanggal_mulai/tanggal_selesai menjadi tanggal lokal dari
+    // keduanya (dipakai saringan dan laporan).
+    mulaiPada: timestamptz('mulai_pada').notNull(),
+    selesaiPada: timestamptz('selesai_pada').notNull(),
+    /** Hari berlaku: bit (hari ISO − 1), Senin = 1 … Minggu = 64; NULL = setiap hari. */
+    hariBerlaku: integer('hari_berlaku'),
+    /** Jam harian `HH:mm` (zona toko), mis. happy hour 13:00–15:00; keduanya NULL = sepanjang hari. */
+    jamMulai: varchar('jam_mulai', { length: 5 }),
+    jamSelesai: varchar('jam_selesai', { length: 5 }),
+    /** HARGA_KHUSUS: harga per satuan dasar. */
+    hargaKhusus: uang('harga_khusus'),
+    /** GRATIS: setiap beli `beli_qty` mendapat `gratis_qty` gratis (satuan dasar, barang yang sama). */
+    beliQty: qty('beli_qty'),
+    gratisQty: qty('gratis_qty'),
+    /** Templat kampanye: tidak pernah berlaku, hanya disalin menjadi promo baru. */
+    templat: boolean('templat').notNull().default(false),
   },
   (t) => [
     foreignKey({
@@ -487,30 +502,74 @@ export const promo = pgTable(
       sql`(min_belanja_pelanggan is null and hari_belanja is null)
         or (min_belanja_pelanggan > 0 and hari_belanja between 1 and 3650)`,
     ),
+    check('chk_promo_tanggal', sql`tanggal_selesai >= tanggal_mulai`),
+    check('chk_promo_waktu', sql`selesai_pada > mulai_pada`),
+    check('chk_promo_hari', sql`hari_berlaku is null or hari_berlaku between 1 and 127`),
+    check(
+      'chk_promo_jam',
+      sql`(jam_mulai is null and jam_selesai is null)
+        or (jam_mulai ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' and jam_selesai ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          and jam_mulai < jam_selesai)`,
+    ),
+    check('chk_promo_jenis', dalamDaftar('jenis_potongan', JENIS_POTONGAN)),
+    check(
+      'chk_promo_nilai',
+      sql`(jenis_potongan = 'PERSEN' and potongan_persen is not null and potongan_persen between 0 and 100
+          and potongan_nominal is null and harga_khusus is null and beli_qty is null and gratis_qty is null)
+        or (jenis_potongan = 'NOMINAL' and potongan_nominal is not null and potongan_nominal >= 0
+          and potongan_persen is null and harga_khusus is null and beli_qty is null and gratis_qty is null)
+        or (jenis_potongan = 'HARGA_KHUSUS' and harga_khusus > 0 and potongan_persen is null
+          and potongan_nominal is null and beli_qty is null and gratis_qty is null)
+        or (jenis_potongan = 'GRATIS' and beli_qty > 0 and gratis_qty > 0 and potongan_persen is null
+          and potongan_nominal is null and harga_khusus is null)`,
+    ),
+    check('chk_promo_sasaran', dalamDaftar('sasaran', SASARAN_PROMO)),
+    check('chk_promo_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
+  ],
+);
+
+/**
+ * K-163 (migrasi 0029): sasaran promo, boleh beberapa: tepat satu dari barang, kategori, atau merk per baris,
+ * sesuai `promo.sasaran`. Tabel penghubung master (diganti seluruhnya saat promo diubah, sebelum dipakai).
+ */
+export const promoSasaran = pgTable(
+  'promo_sasaran',
+  {
+    id: kolomId(),
+    idPromo: kolomRef('id_promo').notNull(),
+    idBarang: kolomRef('id_barang'),
+    idKategori: kolomRef('id_kategori'),
+    idMerk: kolomRef('id_merk'),
+  },
+  (t) => [
     foreignKey({
-      name: 'promo_id_kategori_fkey',
+      name: 'promo_sasaran_id_promo_fkey',
+      columns: [t.idPromo],
+      foreignColumns: [promo.id],
+    }),
+    foreignKey({
+      name: 'promo_sasaran_id_barang_fkey',
+      columns: [t.idBarang],
+      foreignColumns: [barang.id],
+    }),
+    foreignKey({
+      name: 'promo_sasaran_id_kategori_fkey',
       columns: [t.idKategori],
       foreignColumns: [kategori.id],
     }),
     foreignKey({
-      name: 'promo_id_barang_fkey',
-      columns: [t.idBarang],
-      foreignColumns: [barang.id],
+      name: 'promo_sasaran_id_merk_fkey',
+      columns: [t.idMerk],
+      foreignColumns: [merk.id],
     }),
-    check('chk_promo_tanggal', sql`tanggal_selesai >= tanggal_mulai`),
-    check('chk_promo_jenis', dalamDaftar('jenis_potongan', JENIS_POTONGAN)),
-    check(
-      'chk_promo_nilai',
-      sql`(jenis_potongan = 'PERSEN' and potongan_persen is not null and potongan_persen between 0 and 100 and potongan_nominal is null)
-        or (jenis_potongan = 'NOMINAL' and potongan_nominal is not null and potongan_nominal >= 0 and potongan_persen is null)`,
+    check('chk_promo_sasaran_satu', sql`num_nonnulls(id_barang, id_kategori, id_merk) = 1`),
+    uniqueIndex('uq_promo_sasaran').on(
+      t.idPromo,
+      sql`coalesce(id_barang, 0)`,
+      sql`coalesce(id_kategori, 0)`,
+      sql`coalesce(id_merk, 0)`,
     ),
-    check(
-      'chk_promo_sasaran',
-      sql`(sasaran = 'SEMUA' and id_kategori is null and id_barang is null)
-        or (sasaran = 'KATEGORI' and id_kategori is not null and id_barang is null)
-        or (sasaran = 'BARANG' and id_barang is not null and id_kategori is null)`,
-    ),
-    check('chk_promo_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
+    index('idx_promo_sasaran_barang').on(t.idBarang),
   ],
 );
 

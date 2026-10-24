@@ -120,3 +120,14 @@ export function persenDari(bagian: number, total: number): number | null {
 export function marginPersen(hargaJual: number, dasar: number): number | null {
   return persenDari(hargaJual - dasar, hargaJual);
 }
+
+/** K-163: nilai barang gratis = bulatkanRupiah(bruto × qty gratis ÷ qty), dari harga baris itu. */
+export function potonganGratisRupiah(
+  bruto: number,
+  qtyGratis: NilaiDesimal,
+  qty: NilaiDesimal,
+): number {
+  const q = new Decimal(qty);
+  if (q.lessThanOrEqualTo(0)) return 0;
+  return bulatkanRupiah(new Decimal(bruto).times(qtyGratis).div(q));
+}

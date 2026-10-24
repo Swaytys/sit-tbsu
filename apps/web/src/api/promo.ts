@@ -8,6 +8,8 @@ export type ParamDaftarPromo = {
   cari: string;
   status: StatusAktif | 'SEMUA';
   berlaku: StatusBerlakuPromo | null;
+  /** K-163: daftar templat kampanye, bukan promo. */
+  templat?: boolean;
   halaman: number;
   perHalaman: number;
 };
@@ -22,6 +24,7 @@ export function useDaftarPromo(p: ParamDaftarPromo) {
             cari: p.cari || undefined,
             status: p.status,
             berlaku: p.berlaku ?? undefined,
+            templat: p.templat ? '1' : '0',
             halaman: String(p.halaman),
             perHalaman: String(p.perHalaman),
           },

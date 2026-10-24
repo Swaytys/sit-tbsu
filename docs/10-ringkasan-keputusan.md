@@ -673,7 +673,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-160 | Halaman Pengiriman tersendiri (menu Logistik), papan kartu order kirim, grup per rit. | Berlaku (selesai 24 Okt) |
 | K-161 | Dimensi & berat barang, kapasitas kendaraan, peringatan muatan bertingkat (ODOL). | Berlaku (selesai 24 Okt; pengingat STNK/KIR ikut K-162) |
 | K-162 | FMS pendukung: utilisasi, rit, STNK/KIR, servis, BBM. | Berlaku (selesai 24 Okt) |
-| K-163 | Editor kampanye promo: syarat + manfaat, jam-menit, banyak barang, templat. | Berlaku (rencana) |
+| K-163 | Editor kampanye promo: syarat + manfaat, jam-menit, banyak barang, templat. | Berlaku (bagian 1 selesai 24 Okt; voucher/kupon/atribut menyusul) |
 | K-164 | Kunci idempoten kiriman uang dan cek versi data master. | Berlaku (selesai 24 Okt) |
 | K-165 | Arsip/tutup buku tahunan; dokumen pembukuan disimpan 10 tahun. | Berlaku (rencana) |
 | K-166 | Alur pembaruan aplikasi yang aman bagi data lama. | Berlaku (rencana) |
@@ -716,3 +716,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-24 — K-161 bagian 1 selesai (data muatan, pratinjau dan penegakan muatan saat berangkat).
 - 2026-10-24 — K-160 selesai (papan Pengiriman, rit rencana); K-161 bagian 2 selesai (isi massal data muatan lewat Excel).
 - 2026-10-24 — K-162 selesai (catatan BBM/servis, pengingat servis & STNK/KIR, statistik armada).
+- 2026-10-24 — K-163 bagian 1 selesai (kampanye promo).

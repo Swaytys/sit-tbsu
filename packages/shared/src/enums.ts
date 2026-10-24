@@ -49,10 +49,15 @@ export type Kepemilikan = (typeof KEPEMILIKAN)[number];
 export const METODE_HARGA = ['IKUT_TIER', 'MARKUP', 'TETAP'] as const;
 export type MetodeHarga = (typeof METODE_HARGA)[number];
 
-export const JENIS_POTONGAN = ['PERSEN', 'NOMINAL'] as const;
+/**
+ * Manfaat promo. PERSEN/NOMINAL: potongan; K-163: HARGA_KHUSUS = harga per satuan dasar; GRATIS = beli X gratis Y
+ * (barang yang sama, qty satuan dasar).
+ */
+export const JENIS_POTONGAN = ['PERSEN', 'NOMINAL', 'HARGA_KHUSUS', 'GRATIS'] as const;
 export type JenisPotongan = (typeof JENIS_POTONGAN)[number];
 
-export const SASARAN_PROMO = ['SEMUA', 'KATEGORI', 'BARANG'] as const;
+/** K-163: KATEGORI, MERK, dan BARANG boleh beberapa sekaligus (tabel `promo_sasaran`). */
+export const SASARAN_PROMO = ['SEMUA', 'KATEGORI', 'MERK', 'BARANG'] as const;
 export type SasaranPromo = (typeof SASARAN_PROMO)[number];
 
 /** K-097: pembeli yang berhak atas promo: semua, satu golongan pelanggan, atau pelanggan tertentu. */

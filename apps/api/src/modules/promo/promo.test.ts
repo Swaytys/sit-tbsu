@@ -11,6 +11,7 @@ import {
   hargaBarang,
   kategori,
   logAktivitas,
+  merk,
   orderPenjualan,
   orderPenjualanDetail,
   pelanggan,
@@ -19,7 +20,16 @@ import {
   shiftKasir,
   tingkatHarga,
 } from '../../db/schema';
-import { tambahHari, tanggalOperasional } from '../../lib/waktu';
+import { jamLokal, saatLokal, tambahHari, tanggalOperasional } from '../../lib/waktu';
+import { bitHari, hariDariBit, promoBerlaku, type KandidatPromo } from './hitung';
+
+/** Ubah masa promo langsung di DB (waktu berlalu): tanggal dan waktu (K-163) diselaraskan. */
+const masa = (mulai: string, selesai: string) => ({
+  tanggalMulai: mulai,
+  tanggalSelesai: selesai,
+  mulaiPada: saatLokal(mulai, '00:00'),
+  selesaiPada: saatLokal(selesai, '23:59'),
+});
 
 /*
  * Promo (docs/06 §3 PR1–PR9) dan tier harga transaksi (H8; K-087, K-098). Barang uji dari fixtur persediaan:
@@ -167,7 +177,7 @@ describe('master promo (K-087)', () => {
       kode: 'PRM-00002',
       potonganPersen: null,
       maksPotongan: null,
-      namaKategori: 'Pasir',
+      sasaranDaftar: [{ id: katPasir, kode: null, nama: 'Pasir' }],
       statusBerlaku: 'TERJADWAL',
     });
     expect((await logTerakhir('PROMO_BUAT'))?.ringkasan).toContain('PRM-00002');
@@ -218,7 +228,7 @@ describe('master promo (K-087)', () => {
       'PATCH',
     );
     expect(ubah).toMatchObject({ nama: 'Promo akhir tahun', potonganPersen: '10.00' });
-    expect((await logTerakhir('PROMO_UBAH'))?.ringkasan).toContain('nama, tanggalSelesai');
+    expect((await logTerakhir('PROMO_UBAH'))?.ringkasan).toContain('nama, selesaiPada');
 
     await kirimData(admin, `/api/promo/${p.id}/status`, { statusAktif: 'NONAKTIF' }, 'PATCH');
     expect(await logTerakhir('PROMO_NONAKTIF')).toBeDefined();
@@ -246,7 +256,7 @@ describe('promo di order dan pratinjau (PR1–PR4, PR6)', () => {
     const lewat = await buatPromo({ nama: 'Berakhir 50%', potonganPersen: '50' });
     await db
       .update(promo)
-      .set({ tanggalMulai: tambahHari(hariIni, -5), tanggalSelesai: kemarin })
+      .set(masa(tambahHari(hariIni, -5), kemarin))
       .where(eq(promo.id, lewat.id));
     await buatPromo({ nama: 'Besok 50%', potonganPersen: '50', tanggalMulai: besok });
 
@@ -396,7 +406,7 @@ describe('PR5: lepas promo dan evaluasi ulang saat checkout', () => {
     // Waktu berlalu: promo lama berakhir, promo baru berlaku.
     await db
       .update(promo)
-      .set({ tanggalMulai: tambahHari(hariIni, -3), tanggalSelesai: kemarin })
+      .set(masa(tambahHari(hariIni, -3), kemarin))
       .where(eq(promo.id, lama.id));
     const baru = await buatPromo({ nama: 'Baru 5%', potonganPersen: '5' });
 
@@ -832,5 +842,174 @@ describe('PR9 promo di atas harga tier (K-098); promo menurut pembeli (K-097)', 
       sisaAnggaran: 94_000,
       maksPerPembeli: 2000,
     });
+  });
+});
+
+describe('kampanye promo (K-163)', () => {
+  const saat = (tanggal: string, jam: string) => saatLokal(tanggal, jam).toISOString();
+
+  it('promoBerlaku: jam-menit mulai/selesai, hari berlaku, jam harian', () => {
+    const p: KandidatPromo = {
+      id: 1,
+      kode: 'PRM-1',
+      nama: 'Happy hour',
+      // 2026-11-02 = Senin.
+      mulaiPada: saatLokal('2026-11-02', '08:30'),
+      selesaiPada: saatLokal('2026-11-30', '17:00'),
+      hariBerlaku: bitHari([1, 3]),
+      jamMulai: '13:00',
+      jamSelesai: '15:00',
+      statusAktif: 'AKTIF',
+      jenisPotongan: 'PERSEN',
+      potonganPersen: '10',
+      potonganNominal: null,
+      maksPotongan: null,
+      hargaKhusus: null,
+      beliQty: null,
+      gratisQty: null,
+      sasaran: 'SEMUA',
+      idSasaran: [],
+      minQty: null,
+      minBelanja: null,
+      sisaPotongan: null,
+    };
+    expect(promoBerlaku(p, saatLokal('2026-11-02', '13:00'))).toBe(true);
+    expect(promoBerlaku(p, saatLokal('2026-11-02', '14:59'))).toBe(true);
+    expect(promoBerlaku(p, saatLokal('2026-11-02', '15:00'))).toBe(false);
+    expect(promoBerlaku(p, saatLokal('2026-11-02', '12:59'))).toBe(false);
+    expect(promoBerlaku(p, saatLokal('2026-11-03', '14:00'))).toBe(false); // Selasa
+    expect(promoBerlaku(p, saatLokal('2026-11-04', '14:00'))).toBe(true); // Rabu
+    const tanpaJam = { ...p, hariBerlaku: null, jamMulai: null, jamSelesai: null };
+    expect(promoBerlaku(tanpaJam, saatLokal('2026-11-02', '08:29'))).toBe(false);
+    expect(promoBerlaku(tanpaJam, saatLokal('2026-11-02', '08:30'))).toBe(true);
+    expect(promoBerlaku(tanpaJam, saatLokal('2026-11-30', '17:00'))).toBe(true);
+    expect(promoBerlaku(tanpaJam, saatLokal('2026-11-30', '17:01'))).toBe(false);
+    expect(hariDariBit(bitHari([7, 1, 1]))).toEqual([1, 7]);
+  });
+
+  it('banyak barang, merk; harga khusus; beli X gratis Y; jam harian di luar jam tidak berlaku', async () => {
+    await tanpaGrosir();
+    const [mk] = await db
+      .insert(merk)
+      .values({ nama: `Gresik ${Date.now()}` })
+      .returning();
+    await db.update(barang).set({ idMerk: mk!.id }).where(eq(barang.id, m.semen));
+    const multi = await buatPromo({
+      nama: 'Dua barang 5%',
+      potonganPersen: '5',
+      sasaran: 'BARANG',
+      idSasaran: [m.semen, m.pasir],
+    });
+    expect(multi.sasaranDaftar.map((s) => s.id).sort()).toEqual([m.semen, m.pasir].sort());
+    let p = await pratinjau(admin, [
+      { idBarang: m.semen, qty: '1' },
+      { idBarang: m.pasir, qty: '1' },
+    ]);
+    expect(p.baris.map((b) => [b.namaPromo, b.diskonPromo])).toEqual([
+      ['Dua barang 5%', 600],
+      ['Dua barang 5%', 200],
+    ]);
+
+    // Merk Gresik: harga khusus Rp 10.000 per sak (normal 12.000) → potongan 2.000/sak.
+    await buatPromo({
+      nama: 'Gresik harga khusus',
+      jenisPotongan: 'HARGA_KHUSUS',
+      hargaKhusus: 10_000,
+      sasaran: 'MERK',
+      idSasaran: [mk!.id],
+    });
+    // Pasir: beli 3 gratis 1 → qty 9 = 2 paket (8) → 2 gratis × 4.000.
+    await buatPromo({
+      nama: 'Pasir beli 3 gratis 1',
+      jenisPotongan: 'GRATIS',
+      beliQty: '3',
+      gratisQty: '1',
+      sasaran: 'KATEGORI',
+      idSasaran: [katPasir],
+    });
+    // Di luar jam harian: jendela satu jam yang pasti tidak memuat jam sekarang.
+    const jamSekarang = Number(jamLokal(new Date()).slice(0, 2));
+    const [jm, js] = jamSekarang < 12 ? ['20:00', '21:00'] : ['01:00', '02:00'];
+    await buatPromo({
+      nama: 'Bukan jamnya 90%',
+      potonganPersen: '90',
+      jamMulai: jm,
+      jamSelesai: js,
+    });
+    p = await pratinjau(admin, [
+      { idBarang: m.semen, qty: '3' },
+      { idBarang: m.pasir, qty: '9' },
+    ]);
+    expect(p.baris.map((b) => [b.namaPromo, b.diskonPromo])).toEqual([
+      ['Gresik harga khusus', 6_000],
+      ['Pasir beli 3 gratis 1', 8_000],
+    ]);
+    p = await pratinjau(admin, [{ idBarang: m.pasir, qty: '3' }]);
+    expect(p.baris[0]).toMatchObject({ namaPromo: 'Dua barang 5%', diskonPromo: 600 });
+  });
+
+  it('validasi kampanye; templat tidak pernah berlaku dan terpisah di daftar; sasaran dikunci setelah dipakai', async () => {
+    await tanpaGrosir();
+    for (const salah of [
+      { sasaran: 'BARANG' },
+      { sasaran: 'MERK', idSasaran: [] },
+      { jamMulai: '13:00' },
+      { jamMulai: '15:00', jamSelesai: '13:00' },
+      { jenisPotongan: 'GRATIS', potonganPersen: null, beliQty: '10' },
+      { jenisPotongan: 'HARGA_KHUSUS', potonganPersen: null },
+      { mulaiPada: saat(hariIni, '10:00'), selesaiPada: saat(hariIni, '09:00') },
+      { sasaran: 'BARANG', idSasaran: [999_999] },
+    ]) {
+      expect((await kirim(admin, '/api/promo', promoBaru(salah))).status).toBe(400);
+    }
+
+    const t = await buatPromo({ nama: 'Templat akhir tahun', potonganPersen: '50', templat: true });
+    expect(t.templat).toBe(true);
+    const p = await pratinjau(admin, [{ idBarang: m.semen, qty: '1' }]);
+    expect(p.baris[0]?.namaPromo).toBeNull();
+    const daftar = await json<{ data: Promo[] }>(
+      await minta('/api/promo', { cookie: admin.cookie }),
+    );
+    expect(daftar.data.some((x) => x.id === t.id)).toBe(false);
+    const templat = await json<{ data: Promo[] }>(
+      await minta('/api/promo?templat=1', { cookie: admin.cookie }),
+    );
+    expect(templat.data.map((x) => x.id)).toEqual([t.id]);
+
+    // Promo terpakai: barang sasaran tidak bisa ditambah; waktu selesai tetap bisa diperpanjang.
+    const pr = await buatPromo({
+      nama: 'Semen saja',
+      sasaran: 'BARANG',
+      idSasaran: [m.semen],
+      mulaiPada: saat(hariIni, '00:00'),
+      selesaiPada: saat(tambahHari(hariIni, 3), '17:30'),
+    });
+    expect(pr.selesaiPada).toBe(saat(tambahHari(hariIni, 3), '17:30'));
+    await kirimData(kasir, '/api/shift/buka', { modalAwal: 0 });
+    await kirimData(kasir, '/api/penjualan/checkout', {
+      order: keranjang([{ idBarang: m.semen, qty: '1' }]),
+      pembayaran: [lunas],
+    });
+    const isi = {
+      nama: 'Semen saja',
+      jenisPotongan: 'PERSEN',
+      potonganPersen: '10',
+      sasaran: 'BARANG',
+      mulaiPada: saat(hariIni, '00:00'),
+    };
+    const tambahBarang = await kirim(
+      admin,
+      `/api/promo/${pr.id}`,
+      { ...isi, idSasaran: [m.semen, m.pasir], selesaiPada: saat(tambahHari(hariIni, 3), '17:30') },
+      'PATCH',
+    );
+    expect(tambahBarang.status).toBe(409);
+    const perpanjang = await kirim(
+      admin,
+      `/api/promo/${pr.id}`,
+      { ...isi, idSasaran: [m.semen], selesaiPada: saat(tambahHari(hariIni, 10), '21:00') },
+      'PATCH',
+    );
+    expect(perpanjang.status).toBe(200);
   });
 });

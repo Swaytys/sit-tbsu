@@ -79,6 +79,9 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | P1 | Salah barang/qty setelah dibayar | Stok dan uang salah | Void (shift yang sama) atau retur | Konfirmasi "Mulai dari awal"; daftar barang terlihat saat bayar | Pesan void/retur menyebut syaratnya | Ada |
 | P2 | Pengajuan retur/void salah input | Dokumen salah disetujui | Batalkan pengajuan selama menunggu (K-099) | Kode atasan memuat rincian | — | Ada |
 | P3 | Uang transfer tidak benar-benar masuk | Penjualan dianggap lunas | Tandai *Tidak masuk*, tagih pembeli | Cek uang non-tunai harian (K-111) | Lonceng *belum dicek* | Ada |
+| P4 | Promo happy hour/hari tertentu dibuat dengan jam terbalik atau melewati tengah malam | Promo tidak pernah berlaku | Ubah jamnya | Jam selesai wajib setelah jam mulai (validasi dan CHECK DB) | Contoh "13:00–15:00" di form | Ada (K-163) |
+| P5 | Kasir mengetik qty tanpa barang gratis (beli 10 gratis 1, pembeli bawa 11) | Gratis tidak terhitung | Ubah qty | Penjelasan di form: qty = semua yang dibawa | Teks bantuan di bagian Manfaat | Ada sebagian (K-163) |
+| P6 | Promo lama dijadikan dasar promo baru dengan menyalin manual | Isian beda/terlupa | — | Templat kampanye: simpan dan pakai ulang isian | Menu ⋯ › Simpan sebagai templat | Ada (K-163) |
 
 ---
 
@@ -124,4 +127,5 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-24 — A12–A14 muatan kendaraan (K-161).
 - 2026-10-24 — A14 menjadi *Ada* (saring belum lengkap + isi massal Excel).
 - 2026-10-24 — A19–A22 catatan BBM/servis dan pengingat (K-162).
+- 2026-10-24 — P4–P6 kampanye promo (K-163).
 - 2026-10-24 — A15–A18 rit rencana dan papan Pengiriman (K-160); A5 menunjuk kolom Backlog.

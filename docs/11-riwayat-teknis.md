@@ -531,6 +531,23 @@ pilihan kendaraan rit dan berangkat.
 
 **Tes:** fms.test (5: odometer mundur/susulan/batal, izin servis, rit milik kendaraan, `hitungKesehatan`,
 notifikasi per izin, statistik), e2e fms.spec.
+### C13. Kampanye promo (24 Oktober 2026, K-163 bagian 1)
+
+**Masalah:** promo hanya per tanggal, satu kategori atau satu barang, dan potongan persen/rupiah; kampanye seperti
+happy hour, banyak barang sekaligus, harga khusus, atau beli X gratis Y tidak bisa dibuat, dan isian promo tidak bisa
+dipakai ulang.
+
+**Solusi:** migrasi 0029 (kolom waktu/hari/jam/manfaat/templat, tabel `promo_sasaran`, salin sasaran lama, isi
+`mulai_pada`/`selesai_pada` dari tanggal lama) dan 0030 (hapus `promo.id_kategori`/`id_barang`; dipisah agar
+drizzle-kit tidak menanyakan penggantian nama kolom). `promo/hitung.ts`: kandidat memakai `saat` (Date), bukan
+tanggal; `promoBerlaku` menilai hari/jam lewat `hariJamLokal` (lib/waktu); `potonganPromo` menangani HARGA_KHUSUS
+dan GRATIS (`qtyGratis`, `potonganGratisRupiah` di shared). `harga-baris.ts` meneruskan saat dan merk barang. Skema
+Zod: `skemaIsianPromo` (form) dan `skemaPromo` (API, menerjemahkan isian lama `tanggalMulai`/`idBarang` agar klien
+dan tes lama tetap jalan). Web: dialog promo dibagi lima bagian (waktu, barang, manfaat, syarat, batas uang),
+`isian-kampanye.tsx` (waktu datetime-local berzona +07:00, tombol hari, sasaran banyak), tampilan Promo/Templat.
+
+**Tes:** promo.test (+3: `promoBerlaku` hari/jam/menit, banyak barang + merk + harga khusus + gratis + jam harian,
+validasi + templat + sasaran terkunci), e2e promo.spec (+1 kampanye, templat).
 
 ---
 
@@ -549,3 +566,4 @@ notifikasi per izin, statistik), e2e fms.spec.
 - 2026-10-24 — Bagian C10 rit rencana dan papan Pengiriman (K-160).
 - 2026-10-24 — Bagian C11 isi massal data muatan lewat Excel (K-161 bagian 2).
 - 2026-10-24 — Bagian C12 FMS pendukung (K-162).
+- 2026-10-24 — Bagian C13 kampanye promo (K-163 bagian 1).

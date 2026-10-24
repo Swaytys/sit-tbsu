@@ -101,3 +101,12 @@ export function teksQty(nilai: string): string {
   const bertitik = bulat.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return `${negatif ? '-' : ''}${ringkas ? `${bertitik},${ringkas}` : bertitik}`;
 }
+
+/**
+ * K-163 beli X gratis Y: qty gratis dalam `qty` = ⌊qty ÷ (beli + gratis)⌋ × gratis. Contoh beli 10 gratis 1:
+ * qty 22 → 2 gratis (dua paket 11), qty 10 → 0 (paket belum penuh).
+ */
+export function qtyGratis(qty: Decimal.Value, beli: Decimal.Value, gratis: Decimal.Value): string {
+  const paket = new Decimal(qty).div(new Decimal(beli).plus(gratis)).floor();
+  return keQty(paket.times(gratis));
+}

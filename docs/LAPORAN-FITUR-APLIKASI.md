@@ -312,10 +312,13 @@ Statistik) | Kasir (catat BBM), Admin/Owner (servis, batal, statistik) | desktop
 - Bukti: `[KODE: api/modules/master/harga/service.ts:576,630,712]`. Status: BERFUNGSI.
 
 **F17. Promo** | Pengaturan › Promo | Admin, Owner (buat); semua (menerima) | desktop
-- Fungsi: potongan persen atau rupiah per satuan; sasaran barang (semua/kategori/satu barang) dan pembeli
-  (semua/golongan/pelanggan tertentu); syarat min qty, min belanja, belanja pelanggan N hari; masa berlaku;
-  **anggaran promo** dan **batas per pembeli**; jumlah potongan yang sudah diberikan.
-- Tabel: `promo`, `promo_pelanggan`, `penjualan_detail` (kolom `id_promo`, `diskon_promo`).
+- Fungsi: kampanye promo (K-163): waktu berlaku sampai jam-menit, hari tertentu dan jam harian (happy hour);
+  sasaran semua barang atau beberapa barang/kategori/merk sekaligus; manfaat potongan persen, rupiah per satuan,
+  **harga khusus**, atau **beli X gratis Y** (barang sama); sasaran pembeli (semua/golongan/pelanggan tertentu);
+  syarat min qty, min belanja, belanja pelanggan N hari; **anggaran promo** dan **batas per pembeli**; jumlah
+  potongan yang sudah diberikan; **templat kampanye** untuk dipakai ulang.
+- Tabel: `promo`, `promo_sasaran`, `promo_pelanggan`, `penjualan_detail` (kolom `id_promo`, `diskon_promo`).
+- Belum: voucher, kupon undian, sasaran atribut (K-163 bagian 2).
 - Bukti: `[KODE: api/modules/promo/hitung.ts:116]` `[KODE: api/modules/promo/repo.ts:164]` `[KODE: api/modules/promo/routes.ts:13-28]`.
 - Status: BERFUNGSI.
 
@@ -1184,6 +1187,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Pencarian universal Ctrl+K (K-167); kebal kiriman ganda (kunci idempoten) dan cek versi data master (K-164).
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
+- 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1).
 - 2026-10-24 — F45 FMS pendukung: BBM, servis, pengingat, statistik armada (K-162).
 - 2026-10-24 — F43: isi massal data muatan lewat Excel (K-161 selesai). Lampiran A: endpoint perjalanan, kendaraan,
   sopir, hasil surat jalan, pencarian, dan data muatan ditambahkan.

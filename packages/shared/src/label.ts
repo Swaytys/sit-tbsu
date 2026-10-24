@@ -138,14 +138,18 @@ export const LABEL_CARA_PERSETUJUAN: Record<CaraPersetujuan, string> = {
 };
 
 export const LABEL_JENIS_POTONGAN: Record<JenisPotongan, string> = {
-  PERSEN: 'Persen',
-  NOMINAL: 'Rupiah per satuan',
+  PERSEN: 'Potongan persen',
+  NOMINAL: 'Potongan rupiah per satuan',
+  HARGA_KHUSUS: 'Harga khusus',
+  GRATIS: 'Beli X gratis Y',
 };
 
+/** K-163: kategori/merk/barang boleh beberapa sekaligus. */
 export const LABEL_SASARAN_PROMO: Record<SasaranPromo, string> = {
   SEMUA: 'Semua barang',
-  KATEGORI: 'Satu kategori',
-  BARANG: 'Satu barang',
+  KATEGORI: 'Per kategori (pilih beberapa)',
+  MERK: 'Per merk (pilih beberapa)',
+  BARANG: 'Per barang (pilih beberapa)',
 };
 
 /** K-097: pembeli yang berhak atas promo. */

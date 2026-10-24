@@ -40,6 +40,11 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U74 | Data muatan barang | *Data Barang › Ubah* semen → kartu *Data muatan*: pilih **g**, isi 50000; pilih **mm**, isi 700 × 450 × 120 → Simpan | Tersimpan sebagai 50 kg dan 70 × 45 × 12 cm (buka lagi: angka tampil dalam kg/cm) | Belum | Coba juga *Barang curah* untuk pasir |
 | U77 | Barang belum lengkap & pengaturan muatan | *Data Barang*: nyalakan **Data muatan belum lengkap**; *Pengaturan › Operasional*: ubah faktor isi/julur | Daftar hanya barang tanpa berat/ukuran; pengaturan tersimpan dan dipakai saat Berangkat | Belum | |
 | U75 | Data kendaraan | *Kendaraan & Sopir* → ubah kendaraan: isi daya angkut, ukuran bak, STNK/KIR | Kolom *Daya angkut · bak* terisi | Belum | |
+| U93 | Promo per barang (beberapa) | *Pengaturan › Promo* → **Buat promo** → Berlaku untuk **Per barang (pilih beberapa)** → tambah 2 barang → 10% → Simpan; jual keduanya di kasir | Kedua baris mendapat "Promo …"; kolom *Berlaku untuk* menyebut kedua barang | Belum | |
+| U94 | Beli X gratis Y | Promo baru: barang semen, **Beli X gratis Y** 10 dan 1 → kasir: semen qty 11, lalu 22 | Qty 11: potongan = harga 1 sak; qty 22: 2 sak; qty 10: tidak ada potongan | Belum | |
+| U95 | Harga khusus | Promo baru: Per merk (pilih merk semen), **Harga khusus** di bawah harga Normal → kasir: 3 sak | Potongan = (harga Normal − harga khusus) × 3 | Belum | Harga khusus di atas harga Normal: promo tidak berlaku |
+| U96 | Hari & jam berlaku | Promo baru: **Hanya hari** = hari ini, **Jam harian** = jam sekarang s.d. 1 jam lagi → coba di kasir; ubah jam harian ke nanti malam → coba lagi | Pertama berlaku; kedua tidak | Belum | Jam selesai sebelum jam mulai ditolak |
+| U97 | Templat kampanye | ⋯ pada promo → **Simpan sebagai templat** → Simpan; klik **Templat kampanye** → ⋯ → **Pakai templat (promo baru)** → ubah nama → Simpan | Templat tampil di daftar Templat (tidak berlaku di kasir); promo baru terisi sama persis kecuali waktu | Belum | |
 | U88 | Jadwal servis & KIR | *Logistik › Kendaraan & Sopir* → ubah kendaraan: **Tiap … km** 5000, **KIR berlaku sampai** = kemarin → Simpan | Kolom *Odometer · servis · surat*: "Belum ada catatan servis" dan lencana merah *KIR habis*; lonceng notifikasi: "STNK/KIR kendaraan sudah habis" | Belum | Di Pengiriman › Rit baru, kendaraan itu bertanda *KIR habis* |
 | U89 | Catat servis | Tab **Servis** → **Catat servis** → kendaraan tadi, odometer 20000, *Ganti oli*, Rp 450.000 → Simpan | Baris servis muncul; di tab Kendaraan: "Servis berikutnya: 25.000 km" | Belum | |
 | U90 | Catat BBM & odometer mundur | Login Kasir → tab **BBM** → **Catat BBM** → odometer 19500, 40,5 L, Rp 405.000 → Simpan; lalu ubah odometer 24700 → Simpan | Pertama ditolak "lebih kecil dari catatan sebelumnya (20.000 km)"; kedua tersimpan; tab Kendaraan: servis berikutnya kuning (tinggal 300 km) dan notifikasi Admin "Servis kendaraan sudah dekat" | Belum | Kasir tidak melihat tombol Catat servis |
@@ -183,6 +188,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.
 - 2026-10-24 — U71–U73 pencarian universal, cek versi, kiriman tidak ganda (K-164, K-167).
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
+- 2026-10-24 — U93–U97 kampanye promo (K-163 bagian 1).
 - 2026-10-24 — U88–U92 BBM, servis, pengingat, statistik armada (K-162).
 - 2026-10-24 — U87 isi massal data muatan lewat Excel (K-161).
 - 2026-10-24 — U78–U86 papan Pengiriman dan rit rencana (K-160); U51–U52 diganti, U53, U55–U57, U59, U76 disesuaikan.
