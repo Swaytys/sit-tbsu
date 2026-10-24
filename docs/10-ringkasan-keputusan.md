@@ -592,7 +592,7 @@ keputusan lama masih tertulis di berkasnya.
 
 | K | Keputusan | Status |
 |---|---|---|
-| K-113 | Fase 14: rekomendasi pemesanan ulang (rata-rata jual + lead time), tampilan tablet untuk layar staf, ekspor log ke Excel; bentuk deploy belum final. | Berlaku (rekomendasi selesai 17 Okt; tablet dan ekspor log menyusul) |
+| K-113 | Fase 14: rekomendasi pemesanan ulang (rata-rata jual + lead time), tampilan tablet untuk layar staf, ekspor log ke Excel; bentuk deploy belum final. | Berlaku (rekomendasi selesai 17 Okt; ekspor log selesai 24 Okt; tablet menyusul) |
 
 ### 6.18 Tinjauan pemilik 17 Oktober — `2026-10-17-tinjauan-pemilik.md`
 

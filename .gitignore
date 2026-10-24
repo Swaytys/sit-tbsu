@@ -25,7 +25,7 @@ Thumbs.db
 
 # Server toko (Fase 8): kunci sertifikat HTTPS, log, dan uji produksi lokal
 sertifikat/
-log/
+/log/
 .uji-produksi/
 
 # Alat bantu lokal (restic untuk uji cadangan), tidak di-commit

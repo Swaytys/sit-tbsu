@@ -586,7 +586,9 @@ Semua tugas admin, ditambah:
 - **Data Pengguna**: tambah akun karyawan (password awal wajib diganti saat login pertama), reset password,
   nonaktifkan akun karyawan yang keluar (sesinya langsung berakhir).
 - **Log aktivitas** (*Pengaturan › Log aktivitas*): siapa melakukan apa dan kapan — termasuk persetujuan,
-  perubahan harga, ekspor/cetak laporan.
+  perubahan harga, ekspor/cetak laporan. **Ekspor Excel**: isi cari/aksi bila perlu, pilih tanggal *Dari* dan
+  *s.d.* (kosong = semua), tekan **Ekspor Excel**; berkas berisi waktu, pengguna, aksi, dokumen, ringkasan, IP,
+  data lama/baru.
 - **Cadangan** (*Pengaturan › Cadangan*): pastikan *cadangan terakhir* hari ini/kemarin dan *berhasil* (lokal &
   cloud). Lihat panduan server bagian 7 untuk mengatur, bagian 8 untuk memulihkan.
 - **Dashboard**: penjualan hari ini vs kemarin, grafik 7 hari, antrean, pengiriman aktif, peringatan stok.

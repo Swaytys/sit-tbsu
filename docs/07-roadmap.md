@@ -408,7 +408,7 @@ definisi selesai:
    mengisi rekomendasi pesan.
 9. **Tampilan tablet** untuk layar staf penjualan (K-113 butir 3), dengan tes Playwright pada 1280×800 dan
    800×1280.
-10. **Ekspor log aktivitas ke Excel** (Owner).
+10. **Ekspor log aktivitas ke Excel** (Owner). **Selesai 2026-10-24.**
 
 Selesai bila: `pnpm typecheck && pnpm lint && pnpm test` lulus, tes e2e baru dan lama lulus, docs/03–06,
 manual pengguna, dan `LAPORAN-FITUR-APLIKASI.md` diperbarui.
