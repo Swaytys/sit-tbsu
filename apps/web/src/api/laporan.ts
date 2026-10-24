@@ -78,3 +78,15 @@ export function useAktivitasDashboard() {
     refetchInterval: 60_000,
   });
 }
+
+// --- K-126 Hasil Penjualan ---
+
+export function useHasilPenjualan(p: { dari: string; sampai: string }) {
+  return useQuery({
+    queryKey: ['hasil-penjualan', p],
+    queryFn: async () =>
+      ambilData(await api['hasil-penjualan'].$get({ query: { dari: p.dari, sampai: p.sampai } })),
+    placeholderData: keepPreviousData,
+    enabled: p.dari !== '' && p.sampai !== '' && p.dari <= p.sampai,
+  });
+}

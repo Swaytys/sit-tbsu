@@ -49,6 +49,7 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U114 | Metode saran pesan | *Stok Persediaan › Saran pesan*: klik **B · Statistik**, **C · Min–maks**, **D · Tren** (atau tekan 2, 3, 4); tombol **?** | Saat pertama berganti tampil "Menghitung metode …"; barang yang belum memenuhi syarat diberi catatan kuning ("dihitung dengan A"); penjelasan tiap metode di ? | Belum | Muat ulang halaman: metode terakhir tetap terpilih |
 | U115 | Stok maksimum (metode C) | *Data Barang › Ubah* semen: stok minimum 50, **Stok maksimum** 200 → Simpan; Saran pesan metode C | Baris semen: titik pesan 50, "maks. 200"; bila tersedia ≤ 50 → Pesan sekarang dengan saran 200 − tersedia. Maksimum lebih kecil dari minimum ditolak | Belum | |
 | U116 | Ekspor log | Login **Owner** → *Pengaturan › Log aktivitas*: pilih tanggal Dari/s.d. → **Ekspor Excel** | Berkas `log-aktivitas-….xlsx` terunduh berisi log rentang itu; log baru "Ekspor Excel log aktivitas (N baris)" tercatat | Belum | |
+| U117 | Hasil Penjualan | *Transaksi › Hasil Penjualan* (Owner): coba **Hari ini**, **7 hari**, **Bulan lalu**, lalu isi tanggal sendiri; tombol **?** di Barang terlaris | Kartu omzet/transaksi/rata-rata/bersih/laba/void dengan ▲▼ dibanding periode lalu; grafik per hari; barang terlaris berkelas A/B/C; per kategori, pelanggan, kasir, cara bayar, jam, hari, promo, retur & void. Angka omzet sama dengan Laporan Penjualan per Periode periode yang sama | Belum | Login Kasir: tanpa laba; Staf: menu tidak ada |
 | U102 | No. HP format baru | Tambah pelanggan: ketik `0812 3456 7890` di kotak nomor | 0 dibuang dengan pemberitahuan, tersimpan `+6281234567890`; nomor 16 angka ditolak | Belum | Kode negara bisa diganti |
 | U103 | Cegah pelanggan dobel | Tambah pelanggan "Toko Sumber Jaya"; lalu tambah "sumber jaya" (No. HP lain); lalu "Pak Andi" dengan No. HP sama | Dua yang terakhir: kotak kuning "Pelanggan yang mirip sudah ada"; klik **tetap simpan** baru tersimpan | Belum | Sama untuk pemasok dan barang (nama) |
 | U104 | Pemeriksaan data | *Pengaturan › Pemeriksaan data* → **Rapikan No. HP** | Daftar kemungkinan dobel dan format salah; setelah dirapikan, No. HP lama jadi +62… | Belum | |
@@ -209,6 +210,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
 - 2026-10-24 — U108–U110 cari sebagian, label keterjualan, panel rincian (K-123).
 - 2026-10-24 — U111–U113 kepekatan, logo struk, kertas dan cetak otomatis invoice/surat jalan (K-124).
+- 2026-10-24 — U117 Hasil Penjualan (K-126).
 - 2026-10-24 — U116 ekspor log.
 - 2026-10-24 — U114–U115 metode saran pesan dan stok maksimum (K-127).
 - 2026-10-24 — U102–U107 No. HP, cegah dobel, pemeriksaan data, daftar order, notifikasi rinci, label F9 (K-129–K-143).

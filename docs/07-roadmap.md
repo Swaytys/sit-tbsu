@@ -403,7 +403,7 @@ definisi selesai:
    cetak otomatis per jenis dokumen, panduan cetak A4 tanpa jendela. **Selesai 2026-10-24.**
 6. **Metode rekomendasi pesan** (K-127): metode statistik Z, min–maks, tren; cache memori; "?" kelebihan dan
    kekurangan. **Selesai 2026-10-24** (migrasi 0032); lama kirim aktual menyusul bersama K-125.
-7. **Hasil Penjualan** (K-126).
+7. **Hasil Penjualan** (K-126). **Selesai 2026-10-24.**
 8. **Order pembelian ke pemasok** (K-125): riset alur umum dan rancangan diajukan ke pemilik dulu; lead time aktual
    mengisi rekomendasi pesan.
 9. **Tampilan tablet** untuk layar staf penjualan (K-113 butir 3), dengan tes Playwright pada 1280×800 dan

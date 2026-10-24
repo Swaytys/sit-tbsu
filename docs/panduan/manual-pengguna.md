@@ -566,6 +566,12 @@ Semua tugas kasir, ditambah:
   komputer, atau saat Anda tidak di toko, Anda tidak perlu ganti akun: cukup sebutkan kode yang Anda terima ke
   kasir (lihat *Menerima kode persetujuan*). Kolom Status di riwayat menulis siapa yang menyetujui dan caranya. **Batas tanpa persetujuan** diatur di
   *Pengaturan › Operasional* (Rp 0 = semua retur/void harus disetujui atasan).
+- **Hasil Penjualan** (*Transaksi › Hasil Penjualan*; Kasir, Admin, Owner): pilih periode cepat (Hari ini,
+  Kemarin, 7 hari, 30 hari, Bulan ini, Bulan lalu, Tahun ini) atau isi tanggal Dari/Sampai. Kartu atas: omzet,
+  jumlah transaksi, rata-rata per transaksi, penjualan bersih, laba kotor (Admin/Owner), void, dengan ▲▼ dibanding
+  periode sebelumnya yang sama panjang. Di bawahnya grafik omzet, barang terlaris (kelas A = penyumbang ±80%
+  penjualan, jangan sampai kehabisan), per kategori, pelanggan teratas, per kasir, uang masuk per cara bayar, jam
+  dan hari ramai, promo, retur dan void. Untuk dicetak/Excel pakai **Laporan lengkap / cetak**.
 - **Laporan lengkap**: stok rekap, kartu stok, stok minimum, nilai persediaan (termasuk informasi barang rusak),
   riwayat harga beli (bandingkan harga antarpemasok), promo, gross profit (laba kotor), hutang usaha, umur
   piutang, konsinyasi. Daftar laporan di kiri berupa tiga kelompok (Persediaan, Penjualan, Keuangan) yang bisa

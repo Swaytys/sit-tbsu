@@ -618,6 +618,19 @@ layanan, tanda "Menghitung…", catatan per baris, penjelasan "?" per metode.
 **Tes:** qty-statistik.test, saran-pesan.test (metode murni + parameter, simpanan, stok maksimum lewat API), e2e
 saran-pesan.spec.
 
+### C19. Hasil Penjualan dan ekspor log (24 Oktober 2026, K-126, K-113)
+
+**Solusi:** modul `hasil-penjualan` (GET `/api/hasil-penjualan?dari&sampai`, `laporan.penjualan`) memakai fungsi
+hitung laporan yang sudah ada (`hitungPenjualanPeriode`, `hitungLabaKotor`, `hitungProdukTerlaris`,
+`hitungLaporanPromo`) agar angka layar = angka laporan, ditambah kueri baca per kasir, jam, hari, dan cara bayar.
+Laba hanya untuk `laporan.laba`. Web: halaman di menu Transaksi dengan periode cepat, kartu ringkasan + perubahan
+dari periode lalu, grafik batang CSS (tanpa dependency baru), tabel barang ABC. Ekspor log: GET
+`/api/log-aktivitas/ekspor` (Excel, saringan + rentang tanggal WIB, maks. 50.000 baris, dicatat LAPORAN_EKSPOR).
+`.gitignore` `log/` dibatasi ke akar repo (sebelumnya ikut mencocokkan folder kode `sistem/log` sehingga
+lint-staged gagal).
+
+**Tes:** hasil-penjualan.test, log.test, e2e hasil-penjualan.spec.
+
 ---
 
 ## Riwayat dokumen
@@ -641,3 +654,4 @@ saran-pesan.spec.
 - 2026-10-24 — Bagian C16 cari atribut sebagian dan label keterjualan (K-123).
 - 2026-10-24 — Bagian C17 cetak: logo, kepekatan, kertas per dokumen, cetak otomatis (K-124).
 - 2026-10-24 — Bagian C18 saran pesan beberapa metode dan simpanan memori (K-127).
+- 2026-10-24 — Bagian C19 Hasil Penjualan dan ekspor log (K-126, K-113).
