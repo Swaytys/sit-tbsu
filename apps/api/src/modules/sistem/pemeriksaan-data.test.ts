@@ -36,9 +36,15 @@ describe('pemeriksaan data (K-137)', () => {
     ).data;
     const kode = (g: HasilPemeriksaanData['ganda'][number]) => g.data.map((d) => d.kode).sort();
     expect(h.ganda.find((g) => g.alasan === 'nama sama' && g.jenis === 'pelanggan')).toBeDefined();
-    expect(kode(h.ganda.find((g) => g.alasan === 'nama sama')!)).toEqual(['PLG-1', 'PLG-2']);
-    expect(kode(h.ganda.find((g) => g.alasan === 'No. HP sama')!)).toEqual(['PLG-1', 'PLG-3']);
-    const fmt = new Map(h.format.map((f) => [f.kode, f.alasan]));
+    expect(kode(h.ganda.find((g) => g.alasan === 'nama sama' && g.jenis === 'pelanggan')!)).toEqual(
+      ['PLG-1', 'PLG-2'],
+    );
+    expect(
+      kode(h.ganda.find((g) => g.alasan === 'No. HP sama' && g.jenis === 'pelanggan')!),
+    ).toEqual(['PLG-1', 'PLG-3']);
+    const fmt = new Map(
+      h.format.filter((f) => f.jenis === 'pelanggan').map((f) => [f.kode, f.alasan]),
+    );
     expect(fmt.get('PLG-1')).toContain('bisa dirapikan: +6285711112222');
     expect(fmt.get('PLG-2')).toContain('spasi berlebih');
     expect(fmt.get('PLG-4')).toContain('perbaiki manual');
