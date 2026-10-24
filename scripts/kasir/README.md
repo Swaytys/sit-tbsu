@@ -26,9 +26,12 @@ otomatis. Login di jendela kasir cukup sekali (sesi mengikuti batas di Pengatura
 
 ## Catatan
 
-- Invoice dan surat jalan pengantaran (A4) tidak dicetak otomatis; tekan **P** (invoice) atau **S** (surat jalan)
-  setelah invoice dibuat. Bila jendela kasir ini juga dipakai untuk pengantaran, cetakannya ikut keluar di printer
-  bawaan (printer struk) — gunakan peramban biasa (dengan jendela print) di komputer yang punya printer A4.
+- **Invoice dan surat jalan A4 tanpa jendela cetak (K-124).** Bila struk dicetak lewat _cetak langsung_ (Web
+  Serial, disarankan), jadikan **printer A4** sebagai printer bawaan Windows, bukan printer struk. Jendela mode
+  kasir ini lalu mencetak invoice dan surat jalan langsung ke printer A4, sedangkan struk tetap ke printer
+  thermal lewat cetak langsung; keduanya tidak tertukar. Kapan invoice/surat jalan dicetak (Langsung cetak /
+  Tanya dulu / Tidak dicetak) dan ukuran kertasnya (bawaan A4 lanskap) diatur di Pengaturan › Struk & printer ›
+  _Invoice, surat jalan & kertas_. Samakan ukuran kertas di Preferensi pencetakan printer A4 di Windows.
 - Cetak otomatis bisa dimatikan atau diganti "tanya dulu" di Pengaturan › Struk & printer (K-095).
 - **Cara yang dianjurkan untuk printer struk thermal adalah cetak langsung** (K-103, K-105): struk dikirim
   sebagai teks tanpa driver dan tanpa jendela cetak, hasilnya tegak dan tajam. Lihat

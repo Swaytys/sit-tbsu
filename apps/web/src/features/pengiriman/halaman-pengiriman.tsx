@@ -22,7 +22,7 @@ import {
   Truck,
   X,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import {
@@ -35,6 +35,7 @@ import {
 } from '@/api/armada';
 import { pesanGalat } from '@/api/client';
 import { useBatalSuratJalan, useDaftarSuratJalan, useDetailPenjualan } from '@/api/penjualan';
+import { CetakSuratJalan } from '@/components/cetak-surat-jalan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -552,10 +553,18 @@ function DialogAlasan({
   );
 }
 
-function BuatDariPapan({ idPenjualan, onTutup }: { idPenjualan: number; onTutup: () => void }) {
+function BuatDariPapan({
+  idPenjualan,
+  onTutup,
+  onCetak,
+}: {
+  idPenjualan: number;
+  onTutup: () => void;
+  onCetak: (sj: BarisSuratJalan) => void;
+}) {
   const d = useDetailPenjualan(idPenjualan);
   if (!d.data) return null;
-  return <DialogBuat p={d.data} onTutup={onTutup} />;
+  return <DialogBuat p={d.data} onTutup={onTutup} onCetak={onCetak} />;
 }
 
 type DialogPapan =
@@ -578,6 +587,8 @@ export function HalamanPengiriman() {
   const batalSj = useBatalSuratJalan();
   const batalRit = useBatalRit();
   const [dialog, setDialog] = useState<DialogPapan>(null);
+  const [cetakSj, setCetakSj] = useState<BarisSuratJalan | null>(null);
+  const selesaiCetak = useCallback(() => setCetakSj(null), []);
   const [tertutup, setTertutup] = useState<Set<number>>(new Set());
   const [kini, setKini] = useState(() => Date.now());
   useEffect(() => {
@@ -774,8 +785,13 @@ export function HalamanPengiriman() {
       )}
       {dialog?.jenis === 'hasil' && <DialogHasil sj={dialog.sj} onTutup={() => setDialog(null)} />}
       {dialog?.jenis === 'buat' && (
-        <BuatDariPapan idPenjualan={dialog.id} onTutup={() => setDialog(null)} />
+        <BuatDariPapan
+          idPenjualan={dialog.id}
+          onTutup={() => setDialog(null)}
+          onCetak={setCetakSj}
+        />
       )}
+      {cetakSj && <CetakSuratJalan sj={cetakSj} onSelesai={selesaiCetak} />}
       {dialog?.jenis === 'batal-rit' && (
         <DialogAlasan
           judul={`Batalkan rit ${dialog.rit.nomor}?`}

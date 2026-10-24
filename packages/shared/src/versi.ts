@@ -24,6 +24,7 @@ export const CATATAN_RILIS: CatatanRilis[] = [
       'Notifikasi menampilkan rincian; dashboard punya bagian Perlu perhatian.',
       'Order Penjualan: Daftar order lewat F10, saringan Semua, order disimpan jatuh tempo tersemat, nama penginput.',
       'Cari barang: atribut boleh sebagian; label Laris/Lambat/Tidak laku/Baru; stok tebal merah; panel rincian dengan info penjualan.',
+      'Cetak: logo di struk, kepekatan Normal/Tebal/Paling tebal, kertas per dokumen (bawaan A4 lanskap), invoice dan surat jalan dicetak langsung/tanya dulu/tidak.',
     ],
   },
 ];

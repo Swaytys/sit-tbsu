@@ -61,6 +61,36 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     deskripsi: 'Struk setelah bayar: OTOMATIS, TANYA, atau TIDAK (K-095)',
   },
   {
+    kode: 'invoice_cetak',
+    nilai: 'TIDAK',
+    tipe: 'TEKS',
+    deskripsi: 'Invoice pengantaran setelah dibuat: OTOMATIS, TANYA, atau TIDAK (K-124)',
+  },
+  {
+    kode: 'surat_jalan_cetak',
+    nilai: 'OTOMATIS',
+    tipe: 'TEKS',
+    deskripsi: 'Surat jalan setelah dibuat: OTOMATIS, TANYA, atau TIDAK (K-124)',
+  },
+  {
+    kode: 'kertas_invoice',
+    nilai: 'A4_LANSKAP',
+    tipe: 'TEKS',
+    deskripsi: 'Kertas invoice, mis. A4_LANSKAP atau A4_POTRET (K-124)',
+  },
+  {
+    kode: 'kertas_surat_jalan',
+    nilai: 'A4_LANSKAP',
+    tipe: 'TEKS',
+    deskripsi: 'Kertas surat jalan (K-124)',
+  },
+  {
+    kode: 'kertas_dokumen_lain',
+    nilai: 'A4_POTRET',
+    tipe: 'TEKS',
+    deskripsi: 'Kertas nota titip, retur pemasok, dan dokumen lembaran lain (K-124)',
+  },
+  {
     kode: 'struk_tampilkan_nama',
     nilai: 'true',
     tipe: 'BOOL',

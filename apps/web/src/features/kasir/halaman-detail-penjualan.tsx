@@ -4,6 +4,7 @@ import {
   type BarisSuratJalan,
   type DataPembayaran,
   type DetailPenjualan,
+  ukuranKertasCss,
 } from '@sit/shared';
 import { ArrowLeft, PackageCheck, Printer, Wallet } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -359,12 +360,12 @@ export function HalamanDetailPenjualan() {
         </AreaCetak>
       )}
       {toko && cetak === 'invoice' && (
-        <AreaCetak ukuranKertas="A4">
+        <AreaCetak ukuranKertas={ukuranKertasCss(toko.kertasInvoice)}>
           <InvoiceA4 p={p} toko={toko} />
         </AreaCetak>
       )}
       {toko && cetak !== null && typeof cetak === 'object' && (
-        <AreaCetak ukuranKertas="A4">
+        <AreaCetak ukuranKertas={ukuranKertasCss(toko.kertasSuratJalan)}>
           <SuratJalanA4 sj={cetak} toko={toko} />
         </AreaCetak>
       )}

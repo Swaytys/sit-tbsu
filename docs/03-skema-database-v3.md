@@ -402,6 +402,11 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | footer_struk | Terima kasih atas kepercayaan Anda. | |
 | lebar_struk_mm | 80 | 57, 58, atau 80 (K-094) |
 | struk_cetak | OTOMATIS | struk setelah bayar: OTOMATIS, TANYA, TIDAK (K-095) |
+| invoice_cetak | TIDAK | invoice pengantaran setelah dibuat: OTOMATIS, TANYA, TIDAK (K-124) |
+| surat_jalan_cetak | OTOMATIS | surat jalan setelah dibuat: OTOMATIS, TANYA, TIDAK (K-124) |
+| kertas_invoice | A4_LANSKAP | kertas invoice: A4/A5/F4/LETTER × POTRET/LANSKAP (K-124) |
+| kertas_surat_jalan | A4_LANSKAP | kertas surat jalan (K-124) |
+| kertas_dokumen_lain | A4_POTRET | nota setoran titipan, nota retur pemasok (K-124) |
 | struk_tampilkan_nama | true | kop struk memakai nama toko (K-065) |
 | struk_tampilkan_logo | false | kop struk memakai logo toko (K-065) |
 | baris_per_halaman | 25 | 10, 25, 50, 100 (K-065) |
@@ -526,6 +531,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-24 — v3.28: konfigurasi `invoice_cetak`, `surat_jalan_cetak`, `kertas_invoice`, `kertas_surat_jalan`,
+  `kertas_dokumen_lain` (tanpa migrasi; nilai bawaan dipakai bila baris belum ada, K-124).
 - 2026-10-24 — v3.27: tabel `tutup_tahun` (tahun PK, status DITUTUP/DIBUKA, berkas, sha256, ukuran, ringkasan jsonb,
   penutup, pembuka + alasan; CHECK status–kolom buka) (migrasi 0031, K-165).
 - 2026-10-24 — v3.26: promo kampanye: kolom waktu, hari/jam, manfaat HARGA_KHUSUS/GRATIS, templat; tabel

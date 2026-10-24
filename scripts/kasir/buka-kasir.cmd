@@ -6,6 +6,9 @@ rem  Peramban biasa SELALU menampilkan jendela print saat halaman mencetak; hany
 rem  dijalankan dengan --kiosk-printing yang langsung mencetak ke PRINTER BAWAAN Windows (K-074).
 rem  Skrip ini membuka jendela peramban khusus kasir (profil terpisah, tidak mengganggu browsing biasa).
 rem
+rem  K-124: bila struk memakai CETAK LANGSUNG (Pengaturan > Struk & printer), jadikan PRINTER A4 sebagai
+rem  printer bawaan: invoice dan surat jalan langsung keluar di printer A4, struk tetap ke printer thermal.
+rem
 rem  Persiapan sekali saja:
 rem    1. Pasang driver printer struk (thermal 57/58/80 mm). Printer Bluetooth: pasangkan dulu di
 rem       Windows > Bluetooth, pasang driver-nya sampai muncul di daftar printer.

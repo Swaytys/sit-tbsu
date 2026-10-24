@@ -26,6 +26,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useTampilanToko } from '@/api/pengaturan';
 import { KartuBagian } from './bagian';
+import { ambilSetelanDokumen } from './setelan-dokumen';
 import { useSimpanPengaturan } from './use-simpan-pengaturan';
 
 type Masukan = z.input<typeof skemaProfilToko>;
@@ -54,7 +55,8 @@ export function FormProfil({
   const contohNomor = `${pengaturan.penomoran.prefix.STR}-${format(new TZDate(new Date(), 'Asia/Jakarta'), 'yyMMdd')}-001`;
 
   async function kirim(data: Keluaran) {
-    const hasil = await simpan({ profil: data });
+    // Kolom dokumen & kertas (K-124) diatur di kartunya sendiri: selalu kirim nilai tersimpannya.
+    const hasil = await simpan({ profil: { ...data, ...ambilSetelanDokumen(pengaturan.profil) } });
     if (hasil) form.reset(hasil.profil);
   }
 

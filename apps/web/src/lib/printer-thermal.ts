@@ -1,3 +1,5 @@
+import type { KepekatanStruk } from '@sit/shared';
+
 /*
  * Cetak langsung ke printer struk thermal lewat Web Serial (K-103, K-105): printer Bluetooth (port COM
  * "Serial over Bluetooth") atau USB-serial dibuka dari peramban, lalu byte ESC/POS dikirim apa adanya. Tidak
@@ -43,8 +45,8 @@ export type PengaturanPrinter = {
   baud: number;
   /** Karakter per baris; `null` = menurut lebar kertas di pengaturan toko (32 atau 48). */
   lebarKarakter: number | null;
-  /** Cetak lebih hitam (double-strike), untuk printer kecil yang hasilnya pudar. */
-  pekat: boolean;
+  /** K-124: Normal / Tebal / Paling tebal, untuk printer kecil yang hasilnya pudar. */
+  kepekatan: KepekatanStruk;
   potong: boolean;
   bukaLaci: boolean;
   /** Ciri printer yang dipilih, untuk mengenalinya lagi bila ada beberapa port berizin. */
@@ -58,7 +60,7 @@ const BAWAAN: PengaturanPrinter = {
   langsung: false,
   baud: 9600,
   lebarKarakter: null,
-  pekat: true,
+  kepekatan: 'TEBAL',
   potong: true,
   bukaLaci: false,
   info: null,
@@ -68,7 +70,12 @@ const BAWAAN: PengaturanPrinter = {
 export function bacaPengaturanPrinter(): PengaturanPrinter {
   try {
     const mentah = localStorage.getItem(KUNCI);
-    return mentah ? { ...BAWAAN, ...(JSON.parse(mentah) as Partial<PengaturanPrinter>) } : BAWAAN;
+    if (!mentah) return BAWAAN;
+    const lama = JSON.parse(mentah) as Partial<PengaturanPrinter> & { pekat?: boolean };
+    // Setelan sebelum K-124 menyimpan saklar `pekat`.
+    const kepekatan = lama.kepekatan ?? (lama.pekat === false ? 'NORMAL' : 'TEBAL');
+    delete lama.pekat;
+    return { ...BAWAAN, ...lama, kepekatan };
   } catch {
     return BAWAAN;
   }

@@ -183,9 +183,16 @@ di layar kasir seperti order antrean.
   bercentang hijau: (1) pasangkan printer Bluetooth di Windows, (2) **Pilih printer…** (pilih baris *SPP slave* /
   *Spp1* / nama printer; jangan *EM7455* atau *Bluetooth Peripheral Device*), (3) lebar kertas (58 mm = 32
   karakter), (4) **Uji cetak** lalu jawab pertanyaan "apa yang keluar dari printer?", (5) nyalakan **Cetak struk
-  langsung ke printer thermal**. Cukup sekali per komputer kasir. Bila printer mati saat menjual, penjualan
-  tetap tersimpan dan muncul tombol **Jendela cetak**. Panduan lengkap dan daftar masalah:
-  `docs/panduan/printer-struk.md`.
+  langsung ke printer thermal**. Cukup sekali per komputer kasir; setelan tetap tersimpan setelah komputer
+  dimatikan. Bila printer mati saat menjual, penjualan tetap tersimpan dan muncul tombol **Jendela cetak**.
+  Struk pudar: *Pengaturan lanjutan* › **Kepekatan cetak** (Normal / Tebal / Paling tebal). Logo di struk:
+  nyalakan *Kop struk memakai logo toko*; pratinjau hitam-putihnya tampil di kartu printer. Panduan lengkap dan
+  daftar masalah: `docs/panduan/printer-struk.md`.
+- **Invoice dan surat jalan** (Pengaturan › Struk & printer › kartu *Invoice, surat jalan & kertas*): pilih
+  kertas tiap dokumen (bawaan A4 lanskap) dan kapan dicetak setelah dibuat: **Langsung cetak**, **Tanya dulu**
+  (muncul pemberitahuan dengan tombol *Cetak*), atau **Tidak dicetak**. Invoice tetap bisa dicetak kapan pun
+  dengan **P**. Agar keluar tanpa jendela cetak, ikuti langkah di dalam kartu itu (mode kasir + printer A4
+  sebagai printer bawaan Windows).
 - **Pembeli terdata boleh belum lunas.** Pilih pelanggan (F4 atau klik nama pelanggan), lalu pilih cara bayar:
   **Lunas** (L), **DP** (U: ketik uang muka, sisanya jadi piutang), atau **Bayar nanti** (N: seluruhnya piutang).
 - Barang belum diambil pembeli: tandai *belum diambil*; konfirmasi saat diambil.

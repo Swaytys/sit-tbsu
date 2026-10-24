@@ -4,8 +4,11 @@ import {
   bungkusTeks,
   keAsciiStruk,
   lebarKarakterStruk,
+  lebarTitikStruk,
+  rasterDariAbu,
   StrukEscPos,
 } from './escpos';
+import { ukuranKertasCss } from './enums';
 
 /** Teks yang tercetak (tanpa byte perintah), per baris. */
 function barisTercetak(b: Uint8Array): string[] {
@@ -69,7 +72,9 @@ describe('ESC/POS struk', () => {
     // ESC @ (reset), ESC V 0 (tegak/potret), ESC M 0 (font A), ESC G 0 (tanpa double-strike).
     expect([...b.slice(0, 11)]).toEqual([0x1b, 0x40, 0x1b, 0x56, 0, 0x1b, 0x4d, 0, 0x1b, 0x47, 0]);
     // Cetak tebal: double-strike menyala sejak awal dan tidak pernah dimatikan di tengah dokumen.
-    const pekat = [...new StrukEscPos(32, { pekat: true }).teks('A', { tebal: true }).selesai()];
+    const pekat = [
+      ...new StrukEscPos(32, { kepekatan: 'TEBAL' }).teks('A', { tebal: true }).selesai(),
+    ];
     expect(pekat.slice(8, 11)).toEqual([0x1b, 0x47, 1]);
     expect(pekat.join(',').includes('27,71,0')).toBe(false);
     const baris = barisTercetak(b);
@@ -86,5 +91,51 @@ describe('ESC/POS struk', () => {
   it('huruf besar memakai setengah lebar baris', () => {
     const b = new StrukEscPos(32).teks('TOKO BANGUNAN SUMBER URIP JOMBANG', { besar: true });
     expect(barisTercetak(b.selesai()).every((x) => x.length <= 16)).toBe(true);
+  });
+
+  it('K-124: kepekatan Tebal menebalkan semua huruf; Paling tebal menambah waktu pemanasan', () => {
+    const normal = [...new StrukEscPos(32).teks('A').selesai()];
+    expect(normal.join(',')).toContain('27,69,0');
+    expect(normal.join(',')).not.toContain('27,55,');
+    const tebal = [
+      ...new StrukEscPos(32, { kepekatan: 'TEBAL' }).teks('A').kiriKanan('B', 'C').selesai(),
+    ];
+    expect(tebal.join(',')).toContain('27,69,1,29,33,0,65,10');
+    expect(tebal.join(',')).toContain('27,69,1,66');
+    expect(tebal.join(',')).not.toContain('27,55,');
+    const palingTebal = [...new StrukEscPos(32, { kepekatan: 'PALING_TEBAL' }).selesai()];
+    expect(palingTebal.slice(11, 16)).toEqual([0x1b, 0x37, 7, 200, 2]);
+  });
+
+  it('K-124: logo jadi raster hitam-putih (dithering) dan dikirim per pita GS v 0', () => {
+    expect(lebarTitikStruk(32)).toBe(384);
+    expect(lebarTitikStruk(48)).toBe(576);
+    // 10×2: kiri hitam, kanan putih; titik paling kiri = bit tertinggi.
+    const abu = [
+      0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255,
+    ];
+    const r = rasterDariAbu(abu, 10, 2);
+    expect(r.lebarByte).toBe(2);
+    expect([...r.data]).toEqual([0xf0, 0x00, 0xf0, 0x00]);
+    // Abu-abu tengah menjadi pola: kira-kira separuh titik hitam.
+    const tengah = rasterDariAbu(new Array(64).fill(128), 8, 8);
+    const hitam = [...tengah.data].reduce((n, b) => n + b.toString(2).replace(/0/g, '').length, 0);
+    expect(hitam).toBeGreaterThan(20);
+    expect(hitam).toBeLessThan(44);
+    // Gambar 130 baris = 3 pita (64 + 64 + 2), tiap pita diawali GS v 0 0 xL xH yL yH.
+    const tinggi = 130;
+    const besar = { lebarByte: 3, tinggi, data: new Uint8Array(3 * tinggi) };
+    const b = [...new StrukEscPos(32).gambar(besar).selesai()].join(',');
+    expect(b.split('29,118,48,0,3,0,').length - 1).toBe(3);
+    expect(b).toContain('29,118,48,0,3,0,2,0');
+  });
+
+  it('K-124: pilihan kertas dokumen menjadi ukuran CSS @page', () => {
+    expect(ukuranKertasCss('A4_LANSKAP')).toBe('A4 landscape');
+    expect(ukuranKertasCss('A4_POTRET')).toBe('A4 portrait');
+    expect(ukuranKertasCss('A5_LANSKAP')).toBe('A5 landscape');
+    expect(ukuranKertasCss('LETTER_POTRET')).toBe('letter portrait');
+    expect(ukuranKertasCss('F4_POTRET')).toBe('215mm 330mm');
+    expect(ukuranKertasCss('F4_LANSKAP')).toBe('330mm 215mm');
   });
 });

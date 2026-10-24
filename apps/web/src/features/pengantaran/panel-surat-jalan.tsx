@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
+import { useTampilanToko } from '@/api/pengaturan';
 import { useBatalSuratJalan, useBuatSuratJalan, useMuatSuratJalan } from '@/api/penjualan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { cetakMenurutSetelan } from '@/lib/cetak-otomatis';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { DialogBerangkat } from './dialog-berangkat';
@@ -104,8 +106,18 @@ export function BadgeSuratJalan({ status }: { status: StatusSuratJalan }) {
   );
 }
 
-export function DialogBuat({ p, onTutup }: { p: DetailPenjualan; onTutup: () => void }) {
+/** Dialog buat surat jalan; setelah dibuat, dicetak menurut Pengaturan bila `onCetak` diberikan (K-124). */
+export function DialogBuat({
+  p,
+  onTutup,
+  onCetak,
+}: {
+  p: DetailPenjualan;
+  onTutup: () => void;
+  onCetak?: (sj: BarisSuratJalan) => void;
+}) {
   const buat = useBuatSuratJalan();
+  const modeCetak = useTampilanToko().data?.suratJalanCetak;
   const [qty, setQty] = useState<Record<number, string>>(() =>
     Object.fromEntries(p.baris.map((b) => [b.id, b.qtyBelumDikirim.replace(/\.?0+$/, '') || '0'])),
   );
@@ -131,6 +143,7 @@ export function DialogBuat({ p, onTutup }: { p: DetailPenjualan; onTutup: () => 
       .then((sj) => {
         toast.success(`Surat jalan ${sj.nomor} dibuat.`);
         onTutup();
+        if (onCetak) cetakMenurutSetelan(modeCetak, `surat jalan ${sj.nomor}`, () => onCetak(sj));
       })
       .catch((err: unknown) => toast.error(pesanGalat(err)));
   }
@@ -353,7 +366,7 @@ export function PanelSuratJalan({
       {p.suratJalan.map((sj) => (
         <KartuSuratJalan key={sj.id} sj={sj} onCetak={onCetak} />
       ))}
-      {buat && <DialogBuat p={p} onTutup={() => setBuat(false)} />}
+      {buat && <DialogBuat p={p} onTutup={() => setBuat(false)} onCetak={onCetak} />}
     </div>
   );
 }

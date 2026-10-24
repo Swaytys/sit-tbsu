@@ -101,7 +101,12 @@ test('Printer struk: salah pilih port diperingatkan; uji cetak dipandu sampai ce
   const tersimpan = await page.evaluate(
     () => JSON.parse(localStorage.getItem('tbsu:printer-struk') ?? '{}') as Record<string, unknown>,
   );
-  expect(tersimpan).toMatchObject({ langsung: true, teruji: true, lebarKarakter: 32, pekat: true });
+  expect(tersimpan).toMatchObject({
+    langsung: true,
+    teruji: true,
+    lebarKarakter: 32,
+    kepekatan: 'TEBAL',
+  });
 });
 
 test('Persetujuan: tiap saluran punya tiga langkah dan tombol uji sendiri yang menyebut apa yang kurang', async ({
