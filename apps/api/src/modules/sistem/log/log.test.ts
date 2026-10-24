@@ -50,4 +50,44 @@ describe('log aktivitas (docs/04 §8)', () => {
       expect(res.status).toBe(404);
     }
   });
+
+  it('ekspor Excel: saringan dan rentang tanggal, dicatat; Admin ditolak; tanggal terbalik ditolak', async () => {
+    await db.insert(logAktivitas).values([
+      { aksi: 'PENGGUNA_BUAT', idPengguna: owner.pengguna.id, ringkasan: 'Menambah Siti' },
+      {
+        aksi: 'PENGGUNA_BUAT',
+        idPengguna: owner.pengguna.id,
+        ringkasan: 'Lama sekali',
+        waktu: new Date('2020-01-15T03:00:00Z'),
+      },
+    ]);
+    const admin = await sesiUji('ADMIN');
+    expect((await minta('/api/log-aktivitas/ekspor', { cookie: admin.cookie })).status).toBe(403);
+
+    const res = await minta(
+      '/api/log-aktivitas/ekspor?aksi=PENGGUNA_BUAT&dari=2020-01-01&sampai=2020-01-31',
+      {
+        cookie: owner.cookie,
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-disposition')).toContain(
+      'log-aktivitas-2020-01-01-sd-2020-01-31.xlsx',
+    );
+    const { muatXlsx } = await import('../../../lib/excel');
+    const wb = await muatXlsx(new Uint8Array(await res.arrayBuffer()));
+    const ws = wb.worksheets[0]!;
+    expect(ws.rowCount).toBe(2); // judul + 1 baris (hanya log Januari 2020)
+    expect(ws.getRow(2).getCell(6).text).toBe('Lama sekali');
+
+    const catatan = await json<{ data: Log[] }>(
+      await minta('/api/log-aktivitas?aksi=LAPORAN_EKSPOR', { cookie: owner.cookie }),
+    );
+    expect(catatan.data[0]?.ringkasan).toContain('Ekspor Excel log aktivitas (1 baris)');
+
+    const terbalik = await minta('/api/log-aktivitas/ekspor?dari=2020-02-01&sampai=2020-01-01', {
+      cookie: owner.cookie,
+    });
+    expect(terbalik.status).toBe(400);
+  });
 });

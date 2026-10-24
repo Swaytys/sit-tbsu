@@ -1,5 +1,5 @@
 import { AKSI_LOG, type AksiLog, type BarisLog } from '@sit/shared';
-import { Search } from 'lucide-react';
+import { FileSpreadsheet, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useDaftarLog, useBarisPerHalaman } from '@/api/pengaturan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
@@ -103,10 +103,15 @@ export function TabLog() {
   const [halaman, setHalaman] = useState(1);
   const barisPerHalaman = useBarisPerHalaman();
   const log = useDaftarLog({ cari: cariTertunda, aksi, halaman, perHalaman: barisPerHalaman });
+  const [dari, setDari] = useState('');
+  const [sampai, setSampai] = useState('');
+  const kueriEkspor = new URLSearchParams(
+    Object.entries({ cari: cariTertunda, aksi, dari, sampai }).filter(([, v]) => v !== ''),
+  ).toString();
 
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <div className="flex items-center gap-3 border-b p-3">
+      <div className="flex flex-wrap items-center gap-3 border-b p-3">
         <div className="relative max-w-sm flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400" />
           <Input
@@ -139,6 +144,36 @@ export function TabLog() {
             ))}
           </SelectContent>
         </Select>
+        <div className="ml-auto flex items-center gap-2 text-xs text-slate-600">
+          <label className="flex items-center gap-1">
+            Dari
+            <Input
+              type="date"
+              className="h-9 w-36"
+              value={dari}
+              onChange={(e) => setDari(e.target.value)}
+              aria-label="Ekspor dari tanggal"
+            />
+          </label>
+          <label className="flex items-center gap-1">
+            s.d.
+            <Input
+              type="date"
+              className="h-9 w-36"
+              value={sampai}
+              onChange={(e) => setSampai(e.target.value)}
+              aria-label="Ekspor sampai tanggal"
+            />
+          </label>
+          <a
+            href={`/api/log-aktivitas/ekspor${kueriEkspor ? `?${kueriEkspor}` : ''}`}
+            download
+            title="Unduh log sesuai cari, aksi, dan tanggal (kosong = semua tanggal)"
+            className="flex h-9 items-center gap-1.5 rounded-md border bg-white px-3 text-sm whitespace-nowrap text-slate-800 hover:bg-slate-50"
+          >
+            <FileSpreadsheet className="size-4" /> Ekspor Excel
+          </a>
+        </div>
       </div>
       <DataTable
         kolom={KOLOM}

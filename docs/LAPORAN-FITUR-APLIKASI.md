@@ -210,11 +210,11 @@ bergantung konfigurasi.
 **F5. Log aktivitas** | Pengaturan › Log aktivitas | Owner | desktop
 - Fungsi: mencatat 103 jenis aksi (login, perubahan master, transaksi, persetujuan, cetak ulang, ekspor laporan)
   beserta pelaku, waktu, entitas, nomor dokumen, ringkasan, data lama/baru, IP; ditampilkan dengan cari dan
-  saring per aksi.
+  saring per aksi; ekspor Excel dengan rentang tanggal (K-113).
 - Tabel: `log_aktivitas`.
 - Bukti: `[KODE: shared/log.ts]` `[KODE: api/modules/sistem/log-aktivitas.ts:24]`
   `[KODE: apps/api/src/db/schema/sistem.ts:114-140]` `[KODE: api/modules/sistem/log/routes.ts:19-21]`.
-- Status: BERFUNGSI (tampil di layar; **tidak ada tombol ekspor** log).
+- Status: BERFUNGSI (ekspor Excel ditambahkan 24 Okt; tes `log.test.ts`).
 
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
@@ -1241,6 +1241,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
 - 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).
+- 2026-10-24 — F5 log aktivitas: ekspor Excel.
 - 2026-10-24 — F40 saran pesan: metode A–D dan simpanan memori (K-127); kolom `barang.stok_maksimum`.
 - 2026-10-24 — F49 pengaturan cetak: logo, kepekatan, kertas, cetak otomatis (K-124).
 - 2026-10-24 — F48 data bersih (K-137); notifikasi rinci + dashboard Perlu perhatian (K-131); order: F10, saringan Semua, penginput (K-129, K-138, K-139).

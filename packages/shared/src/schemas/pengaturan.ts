@@ -194,6 +194,29 @@ export const skemaCariLog = skemaHalaman.extend({
 });
 export type ParamCariLog = z.input<typeof skemaCariLog>;
 
+const tanggalLog = (label: string) =>
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, `${label} harus berformat tanggal.`)
+    .optional();
+
+/** Ekspor log ke Excel (Owner): saringan sama dengan layar ditambah rentang tanggal (WIB). */
+export const skemaEksporLog = z
+  .object({
+    cari: z.string().trim().max(100).optional(),
+    aksi: z.enum(AKSI_LOG).optional(),
+    dari: tanggalLog('Tanggal awal'),
+    sampai: tanggalLog('Tanggal akhir'),
+  })
+  .refine((v) => !v.dari || !v.sampai || v.dari <= v.sampai, {
+    message: 'Tanggal awal tidak boleh setelah tanggal akhir.',
+    path: ['sampai'],
+  });
+export type ParamEksporLog = z.input<typeof skemaEksporLog>;
+
+/** Batas baris satu berkas ekspor log; lebih dari itu persempit tanggal. */
+export const BATAS_EKSPOR_LOG = 50000;
+
 export type BarisLog = {
   id: number;
   waktu: string;

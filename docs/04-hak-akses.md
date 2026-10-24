@@ -282,7 +282,8 @@ Aturan lain:
 Dicatat untuk setiap aksi mutasi dan setiap login/logout: `waktu`, `id_pengguna`, `aksi` (mis. `PENJUALAN_CHECKOUT`,
 `VOID_SETUJUI`, `BARANG_UBAH`), `entitas`, `id_entitas`, `ringkasan` (nilai lama → baru untuk perubahan master,
 nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari aplikasi. Hanya Owner yang melihat
-(`sistem.log.lihat`). Retensi: tidak dihapus pada M1.
+(`sistem.log.lihat`), termasuk mengekspornya ke Excel (`GET /api/log-aktivitas/ekspor`, saringan cari/aksi/tanggal,
+maks. 50.000 baris, dicatat LAPORAN_EKSPOR, K-113). Retensi: tidak dihapus pada M1.
 
 ## Riwayat
 
