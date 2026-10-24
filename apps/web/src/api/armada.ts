@@ -1,5 +1,6 @@
 import type {
   DataBerangkat,
+  InputRencanaRit,
   DataHasilSuratJalan,
   DataKendaraan,
   DataSopir,
@@ -48,7 +49,8 @@ export function useDaftarPerjalanan(p: {
         }),
       ),
     placeholderData: keepPreviousData,
-    refetchInterval: p.status === 'JALAN' ? 30_000 : false,
+    // Papan Pengiriman dipakai beberapa komputer: rit rencana dan rit jalan disegarkan berkala.
+    refetchInterval: p.status === 'JALAN' || p.status === 'DIRENCANAKAN' ? 30_000 : false,
   });
 }
 
@@ -135,4 +137,59 @@ export function usePratinjauMuatan(idKendaraan: number | null, idSuratJalan: num
       ),
     enabled: idKendaraan !== null && idSuratJalan.length > 0,
   });
+}
+
+// --- Rit rencana (K-160) ---
+
+export function useRencanaRit() {
+  return useMutasiArmada(async (json: InputRencanaRit) =>
+    ambilData(await api.perjalanan.rencana.$post({ json })),
+  );
+}
+
+export function useIsiRit() {
+  return useMutasiArmada(
+    async ({
+      id,
+      idSuratJalan,
+      idPenjualan,
+    }: {
+      id: number;
+      idSuratJalan?: number;
+      idPenjualan?: number;
+    }) =>
+      ambilData(
+        await api.perjalanan[':id'].isi.$post({
+          param: paramId(id),
+          json: { idSuratJalan, idPenjualan },
+        }),
+      ),
+  );
+}
+
+export function useKeluarRit() {
+  return useMutasiArmada(async (idSuratJalan: number) =>
+    ambilData(await api.perjalanan.keluar.$post({ json: { idSuratJalan } })),
+  );
+}
+
+export function useMuatRit() {
+  return useMutasiArmada(async (id: number) =>
+    ambilData(await api.perjalanan[':id'].dimuat.$post({ param: paramId(id) })),
+  );
+}
+
+export function useBerangkatRit() {
+  return useMutasiArmada(
+    async ({ id, alasanMuatan }: { id: number; alasanMuatan: string | null }) =>
+      ambilData(
+        await api.perjalanan[':id'].berangkat.$post({ param: paramId(id), json: { alasanMuatan } }),
+      ),
+  );
+}
+
+export function useBatalRit() {
+  return useMutasiArmada(async ({ id, alasan }: { id: number; alasan: string }) =>
+    ambilData(await api.perjalanan[':id'].batal.$post({ param: paramId(id), json: { alasan } })),
+  );
 }

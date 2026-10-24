@@ -1,6 +1,6 @@
 # 13 — Rancangan Logistik: muatan, rit, dan papan pengiriman (K-160–K-162)
 
-Status: **rancangan v1 (24 Oktober 2026)**. Dasar: keputusan pemilik K-160–K-162
+Status: **v2 (24 Oktober 2026)** — §3 dan §4 sudah dibangun; §5 belum. Dasar: keputusan pemilik K-160–K-162
 (`keputusan/2026-10-24-masukan-uji-dan-fms-lanjutan.md`) dan FMS inti K-149–K-151 yang sudah berjalan (kendaraan,
 sopir, perjalanan, hasil per barang). Angka ambang di bawah adalah **bawaan yang bisa diubah di Pengaturan**, bukan
 aturan mati.
@@ -80,34 +80,45 @@ kuning, kecuali tidak ada satu pun barang yang punya berat (perhitungan tidak be
 
 ## 4. Papan Pengiriman (K-160)
 
-Menu baru **Logistik**: *Pengiriman* (papan), *Kendaraan & Sopir* (pindah dari Data Master), *Riwayat rit*.
+Menu baru **Logistik**: *Pengiriman* (papan) dan *Kendaraan & Sopir* (pindah dari Data Master; riwayat rit ada di
+halaman ini per kendaraan/sopir). Aturan bisnis: docs/05 S14.
 
-### 4.1 Kolom
+### 4.1 Kolom (yang dibangun)
 
 | Kolom | Isi | Masuk dengan |
 |---|---|---|
-| **Backlog** | Order kirim baru (invoice pengantaran dengan barang belum dikirim). | Otomatis setelah checkout. |
-| **Dijadwalkan** | Kartu dikelompokkan per **rit rencana** (kendaraan, sopir, tanggal-jam berangkat). Kartu tanpa rit ditandai *belum direncanakan* dan tidak bisa maju. | Seret kartu ke grup rit, atau tombol/pintasan *Jadwalkan*. Membuat surat jalan. |
-| **Dimuat** | Rit yang sudah dimuat; peringatan muatan dicek ulang. | Tombol *Dimuat* pada grup. |
-| **Di jalan** | Rit berangkat. | *Berangkat* pada grup. |
-| **Selesai** | Hasil semua barang dicatat (hari ini; lebih lama di Riwayat rit). | *Catat hasil*. |
-| **Perlu tindak lanjut** | Kembali utuh, pengganti rusak, retur menunggu atasan. | Otomatis dari hasil. |
+| **Backlog** | Order kirim (invoice pengantaran dengan barang belum dikirim), termasuk lencana *Kirim ulang* (barang kembali utuh) dan *Bayar di tempat*. | Otomatis setelah checkout atau setelah hasil kirim dicatat. |
+| **Dijadwalkan** | Grup **rit rencana** (nomor, plat, jam, sopir, catatan, bar muatan berwarna §3.1, lencana *Dimuat*) yang bisa dibuka-tutup, lalu kotak *Belum direncanakan* untuk surat jalan tanpa rit. | Seret kartu ke grup, atau menu kartu ⋮ › *Masukkan ke rit*. Kartu Backlog yang masuk rit langsung dibuatkan surat jalan untuk seluruh sisanya. |
+| **Di jalan** | Rit JALAN: lama di jalan (kuning bila > 6 jam atau beda hari), nomor HP sopir, tombol *Catat hasil* per surat jalan. | Tombol *Berangkat* pada grup (dialog muatan, alasan bila perlu). |
+| **Selesai hari ini** | Rit yang semua hasilnya dicatat hari ini. | *Catat hasil* surat jalan terakhir. |
+
+Perbedaan dari rancangan v1, dengan alasan:
+- **Dimuat** tidak dijadikan kolom sendiri, tetapi lencana pada grup dan kartu. Rit yang sudah dimuat tetap rit
+  rencana yang sama; kolom terpisah hanya memindahkan kartu tanpa arti baru dan memakan lebar layar 1280 px.
+- **Perlu tindak lanjut** tidak dijadikan kolom: barang kembali utuh langsung muncul lagi di Backlog dengan lencana
+  *Kirim ulang*, dan retur yang menunggu atasan sudah punya antrean sendiri di halaman Retur.
+- Peringatan jadwal bertabrakan untuk kendaraan yang sama belum dibuat (usulan lanjutan); penguncian sebenarnya
+  tetap saat berangkat (S9).
 
 Aturan papan:
-- Status kartu **selalu dari dokumen** (surat jalan dan perjalanan), tidak ada status tampilan terpisah. Menggeser kartu
-  menjalankan aksi yang sama dengan tombolnya, sehingga semua aturan S1–S12 tetap berlaku.
-- Mundur hanya sebelum berangkat (Dijadwalkan → Backlog = surat jalan dibatalkan dengan alasan).
-- Grup rit bisa dibuka-tutup seperti grup tab peramban; header grup: kendaraan, sopir, jam, bar berat/volume
-  berwarna sesuai §3.1.
-- Semua aksi seret-lepas punya padanan tombol dan keyboard (K: [[ui-mouse-keyboard-eksplisit]]).
-- Kendaraan boleh punya beberapa rit rencana di jam berbeda; jam yang bertabrakan diperingatkan.
+- Status kartu **selalu dari dokumen** (surat jalan dan perjalanan); tidak ada status tampilan terpisah. Menyeret
+  menjalankan aksi yang sama dengan menu kartu, sehingga S1–S14 tetap berlaku.
+- Seret ke *Belum direncanakan*: kartu Backlog membuka dialog surat jalan (bisa sebagian); surat jalan di rit keluar
+  dari rit. Seret surat jalan ke *Backlog* membuka dialog batal surat jalan (alasan wajib). Mundur hanya sebelum
+  berangkat.
+- Setiap aksi seret punya padanan klik dan keyboard: menu kartu ⋮ (masukkan/pindah/keluarkan/batalkan), tombol
+  *Rit baru* (pintasan **R**), dan pegangan seret yang bisa diangkat dengan Spasi lalu dipindah dengan panah.
+- Papan menyegarkan data berkala; aksi pada rit yang sudah berubah di komputer lain ditolak dengan pesan
+  "muat ulang halaman" (kunci baris di DB, docs/02).
 
 ### 4.2 Perubahan data
 
-- `perjalanan.status`: tambah **DIRENCANAKAN** (sebelum JALAN) dan kolom `jadwal_berangkat`; indeks unik "satu
-  perjalanan JALAN per kendaraan/sopir" tetap.
-- Surat jalan dibuat saat kartu masuk rit (qty = semua sisa; bisa dipecah dengan tombol *Pecah*).
-- Dependency baru: `@dnd-kit/core` + `@dnd-kit/sortable` (seret-lepas yang mendukung keyboard dan pembaca layar).
+- `perjalanan.status`: tambah **DIRENCANAKAN** dan **BATAL**, kolom `jadwal_berangkat` dan `alasan_batal`;
+  `waktu_berangkat` kosong sampai berangkat. Indeks unik "satu perjalanan JALAN per kendaraan/sopir" tetap
+  (migrasi 0027).
+- `surat_jalan.id_perjalanan` diisi saat masuk rit rencana (bukan lagi hanya saat berangkat).
+- Dependency baru: `@dnd-kit/core` 6.3.1 (seret-lepas dengan dukungan keyboard dan pembaca layar). `@dnd-kit/sortable`
+  tidak dipakai karena urutan kartu dalam kolom tidak bermakna bisnis.
 
 ## 5. FMS pendukung (K-162, setelah papan)
 
@@ -118,10 +129,12 @@ STNK/KIR-nya hampir habis, jadwal servis (km atau tanggal), catatan BBM per rit 
 
 1. Data muatan barang + kendaraan, konversi satuan, perhitungan muatan per rit + uji (K-161) — **selesai 24 Okt**;
    laporan kelengkapan dan isi massal lewat Excel menyusul.
-2. Rit rencana (DIRENCANAKAN) + papan Pengiriman dengan seret-lepas (K-160).
+2. Rit rencana (DIRENCANAKAN) + papan Pengiriman dengan seret-lepas (K-160) — **selesai 24 Okt**.
 3. STNK/KIR, servis, BBM, dashboard (K-162).
 
 ## Riwayat
 
 - 2026-10-24 — v1 dibuat (rancangan K-160–K-162).
 - 2026-10-24 — Langkah 1 (K-161) selesai sebagian; julur bawaan 100 cm.
+- 2026-10-24 — v2: langkah 2 (K-160) selesai; §4 disesuaikan dengan yang dibangun (Dimuat = lencana, tindak lanjut
+  lewat Backlog *Kirim ulang*).

@@ -90,7 +90,7 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | A2 | Hasil antar lupa dicatat; kendaraan terkunci terus | Kendaraan tidak bisa berangkat lagi | Catat hasil dari kartu *Di jalan* | Kartu perjalanan menguning setelah 6 jam atau ganti hari | Pesan "catat hasilnya agar kendaraan & sopir bebas" | Ada |
 | A3 | Hasil dicatat dua kali (dua kasir bersamaan) | Retur/stok ganda | — | Surat jalan dikunci; hasil unik per surat jalan; kedua kali ditolak "sudah dicatat" | — | Ada |
 | A4 | Jumlah hasil tidak sama dengan qty kirim | Barang "hilang" dari catatan | — | Diterima dihitung otomatis = kirim − (kembali + rusak + ditolak); angka merah bila lebih; API menolak | Kolom *Diterima* tampil langsung | Ada |
-| A5 | Barang kembali utuh lalu terlupa | Pembeli tidak menerima barangnya | Kirim ulang dari kolom *Perlu surat jalan* | Sisa otomatis masuk kolom itu dengan tanda *Kirim ulang* | Toast setelah simpan hasil | Ada |
+| A5 | Barang kembali utuh lalu terlupa | Pembeli tidak menerima barangnya | Kirim ulang dari kolom *Backlog* di papan Pengiriman | Sisa otomatis masuk kolom itu dengan tanda *Kirim ulang* | Toast setelah simpan hasil | Ada |
 | A6 | Barang ditolak/rusak dikirim ulang padahal retur masih menunggu atasan | Barang terkirim ganda | Putusan atasan menentukan | Qty dengan retur menunggu tidak dihitung "belum dikirim" | Ringkasan hasil menandai "menunggu atasan" | Ada |
 | A7 | Retur biasa dibuat untuk barang yang masih di surat jalan | Stok masuk padahal barang di truk | Catat hasil dulu atau batalkan surat jalan | Retur ditolak dengan pesan itu | Pesan menyebut jalan keluarnya | Ada |
 | A8 | Rusak di jalan, tetapi stok pengganti habis | Tidak bisa tukar | Pilih *Tagihan dikurangi*, atau tambah stok lalu catat | Ditolak dengan saran | Pesan menyebut sisa stok | Ada |
@@ -99,6 +99,10 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | A12 | Barang dimuat melebihi daya angkut kendaraan | Rem/ban/sumbu berbahaya, pelanggaran ODOL | Pakai kendaraan lain atau bagi dua rit | Berangkat ditolak bila berat > daya angkut | Panel muatan menjelaskan sebab dan saran | Ada (K-161) |
 | A13 | Barang sedikit melebihi bak (ditumpuk/menjulur) | Barang jatuh, kendaraan tidak stabil | Periksa setelah dimuat | Alasan tertulis wajib (tercatat di rit dan log); jauh melebihi ditolak | Contoh alasan di isian | Ada (K-161) |
 | A14 | Berat/ukuran barang atau bak belum diisi | Muatan tidak bisa diperiksa | Lengkapi data | Peringatan "belum punya berat/ukuran" di panel muatan | Petunjuk tempat mengisinya | Ada sebagian (laporan kelengkapan menyusul) |
+| A15 | Surat jalan dibuat tetapi tidak dimasukkan ke rit mana pun | Barang tidak pernah berangkat | Seret ke grup rit | Kotak *Belum direncanakan* dengan garis putus-putus di kolom Dijadwalkan; tombol Berangkat hanya ada di grup rit | Teks "belum bisa berangkat. Seret ke grup rit." | Ada (K-160) |
+| A16 | Dua orang mengubah rit yang sama (satu memberangkatkan, satu memindah kartu) | Kartu masuk rit yang sudah jalan | Muat ulang halaman | Baris rit dikunci; aksi pada rit yang bukan rencana lagi ditolak; papan menyegarkan tiap 30 detik | Pesan "sudah berangkat; muat ulang halaman" | Ada (K-160) |
+| A17 | Rit rencana dibatalkan padahal barang sudah dinaikkan | Barang di truk tanpa rit | Masukkan ke rit lain atau keluarkan barangnya | Surat jalan tidak ikut batal, kembali ke *Belum direncanakan* dengan status Dimuat | Lencana *Dimuat* tetap terlihat | Ada (K-160) |
+| A18 | Kartu terseret ke kolom yang salah | Surat jalan batal tanpa sengaja | — | Seret ke Backlog hanya membuka dialog batal (alasan wajib), tidak langsung membatalkan | Dialog menjelaskan akibatnya | Ada (K-160) |
 | A11 | Plat/nama sopir diketik beda-beda | Data ganda, riwayat terpecah | Ubah data master | Plat dirapikan huruf besar + satu spasi, unik; nama sopir unik tanpa beda huruf | Contoh format di form | Ada |
 
 ---
@@ -114,3 +118,4 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-23 — Bagian 4 pengantaran A1–A11 (K-149–K-151).
 - 2026-10-24 — Shift ganda kini mustahil (indeks unik, K-155); pembayaran non-tunai tanpa rekening terdaftar/referensi dicegah (K-154).
 - 2026-10-24 — A12–A14 muatan kendaraan (K-161).
+- 2026-10-24 — A15–A18 rit rencana dan papan Pengiriman (K-160); A5 menunjuk kolom Backlog.

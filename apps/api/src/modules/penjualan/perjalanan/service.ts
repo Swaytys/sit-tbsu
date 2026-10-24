@@ -1,15 +1,16 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import {
   kaliQty,
   type DataBerangkat,
+  type DataRencanaRit,
   type MetaHalaman,
   type Muatan,
   type Perjalanan,
   type TingkatMuatan,
 } from '@sit/shared';
-import { db, type Executor } from '../../../db/client';
+import { db, type Executor, type Tx } from '../../../db/client';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
-import { suratJalan } from '../../../db/schema';
+import { perjalanan, suratJalan } from '../../../db/schema';
 import { AppError } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
@@ -20,12 +21,14 @@ import { masihJalan } from '../../master/armada/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import * as sjRepo from '../surat-jalan/repo';
+import { buatSuratJalanTx, sisaKirim } from '../surat-jalan/service';
 import * as repo from './repo';
 
 /*
- * Perjalanan pengantaran (docs/05 S9, S12; K-150): satu kendaraan + satu sopir membawa satu atau lebih surat
- * jalan. Kendaraan dan sopir yang sedang jalan tidak bisa berangkat lagi sampai hasil semua surat jalannya
- * dicatat (perjalanan selesai otomatis, lihat surat-jalan/service.ts `catatHasil`).
+ * Perjalanan (rit) pengantaran (docs/05 S9, S12–S14; K-150, K-160): satu kendaraan + satu sopir membawa satu atau
+ * lebih surat jalan. Rit bisa langsung berangkat (S9) atau direncanakan dulu (DIRENCANAKAN: diisi surat jalan dari
+ * papan Pengiriman, dimuat, lalu berangkat). Kendaraan dan sopir yang sedang jalan tidak bisa berangkat lagi sampai
+ * hasil semua surat jalannya dicatat (perjalanan selesai otomatis, lihat surat-jalan/service.ts `catatHasil`).
  */
 
 async function keRespons(
@@ -36,12 +39,35 @@ async function keRespons(
     ex,
     rows.map((r) => r.id),
   );
-  return rows.map((r) => ({
-    ...r,
-    waktuBerangkat: r.waktuBerangkat.toISOString(),
-    waktuKembali: r.waktuKembali?.toISOString() ?? null,
-    suratJalan: sj.filter((s) => s.idPerjalanan === r.id).map(({ idPerjalanan: _, ...s }) => s),
-  }));
+  const hasil: Perjalanan[] = [];
+  for (const r of rows) {
+    const isi = sj.filter((s) => s.idPerjalanan === r.id).map(({ idPerjalanan: _, ...s }) => s);
+    const { kapasitasKg, bakPanjangCm, bakLebarCm, bakTinggiCm, ...umum } = r;
+    // Rit rencana: muatan dihitung dari isinya sekarang (dipakai warna grup di papan).
+    const muatan =
+      r.status === 'DIRENCANAKAN' && isi.length > 0
+        ? await hitungMuatan(
+            ex,
+            {
+              plat: r.plat,
+              kapasitasKg,
+              bakPanjangCm,
+              bakLebarCm,
+              bakTinggiCm,
+            },
+            isi.map((s) => s.id),
+          )
+        : null;
+    hasil.push({
+      ...umum,
+      waktuBerangkat: r.waktuBerangkat?.toISOString() ?? null,
+      waktuKembali: r.waktuKembali?.toISOString() ?? null,
+      jadwalBerangkat: r.jadwalBerangkat?.toISOString() ?? null,
+      muatan,
+      suratJalan: isi,
+    });
+  }
+  return hasil;
 }
 
 export async function daftarPerjalanan(
@@ -51,58 +77,110 @@ export async function daftarPerjalanan(
   return { data: await keRespons(db, baris), meta: metaHalaman(total, p) };
 }
 
-/** S9: berangkatkan surat jalan DIPROSES/DIMUAT dengan kendaraan dan sopir yang tidak sedang jalan. */
+async function satuPerjalanan(id: number): Promise<Perjalanan> {
+  const { baris } = await repo.daftar(db, { id, limit: 1, offset: 0 });
+  const [hasil] = await keRespons(db, baris);
+  if (!hasil) throw new AppError('TIDAK_DITEMUKAN', 'Rit tidak ditemukan.', 404);
+  return hasil;
+}
+
+/** Kunci kendaraan dan sopir (berurutan, agar dua aksi bersamaan antre) dan pastikan aktif. */
+async function kunciArmada(tx: Tx, idKendaraan: number, idSopir: number, cekJalan: boolean) {
+  const k = await armadaRepo.kunciKendaraan(tx, idKendaraan);
+  if (!k) throw new AppError('TIDAK_DITEMUKAN', 'Kendaraan tidak ditemukan.', 404);
+  const s = await armadaRepo.kunciSopir(tx, idSopir);
+  if (!s) throw new AppError('TIDAK_DITEMUKAN', 'Sopir tidak ditemukan.', 404);
+  if (k.statusAktif !== 'AKTIF') {
+    throw new AppError('STATUS_TIDAK_VALID', `Kendaraan ${k.plat} nonaktif.`, 409);
+  }
+  if (s.statusAktif !== 'AKTIF') {
+    throw new AppError('STATUS_TIDAK_VALID', `Sopir ${s.nama} nonaktif.`, 409);
+  }
+  if (cekJalan) {
+    const jk = await armadaRepo.perjalananJalan(tx, { idKendaraan: k.id });
+    if (jk) throw masihJalan(`Kendaraan ${k.plat}`, jk);
+    const js = await armadaRepo.perjalananJalan(tx, { idSopir: s.id });
+    if (js) throw masihJalan(`Sopir ${s.nama}`, js);
+  }
+  return { k, s };
+}
+
+/** Kunci surat jalan dan pastikan belum berangkat/batal. */
+async function kunciSuratJalanSiap(tx: Tx, daftarId: number[]) {
+  const hasil: NonNullable<Awaited<ReturnType<typeof sjRepo.kunci>>>[] = [];
+  for (const idSj of [...new Set(daftarId)].sort((a, b) => a - b)) {
+    const sj = await sjRepo.kunci(tx, idSj);
+    if (!sj) throw new AppError('TIDAK_DITEMUKAN', 'Surat jalan tidak ditemukan.', 404);
+    if (sj.status !== 'DIPROSES' && sj.status !== 'DIMUAT') {
+      throw new AppError(
+        'STATUS_TIDAK_VALID',
+        `Surat jalan ${sj.nomor} sudah ${sj.status === 'BATAL' ? 'batal' : 'berangkat'}; muat ulang halaman.`,
+        409,
+      );
+    }
+    hasil.push(sj);
+  }
+  return hasil;
+}
+
+/** K-161: muatan diperiksa sebelum berangkat. Ditolak = berhenti; perlu konfirmasi = alasan wajib. */
+async function periksaMuatan(
+  tx: Tx,
+  k: Parameters<typeof hitungMuatan>[1],
+  daftarId: number[],
+  alasanMasuk: string | null | undefined,
+) {
+  const muatan = await hitungMuatan(tx, k, daftarId);
+  if (muatan.kesimpulan === 'DITOLAK') {
+    throw new AppError('STATUS_TIDAK_VALID', muatan.pesan.join(' '), 409, { muatan });
+  }
+  const alasan = alasanMasuk?.trim() ?? '';
+  if (muatan.kesimpulan === 'KONFIRMASI' && alasan.length < 10) {
+    throw new AppError(
+      'VALIDASI',
+      'Muatan melewati batas wajar: tulis alasan kenapa tetap aman (minimal 10 huruf).',
+      400,
+      { kolom: { alasanMuatan: ['Alasan muatan wajib diisi.'] }, muatan },
+    );
+  }
+  return { muatan, alasan: muatan.kesimpulan === 'KONFIRMASI' ? alasan : null };
+}
+
+/** Semua surat jalan rit → DIKIRIM dengan salinan teks sopir/kendaraan untuk cetakan. */
+async function kirimkanSuratJalan(
+  tx: Tx,
+  idRit: number,
+  daftarId: number[],
+  teks: { sopir: string; kendaraan: string },
+  waktu: Date,
+) {
+  for (const idSj of daftarId) {
+    await tx
+      .update(suratJalan)
+      .set({
+        status: 'DIKIRIM',
+        idPerjalanan: idRit,
+        sopir: teks.sopir,
+        kendaraan: teks.kendaraan.slice(0, 50),
+        waktuDikirim: waktu,
+        waktuDimuat: sql`coalesce(${suratJalan.waktuDimuat}, ${waktu})`,
+        diubahPada: waktu,
+      })
+      .where(eq(suratJalan.id, idSj));
+  }
+}
+
+/** S9: berangkatkan surat jalan DIPROSES/DIMUAT langsung (tanpa rencana) dengan kendaraan dan sopir bebas. */
 export async function berangkat(
   input: DataBerangkat,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<Perjalanan> {
   const id = await dalamTransaksi(async (tx) => {
-    // Kunci kendaraan dan sopir dulu: dua keberangkatan bersamaan dengan kendaraan/sopir yang sama berurutan.
-    const k = await armadaRepo.kunciKendaraan(tx, input.idKendaraan);
-    if (!k) throw new AppError('TIDAK_DITEMUKAN', 'Kendaraan tidak ditemukan.', 404);
-    const s = await armadaRepo.kunciSopir(tx, input.idSopir);
-    if (!s) throw new AppError('TIDAK_DITEMUKAN', 'Sopir tidak ditemukan.', 404);
-    if (k.statusAktif !== 'AKTIF') {
-      throw new AppError('STATUS_TIDAK_VALID', `Kendaraan ${k.plat} nonaktif.`, 409);
-    }
-    if (s.statusAktif !== 'AKTIF') {
-      throw new AppError('STATUS_TIDAK_VALID', `Sopir ${s.nama} nonaktif.`, 409);
-    }
-    const jk = await armadaRepo.perjalananJalan(tx, { idKendaraan: k.id });
-    if (jk) throw masihJalan(`Kendaraan ${k.plat}`, jk);
-    const js = await armadaRepo.perjalananJalan(tx, { idSopir: s.id });
-    if (js) throw masihJalan(`Sopir ${s.nama}`, js);
-
-    const daftarId = [...new Set(input.idSuratJalan)].sort((a, b) => a - b);
-    const nomorSj: string[] = [];
-    for (const idSj of daftarId) {
-      const sj = await sjRepo.kunci(tx, idSj);
-      if (!sj) throw new AppError('TIDAK_DITEMUKAN', 'Surat jalan tidak ditemukan.', 404);
-      if (sj.status !== 'DIPROSES' && sj.status !== 'DIMUAT') {
-        throw new AppError(
-          'STATUS_TIDAK_VALID',
-          `Surat jalan ${sj.nomor} sudah ${sj.status === 'BATAL' ? 'batal' : 'berangkat'}; muat ulang halaman.`,
-          409,
-        );
-      }
-      nomorSj.push(sj.nomor);
-    }
-
-    // K-161: muatan diperiksa sebelum berangkat. Ditolak = berhenti; perlu konfirmasi = alasan wajib.
-    const muatan = await hitungMuatan(tx, k, daftarId);
-    if (muatan.kesimpulan === 'DITOLAK') {
-      throw new AppError('STATUS_TIDAK_VALID', muatan.pesan.join(' '), 409, { muatan });
-    }
-    const alasan = input.alasanMuatan?.trim() ?? '';
-    if (muatan.kesimpulan === 'KONFIRMASI' && alasan.length < 10) {
-      throw new AppError(
-        'VALIDASI',
-        'Muatan melewati batas wajar: tulis alasan kenapa tetap aman (minimal 10 huruf).',
-        400,
-        { kolom: { alasanMuatan: ['Alasan muatan wajib diisi.'] }, muatan },
-      );
-    }
+    const { k, s } = await kunciArmada(tx, input.idKendaraan, input.idSopir, true);
+    const daftar = await kunciSuratJalanSiap(tx, input.idSuratJalan);
+    const daftarId = daftar.map((x) => x.id);
+    const { muatan, alasan } = await periksaMuatan(tx, k, daftarId, input.alasanMuatan);
 
     const waktu = sekarang();
     const nomor = await terbitkanNomor(tx, 'TRP', tanggalOperasional(waktu));
@@ -111,27 +189,24 @@ export async function berangkat(
       idKendaraan: k.id,
       idSopir: s.id,
       idPengguna: pelaku.id,
+      status: 'JALAN',
       waktuBerangkat: waktu,
+      jadwalBerangkat: null,
       catatan: input.catatan ?? null,
       muatanBeratKg: muatan.beratKg,
       muatanVolumeM3: muatan.volumeM3,
-      alasanMuatan: muatan.kesimpulan === 'KONFIRMASI' ? alasan : null,
+      alasanMuatan: alasan,
     });
-    const teksKendaraan = `${k.plat} (${k.jenis})`.slice(0, 50);
-    for (const idSj of daftarId) {
-      await tx
-        .update(suratJalan)
-        .set({
-          status: 'DIKIRIM',
-          idPerjalanan: idBaru,
-          sopir: s.nama,
-          kendaraan: teksKendaraan,
-          waktuDikirim: waktu,
-          waktuDimuat: sql`coalesce(${suratJalan.waktuDimuat}, ${waktu})`,
-          diubahPada: waktu,
-        })
-        .where(eq(suratJalan.id, idSj));
-    }
+    await kirimkanSuratJalan(
+      tx,
+      idBaru,
+      daftarId,
+      {
+        sopir: s.nama,
+        kendaraan: `${k.plat} (${k.jenis})`,
+      },
+      waktu,
+    );
     await catatLog(tx, {
       aksi: 'PERJALANAN_BERANGKAT',
       idPengguna: pelaku.id,
@@ -139,17 +214,251 @@ export async function berangkat(
       idEntitas: idBaru,
       nomorDokumen: nomor,
       ringkasan:
-        `Perjalanan ${nomor}: ${k.plat}, sopir ${s.nama}, ${nomorSj.join(', ')}; muatan ` +
+        `Perjalanan ${nomor}: ${k.plat}, sopir ${s.nama}, ${daftar.map((x) => x.nomor).join(', ')}; muatan ` +
         `${muatan.beratKg} kg, ${muatan.volumeM3} m³` +
-        (muatan.kesimpulan === 'KONFIRMASI' ? ` (melewati batas lunak: ${alasan})` : ''),
+        (alasan ? ` (melewati batas lunak: ${alasan})` : ''),
       ip: asal.ip,
     });
     return idBaru;
   });
-  const { baris } = await repo.daftar(db, { id, limit: 1, offset: 0 });
-  const [hasil] = await keRespons(db, baris);
-  if (!hasil) throw new Error('perjalanan hilang');
-  return hasil;
+  return satuPerjalanan(id);
+}
+
+// --- Rit rencana (K-160, docs/13 §4) ---
+
+async function kunciRitRencana(tx: Tx, id: number) {
+  const r = await repo.kunci(tx, id);
+  if (!r) throw new AppError('TIDAK_DITEMUKAN', 'Rit tidak ditemukan.', 404);
+  if (r.status !== 'DIRENCANAKAN') {
+    throw new AppError(
+      'STATUS_TIDAK_VALID',
+      `Rit ${r.nomor} sudah ${r.status === 'JALAN' ? 'berangkat' : r.status.toLowerCase()}; muat ulang halaman.`,
+      409,
+    );
+  }
+  return r;
+}
+
+/** S14: rencanakan rit (kendaraan, sopir, jadwal) tanpa mengunci kendaraan; kunci berlaku saat berangkat. */
+export async function rencanakanRit(
+  input: DataRencanaRit,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<Perjalanan> {
+  const id = await dalamTransaksi(async (tx) => {
+    const { k, s } = await kunciArmada(tx, input.idKendaraan, input.idSopir, false);
+    const jadwal = new Date(input.jadwalBerangkat);
+    const nomor = await terbitkanNomor(tx, 'TRP', tanggalOperasional(jadwal));
+    const idBaru = await repo.tambah(tx, {
+      nomor,
+      idKendaraan: k.id,
+      idSopir: s.id,
+      idPengguna: pelaku.id,
+      status: 'DIRENCANAKAN',
+      waktuBerangkat: null,
+      jadwalBerangkat: jadwal,
+      catatan: input.catatan ?? null,
+      muatanBeratKg: null,
+      muatanVolumeM3: null,
+      alasanMuatan: null,
+    });
+    await catatLog(tx, {
+      aksi: 'PERJALANAN_RENCANA',
+      idPengguna: pelaku.id,
+      entitas: 'perjalanan',
+      idEntitas: idBaru,
+      nomorDokumen: nomor,
+      ringkasan: `Rencana rit ${nomor}: ${k.plat}, sopir ${s.nama}, jadwal ${input.jadwalBerangkat}`,
+      ip: asal.ip,
+    });
+    return idBaru;
+  });
+  return satuPerjalanan(id);
+}
+
+/**
+ * Masukkan surat jalan (atau buat surat jalan untuk seluruh sisa barang sebuah invoice) ke rit rencana. Surat jalan
+ * yang sudah ada di rit rencana lain dipindah.
+ */
+export async function isiRit(
+  id: number,
+  input: { idSuratJalan?: number | undefined; idPenjualan?: number | undefined },
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<Perjalanan> {
+  await dalamTransaksi(async (tx) => {
+    const r = await kunciRitRencana(tx, id);
+    let idSj = input.idSuratJalan ?? null;
+    if (idSj === null) {
+      if (!input.idPenjualan)
+        throw new AppError('VALIDASI', 'Pilih surat jalan atau invoice.', 400);
+      // Kartu Backlog: surat jalan baru untuk semua barang yang belum dikirim.
+      const sisa = (await sjRepo.qtyBaris(tx, input.idPenjualan))
+        .map((b) => ({ idPenjualanDetail: b.id, qtyKirim: sisaKirim(b) }))
+        .filter((b) => Number(b.qtyKirim) > 0);
+      if (sisa.length === 0) {
+        throw new AppError(
+          'STATUS_TIDAK_VALID',
+          'Invoice ini tidak punya barang yang belum dikirim.',
+          409,
+        );
+      }
+      idSj = await buatSuratJalanTx(tx, input.idPenjualan, { baris: sisa }, pelaku, asal);
+    }
+    const [sj] = await kunciSuratJalanSiap(tx, [idSj]);
+    if (!sj) throw new Error('surat jalan hilang');
+    if (sj.idPerjalanan !== null && sj.idPerjalanan !== id) {
+      const lain = await repo.kunci(tx, sj.idPerjalanan);
+      if (lain && lain.status !== 'DIRENCANAKAN') {
+        throw new AppError('STATUS_TIDAK_VALID', `${sj.nomor} sudah di rit ${lain.nomor}.`, 409);
+      }
+    }
+    await tx
+      .update(suratJalan)
+      .set({ idPerjalanan: id, diubahPada: sekarang() })
+      .where(eq(suratJalan.id, sj.id));
+    await catatLog(tx, {
+      aksi: 'PERJALANAN_ISI',
+      idPengguna: pelaku.id,
+      entitas: 'perjalanan',
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      ringkasan: `${sj.nomor} masuk rit ${r.nomor}`,
+      ip: asal.ip,
+    });
+  });
+  return satuPerjalanan(id);
+}
+
+/** Keluarkan surat jalan dari rit rencana (kembali "belum direncanakan"). */
+export async function keluarkanDariRit(
+  idSj: number,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<void> {
+  await dalamTransaksi(async (tx) => {
+    const [sj] = await kunciSuratJalanSiap(tx, [idSj]);
+    if (!sj?.idPerjalanan) return;
+    const r = await kunciRitRencana(tx, sj.idPerjalanan);
+    await tx
+      .update(suratJalan)
+      .set({ idPerjalanan: null, diubahPada: sekarang() })
+      .where(eq(suratJalan.id, sj.id));
+    await catatLog(tx, {
+      aksi: 'PERJALANAN_ISI',
+      idPengguna: pelaku.id,
+      entitas: 'perjalanan',
+      idEntitas: r.id,
+      nomorDokumen: r.nomor,
+      ringkasan: `${sj.nomor} dikeluarkan dari rit ${r.nomor}`,
+      ip: asal.ip,
+    });
+  });
+}
+
+/** Semua surat jalan rit rencana yang belum dimuat → DIMUAT. */
+export async function muatRit(id: number, pelaku: PenggunaAktif, asal: AsalRequest) {
+  await dalamTransaksi(async (tx) => {
+    const r = await kunciRitRencana(tx, id);
+    const isi = await repo.idSuratJalanRit(tx, id);
+    if (isi.length === 0)
+      throw new AppError('STATUS_TIDAK_VALID', `Rit ${r.nomor} masih kosong.`, 409);
+    const waktu = sekarang();
+    await tx
+      .update(suratJalan)
+      .set({ status: 'DIMUAT', waktuDimuat: waktu, diubahPada: waktu })
+      .where(and(eq(suratJalan.idPerjalanan, id), eq(suratJalan.status, 'DIPROSES')));
+    await catatLog(tx, {
+      aksi: 'PERJALANAN_DIMUAT',
+      idPengguna: pelaku.id,
+      entitas: 'perjalanan',
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      ringkasan: `Rit ${r.nomor} dimuat (${isi.length} surat jalan)`,
+      ip: asal.ip,
+    });
+  });
+  return satuPerjalanan(id);
+}
+
+/** Rit rencana berangkat: aturan sama dengan S9 (kendaraan/sopir bebas, muatan). */
+export async function berangkatkanRit(
+  id: number,
+  input: { alasanMuatan?: string | null | undefined },
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<Perjalanan> {
+  await dalamTransaksi(async (tx) => {
+    const r = await kunciRitRencana(tx, id);
+    const { k, s } = await kunciArmada(tx, r.idKendaraan, r.idSopir, true);
+    const daftar = await kunciSuratJalanSiap(tx, await repo.idSuratJalanRit(tx, id));
+    if (daftar.length === 0)
+      throw new AppError('STATUS_TIDAK_VALID', `Rit ${r.nomor} masih kosong.`, 409);
+    const daftarId = daftar.map((x) => x.id);
+    const { muatan, alasan } = await periksaMuatan(tx, k, daftarId, input.alasanMuatan);
+    const waktu = sekarang();
+    await tx
+      .update(perjalanan)
+      .set({
+        status: 'JALAN',
+        waktuBerangkat: waktu,
+        muatanBeratKg: muatan.beratKg,
+        muatanVolumeM3: muatan.volumeM3,
+        alasanMuatan: alasan,
+        diubahPada: waktu,
+      })
+      .where(eq(perjalanan.id, id));
+    await kirimkanSuratJalan(
+      tx,
+      id,
+      daftarId,
+      { sopir: s.nama, kendaraan: `${k.plat} (${k.jenis})` },
+      waktu,
+    );
+    await catatLog(tx, {
+      aksi: 'PERJALANAN_BERANGKAT',
+      idPengguna: pelaku.id,
+      entitas: 'perjalanan',
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      ringkasan:
+        `Rit ${r.nomor} berangkat: ${k.plat}, sopir ${s.nama}, ${daftar.map((x) => x.nomor).join(', ')}; ` +
+        `muatan ${muatan.beratKg} kg, ${muatan.volumeM3} m³${alasan ? ` (${alasan})` : ''}`,
+      ip: asal.ip,
+    });
+  });
+  return satuPerjalanan(id);
+}
+
+/** Batalkan rit rencana; surat jalannya kembali "belum direncanakan" (tidak ikut batal). */
+export async function batalkanRit(
+  id: number,
+  alasan: string,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<Perjalanan> {
+  await dalamTransaksi(async (tx) => {
+    const r = await kunciRitRencana(tx, id);
+    const waktu = sekarang();
+    await tx
+      .update(suratJalan)
+      .set({ idPerjalanan: null, diubahPada: waktu })
+      .where(eq(suratJalan.idPerjalanan, id));
+    await tx
+      .update(perjalanan)
+      .set({ status: 'BATAL', alasanBatal: alasan, diubahPada: waktu })
+      .where(eq(perjalanan.id, id));
+    await catatLog(tx, {
+      aksi: 'PERJALANAN_BATAL',
+      idPengguna: pelaku.id,
+      entitas: 'perjalanan',
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      ringkasan: `Rit ${r.nomor} dibatalkan: ${alasan}`,
+      ip: asal.ip,
+    });
+  });
+  return satuPerjalanan(id);
 }
 
 // --- Muatan (K-161, docs/13 §3) ---

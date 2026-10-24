@@ -143,6 +143,7 @@ Sumber izin: `[KODE: shared/roles.ts:9-76]`; izin per endpoint: daftar di Lampir
 | Penjualan Langsung / Pengantaran (checkout) | — | T, C struk/invoice | + harga manual | sama |
 | Pembayaran & Piutang | — | L T (terima pembayaran) | sama | sama |
 | Surat jalan, berangkat, catat hasil antar | — | T U (dimuat, berangkat, hasil), batal | sama | sama |
+| Papan Pengiriman (rit rencana) | — | L T U (rit baru, isi, pindah, dimuat, berangkat), batal rit | sama | sama |
 | Kendaraan & sopir | — | L (memilih saat berangkat), riwayat perjalanan | L T U N | sama |
 | Retur penjualan / Void | — | T (ajukan), batal pengajuan sendiri; S dengan kode atasan | + S, tolak | sama |
 | Shift & clerical check | — (melihat status shift di topbar) | shift toko: buka, kas, koreksi modal (setelah ada transaksi tunai: kode atasan), tutup | + angka sistem sebelum dihitung, setujui koreksi modal, penjelasan selisih | sama |
@@ -238,6 +239,12 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 - Tabel: `cadangan`.
 - Bukti: `[KODE: api/modules/sistem/cadangan/service.ts:323,458,528]` `[DOK: K-084]`.
 - Status: SEBAGIAN — berfungsi di tes; bergantung pada pemasangan restic/rclone di server; cadangan ke cloud akan diaktifkan saat deploy `[JAWAB 1]`.
+
+**F44. Pencarian universal** | topbar (Ctrl+K) | semua (hasil disaring izin) | desktop
+- Fungsi: satu kotak cari untuk halaman, barang, pelanggan, pemasok, dan nomor dokumen; panah + Enter membuka hasil;
+  halaman daftar menerima kata cari dari alamat (`?cari=`).
+- Bukti: `[KODE: api/modules/sistem/cari/service.ts]`, `[KODE: web/components/layout/kotak-cari.tsx]`;
+  `[DOK: K-167]`; e2e `cari.spec.ts`. Status: BERFUNGSI.
 
 ### 4.2 Data master
 
@@ -348,19 +355,18 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 - Fungsi: satu invoice boleh beberapa surat jalan (kirim bertahap); status dibuat → dimuat → di jalan (lewat
   perjalanan) → hasil dicatat; batal sebelum berangkat; status pengiriman invoice dihitung ulang dari qty yang
   benar-benar diterima pembeli (K-149).
-- **Pengiriman aktif** (Penjualan Pengantaran, 23 Okt): papan tiga kolom *Perlu surat jalan* → *Siap berangkat*
-  (centang beberapa surat jalan, satu kendaraan) → *Di jalan* (kartu per perjalanan: plat, sopir, lama di jalan;
-  kuning bila > 6 jam).
+- Surat jalan direncanakan dan diberangkatkan lewat papan *Logistik › Pengiriman* (F42, 24 Okt; menggantikan tab
+  *Pengiriman aktif* 23 Okt). Dari detail invoice masih bisa berangkat langsung (S9).
 - **Catat hasil per barang** (K-149, K-151): diterima / kembali utuh (dikirim ulang, stok tetap) / rusak di jalan
   (ditanggung toko: kirim pengganti = retur tukar, atau tagihan dikurangi) / ditolak pembeli (retur otomatis,
   potong tagihan atau uang kembali). Retur mengikuti aturan persetujuan yang sama dengan retur biasa.
 - Tabel: `surat_jalan`, `surat_jalan_detail`, `surat_jalan_hasil`, `surat_jalan_hasil_detail`.
 - Bukti: `[KODE: api/modules/penjualan/surat-jalan/service.ts]` (`catatHasil`, `sisaKirim`,
-  `sinkronStatusPengiriman`), `[KODE: web/features/pengantaran/papan-pengiriman.tsx]`; tes
+  `sinkronStatusPengiriman`, `buatSuratJalanTx`), `[KODE: web/features/pengantaran/panel-surat-jalan.tsx]`; tes
   `api/modules/penjualan/surat-jalan.test.ts` (13 kasus), e2e `pengiriman.spec.ts`, `pengantaran.spec.ts`.
   Status: BERFUNGSI.
 
-**F41. Kendaraan, sopir, dan perjalanan (FMS inti)** | Data Master › Kendaraan & Sopir; Pengiriman aktif | Kasir
+**F41. Kendaraan, sopir, dan perjalanan (FMS inti)** | Logistik › Kendaraan & Sopir; Logistik › Pengiriman | Kasir
 (lihat), Admin/Owner (kelola) | desktop
 - Fungsi: kendaraan (plat unik dirapikan, jenis, kapasitas) dan sopir (nama unik, No. HP) sebagai data master;
   dipilih saat berangkat, tidak diketik ulang. Satu perjalanan (nomor TRP) membawa beberapa surat jalan; kendaraan
@@ -369,6 +375,31 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 - Tabel: `kendaraan`, `sopir`, `perjalanan`, kolom `surat_jalan.id_perjalanan` (migrasi 0023).
 - Bukti: `[KODE: api/modules/master/armada/]`, `[KODE: api/modules/penjualan/perjalanan/service.ts]` (`berangkat`);
   `[DOK: K-150]`. Status: BERFUNGSI.
+
+**F42. Papan Pengiriman dan rit rencana** | Logistik › Pengiriman | Kasir+ | desktop
+- Fungsi: papan empat kolom (Backlog → Dijadwalkan → Di jalan → Selesai hari ini). Rit direncanakan lebih dulu
+  (kendaraan, sopir, jadwal), lalu diisi dengan menyeret kartu order kirim ke grup rit atau lewat menu kartu; surat
+  jalan dibuat otomatis untuk sisa barang. Grup rit menampilkan bar muatan, bisa ditandai *Dimuat*, diberangkatkan
+  (pemeriksaan muatan F43, penguncian kendaraan/sopir F41), atau dibatalkan dengan alasan. Setiap aksi seret punya
+  padanan klik dan keyboard (R = rit baru). Data disegarkan tiap 30 detik; aksi pada rit yang sudah berubah ditolak.
+- Input → Proses → Output: kendaraan, sopir, jadwal, kartu order kirim → kunci baris rit dan surat jalan, buat/pindah
+  surat jalan, log aktivitas → rit DIRENCANAKAN → JALAN → SELESAI (atau BATAL).
+- Tabel: `perjalanan` (status DIRENCANAKAN/BATAL, `jadwal_berangkat`, `alasan_batal`; migrasi 0027),
+  `surat_jalan.id_perjalanan`.
+- Bukti: `[KODE: api/modules/penjualan/perjalanan/service.ts]` (`rencanakanRit`, `isiRit`, `keluarkanDariRit`,
+  `muatRit`, `berangkatkanRit`, `batalkanRit`), `[KODE: web/features/pengiriman/halaman-pengiriman.tsx]`;
+  `[DOK: docs/05 S14, docs/13 §4, K-160]`; tes `surat-jalan.test.ts` (alur rit rencana), e2e `pengiriman.spec.ts`.
+  Status: BERFUNGSI.
+
+**F43. Data muatan dan pemeriksaan muatan (ODOL)** | Data Barang › Data muatan; Logistik › Kendaraan & Sopir;
+dialog Berangkat | Admin/Owner (data), Kasir+ (berangkat) | desktop
+- Fungsi: berat dan ukuran kemasan per satuan dasar barang (boleh diisi g/kg/ton, mm/cm/m, L/m³), daya angkut dan
+  ukuran bak kendaraan, masa berlaku STNK/KIR. Saat berangkat, berat/volume/panjang rit dihitung: hijau aman, kuning
+  hampir penuh, oranye wajib alasan tertulis, merah ditolak (berat tidak pernah boleh melebihi daya angkut).
+- Tabel: kolom muatan di `barang`, `kendaraan`, `perjalanan` (migrasi 0026); konfigurasi faktor isi dan julur.
+- Bukti: `[KODE: api/modules/penjualan/perjalanan/service.ts]` (`hitungMuatan`), `[KODE: shared/satuan-muatan.ts]`;
+  `[DOK: docs/05 S13, docs/13 §3, K-161]`; e2e `muatan.spec.ts`. Status: SEBAGIAN — isi massal lewat Excel dan
+  pengingat STNK/KIR menyusul (K-161, K-162).
 
 **F24. Piutang** | Transaksi › Piutang | Kasir+ | desktop
 - Fungsi: daftar tagihan belum lunas dengan jatuh tempo dan umur; terima pembayaran; ringkasan per pelanggan.
@@ -739,6 +770,7 @@ Ekspor data selain laporan: data barang `[KODE: api/modules/master/import/routes
 |---|---|---|
 | Validasi input | Skema Zod yang sama dipakai API dan form web; pesan galat berbahasa Indonesia per kolom | `[KODE: shared/schemas/]` `[DOK: CLAUDE.md, aturan 10]` |
 | Integritas data | CHECK constraint di database dari enum yang sama; transaksi DB untuk setiap dokumen; kunci baris saat mengubah stok, nomor dokumen, shift, promo berbatas; tabel transaksi hanya-tambah | `[KODE: api/modules/persediaan/ledger.ts:50,161]` `[KODE: api/modules/sistem/penomoran.ts:44]` |
+| Kiriman ganda & ubah bersamaan | Kunci idempoten per kiriman (klik ganda/kirim ulang setelah jaringan putus tidak membuat dokumen kedua); cek versi saat mengubah data master (perubahan orang lain tidak tertimpa diam-diam) | `[KODE: api/middleware/idempoten.ts]` `[KODE: api/lib/versi.ts]` `[DOK: K-164]` |
 | Uang & kuantitas | Uang bilangan bulat rupiah; qty desimal 3 angka lewat decimal.js; pembulatan setengah ke atas | `[KODE: shared/money.ts:22-40]` |
 | Penanganan galat | Galat dipetakan ke kode HTTP dan pesan yang aman (409 konflik/kebuntuan "coba lagi", 503 database tidak tersedia), detail teknis hanya di log server; halaman galat di web | `[KODE: api/middleware/error-handler.ts:103]` `[KODE: web/features/umum/halaman-galat.tsx]` |
 | Kecepatan | Paginasi server di daftar data | `[KODE: api/lib/paginasi.ts:4-19]` |
@@ -1102,3 +1134,5 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Rekening penerimaan wajib dipilih + No. referensi wajib (K-154), satu shift dijamin database (K-155), Harga dasar dengan kalkulator (K-158), tampilan pas layar dan pengingat diciutkan (K-152–K-157).
 - 2026-10-24 — Pencarian universal Ctrl+K (K-167); kebal kiriman ganda (kunci idempoten) dan cek versi data master (K-164).
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
+- 2026-10-24 — F42 papan Pengiriman dan rit rencana (K-160); F43 muatan, F44 pencarian universal, baris kiriman ganda
+  di bagian 9 ditulis lengkap; F23 dan F41 disesuaikan.

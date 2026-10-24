@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@date-fns/tz": "catalog:",
+    "@dnd-kit/core": "catalog:",
     "@hookform/resolvers": "catalog:",
     "@sit/shared": "workspace:*",
     "@tanstack/react-query": "catalog:",

@@ -58,10 +58,13 @@ export function teksBerangkat(w: Date): string {
   return tgl === tanggalOperasional() ? jamLokal(w) : `${teksTanggalAngka(tgl)} ${jamLokal(w)}`;
 }
 
-export function masihJalan(apa: string, j: { nomor: string; waktuBerangkat: Date }): AppError {
+export function masihJalan(
+  apa: string,
+  j: { nomor: string; waktuBerangkat: Date | null },
+): AppError {
   return new AppError(
     'STATUS_TIDAK_VALID',
-    `${apa} sedang jalan (${j.nomor}, berangkat ${teksBerangkat(j.waktuBerangkat)}). ` +
+    `${apa} sedang jalan (${j.nomor}${j.waktuBerangkat ? `, berangkat ${teksBerangkat(j.waktuBerangkat)}` : ''}). ` +
       'Catat hasil pengantarannya dulu.',
     409,
   );

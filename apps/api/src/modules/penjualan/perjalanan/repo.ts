@@ -23,11 +23,19 @@ const kolom = {
   idKendaraan: perjalanan.idKendaraan,
   plat: kendaraan.plat,
   jenisKendaraan: kendaraan.jenis,
+  kapasitasKg: kendaraan.kapasitasKg,
+  bakPanjangCm: kendaraan.bakPanjangCm,
+  bakLebarCm: kendaraan.bakLebarCm,
+  bakTinggiCm: kendaraan.bakTinggiCm,
   idSopir: perjalanan.idSopir,
   namaSopir: sopir.nama,
   noHpSopir: sopir.noHp,
   waktuBerangkat: perjalanan.waktuBerangkat,
   waktuKembali: perjalanan.waktuKembali,
+  jadwalBerangkat: perjalanan.jadwalBerangkat,
+  alasanBatal: perjalanan.alasanBatal,
+  muatanBeratKg: perjalanan.muatanBeratKg,
+  muatanVolumeM3: perjalanan.muatanVolumeM3,
   catatan: perjalanan.catatan,
   namaPengguna: pengguna.namaPengguna,
 };
@@ -94,10 +102,12 @@ export async function tambah(
     idKendaraan: number;
     idSopir: number;
     idPengguna: number;
-    waktuBerangkat: Date;
+    status: 'DIRENCANAKAN' | 'JALAN';
+    waktuBerangkat: Date | null;
+    jadwalBerangkat: Date | null;
     catatan: string | null;
-    muatanBeratKg: string;
-    muatanVolumeM3: string;
+    muatanBeratKg: string | null;
+    muatanVolumeM3: string | null;
     alasanMuatan: string | null;
   },
 ): Promise<number> {
@@ -108,7 +118,13 @@ export async function tambah(
 
 export async function kunci(tx: Tx, id: number) {
   const [b] = await tx
-    .select({ id: perjalanan.id, nomor: perjalanan.nomor, status: perjalanan.status })
+    .select({
+      id: perjalanan.id,
+      nomor: perjalanan.nomor,
+      status: perjalanan.status,
+      idKendaraan: perjalanan.idKendaraan,
+      idSopir: perjalanan.idSopir,
+    })
     .from(perjalanan)
     .where(eq(perjalanan.id, id))
     .limit(1)
@@ -157,4 +173,13 @@ export function barisMuatan(ex: Executor, idSuratJalan: number[]) {
     .innerJoin(penjualanDetail, eq(penjualanDetail.id, suratJalanDetail.idPenjualanDetail))
     .innerJoin(barang, eq(barang.id, penjualanDetail.idBarang))
     .where(inArray(suratJalanDetail.idSuratJalan, idSuratJalan));
+}
+
+/** Id surat jalan (belum batal) dalam satu rit. */
+export async function idSuratJalanRit(ex: Executor, idPerjalanan: number): Promise<number[]> {
+  const r = await ex
+    .select({ id: suratJalan.id })
+    .from(suratJalan)
+    .where(and(eq(suratJalan.idPerjalanan, idPerjalanan), ne(suratJalan.status, 'BATAL')));
+  return r.map((x) => x.id);
 }

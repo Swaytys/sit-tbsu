@@ -190,6 +190,13 @@
       "when": 1792781485536,
       "tag": "0026_data_muatan",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792783516471,
+      "tag": "0027_rit_rencana",
+      "breakpoints": true
     }
   ]
 }

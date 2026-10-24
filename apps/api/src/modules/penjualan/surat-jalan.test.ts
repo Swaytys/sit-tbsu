@@ -650,3 +650,107 @@ describe('muatan kendaraan (K-161, docs/13 §3)', () => {
     expect(trip.status).toBe('JALAN');
   });
 });
+
+describe('rit rencana papan Pengiriman (K-160, docs/05 S14)', () => {
+  const jadwal = () => new Date(Date.now() + 3600_000).toISOString();
+
+  it('rencana → isi dari invoice & surat jalan → dimuat → berangkat; kendaraan terkunci saat jalan', async () => {
+    const a = await invoice();
+    const b = await invoice();
+    const rit = await kirim<Perjalanan>(kasir, '/api/perjalanan/rencana', {
+      idKendaraan: truk.id,
+      idSopir: slamet.id,
+      jadwalBerangkat: jadwal(),
+    });
+    expect(rit).toMatchObject({ status: 'DIRENCANAKAN', waktuBerangkat: null, suratJalan: [] });
+    // Kartu Backlog (invoice) → surat jalan baru untuk semua sisa barangnya, langsung masuk rit.
+    let isi = await kirim<Perjalanan>(kasir, `/api/perjalanan/${rit.id}/isi`, {
+      idPenjualan: a.id,
+    });
+    expect(isi.suratJalan).toHaveLength(1);
+    expect((await detail(a.id)).baris.map((x) => x.qtyBelumDikirim)).toEqual(['0.000', '0.000']);
+    const sjB = await kirim<BarisSuratJalan>(kasir, `/api/penjualan/${b.id}/surat-jalan`, {
+      baris: [{ idPenjualanDetail: b.baris[0]!.id, qtyKirim: '2' }],
+    });
+    isi = await kirim<Perjalanan>(kasir, `/api/perjalanan/${rit.id}/isi`, { idSuratJalan: sjB.id });
+    expect(isi.suratJalan).toHaveLength(2);
+    // Invoice tanpa sisa tidak bisa dijadwalkan lagi.
+    expect(
+      (await galat(kasir, `/api/perjalanan/${rit.id}/isi`, { idPenjualan: a.id })).status,
+    ).toBe(409);
+
+    await kirim(kasir, `/api/perjalanan/${rit.id}/dimuat`, {});
+    const jalan = await kirim<Perjalanan>(kasir, `/api/perjalanan/${rit.id}/berangkat`, {});
+    expect(jalan.status).toBe('JALAN');
+    expect(jalan.waktuBerangkat).not.toBeNull();
+    expect(jalan.suratJalan.map((s) => s.status)).toEqual(['DIKIRIM', 'DIKIRIM']);
+    // Rit lain dengan truk yang sama boleh direncanakan, tetapi tidak bisa berangkat selama truk di jalan.
+    const c = await kirim<DetailPenjualan>(admin, '/api/penjualan/checkout', {
+      order: {
+        jenisPenjualan: 'PENGANTARAN',
+        idPelanggan: plg,
+        alamatKirim: 'Proyek Jl. C 3',
+        baris: [{ idBarang: m.pasir, qty: '1' }],
+      },
+    });
+    const rit2 = await kirim<Perjalanan>(kasir, '/api/perjalanan/rencana', {
+      idKendaraan: truk.id,
+      idSopir: budi.id,
+      jadwalBerangkat: jadwal(),
+    });
+    await kirim(kasir, `/api/perjalanan/${rit2.id}/isi`, { idPenjualan: c.id });
+    const tolak = await galat(kasir, `/api/perjalanan/${rit2.id}/berangkat`, {});
+    expect(tolak.pesan).toContain('sedang jalan');
+    // Rit yang sudah berangkat tidak bisa diisi.
+    expect(
+      (await galat(kasir, `/api/perjalanan/${rit.id}/isi`, { idPenjualan: c.id })).status,
+    ).toBe(409);
+  });
+
+  it('pindah antar rit, keluarkan, batal surat jalan, dan batal rit mengembalikan surat jalan', async () => {
+    const a = await invoice();
+    const r1 = await kirim<Perjalanan>(kasir, '/api/perjalanan/rencana', {
+      idKendaraan: truk.id,
+      idSopir: slamet.id,
+      jadwalBerangkat: jadwal(),
+    });
+    const r2 = await kirim<Perjalanan>(kasir, '/api/perjalanan/rencana', {
+      idKendaraan: pikap.id,
+      idSopir: budi.id,
+      jadwalBerangkat: jadwal(),
+    });
+    const isi = await kirim<Perjalanan>(kasir, `/api/perjalanan/${r1.id}/isi`, {
+      idPenjualan: a.id,
+    });
+    const idSj = isi.suratJalan[0]!.id;
+    // Pindah ke r2.
+    const r2isi = await kirim<Perjalanan>(kasir, `/api/perjalanan/${r2.id}/isi`, {
+      idSuratJalan: idSj,
+    });
+    expect(r2isi.suratJalan.map((s) => s.id)).toEqual([idSj]);
+    const daftar = await ambil<Perjalanan[]>(kasir, '/api/perjalanan?status=DIRENCANAKAN');
+    expect(daftar.find((r) => r.id === r1.id)?.suratJalan).toEqual([]);
+    // Keluarkan: belum direncanakan, tetap DIPROSES.
+    await kirim(kasir, '/api/perjalanan/keluar', { idSuratJalan: idSj });
+    expect(
+      (await ambil<BarisSuratJalan>(kasir, `/api/surat-jalan/${idSj}`)).idPerjalanan,
+    ).toBeNull();
+    // Masuk lagi lalu rit dibatalkan: surat jalan kembali tanpa rit.
+    await kirim(kasir, `/api/perjalanan/${r1.id}/isi`, { idSuratJalan: idSj });
+    const batal = await kirim<Perjalanan>(kasir, `/api/perjalanan/${r1.id}/batal`, {
+      alasan: 'Truk dipakai proyek lain',
+    });
+    expect(batal).toMatchObject({ status: 'BATAL', alasanBatal: 'Truk dipakai proyek lain' });
+    const sj = await ambil<BarisSuratJalan>(kasir, `/api/surat-jalan/${idSj}`);
+    expect(sj).toMatchObject({ status: 'DIPROSES', idPerjalanan: null });
+    // Surat jalan di rit rencana yang dibatalkan ikut keluar dari rit.
+    await kirim(kasir, `/api/perjalanan/${r2.id}/isi`, { idSuratJalan: idSj });
+    await kirim(kasir, `/api/surat-jalan/${idSj}/batal`, { alasan: 'Pembeli tunda' });
+    expect(
+      (await ambil<BarisSuratJalan>(kasir, `/api/surat-jalan/${idSj}`)).idPerjalanan,
+    ).toBeNull();
+    expect((await galat(kasir, `/api/perjalanan/${r2.id}/berangkat`, {})).pesan).toContain(
+      'kosong',
+    );
+  });
+});
