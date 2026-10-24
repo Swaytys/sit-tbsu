@@ -8,7 +8,9 @@
     2. Membuat .env produksi (password acak) bila belum ada, dan database produksi bila belum ada.
     3. Memasang dependency, build, migrasi database, dan data awal (akun owner).
     4. Membuat sertifikat HTTPS (CA lokal toko) dan membuka port 443/80 di firewall (jaringan pribadi).
-    5. Mendaftarkan tugas "BonsaiUrip Server" yang menyalakan server setiap komputer menyala.
+    5. Mendaftarkan tugas "BonsaiUrip Server" yang menyalakan server setiap komputer menyala; komputer/laptop
+       tidak tidur saat dicolok listrik; sertifikat toko dipercaya di komputer ini; pintasan desktop
+       "BonsaiUrip" (https://localhost/) untuk membuka aplikasi di komputer server itu sendiri.
   Panduan lengkap: docs/panduan/fase-8-pasang-server.md
 #>
 #Requires -RunAsAdministrator
@@ -84,6 +86,9 @@ if (Test-Path $envPath) {
     $sandiSql = $sandiDb.Replace("'", "''")
     & $psql -h $HostDb -p $PortDb -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO `$`$BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$PenggunaDb') THEN CREATE ROLE $PenggunaDb LOGIN CREATEDB PASSWORD '$sandiSql'; END IF; END`$`$;"
     if ($LASTEXITCODE -ne 0) { throw 'Gagal membuat user database.' }
+    # User yang sudah ada (mis. laptop pengembangan) diberi CREATEDB: perbarui-server.ps1 menguji migrasi pada
+    # salinan database (K-166).
+    & $psql -h $HostDb -p $PortDb -U postgres -d postgres -c "ALTER ROLE $PenggunaDb CREATEDB" | Out-Null
     & $psql -h $HostDb -p $PortDb -U postgres -d postgres -c "CREATE DATABASE $NamaDatabase OWNER $PenggunaDb ENCODING 'UTF8' TEMPLATE template0"
     if ($LASTEXITCODE -ne 0) { throw 'Gagal membuat database.' }
   }
@@ -127,6 +132,30 @@ $atur = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -Sta
 Register-ScheduledTask -TaskName $namaTugas -Action $aksi -Trigger $pemicu -Principal $pelaku -Settings $atur -Force -ErrorAction Stop | Out-Null
 Start-ScheduledTask -TaskName $namaTugas -ErrorAction Stop
 
+Langkah '5b. Komputer ini juga dipakai membuka aplikasinya (localhost)'
+# Server tidak boleh tidur/hibernasi saat dicolok listrik. Laptop: menutup layar tidak mematikan server.
+& powercfg.exe /change standby-timeout-ac 0 | Out-Null
+& powercfg.exe /change hibernate-timeout-ac 0 | Out-Null
+$laptop = @(Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue).Count -gt 0
+if ($laptop) {
+  & powercfg.exe /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0 | Out-Null
+  & powercfg.exe /setactive SCHEME_CURRENT | Out-Null
+  Write-Host 'Laptop: saat dicolok listrik tidak tidur, dan menutup layar tidak mematikan server.'
+  Write-Host 'Saat memakai baterai, Windows tetap boleh tidur (server ikut berhenti sampai laptop bangun).' -ForegroundColor Yellow
+} else {
+  Write-Host 'Komputer tidak akan tidur saat menyala.'
+}
+# Peramban di komputer ini memercayai sertifikat toko, jadi https://localhost terbuka tanpa peringatan.
+$ca = Join-Path $repo 'sertifikat\ca-toko.cer'
+if (Test-Path $ca) {
+  Import-Certificate -FilePath $ca -CertStoreLocation Cert:\LocalMachine\Root -ErrorAction Stop | Out-Null
+  Write-Host 'Sertifikat toko dipercaya di komputer ini.'
+}
+# Pintasan "BonsaiUrip" di desktop semua pengguna: membuka https://localhost/ di peramban bawaan.
+$pintasan = Join-Path ([Environment]::GetFolderPath('CommonDesktopDirectory')) 'BonsaiUrip.url'
+@('[InternetShortcut]', 'URL=https://localhost/', 'IconIndex=0') | Set-Content -Path $pintasan -Encoding ascii
+Write-Host "Pintasan desktop dibuat: $pintasan"
+
 Langkah '6. Memeriksa server'
 $ok = $false
 for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
@@ -138,6 +167,7 @@ if (-not $ok) { throw 'Server belum menjawab. Periksa log\server.log dan log\pen
 
 Write-Host ''
 Write-Host 'SERVER SIAP.' -ForegroundColor Green
+Write-Host 'Alamat di komputer ini  : https://localhost/  (pintasan BonsaiUrip di desktop)'
 Write-Host "Alamat di jaringan toko : https://$($env:COMPUTERNAME)/"
 Write-Host 'Langkah berikutnya (lihat panduan):'
 Write-Host '  - Salin sertifikat\ca-toko.cer ke setiap komputer kasir/admin, jalankan scripts\kasir\pasang-sertifikat.ps1'
