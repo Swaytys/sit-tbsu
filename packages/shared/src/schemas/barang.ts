@@ -513,6 +513,59 @@ export const skemaProsesImport = z.object({
 });
 export type InputProsesImport = z.input<typeof skemaProsesImport>;
 
+// --- Isi massal data muatan lewat Excel (K-161) ---
+
+/** BERUBAH = akan/bisa disimpan, SAMA = tidak ada perubahan, DISIMPAN = sudah disimpan. */
+export const STATUS_BARIS_MUATAN = ['BERUBAH', 'SAMA', 'GALAT', 'DISIMPAN'] as const;
+export type StatusBarisMuatan = (typeof STATUS_BARIS_MUATAN)[number];
+
+export type BarisImportMuatan = {
+  nomorBaris: number;
+  kode: string | null;
+  namaBarang: string;
+  status: StatusBarisMuatan;
+  /** Mis. "berat 0,5 → 50 kg". */
+  perubahan: string[];
+  pesan: string[];
+};
+
+export type HasilImportMuatan = {
+  baris: BarisImportMuatan[];
+  ringkasan: { total: number; berubah: number; sama: number; galat: number; disimpan: number };
+  disimpan: boolean;
+};
+
+/** Kolom data di berkas muatan. Kolom yang tidak ada di berkas tidak mengubah data barang. */
+export const KOLOM_MUATAN_EXCEL = [
+  'berat_kg',
+  'panjang_cm',
+  'lebar_cm',
+  'tinggi_cm',
+  'curah',
+  'volume_m3',
+] as const;
+export type KolomMuatanExcel = (typeof KOLOM_MUATAN_EXCEL)[number];
+
+export type BacaImportMuatan = {
+  namaBerkas: string;
+  /** Kolom data yang ada di berkas. */
+  kolom: KolomMuatanExcel[];
+  baris: BarisImportMentah[];
+  peringatan: string[];
+};
+
+export const skemaProsesMuatan = z.object({
+  namaBerkas: z.string().trim().max(100).default('berkas'),
+  kolom: z.array(z.enum(KOLOM_MUATAN_EXCEL)).min(1, 'Berkas tidak berisi kolom data muatan.'),
+  baris: z.array(skemaBarisImport).min(1, 'Tidak ada baris.').max(2000, 'Maksimal 2000 baris.'),
+});
+export type InputProsesMuatan = z.input<typeof skemaProsesMuatan>;
+
+export const skemaUnduhMuatan = z.object({
+  /** `1` = hanya barang aktif yang data muatannya belum lengkap. */
+  belum: z.enum(['0', '1']).default('0'),
+});
+
 // --- Satuan jual per barang (Fase 12, K-091) ---
 
 const POLA_FAKTOR = /^\d{1,8}(\.\d{1,4})?$/;

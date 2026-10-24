@@ -25,3 +25,46 @@ export function dariSatuanSimpan(nilai: string | null, faktor: string): string {
   if (nilai === null || nilai === '') return '';
   return new Decimal(nilai).dividedBy(faktor).toDecimalPlaces(4).toString().replace('.', ',');
 }
+
+/** Jenis isian data muatan beserta satuan simpan dan banyak angka di belakang koma yang disimpan. */
+const ISIAN_MUATAN = {
+  BERAT: { satuan: SATUAN_BERAT as Record<string, string>, simpan: 'kg', desimal: 3 },
+  PANJANG: { satuan: SATUAN_PANJANG as Record<string, string>, simpan: 'cm', desimal: 1 },
+  VOLUME: {
+    satuan: { ...SATUAN_VOLUME, 'm³': '1', l: '0.001' } as Record<string, string>,
+    simpan: 'm³',
+    desimal: 4,
+  },
+} as const;
+export type JenisIsianMuatan = keyof typeof ISIAN_MUATAN;
+
+/**
+ * K-161 (isi massal Excel): isian sel seperti "50", "12,5", "50000 g", "700 mm", "500 L" → angka dalam satuan simpan
+ * (kg/cm/m³), dibulatkan ke ketelitian kolom simpannya. Tanpa satuan = satuan simpan. Kosong → `null`.
+ */
+export function bacaIsianMuatan(
+  isian: string,
+  jenis: JenisIsianMuatan,
+): { nilai: string | null; galat: string | null } {
+  const t = isian.trim();
+  if (t === '') return { nilai: null, galat: null };
+  const cfg = ISIAN_MUATAN[jenis];
+  const cocok = /^(\d+(?:[.,]\d+)?)\s*([A-Za-z³0-9]*)$/.exec(t);
+  const satuan = cocok?.[2] ?? '';
+  const faktor =
+    satuan === '' ? '1' : (cfg.satuan[satuan] ?? cfg.satuan[satuan.toLowerCase()] ?? null);
+  if (!cocok?.[1] || faktor === null) {
+    const pilihan = Object.keys(cfg.satuan)
+      .filter((k) => k !== 'l')
+      .join('/');
+    return {
+      nilai: null,
+      galat: `"${t}" bukan angka ${cfg.simpan}; tulis angka saja atau angka + satuan (${pilihan}).`,
+    };
+  }
+  const nilai = new Decimal(cocok[1].replace(',', '.'))
+    .times(faktor)
+    .toDecimalPlaces(cfg.desimal)
+    .toString();
+  return { nilai, galat: null };
+}

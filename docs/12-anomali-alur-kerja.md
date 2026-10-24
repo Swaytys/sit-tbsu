@@ -98,7 +98,7 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | A10 | Kendaraan/sopir dinonaktifkan saat sedang jalan | Perjalanan tak bisa diselesaikan rapi | — | Ditolak sampai hasil dicatat | Pesan menyebut nomor perjalanan | Ada |
 | A12 | Barang dimuat melebihi daya angkut kendaraan | Rem/ban/sumbu berbahaya, pelanggaran ODOL | Pakai kendaraan lain atau bagi dua rit | Berangkat ditolak bila berat > daya angkut | Panel muatan menjelaskan sebab dan saran | Ada (K-161) |
 | A13 | Barang sedikit melebihi bak (ditumpuk/menjulur) | Barang jatuh, kendaraan tidak stabil | Periksa setelah dimuat | Alasan tertulis wajib (tercatat di rit dan log); jauh melebihi ditolak | Contoh alasan di isian | Ada (K-161) |
-| A14 | Berat/ukuran barang atau bak belum diisi | Muatan tidak bisa diperiksa | Lengkapi data | Peringatan "belum punya berat/ukuran" di panel muatan | Petunjuk tempat mengisinya | Ada sebagian (laporan kelengkapan menyusul) |
+| A14 | Berat/ukuran barang atau bak belum diisi | Muatan tidak bisa diperiksa | Lengkapi data | Peringatan "belum punya berat/ukuran" di panel muatan | Petunjuk tempat mengisinya; saring *Data muatan belum lengkap* lalu *Isi lewat Excel* untuk banyak barang | Ada (K-161) |
 | A15 | Surat jalan dibuat tetapi tidak dimasukkan ke rit mana pun | Barang tidak pernah berangkat | Seret ke grup rit | Kotak *Belum direncanakan* dengan garis putus-putus di kolom Dijadwalkan; tombol Berangkat hanya ada di grup rit | Teks "belum bisa berangkat. Seret ke grup rit." | Ada (K-160) |
 | A16 | Dua orang mengubah rit yang sama (satu memberangkatkan, satu memindah kartu) | Kartu masuk rit yang sudah jalan | Muat ulang halaman | Baris rit dikunci; aksi pada rit yang bukan rencana lagi ditolak; papan menyegarkan tiap 30 detik | Pesan "sudah berangkat; muat ulang halaman" | Ada (K-160) |
 | A17 | Rit rencana dibatalkan padahal barang sudah dinaikkan | Barang di truk tanpa rit | Masukkan ke rit lain atau keluarkan barangnya | Surat jalan tidak ikut batal, kembali ke *Belum direncanakan* dengan status Dimuat | Lencana *Dimuat* tetap terlihat | Ada (K-160) |
@@ -118,4 +118,5 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-23 — Bagian 4 pengantaran A1–A11 (K-149–K-151).
 - 2026-10-24 — Shift ganda kini mustahil (indeks unik, K-155); pembayaran non-tunai tanpa rekening terdaftar/referensi dicegah (K-154).
 - 2026-10-24 — A12–A14 muatan kendaraan (K-161).
+- 2026-10-24 — A14 menjadi *Ada* (saring belum lengkap + isi massal Excel).
 - 2026-10-24 — A15–A18 rit rencana dan papan Pengiriman (K-160); A5 menunjuk kolom Backlog.

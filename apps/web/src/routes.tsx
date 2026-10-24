@@ -136,6 +136,9 @@ export const router = createBrowserRouter([
                   (m) => m.HalamanImportBarang,
                 ),
               ),
+              ruteLazy('barang/muatan-excel', 'Data Barang', 'master.barang.kelola', () =>
+                import('@/features/barang/halaman-muatan-excel').then((m) => m.HalamanMuatanExcel),
+              ),
               ruteLazy('penerimaan/baru', 'Penerimaan Barang', 'persediaan.penerimaan.kelola', () =>
                 import('@/features/penerimaan/halaman-form-penerimaan').then(
                   (m) => m.HalamanFormPenerimaan,

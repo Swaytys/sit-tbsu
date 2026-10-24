@@ -398,8 +398,10 @@ dialog Berangkat | Admin/Owner (data), Kasir+ (berangkat) | desktop
   hampir penuh, oranye wajib alasan tertulis, merah ditolak (berat tidak pernah boleh melebihi daya angkut).
 - Tabel: kolom muatan di `barang`, `kendaraan`, `perjalanan` (migrasi 0026); konfigurasi faktor isi dan julur.
 - Bukti: `[KODE: api/modules/penjualan/perjalanan/service.ts]` (`hitungMuatan`), `[KODE: shared/satuan-muatan.ts]`;
-  `[DOK: docs/05 S13, docs/13 §3, K-161]`; e2e `muatan.spec.ts`. Status: SEBAGIAN — isi massal lewat Excel dan
-  pengingat STNK/KIR menyusul (K-161, K-162).
+  `[DOK: docs/05 S13, docs/13 §3, K-161]`; e2e `muatan.spec.ts`.
+- Isi massal lewat Excel: unduh barang (semua/yang belum lengkap), isi dengan satuan bebas, pratinjau lama → baru,
+  simpan semua sekaligus `[KODE: api/modules/master/import/muatan.ts]`, e2e `muatan-excel.spec.ts`.
+- Status: BERFUNGSI; pengingat masa berlaku STNK/KIR menyusul (K-162).
 
 **F24. Piutang** | Transaksi › Piutang | Kasir+ | desktop
 - Fungsi: daftar tagihan belum lunas dengan jatuh tempo dan umur; terima pembayaran; ringkasan per pelanggan.
@@ -998,6 +1000,10 @@ master/import/routes.ts:26 GET /api/import/barang/ekspor master.import.jalankan
 master/import/routes.ts:30 POST /api/import/barang/baca master.import.jalankan
 master/import/routes.ts:34 POST /api/import/barang/pratinjau master.import.jalankan
 master/import/routes.ts:48 POST /api/import/barang master.import.jalankan
+master/import/routes.ts GET /api/import/muatan/berkas master.barang.kelola
+master/import/routes.ts POST /api/import/muatan/baca master.barang.kelola
+master/import/routes.ts POST /api/import/muatan/pratinjau master.barang.kelola
+master/import/routes.ts POST /api/import/muatan master.barang.kelola
 master/jenis-atribut/routes.ts:18 GET /api/jenis-atribut/ master.barang.lihat
 master/jenis-atribut/routes.ts:24 POST /api/jenis-atribut/ master.satuan.kelola
 master/jenis-atribut/routes.ts:28 PATCH /api/jenis-atribut/:id master.satuan.kelola
@@ -1061,6 +1067,26 @@ penjualan/surat-jalan/routes.ts:18 GET /api/surat-jalan/ penjualan.surat_jalan.k
 penjualan/surat-jalan/routes.ts:21 GET /api/surat-jalan/:id penjualan.surat_jalan.kelola
 penjualan/surat-jalan/routes.ts:24 POST /api/surat-jalan/:id/status penjualan.surat_jalan.kelola
 penjualan/surat-jalan/routes.ts:39 POST /api/surat-jalan/:id/batal penjualan.surat_jalan.kelola
+penjualan/surat-jalan/routes.ts GET /api/surat-jalan/perlu-kirim penjualan.surat_jalan.kelola
+penjualan/surat-jalan/routes.ts POST /api/surat-jalan/:id/hasil penjualan.surat_jalan.kelola
+penjualan/perjalanan/routes.ts GET /api/perjalanan/ penjualan.surat_jalan.kelola
+penjualan/perjalanan/routes.ts POST /api/perjalanan/pratinjau-muatan penjualan.surat_jalan.kelola
+penjualan/perjalanan/routes.ts POST /api/perjalanan/ penjualan.surat_jalan.kelola
+penjualan/perjalanan/routes.ts POST /api/perjalanan/rencana penjualan.surat_jalan.kelola
+penjualan/perjalanan/routes.ts POST /api/perjalanan/keluar penjualan.surat_jalan.kelola
+penjualan/perjalanan/routes.ts POST /api/perjalanan/:id/isi penjualan.surat_jalan.kelola
+penjualan/perjalanan/routes.ts POST /api/perjalanan/:id/dimuat penjualan.surat_jalan.kelola
+penjualan/perjalanan/routes.ts POST /api/perjalanan/:id/berangkat penjualan.surat_jalan.kelola
+penjualan/perjalanan/routes.ts POST /api/perjalanan/:id/batal penjualan.surat_jalan.kelola
+master/armada/routes.ts GET /api/kendaraan/ penjualan.surat_jalan.kelola
+master/armada/routes.ts POST /api/kendaraan/ master.armada.kelola
+master/armada/routes.ts PATCH /api/kendaraan/:id master.armada.kelola
+master/armada/routes.ts PATCH /api/kendaraan/:id/status master.armada.kelola
+master/armada/routes.ts GET /api/sopir/ penjualan.surat_jalan.kelola
+master/armada/routes.ts POST /api/sopir/ master.armada.kelola
+master/armada/routes.ts PATCH /api/sopir/:id master.armada.kelola
+master/armada/routes.ts PATCH /api/sopir/:id/status master.armada.kelola
+sistem/cari/routes.ts GET /api/cari dashboard.dasar (hasil disaring per izin)
 persediaan/penerimaan/routes.ts:13 GET /api/penerimaan/ persediaan.penerimaan.kelola
 persediaan/penerimaan/routes.ts:16 GET /api/penerimaan/:id persediaan.penerimaan.kelola
 persediaan/penerimaan/routes.ts:19 POST /api/penerimaan/ persediaan.penerimaan.kelola
@@ -1134,5 +1160,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Rekening penerimaan wajib dipilih + No. referensi wajib (K-154), satu shift dijamin database (K-155), Harga dasar dengan kalkulator (K-158), tampilan pas layar dan pengingat diciutkan (K-152–K-157).
 - 2026-10-24 — Pencarian universal Ctrl+K (K-167); kebal kiriman ganda (kunci idempoten) dan cek versi data master (K-164).
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
+- 2026-10-24 — F43: isi massal data muatan lewat Excel (K-161 selesai). Lampiran A: endpoint perjalanan, kendaraan,
+  sopir, hasil surat jalan, pencarian, dan data muatan ditambahkan.
 - 2026-10-24 — F42 papan Pengiriman dan rit rencana (K-160); F43 muatan, F44 pencarian universal, baris kiriman ganda
   di bagian 9 ditulis lengkap; F23 dan F41 disesuaikan.
