@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { RUPIAH_MAKS } from '../money';
+import { galatNoHp, rapikanNoHp } from '../nohp';
 
 /** Parameter daftar berhalaman (docs/02 §4): `?halaman=1&perHalaman=25`. */
 export const skemaHalaman = z.object({
@@ -22,16 +23,31 @@ export const teksOpsional = (maks: number, pesanMaks: string) =>
     .nullable()
     .optional();
 
-const POLA_NO_HP = /^[0-9+\-\s]+$/;
-
-/** No. HP wajib (pelanggan, pemasok; K-056): angka, spasi, +, atau -, minimal 8 angka. */
+/**
+ * No. HP wajib (pelanggan, pemasok, order disimpan; K-056, K-137): dirapikan ke format internasional (`0812…` →
+ * `+62812…`), 8–15 angka.
+ */
 export const skemaNoHpWajib = z
   .string('No. HP wajib diisi.')
   .trim()
   .min(1, 'No. HP wajib diisi.')
-  .max(20, 'No. HP maksimal 20 karakter.')
-  .regex(POLA_NO_HP, 'No. HP hanya boleh angka, spasi, +, atau -.')
-  .refine((v) => (v.match(/\d/g)?.length ?? 0) >= 8, 'No. HP minimal 8 angka.');
+  .transform((v) => rapikanNoHp(v) ?? '')
+  .superRefine((v, ctx) => {
+    const g = v === '' ? 'No. HP wajib diisi.' : galatNoHp(v);
+    if (g) ctx.addIssue({ code: 'custom', message: g });
+  });
+
+/** No. HP opsional (sopir, pengguna; K-137): kosong = null, selain itu sama dengan `skemaNoHpWajib`. */
+export const skemaNoHpOpsional = z
+  .string()
+  .trim()
+  .transform((v) => rapikanNoHp(v))
+  .superRefine((v, ctx) => {
+    const g = v === null ? null : galatNoHp(v);
+    if (g) ctx.addIssue({ code: 'custom', message: g });
+  })
+  .nullable()
+  .optional();
 
 /** Nilai uang: rupiah utuh, tidak negatif (CLAUDE.md aturan 7). */
 export const skemaRupiah = z

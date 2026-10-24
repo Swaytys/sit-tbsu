@@ -640,6 +640,7 @@ export function InputOrderCepat() {
     { kunci: 'F8', label: ubahOrder ? 'Simpan perubahan' : 'Kirim ke antrean' },
     { kunci: 'F7', label: 'Simpan untuk nanti' },
     { kunci: 'F9', label: ubahOrder ? 'Buang perubahan' : 'Mulai dari awal' },
+    { kunci: 'F10', label: 'Daftar order' },
     ...TOMBOL[zona],
   ];
 

@@ -13,7 +13,7 @@ import {
 } from '../enums';
 import { skemaQtyTeks } from './barang';
 import { skemaTanggal } from './persediaan';
-import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
+import { skemaHalaman, skemaNoHpOpsional, skemaRupiah, teksOpsional } from './umum';
 
 /*
  * Kendaraan, sopir, perjalanan, dan hasil pengantaran (docs/05 §7 S8–S12; K-149–K-151).
@@ -91,23 +91,13 @@ export const skemaKendaraan = z.object({
 export type InputKendaraan = z.input<typeof skemaKendaraan>;
 export type DataKendaraan = z.output<typeof skemaKendaraan>;
 
-const POLA_NO_HP = /^[0-9+\-\s]+$/;
-
 export const skemaSopir = z.object({
   nama: z
     .string('Nama sopir wajib diisi.')
     .trim()
     .min(2, 'Nama sopir minimal 2 huruf.')
     .max(100, 'Nama sopir maksimal 100 karakter.'),
-  noHp: z
-    .string()
-    .trim()
-    .max(20, 'No. HP maksimal 20 karakter.')
-    .refine((v) => v === '' || POLA_NO_HP.test(v), 'No. HP hanya boleh angka, spasi, +, atau -.')
-    .refine((v) => v === '' || (v.match(/\d/g)?.length ?? 0) >= 8, 'No. HP minimal 8 angka.')
-    .transform((v) => (v === '' ? null : v))
-    .nullable()
-    .optional(),
+  noHp: skemaNoHpOpsional,
   catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
 });
 export type InputSopir = z.input<typeof skemaSopir>;

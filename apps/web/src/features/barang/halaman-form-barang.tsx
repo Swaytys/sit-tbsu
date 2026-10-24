@@ -5,6 +5,7 @@ import {
   skemaBarang,
   teksSyaratTier,
   type DataBarang,
+  type DataMirip,
   type DetailBarang,
   type InputBarang,
   type JenisAtribut,
@@ -54,6 +55,8 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { PanelMirip } from '@/components/panel-mirip';
+import { miripDariGalat } from '@/lib/mirip';
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal } from '@/lib/format';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
@@ -331,8 +334,11 @@ function FormBarang({
     form.formState.isDirty || berkasBaru !== null,
   );
 
+  const [mirip, setMirip] = useState<DataMirip[] | null>(null);
+
   async function kirim(data: DataBarang) {
     if (!cekMetode(data)) return;
+    setMirip(null);
     // Saat ubah, harga hanya dikirim bila bagian harga disentuh (menyimpan harga melepas tanda tinjau).
     const json: DataBarang =
       barang && !form.getFieldState('hargaTier').isDirty ? { ...data, hargaTier: undefined } : data;
@@ -353,6 +359,11 @@ function FormBarang({
       lewati();
       void navigasi('/barang');
     } catch (err) {
+      const m = miripDariGalat(err);
+      if (m) {
+        setMirip(m);
+        return;
+      }
       const kolomAtribut = barisAtribut.flatMap((_, i) =>
         (['idJenisAtribut', 'nilai', 'idSatuan'] as const).map(
           (k) => `atribut.${i}.${k}` as Path<InputBarang>,
@@ -1090,6 +1101,15 @@ function FormBarang({
               </CardContent>
             </Card>
 
+            {mirip && (
+              <PanelMirip
+                mirip={mirip}
+                apa="Barang"
+                onTetapSimpan={() =>
+                  void form.handleSubmit((d) => kirim({ ...d, abaikanMirip: true }))()
+                }
+              />
+            )}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" asChild>
                 <Link to="/barang">Batal</Link>

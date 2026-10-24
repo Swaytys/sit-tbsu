@@ -16,6 +16,7 @@ import { FormProfil } from './form-profil';
 import { KartuLogo } from './kartu-logo';
 import { KartuPrinterStruk } from './kartu-printer-struk';
 import { TabArsip } from './tab-arsip';
+import { TabPemeriksaanData } from './tab-pemeriksaan-data';
 import { TabCadangan } from './tab-cadangan';
 import { TabLog } from './tab-log';
 import { TabPembayaran } from './tab-pembayaran';
@@ -68,6 +69,7 @@ export function HalamanPengaturan() {
             {bolehPromo && <TabsTrigger value="promo">Promo</TabsTrigger>}
             <TabsTrigger value="keamanan">Keamanan</TabsTrigger>
             <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>
+            <TabsTrigger value="data">Pemeriksaan data</TabsTrigger>
             {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
             {bolehCadangan && <TabsTrigger value="arsip">Arsip tahunan</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
@@ -106,6 +108,9 @@ export function HalamanPengaturan() {
           </TabsContent>
           <TabsContent value="persetujuan">
             <TabPersetujuan />
+          </TabsContent>
+          <TabsContent value="data">
+            <TabPemeriksaanData />
           </TabsContent>
           {bolehCadangan && (
             <TabsContent value="cadangan">

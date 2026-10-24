@@ -68,7 +68,8 @@ async function logTerakhir(aksi: string) {
   return baris;
 }
 
-const PLG = { namaPelanggan: 'CV. Maju Jaya', noHp: '0812-3456-7890' };
+// Fixtur sengaja memakai No. HP berulang; pencegah data ganda (K-137) diuji terpisah di bawah.
+const PLG = { namaPelanggan: 'CV. Maju Jaya', noHp: '0812-3456-7890', abaikanMirip: true };
 
 describe('pelanggan', () => {
   it('semua peran boleh melihat dan menambah; kode PLG berurutan dan tidak bisa diubah', async () => {
@@ -293,8 +294,8 @@ describe('pelanggan', () => {
     const p = await buat(admin, '/api/pelanggan', PLG);
     await kirim(admin, `/api/pelanggan/${p.id}`, { ...PLG, noHp: '081299998888' }, 'PATCH');
     const log = await logTerakhir('PELANGGAN_UBAH');
-    expect(log?.dataLama).toEqual({ noHp: PLG.noHp });
-    expect(log?.dataBaru).toEqual({ noHp: '081299998888' });
+    expect(log?.dataLama).toEqual({ noHp: '+6281234567890' });
+    expect(log?.dataBaru).toEqual({ noHp: '+6281299998888' });
 
     await kirim(admin, `/api/pelanggan/${p.id}`, { ...PLG, noHp: '081299998888' }, 'PATCH');
     expect((await logTerakhir('PELANGGAN_UBAH'))?.id).toBe(log?.id);
@@ -441,5 +442,60 @@ describe('tingkat harga', () => {
       await minta('/api/tingkat-harga', { cookie: admin.cookie }),
     );
     expect(untukAdmin.data[0]).toMatchObject({ kode: 'NORMAL', markupDefaultPersen: '25.00' });
+  });
+});
+
+describe('cegah data ganda dan No. HP rapi (K-137)', () => {
+  it('No. HP dirapikan ke +62; nama/No. HP sama ditolak 409 dengan daftar mirip; abaikanMirip menyimpan', async () => {
+    const a = await buat(admin, '/api/pelanggan', {
+      namaPelanggan: 'Toko  Sumber   Jaya',
+      noHp: '0857 1111 2222',
+    });
+    expect(a).toMatchObject({ namaPelanggan: 'Toko Sumber Jaya', noHp: '+6285711112222' });
+
+    const samaNama = await kirim(admin, '/api/pelanggan', {
+      namaPelanggan: 'sumber-jaya',
+      noHp: '081399990000',
+    });
+    expect(samaNama.status).toBe(409);
+    const g = await json<{
+      error: { pesan: string; detail: { mirip: { id: number; alasan: string }[] } };
+    }>(samaNama);
+    expect(g.error.detail.mirip).toEqual([
+      expect.objectContaining({ id: a.id, alasan: 'nama sama' }),
+    ]);
+
+    const samaHp = await kirim(admin, '/api/pelanggan', {
+      namaPelanggan: 'Pak Bambang',
+      noHp: '+62 857-1111-2222',
+    });
+    expect(samaHp.status).toBe(409);
+    expect((await json<{ error: { pesan: string } }>(samaHp)).error.pesan).toContain('No. HP sama');
+
+    const tegas = await kirim(admin, '/api/pelanggan', {
+      namaPelanggan: 'Sumber Jaya',
+      noHp: '081399990000',
+      abaikanMirip: true,
+    });
+    expect(tegas.status).toBe(201);
+
+    // Format salah ditolak dengan pesan yang mengajari.
+    const pendek = await kirim(admin, '/api/pelanggan', { namaPelanggan: 'X Y', noHp: '0812' });
+    expect(pendek.status).toBe(400);
+    const panjang = await kirim(admin, '/api/pelanggan', {
+      namaPelanggan: 'X Z',
+      noHp: '0812345678901234567',
+    });
+    expect((await json<{ error: { pesan: string } }>(panjang)).error.pesan).toContain(
+      'paling banyak 15',
+    );
+
+    // Pemasok: nama sama setelah awalan CV dibuang.
+    await buat(admin, '/api/pemasok', { namaPemasok: 'CV Semen Abadi', noHp: '0321123456' });
+    const p2 = await kirim(admin, '/api/pemasok', {
+      namaPemasok: 'Semen Abadi',
+      noHp: '0321999888',
+    });
+    expect(p2.status).toBe(409);
   });
 });

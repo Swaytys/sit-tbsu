@@ -266,7 +266,7 @@ Bagian ini sengaja diletakkan sebelum §15 agar dekat dengan status stok; nomorn
 
 ## 16. Aksi log aktivitas
 
-Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, PERSETUJUAN_GAGAL, PERSETUJUAN_KODE_KIRIM, AKUN_KONTAK_UBAH (K-102), LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, IMPORT_MUATAN (K-161), ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, ORDER_SIMPAN, ORDER_KE_DRAF (K-122), PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, SURAT_JALAN_HASIL, PERJALANAN_BERANGKAT/SELESAI, PERJALANAN_RENCANA/ISI/DIMUAT/BATAL (K-160), ARMADA_BBM_CATAT, ARMADA_SERVIS_CATAT, ARMADA_CATATAN_BATAL (K-162), TAHUN_TUTUP, TAHUN_BUKA, ARSIP_PERIKSA (K-165), KENDARAAN_BUAT/UBAH/NONAKTIF/AKTIFKAN, SOPIR_BUAT/UBAH/NONAKTIF/AKTIFKAN (K-149, K-150), RETUR_AJUKAN/SETUJUI/TOLAK/BATAL, VOID_AJUKAN/SETUJUI/TOLAK/BATAL, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, SHIFT_HITUNG, SHIFT_HITUNG_BUKA, SHIFT_KOREKSI_MODAL, SHIFT_PENJELASAN (K-121), KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086), PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN, PENJUALAN_PROMO_LEPAS (K-087). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN.
+Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `packages/shared/src/log.ts`): LOGIN_SUKSES, LOGIN_GAGAL, PERSETUJUAN_GAGAL, PERSETUJUAN_KODE_KIRIM, AKUN_KONTAK_UBAH (K-102), LOGOUT, PENGGUNA_BUAT/UBAH/NONAKTIF/AKTIFKAN/RESET_PASSWORD/GANTI_PASSWORD/CABUT_SESI (K-054), PENGATURAN_UBAH, BARANG_BUAT/UBAH/NONAKTIF, HARGA_UBAH, PELANGGAN_BUAT/UBAH/NONAKTIF, PEMASOK_BUAT/UBAH/NONAKTIF, IMPORT_BARANG, IMPORT_SALDO_AWAL, IMPORT_MUATAN (K-161), ORDER_BUAT/ANTREAN/UBAH/PROSES/LEPAS/BATAL, ORDER_SIMPAN, ORDER_KE_DRAF (K-122), PENJUALAN_CHECKOUT, PENJUALAN_HARGA_MANUAL, PENJUALAN_DISKON, PENJUALAN_DIAMBIL, PEMBAYARAN_CATAT, SURAT_JALAN_BUAT/STATUS/BATAL, SURAT_JALAN_HASIL, PERJALANAN_BERANGKAT/SELESAI, PERJALANAN_RENCANA/ISI/DIMUAT/BATAL (K-160), ARMADA_BBM_CATAT, ARMADA_SERVIS_CATAT, ARMADA_CATATAN_BATAL (K-162), TAHUN_TUTUP, TAHUN_BUKA, ARSIP_PERIKSA (K-165), DATA_RAPIKAN (K-137), KENDARAAN_BUAT/UBAH/NONAKTIF/AKTIFKAN, SOPIR_BUAT/UBAH/NONAKTIF/AKTIFKAN (K-149, K-150), RETUR_AJUKAN/SETUJUI/TOLAK/BATAL, VOID_AJUKAN/SETUJUI/TOLAK/BATAL, PENERIMAAN_SIMPAN, PENYESUAIAN_BUAT/UBAH/SELESAI/BATAL, SHIFT_BUKA/TUTUP, SHIFT_HITUNG, SHIFT_HITUNG_BUKA, SHIFT_KOREKSI_MODAL, SHIFT_PENJELASAN (K-121), KAS_SHIFT_CATAT, CETAK_ULANG, LAPORAN_EKSPOR, CADANGAN_JALANKAN, CADANGAN_UJI_PULIH (K-084). HARGA_TINJAU_TERAPKAN, HARGA_TINJAU_ABAIKAN (K-086), PROMO_BUAT/UBAH/NONAKTIF/AKTIFKAN, PENJUALAN_PROMO_LEPAS (K-087). M2 menambah HUTANG_BAYAR, RETUR_PEMASOK_SIMPAN, KONSINYASI_SELESAIKAN.
 
 ## 18. Arsip tahunan / tutup tahun (K-165)
 
@@ -277,6 +277,15 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 | AR3 | Tahun DITUTUP dikunci: isian bertanggal tahun itu (catatan BBM/servis dan pembatalannya) ditolak "Tahun … sudah ditutup". Dokumen lain selalu bertanggal hari ini, sehingga retur/pelunasan atas nota tahun lalu tetap boleh. Data tidak dihapus atau dipindah dan tetap tampil di semua layar dan laporan. |
 | AR4 | Periksa arsip: berkas ada, SHA-256 cocok, dan jumlah baris tiap tabel di berkas = di database (selisih dilaporkan). Log `ARSIP_PERIKSA`. Unduh berkas lewat aplikasi. |
 | AR5 | Buka kembali (alasan ≥ 10 huruf, log `TAHUN_BUKA`) → status DIBUKA, kunci dilepas; tutup ulang memeriksa penghalang lagi dan menulis berkas baru (berkas lama tidak dihapus). |
+
+## 19. Data bersih (K-137)
+
+| # | Aturan |
+|---|---|
+| DB1 | No. HP (pelanggan, pemasok, order disimpan, sopir, pengguna) disimpan format internasional `+<kode negara><nomor>` tanpa spasi. Isian dirapikan: spasi/strip/kurung dibuang; `0` di depan diganti kode negara (bawaan +62); `62…` diberi `+`; `00` = awalan internasional. Sah bila 8–15 angka termasuk kode negara dan tidak `+620…`. Form: kode negara dipilih + nomor tanpa 0 (0 dibuang otomatis dengan pemberitahuan). |
+| DB2 | Nama pelanggan, pemasok, barang: spasi di tepi dan spasi ganda dirapikan. |
+| DB3 | Cegah data ganda: menambah, atau mengubah nama/No. HP, pelanggan/pemasok/barang ditolak 409 bila ada data lain (aktif atau nonaktif) dengan **kunci nama** sama (huruf kecil, tanpa awalan Toko/Tk/CV/PT/UD/Pak/Bapak/Bpk/Bu/Ibu/Sdr/Mas/Mbak untuk pelanggan/pemasok, hanya huruf dan angka) atau No. HP sama (pelanggan/pemasok); untuk barang hanya sesama kepemilikan dan pemasok penitip yang sama (versi titipan K-094 boleh bernama sama). Jawaban memuat daftar data mirip (maks. 5). Pengguna boleh menegaskan data berbeda (`abaikanMirip`). Import Excel barang tidak memakai aturan ini (kode yang sudah ada dilewati). |
+| DB4 | Pemeriksaan data (`sistem.pengaturan.kelola`): kelompok data lama yang mirip (nama/No. HP) dan format salah (No. HP bukan format internasional, nama berspasi berlebih). *Rapikan No. HP* mengubah semua No. HP pelanggan/pemasok/sopir/pengguna yang bisa dirapikan otomatis dalam satu transaksi, melaporkan yang harus diperbaiki manual; log `DATA_RAPIKAN`. Nomor HP pembeli di order lama (tabel transaksi) tidak diubah. |
 
 ## Riwayat
 
@@ -311,4 +320,5 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-24 — S14 rit rencana dan papan Pengiriman (K-160).
 - 2026-10-24 — S15 catatan BBM/servis, pengingat, statistik armada (K-162).
 - 2026-10-24 — §18 arsip tahunan / tutup tahun AR1–AR5 (K-165).
+- 2026-10-24 — §19 data bersih DB1–DB4 (K-137).
 - 2026-10-24 — S13: isi massal data muatan lewat Excel (K-161).

@@ -45,7 +45,9 @@ export const skemaPelanggan = z.object({
     .string('Nama pelanggan wajib diisi.')
     .trim()
     .min(1, 'Nama pelanggan wajib diisi.')
-    .max(100, 'Nama pelanggan maksimal 100 karakter.'),
+    .max(100, 'Nama pelanggan maksimal 100 karakter.')
+    // K-137: spasi berlebih dirapikan.
+    .transform((v) => v.replace(/\s+/g, ' ')),
   noHp: skemaNoHpWajib,
   email,
   alamat: teksOpsional(255, 'Alamat maksimal 255 karakter.'),
@@ -70,6 +72,8 @@ export const skemaPelanggan = z.object({
    * (`konfigurasi.limit_kredit_default`; kosong = tanpa limit). Butuh `master.pelanggan.atur_kredit`.
    */
   jadikanLimitBawaan: z.boolean().optional(),
+  /** K-137: pengguna menegaskan ini pelanggan berbeda walau ada yang mirip (nama/No. HP sama). */
+  abaikanMirip: z.boolean().optional(),
 });
 export type InputPelanggan = z.input<typeof skemaPelanggan>;
 export type DataPelanggan = z.output<typeof skemaPelanggan>;
@@ -166,7 +170,9 @@ export const skemaPemasok = z.object({
     .string('Nama pemasok wajib diisi.')
     .trim()
     .min(1, 'Nama pemasok wajib diisi.')
-    .max(100, 'Nama pemasok maksimal 100 karakter.'),
+    .max(100, 'Nama pemasok maksimal 100 karakter.')
+    // K-137: spasi berlebih dirapikan.
+    .transform((v) => v.replace(/\s+/g, ' ')),
   noHp: skemaNoHpWajib,
   kontakPerson: teksOpsional(100, 'Kontak person maksimal 100 karakter.'),
   alamat: teksOpsional(255, 'Alamat maksimal 255 karakter.'),
@@ -177,6 +183,8 @@ export const skemaPemasok = z.object({
   jarakBelanjaHari: z.preprocess(kosongJadiNull, hariOpsional('Jarak belanja', 1, 365)),
   /** K-164: versi data yang dimuat form; beda dengan versi sekarang = ditolak. */
   versi: z.string().max(40).nullable().optional(),
+  /** K-137: pengguna menegaskan ini pemasok berbeda walau ada yang mirip. */
+  abaikanMirip: z.boolean().optional(),
 });
 export type InputPemasok = z.input<typeof skemaPemasok>;
 export type DataPemasok = z.output<typeof skemaPemasok>;

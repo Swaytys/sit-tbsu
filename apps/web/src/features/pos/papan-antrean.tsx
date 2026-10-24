@@ -188,6 +188,7 @@ export function PapanAntrean({
                 {nama && (
                   <div className="truncate text-xs font-semibold text-slate-700">{nama}</div>
                 )}
+                <div className="truncate text-[11px] text-slate-500">oleh {t.namaPengguna}</div>
                 {pengantaran && t.alamatKirim && (
                   <div className="truncate text-xs text-slate-500">{t.alamatKirim}</div>
                 )}

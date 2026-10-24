@@ -131,6 +131,10 @@ describe('piutang (docs/06 PT1–PT4)', () => {
 
     const notif = (await ambil<{ data: Notifikasi[] }>(kasir, '/api/notifikasi')).data;
     expect(notif.find((n) => n.jenis === 'PIUTANG_TERLAMBAT')?.jumlah).toBe(1);
+    // K-131: rincian teratas (nomor · pembeli · sisa · jatuh tempo).
+    expect(notif.find((n) => n.jenis === 'PIUTANG_TERLAMBAT')?.rincian?.[0]).toMatch(
+      /^[A-Z]+-\d+-\d+ ·.* · Rp 15\.000 · jatuh tempo \d{2}\/\d{2}\/\d{4}$/,
+    );
     expect(notif.find((n) => n.jenis === 'PIUTANG_JATUH_TEMPO')?.jumlah).toBe(1);
     const staf = await sesiUji('STAF_PENJUALAN');
     const notifStaf = (await ambil<{ data: Notifikasi[] }>(staf, '/api/notifikasi')).data;

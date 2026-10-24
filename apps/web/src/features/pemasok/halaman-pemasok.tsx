@@ -5,6 +5,7 @@ import {
   type InputPemasok,
   type Pemasok,
   type StatusAktif,
+  type DataMirip,
 } from '@sit/shared';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -36,6 +37,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { InputNoHp } from '@/components/input-no-hp';
+import { PanelMirip } from '@/components/panel-mirip';
+import { miripDariGalat } from '@/lib/mirip';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { jalankanDenganToast } from '@/lib/aksi';
@@ -58,7 +62,10 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
     },
   });
 
+  const [mirip, setMirip] = useState<DataMirip[] | null>(null);
+
   async function kirim(data: DataPemasok) {
+    setMirip(null);
     try {
       const hasil = await simpan.mutateAsync({ id: pemasok?.id, json: data });
       toast.success(
@@ -68,6 +75,11 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
       );
       onTutup();
     } catch (err) {
+      const m = miripDariGalat(err);
+      if (m) {
+        setMirip(m);
+        return;
+      }
       tampilkanGalatForm(err, form.setError, [
         'namaPemasok',
         'noHp',
@@ -112,7 +124,7 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
                 <FormItem>
                   <FormLabel>No. HP / telepon</FormLabel>
                   <FormControl>
-                    <Input inputMode="tel" placeholder="08xx / 0321xxx" {...field} />
+                    <InputNoHp value={field.value} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -195,6 +207,17 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
                 </FormItem>
               )}
             />
+            {mirip && (
+              <div className="col-span-2">
+                <PanelMirip
+                  mirip={mirip}
+                  apa="Pemasok"
+                  onTetapSimpan={() =>
+                    void form.handleSubmit((d) => kirim({ ...d, abaikanMirip: true }))()
+                  }
+                />
+              </div>
+            )}
             <DialogFooter className="col-span-2">
               <Button type="button" variant="outline" onClick={onTutup}>
                 Batal

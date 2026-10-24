@@ -230,6 +230,9 @@ describe('retur penjualan (docs/05 §8)', () => {
     });
     const notif = await ambil<Notifikasi[]>(admin, '/api/notifikasi');
     expect(notif.find((n) => n.jenis === 'RETUR_MENUNGGU')?.jumlah).toBe(1);
+    expect(notif.find((n) => n.jenis === 'RETUR_MENUNGGU')?.rincian?.[0]).toMatch(
+      /^RTR-.* · Rp .* · diajukan /,
+    );
     const tolak = await kirim<BarisRetur>(admin, `/api/retur/${r.id}/tolak`, {
       alasan: 'Barang bukan dari toko',
     });

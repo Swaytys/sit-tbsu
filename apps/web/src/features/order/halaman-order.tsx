@@ -2,7 +2,9 @@ import { formatRupiah, type BarisDaftarOrder, type StatusOrder } from '@sit/shar
 import {
   AlertCircle,
   CalendarClock,
+  ArrowLeft,
   ChevronRight,
+  List,
   Clock,
   FilePen,
   MapPin,
@@ -15,7 +17,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
@@ -32,16 +34,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatDesimal, formatTanggal, formatWaktu } from '@/lib/format';
+import { formatDesimal, formatTanggal, formatWaktu, tanggalHariIni } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useTunda } from '@/lib/use-tunda';
 import { DialogBatal } from './dialog-batal-order';
 import { DialogSimpanOrder } from './dialog-simpan-order';
 import { InputOrderCepat } from './input-order-cepat';
 
-type Saring = 'AKTIF' | 'DISIMPAN' | 'DRAFT' | 'SELESAI' | 'BATAL';
-const SARING: Saring[] = ['AKTIF', 'DISIMPAN', 'DRAFT', 'SELESAI', 'BATAL'];
+type Saring = 'SEMUA' | 'AKTIF' | 'DISIMPAN' | 'DRAFT' | 'SELESAI' | 'BATAL';
+const SARING: Saring[] = ['SEMUA', 'AKTIF', 'DISIMPAN', 'DRAFT', 'SELESAI', 'BATAL'];
 const LABEL_SARING: Record<Saring, string> = {
+  SEMUA: 'Semua',
   AKTIF: 'Antrean',
   DISIMPAN: 'Disimpan',
   DRAFT: 'Draf',
@@ -51,6 +54,7 @@ const LABEL_SARING: Record<Saring, string> = {
 
 /** Penjelasan singkat tiap tab daftar order (K-122). */
 const KET_SARING: Record<Saring, string> = {
+  SEMUA: 'Semua order, terbaru dulu.',
   AKTIF:
     'Order yang menunggu atau sedang di kasir; urut yang paling lama menunggu. Stoknya ditahan.',
   DISIMPAN:
@@ -146,7 +150,7 @@ function KartuOrder({
           {o.jenisPenjualan === 'PENGANTARAN' ? 'Pengantaran' : 'Langsung'}
         </span>
         <span className="flex items-center gap-1 text-slate-500">
-          <Package className="size-3" /> {o.jumlahItem} barang
+          <Package className="size-3" /> {o.jumlahItem} barang · oleh {o.namaPengguna}
         </span>
       </div>
       {o.status === 'DISIMPAN' && (
@@ -476,22 +480,40 @@ function DaftarOrder() {
   const semua = saya.izin.includes('penjualan.order.lihat_semua');
   const diminta = url.get('status');
   const saring: Saring =
-    diminta === 'MENUNGGU' ? 'AKTIF' : (SARING.find((s) => s === diminta) ?? 'AKTIF');
+    diminta === 'MENUNGGU' ? 'AKTIF' : (SARING.find((s) => s === diminta) ?? 'SEMUA');
   const idTerpilih = Number(url.get('id')) || null;
   const [cari, setCari] = useState('');
   const cariTertunda = useTunda(cari, 300);
   const daftar = useDaftarOrder(
     {
       cari: cariTertunda,
-      status: saring,
+      status: saring === 'SEMUA' ? null : saring,
       jenis: null,
       milikSaya: false,
       halaman: 1,
       perHalaman: 100,
     },
-    { segarkanTiap: saring === 'AKTIF' ? 15_000 : undefined },
+    { segarkanTiap: saring === 'AKTIF' || saring === 'SEMUA' ? 15_000 : undefined },
   );
   const data = daftar.data?.data ?? [];
+  // K-139: order disimpan yang tanggal ambilnya hari ini/lewat tetap tampil di atas sebagai pengingat (kecuali
+  // di tab Disimpan sendiri); bisa disembunyikan untuk hari ini (preferensi tampilan di peramban).
+  const hariIni = tanggalHariIni();
+  const [sembunyiJatuh, setSembunyiJatuh] = useState(() => {
+    try {
+      return localStorage.getItem('order-sembunyi-jatuh-tempo') === hariIni;
+    } catch {
+      return false;
+    }
+  });
+  const disimpan = useDaftarOrder(
+    { cari: '', status: 'DISIMPAN', jenis: null, milikSaya: false, halaman: 1, perHalaman: 50 },
+    { segarkanTiap: 60_000 },
+  );
+  const jatuhTempo = (disimpan.data?.data ?? []).filter(
+    (o) => o.tanggalAmbil !== null && o.tanggalAmbil <= hariIni,
+  );
+  const tampilJatuh = saring !== 'DISIMPAN' && !sembunyiJatuh && jatuhTempo.length > 0;
   const terpilih = idTerpilih ?? data[0]?.id ?? null;
 
   function atur(ubah: Record<string, string | null>) {
@@ -538,6 +560,35 @@ function DaftarOrder() {
             className="flex-1 space-y-2.5 overflow-y-auto bg-slate-50/50 p-3"
             aria-label="Daftar order"
           >
+            {tampilJatuh && (
+              <div className="space-y-2 rounded-lg border border-violet-200 bg-violet-50/60 p-2">
+                <div className="flex items-center justify-between gap-2 text-xs font-semibold text-violet-900">
+                  <span>Disimpan, waktunya diambil ({jatuhTempo.length})</span>
+                  <button
+                    type="button"
+                    className="font-normal text-violet-700 hover:underline"
+                    onClick={() => {
+                      setSembunyiJatuh(true);
+                      try {
+                        localStorage.setItem('order-sembunyi-jatuh-tempo', hariIni);
+                      } catch {
+                        // Preferensi tampilan saja; abaikan bila penyimpanan peramban mati.
+                      }
+                    }}
+                  >
+                    Sembunyikan hari ini
+                  </button>
+                </div>
+                {jatuhTempo.map((o) => (
+                  <KartuOrder
+                    key={`jt-${o.id}`}
+                    o={o}
+                    dipilih={o.id === terpilih}
+                    onPilih={() => atur({ id: String(o.id) })}
+                  />
+                ))}
+              </div>
+            )}
             {daftar.isLoading &&
               Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-28 w-full" />)}
             {!daftar.isLoading && data.length === 0 && (
@@ -568,23 +619,48 @@ function DaftarOrder() {
 }
 
 /**
- * Transaksi › Order Penjualan: "Input cepat" (bawaan, untuk Staf di lantai toko; K-073) dan "Daftar order"
- * (riwayat, detail, ubah, batal).
+ * Transaksi › Order Penjualan (K-129): input cepat adalah tampilan utama; tombol *Daftar order* (F10) membuka
+ * daftar (riwayat, detail, ubah, batal), *Kembali ke input* (Esc) kembali.
  */
 export function HalamanOrder() {
   const [url, setUrl] = useSearchParams();
   const daftar = url.get('tampil') === 'daftar' || url.has('id') || url.has('status');
+  const keDaftar = () => setUrl({ tampil: 'daftar' }, { replace: true });
+  const keInput = () => setUrl({}, { replace: true });
+  useEffect(() => {
+    function tombol(e: KeyboardEvent) {
+      if (!daftar && e.key === 'F10') {
+        e.preventDefault();
+        setUrl({ tampil: 'daftar' }, { replace: true });
+      } else if (daftar && e.key === 'Escape' && !document.querySelector('[role="dialog"]')) {
+        const t = e.target as HTMLElement | null;
+        if (
+          t &&
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) &&
+          (t as HTMLInputElement).value
+        ) {
+          return;
+        }
+        e.preventDefault();
+        setUrl({}, { replace: true });
+      }
+    }
+    window.addEventListener('keydown', tombol);
+    return () => window.removeEventListener('keydown', tombol);
+  }, [daftar, setUrl]);
   return (
     <div className="flex h-full flex-col gap-2 p-3">
-      <Tabs
-        value={daftar ? 'daftar' : 'cepat'}
-        onValueChange={(v) => setUrl(v === 'daftar' ? { tampil: 'daftar' } : {}, { replace: true })}
-      >
-        <TabsList className="h-8">
-          <TabsTrigger value="cepat">Input cepat</TabsTrigger>
-          <TabsTrigger value="daftar">Daftar order</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex items-center justify-end">
+        {daftar ? (
+          <Button size="sm" variant="outline" onClick={keInput}>
+            <ArrowLeft /> Kembali ke input <kbd className="ml-1 text-xs text-slate-500">Esc</kbd>
+          </Button>
+        ) : (
+          <Button size="sm" variant="outline" onClick={keDaftar}>
+            <List /> Daftar order <kbd className="ml-1 text-xs text-slate-500">F10</kbd>
+          </Button>
+        )}
+      </div>
       <div className="min-h-0 flex-1">{daftar ? <DaftarOrder /> : <InputOrderCepat />}</div>
     </div>
   );

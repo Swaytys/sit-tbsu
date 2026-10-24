@@ -564,6 +564,19 @@ mundur otomatis, periksa setelah menyala). Tab Pengaturan kini membungkus rapi (
 **Tes:** arsip.test (alur penuh), uji-migrasi-salinan.test (perbandingan jumlah), health.test (versi + migrasi),
 e2e arsip.spec. Uji migrasi penuh tidak bisa dijalankan di mesin pengembangan (user `sit` tanpa CREATEDB; pemasang
 server memberi hak itu).
+### C15. Sisa gelombang 3–4: data bersih, notifikasi rinci, order (24 Oktober 2026, K-129–K-143)
+
+**Solusi:** `packages/shared/src/nohp.ts` (`rapikanNoHp`, `galatNoHp`, `kunciNama`, `formatNoHp`; `POLA_AWALAN_NAMA`
+memakai `String.raw` agar `\s` tidak hilang), `skemaNoHpWajib`/`skemaNoHpOpsional` merapikan di skema; komponen
+`InputNoHp` (kode negara + nomor). `modules/master/mirip.ts` (`cariMirip`, `pastikanTidakMirip`, ekspresi SQL
+`kunciNamaSql` sama dengan `kunciNama`) dipakai service pelanggan/pemasok/barang; `PanelMirip` di form. Modul
+`sistem/pemeriksaan-data` + tab Pengaturan. Notifikasi: `rincian` (3 teratas) dari `notifikasi/rincian.ts`; bagian
+*Perlu perhatian* di dashboard. Order: tab dihapus (F10/Esc), saringan *Semua*, order disimpan jatuh tempo
+tersemat (sembunyikan hari ini = preferensi tampilan di peramban), penginput di kartu order dan tiket antrean, label
+F9 kasir saat order antrean terbuka. Fixtur e2e lewat `api()` menyertakan `abaikanMirip`.
+
+**Tes:** mitra.test (+1 data ganda & No. HP), pemeriksaan-data.test, rincian notifikasi di piutang/stok/retur
+test, penyesuaian tes lama ke format No. HP baru, e2e order (F10).
 
 ---
 
@@ -584,3 +597,4 @@ server memberi hak itu).
 - 2026-10-24 — Bagian C12 FMS pendukung (K-162).
 - 2026-10-24 — Bagian C13 kampanye promo (K-163 bagian 1).
 - 2026-10-24 — Bagian C14 arsip tahunan dan pembaruan aman (K-165, K-166).
+- 2026-10-24 — Bagian C15 data bersih, notifikasi rinci, order (K-129–K-143).

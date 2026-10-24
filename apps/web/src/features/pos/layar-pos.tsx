@@ -520,7 +520,13 @@ export function LayarPos({
   }, []);
 
   const kembalianTerakhir = hasil?.pembayaran.reduce((t, b) => t + b.kembalian, 0) ?? 0;
-  const tombol = [...TOMBOL_UMUM, ...TOMBOL_ZONA[zona]];
+  // K-143: saat order antrean terbuka, F9 = tunda (kembalikan ke antrean) atau batalkan (pilihan A/S/D).
+  const tombol = [
+    ...TOMBOL_UMUM.map((t) =>
+      t.kunci === 'F9' && order ? { ...t, label: 'Tunda / kembalikan order' } : t,
+    ),
+    ...TOMBOL_ZONA[zona],
+  ];
   // K-130: dialog buka shift tidak muncul sendiri; pita kuning di atas memberi tahu dan menyediakan tombolnya.
   const tampilDialogShift = dialogShift;
 
@@ -599,10 +605,15 @@ export function LayarPos({
                     <button
                       type="button"
                       onClick={mintaMulaiDariAwal}
-                      title="Kosongkan layar ini dan mulai dari awal (F9). Akan ditanya dulu."
+                      title={
+                        order
+                          ? 'Order antrean: kembalikan ke antrean, simpan, atau batalkan (F9). Akan ditanya dulu.'
+                          : 'Kosongkan layar ini dan mulai dari awal (F9). Akan ditanya dulu.'
+                      }
                       className="flex items-center gap-1 rounded border border-slate-300 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700"
                     >
-                      <RotateCcw className="size-3" /> Mulai dari awal
+                      <RotateCcw className="size-3" />{' '}
+                      {order ? 'Tunda / kembalikan order' : 'Mulai dari awal'}
                       <kbd className="font-mono opacity-60">F9</kbd>
                     </button>
                   )}

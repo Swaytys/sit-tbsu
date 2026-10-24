@@ -11,6 +11,7 @@ import { sekarang } from '../../../lib/waktu';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanKodeMaster } from '../../sistem/penomoran';
 import * as repo from './repo';
+import { pastikanTidakMirip } from '../mirip';
 
 /** Pemasok (docs/03 §3.2). Kode `PMS-00001` tetap (N5). Tidak dihapus; dinonaktifkan (K-021). */
 
@@ -63,6 +64,12 @@ export async function tambahPemasok(
   asal: AsalRequest,
 ): Promise<Pemasok> {
   const id = await dalamTransaksi(async (tx) => {
+    await pastikanTidakMirip(
+      tx,
+      'pemasok',
+      { nama: input.namaPemasok, noHp: input.noHp },
+      input.abaikanMirip,
+    );
     const nilai = { ...nilaiDari(input), kode: await terbitkanKodeMaster(tx, 'PMS') };
     const idBaru = await repo.tambahPemasok(tx, nilai);
     await catatLog(tx, {
@@ -92,6 +99,15 @@ export async function ubahPemasok(
     const baru = nilaiDari(input);
     const beda = selisih(lama, baru);
     if (beda.kolom.length === 0) return;
+    if (beda.kolom.includes('namaPemasok') || beda.kolom.includes('noHp')) {
+      await pastikanTidakMirip(
+        tx,
+        'pemasok',
+        { nama: input.namaPemasok, noHp: input.noHp },
+        input.abaikanMirip,
+        id,
+      );
+    }
     await repo.ubahPemasok(tx, id, baru, sekarang());
     await catatLog(tx, {
       aksi: 'PEMASOK_UBAH',

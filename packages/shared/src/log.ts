@@ -144,5 +144,6 @@ export const AKSI_LOG = [
   'TAHUN_TUTUP',
   'TAHUN_BUKA',
   'ARSIP_PERIKSA',
+  'DATA_RAPIKAN',
 ] as const;
 export type AksiLog = (typeof AKSI_LOG)[number];

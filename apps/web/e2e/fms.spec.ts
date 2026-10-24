@@ -62,11 +62,11 @@ test('Admin mencatat servis dan BBM; pengingat servis/KIR tampil; odometer mundu
     await expect(baris).toContainText('Servis berikutnya: 25.000 km');
 
     // Notifikasi topbar.
-    const notif = await api<{ jenis: string; keterangan: string }[]>(page, '/notifikasi');
-    expect(notif.find((n) => n.jenis === 'ARMADA_SURAT')?.keterangan).toContain(
+    const notif = await api<{ jenis: string; rincian?: string[] }[]>(page, '/notifikasi');
+    expect(notif.find((n) => n.jenis === 'ARMADA_SURAT')?.rincian?.join('; ')).toContain(
       `${plat}: KIR habis`,
     );
-    expect(notif.find((n) => n.jenis === 'ARMADA_SERVIS')?.keterangan).toContain(plat);
+    expect(notif.find((n) => n.jenis === 'ARMADA_SERVIS')?.rincian?.join('; ')).toContain(plat);
 
     // Statistik.
     await page.getByRole('tab', { name: 'Statistik' }).click();

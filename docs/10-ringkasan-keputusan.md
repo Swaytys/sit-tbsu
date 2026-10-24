@@ -625,21 +625,21 @@ keputusan lama masih tertulis di berkasnya.
 | K | Keputusan | Status |
 |---|---|---|
 | K-128 | Bahasa layar ringkas: kata efektif, makna cepat, tetap rinci. | Berlaku |
-| K-129 | Hot page pas satu layar tanpa gulir; daftar hotkey jadi satu tombol; hapus form order lengkap dan tab Input cepat. | Berlaku (rencana) |
-| K-130 | Pemberitahuan tidak mengagetkan: kartu pojok kanan bawah, item Buka shift di menu, spanduk bisa diperkecil jadi lencana. | Berlaku (rencana) |
-| K-131 | Notifikasi lebih rinci, bisa digulir, ada di dashboard. | Berlaku (gulir selesai; rincian menyusul) |
+| K-129 | Hot page pas satu layar tanpa gulir; daftar hotkey jadi satu tombol; hapus form order lengkap dan tab Input cepat. | Berlaku (selesai 24 Okt) |
+| K-130 | Pemberitahuan tidak mengagetkan: kartu pojok kanan bawah, item Buka shift di menu, spanduk bisa diperkecil jadi lencana. | Berlaku (selesai 24 Okt, K-152/K-156) |
+| K-131 | Notifikasi lebih rinci, bisa digulir, ada di dashboard. | Berlaku (selesai 24 Okt) |
 | K-132 | Satu shift untuk toko; siapa pun berizin buka/tutup; indikator untuk Staf. | Berlaku (selesai 18 Okt) |
 | K-133 | Tutup shift menampilkan semua order belum selesai dengan pilihan per order. | Berlaku (selesai 18 Okt) |
 | K-134 | Hitung susulan dua langkah dengan hasil berangka; koreksi modal setelah disimpan; "Tambah uang laci". | Berlaku (selesai 18 Okt) |
 | K-135 | Hitung per pecahan dengan −/+, kosongkan, hotkey. | Berlaku (selesai 18 Okt) |
 | K-136 | Kode atasan bisa dilanjutkan; satu permintaan menunggu per urusan. | Berlaku (selesai 18 Okt) |
-| K-137 | Data bersih: format ketat, No. HP kode negara tanpa 0, cegah data ganda, pindai data lama. | Berlaku (rencana) |
-| K-138 | Tampilkan siapa penginput di halaman bersama. | Berlaku (rencana) |
-| K-139 | Saringan status daftar order; order disimpan jatuh tempo tetap tampil. | Berlaku (rencana) |
+| K-137 | Data bersih: format ketat, No. HP kode negara tanpa 0, cegah data ganda, pindai data lama. | Berlaku (selesai 24 Okt) |
+| K-138 | Tampilkan siapa penginput di halaman bersama. | Berlaku (selesai 24 Okt) |
+| K-139 | Saringan status daftar order; order disimpan jatuh tempo tetap tampil. | Berlaku (selesai 24 Okt) |
 | K-140 | Pembeli setelah tutup: buka shift baru (1 Enter). | Berlaku |
 | K-141 | Kembalian tidak diambil dicatat kas masuk khusus, bukan penjualan. | Berlaku (selesai 18 Okt) |
 | K-142 | Retur/void menunggu tampil saat tutup shift; refund tercatat di shift saat disetujui. | Berlaku (selesai 18 Okt) |
-| K-143 | F9 kasir: pilihan A/S/D dipertahankan, label tombol diperjelas. | Berlaku (rencana label) |
+| K-143 | F9 kasir: pilihan A/S/D dipertahankan, label tombol diperjelas. | Berlaku (selesai 24 Okt) |
 | K-144 | Diskon manual dipertahankan, terbatas % per peran; di atas batas dengan kode atasan. | Diganti K-146 |
 | K-145 | Pengaturan hotkey per pengguna setelah v1.0.0 lain selesai. | Berlaku (rencana) |
 
@@ -718,3 +718,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-24 — K-162 selesai (catatan BBM/servis, pengingat servis & STNK/KIR, statistik armada).
 - 2026-10-24 — K-163 bagian 1 selesai (kampanye promo).
 - 2026-10-24 — K-165 (arsip tahunan) dan K-166 (pembaruan aman, versi aplikasi) selesai.
+- 2026-10-24 — Sisa gelombang 3–4 selesai: K-129, K-130, K-131, K-137, K-138, K-139, K-143.

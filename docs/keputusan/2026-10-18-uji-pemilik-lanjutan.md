@@ -203,5 +203,10 @@ kasir, order, shift) di pengaturan. Hotkey tetap tampil di tombol daftar hotkey 
 2. Satu shift untuk toko (K-132) beserta K-133, K-134, K-140, K-141, K-142, indikator shift untuk Staf.
 3. Pemberitahuan tidak mengagetkan (K-130) dan hot page pas layar (K-129), saringan order (K-139), jejak penginput
    (K-138), K-143.
-4. Data bersih (K-137) dan diskon dengan kode (K-144).
+4. Data bersih (K-137) dan diskon dengan kode (K-144, diganti K-146).
+
+**Status 24 Okt:** butir 3 dan 4 selesai (K-129 tab Input cepat dihapus, Daftar order lewat F10/Esc; K-131 rincian
+notifikasi + bagian *Perlu perhatian* di dashboard; K-137 No. HP format internasional, cegah data ganda, Pemeriksaan
+data; K-138 penginput di kartu order dan tiket antrean; K-139 saringan Semua + order disimpan jatuh tempo tersemat;
+K-143 label F9 *Tunda / kembalikan order*). Berikutnya butir 5.
 5. Lanjut K-123, K-124, K-127, K-126, K-125, tablet, ekspor log, lalu K-145.

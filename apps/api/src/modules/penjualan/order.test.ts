@@ -508,7 +508,7 @@ describe('order disimpan, kembali ke draf, draf lain (docs/05 R11–R14, K-122)'
     expect(s).toMatchObject({
       status: 'DISIMPAN',
       namaPembeli: 'Pak Budi',
-      noHpPembeli: '0812 3456 7890',
+      noHpPembeli: '+6281234567890',
       tanggalAmbil: tambahHari(hariIni(), 3),
       waktuMasukAntrean: null,
       lewatTanggalAmbil: false,

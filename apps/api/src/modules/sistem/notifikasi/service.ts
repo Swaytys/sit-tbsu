@@ -1,4 +1,4 @@
-import type { Notifikasi } from '@sit/shared';
+import { teksQty, type Notifikasi } from '@sit/shared';
 import type { PenggunaAktif } from '../../../lib/konteks';
 import { hutangJatuhTempo } from '../../hutang/service';
 import { hitungNonTunai } from '../../kas/nontunai/service';
@@ -11,6 +11,7 @@ import { jumlahPerluDipesan } from '../../persediaan/saran-pesan/service';
 import { peringatanStok } from '../../persediaan/stok/service';
 import { pengingatArmada } from '../../master/armada/service';
 import { peringatanCadangan } from '../cadangan/service';
+import { rincianHutang, rincianPengajuan, rincianPiutang } from './rincian';
 
 /** Notifikasi topbar per pengguna (docs/05 ST2), disaring menurut izin. */
 export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifikasi[]> {
@@ -106,7 +107,8 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         jenis: 'ARMADA_SURAT',
         judul:
           p.suratLewat > 0 ? 'STNK/KIR kendaraan sudah habis' : 'STNK/KIR kendaraan hampir habis',
-        keterangan: p.surat.slice(0, 3).join('; ') + (p.surat.length > 3 ? '; …' : ''),
+        keterangan: `${p.surat.length} kendaraan perlu mengurus surat.`,
+        rincian: p.surat.slice(0, 3),
         jumlah: p.surat.length,
         tautan: '/armada',
       });
@@ -115,7 +117,8 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
       hasil.push({
         jenis: 'ARMADA_SERVIS',
         judul: p.servisLewat > 0 ? 'Servis kendaraan terlewat' : 'Servis kendaraan sudah dekat',
-        keterangan: p.servis.slice(0, 3).join('; ') + (p.servis.length > 3 ? '; …' : ''),
+        keterangan: `${p.servis.length} kendaraan perlu diservis.`,
+        rincian: p.servis.slice(0, 3),
         jumlah: p.servis.length,
         tautan: '/armada',
       });
@@ -140,6 +143,7 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         jenis: 'VOID_MENUNGGU',
         judul: 'Void menunggu persetujuan',
         keterangan: `${n} pengajuan void perlu diputuskan.`,
+        rincian: await rincianPengajuan('void_transaksi'),
         jumlah: n,
         tautan: '/void?tab=persetujuan',
       });
@@ -152,6 +156,7 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         jenis: 'RETUR_MENUNGGU',
         judul: 'Retur menunggu persetujuan',
         keterangan: `${n} pengajuan retur perlu diputuskan.`,
+        rincian: await rincianPengajuan('retur_penjualan'),
         jumlah: n,
         tautan: '/retur?tab=persetujuan',
       });
@@ -164,6 +169,7 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         jenis: 'PIUTANG_TERLAMBAT',
         judul: 'Piutang terlambat',
         keterangan: `${p.terlambat} piutang melewati jatuh tempo.`,
+        rincian: await rincianPiutang('terlambat'),
         jumlah: p.terlambat,
         tautan: '/piutang?terlambat=true',
       });
@@ -173,6 +179,7 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         jenis: 'PIUTANG_JATUH_TEMPO',
         judul: 'Piutang segera jatuh tempo',
         keterangan: `${p.segera} piutang jatuh tempo dalam 3 hari.`,
+        rincian: await rincianPiutang('segera'),
         jumlah: p.segera,
         tautan: '/piutang',
       });
@@ -186,6 +193,7 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         jenis: 'HUTANG_TERLAMBAT',
         judul: 'Hutang pemasok terlambat',
         keterangan: `${h.terlambat} hutang ke pemasok melewati jatuh tempo.`,
+        rincian: await rincianHutang('terlambat'),
         jumlah: h.terlambat,
         tautan: '/hutang?terlambat=true',
       });
@@ -195,18 +203,25 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         jenis: 'HUTANG_JATUH_TEMPO',
         judul: 'Hutang pemasok segera jatuh tempo',
         keterangan: `${h.segera} hutang ke pemasok jatuh tempo dalam 3 hari.`,
+        rincian: await rincianHutang('segera'),
         jumlah: h.segera,
         tautan: '/hutang',
       });
     }
   }
   if (izin.has('persediaan.stok.lihat')) {
-    const s = await peringatanStok(0);
+    const s = await peringatanStok(30);
+    const daftarStok = (st: string) =>
+      s.barang
+        .filter((b) => b.statusStok === st)
+        .slice(0, 3)
+        .map((b) => `${b.namaBarang} · stok ${teksQty(b.stokFisik)} ${b.kodeSatuan}`);
     if (s.habis > 0) {
       hasil.push({
         jenis: 'STOK_HABIS',
         judul: 'Stok habis',
         keterangan: `${s.habis} barang aktif stoknya 0.`,
+        rincian: daftarStok('HABIS'),
         jumlah: s.habis,
         tautan: '/persediaan?tab=posisi&status=HABIS',
       });
@@ -216,6 +231,7 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         jenis: 'STOK_KRITIS',
         judul: 'Stok kritis',
         keterangan: `${s.kritis} barang di bawah stok minimum.`,
+        rincian: daftarStok('KRITIS'),
         jumlah: s.kritis,
         tautan: '/persediaan?tab=posisi&status=KRITIS',
       });
