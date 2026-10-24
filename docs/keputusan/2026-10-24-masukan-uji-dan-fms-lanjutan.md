@@ -143,6 +143,22 @@ ringkasan saldo awal tahun baru, lalu data operasional lama dipindah ke arsip (t
 dihapus: dokumen pembukuan wajib disimpan 10 tahun (UU KUP pasal 28). Data teknis (sesi login, kode persetujuan,
 log teknis) boleh dibersihkan otomatis sesuai masa simpan. Termasuk unduh cadangan lewat aplikasi untuk server di cloud.
 
+**Keputusan teknis (24 Okt, pemilik menyerahkan bentuknya; sistem ini belum pembukuan akuntansi penuh):**
+- Data **tidak dipindah** ke tabel/folder lain. Alasan: volume toko (ratusan ribu baris per tahun) jauh di bawah batas
+  yang membuat PostgreSQL berindeks lambat; daftar memakai indeks tanggal dan paginasi; memindah baris memutus rujukan
+  lintas tahun (retur Januari atas nota Desember, pelunasan piutang tahun lalu) dan menambah risiko kehilangan data.
+  Bila kelak menembus puluhan juta baris, dipakai partisi PostgreSQL per tahun (tanpa mengubah aplikasi).
+- **Tutup tahun** (Owner, *Pengaturan › Arsip tahunan*): hanya tahun yang sudah lewat dan tanpa dokumen setengah jalan;
+  tahun itu **dikunci** dari pencatatan/perubahan bertanggal tahun itu; semua transaksinya (termasuk void, retur,
+  mutasi, log) + potret data master ditulis utuh ke **berkas arsip** gzip JSON ber-SHA-256 di folder penyimpanan
+  (ikut cadangan harian). Data tetap terbaca di semua layar dan laporan.
+- **Periksa** = berkas utuh (checksum) dan jumlah baris sama dengan database; **Buka kembali** (alasan wajib) =
+  rollback penguncian; tutup ulang membuat berkas baru (berkas lama disimpan). Pemulihan data rusak tetap lewat
+  cadangan; berkas arsip menjadi pembanding.
+- Data teknis yang tumbuh cepat sudah dibersihkan otomatis (kunci idempoten 24 jam); sesi login tetap [APPEND] karena
+  kecil dan dipakai jejak keamanan.
+- **Selesai 24 Okt** (docs/05 §18).
+
 ### K-166 — Pembaruan aplikasi yang aman bagi data lama
 
 **Keputusan (pemilik):** pembaruan tidak boleh merusak data nyata. **Rencana (alur rilis):** (1) migrasi hanya maju
@@ -150,6 +166,12 @@ dan tidak pernah diedit (sudah berlaku); (2) cadangan otomatis "Sebelum pembarua
 (3) uji migrasi pada salinan database toko sebelum dipasang; (4) 5 alur kritis e2e wajib lulus (K-085); (5) nomor
 versi dan catatan perubahan tampil di aplikasi; (6) langkah pulih bila pembaruan gagal. Ditulis sebagai prosedur di
 panduan server.
+
+**Selesai 24 Okt:** (3) `pnpm db:uji-migrasi` / `dist/uji-migrasi.js` memulihkan salinan database ke
+`<db>_ujimigrasi`, menjalankan migrasi, dan menolak bila tabel/baris lama berkurang; (5) versi + catatan perubahan
+di menu pengguna › Tentang aplikasi dan `GET /api/health` (versi, migrasi terpasang/tersedia); (2)+(6) skrip
+`perbarui-server.ps1`: hentikan server → cadangan → pull → build → uji migrasi salinan → migrasi → nyalakan +
+periksa; gagal di tengah = kode dikembalikan ke versi sebelumnya dan server dinyalakan dengan versi lama.
 
 ### K-167 — Pencarian universal di topbar
 
@@ -172,5 +194,5 @@ Enter membuka, Esc menutup. Daftar Barang/Pelanggan/Pemasok membaca `?cari=`.
 4. K-163 editor kampanye promo — **bagian 1 selesai 24 Okt** (waktu sampai menit, hari/jam, sasaran banyak
    barang/kategori/merk, harga khusus, beli X gratis Y barang sama, templat; docs/06 PR12–PR15). Bagian 2 (usulan):
    voucher, kupon undian, sasaran atribut, gratis barang berbeda.
-5. K-165 dan K-166 (alur arsip dan pembaruan), bersama sisa gelombang 3–4 lama (K-129 sisa, K-131, K-137, K-138, K-139,
+5. K-165 dan K-166 (alur arsip dan pembaruan) — **selesai 24 Okt**; berikutnya sisa gelombang 3–4 lama (K-129 sisa, K-131, K-137, K-138, K-139,
    K-143) dan K-123 dst.

@@ -15,6 +15,7 @@ import { FormPenomoran } from './form-penomoran';
 import { FormProfil } from './form-profil';
 import { KartuLogo } from './kartu-logo';
 import { KartuPrinterStruk } from './kartu-printer-struk';
+import { TabArsip } from './tab-arsip';
 import { TabCadangan } from './tab-cadangan';
 import { TabLog } from './tab-log';
 import { TabPembayaran } from './tab-pembayaran';
@@ -57,7 +58,7 @@ export function HalamanPengaturan() {
         </div>
       ) : (
         <Tabs value={tab} onValueChange={(v) => setUrl({ tab: v }, { replace: true })}>
-          <TabsList>
+          <TabsList className="h-auto flex-wrap justify-start [&>*]:flex-none">
             <TabsTrigger value="profil">Profil toko</TabsTrigger>
             <TabsTrigger value="struk">Struk &amp; printer</TabsTrigger>
             <TabsTrigger value="penomoran">Penomoran</TabsTrigger>
@@ -68,6 +69,7 @@ export function HalamanPengaturan() {
             <TabsTrigger value="keamanan">Keamanan</TabsTrigger>
             <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>
             {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
+            {bolehCadangan && <TabsTrigger value="arsip">Arsip tahunan</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
           </TabsList>
           <TabsContent value="profil">
@@ -108,6 +110,11 @@ export function HalamanPengaturan() {
           {bolehCadangan && (
             <TabsContent value="cadangan">
               <TabCadangan />
+            </TabsContent>
+          )}
+          {bolehCadangan && (
+            <TabsContent value="arsip">
+              <TabArsip />
             </TabsContent>
           )}
           {bolehLihatLog && (

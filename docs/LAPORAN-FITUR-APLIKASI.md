@@ -260,6 +260,24 @@ Statistik) | Kasir (catat BBM), Admin/Owner (servis, batal, statistik) | desktop
 - Bukti: `[KODE: api/modules/sistem/cari/service.ts]`, `[KODE: web/components/layout/kotak-cari.tsx]`;
   `[DOK: K-167]`; e2e `cari.spec.ts`. Status: BERFUNGSI.
 
+**F46. Arsip tahunan / tutup tahun** | Pengaturan › Arsip tahunan | Owner | desktop
+- Fungsi: tutup tahun yang sudah lewat (ditolak bila ada dokumen setengah jalan); tahun dikunci dari pencatatan
+  bertanggal tahun itu; semua transaksi tahun itu (termasuk void, retur, mutasi, log) + potret master ditulis utuh ke
+  berkas arsip ber-SHA-256 yang ikut dicadangkan; periksa keutuhan dan kesamaan dengan database; unduh; buka kembali
+  dengan alasan. Data tidak dipindah sehingga semua layar/laporan tetap membaca tahun lama.
+- Tabel: `tutup_tahun` (migrasi 0031).
+- Bukti: `[KODE: api/modules/sistem/arsip/service.ts]`, `[KODE: api/modules/sistem/arsip/tabel.ts]`;
+  `[DOK: docs/05 §18, K-165]`; tes `arsip.test.ts`, e2e `arsip.spec.ts`. Status: BERFUNGSI.
+
+**F47. Pembaruan aplikasi yang aman dan versi aplikasi** | server; menu pengguna › Tentang aplikasi | Owner/teknisi;
+semua (lihat versi) | server/desktop
+- Fungsi: skrip pembaruan menghentikan server, mencadangkan, menguji migrasi pada salinan database (menolak bila data
+  lama berkurang), memigrasi, menyalakan dan memeriksa; mundur otomatis ke versi lama bila gagal. Versi, status
+  migrasi, dan catatan perubahan tampil di aplikasi.
+- Bukti: `[KODE: api/db/uji-migrasi-salinan.ts]`, `[KODE: scripts/server/perbarui-server.ps1]`,
+  `[KODE: shared/versi.ts]`; `[DOK: K-166]`; tes `uji-migrasi-salinan.test.ts`, `health.test.ts`. Status: BERFUNGSI
+  (uji migrasi penuh butuh hak CREATEDB di server).
+
 ### 4.2 Data master
 
 **F9. Data Barang** | Data Master | Admin, Owner | desktop
@@ -1104,6 +1122,11 @@ master/armada/routes.ts POST /api/sopir/ master.armada.kelola
 master/armada/routes.ts PATCH /api/sopir/:id master.armada.kelola
 master/armada/routes.ts PATCH /api/sopir/:id/status master.armada.kelola
 sistem/cari/routes.ts GET /api/cari dashboard.dasar (hasil disaring per izin)
+sistem/arsip/routes.ts GET /api/arsip sistem.cadangan.kelola
+sistem/arsip/routes.ts POST /api/arsip/:tahun/tutup sistem.cadangan.kelola
+sistem/arsip/routes.ts POST /api/arsip/:tahun/buka sistem.cadangan.kelola
+sistem/arsip/routes.ts POST /api/arsip/:tahun/periksa sistem.cadangan.kelola
+sistem/arsip/routes.ts GET /api/arsip/:tahun/berkas sistem.cadangan.kelola
 master/armada/routes.ts GET /api/armada/bbm penjualan.surat_jalan.kelola
 master/armada/routes.ts POST /api/armada/bbm penjualan.surat_jalan.kelola
 master/armada/routes.ts POST /api/armada/bbm/:id/batal master.armada.kelola
@@ -1156,11 +1179,11 @@ sistem/saluran/routes.ts:47 POST /api/saluran/saya/telegram/periksa LOGIN
 sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 ```
 
-## Lampiran B — Daftar tabel database (57)
+## Lampiran B — Daftar tabel database (59)
 
 | Berkas skema | Tabel (baris deklarasi) |
 |---|---|
-| `apps/api/src/db/schema/sistem.ts` | konfigurasi:37, penghitung_nomor:51, pengguna:61, sesi_login:89, log_aktivitas:114, cadangan:146, kunci_idempoten (K-164) |
+| `apps/api/src/db/schema/sistem.ts` | konfigurasi:37, penghitung_nomor:51, pengguna:61, sesi_login:89, log_aktivitas:114, cadangan:146, kunci_idempoten (K-164), tutup_tahun (K-165) |
 | `…/master.ts` | kategori:41, merk:56, satuan:69, jenis_atribut:95, pemasok:119, tingkat_harga:136, golongan_pelanggan:178, pelanggan:191, barang:224, barang_atribut:288, barang_satuan_jual:321, harga_barang:351, promo:402, promo_pelanggan:488 |
 | `…/persediaan.ts` | persediaan:41, penerimaan_barang:79, penerimaan_barang_detail:139, penyesuaian_stok:184, penyesuaian_stok_detail:213, mutasi_persediaan:274 |
 | `…/penjualan.ts` | order_penjualan:46, order_penjualan_detail:116, penjualan:180, penjualan_detail:269, surat_jalan:349, surat_jalan_detail:390, pembayaran_penjualan:416 |
@@ -1187,7 +1210,8 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Pencarian universal Ctrl+K (K-167); kebal kiriman ganda (kunci idempoten) dan cek versi data master (K-164).
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
-- 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1).
+- 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).
 - 2026-10-24 — F45 FMS pendukung: BBM, servis, pengingat, statistik armada (K-162).
 - 2026-10-24 — F43: isi massal data muatan lewat Excel (K-161 selesai). Lampiran A: endpoint perjalanan, kendaraan,
   sopir, hasil surat jalan, pencarian, dan data muatan ditambahkan.

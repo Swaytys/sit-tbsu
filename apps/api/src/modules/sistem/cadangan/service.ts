@@ -70,11 +70,11 @@ let sedangBerjalan = false;
 
 // --- Program luar ---
 
-function programPg(k: KonfigCadangan, nama: 'pg_dump' | 'pg_restore'): string {
+export function programPg(k: KonfigCadangan, nama: 'pg_dump' | 'pg_restore'): string {
   return k.pgBin ? path.join(k.pgBin, nama) : nama;
 }
 
-function koneksiPg(url: string) {
+export function koneksiPg(url: string) {
   const u = new URL(url);
   return {
     argumen: ['-h', u.hostname, '-p', u.port || '5432', '-U', decodeURIComponent(u.username)],

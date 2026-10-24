@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { VERSI_APLIKASI } from '@sit/shared';
 import { app } from '../../../app';
 import type * as RepoHealth from './repo';
 
@@ -7,14 +8,19 @@ const ping = vi.hoisted(() => vi.fn<() => Promise<void>>());
 vi.mock('./repo', async (importOriginal) => {
   const asli = await importOriginal<typeof RepoHealth>();
   ping.mockImplementation(asli.ping);
-  return { ping };
+  return { ...asli, ping };
 });
 
 describe('GET /api/health', () => {
   it('200 dan melaporkan database ok (tanpa login)', async () => {
     const res = await app.request('/api/health');
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ data: { status: 'ok', db: 'ok' } });
+    const isi = (await res.json()) as {
+      data: { status: string; versi: string; migrasi: { terpasang: number; tersedia: number } };
+    };
+    expect(isi.data).toMatchObject({ status: 'ok', db: 'ok', versi: VERSI_APLIKASI });
+    // Database uji sudah dimigrasi penuh: semua migrasi yang dibawa aplikasi terpasang.
+    expect(isi.data.migrasi.terpasang).toBe(isi.data.migrasi.tersedia);
   });
 
   it('503 dengan format error standar bila database tidak dapat dihubungi', async () => {

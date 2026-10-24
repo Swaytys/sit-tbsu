@@ -1,7 +1,8 @@
 import { LABEL_PERAN } from '@sit/shared';
 import { ID_SLOT_LENCANA } from '@/components/banner-lipat';
 import { KotakCari } from './kotak-cari';
-import { Bell, ChevronDown, KeyRound, LockKeyhole, LogOut, Menu, Store } from 'lucide-react';
+import { Bell, ChevronDown, Info, KeyRound, LockKeyhole, LogOut, Menu, Store } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
 import { useNotifikasi } from '@/api/persediaan';
@@ -16,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { DialogTentang } from './dialog-tentang';
 import { PindahPenjualan } from './pindah-penjualan';
 
 type Props = { judul: string; onToggleSidebar: () => void };
@@ -114,6 +116,7 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
   const pengguna = usePengguna();
   const logout = useLogout();
   const navigate = useNavigate();
+  const [tentang, setTentang] = useState(false);
 
   return (
     <header className="z-20 flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 shadow-sm">
@@ -157,11 +160,15 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
           <DropdownMenuItem onSelect={() => void navigate('/akun/password')}>
             <KeyRound /> Akun saya
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setTentang(true)}>
+            <Info /> Tentang aplikasi
+          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onSelect={() => logout.mutate()}>
             <LogOut /> Keluar
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {tentang && <DialogTentang onTutup={() => setTentang(false)} />}
     </header>
   );
 }

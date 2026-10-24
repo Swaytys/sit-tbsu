@@ -82,6 +82,9 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | P4 | Promo happy hour/hari tertentu dibuat dengan jam terbalik atau melewati tengah malam | Promo tidak pernah berlaku | Ubah jamnya | Jam selesai wajib setelah jam mulai (validasi dan CHECK DB) | Contoh "13:00–15:00" di form | Ada (K-163) |
 | P5 | Kasir mengetik qty tanpa barang gratis (beli 10 gratis 1, pembeli bawa 11) | Gratis tidak terhitung | Ubah qty | Penjelasan di form: qty = semua yang dibawa | Teks bantuan di bagian Manfaat | Ada sebagian (K-163) |
 | P6 | Promo lama dijadikan dasar promo baru dengan menyalin manual | Isian beda/terlupa | — | Templat kampanye: simpan dan pakai ulang isian | Menu ⋯ › Simpan sebagai templat | Ada (K-163) |
+| P7 | Catatan bertanggal tahun yang sudah ditutup | Arsip tidak sama dengan database | Buka kembali tahun (Owner, alasan), koreksi, tutup ulang | Isian bertanggal tahun ditutup ditolak; Periksa arsip mendeteksi selisih | Pesan menyebut tahun ditutup | Ada (K-165) |
+| P8 | Tahun ditutup padahal masih ada order/shift/retur setengah jalan | Dokumen menggantung di tahun terkunci | — | Tutup tahun ditolak dengan daftar penghalang | Penghalang tampil di kartu tahun | Ada (K-165) |
+| P9 | Pembaruan aplikasi merusak data lama | Data hilang/aplikasi mati | Mundur otomatis ke versi lama; pulihkan cadangan sebelum pembaruan | Uji migrasi pada salinan sebelum migrasi asli; server dihentikan sebelum cadangan | Versi dan status migrasi di Tentang aplikasi | Ada (K-166) |
 
 ---
 
@@ -128,4 +131,5 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-24 — A14 menjadi *Ada* (saring belum lengkap + isi massal Excel).
 - 2026-10-24 — A19–A22 catatan BBM/servis dan pengingat (K-162).
 - 2026-10-24 — P4–P6 kampanye promo (K-163).
+- 2026-10-24 — P7–P9 arsip tahunan dan pembaruan aman (K-165, K-166).
 - 2026-10-24 — A15–A18 rit rencana dan papan Pengiriman (K-160); A5 menunjuk kolom Backlog.

@@ -152,8 +152,23 @@ PS> cd C:\BonsaiUrip\sit-tbsu
 PS> powershell -ExecutionPolicy Bypass -File scripts\server\perbarui-server.ps1
 ```
 
-Skrip membuat cadangan dulu, menghentikan aplikasi, mengambil versi baru, build, memperbarui struktur database,
-lalu menyalakan lagi (± 3–5 menit). Lakukan di luar jam toko.
+Lakukan di luar jam toko (± 5–10 menit). Urutan skrip:
+
+1. Menghentikan aplikasi (tidak ada transaksi baru).
+2. Cadangan "sebelum pembaruan" ke disk lokal (dan cloud bila diatur). Gagal = berhenti, aplikasi dinyalakan lagi.
+3. Mengambil versi baru (`git pull`), memasang dependency, build.
+4. **Uji migrasi pada salinan**: database toko disalin ke database sementara, perubahan struktur dicoba di sana, dan
+   jumlah baris setiap tabel dibandingkan. Ada data yang hilang = berhenti; database asli tidak disentuh.
+5. Memperbarui struktur database asli.
+6. Menyalakan aplikasi dan memeriksa versi serta jumlah migrasi (tampil "Pembaruan selesai: versi lama -> baru").
+
+Bila langkah 3–5 gagal, skrip **mengembalikan kode ke versi sebelumnya** dan menyalakan aplikasi versi lama;
+pesan merah menjelaskan sebabnya. Bila aplikasi tidak bisa menyala sama sekali, pulihkan cadangan langkah 2
+(bagian 8, snapshot terbaru). Uji migrasi dapat dicoba kapan saja tanpa memperbarui:
+`pnpm db:uji-migrasi` (user database wajib punya hak CREATEDB; pemasang sudah memberikannya).
+
+Setelah selesai, buka aplikasi di komputer kasir, tekan **Ctrl+F5**, lalu menu pengguna › **Tentang aplikasi**:
+versi tampilan dan server harus sama, struktur database "N/N".
 
 ## 10. Menyalakan ulang aplikasi
 
@@ -166,6 +181,7 @@ komputer server. Log ada di `C:\BonsaiUrip\sit-tbsu\log\` (`server.log`, `penjag
 |---|---|
 | Setiap minggu | Owner membuka *Pengaturan › Cadangan*: cadangan terakhir hari ini/kemarin, lokal & cloud berhasil. |
 | Setiap bulan | Lihat hasil uji pulih tanggal 1 (*Berhasil*). |
+| Awal tahun (setelah semua dokumen tahun lalu selesai) | Owner: *Pengaturan › Arsip tahunan* › **Tutup tahun** tahun lalu, lalu **Periksa**. Berkas arsip ikut cadangan malam itu. |
 | Setiap 2 tahun | Perbarui sertifikat: `scripts\server\buat-sertifikat.ps1 -KataSandi <HTTPS_PFX_PASSWORD dari .env>` lalu nyalakan ulang aplikasi (komputer kasir tidak perlu dipasang ulang). Juga bila IP server berubah. |
 | Otomatis | Windows Update di server (atur jam aktif agar tidak restart saat toko buka). |
 
