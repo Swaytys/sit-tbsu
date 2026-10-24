@@ -394,7 +394,8 @@ definisi selesai:
    2026-10-24**; K-164 dan K-167 **selesai 2026-10-24**; K-161 bagian 1 (data dan pemeriksaan muatan) dan K-160
    (papan Pengiriman, rit rencana, migrasi 0027) **selesai 2026-10-24**; sisa K-161 (isi massal Excel) **selesai
    2026-10-24**; K-162 (BBM, servis, pengingat STNK/KIR, statistik armada, migrasi 0028) **selesai 2026-10-24**;
-   berikutnya K-163, K-165, K-166.
+   K-163 bagian 1 (kampanye promo, migrasi 0029–0030) **selesai 2026-10-24**; berikutnya K-165, K-166, lalu
+   K-163 bagian 2 (voucher, kupon undian).
 4. **Pencarian dan tampilan** (K-123): atribut dicocokkan sebagian, label keterjualan, angka stok merah tebal,
    teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan.
 5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),

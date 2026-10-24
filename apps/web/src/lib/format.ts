@@ -2,7 +2,7 @@ import { TZDate } from '@date-fns/tz';
 import { format } from 'date-fns';
 
 /** Zona tampilan (K-042): data waktu dari API dalam UTC, ditampilkan waktu Jakarta. */
-const ZONA_TOKO = 'Asia/Jakarta';
+export const ZONA_TOKO = 'Asia/Jakarta';
 
 /**
  * Menampilkan desimal dari API (string, mis. "1250.500000") dengan gaya Indonesia: "1.250,5".

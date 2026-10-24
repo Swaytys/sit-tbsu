@@ -386,14 +386,27 @@ Semua tugas kasir, ditambah:
   usulan (harga Normal ikut diganti hanya bila sakelar "Ganti juga harga Normal" menyala); **Abaikan** = harga
   tidak diubah. Barang dengan **Harga otomatis** (bawaan semua barang) naik sendiri saat harga modal naik; bila
   harga modal turun atau harga Normal Rp tetap jadi di bawah target, barang itu masuk Tinjau Harga.
-- **Promo** (*Pengaturan › Promo*; menu samping "Promo" sudah tidak ada): buat potongan persen atau rupiah per satuan untuk semua barang, satu kategori, atau satu
-  barang, dengan masa berlaku dan syarat (minimal qty per baris, minimal total belanja). **Untuk pembeli**: semua
-  pembeli, satu golongan pelanggan, atau pelanggan tertentu; bisa juga disyaratkan "pelanggan sudah belanja
+- **Promo / kampanye** (*Pengaturan › Promo*): klik **Buat promo**. Form terdiri dari lima bagian:
+  1. **Waktu berlaku**: **Mulai** dan **Selesai** (tanggal dan jam-menit). Opsional: **Hanya hari** (klik Sen…Min;
+     tidak ada yang dipilih = setiap hari) dan **Jam harian** mulai–sampai (mis. 13:00–15:00 untuk happy hour).
+  2. **Barang**: **Semua barang**, atau **Per barang / Per kategori / Per merk (pilih beberapa)**: tambahkan satu
+     per satu (barang lewat kotak cari, kategori/merk lewat daftar), hapus dengan ×. Minimal qty per baris (opsional).
+  3. **Manfaat**: **Potongan persen** (boleh batas rupiah per baris), **Potongan rupiah per satuan**, **Harga
+     khusus** (harga per satuan dasar; hanya berlaku bila lebih murah dari harga biasanya), atau **Beli X gratis Y**
+     (barang yang sama; mis. setiap beli 10 gratis 1). Untuk beli X gratis Y, kasir mengetik **semua** qty yang
+     dibawa pembeli (mis. 11), yang gratis otomatis menjadi potongan.
+  4. **Syarat** (opsional): minimal total belanja, pembeli tertentu, riwayat belanja pelanggan.
+  5. **Batas uang** (opsional): anggaran dan batas per pembeli (lihat di bawah).
+  **Templat kampanye**: di daftar promo klik ⋯ › **Simpan sebagai templat** (isinya disalin, waktunya tidak). Klik
+  **Templat kampanye** di atas daftar untuk melihat templat; ⋯ › **Pakai templat (promo baru)** membuka form promo
+  yang sudah terisi — cukup ubah nama dan waktunya lalu Simpan. Templat tidak pernah berlaku sendiri.
+  **Untuk pembeli**: semua pembeli, satu golongan pelanggan, atau pelanggan tertentu; bisa juga disyaratkan "pelanggan sudah belanja
   minimal Rp … dalam … hari terakhir". Potongan promo dihitung dari harga tier yang berlaku (harga dasar, atau Grosir bila total belanja
   tercapai), jadi tier dan promo bisa terpakai bersama.
-  Satu promo per baris (potongan terbesar). Promo yang sudah terpakai tidak bisa diubah aturannya; nonaktifkan
-  lalu buat promo baru.
-  - Kolom **Potongan diberikan** = jumlah rupiah potongan promo itu di semua penjualan (penjualan yang di-void
+  Satu promo per baris (manfaat terbesar). Promo yang sudah terpakai tidak bisa diubah aturannya (nama, keterangan,
+  waktu selesai, anggaran, dan batas per pembeli tetap bisa); untuk aturan lain nonaktifkan lalu buat promo baru
+  (atau simpan dulu sebagai templat).
+  - Kolom **Terpakai** = jumlah rupiah potongan promo itu di semua penjualan (penjualan yang di-void
     tidak dihitung). Bila promo punya anggaran, di bawahnya tertulis "sisa Rp … dari Rp …".
   - **Anggaran promo** (opsional): jumlah seluruh potongan yang boleh diberikan. Saat sisanya lebih kecil dari
     potongan sebuah barang, barang itu dipotong sebesar sisanya; setelah habis, promo berhenti sendiri. Void

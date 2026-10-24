@@ -323,8 +323,9 @@ export async function checkout(
         )
       : null;
   const id = await dalamTransaksi(async (tx) => {
-    // PR5: tanggal checkout yang menentukan promo.
-    const tanggal = tanggalOperasional();
+    // PR5: saat checkout yang menentukan promo.
+    const saat = sekarang();
+    const tanggal = tanggalOperasional(saat);
     const ctx = await siapkanOrder(tx, input, pelaku, asal);
     const { h } = ctx;
     const jenis = h.jenisPenjualan;
@@ -332,7 +333,7 @@ export async function checkout(
       throw new AppError('VALIDASI', 'Bayar saat terima hanya untuk pengantaran.', 400);
     }
     const terkini = await hargaTerkini(tx, ctx.rows, input.perbaruiHarga);
-    const promo = await hitungPromoCheckout(tx, terkini.rows, pelaku, tanggal, h.idPelanggan);
+    const promo = await hitungPromoCheckout(tx, terkini.rows, pelaku, saat, h.idPelanggan);
     const rows = terkini.rows.map((r, i) => ({ ...r, ...promo[i] }));
     const subtotalOrder = rows.reduce((t, r) => t + r.subtotal, 0);
     if (h.diskonTransaksi > subtotalOrder) {

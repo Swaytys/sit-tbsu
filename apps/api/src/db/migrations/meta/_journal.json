@@ -204,6 +204,20 @@
       "when": 1792804879605,
       "tag": "0028_fms_pendukung",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792811849815,
+      "tag": "0029_kampanye_promo",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792811868153,
+      "tag": "0030_promo_sasaran_lama",
+      "breakpoints": true
     }
   ]
 }

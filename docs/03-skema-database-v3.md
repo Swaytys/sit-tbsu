@@ -128,6 +128,11 @@ yang berhak untuk sasaran PELANGGAN.
 v3.14 (K-110): `anggaran` (jumlah seluruh potongan yang boleh diberikan; NULL = tanpa batas) dan
 `maks_per_pembeli` (potongan paling banyak per pembeli); CHECK keduanya > 0 dan `maks_per_pembeli < anggaran`.
 Yang terpakai tidak disimpan: dihitung dari `penjualan_detail.diskon_promo` (bukan VOID).
+v3.26 (K-163): `mulai_pada`/`selesai_pada` (timestamptz, CHECK selesai > mulai), `hari_berlaku` (bit 1–127),
+`jam_mulai`/`jam_selesai` (`HH:mm`, keduanya atau tidak sama sekali), `harga_khusus`, `beli_qty`/`gratis_qty`,
+`templat`; `jenis_potongan` + HARGA_KHUSUS, GRATIS (CHECK `chk_promo_nilai` per jenis); `sasaran` + MERK.
+**`promo_sasaran`** (id_promo + tepat satu dari id_barang/id_kategori/id_merk, CHECK `num_nonnulls = 1`, unik per
+promo) menggantikan `promo.id_kategori`/`id_barang` (dipindah di migrasi 0029, kolom dihapus di 0030).
 
 ### 3.3 Persediaan
 
@@ -521,4 +526,6 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-24 — v3.26: promo kampanye: kolom waktu, hari/jam, manfaat HARGA_KHUSUS/GRATIS, templat; tabel
+  `promo_sasaran`; `promo.id_kategori`/`id_barang` dihapus setelah datanya dipindah (migrasi 0029–0030, K-163).
 - 2026-10-24 — v3.25: tabel `catatan_bbm`, `catatan_servis`; `kendaraan.servis_tiap_km`, `servis_tiap_bulan` (CHECK `chk_kendaraan_servis`) (migrasi 0028, K-162).

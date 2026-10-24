@@ -46,10 +46,10 @@ test('Admin membuat promo barang; kasir melihat potongan, melepas/memasang denga
     await dialog.getByLabel('Nama promo').fill(namaPromo);
     await dialog.getByLabel('Potongan persen').fill('10');
     await dialog.getByLabel('Sasaran promo').click();
-    await admin.getByRole('option', { name: 'Satu barang' }).click();
-    await dialog.getByLabel('Barang promo').fill(nama);
+    await admin.getByRole('option', { name: 'Per barang (pilih beberapa)' }).click();
+    await dialog.getByLabel('Tambah barang promo').fill(nama);
     await expect(admin.getByRole('option', { name: new RegExp(nama) })).toBeVisible();
-    await dialog.getByLabel('Barang promo').press('Enter');
+    await dialog.getByLabel('Tambah barang promo').press('Enter');
     await expect(dialog).toContainText(nama);
     await dialog.getByRole('button', { name: 'Simpan' }).click();
     await expect(
@@ -114,5 +114,92 @@ test('Admin membuat promo barang; kasir melihat potongan, melepas/memasang denga
       await api(admin, `/promo/${idPromo}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
     }
     await api(admin, `/barang/${lem.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+  }
+});
+
+test('K-163: kampanye per barang (dua barang), beli 2 gratis 1, simpan sebagai templat, pakai templat', async ({
+  page,
+}) => {
+  test.slow();
+  const kode = Date.now();
+  await masukCepat(page, 'ADMIN');
+  const a = await barangUji(page, `Kampanye A ${kode}`, 5000);
+  const b = await barangUji(page, `Kampanye B ${kode}`, 3000);
+  const namaPromo = `Kampanye E2E ${kode}`;
+  const dibuat: number[] = [];
+  try {
+    await page.goto('/pengaturan?tab=promo');
+    await page.getByRole('button', { name: 'Buat promo' }).click();
+    const d = page.getByRole('dialog', { name: 'Buat promo' });
+    await d.getByLabel('Nama promo').fill(namaPromo);
+    await d.getByLabel('Sasaran promo').click();
+    await page.getByRole('option', { name: 'Per barang (pilih beberapa)' }).click();
+    for (const x of [a, b]) {
+      await d.getByLabel('Tambah barang promo').fill(x.kode);
+      await expect(page.getByRole('option', { name: new RegExp(x.kode) })).toBeVisible();
+      await d.getByLabel('Tambah barang promo').press('Enter');
+    }
+    await expect(d.getByRole('button', { name: /^Hapus / })).toHaveCount(2);
+    await d.getByLabel('Jenis manfaat').click();
+    await page.getByRole('option', { name: 'Beli X gratis Y' }).click();
+    await d.getByLabel('Qty beli').fill('2');
+    await d.getByLabel('Qty gratis').fill('1');
+    await d.getByRole('button', { name: 'Simpan' }).click();
+    await expect(page.getByText(new RegExp(`Promo ${namaPromo} dibuat`))).toBeVisible();
+    const p = (await api<{ id: number }[]>(page, `/promo?cari=${kode}`))[0]!;
+    dibuat.push(p.id);
+
+    // Qty 6 = 2 paket (2+1) → 2 gratis.
+    const pr = await api<{ baris: { namaPromo: string | null; diskonPromo: number }[] }>(
+      page,
+      '/order/pratinjau',
+      'POST',
+      {
+        idOrder: null,
+        order: {
+          jenisPenjualan: 'LANGSUNG',
+          baris: [
+            { idBarang: a.id, qty: '6' },
+            { idBarang: b.id, qty: '3' },
+          ],
+        },
+      },
+    );
+    expect(pr.baris.map((x) => [x.namaPromo, x.diskonPromo])).toEqual([
+      [namaPromo, 10_000],
+      [namaPromo, 3_000],
+    ]);
+
+    // Simpan sebagai templat, lalu pakai templat menjadi promo baru.
+    await page.getByLabel('Cari promo').fill(namaPromo);
+    await page.getByRole('button', { name: `Aksi untuk ${namaPromo}` }).click();
+    await page.getByRole('menuitem', { name: 'Simpan sebagai templat' }).click();
+    const dt = page.getByRole('dialog', { name: 'Simpan sebagai templat kampanye' });
+    await dt.getByLabel('Nama templat').fill(`Templat ${kode}`);
+    await dt.getByRole('button', { name: 'Simpan' }).click();
+    await expect(page.getByText(new RegExp(`Templat Templat ${kode} dibuat`))).toBeVisible();
+    await page.getByRole('button', { name: 'Templat kampanye' }).click();
+    await page.getByLabel('Cari promo').fill(`Templat ${kode}`);
+    await expect(page.getByRole('row').filter({ hasText: `Templat ${kode}` })).toContainText(
+      'beli 2 gratis 1',
+    );
+    await page.getByRole('button', { name: `Aksi untuk Templat ${kode}` }).click();
+    await page.getByRole('menuitem', { name: 'Pakai templat (promo baru)' }).click();
+    const dp = page.getByRole('dialog', { name: new RegExp('Promo baru dari templat') });
+    await dp.getByLabel('Nama promo').fill(`${namaPromo} jilid 2`);
+    await expect(dp.getByRole('button', { name: /^Hapus / })).toHaveCount(2);
+    await dp.getByRole('button', { name: 'Simpan' }).click();
+    await expect(page.getByText(new RegExp(`jilid 2 dibuat`))).toBeVisible();
+    for (const x of await api<{ id: number }[]>(page, `/promo?cari=${kode}`)) dibuat.push(x.id);
+    for (const x of await api<{ id: number }[]>(page, `/promo?cari=${kode}&templat=1`)) {
+      dibuat.push(x.id);
+    }
+  } finally {
+    for (const id of new Set(dibuat)) {
+      await api(page, `/promo/${id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+    }
+    for (const x of [a, b]) {
+      await api(page, `/barang/${x.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+    }
   }
 });

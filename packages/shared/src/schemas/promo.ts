@@ -12,7 +12,7 @@ import {
   type StatusBerlakuPromo,
 } from '../enums';
 import { bandingQty } from '../qty';
-import { skemaQtyPositif, skemaTanggal } from './persediaan';
+import { skemaQtyPositif } from './persediaan';
 import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
 
 /*
@@ -39,23 +39,71 @@ export const skemaPersenPromo = z.preprocess(
 const rupiahPositif = (pesan: string) =>
   z.preprocess(kosongJadiNull, skemaRupiah.refine((v) => v > 0, pesan).nullable());
 
-export const skemaPromo = z
+/** `HH:mm` 00:00–23:59. */
+const POLA_JAM = /^([01]\d|2[0-3]):[0-5]\d$/;
+const jamOpsional = z.preprocess(
+  kosongJadiNull,
+  z.string().regex(POLA_JAM, 'Jam harus HH:mm, mis. 13:00.').nullable(),
+);
+
+/**
+ * Isian lama (sebelum K-163) tetap diterima: `tanggalMulai`/`tanggalSelesai` menjadi 00:00–23:59:59 WIB (zona
+ * toko tanpa musim panas, +07:00), `idKategori`/`idBarang` menjadi `idSasaran` satu isi.
+ */
+function isianLama(v: unknown): unknown {
+  if (typeof v !== 'object' || v === null) return v;
+  const o = { ...(v as Record<string, unknown>) };
+  if (o.mulaiPada === undefined && typeof o.tanggalMulai === 'string') {
+    o.mulaiPada = `${o.tanggalMulai}T00:00:00+07:00`;
+  }
+  if (o.selesaiPada === undefined && typeof o.tanggalSelesai === 'string') {
+    o.selesaiPada = `${o.tanggalSelesai}T23:59:59.999+07:00`;
+  }
+  if (o.idSasaran === undefined) {
+    const lama =
+      o.sasaran === 'KATEGORI' ? o.idKategori : o.sasaran === 'BARANG' ? o.idBarang : null;
+    o.idSasaran = typeof lama === 'number' ? [lama] : [];
+  }
+  return o;
+}
+
+/** Isian promo (form web dan API). */
+export const skemaIsianPromo = z
   .object({
     nama: z
       .string('Nama promo wajib diisi.')
       .trim()
       .min(1, 'Nama promo wajib diisi.')
       .max(100, 'Nama promo maksimal 100 karakter.'),
-    tanggalMulai: skemaTanggal('Tanggal mulai'),
-    tanggalSelesai: skemaTanggal('Tanggal selesai'),
-    jenisPotongan: z.enum(JENIS_POTONGAN, 'Jenis potongan tidak valid.'),
+    /** K-163: mulai dan selesai sampai menit (ISO dengan zona, mis. 2026-11-01T08:00:00+07:00). */
+    mulaiPada: z.iso.datetime({ offset: true, error: 'Waktu mulai wajib diisi.' }),
+    selesaiPada: z.iso.datetime({ offset: true, error: 'Waktu selesai wajib diisi.' }),
+    /** Hari berlaku (1 = Senin … 7 = Minggu); kosong = setiap hari. */
+    hariBerlaku: z
+      .array(z.number().int().min(1).max(7))
+      .max(7)
+      .default([])
+      .transform((h) => [...new Set(h)].sort((a, b) => a - b)),
+    /** Jam harian (zona toko), mis. 13:00–15:00; kosong = sepanjang hari. */
+    jamMulai: jamOpsional.default(null),
+    jamSelesai: jamOpsional.default(null),
+    jenisPotongan: z.enum(JENIS_POTONGAN, 'Jenis manfaat tidak valid.'),
     potonganPersen: z.preprocess(kosongJadiNull, skemaPersenPromo.nullable()).default(null),
     potonganNominal: rupiahPositif('Potongan harus lebih dari 0.').default(null),
     /** Batas potongan per baris (hanya PERSEN). */
     maksPotongan: rupiahPositif('Batas potongan harus lebih dari 0.').default(null),
+    /** K-163 HARGA_KHUSUS: harga per satuan dasar. */
+    hargaKhusus: rupiahPositif('Harga khusus harus lebih dari 0.').default(null),
+    /** K-163 GRATIS: setiap beli `beliQty` gratis `gratisQty` (satuan dasar, barang yang sama). */
+    beliQty: z.preprocess(kosongJadiNull, skemaQtyPositif('Qty beli').nullable()).default(null),
+    gratisQty: z.preprocess(kosongJadiNull, skemaQtyPositif('Qty gratis').nullable()).default(null),
     sasaran: z.enum(SASARAN_PROMO, 'Sasaran promo tidak valid.'),
-    idKategori: z.number().int().positive().nullable().default(null),
-    idBarang: z.number().int().positive().nullable().default(null),
+    /** K-163: id barang/kategori/merk sesuai `sasaran` (boleh beberapa). */
+    idSasaran: z
+      .array(z.number().int().positive())
+      .max(200, 'Maksimal 200 pilihan per promo.')
+      .default([])
+      .transform((d) => [...new Set(d)].sort((a, b) => a - b)),
     /** PR2: syarat qty per baris (satuan dasar). */
     minQty: z.preprocess(kosongJadiNull, skemaQtyPositif('Minimal qty').nullable()).default(null),
     /** PR2: syarat total belanja (total bruto transaksi). */
@@ -87,12 +135,22 @@ export const skemaPromo = z
      */
     anggaran: rupiahPositif('Anggaran promo harus lebih dari 0.').default(null),
     maksPerPembeli: rupiahPositif('Batas per pembeli harus lebih dari 0.').default(null),
+    /** K-163: simpan sebagai templat kampanye (tidak pernah berlaku; dipakai untuk membuat promo baru). */
+    templat: z.boolean().default(false),
   })
   .superRefine((d, ctx) => {
     const masalah = (path: string, message: string) =>
       ctx.addIssue({ code: 'custom', path: [path], message });
-    if (d.tanggalSelesai < d.tanggalMulai) {
-      masalah('tanggalSelesai', 'Tanggal selesai tidak boleh sebelum tanggal mulai.');
+    if (new Date(d.selesaiPada) <= new Date(d.mulaiPada)) {
+      masalah('selesaiPada', 'Waktu selesai harus setelah waktu mulai.');
+    }
+    if ((d.jamMulai === null) !== (d.jamSelesai === null)) {
+      masalah(
+        d.jamMulai === null ? 'jamMulai' : 'jamSelesai',
+        'Isi jam mulai dan jam selesai, atau kosongkan keduanya.',
+      );
+    } else if (d.jamMulai !== null && d.jamSelesai !== null && d.jamSelesai <= d.jamMulai) {
+      masalah('jamSelesai', 'Jam selesai harus setelah jam mulai (tidak melewati tengah malam).');
     }
     if (d.jenisPotongan === 'PERSEN' && d.potonganPersen === null) {
       masalah('potonganPersen', 'Persen potongan wajib diisi.');
@@ -100,11 +158,22 @@ export const skemaPromo = z
     if (d.jenisPotongan === 'NOMINAL' && d.potonganNominal === null) {
       masalah('potonganNominal', 'Potongan per satuan wajib diisi.');
     }
-    if (d.sasaran === 'KATEGORI' && d.idKategori === null) {
-      masalah('idKategori', 'Kategori wajib dipilih.');
+    if (d.jenisPotongan === 'HARGA_KHUSUS' && d.hargaKhusus === null) {
+      masalah('hargaKhusus', 'Harga khusus wajib diisi.');
     }
-    if (d.sasaran === 'BARANG' && d.idBarang === null) {
-      masalah('idBarang', 'Barang wajib dipilih.');
+    if (d.jenisPotongan === 'GRATIS') {
+      if (d.beliQty === null) masalah('beliQty', 'Isi qty yang harus dibeli.');
+      if (d.gratisQty === null) masalah('gratisQty', 'Isi qty gratisnya.');
+    }
+    if (d.sasaran !== 'SEMUA' && d.idSasaran.length === 0) {
+      masalah(
+        'idSasaran',
+        d.sasaran === 'BARANG'
+          ? 'Pilih minimal satu barang.'
+          : d.sasaran === 'KATEGORI'
+            ? 'Pilih minimal satu kategori.'
+            : 'Pilih minimal satu merk.',
+      );
     }
     if (d.sasaranPembeli === 'GOLONGAN' && d.idGolongan === null) {
       masalah('idGolongan', 'Golongan pelanggan wajib dipilih.');
@@ -125,13 +194,19 @@ export const skemaPromo = z
       );
     }
   });
-export type InputPromo = z.input<typeof skemaPromo>;
-export type DataPromo = z.output<typeof skemaPromo>;
+
+/** Skema API: isian lama (sebelum K-163) diterjemahkan dulu. */
+export const skemaPromo = z.preprocess(isianLama, skemaIsianPromo);
+
+export type InputPromo = z.input<typeof skemaIsianPromo>;
+export type DataPromo = z.output<typeof skemaIsianPromo>;
 
 export const skemaCariPromo = skemaHalaman.extend({
   cari: z.string().trim().max(100).optional(),
   status: z.enum([...STATUS_AKTIF, 'SEMUA']).default('SEMUA'),
   berlaku: z.enum(STATUS_BERLAKU_PROMO).optional(),
+  /** K-163: `1` = hanya templat kampanye; bawaan hanya promo biasa. */
+  templat: z.enum(['0', '1']).default('0'),
 });
 export type ParamCariPromo = z.input<typeof skemaCariPromo>;
 
@@ -139,18 +214,25 @@ export type Promo = {
   id: number;
   kode: string;
   nama: string;
+  /** Tanggal lokal dari `mulaiPada`/`selesaiPada` (saringan dan laporan). */
   tanggalMulai: string;
   tanggalSelesai: string;
+  mulaiPada: string;
+  selesaiPada: string;
+  hariBerlaku: number[];
+  jamMulai: string | null;
+  jamSelesai: string | null;
   jenisPotongan: JenisPotongan;
   potonganPersen: string | null;
   potonganNominal: number | null;
   maksPotongan: number | null;
+  hargaKhusus: number | null;
+  beliQty: string | null;
+  gratisQty: string | null;
+  templat: boolean;
   sasaran: SasaranPromo;
-  idKategori: number | null;
-  namaKategori: string | null;
-  idBarang: number | null;
-  kodeBarang: string | null;
-  namaBarang: string | null;
+  /** K-163: barang/kategori/merk sasaran (`kode` hanya untuk barang). */
+  sasaranDaftar: { id: number; kode: string | null; nama: string }[];
   minQty: string | null;
   minBelanja: number | null;
   keterangan: string | null;

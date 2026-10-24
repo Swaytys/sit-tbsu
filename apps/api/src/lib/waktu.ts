@@ -58,3 +58,9 @@ export function tambahHari(tanggal: string, hari: number): string {
 export function tambahBulan(tanggal: string, bulan: number): string {
   return format(addMonths(parseISO(tanggal), bulan), 'yyyy-MM-dd');
 }
+
+/** Hari ISO (1 = Senin … 7 = Minggu) dan jam `HH:mm` di zona toko, mis. untuk promo per hari/jam (K-163). */
+export function hariJamLokal(waktu: Date): { hari: number; jam: string } {
+  const lokal = new TZDate(waktu, ZONA_TOKO);
+  return { hari: Number(format(lokal, 'i')), jam: format(lokal, 'HH:mm') };
+}

@@ -15,7 +15,7 @@ import type { Tx } from '../../db/client';
 import { barang, golonganPelanggan, pelanggan, persediaan, tingkatHarga } from '../../db/schema';
 import { AppError, galatBaris } from '../../lib/errors';
 import type { PenggunaAktif } from '../../lib/konteks';
-import { tanggalOperasional } from '../../lib/waktu';
+import { sekarang } from '../../lib/waktu';
 import { hargaBarangDasar } from '../master/harga/repo';
 import { dasarMarkup, muatKonteksHarga } from '../master/harga/service';
 import { muatSatuanJual } from '../master/satuan-jual/service';
@@ -97,8 +97,8 @@ export type OpsiHitung = {
   lama?: HargaLama;
   /** Diskon transaksi tersimpan di order (tidak diuji ulang bila tidak berubah). */
   diskonTransaksiLama?: number;
-  /** Tanggal operasional penentu promo (PR1); bawaan hari ini. */
-  tanggal?: string;
+  /** Saat penentu promo (PR1, PR12); bawaan sekarang. */
+  saat?: Date;
 };
 
 /** K-146: diskon manual tidak ada lagi; harga khusus hanya lewat Promo. */
@@ -136,6 +136,7 @@ async function dataBarang(tx: Tx, idBarang: number[]) {
       namaBarang: barang.namaBarang,
       statusAktif: barang.statusAktif,
       idKategori: barang.idKategori,
+      idMerk: barang.idMerk,
       kepemilikan: barang.kepemilikan,
       hargaModalAwal: barang.hargaModalAwal,
       hargaTitip: barang.hargaTitip,
@@ -200,7 +201,7 @@ export async function hitungBarisJual(
   opsi: OpsiHitung = {},
 ): Promise<HasilHarga> {
   const lamaPer = opsi.lama ?? new Map<string, BarisLama>();
-  const tanggal = opsi.tanggal ?? tanggalOperasional();
+  const saat = opsi.saat ?? sekarang();
   const idBarang = input.baris.map((b) => b.idBarang);
   const brgPer = await dataBarang(tx, idBarang);
   const tierAktif = await tx
@@ -365,9 +366,10 @@ export async function hitungBarisJual(
   const totalBruto = tahap1.reduce((t, x) => t + x.bruto, 0);
   const kandidat: KandidatPromo[] = await kandidatPromo(
     tx,
-    tanggal,
+    saat,
     idBarang,
     [...new Set(tahap1.map((x) => x.brg.idKategori))],
+    [...new Set(tahap1.flatMap((x) => (x.brg.idMerk === null ? [] : [x.brg.idMerk])))],
     await pembeliPromo(tx, input.idPelanggan),
   );
   // PR10/PR11: sisa anggaran dan batas per pembeli dibagi ke baris secara berurutan.
@@ -389,6 +391,7 @@ export async function hitungBarisJual(
           {
             idBarang: b.idBarang,
             idKategori: brg.idKategori,
+            idMerk: brg.idMerk,
             qty: qtyDasar,
             qtyHarga: qty,
             hargaSatuan: x.hargaSatuan,
@@ -399,7 +402,7 @@ export async function hitungBarisJual(
               : {}),
           },
           totalBruto,
-          tanggal,
+          saat,
           sisaPromo,
         );
     const promoDipakai = !tanpaPromo && pilih.promo !== null;
@@ -508,7 +511,7 @@ export type HasilPromoCheckout = {
 };
 
 /**
- * PR5: promo dievaluasi ulang dengan tanggal checkout, pelaku checkout (PR6), dan pembeli order (K-097).
+ * PR5: promo dievaluasi ulang dengan saat checkout, pelaku checkout (PR6), dan pembeli order (K-097).
  * Harga, diskon manual, dan pelepasan promo yang tersimpan di order dipakai apa adanya (tidak diuji ulang
  * terhadap izin kasir); potongan promo dibatasi agar subtotal tidak negatif. Promo dipotong dari harga baris
  * yang tersimpan (harga tier, PR9).
@@ -517,7 +520,7 @@ export async function hitungPromoCheckout(
   tx: Tx,
   rows: BarisCheckout[],
   pelaku: PenggunaAktif,
-  tanggal: string,
+  saat: Date,
   idPelanggan: number | null,
 ): Promise<HasilPromoCheckout[]> {
   const idBarang = rows.map((r) => r.idBarang);
@@ -527,12 +530,13 @@ export async function hitungPromoCheckout(
   const bruto = rows.map((r) => subtotalRupiah(r.qty, r.hargaSatuan));
   const totalBruto = bruto.reduce((t, x) => t + x, 0);
   // PR10/PR11: promo berbatas dikunci dulu, baru sisanya dibaca (dua checkout bersamaan jadi berurutan).
-  await kunciPromoBerbatas(tx, tanggal);
+  await kunciPromoBerbatas(tx, saat);
   const kandidat = await kandidatPromo(
     tx,
-    tanggal,
+    saat,
     idBarang,
     [...new Set(rows.map((r) => r.idKategori))],
+    [...new Set([...brgPer.values()].flatMap((b) => (b.idMerk === null ? [] : [b.idMerk])))],
     await pembeliPromo(tx, idPelanggan),
   );
   const sisaPromo = petaSisaPromo(kandidat);
@@ -547,6 +551,7 @@ export async function hitungPromoCheckout(
       {
         idBarang: r.idBarang,
         idKategori: r.idKategori,
+        idMerk: brg.idMerk,
         qty: r.qtyDasar,
         qtyHarga: r.qty,
         hargaSatuan: r.hargaSatuan,
@@ -557,7 +562,7 @@ export async function hitungPromoCheckout(
         batasPotongan: Math.max(0, b - r.diskonBaris),
       },
       totalBruto,
-      tanggal,
+      saat,
       sisaPromo,
     );
     if (pilih.promo) pakaiSisaPromo(sisaPromo, pilih.promo.id, pilih.potongan);
