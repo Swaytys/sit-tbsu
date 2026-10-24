@@ -551,7 +551,12 @@ export function LayarPos({
         {/* Kiri: papan antrean; saat memilih barang, rinciannya menutupi area ini (K-114). */}
         <section className="relative flex w-1/2 min-w-0 flex-col gap-1.5">
           {sorotBarang && (
-            <PanelDetailBarang b={sorotBarang.b} o={sorotBarang.o} qty={sorotBarang.qty} />
+            <PanelDetailBarang
+              b={sorotBarang.b}
+              o={sorotBarang.o}
+              qty={sorotBarang.qty}
+              onTutup={() => setSorotBarang(null)}
+            />
           )}
           <div className="flex items-baseline justify-between text-sm">
             <span className="font-semibold text-slate-700">

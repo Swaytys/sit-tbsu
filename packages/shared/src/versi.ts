@@ -23,6 +23,7 @@ export const CATATAN_RILIS: CatatanRilis[] = [
       'No. HP format internasional (+62) dan pencegahan data dobel; Pengaturan › Pemeriksaan data.',
       'Notifikasi menampilkan rincian; dashboard punya bagian Perlu perhatian.',
       'Order Penjualan: Daftar order lewat F10, saringan Semua, order disimpan jatuh tempo tersemat, nama penginput.',
+      'Cari barang: atribut boleh sebagian; label Laris/Lambat/Tidak laku/Baru; stok tebal merah; panel rincian dengan info penjualan.',
     ],
   },
 ];

@@ -3,6 +3,7 @@ import {
   KEPEMILIKAN,
   STATUS_AKTIF,
   type Kepemilikan,
+  type LabelKeterjualan,
   type MetodeHarga,
   type StatusAktif,
   type StatusStok,
@@ -264,6 +265,18 @@ export type SatuanJualBarang = {
 };
 
 /** Baris daftar barang. Kolom bertanda `?` hanya untuk pemegang `master.barang.lihat_hpp`. */
+/** K-123: kinerja jual barang 30 hari terakhir. */
+export type Keterjualan = {
+  /** `null` = penjualannya biasa (bukan laris, lambat, tidak laku, atau baru). */
+  label: LabelKeterjualan | null;
+  /** Qty satuan dasar terjual 30 hari terakhir (setelah void). */
+  terjual30: string;
+  /** terjual30 ÷ 30, 3 desimal. */
+  rataPerHari: string;
+  /** Tanggal operasional penjualan terakhir (kapan pun); `null` = belum pernah terjual. */
+  terakhirTerjual: string | null;
+};
+
 export type BarisBarang = {
   id: number;
   kode: string;
@@ -282,6 +295,8 @@ export type BarisBarang = {
   stokRusak: string;
   /** ST1, dihitung API dari stok fisik dan minimum. */
   statusStok: StatusStok;
+  /** K-123: label keterjualan dan angka jual 30 hari. */
+  keterjualan: Keterjualan;
   kepemilikan: Kepemilikan;
   idPemasokKonsinyasi: number | null;
   namaPemasokKonsinyasi: string | null;

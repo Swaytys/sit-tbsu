@@ -25,14 +25,20 @@ Tugas: mencatat pesanan pembeli dan menyerahkannya ke antrean kasir.
    **Ctrl+Z** urungkan.
    - **Lupa nama barangnya?** Ketik cirinya, dipisah spasi: `pipa 3 inch putih`, `cat 5 kg`, `besi 12 mm`.
      Semua kata harus cocok; tiap kata boleh cocok di nama, kode, barcode, merk, kategori, atau atribut
-     (ukuran, warna, berat).
+     (ukuran, warna, berat), dan atribut boleh sebagian: `1` menemukan 10 dan 12,5, `c` menemukan cm. Barang yang
+     cocok lewat namanya tampil paling atas.
+   - **Label di samping nama** (dari penjualan 30 hari terakhir, diperbarui tiap 10 menit): **Laris** (20% barang
+     dengan penjualan tertinggi), **Lambat** (terjual sedikit), **Tidak laku** (tidak terjual 30 hari), **Baru**
+     (ditambahkan kurang dari 30 hari). Arahkan kursor ke label untuk melihat jumlah terjual dan tanggal terakhir
+     terjual. Angka **stok** di hasil cari tebal merah supaya cepat terbaca.
    - **Tidak mau mengetik?** Pilih kategori di kotak *Semua kategori* (sebelah kotak cari), lalu klik **Daftar**
      (atau **Alt+↓**): 30 barang pertama tampil urut nama beserta foto kecilnya; klik barangnya, atau sorot
      dengan panah lalu **Enter**.
 2. Pembeli umum tidak perlu nama. Pelanggan langganan: **F4** cari pelanggan. Pengantaran: **F3** ubah jenis
    (alamat pelanggan terisi otomatis). **Catatan untuk kasir** (opsional) ikut tampil di tiket antrean kasir.
    - **Rincian barang**: saat barang disorot di hasil cari (panah atau kursor), rinciannya (foto, stok tersedia/
-     fisik/dipesan, harga tiap satuan dan tier, atribut) tampil menutupi daftar *Order saya*. **Esc** menutupnya.
+     fisik/dipesan, harga tiap satuan dan tier, atribut, label keterjualan, terjual 30 hari, rata-rata per hari,
+     terakhir terjual) tampil menutupi daftar *Order saya*. **Esc** atau tombol **×** di pojok kanan atas menutupnya.
    - **Peringatan "juga ada di draf lain"**: bila barang yang baru ditambahkan juga ada di draf orang lain (atau
      draf Anda yang lain) dan stoknya tidak cukup untuk semuanya, muncul peringatan yang menyebut draf itu
      (nomor, pembeli, pembuat, qty). Draf belum menahan stok, jadi pembeli yang lebih dulu dibayar yang mendapat

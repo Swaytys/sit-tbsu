@@ -40,6 +40,9 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U74 | Data muatan barang | *Data Barang › Ubah* semen → kartu *Data muatan*: pilih **g**, isi 50000; pilih **mm**, isi 700 × 450 × 120 → Simpan | Tersimpan sebagai 50 kg dan 70 × 45 × 12 cm (buka lagi: angka tampil dalam kg/cm) | Belum | Coba juga *Barang curah* untuk pasir |
 | U77 | Barang belum lengkap & pengaturan muatan | *Data Barang*: nyalakan **Data muatan belum lengkap**; *Pengaturan › Operasional*: ubah faktor isi/julur | Daftar hanya barang tanpa berat/ukuran; pengaturan tersimpan dan dipakai saat Berangkat | Belum | |
 | U75 | Data kendaraan | *Kendaraan & Sopir* → ubah kendaraan: isi daya angkut, ukuran bak, STNK/KIR | Kolom *Daya angkut · bak* terisi | Belum | |
+| U108 | Cari atribut sebagian | Kasir: ketik `pipa 1` (atau nama barang + sebagian angka ukurannya) | Barang dengan atribut 10 / 12,5 ikut ditemukan; yang cocok lewat nama tetap paling atas | Belum | |
+| U109 | Label keterjualan & stok | Kasir: cari barang yang sering terjual dan yang tidak pernah terjual | Label *Laris* / *Tidak laku* / *Baru* di samping nama; angka stok tebal merah; arahkan kursor ke label = jumlah terjual | Belum | Diperbarui tiap 10 menit |
+| U110 | Panel rincian | Sorot barang di hasil cari | Panel menampilkan label, terjual 30 hari, rata-rata/hari, terakhir terjual; tombol × dan Esc menutup | Belum | |
 | U102 | No. HP format baru | Tambah pelanggan: ketik `0812 3456 7890` di kotak nomor | 0 dibuang dengan pemberitahuan, tersimpan `+6281234567890`; nomor 16 angka ditolak | Belum | Kode negara bisa diganti |
 | U103 | Cegah pelanggan dobel | Tambah pelanggan "Toko Sumber Jaya"; lalu tambah "sumber jaya" (No. HP lain); lalu "Pak Andi" dengan No. HP sama | Dua yang terakhir: kotak kuning "Pelanggan yang mirip sudah ada"; klik **tetap simpan** baru tersimpan | Belum | Sama untuk pemasok dan barang (nama) |
 | U104 | Pemeriksaan data | *Pengaturan › Pemeriksaan data* → **Rapikan No. HP** | Daftar kemungkinan dobel dan format salah; setelah dirapikan, No. HP lama jadi +62… | Belum | |
@@ -198,6 +201,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.
 - 2026-10-24 — U71–U73 pencarian universal, cek versi, kiriman tidak ganda (K-164, K-167).
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
+- 2026-10-24 — U108–U110 cari sebagian, label keterjualan, panel rincian (K-123).
 - 2026-10-24 — U102–U107 No. HP, cegah dobel, pemeriksaan data, daftar order, notifikasi rinci, label F9 (K-129–K-143).
 - 2026-10-24 — U98–U101 arsip tahunan, Tentang aplikasi (K-165, K-166).
 - 2026-10-24 — U93–U97 kampanye promo (K-163 bagian 1).

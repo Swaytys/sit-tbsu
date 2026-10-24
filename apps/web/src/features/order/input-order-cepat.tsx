@@ -884,6 +884,7 @@ export function InputOrderCepat() {
               o={sorotBarang.o}
               qty={sorotBarang.qty}
               menutupi="daftar Order saya"
+              onTutup={() => setSorotBarang(null)}
             />
           )}
           <OrderSaya

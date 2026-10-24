@@ -612,7 +612,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-120 | Prinsip anomali alur kerja: setiap fitur wajib mengatasi, mencegah, dan mengajari; katalog `docs/12`. | Berlaku |
 | K-121 | Shift: buka tiga cara, hitung per pecahan, hitung susulan, koreksi modal, tutup dua langkah, toleransi receh, uang ditinggal, tinjauan, bantuan selisih, penjelasan atasan. | Berlaku (selesai 18 Okt) |
 | K-122 | Order disimpan (nama, HP, tanggal ambil ≤ 14 hari, tahan stok), kembali ke draf, buka draf otomatis, peringatan barang di draf lain, panel rincian di Order. | Berlaku (selesai 18 Okt) |
-| K-123 | Pencarian atribut sebagian, label keterjualan, angka stok merah tebal, teks kecil penting lebih jelas, panel dengan tombol tutup dan info penjualan. | Berlaku (rencana; kode menyusul) |
+| K-123 | Pencarian atribut sebagian, label keterjualan, angka stok merah tebal, teks kecil penting lebih jelas, panel dengan tombol tutup dan info penjualan. | Berlaku (selesai 24 Okt) |
 | K-124 | Cetak: setelan tersimpan, penjelasan laci uang, logo di struk, kepekatan, dokumen A4 dengan setelan bawaan, cetak otomatis per jenis dokumen. | Berlaku (rencana; kode menyusul) |
 | K-125 | Order pembelian ke pemasok masuk v1.0.0. | Berlaku (rencana; riset dan rancangan menyusul) |
 | K-126 | Halaman Hasil Penjualan. | Berlaku (rencana; kode menyusul) |
@@ -719,3 +719,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-24 — K-163 bagian 1 selesai (kampanye promo).
 - 2026-10-24 — K-165 (arsip tahunan) dan K-166 (pembaruan aman, versi aplikasi) selesai.
 - 2026-10-24 — Sisa gelombang 3–4 selesai: K-129, K-130, K-131, K-137, K-138, K-139, K-143.
+- 2026-10-24 — K-123 selesai (cari atribut sebagian, label keterjualan, stok menonjol, panel rincian).

@@ -79,24 +79,27 @@ export function syaratMuatanBelum(): SQL {
 const MAKS_KATA_CARI = 8;
 
 /**
- * Satu kata cari cocok dengan atribut barang (K-108): nilai teks (mis. warna "putih"), nama jenis atribut
- * (mis. "diameter"), nilai angka yang sama (mis. "40" atau "0,5"), kode satuannya (mis. "kg"), atau
- * gabungannya tanpa spasi (mis. "40kg").
+ * Satu kata cari cocok dengan atribut barang (K-108, K-123): nilai teks (mis. warna "putih"), nama jenis atribut
+ * (mis. "diameter"), nilai angka (mis. "40" atau "0,5"), kode satuannya (mis. "kg"), atau gabungannya tanpa spasi
+ * (mis. "40kg"). `persis = false` (bawaan, K-123): cocok sebagian, mis. "1" menemukan 10 dan 12,5, "c" menemukan
+ * cm; `persis = true` dipakai urutan relevansi (cocok utuh di atribut di atas cocok sebagian).
  */
-function cocokAtribut(kata: string): SQL {
+function cocokAtribut(kata: string, persis = false): SQL {
   const pola = polaCari(kata);
   // Pola tanpa "%" di kedua ujung: seluruh nilai harus sama (tetap tidak peka huruf besar/kecil).
-  const persis = pola.slice(1, -1);
+  const utuh = pola.slice(1, -1);
+  const p = persis ? utuh : pola;
   const angka = /^\d+(?:[.,]\d+)?$/.test(kata) ? kata.replace(',', '.') : null;
   const nilaiAngka = sql`(${kolomPenuh(barangAtribut.nilaiAngka)}::double precision)::text`;
   return sql`exists (select 1 from ${barangAtribut}
     inner join ${jenisAtribut} on ${kolomPenuh(jenisAtribut.id)} = ${kolomPenuh(barangAtribut.idJenisAtribut)}
     left join ${satuan} as satuan_atribut on satuan_atribut.id = ${kolomPenuh(barangAtribut.idSatuan)}
     where ${kolomPenuh(barangAtribut.idBarang)} = ${kolomPenuh(barang.id)} and (
-      ${kolomPenuh(barangAtribut.nilaiTeks)} ilike ${pola}
-      or ${kolomPenuh(jenisAtribut.nama)} ilike ${pola}
-      or satuan_atribut.kode ilike ${persis}
-      or concat(${nilaiAngka}, satuan_atribut.kode) ilike ${persis.replace(',', '.')}
+      ${kolomPenuh(barangAtribut.nilaiTeks)} ilike ${p}
+      or ${kolomPenuh(jenisAtribut.nama)} ilike ${p}
+      or satuan_atribut.kode ilike ${p}
+      or ${nilaiAngka} ilike ${p.replace(',', '.')}
+      or concat(${nilaiAngka}, satuan_atribut.kode) ilike ${p.replace(',', '.')}
       ${angka === null ? sql`` : sql`or ${kolomPenuh(barangAtribut.nilaiAngka)} = ${angka}::numeric`}
     ))`;
 }
@@ -136,7 +139,9 @@ function kataCari(cari: string): string[] {
 function urutanRelevan(cari: string): SQL {
   const bagian = kataCari(cari).map((kata) => {
     const pola = polaCari(kata);
-    return sql`case when ${barang.namaBarang} ilike ${pola} or ${barang.kode} ilike ${pola} or ${barang.barcode} ilike ${pola} then 0 else 1 end`;
+    // K-123: cocok di nama/kode/barcode (0), cocok utuh di atribut (1), selebihnya (cocok sebagian, kategori, merk) (2).
+    return sql`case when ${barang.namaBarang} ilike ${pola} or ${barang.kode} ilike ${pola} or ${barang.barcode} ilike ${pola} then 0
+      when ${cocokAtribut(kata, true)} then 1 else 2 end`;
   });
   return sql.join(bagian, sql` + `);
 }
