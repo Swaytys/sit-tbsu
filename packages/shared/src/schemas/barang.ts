@@ -9,7 +9,7 @@ import {
   type StatusStok,
   type TipeNilai,
 } from '../enums';
-import { POLA_QTY } from '../qty';
+import { bandingQty, POLA_QTY } from '../qty';
 import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
 
 /*
@@ -168,6 +168,14 @@ export const skemaBarang = z
     idSatuanDasar: idWajib('Satuan dasar wajib dipilih.'),
     /** Kosong = `konfigurasi.stok_minimum_default` untuk barang baru; nilai lama untuk ubah. */
     stokMinimum: z.preprocess(kosongJadiUndefined, skemaQtyTeks('Stok minimum').optional()),
+    /** K-127: batas atas metode saran pesan min–maks. Kosong ("") = dikosongkan; tidak dikirim = tidak diubah. */
+    stokMaksimum: z.preprocess(
+      (v) => (v === '' ? null : v),
+      skemaQtyTeks('Stok maksimum')
+        .refine((v) => bandingQty(v, 0) > 0, 'Stok maksimum harus lebih dari 0.')
+        .nullable()
+        .optional(),
+    ),
     hargaModalAwal: z.preprocess((v) => (v === null || v === '' ? 0 : v), skemaRupiah).default(0),
     kepemilikan: z.enum(KEPEMILIKAN).default('MILIK_SENDIRI'),
     idPemasokKonsinyasi: z.number().int().positive().nullable().optional(),
@@ -189,6 +197,13 @@ export const skemaBarang = z
     abaikanMirip: z.boolean().optional(),
   })
   .superRefine((d, ctx) => {
+    if (d.stokMaksimum && d.stokMinimum && bandingQty(d.stokMaksimum, d.stokMinimum) < 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['stokMaksimum'],
+        message: 'Stok maksimum tidak boleh lebih kecil dari stok minimum.',
+      });
+    }
     if (d.kepemilikan === 'KONSINYASI') {
       if (!d.idPemasokKonsinyasi) {
         ctx.addIssue({
@@ -289,6 +304,8 @@ export type BarisBarang = {
   idSatuanDasar: number;
   kodeSatuan: string;
   stokMinimum: string;
+  /** K-127: batas atas min–maks; `null` = belum diisi. */
+  stokMaksimum: string | null;
   stokFisik: string;
   stokTersedia: string;
   /** Stok kondisi rusak (bucket RUSAK): tidak bisa dijual, menunggu retur pemasok atau dimusnahkan. */

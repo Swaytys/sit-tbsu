@@ -570,8 +570,14 @@ dialog Berangkat | Admin/Owner (data), Kasir+ (berangkat) | desktop
   → hitung RO1–RO6 → daftar saran per pemasok, laporan, notifikasi.
 - Tabel: `mutasi_persediaan`, `persediaan`, `barang`, `barang_satuan_jual`, `penerimaan_barang(_detail)`,
   `pemasok`, `konfigurasi` (hanya dibaca).
-- Bukti: `[KODE: api/modules/persediaan/saran-pesan/service.ts]` `[KODE: api/modules/persediaan/saran-pesan/routes.ts]`.
-- Status: BERFUNGSI (K-113).
+- Metode (K-127): A rata-rata, B statistik (stok pengaman Z × simpangan baku × √lama kirim, tingkat layanan
+  90/95/98 %), C min–maks (stok minimum/maksimum per barang), D tren (pemulusan eksponensial ganda Holt). Hasil
+  tiap metode disimpan sementara di memori server 10 menit dan dihitung ulang bila ada transaksi atau perubahan
+  data barang/pemasok (docs/05 RO9–RO13).
+- Bukti: `[KODE: api/modules/persediaan/saran-pesan/service.ts]` `[KODE: api/modules/persediaan/saran-pesan/routes.ts]`
+  `[KODE: api/modules/persediaan/saran-pesan/hitung.ts]` `[KODE: shared/qty.ts]`; tes `saran-pesan.test.ts`,
+  `qty-statistik.test.ts`.
+- Status: BERFUNGSI (K-113, K-127).
 
 **F37. Laporan (16 jenis)** — rincian di bagian 7. Status: BERFUNGSI.
 
@@ -1235,6 +1241,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
 - 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).
+- 2026-10-24 — F40 saran pesan: metode A–D dan simpanan memori (K-127); kolom `barang.stok_maksimum`.
 - 2026-10-24 — F49 pengaturan cetak: logo, kepekatan, kertas, cetak otomatis (K-124).
 - 2026-10-24 — F48 data bersih (K-137); notifikasi rinci + dashboard Perlu perhatian (K-131); order: F10, saringan Semua, penginput (K-129, K-138, K-139).
 - 2026-10-24 — F45 FMS pendukung: BBM, servis, pengingat, statistik armada (K-162).

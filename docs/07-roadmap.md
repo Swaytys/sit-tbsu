@@ -402,7 +402,7 @@ definisi selesai:
 5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),
    cetak otomatis per jenis dokumen, panduan cetak A4 tanpa jendela. **Selesai 2026-10-24.**
 6. **Metode rekomendasi pesan** (K-127): metode statistik Z, min–maks, tren; cache memori; "?" kelebihan dan
-   kekurangan.
+   kekurangan. **Selesai 2026-10-24** (migrasi 0032); lama kirim aktual menyusul bersama K-125.
 7. **Hasil Penjualan** (K-126).
 8. **Order pembelian ke pemasok** (K-125): riset alur umum dan rancangan diajukan ke pemilik dulu; lead time aktual
    mengisi rekomendasi pesan.

@@ -71,6 +71,37 @@ test('Admin mengisi lama kirim pemasok; Saran Pesan menampilkan barangnya besert
     await expect(page.getByText(/8 × \(3 \+ 7\) \+ 16 − 40/)).toBeVisible();
     await page.keyboard.press('Escape');
 
+    // 4b. K-127: stok minimum/maksimum diisi di Data Barang, lalu metode C (tombol 3) memakainya.
+    await page.goto(`/barang/${b.id}`);
+    await page.getByLabel('Stok minimum').fill('60');
+    await page.getByLabel('Stok maksimum (boleh kosong)').fill('120');
+    await page.getByRole('button', { name: 'Simpan barang' }).click();
+    await expect(page.getByText(/diperbarui|disimpan/).first()).toBeVisible();
+    await page.goto('/persediaan?tab=saran-pesan');
+    await page.getByLabel('Tampilkan').selectOption('SEMUA');
+    await page.getByLabel('Pemasok').selectOption({ label: namaPemasok });
+    await page.locator('body').click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press('3');
+    await expect(page.getByRole('button', { name: 'C · Min–maks' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByTestId('status-hitung')).toContainText('Metode C');
+    await expect(baris).toContainText('maks. 120');
+    await expect(baris).toContainText('Pesan sekarang'); // tersedia 50 ≤ minimum 60
+    await expect(baris).toContainText('70'); // 120 − 50
+    // Metode B dengan tingkat layanan; pilihan diingat setelah halaman dimuat ulang.
+    await page.getByRole('button', { name: 'B · Statistik' }).click();
+    await page.getByLabel('Tingkat layanan').selectOption('98');
+    await expect(page.getByTestId('status-hitung')).toContainText('Metode B');
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'B · Statistik' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByLabel('Tingkat layanan')).toHaveValue('98');
+    await page.getByRole('button', { name: 'A · Rata-rata' }).click();
+
     // 5. Halaman tidak bergulir menyamping di 1280 px.
     const lebar = await page.evaluate(() => ({
       isi: document.documentElement.scrollWidth,

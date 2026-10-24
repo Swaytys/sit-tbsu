@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { STATUS_SARAN_PESAN, type StatusSaranPesan } from '../enums';
+import {
+  METODE_SARAN_PESAN,
+  STATUS_SARAN_PESAN,
+  TINGKAT_LAYANAN_SARAN,
+  type MetodeSaranPesan,
+  type StatusSaranPesan,
+  type TingkatLayananSaran,
+} from '../enums';
 
 /*
  * Rekomendasi pemesanan ulang (K-113, docs/05 §17 RO1–RO8). Semua angka dihitung server dari ledger stok
@@ -12,6 +19,15 @@ export const skemaCariSaranPesan = z.object({
   idPemasok: z.coerce.number().int().positive().optional(),
   idKategori: z.coerce.number().int().positive().optional(),
   cari: z.string().trim().max(100).optional(),
+  /** K-127: metode hitung (bawaan A rata-rata) dan tingkat layanan metode B. */
+  metode: z.enum(METODE_SARAN_PESAN).default('RATA'),
+  layanan: z.coerce
+    .number()
+    .refine(
+      (v): v is TingkatLayananSaran => (TINGKAT_LAYANAN_SARAN as readonly number[]).includes(v),
+      'Tingkat layanan hanya 90, 95, atau 98.',
+    )
+    .default(95),
 });
 export type ParamCariSaranPesan = z.input<typeof skemaCariSaranPesan>;
 
@@ -25,6 +41,9 @@ export type ParameterSaranPesan = {
   hariPengaman: number;
   lamaKirimBawaan: number;
   jarakBelanjaBawaan: number;
+  /** K-127. */
+  metode: MetodeSaranPesan;
+  tingkatLayanan: TingkatLayananSaran;
 };
 
 export type BarisSaranPesan = {
@@ -59,6 +78,11 @@ export type BarisSaranPesan = {
   /** Stok tersedia ÷ rata per hari; `null` bila tidak terjual. */
   hariCukup: string | null;
   status: StatusSaranPesan;
+  /** K-127: metode yang benar-benar dipakai untuk baris ini (bisa A bila syarat metode pilihan tidak terpenuhi). */
+  metode: MetodeSaranPesan;
+  /** Alasan memakai metode lain, atau keterangan hitungan (mis. tren naik). */
+  catatan: string | null;
+  stokMaksimum: string | null;
   /** Hanya untuk pemegang `master.barang.lihat_hpp`. */
   hargaBeliTerakhir?: number;
   perkiraanBiaya?: number;
@@ -77,4 +101,7 @@ export type HasilSaranPesan = {
   jumlah: Record<StatusSaranPesan, number>;
   baris: BarisSaranPesan[];
   perPemasok: RingkasanPemasokSaran[];
+  /** K-127 RO13: waktu hitung (ISO) dan apakah diambil dari simpanan memori server. */
+  dihitungPada: string;
+  dariSimpanan: boolean;
 };

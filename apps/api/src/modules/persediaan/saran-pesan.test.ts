@@ -1,13 +1,14 @@
 import type { DetailPenjualan, DokumenLaporan, HasilSaranPesan, Notifikasi } from '@sit/shared';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
 import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
-import { hargaBarang, mutasiPersediaan, pemasok, shiftKasir } from '../../db/schema';
+import { barang, hargaBarang, mutasiPersediaan, pemasok, shiftKasir } from '../../db/schema';
 import { tambahHari, tanggalOperasional } from '../../lib/waktu';
-import { hitungSaran } from './saran-pesan/hitung';
+import { hitungSaran, hitungSaranMetode, type MasukanMetode } from './saran-pesan/hitung';
+import { lupakanSimpananSaran } from './saran-pesan/service';
 
 /*
  * Rekomendasi pemesanan ulang (docs/05 §17 RO1–RO8, K-113).
@@ -85,8 +86,96 @@ describe('rumus saran pesan (hitung murni)', () => {
   });
 });
 
+describe('metode saran pesan B, C, D (K-127, RO9–RO12)', () => {
+  const metode = (x: Partial<MasukanMetode>): MasukanMetode => ({
+    ...dasar,
+    faktorKemasan: null,
+    metode: 'STATISTIK',
+    terjual: '240',
+    stokTersedia: '40',
+    harian: Array<string>(30).fill('8'),
+    z: '1.6449',
+    stokMinimum: '20',
+    stokMaksimum: '150',
+    ...x,
+  });
+
+  it('B statistik: penjualan rata tanpa naik-turun = tanpa stok pengaman; naik-turun menambah pengaman', () => {
+    const datar = hitungSaranMetode(metode({}));
+    expect(datar.metode).toBe('STATISTIK');
+    expect(datar.stokPengaman).toBe('0.000');
+    expect(datar.titikPesan).toBe('24.000'); // 8 × 3
+    expect(datar.stokTarget).toBe('80.000'); // 8 × (3 + 7)
+    expect(datar.status).toBe('SEGERA');
+    // 15 hari 0 dan 15 hari 16: rata 8, σ = 8,137; pengaman = 1,6449 × 8,137 × √3 (1,732) = 23,183.
+    const goyang = hitungSaranMetode(
+      metode({ harian: [...Array<string>(15).fill('0'), ...Array<string>(15).fill('16')] }),
+    );
+    expect(goyang.stokPengaman).toBe('23.183');
+    expect(goyang.titikPesan).toBe('47.183');
+    expect(goyang.status).toBe('PESAN_SEKARANG');
+    expect(goyang.saranPesan).toBe('64.000'); // 80 + 23,183 − 40 = 63,183 → 64
+  });
+
+  it('B dan D butuh riwayat cukup; tanpa itu dihitung dengan A dan diberi catatan', () => {
+    const b = hitungSaranMetode(metode({ hariAmatan: 20, terjual: '160', harian: [] }));
+    expect(b.metode).toBe('RATA');
+    expect(b.catatan).toContain('metode B butuh 30');
+    expect(b.titikPesan).toBe(
+      hitungSaran({
+        ...dasar,
+        faktorKemasan: null,
+        hariAmatan: 20,
+        terjual: '160',
+        stokTersedia: '40',
+      }).titikPesan,
+    );
+    const d = hitungSaranMetode(metode({ metode: 'TREN', hariAmatan: 10, terjual: '80' }));
+    expect(d.metode).toBe('RATA');
+    expect(d.catatan).toContain('metode D butuh 14');
+    // Tidak terjual: A (TIDAK_LAKU) tanpa catatan.
+    const mati = hitungSaranMetode(metode({ terjual: '0', harian: Array<string>(30).fill('0') }));
+    expect(mati.status).toBe('TIDAK_LAKU');
+    expect(mati.catatan).toBeNull();
+  });
+
+  it('C min–maks: pesan hanya bila tersedia ≤ minimum, sampai maksimum; maksimum kosong = A', () => {
+    const perlu = hitungSaranMetode(metode({ metode: 'MIN_MAKS', stokTersedia: '20' }));
+    expect(perlu.metode).toBe('MIN_MAKS');
+    expect(perlu.titikPesan).toBe('20.000');
+    expect(perlu.stokTarget).toBe('150.000');
+    expect(perlu.saranPesan).toBe('130.000');
+    expect(perlu.status).toBe('PESAN_SEKARANG');
+    const aman = hitungSaranMetode(metode({ metode: 'MIN_MAKS', stokTersedia: '21' }));
+    expect(aman.status).toBe('AMAN');
+    expect(aman.saranPesan).toBe('0.000');
+    // Tidak terjual tetapi di bawah minimum tetap dipesan.
+    const mati = hitungSaranMetode(metode({ metode: 'MIN_MAKS', terjual: '0', stokTersedia: '5' }));
+    expect(mati.status).toBe('PESAN_SEKARANG');
+    const kosong = hitungSaranMetode(metode({ metode: 'MIN_MAKS', stokMaksimum: null }));
+    expect(kosong.metode).toBe('RATA');
+    expect(kosong.catatan).toContain('Stok maksimum belum diisi');
+  });
+
+  it('D tren: penjualan naik membuat titik pesan lebih tinggi dari rata-rata biasa', () => {
+    const naik = Array.from({ length: 30 }, (_, i) => String(i + 1)); // 1..30, total 465
+    const a = hitungSaranMetode(metode({ metode: 'RATA', terjual: '465', harian: naik }));
+    const d = hitungSaranMetode(metode({ metode: 'TREN', terjual: '465', harian: naik }));
+    expect(d.metode).toBe('TREN');
+    expect(d.catatan).toContain('Tren naik');
+    expect(Number(d.rataPerHari)).toBeGreaterThan(Number(a.rataPerHari));
+    expect(Number(d.titikPesan)).toBeGreaterThan(Number(a.titikPesan));
+    const turun = hitungSaranMetode(
+      metode({ metode: 'TREN', terjual: '465', harian: [...naik].reverse() }),
+    );
+    expect(turun.catatan).toContain('Tren turun');
+    expect(Number(turun.titikPesan)).toBeLessThan(Number(a.titikPesan));
+  });
+});
+
 describe('saran pesan dari data sungguhan', () => {
   beforeEach(async () => {
+    lupakanSimpananSaran();
     await siapkanDatabaseSistem();
     m = await siapkanMasterPersediaan();
     await kosongkanTabel(shiftKasir);
@@ -210,5 +299,77 @@ describe('saran pesan dari data sungguhan', () => {
     );
     const nk = await ambil<Notifikasi[]>(kasir, '/api/notifikasi');
     expect(nk.some((n) => n.jenis === 'PERLU_DIPESAN')).toBe(false);
+  });
+
+  it('K-127: metode lewat parameter, simpanan memori, stok maksimum dari Data Barang', async () => {
+    await jual('60');
+    await mundurkan([m.semen], 40);
+    // 30 terjual dalam periode, semuanya pada satu hari (5 hari lalu).
+    await jual('30');
+    await db
+      .update(mutasiPersediaan)
+      .set({ tanggalOperasional: tambahHari(tanggalOperasional(), -5) })
+      .where(
+        and(
+          eq(mutasiPersediaan.idBarang, m.semen),
+          eq(mutasiPersediaan.tanggalOperasional, tanggalOperasional()),
+        ),
+      );
+    const a = await ambil<HasilSaranPesan>(admin, '/api/saran-pesan?tampil=SEMUA');
+    expect(a.parameter.metode).toBe('RATA');
+    expect(a.dariSimpanan).toBe(false);
+    const lagi = await ambil<HasilSaranPesan>(admin, '/api/saran-pesan?tampil=SEMUA');
+    expect(lagi.dariSimpanan).toBe(true);
+    expect(lagi.dihitungPada).toBe(a.dihitungPada);
+
+    // B: semua terjual pada satu hari → simpangan besar → pengaman > 0; tingkat layanan ikut parameter.
+    const b = await ambil<HasilSaranPesan>(
+      admin,
+      '/api/saran-pesan?tampil=SEMUA&metode=STATISTIK&layanan=98',
+    );
+    expect(b.parameter).toMatchObject({ metode: 'STATISTIK', tingkatLayanan: 98 });
+    const sb = b.baris.find((x) => x.idBarang === m.semen)!;
+    expect(sb.metode).toBe('STATISTIK');
+    expect(Number(sb.stokPengaman)).toBeGreaterThan(0);
+    expect((await minta('/api/saran-pesan?layanan=93', { cookie: admin.cookie })).status).toBe(400);
+
+    // C tanpa maksimum = A dengan catatan; setelah maksimum diisi lewat Data Barang (simpanan lama tidak dipakai).
+    const c1 = await ambil<HasilSaranPesan>(admin, '/api/saran-pesan?tampil=SEMUA&metode=MIN_MAKS');
+    expect(c1.baris.find((x) => x.idBarang === m.semen)?.catatan).toContain(
+      'Stok maksimum belum diisi',
+    );
+    const [awal] = await db.select().from(barang).where(eq(barang.id, m.semen));
+    const isi = {
+      namaBarang: awal!.namaBarang,
+      idKategori: awal!.idKategori,
+      idSatuanDasar: awal!.idSatuanDasar,
+      hargaModalAwal: awal!.hargaModalAwal,
+      abaikanMirip: true,
+    };
+    const kecil = await minta(`/api/barang/${m.semen}`, {
+      method: 'PATCH',
+      cookie: admin.cookie,
+      body: { ...isi, stokMinimum: '50', stokMaksimum: '10' },
+    });
+    expect(kecil.status).toBe(400);
+    const ubah = await minta(`/api/barang/${m.semen}`, {
+      method: 'PATCH',
+      cookie: admin.cookie,
+      body: { ...isi, stokMinimum: '45', stokMaksimum: '200' },
+    });
+    expect(ubah.status).toBe(200);
+    const [brg] = await db.select().from(barang).where(eq(barang.id, m.semen));
+    expect(brg?.stokMaksimum).toBe('200.000');
+    const c2 = await ambil<HasilSaranPesan>(admin, '/api/saran-pesan?tampil=SEMUA&metode=MIN_MAKS');
+    expect(c2.dariSimpanan).toBe(false);
+    const sc = c2.baris.find((x) => x.idBarang === m.semen)!;
+    expect(sc).toMatchObject({ metode: 'MIN_MAKS', titikPesan: '45.000', stokTarget: '200.000' });
+    expect(sc.status).toBe('PESAN_SEKARANG'); // tersedia 10 ≤ 45
+    expect(sc.saranPesan).toBe('190.000');
+
+    // Penjualan baru membuat simpanan A tidak dipakai lagi.
+    await jual('1');
+    const a2 = await ambil<HasilSaranPesan>(admin, '/api/saran-pesan?tampil=SEMUA');
+    expect(a2.dariSimpanan).toBe(false);
   });
 });

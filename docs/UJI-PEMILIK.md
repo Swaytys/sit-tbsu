@@ -46,6 +46,8 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U111 | Kepekatan struk | *Pengaturan › Struk & printer › Printer struk komputer ini › Pengaturan lanjutan*: Kepekatan **Paling tebal** → **Uji cetak** | Cetakan lebih hitam; tertulis "Kepekatan: Paling tebal". Tutup peramban, buka lagi: pilihan masih tersimpan | Belum | Printer lain boleh mengabaikan Paling tebal |
 | U112 | Logo di struk | Unggah logo (Profil toko) → kartu Struk penjualan: nyalakan **Kop struk memakai logo toko** → Simpan → lihat *Logo di struk* → Uji cetak | Pratinjau hitam-putih tampil; logo keluar di atas uji cetak dan struk penjualan | Belum | Logo gelap berlatar putih paling jelas |
 | U113 | Kertas & cetak otomatis invoice/surat jalan | Kartu **Invoice, surat jalan & kertas**: invoice *Tanya dulu*, surat jalan *Langsung cetak*, kertas A4 lanskap → Simpan; buat invoice pengantaran lalu **S** | Setelah invoice: pemberitahuan "Cetak invoice … sekarang?" dengan tombol Cetak; surat jalan langsung ke jendela cetak dengan kertas A4 lanskap | Belum | Tanpa jendela: ikuti langkah di kartu itu (mode kasir) |
+| U114 | Metode saran pesan | *Stok Persediaan › Saran pesan*: klik **B · Statistik**, **C · Min–maks**, **D · Tren** (atau tekan 2, 3, 4); tombol **?** | Saat pertama berganti tampil "Menghitung metode …"; barang yang belum memenuhi syarat diberi catatan kuning ("dihitung dengan A"); penjelasan tiap metode di ? | Belum | Muat ulang halaman: metode terakhir tetap terpilih |
+| U115 | Stok maksimum (metode C) | *Data Barang › Ubah* semen: stok minimum 50, **Stok maksimum** 200 → Simpan; Saran pesan metode C | Baris semen: titik pesan 50, "maks. 200"; bila tersedia ≤ 50 → Pesan sekarang dengan saran 200 − tersedia. Maksimum lebih kecil dari minimum ditolak | Belum | |
 | U102 | No. HP format baru | Tambah pelanggan: ketik `0812 3456 7890` di kotak nomor | 0 dibuang dengan pemberitahuan, tersimpan `+6281234567890`; nomor 16 angka ditolak | Belum | Kode negara bisa diganti |
 | U103 | Cegah pelanggan dobel | Tambah pelanggan "Toko Sumber Jaya"; lalu tambah "sumber jaya" (No. HP lain); lalu "Pak Andi" dengan No. HP sama | Dua yang terakhir: kotak kuning "Pelanggan yang mirip sudah ada"; klik **tetap simpan** baru tersimpan | Belum | Sama untuk pemasok dan barang (nama) |
 | U104 | Pemeriksaan data | *Pengaturan › Pemeriksaan data* → **Rapikan No. HP** | Daftar kemungkinan dobel dan format salah; setelah dirapikan, No. HP lama jadi +62… | Belum | |
@@ -206,6 +208,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
 - 2026-10-24 — U108–U110 cari sebagian, label keterjualan, panel rincian (K-123).
 - 2026-10-24 — U111–U113 kepekatan, logo struk, kertas dan cetak otomatis invoice/surat jalan (K-124).
+- 2026-10-24 — U114–U115 metode saran pesan dan stok maksimum (K-127).
 - 2026-10-24 — U102–U107 No. HP, cegah dobel, pemeriksaan data, daftar order, notifikasi rinci, label F9 (K-129–K-143).
 - 2026-10-24 — U98–U101 arsip tahunan, Tentang aplikasi (K-165, K-166).
 - 2026-10-24 — U93–U97 kampanye promo (K-163 bagian 1).

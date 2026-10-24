@@ -27,6 +27,7 @@ const kolom = {
   idSatuanDasar: barang.idSatuanDasar,
   kodeSatuan: satuan.kode,
   stokMinimum: barang.stokMinimum,
+  stokMaksimum: barang.stokMaksimum,
   stokFisik: persediaan.stokFisik,
   stokRusak: persediaan.stokRusak,
   stokTersedia: sql<string>`coalesce(${persediaan.stokTersedia}, 0)::text`,
@@ -234,6 +235,7 @@ export async function kunciBarang(tx: Tx, id: number) {
       idMerk: barang.idMerk,
       idSatuanDasar: barang.idSatuanDasar,
       stokMinimum: barang.stokMinimum,
+      stokMaksimum: barang.stokMaksimum,
       hargaModalAwal: barang.hargaModalAwal,
       kepemilikan: barang.kepemilikan,
       idPemasokKonsinyasi: barang.idPemasokKonsinyasi,
@@ -346,6 +348,7 @@ export type NilaiBarang = {
   idMerk: number | null;
   idSatuanDasar: number;
   stokMinimum: string;
+  stokMaksimum: string | null;
   hargaModalAwal: number;
   kepemilikan: Kepemilikan;
   idPemasokKonsinyasi: number | null;

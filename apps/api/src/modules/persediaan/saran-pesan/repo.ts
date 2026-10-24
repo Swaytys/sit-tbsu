@@ -12,10 +12,12 @@ export type BarisBarangSaran = {
   idBarang: number;
   kode: string;
   namaBarang: string;
+  idKategori: number;
   namaKategori: string;
   kodeSatuan: string;
   stokTersedia: string;
   stokMinimum: string;
+  stokMaksimum: string | null;
   hargaBeliTerakhir: number;
   hppRata2: number;
   /** Terjual bersih dalam rentang tanggal (bisa negatif bila retur lebih banyak). */
@@ -38,10 +40,12 @@ export async function barangUntukSaran(
       idBarang: barang.id,
       kode: barang.kode,
       namaBarang: barang.namaBarang,
+      idKategori: barang.idKategori,
       namaKategori: kategori.nama,
       kodeSatuan: satuan.kode,
       stokTersedia: sql<string>`${persediaan.stokTersedia}::text`,
       stokMinimum: barang.stokMinimum,
+      stokMaksimum: barang.stokMaksimum,
       hargaBeliTerakhir: persediaan.hargaBeliTerakhir,
       hppRata2: persediaan.hppRata2,
       terjual: sql<string>`coalesce((
@@ -99,4 +103,38 @@ export async function pemasokSaran(ex: Executor, id: number[]) {
     })
     .from(pemasok)
     .where(inArray(pemasok.id, id));
+}
+
+/** K-127: penjualan bersih per barang per tanggal operasional (RO1), hanya hari yang ada mutasinya. */
+export async function penjualanHarian(
+  ex: Executor,
+  p: { dari: string; sampai: string },
+): Promise<{ idBarang: number; tanggal: string; qty: string }[]> {
+  const r = await ex.execute<{ id_barang: string; tanggal: string; qty: string }>(sql`
+    select m.id_barang, m.tanggal_operasional::text tanggal,
+           sum(case m.jenis_mutasi
+                 when 'PENJUALAN' then m.qty_keluar
+                 when 'TUKAR_RETUR' then m.qty_keluar
+                 when 'RETUR_JUAL' then -m.qty_masuk
+                 when 'VOID' then -m.qty_masuk
+                 else 0 end)::text qty
+      from mutasi_persediaan m
+     where m.tanggal_operasional between ${p.dari} and ${p.sampai}
+       and m.jenis_mutasi in ('PENJUALAN', 'TUKAR_RETUR', 'RETUR_JUAL', 'VOID')
+     group by m.id_barang, m.tanggal_operasional`);
+  return r.rows.map((x) => ({ idBarang: Number(x.id_barang), tanggal: x.tanggal, qty: x.qty }));
+}
+
+/**
+ * K-127 RO13: penanda versi data yang dipakai saran pesan: id mutasi persediaan terakhir (penjualan, retur, void,
+ * penerimaan, penyesuaian) dan waktu ubah terakhir data barang/pemasok (stok min/maks, lama kirim).
+ */
+export async function versiDataSaran(ex: Executor): Promise<string> {
+  const r = await ex.execute<{ v: string | null }>(sql`
+    select concat_ws('|',
+      (select max(id) from mutasi_persediaan),
+      (select max(coalesce(diubah_pada, dibuat_pada)) from barang),
+      (select max(coalesce(diubah_pada, dibuat_pada)) from pemasok),
+      (select count(*) from barang)) v`);
+  return r.rows[0]?.v ?? '';
 }

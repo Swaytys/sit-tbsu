@@ -301,6 +301,26 @@ export function ukuranKertasCss(k: KertasDokumen): string {
   return ukuran === 'F4' ? '330mm 215mm' : `${dasar} landscape`;
 }
 
+/** K-127: metode rekomendasi pemesanan ulang (docs/05 RO9–RO12). */
+export const METODE_SARAN_PESAN = ['RATA', 'STATISTIK', 'MIN_MAKS', 'TREN'] as const;
+export type MetodeSaranPesan = (typeof METODE_SARAN_PESAN)[number];
+
+export const LABEL_METODE_SARAN_PESAN: Record<MetodeSaranPesan, string> = {
+  RATA: 'A · Rata-rata',
+  STATISTIK: 'B · Statistik',
+  MIN_MAKS: 'C · Min–maks',
+  TREN: 'D · Tren',
+};
+
+/** K-127 metode B: tingkat layanan (%) dan nilai Z distribusi normal satu sisi. */
+export const TINGKAT_LAYANAN_SARAN = [90, 95, 98] as const;
+export type TingkatLayananSaran = (typeof TINGKAT_LAYANAN_SARAN)[number];
+export const Z_TINGKAT_LAYANAN: Record<TingkatLayananSaran, string> = {
+  90: '1.2816',
+  95: '1.6449',
+  98: '2.0537',
+};
+
 /** K-121: cara membuka shift. */
 export const CARA_BUKA_SHIFT = ['SAMA_KEMARIN', 'HITUNG', 'HITUNG_NANTI'] as const;
 export type CaraBukaShift = (typeof CARA_BUKA_SHIFT)[number];

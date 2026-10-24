@@ -273,6 +273,8 @@ export const barang = pgTable(
     /** Pasir, batu, tanah: tanpa ukuran per buah; volume dari `volume_m3`. */
     curah: boolean('curah').notNull().default(false),
     volumeM3: numeric('volume_m3', { precision: 12, scale: 4 }),
+    /** K-127: batas atas metode saran pesan min–maks; kosong = metode itu tidak dipakai untuk barang ini. */
+    stokMaksimum: qty('stok_maksimum'),
   },
   (t) => [
     foreignKey({
@@ -309,6 +311,10 @@ export const barang = pgTable(
         or (kepemilikan = 'KONSINYASI' and id_pemasok_konsinyasi is not null and harga_titip is not null and harga_titip >= 0)`,
     ),
     check('chk_barang_stok_min', sql`stok_minimum >= 0`),
+    check(
+      'chk_barang_stok_maks',
+      sql`stok_maksimum is null or (stok_maksimum > 0 and stok_maksimum >= stok_minimum)`,
+    ),
     check('chk_barang_modal_awal', sql`harga_modal_awal >= 0`),
     index('idx_barang_nama').on(t.namaBarang),
     index('idx_barang_kategori').on(t.idKategori),
