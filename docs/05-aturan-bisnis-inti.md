@@ -283,6 +283,16 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 | AR4 | Periksa arsip: berkas ada, SHA-256 cocok, dan jumlah baris tiap tabel di berkas = di database (selisih dilaporkan). Log `ARSIP_PERIKSA`. Unduh berkas lewat aplikasi. |
 | AR5 | Buka kembali (alasan ≥ 10 huruf, log `TAHUN_BUKA`) → status DIBUKA, kunci dilepas; tutup ulang memeriksa penghalang lagi dan menulis berkas baru (berkas lama tidak dihapus). |
 
+## 20. Hasil Penjualan (K-126)
+
+| # | Aturan |
+|---|---|
+| HP1 | Halaman *Transaksi › Hasil Penjualan* (izin `laporan.penjualan`; Kasir, Admin, Owner) menampilkan satu periode (paling panjang 366 hari) menurut tanggal operasional. Definisi omzet, retur, penjualan bersih, dan void sama dengan Laporan Penjualan per Periode (§14); laba kotor sama dengan Laporan Laba Kotor dan hanya dikirim untuk `laporan.laba`. |
+| HP2 | **Periode lalu** = jumlah hari sama tepat sebelum tanggal awal; persen perubahan dihitung layar dari angka server (tampilan saja). Rata-rata per transaksi = omzet ÷ jumlah transaksi, dibulatkan ke rupiah. |
+| HP3 | **Barang terlaris** = Laporan Produk Terlaris (Σ subtotal baris bukan VOID); tampil 20 teratas. **Kelas ABC** menurut kumulatif nilai sebelum barang itu: < 80 % = A, < 95 % = B, sisanya C. |
+| HP4 | **Per kasir** = `penjualan.id_kasir`; **per jam** = jam waktu toko dari `penjualan.tanggal`; **per hari** = hari ISO dari tanggal operasional; transaksi VOID penuh tidak ikut. **Uang masuk per cara bayar** = Σ `pembayaran_penjualan.nominal` menurut tanggal pembayaran (termasuk pelunasan piutang transaksi lama). |
+| HP5 | **Promo** = Laporan Promo (Σ diskon promo, transaksi berpromo, 5 promo dengan potongan terbesar). **Retur** = dokumen retur DISETUJUI pada periode. |
+
 ## 19. Data bersih (K-137)
 
 | # | Aturan |

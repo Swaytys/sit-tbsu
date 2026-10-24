@@ -297,6 +297,15 @@ Admin/Owner (pemeriksaan) | desktop
   `[KODE: web/features/pengaturan/form-dokumen.tsx]`; `[DOK: K-124]`; tes `escpos.test.ts`, `pengaturan.test.ts`.
   Status: BERFUNGSI.
 
+**F50. Hasil Penjualan** | Transaksi › Hasil Penjualan | Kasir, Admin, Owner (laba: Admin/Owner) | desktop
+- Fungsi: kinerja penjualan satu periode tanpa membuka Laporan: omzet, jumlah transaksi, rata-rata, penjualan
+  bersih, laba kotor dan margin (berizin), void; perbandingan dengan periode lalu; grafik omzet harian; barang
+  terlaris dengan kelas ABC; per kategori, pelanggan, kasir, jam, hari, cara bayar; promo; retur dan void.
+- Input → Proses → Output: periode → fungsi hitung laporan yang sama + kueri per kasir/jam/hari/cara bayar →
+  halaman ringkasan (docs/05 §20 HP1–HP5).
+- Bukti: `[KODE: api/modules/hasil-penjualan/service.ts]` `[KODE: web/features/hasil-penjualan/halaman-hasil-penjualan.tsx]`;
+  `[DOK: K-126]`; tes `hasil-penjualan.test.ts`, e2e `hasil-penjualan.spec.ts`. Status: BERFUNGSI.
+
 ### 4.2 Data master
 
 **F9. Data Barang** | Data Master | Admin, Owner | desktop
@@ -1241,6 +1250,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
 - 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).
+- 2026-10-24 — F50 Hasil Penjualan (K-126).
 - 2026-10-24 — F5 log aktivitas: ekspor Excel.
 - 2026-10-24 — F40 saran pesan: metode A–D dan simpanan memori (K-127); kolom `barang.stok_maksimum`.
 - 2026-10-24 — F49 pengaturan cetak: logo, kepekatan, kertas, cetak otomatis (K-124).

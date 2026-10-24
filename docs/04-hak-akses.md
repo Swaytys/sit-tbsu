@@ -191,6 +191,7 @@ tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembe
 | Persediaan › Konsinyasi (M2) | `konsinyasi.kelola` | Posisi per pemasok, setoran KSG, nota setoran; bayar lewat `hutang.kelola` (K-089) |
 | Kas › Shift & Clerical Check | `kas.shift.kelola_sendiri` | Tab "Semua Shift" bila `kas.shift.lihat_semua`; tab "Cek uang non-tunai" bila `kas.nontunai.verifikasi` (K-111) |
 | Laporan | `laporan.penjualan` atau `laporan.persediaan` | Daftar laporan disaring per izin |
+| Hasil Penjualan (K-126) | `laporan.penjualan` | Laba kotor dan margin hanya untuk `laporan.laba` (disaring API) |
 | Pengaturan | `sistem.pengaturan.kelola` | Tab "Log Aktivitas" bila `sistem.log.lihat`; tab "Cadangan" bila `sistem.cadangan.kelola`; tab "Promo" bila `promo.kelola` (menu Promo dipindah ke sini, K-110); tab "Pembayaran" = rekening toko (K-111) |
 
 ## 5. Data sensitif

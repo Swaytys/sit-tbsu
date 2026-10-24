@@ -25,6 +25,7 @@ import {
   Warehouse,
   XCircle,
   type LucideIcon,
+  ChartColumnBig,
 } from 'lucide-react';
 
 /*
@@ -122,6 +123,13 @@ export const MENU: EntriMenu[] = [
         ikon: Wallet,
         izin: 'penjualan.piutang.lihat',
         fase: 5,
+      },
+      {
+        path: '/hasil-penjualan',
+        label: 'Hasil Penjualan',
+        ikon: ChartColumnBig,
+        izin: 'laporan.penjualan',
+        fase: 14,
       },
       { path: '/retur', label: 'Retur Penjualan', ikon: Undo2, izin: 'retur.ajukan', fase: 6 },
       { path: '/void', label: 'Void Transaksi', ikon: XCircle, izin: 'void.ajukan', fase: 6 },

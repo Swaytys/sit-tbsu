@@ -48,6 +48,7 @@ import { arsipRoutes } from './modules/sistem/arsip/routes';
 import { pemeriksaanDataRoutes } from './modules/sistem/pemeriksaan-data/routes';
 import { cadanganRoutes } from './modules/sistem/cadangan/routes';
 import { cariRoutes } from './modules/sistem/cari/routes';
+import { hasilPenjualanRoutes } from './modules/hasil-penjualan/routes';
 import { healthRoutes } from './modules/sistem/health/routes';
 import { logRoutes } from './modules/sistem/log/routes';
 import { persetujuanRoutes } from './modules/sistem/kode-persetujuan/routes';
@@ -102,7 +103,8 @@ const rute = new Hono<EnvApp>()
   .route('/cadangan', cadanganRoutes)
   .route('/arsip', arsipRoutes)
   .route('/pemeriksaan-data', pemeriksaanDataRoutes)
-  .route('/cari', cariRoutes);
+  .route('/cari', cariRoutes)
+  .route('/hasil-penjualan', hasilPenjualanRoutes);
 
 export const app = new Hono<EnvApp>();
 app.use(requestLog);
