@@ -1,5 +1,5 @@
-import type { DetailOrder, DetailPenjualan, PratinjauOrder, Promo } from '@sit/shared';
-import { and, desc, eq } from 'drizzle-orm';
+import type { BarisBarang, DetailOrder, DetailPenjualan, PratinjauOrder, Promo } from '@sit/shared';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
 import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
@@ -21,6 +21,7 @@ import {
   tingkatHarga,
 } from '../../db/schema';
 import { jamLokal, saatLokal, tambahHari, tanggalOperasional } from '../../lib/waktu';
+import { lupakanKeterjualan } from '../master/barang/keterjualan';
 import { bitHari, hariDariBit, promoBerlaku, type KandidatPromo } from './hitung';
 
 /** Ubah masa promo langsung di DB (waktu berlalu): tanggal dan waktu (K-163) diselaraskan. */
@@ -1011,5 +1012,42 @@ describe('kampanye promo (K-163)', () => {
       'PATCH',
     );
     expect(perpanjang.status).toBe(200);
+  });
+});
+
+describe('label keterjualan barang (K-123)', () => {
+  it('LARIS 20% teratas, TIDAK_LAKU, BARU; angka terjual 30 hari dan terakhir terjual', async () => {
+    await tanpaGrosir();
+    await db
+      .update(barang)
+      .set({ dibuatPada: new Date(Date.now() - 60 * 86_400_000) })
+      .where(inArray(barang.id, [m.semen, m.pasir, m.titip]));
+    await kirimData(kasir, '/api/shift/buka', { modalAwal: 0 });
+    await kirimData(kasir, '/api/penjualan/checkout', {
+      order: keranjang([
+        { idBarang: m.semen, qty: '5' },
+        { idBarang: m.pasir, qty: '1' },
+      ]),
+      pembayaran: [lunas],
+    });
+    lupakanKeterjualan();
+    const daftar = await kirimData<BarisBarang[]>(
+      admin,
+      '/api/barang?perHalaman=100',
+      undefined,
+      'GET',
+    );
+    const k = (id: number) => daftar.find((b) => b.id === id)?.keterjualan;
+    expect(k(m.semen)).toMatchObject({
+      label: 'LARIS',
+      terjual30: '5.000',
+      rataPerHari: '0.167',
+      terakhirTerjual: hariIni,
+    });
+    expect(k(m.pasir)?.label).toBeNull();
+    expect(k(m.titip)).toMatchObject({ label: 'TIDAK_LAKU', terakhirTerjual: null });
+    expect(daftar.find((b) => ![m.semen, m.pasir, m.titip].includes(b.id))?.keterjualan.label).toBe(
+      'BARU',
+    );
   });
 });

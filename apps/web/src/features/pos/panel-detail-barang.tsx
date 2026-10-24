@@ -5,9 +5,11 @@ import {
   type BarisBarang,
   type OpsiSatuanBaris,
 } from '@sit/shared';
-import { ImageOff } from 'lucide-react';
+import { ImageOff, X } from 'lucide-react';
+import { useEffect } from 'react';
 import { useDaftarTingkatHarga } from '@/api/mitra';
-import { formatDesimal } from '@/lib/format';
+import { LencanaKeterjualan } from '@/components/lencana-keterjualan';
+import { formatDesimal, formatTanggal } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { opsiDariBarang } from './model';
 
@@ -28,6 +30,7 @@ export function PanelDetailBarang({
   o,
   qty,
   menutupi = 'antrean',
+  onTutup,
 }: {
   b: BarisBarang;
   /** Satuan yang sedang disorot (satuan dasar atau kemasan). */
@@ -36,7 +39,19 @@ export function PanelDetailBarang({
   qty: string;
   /** Area yang ditutupi panel ini (teks petunjuk). */
   menutupi?: string;
+  /** K-123: tombol tutup (×) dan Esc. */
+  onTutup?: () => void;
 }) {
+  useEffect(() => {
+    if (!onTutup) return;
+    const tutup = onTutup;
+    function tombol(e: KeyboardEvent) {
+      if (e.key === 'Escape') tutup();
+    }
+    window.addEventListener('keydown', tombol);
+    return () => window.removeEventListener('keydown', tombol);
+  }, [onTutup]);
+  const jual = b.keterjualan;
   const tier = (useDaftarTingkatHarga().data ?? [])
     .filter((t) => t.statusAktif === 'AKTIF')
     .sort((x, y) => (x.minBelanja ?? 0) - (y.minBelanja ?? 0));
@@ -50,6 +65,17 @@ export function PanelDetailBarang({
       data-testid="panel-detail-barang"
       aria-live="polite"
     >
+      {onTutup && (
+        <button
+          type="button"
+          onClick={onTutup}
+          aria-label="Tutup rincian barang"
+          title="Tutup (Esc)"
+          className="absolute top-2 right-2 rounded p-1 text-slate-500 hover:bg-slate-100"
+        >
+          <X className="size-4" />
+        </button>
+      )}
       <div className="flex gap-4">
         {b.gambar ? (
           <img
@@ -67,7 +93,10 @@ export function PanelDetailBarang({
           </span>
         )}
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-xl leading-tight font-bold text-slate-900">{b.namaBarang}</p>
+          <p className="flex items-start gap-2 pr-6 text-xl leading-tight font-bold text-slate-900">
+            {b.namaBarang}
+            <LencanaKeterjualan k={jual} className="mt-1" />
+          </p>
           <p className="font-mono text-xs text-slate-500">
             {b.kode}
             {b.barcode && ` · barcode ${b.barcode}`}
@@ -112,6 +141,14 @@ export function PanelDetailBarang({
           </div>
         ))}
       </section>
+      <p className="text-xs text-slate-600" data-testid="info-penjualan">
+        Penjualan 30 hari:{' '}
+        <b>
+          {formatDesimal(jual.terjual30)} {b.kodeSatuan}
+        </b>{' '}
+        · rata-rata {formatDesimal(jual.rataPerHari)}/hari · terakhir terjual{' '}
+        {jual.terakhirTerjual ? formatTanggal(jual.terakhirTerjual) : 'belum pernah'}
+      </p>
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className={cn('rounded px-2 py-0.5 font-semibold', WARNA_STATUS[b.statusStok])}>
           Stok {LABEL_STATUS_STOK[b.statusStok]}

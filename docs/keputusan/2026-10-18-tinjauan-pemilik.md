@@ -99,7 +99,10 @@ penjualan sampai kasir selesai menghitung.
 
 ### K-123 — Pencarian sebagian, label keterjualan, angka stok yang menonjol, panel yang lebih lengkap
 
-**Status:** menggantikan K-108 butir 1 bagian "angka atribut dicocokkan utuh".
+**Status:** menggantikan K-108 butir 1 bagian "angka atribut dicocokkan utuh". **Selesai 24 Okt.** Rincian teknis label:
+LARIS = 20 % teratas nilai penjualan barang yang terjual; LAMBAT = terjual tetapi nilainya di bawah median barang
+yang terjual; TIDAK_LAKU = tidak terjual 30 hari; BARU = dibuat < 30 hari (mengalahkan label lain); selebihnya tanpa
+label. Status saran pesan di panel belum ditampilkan (lihat Saran Pesan).
 
 **Keputusan:**
 

@@ -368,8 +368,10 @@ Admin/Owner (pemeriksaan) | desktop
 - Status: BERFUNGSI.
 
 **F19. Cari barang** | semua layar transaksi | semua | desktop
-- Fungsi: cari per kata di nama, kode, barcode, merk, kategori, atribut (mis. `pipa 3 inch putih`), urut
-  relevansi; saring kategori; tombol **Daftar** untuk melihat barang tanpa mengetik; foto kecil; stok tersedia.
+- Fungsi: cari per kata di nama, kode, barcode, merk, kategori, atribut (mis. `pipa 3 inch putih`; atribut
+  boleh sebagian, K-123), urut relevansi; saring kategori; tombol **Daftar** untuk melihat barang tanpa mengetik;
+  foto kecil; stok tersedia (tebal merah); label keterjualan Laris/Lambat/Tidak laku/Baru dari penjualan 30 hari
+  (`[KODE: api/modules/master/barang/keterjualan.ts]`); panel rincian dengan info penjualan.
 - Bukti: `[KODE: api/modules/master/barang/repo.ts:101,128]` `[KODE: web/features/pos/cari-barang-pos.tsx]`.
 - Status: BERFUNGSI.
 

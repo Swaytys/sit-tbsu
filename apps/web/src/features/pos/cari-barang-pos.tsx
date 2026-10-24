@@ -7,6 +7,7 @@ import { ambilIsi, api, pesanGalat } from '@/api/client';
 import { useDaftarKategori } from '@/api/referensi';
 import { formatDesimal } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
+import { LencanaKeterjualan } from '@/components/lencana-keterjualan';
 import { cn } from '@/lib/utils';
 import { opsiDariBarang, satuanAwal, uraikanCari } from './model';
 
@@ -383,6 +384,7 @@ export function CariBarangPos({
                       <span className="line-clamp-2 min-w-0 flex-1 font-medium break-words">
                         {b.namaBarang}
                       </span>
+                      <LencanaKeterjualan k={b.keterjualan} />
                       <span
                         className={cn(
                           'shrink-0 rounded px-1 text-xs',
@@ -407,7 +409,8 @@ export function CariBarangPos({
                         {h && h.hargaJual > 0
                           ? `${formatRupiah(h.hargaJual)}/${o.kodeSatuan}`
                           : 'harga belum ada'}{' '}
-                        · stok {formatDesimal(b.stokTersedia)}
+                        · stok {/* K-123: stok cepat terbaca: tebal, merah, minimal 14 px. */}
+                        <b className="text-sm text-red-600">{formatDesimal(b.stokTersedia)}</b>
                       </span>
                     </span>
                   </span>

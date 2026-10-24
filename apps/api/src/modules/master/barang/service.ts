@@ -5,6 +5,7 @@ import {
   marginPersen,
   type AtributBarang,
   type BarisBarang,
+  type Keterjualan,
   type DataBarang,
   type DataMuatanBarang,
   type MuatanBarang,
@@ -46,6 +47,7 @@ import { muatSatuanJual } from '../satuan-jual/service';
 import * as satuanJualRepo from '../satuan-jual/repo';
 import * as repo from './repo';
 import { pastikanTidakMirip } from '../mirip';
+import { KETERJUALAN_KOSONG, petaKeterjualan } from './keterjualan';
 
 /*
  * Barang (docs/03 §3.2, docs/05 L10, docs/06 H2–H5, KS1). Tidak dihapus; dinonaktifkan (K-021).
@@ -77,6 +79,7 @@ function keBaris(
   satuanJual: SatuanJualBarang[] = [],
   idSatuanJualCocok: number | null = null,
   atribut: RingkasAtribut[] = [],
+  keterjualan: Keterjualan = KETERJUALAN_KOSONG,
 ): BarisBarang {
   const lihatHpp = izin.has('master.barang.lihat_hpp');
   const dasar = dasarMarkup(b, konteks.modeDasar);
@@ -104,6 +107,7 @@ function keBaris(
     stokRusak: b.stokRusak,
     stokTersedia: keQty(b.stokTersedia),
     statusStok,
+    keterjualan,
     kepemilikan: b.kepemilikan,
     idPemasokKonsinyasi: b.idPemasokKonsinyasi,
     namaPemasokKonsinyasi: b.namaPemasokKonsinyasi,
@@ -168,6 +172,7 @@ export async function daftarBarang(
   // K-091: kata cari sama persis dengan barcode satuan jual → satuan itu dipilih saat dipindai.
   const cocok = p.cari ? await satuanJualRepo.satuanJualDariBarcode(db, p.cari.trim()) : undefined;
   const atribut = await atributPerBarang(baris.map((b) => b.id));
+  const jual = await petaKeterjualan();
   return {
     data: baris.map((b) =>
       keBaris(
@@ -179,6 +184,7 @@ export async function daftarBarang(
         satuanJual.get(b.id) ?? [],
         cocok?.idBarang === b.id ? cocok.id : null,
         atribut.get(b.id) ?? [],
+        jual.get(b.id),
       ),
     ),
     meta: metaHalaman(total, p),
@@ -210,6 +216,9 @@ export async function detailBarang(id: number, izin: ReadonlySet<Izin>): Promise
       await muatKonteksHarga(db),
       (await statusStokBarang([id])).get(id) ?? 'HABIS',
       (await muatSatuanJual(db, [id])).get(id) ?? [],
+      null,
+      [],
+      (await petaKeterjualan()).get(id),
     ),
     keterangan: b.keterangan,
     atribut,

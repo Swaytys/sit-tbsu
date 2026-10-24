@@ -22,6 +22,7 @@ import { BilahSaring, type SaringStatus } from '@/components/bilah-saring';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { MenuAksiMaster } from '@/components/menu-aksi-master';
 import { BadgeStatusAktif, BadgeStatusStok } from '@/components/status-badge';
+import { LencanaKeterjualan } from '@/components/lencana-keterjualan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -167,6 +168,7 @@ export function HalamanBarang() {
           </Link>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
             <span>{b.kodeSatuan}</span>
+            <LencanaKeterjualan k={b.keterjualan} />
             {b.kepemilikan === 'KONSINYASI' && (
               <Badge
                 variant="outline"

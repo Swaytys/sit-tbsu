@@ -506,8 +506,10 @@ describe('ubah barang', () => {
     // Yang cocok lewat namanya tampil di atas yang hanya cocok lewat kategori.
     expect(sKategori[0]?.namaBarang).toMatch(/^Semen/);
     expect(sKategori.at(-1)?.namaBarang).not.toMatch(/^Semen/);
-    // Angka dicocokkan utuh pada atribut: "2" tidak menemukan atribut 12,5.
-    expect(await nama('air 2')).toEqual([]);
+    // K-123: atribut dicocokkan sebagian: "2" menemukan 12,5; "c" menemukan cm.
+    expect(await nama('air 2')).toEqual(['Pipa Air']);
+    expect(await nama('air c')).toEqual(['Pipa Air']);
+    expect(await nama('air 7')).toEqual([]);
 
     // Merk nonaktif tidak bisa dipilih untuk barang.
     const res = await kirim(admin, '/api/barang', barangBaru({ idMerk: ref.merkLama }));

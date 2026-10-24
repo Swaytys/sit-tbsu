@@ -290,3 +290,7 @@ export type StatusTujuanCadangan = (typeof STATUS_TUJUAN_CADANGAN)[number];
 /** K-165: status tutup tahun (arsip tahunan). DIBUKA = pernah ditutup lalu dibuka kembali oleh Owner. */
 export const STATUS_TUTUP_TAHUN = ['DITUTUP', 'DIBUKA'] as const;
 export type StatusTutupTahun = (typeof STATUS_TUTUP_TAHUN)[number];
+
+/** K-123: label keterjualan barang dari penjualan 30 hari terakhir (dihitung server). */
+export const LABEL_KETERJUALAN = ['LARIS', 'LAMBAT', 'TIDAK_LAKU', 'BARU'] as const;
+export type LabelKeterjualan = (typeof LABEL_KETERJUALAN)[number];

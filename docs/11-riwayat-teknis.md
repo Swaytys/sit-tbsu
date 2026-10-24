@@ -577,6 +577,15 @@ F9 kasir saat order antrean terbuka. Fixtur e2e lewat `api()` menyertakan `abaik
 
 **Tes:** mitra.test (+1 data ganda & No. HP), pemeriksaan-data.test, rincian notifikasi di piutang/stok/retur
 test, penyesuaian tes lama ke format No. HP baru, e2e order (F10).
+### C16. Cari atribut sebagian dan label keterjualan (24 Oktober 2026, K-123)
+
+**Solusi:** `cocokAtribut(kata, persis)` di repo barang: bawaan cocok sebagian (nilai angka, satuan, gabungan);
+urutan relevansi 0 = nama/kode/barcode, 1 = atribut utuh, 2 = lainnya. `master/barang/keterjualan.ts` menghitung
+label untuk semua barang dalam satu kueri, disimpan di memori 10 menit, ditempel ke `BarisBarang.keterjualan`.
+Web: `LencanaKeterjualan` di hasil cari kasir/order, Data Barang, panel rincian; panel rincian punya tombol × dan
+Esc serta info penjualan; angka stok di hasil cari tebal merah.
+
+**Tes:** barang.test (cari sebagian), promo.test (label keterjualan), e2e POS/order/barang.
 
 ---
 
@@ -598,3 +607,4 @@ test, penyesuaian tes lama ke format No. HP baru, e2e order (F10).
 - 2026-10-24 — Bagian C13 kampanye promo (K-163 bagian 1).
 - 2026-10-24 — Bagian C14 arsip tahunan dan pembaruan aman (K-165, K-166).
 - 2026-10-24 — Bagian C15 data bersih, notifikasi rinci, order (K-129–K-143).
+- 2026-10-24 — Bagian C16 cari atribut sebagian dan label keterjualan (K-123).
