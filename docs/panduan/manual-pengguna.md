@@ -520,6 +520,16 @@ Semua tugas kasir, ditambah:
   5. Angka dihitung dari penjualan sampai **kemarin**, jadi penjualan hari ini belum mengubah rata-rata. Saran
      adalah bahan keputusan; jumlah yang dibeli tetap keputusan Anda. Lonceng menampilkan "Barang perlu dipesan"
      bila ada yang berstatus Pesan sekarang.
+  6. **Metode hitung** (tombol di atas kotak status, atau tekan **1**–**4** saat kursor tidak di kotak isian):
+     **A Rata-rata** (bawaan, seperti di atas); **B Statistik** (stok pengaman mengikuti naik-turun penjualan
+     harian, pilih tingkat layanan 90/95/98%; butuh riwayat 30 hari); **C Min–maks** (pesan sampai *stok
+     maksimum* bila stok turun ke *stok minimum*; isi keduanya di *Data Barang › Ubah*); **D Tren** (ikut arah
+     penjualan naik/turun; butuh riwayat 14 hari). Barang yang belum memenuhi syarat metode pilihan dihitung
+     dengan A dan diberi catatan kuning di kolom Status. Pilihan metode diingat di komputer ini. Penjelasan
+     kelebihan dan batasan tiap metode ada di tombol **?**.
+  7. Hasil hitung disimpan sementara di server (paling lama 10 menit) dan dihitung ulang otomatis bila ada
+     transaksi atau perubahan data barang/pemasok. Saat berganti ke metode yang belum dihitung, tampil
+     *Menghitung metode …*.
 - **Stok rusak** (tab *Stok rusak* di *Stok Persediaan*): barang rusak tidak bisa dijual. Pindahkan dari stok
   baik lewat *Penyesuaian › Stok rusak*. Lalu pilih **Retur ke pemasok** (diklaim) atau **Musnahkan** (dibuang;
   alasan wajib).

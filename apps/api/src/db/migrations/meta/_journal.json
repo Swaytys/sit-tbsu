@@ -225,6 +225,13 @@
       "when": 1792819644331,
       "tag": "0031_arsip_tahunan",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792846316984,
+      "tag": "0032_stok_maksimum",
+      "breakpoints": true
     }
   ]
 }

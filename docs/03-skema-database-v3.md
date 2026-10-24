@@ -86,7 +86,7 @@ buah, roll, dus) tidak saling dikonversi lewat tabel ini; konversi antar-satuan 
 Tekstur, Fungsi, …). `tipe_nilai` ANGKA/TEKS; ANGKA berdimensi mewajibkan `jenis_dimensi` sehingga satuan yang
 dipakai barang diverifikasi dimensinya (aturan service).
 
-**`barang`** — master utama. Kolom penting: `id_satuan_dasar` (satuan stok), `stok_minimum`, `harga_modal_awal`
+**`barang`** — master utama. Kolom penting: `id_satuan_dasar` (satuan stok), `stok_minimum`, `stok_maksimum` (boleh kosong; batas atas saran pesan metode C, CHECK > 0 dan ≥ minimum, K-127), `harga_modal_awal`
 (dasar HPP dan markup sebelum ada penerimaan; saat barang dibuat, service membuat baris `persediaan` dengan
 `hpp_rata2 = harga_beli_terakhir = harga_modal_awal`), `kepemilikan` MILIK_SENDIRI/KONSINYASI dengan
 `id_pemasok_konsinyasi` + `harga_titip` wajib untuk konsinyasi (CHECK), `harga_otomatis` (bawaan true sejak v3.8,
@@ -531,6 +531,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-24 — v3.29: `barang.stok_maksimum` numeric(14,3) boleh kosong + CHECK `chk_barang_stok_maks` (migrasi 0032,
+  K-127).
 - 2026-10-24 — v3.28: konfigurasi `invoice_cetak`, `surat_jalan_cetak`, `kertas_invoice`, `kertas_surat_jalan`,
   `kertas_dokumen_lain` (tanpa migrasi; nilai bawaan dipakai bila baris belum ada, K-124).
 - 2026-10-24 — v3.27: tabel `tutup_tahun` (tahun PK, status DITUTUP/DIBUKA, berkas, sha256, ukuran, ringkasan jsonb,

@@ -604,6 +604,20 @@ bawaan Windows; struk tetap ESC/POS).
 **Tes:** escpos.test (kepekatan, raster, pita), pengaturan.test (simpan/tolak setelan baru, tampilan toko), e2e
 cetak-dokumen.spec.
 
+### C18. Saran pesan beberapa metode dan simpanan memori (24 Oktober 2026, K-127)
+
+**Solusi:** migrasi 0032 `barang.stok_maksimum` (CHECK > 0 dan ≥ minimum; diisi di form barang). Shared:
+`METODE_SARAN_PESAN`, `Z_TINGKAT_LAYANAN`, helper statistik di `qty.ts` (`akarQty`, `simpanganBakuQty`,
+`pemulusanHolt`, `jumlahPerkiraanHolt`; decimal.js). API `saran-pesan/hitung.ts` `hitungSaranMetode` (B statistik
+RO10, C min–maks RO11, D Holt α 0,3 β 0,1 RO12; syarat tak terpenuhi = A + catatan). `service.ts` menghitung semua
+barang sekali per (metode, tingkat layanan, parameter) dan menyimpannya di `Map` memori 10 menit dengan penanda
+`versiDataSaran` (id mutasi terakhir + waktu ubah barang/pemasok); saringan kategori/cari/pemasok diterapkan di
+memori, nilai rupiah dibuang sesuai izin. Web: pemilih metode (tombol 1–4, diingat di localStorage), tingkat
+layanan, tanda "Menghitung…", catatan per baris, penjelasan "?" per metode.
+
+**Tes:** qty-statistik.test, saran-pesan.test (metode murni + parameter, simpanan, stok maksimum lewat API), e2e
+saran-pesan.spec.
+
 ---
 
 ## Riwayat dokumen
@@ -626,3 +640,4 @@ cetak-dokumen.spec.
 - 2026-10-24 — Bagian C15 data bersih, notifikasi rinci, order (K-129–K-143).
 - 2026-10-24 — Bagian C16 cari atribut sebagian dan label keterjualan (K-123).
 - 2026-10-24 — Bagian C17 cetak: logo, kepekatan, kertas per dokumen, cetak otomatis (K-124).
+- 2026-10-24 — Bagian C18 saran pesan beberapa metode dan simpanan memori (K-127).

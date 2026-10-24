@@ -103,6 +103,7 @@ function keBaris(
     idSatuanDasar: b.idSatuanDasar,
     kodeSatuan: b.kodeSatuan,
     stokMinimum: b.stokMinimum,
+    stokMaksimum: b.stokMaksimum,
     stokFisik: b.stokFisik,
     stokRusak: b.stokRusak,
     stokTersedia: keQty(b.stokTersedia),
@@ -415,8 +416,13 @@ function nilaiDari(
   input: DataBarang,
   kode: string,
   stokMinimum: string,
+  stokMaksimum: string | null,
   hargaOtomatisLama = true,
 ): repo.NilaiBarang {
+  // K-127: batas atas min–maks tidak boleh di bawah stok minimum.
+  if (stokMaksimum !== null && bandingQty(stokMaksimum, stokMinimum) < 0) {
+    throw new AppError('VALIDASI', 'Stok maksimum tidak boleh lebih kecil dari stok minimum.', 400);
+  }
   const konsinyasi = input.kepemilikan === 'KONSINYASI';
   return {
     kode,
@@ -426,6 +432,7 @@ function nilaiDari(
     idMerk: input.idMerk ?? null,
     idSatuanDasar: input.idSatuanDasar,
     stokMinimum,
+    stokMaksimum,
     hargaModalAwal: input.hargaModalAwal,
     kepemilikan: input.kepemilikan,
     idPemasokKonsinyasi: konsinyasi ? (input.idPemasokKonsinyasi ?? null) : null,
@@ -499,7 +506,12 @@ export async function buatBarang(
 ): Promise<BarangBaru> {
   const stokMinimum = keQty(input.stokMinimum ?? (await ambilAngka('stok_minimum_default', 0, tx)));
   const kode = await tentukanKode(tx, input.kode);
-  const nilai = nilaiDari(input, kode, stokMinimum);
+  const nilai = nilaiDari(
+    input,
+    kode,
+    stokMinimum,
+    input.stokMaksimum ? keQty(input.stokMaksimum) : null,
+  );
   await pastikanBarcodeBebas(tx, nilai.barcode);
   await pastikanReferensiAktif(tx, nilai);
   const atribut = await siapkanAtribut(tx, input.atribut, {
@@ -605,6 +617,11 @@ export async function ubahBarang(
       input,
       kode,
       input.stokMinimum ? keQty(input.stokMinimum) : lama.stokMinimum,
+      input.stokMaksimum === undefined
+        ? lama.stokMaksimum
+        : input.stokMaksimum
+          ? keQty(input.stokMaksimum)
+          : null,
       lama.hargaOtomatis,
     );
     if (nilai.hargaOtomatis !== lama.hargaOtomatis && !pelaku.izin.has('master.harga.kelola')) {

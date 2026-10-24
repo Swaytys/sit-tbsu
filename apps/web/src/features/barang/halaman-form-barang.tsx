@@ -153,6 +153,9 @@ function nilaiAwal(
       idMerk: salinan.idMerk,
       idSatuanDasar: salinan.idSatuanDasar,
       stokMinimum: formatDesimal(salinan.stokMinimum).replaceAll('.', ''),
+      stokMaksimum: salinan.stokMaksimum
+        ? formatDesimal(salinan.stokMaksimum).replaceAll('.', '')
+        : '',
       keterangan: salinan.keterangan ?? '',
       atribut: salinan.atribut.map((a) => ({
         idJenisAtribut: a.idJenisAtribut,
@@ -169,6 +172,7 @@ function nilaiAwal(
     idMerk: b?.idMerk ?? null,
     idSatuanDasar: b?.idSatuanDasar ?? 0,
     stokMinimum: b ? formatDesimal(b.stokMinimum).replaceAll('.', '') : '',
+    stokMaksimum: b?.stokMaksimum ? formatDesimal(b.stokMaksimum).replaceAll('.', '') : '',
     hargaModalAwal: b?.hargaModalAwal ?? null,
     kepemilikan: b?.kepemilikan ?? (idPenitip !== null ? 'KONSINYASI' : 'MILIK_SENDIRI'),
     idPemasokKonsinyasi: b?.idPemasokKonsinyasi ?? (idPenitip || null),
@@ -377,6 +381,7 @@ function FormBarang({
         'idMerk',
         'idSatuanDasar',
         'stokMinimum',
+        'stokMaksimum',
         'hargaModalAwal',
         'kepemilikan',
         'idPemasokKonsinyasi',
@@ -623,6 +628,28 @@ function FormBarang({
                         />
                       </FormControl>
                       <FormDescription>Dalam satuan dasar.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="stokMaksimum"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Stok maksimum (boleh kosong)</FormLabel>
+                      <FormControl>
+                        <Input
+                          inputMode="decimal"
+                          placeholder="Kosong"
+                          {...field}
+                          value={typeof field.value === 'string' ? field.value : ''}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Untuk saran pesan metode C (min–maks): pesan sampai jumlah ini bila stok
+                        turun ke stok minimum.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -616,7 +616,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-124 | Cetak: setelan tersimpan, penjelasan laci uang, logo di struk, kepekatan, dokumen A4 dengan setelan bawaan, cetak otomatis per jenis dokumen. | Berlaku (selesai 24 Okt) |
 | K-125 | Order pembelian ke pemasok masuk v1.0.0. | Berlaku (rencana; riset dan rancangan menyusul) |
 | K-126 | Halaman Hasil Penjualan. | Berlaku (rencana; kode menyusul) |
-| K-127 | Rekomendasi pesan beberapa metode (rata-rata, statistik Z, min–maks, tren), cache memori, lead time aktual dari order pembelian. | Berlaku (rencana; kode menyusul) |
+| K-127 | Rekomendasi pesan beberapa metode (rata-rata, statistik Z, min–maks, tren), cache memori, lead time aktual dari order pembelian. | Berlaku (metode dan cache selesai 24 Okt; lead time aktual menunggu K-125) |
 
 ---
 

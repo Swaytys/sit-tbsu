@@ -110,3 +110,58 @@ export function qtyGratis(qty: Decimal.Value, beli: Decimal.Value, gratis: Decim
   const paket = new Decimal(qty).div(new Decimal(beli).plus(gratis)).floor();
   return keQty(paket.times(gratis));
 }
+
+/*
+ * K-127: statistik deret penjualan harian untuk metode saran pesan B (statistik) dan D (tren). Hitungan antara
+ * memakai presisi penuh decimal.js; hasil dibulatkan 3 desimal seperti qty lain.
+ */
+
+/** Akar kuadrat, 3 desimal. */
+export function akarQty(a: Decimal.Value): string {
+  return keQty(Decimal.max(0, a).sqrt());
+}
+
+/** Simpangan baku sampel (pembagi n − 1); "0.000" bila kurang dari 2 data. */
+export function simpanganBakuQty(seri: readonly Decimal.Value[]): string {
+  if (seri.length < 2) return keQty(0);
+  const angka = seri.map((x) => new Decimal(x));
+  const rata = Decimal.sum(...angka).div(angka.length);
+  const kuadrat = Decimal.sum(...angka.map((x) => x.minus(rata).pow(2)));
+  return keQty(kuadrat.div(angka.length - 1).sqrt());
+}
+
+/**
+ * Pemulusan eksponensial ganda (Holt). Level awal = rata-rata `awal` data pertama, tren awal 0; lalu tiap data
+ * x: level' = α·x + (1−α)(level + tren), tren' = β(level' − level) + (1−β)·tren.
+ */
+export function pemulusanHolt(
+  seri: readonly Decimal.Value[],
+  alfa: Decimal.Value,
+  beta: Decimal.Value,
+  awal = 7,
+): { level: string; tren: string } {
+  if (seri.length === 0) return { level: keQty(0), tren: keQty(0) };
+  const a = new Decimal(alfa);
+  const b = new Decimal(beta);
+  const n = Math.min(awal, seri.length);
+  let level = Decimal.sum(...seri.slice(0, n).map((x) => new Decimal(x))).div(n);
+  let tren = new Decimal(0);
+  for (const x of seri.slice(n)) {
+    const baru = a.times(x).plus(new Decimal(1).minus(a).times(level.plus(tren)));
+    tren = b.times(baru.minus(level)).plus(new Decimal(1).minus(b).times(tren));
+    level = baru;
+  }
+  return { level: keQty(level), tren: keQty(tren) };
+}
+
+/** Σ perkiraan hari 1..`hari` dengan perkiraan hari ke-k = maks(0, level + k·tren). */
+export function jumlahPerkiraanHolt(
+  level: Decimal.Value,
+  tren: Decimal.Value,
+  hari: number,
+): string {
+  let total = new Decimal(0);
+  for (let k = 1; k <= hari; k++)
+    total = total.plus(Decimal.max(0, new Decimal(tren).times(k).plus(level)));
+  return keQty(total);
+}

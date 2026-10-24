@@ -1,0 +1,2 @@
+ALTER TABLE "barang" ADD COLUMN "stok_maksimum" numeric(14, 3);--> statement-breakpoint
+ALTER TABLE "barang" ADD CONSTRAINT "chk_barang_stok_maks" CHECK (stok_maksimum is null or (stok_maksimum > 0 and stok_maksimum >= stok_minimum));

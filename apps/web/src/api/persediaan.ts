@@ -10,6 +10,8 @@ import type {
   StatusPenyesuaian,
   StatusStok,
   StatusSaranPesan,
+  MetodeSaranPesan,
+  TingkatLayananSaran,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, ambilIsi, api, galatDariRespons, paramId } from './client';
@@ -264,6 +266,9 @@ export type SaringSaranPesan = {
   idPemasok?: number | undefined;
   idKategori?: number | undefined;
   cari?: string | undefined;
+  /** K-127. */
+  metode: MetodeSaranPesan;
+  layanan: TingkatLayananSaran;
 };
 
 export function useSaranPesan(p: SaringSaranPesan) {
@@ -277,6 +282,8 @@ export function useSaranPesan(p: SaringSaranPesan) {
             ...(p.idPemasok ? { idPemasok: String(p.idPemasok) } : {}),
             ...(p.idKategori ? { idKategori: String(p.idKategori) } : {}),
             ...(p.cari ? { cari: p.cari } : {}),
+            metode: p.metode,
+            layanan: String(p.layanan),
           },
         }),
       ),
