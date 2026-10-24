@@ -12,6 +12,7 @@ import {
   type JenisPenjualan,
   type Pelanggan,
   type TiketAntrean,
+  ukuranKertasCss,
 } from '@sit/shared';
 import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent } from 'react';
 import { Printer, RotateCcw } from 'lucide-react';
@@ -52,6 +53,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useDaftarRekening } from '@/api/rekening';
+import { cetakMenurutSetelan } from '@/lib/cetak-otomatis';
 import { cetakLangsungAktif } from '@/lib/printer-thermal';
 import { cetakStrukLangsung } from '@/lib/struk-escpos';
 import { cn } from '@/lib/utils';
@@ -422,10 +424,14 @@ export function LayarPos({
       .then((p) => {
         setHasil(p);
         setLimitAtasan(null);
-        // K-074/K-095: struk penjualan langsung mengikuti Pengaturan (langsung cetak, tanya dulu, atau tidak);
-        // invoice pengantaran hanya bila diminta (P).
+        // K-074/K-095/K-124: struk penjualan langsung dan invoice pengantaran mengikuti Pengaturan (langsung
+        // cetak, tanya dulu, atau tidak); invoice selalu bisa dicetak lewat P.
         setStrukTercetak(false);
-        if (!pengantaran) {
+        if (pengantaran) {
+          cetakMenurutSetelan(toko?.invoiceCetak, `invoice ${p.nomor}`, () =>
+            setCetak({ jenis: 'invoice', p }),
+          );
+        } else {
           const mode = toko?.strukCetak ?? 'OTOMATIS';
           if (mode === 'OTOMATIS') cetakStruk(p, false);
           else if (mode === 'TANYA') setTanyaStruk(p);
@@ -486,7 +492,9 @@ export function LayarPos({
       .mutateAsync({ id: hasil.id, json: data.data })
       .then((sj) => {
         toast.success(`Surat jalan ${sj.nomor} dibuat.`);
-        setCetak({ jenis: 'sj', sj });
+        cetakMenurutSetelan(toko?.suratJalanCetak, `surat jalan ${sj.nomor}`, () =>
+          setCetak({ jenis: 'sj', sj }),
+        );
         setHasil(null);
         setZona('antrean');
       })
@@ -804,7 +812,8 @@ export function LayarPos({
                   <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">P</kbd> cetak
                   invoice ·{' '}
                   <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">S</kbd> buat
-                  surat jalan semua barang &amp; cetak ·{' '}
+                  surat jalan semua barang
+                  {toko?.suratJalanCetak === 'OTOMATIS' ? ' & cetak' : ''} ·{' '}
                   <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">Enter</kbd>{' '}
                   lanjut
                 </div>
@@ -979,12 +988,12 @@ export function LayarPos({
         </AreaCetak>
       )}
       {toko && cetak?.jenis === 'invoice' && (
-        <AreaCetak ukuranKertas="A4">
+        <AreaCetak ukuranKertas={ukuranKertasCss(toko.kertasInvoice)}>
           <InvoiceA4 p={cetak.p} toko={toko} />
         </AreaCetak>
       )}
       {toko && cetak?.jenis === 'sj' && (
-        <AreaCetak ukuranKertas="A4">
+        <AreaCetak ukuranKertas={ukuranKertasCss(toko.kertasSuratJalan)}>
           <SuratJalanA4 sj={cetak.sj} toko={toko} />
         </AreaCetak>
       )}

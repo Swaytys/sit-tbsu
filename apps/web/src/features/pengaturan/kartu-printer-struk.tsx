@@ -1,6 +1,12 @@
-import { lebarKarakterStruk } from '@sit/shared';
+import {
+  KEPEKATAN_STRUK,
+  LABEL_KEPEKATAN_STRUK,
+  lebarKarakterStruk,
+  lebarTitikStruk,
+  type KepekatanStruk,
+} from '@sit/shared';
 import { Printer } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useTampilanToko } from '@/api/pengaturan';
 import { KotakHasil, Langkah } from '@/components/langkah';
@@ -25,6 +31,7 @@ import {
   simpanPengaturanPrinter,
   type PengaturanPrinter,
 } from '@/lib/printer-thermal';
+import { logoStruk } from '@/lib/logo-struk';
 import { cetakUjiLangsung } from '@/lib/struk-escpos';
 
 const IKUT_TOKO = 'IKUT_TOKO';
@@ -109,7 +116,7 @@ const SARAN: Record<HasilUji, { judul: string; butir: string[] }> = {
   PUDAR: {
     judul: 'Tercetak tetapi pudar atau putus-putus.',
     butir: [
-      'Buka "Pengaturan lanjutan" di bawah dan pastikan "Cetak lebih tebal" menyala, lalu Uji cetak lagi.',
+      'Buka "Pengaturan lanjutan" di bawah, ubah Kepekatan cetak ke Tebal, lalu Uji cetak lagi. Masih pudar? Pilih Paling tebal dan uji lagi.',
       'Isi daya printer sampai penuh: printer baterai mencetak pudar saat baterai lemah.',
       'Ganti gulungan kertas thermal (kertas lama/lembap cetaknya abu-abu) dan pastikan sisi yang mengilap menghadap kepala cetak.',
       'Bersihkan kepala cetak dengan kapas beralkohol saat printer mati dan dingin.',
@@ -171,6 +178,22 @@ export function KartuPrinterStruk() {
 
   const lebarToko = toko ? lebarKarakterStruk(toko.lebarStrukMm) : 32;
   const lebarKini = p.lebarKarakter ?? lebarToko;
+
+  // K-124: pratinjau logo persis seperti yang dikirim ke printer (hitam-putih).
+  const urlLogo = toko?.strukTampilkanLogo ? toko.logo : null;
+  const [logo, setLogo] = useState<{ url: string; gambar: string | null } | null>(null);
+  useEffect(() => {
+    if (!urlLogo) return;
+    let batal = false;
+    const kunci = `${urlLogo}|${lebarKini}`;
+    logoStruk(urlLogo, lebarTitikStruk(lebarKini))
+      .then((l) => !batal && setLogo({ url: kunci, gambar: l.pratinjau }))
+      .catch(() => !batal && setLogo({ url: kunci, gambar: null }));
+    return () => {
+      batal = true;
+    };
+  }, [urlLogo, lebarKini]);
+  const pratinjauLogo = logo?.url === `${urlLogo}|${lebarKini}` ? logo : null;
   const peringatan = peringatanPort(p.info);
   const terpilih = p.info !== null && peringatan === null;
 
@@ -182,7 +205,8 @@ export function KartuPrinterStruk() {
           <h2 className="text-sm font-semibold text-slate-800">Printer struk komputer ini</h2>
           <p className="text-xs text-slate-500">
             Berlaku untuk komputer dan peramban yang sedang dipakai. Tiap komputer kasir diatur
-            sendiri, sekali saja.
+            sendiri, sekali saja: setelan tersimpan di peramban dan tetap berlaku setelah aplikasi
+            atau komputer dimatikan.
           </p>
         </div>
       </div>
@@ -473,14 +497,68 @@ export function KartuPrinterStruk() {
           </p>
         </Langkah>
 
-        <Lipatan judul="Pengaturan lanjutan (tebal cetak, pemotong, laci kas, kecepatan port)">
+        <div className="space-y-2 rounded-lg border p-3" data-testid="logo-struk">
+          <p className="text-sm font-medium">Logo di struk</p>
+          {!toko?.logo ? (
+            <p className="text-sm text-slate-600">
+              Belum ada logo toko. Unggah di Pengaturan › <b>Profil toko</b> › Logo, lalu nyalakan{' '}
+              <b>Kop struk memakai logo toko</b> di kartu Struk penjualan di atas.
+            </p>
+          ) : !urlLogo ? (
+            <p className="text-sm text-slate-600">
+              Logo tidak dicetak. Untuk mencetaknya, nyalakan <b>Kop struk memakai logo toko</b> di
+              kartu Struk penjualan di atas lalu tekan Simpan.
+            </p>
+          ) : (
+            <div className="flex items-start gap-4">
+              <div className="flex min-h-16 w-48 shrink-0 items-center justify-center rounded border bg-white p-2">
+                {pratinjauLogo?.gambar ? (
+                  <img
+                    src={pratinjauLogo.gambar}
+                    alt="Pratinjau logo struk"
+                    className="max-h-24 [image-rendering:pixelated]"
+                  />
+                ) : (
+                  <span className="text-xs text-slate-500">
+                    {pratinjauLogo ? 'Logo gagal dimuat' : 'Menyiapkan…'}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-slate-600">
+                Beginilah logo tercetak: hitam-putih, warna dan abu-abu menjadi pola titik. Logo
+                berwarna gelap di atas latar putih hasilnya paling jelas. Logo dicetak di atas
+                setiap struk dan di uji cetak; cetak sedikit lebih lama.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <Lipatan judul="Pengaturan lanjutan (kepekatan, pemotong, laci kas, kecepatan port)">
           <div className="grid grid-cols-2 gap-4">
-            <Saklar
-              label="Cetak lebih tebal"
-              ket="Tiap titik dicetak dua kali supaya hitam pekat. Matikan bila ingin lebih cepat dan hemat baterai."
-              nilai={p.pekat}
-              onUbah={(v) => ubah({ pekat: v })}
-            />
+            <div className="space-y-1 rounded-lg border p-3">
+              <Label htmlFor="kepekatan-printer">Kepekatan cetak</Label>
+              <Select
+                value={p.kepekatan}
+                onValueChange={(v) => ubah({ kepekatan: v as KepekatanStruk })}
+              >
+                <SelectTrigger id="kepekatan-printer" className="w-full bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {KEPEKATAN_STRUK.map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {LABEL_KEPEKATAN_STRUK[k]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">
+                Normal = apa adanya. Tebal = tiap titik dicetak dua kali dan semua huruf tebal.
+                Paling tebal = Tebal ditambah pemanasan kepala cetak lebih lama (dikenali banyak
+                printer murah; printer lain mengabaikannya). Makin tebal makin lambat dan boros
+                baterai. Bila tetap pudar: isi baterai, ganti kertas, bersihkan kepala cetak.
+              </p>
+            </div>
             <Saklar
               label="Potong kertas otomatis"
               ket="Printer tanpa pemotong (termasuk RPP02) mengabaikannya; sobek di gerigi."
@@ -489,7 +567,7 @@ export function KartuPrinterStruk() {
             />
             <Saklar
               label="Buka laci kas"
-              ket="Saat struk penjualan tunai dicetak (laci kas tersambung ke printer)."
+              ket="Laci uang elektronik yang dicolokkan ke printer struk (kabel RJ11 di belakang printer) terbuka sendiri saat struk penjualan tunai dicetak. Printer genggam seperti RPP02 tidak punya colokan laci: biarkan mati."
               nilai={p.bukaLaci}
               onUbah={(v) => ubah({ bukaLaci: v })}
             />

@@ -613,7 +613,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-121 | Shift: buka tiga cara, hitung per pecahan, hitung susulan, koreksi modal, tutup dua langkah, toleransi receh, uang ditinggal, tinjauan, bantuan selisih, penjelasan atasan. | Berlaku (selesai 18 Okt) |
 | K-122 | Order disimpan (nama, HP, tanggal ambil ≤ 14 hari, tahan stok), kembali ke draf, buka draf otomatis, peringatan barang di draf lain, panel rincian di Order. | Berlaku (selesai 18 Okt) |
 | K-123 | Pencarian atribut sebagian, label keterjualan, angka stok merah tebal, teks kecil penting lebih jelas, panel dengan tombol tutup dan info penjualan. | Berlaku (selesai 24 Okt) |
-| K-124 | Cetak: setelan tersimpan, penjelasan laci uang, logo di struk, kepekatan, dokumen A4 dengan setelan bawaan, cetak otomatis per jenis dokumen. | Berlaku (rencana; kode menyusul) |
+| K-124 | Cetak: setelan tersimpan, penjelasan laci uang, logo di struk, kepekatan, dokumen A4 dengan setelan bawaan, cetak otomatis per jenis dokumen. | Berlaku (selesai 24 Okt) |
 | K-125 | Order pembelian ke pemasok masuk v1.0.0. | Berlaku (rencana; riset dan rancangan menyusul) |
 | K-126 | Halaman Hasil Penjualan. | Berlaku (rencana; kode menyusul) |
 | K-127 | Rekomendasi pesan beberapa metode (rata-rata, statistik Z, min–maks, tren), cache memori, lead time aktual dari order pembelian. | Berlaku (rencana; kode menyusul) |

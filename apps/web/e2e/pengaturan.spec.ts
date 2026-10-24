@@ -7,21 +7,26 @@ async function ubahFooterLaluKembalikan(page: Page) {
   await page.getByRole('tab', { name: 'Struk & printer' }).click();
   await expect(page.getByRole('heading', { name: 'Printer struk komputer ini' })).toBeVisible();
   const footer = page.getByLabel('Teks penutup struk');
+  // Tab ini juga berisi kartu Invoice, surat jalan & kertas (K-124) dengan tombol Simpan sendiri.
+  const simpan = page
+    .locator('form')
+    .filter({ has: page.getByLabel('Teks penutup struk') })
+    .getByRole('button', { name: 'Simpan' });
   const asli = await footer.inputValue();
   const baru = `Terima kasih (uji ${Date.now()})`;
 
   await footer.fill(baru);
   // Pratinjau struk ikut berubah.
   await expect(page.locator('p').filter({ hasText: baru })).toBeVisible();
-  await page.getByRole('button', { name: 'Simpan' }).click();
+  await simpan.click();
   await expect(page.getByText('Pengaturan disimpan.').first()).toBeVisible();
 
   await page.reload();
   await expect(page.getByLabel('Teks penutup struk')).toHaveValue(baru);
 
   await page.getByLabel('Teks penutup struk').fill(asli);
-  await page.getByRole('button', { name: 'Simpan' }).click();
-  await expect(page.getByRole('button', { name: 'Simpan' })).toBeDisabled();
+  await simpan.click();
+  await expect(simpan).toBeDisabled();
   await expect(page.getByLabel('Teks penutup struk')).toHaveValue(asli);
 }
 

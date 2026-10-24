@@ -12,6 +12,7 @@ import { FormHarga } from './form-harga';
 import { FormKeamanan } from './form-keamanan';
 import { FormOperasional } from './form-operasional';
 import { FormPenomoran } from './form-penomoran';
+import { FormDokumen } from './form-dokumen';
 import { FormProfil } from './form-profil';
 import { KartuLogo } from './kartu-logo';
 import { KartuPrinterStruk } from './kartu-printer-struk';
@@ -84,6 +85,7 @@ export function HalamanPengaturan() {
             <div className="space-y-4">
               <FormProfil pengaturan={pengaturan.data} bagian="struk" />
               <KartuPrinterStruk />
+              <FormDokumen pengaturan={pengaturan.data} />
             </div>
           </TabsContent>
           <TabsContent value="penomoran">

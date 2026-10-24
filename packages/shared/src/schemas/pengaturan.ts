@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AKSI_LOG } from '../log';
-import { STRUK_CETAK, type StrukCetak } from '../enums';
+import { KERTAS_DOKUMEN, STRUK_CETAK, type KertasDokumen, type StrukCetak } from '../enums';
 import { KODE_DOKUMEN } from '../penomoran';
 import { skemaHalaman } from './umum';
 
@@ -36,6 +36,13 @@ export const skemaProfilToko = z.object({
   strukTampilkanLogo: z.boolean(),
   /** K-095: cetak struk setelah bayar. */
   strukCetak: z.enum(STRUK_CETAK, 'Pilihan cetak struk tidak valid.'),
+  /** K-124: cetak otomatis invoice pengantaran dan surat jalan setelah dibuat. */
+  invoiceCetak: z.enum(STRUK_CETAK, 'Pilihan cetak invoice tidak valid.'),
+  suratJalanCetak: z.enum(STRUK_CETAK, 'Pilihan cetak surat jalan tidak valid.'),
+  /** K-124: kertas dokumen lembaran. */
+  kertasInvoice: z.enum(KERTAS_DOKUMEN, 'Pilihan kertas tidak valid.'),
+  kertasSuratJalan: z.enum(KERTAS_DOKUMEN, 'Pilihan kertas tidak valid.'),
+  kertasDokumenLain: z.enum(KERTAS_DOKUMEN, 'Pilihan kertas tidak valid.'),
 });
 
 /** Pilihan jumlah baris per halaman tabel (K-065). */
@@ -172,6 +179,11 @@ export type TampilanToko = {
   strukTampilkanNama: boolean;
   strukTampilkanLogo: boolean;
   strukCetak: StrukCetak;
+  invoiceCetak: StrukCetak;
+  suratJalanCetak: StrukCetak;
+  kertasInvoice: KertasDokumen;
+  kertasSuratJalan: KertasDokumen;
+  kertasDokumenLain: KertasDokumen;
 };
 
 // --- Log aktivitas (Pengaturan › tab Log Aktivitas, izin sistem.log.lihat; docs/04 §8) ---

@@ -1,17 +1,22 @@
 import {
   formatRupiah,
+  LABEL_KEPEKATAN_STRUK,
   LABEL_METODE_PEMBAYARAN,
   lebarKarakterStruk,
+  lebarTitikStruk,
   StrukEscPos,
   type DetailPenjualan,
+  type KepekatanStruk,
+  type RasterStruk,
   type TampilanToko,
 } from '@sit/shared';
 import { formatDesimal, formatTanggal, formatWaktu } from './format';
+import { logoStruk } from './logo-struk';
 import { bacaPengaturanPrinter, kirimKePrinter } from './printer-thermal';
 
 /*
  * Struk penjualan sebagai perintah ESC/POS (K-103). Isinya sama dengan komponen `Struk` (cetak lewat
- * peramban): kop, nomor, barang, total, pembayaran, sisa tagihan, penutup. Logo tidak dicetak di jalur ini.
+ * peramban): logo (K-124, bila dinyalakan), kop, nomor, barang, total, pembayaran, sisa tagihan, penutup.
  */
 
 /** Angka rupiah tanpa "Rp" untuk kolom sempit. */
@@ -20,9 +25,16 @@ const angka = (n: number) => formatRupiah(n).replace('Rp ', '');
 export function strukKeEscPos(
   p: DetailPenjualan,
   toko: TampilanToko,
-  opsi: { lebar: number; pekat: boolean; potong: boolean; bukaLaci: boolean },
+  opsi: {
+    lebar: number;
+    kepekatan: KepekatanStruk;
+    potong: boolean;
+    bukaLaci: boolean;
+    logo?: RasterStruk | null;
+  },
 ): Uint8Array {
-  const s = new StrukEscPos(opsi.lebar, { pekat: opsi.pekat });
+  const s = new StrukEscPos(opsi.lebar, { kepekatan: opsi.kepekatan });
+  if (opsi.logo) s.gambar(opsi.logo);
   if (toko.strukTampilkanNama) s.teks(toko.namaToko, { tengah: true, tebal: true, besar: true });
   s.teks(toko.namaBadanUsaha, { tengah: true });
   if (toko.alamatToko) s.teks(toko.alamatToko, { tengah: true });
@@ -73,38 +85,56 @@ export function lebarStrukKini(toko: TampilanToko): number {
 }
 
 /**
+ * K-124: raster logo toko bila "logo di struk" dinyalakan di Pengaturan; `null` bila mati, belum ada logo,
+ * atau gambar gagal dimuat (struk tetap dicetak tanpa logo).
+ */
+export async function logoUntukStruk(toko: TampilanToko): Promise<RasterStruk | null> {
+  if (!toko.strukTampilkanLogo || !toko.logo) return null;
+  try {
+    return (await logoStruk(toko.logo, lebarTitikStruk(lebarStrukKini(toko)))).raster;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Mencetak struk langsung ke printer thermal komputer ini. Laci uang hanya dibuka pada cetakan pertama
  * penjualan yang menerima tunai (bukan cetak ulang).
  */
-export function cetakStrukLangsung(
+export async function cetakStrukLangsung(
   p: DetailPenjualan,
   toko: TampilanToko,
   opsi: { cetakUlang: boolean },
 ): Promise<void> {
   const atur = bacaPengaturanPrinter();
   const tunai = p.pembayaran.some((b) => b.metode === 'TUNAI');
+  const logo = await logoUntukStruk(toko);
   return kirimKePrinter(
     strukKeEscPos(p, toko, {
       lebar: lebarStrukKini(toko),
-      pekat: atur.pekat,
+      kepekatan: atur.kepekatan,
+      logo,
       potong: atur.potong,
       bukaLaci: atur.bukaLaci && tunai && !opsi.cetakUlang,
     }),
   );
 }
 
-/** Halaman uji: memeriksa sambungan, lebar baris, huruf tebal/besar, kepekatan, dan pemotong. */
-export function cetakUjiLangsung(toko: TampilanToko): Promise<void> {
+/** Halaman uji: memeriksa sambungan, logo, lebar baris, huruf tebal/besar, kepekatan, dan pemotong. */
+export async function cetakUjiLangsung(toko: TampilanToko): Promise<void> {
   const atur = bacaPengaturanPrinter();
   const lebar = lebarStrukKini(toko);
-  const s = new StrukEscPos(lebar, { pekat: atur.pekat })
-    .teks(toko.namaToko, { tengah: true, tebal: true, besar: true })
+  const logo = await logoUntukStruk(toko);
+  const s = new StrukEscPos(lebar, { kepekatan: atur.kepekatan });
+  if (logo) s.gambar(logo);
+  s.teks(toko.namaToko, { tengah: true, tebal: true, besar: true })
     .teks('UJI CETAK STRUK', { tengah: true, tebal: true })
     .garis()
     .teks(`${lebar} karakter per baris. Baris angka di bawah harus pas satu baris, tidak turun.`)
     .teks('1234567890'.repeat(Math.ceil(lebar / 10)).slice(0, lebar))
     .garis()
-    .teks(`Cetak tebal: ${atur.pekat ? 'NYALA' : 'MATI'}`)
+    .teks(`Kepekatan: ${LABEL_KEPEKATAN_STRUK[atur.kepekatan]}`)
+    .teks(`Logo: ${logo ? 'dicetak' : 'tidak dicetak'}`)
     // Sama dengan susunan baris barang pada struk sungguhan: nama, lalu rincian menjorok dan jumlah di kanan.
     .teks('Semen Gresik 40 kg')
     .kiriKanan('  2 sak x 55.000', '110.000')

@@ -262,6 +262,45 @@ export type JenisKasShift = (typeof JENIS_KAS_SHIFT)[number];
 export const STRUK_CETAK = ['OTOMATIS', 'TANYA', 'TIDAK'] as const;
 export type StrukCetak = (typeof STRUK_CETAK)[number];
 
+/** K-124: pilihan yang sama dipakai untuk invoice pengantaran dan surat jalan setelah dibuat. */
+export const LABEL_CARA_CETAK: Record<StrukCetak, string> = {
+  OTOMATIS: 'Langsung cetak',
+  TANYA: 'Tanya dulu',
+  TIDAK: 'Tidak dicetak',
+};
+
+/** K-124: ukuran dan arah kertas dokumen lembaran (invoice, surat jalan, dokumen lain). */
+export const KERTAS_DOKUMEN = [
+  'A4_LANSKAP',
+  'A4_POTRET',
+  'A5_LANSKAP',
+  'A5_POTRET',
+  'F4_POTRET',
+  'F4_LANSKAP',
+  'LETTER_POTRET',
+  'LETTER_LANSKAP',
+] as const;
+export type KertasDokumen = (typeof KERTAS_DOKUMEN)[number];
+
+export const LABEL_KERTAS_DOKUMEN: Record<KertasDokumen, string> = {
+  A4_LANSKAP: 'A4 lanskap (mendatar)',
+  A4_POTRET: 'A4 potret (tegak)',
+  A5_LANSKAP: 'A5 lanskap (setengah A4)',
+  A5_POTRET: 'A5 potret',
+  F4_POTRET: 'F4/Folio potret',
+  F4_LANSKAP: 'F4/Folio lanskap',
+  LETTER_POTRET: 'Letter potret',
+  LETTER_LANSKAP: 'Letter lanskap',
+};
+
+/** Nilai `size` aturan CSS `@page` untuk pilihan kertas. F4 = 215 × 330 mm. */
+export function ukuranKertasCss(k: KertasDokumen): string {
+  const [ukuran, arah] = k.split('_') as [string, string];
+  const dasar = ukuran === 'F4' ? '215mm 330mm' : ukuran === 'LETTER' ? 'letter' : ukuran;
+  if (arah === 'POTRET') return ukuran === 'F4' ? dasar : `${dasar} portrait`;
+  return ukuran === 'F4' ? '330mm 215mm' : `${dasar} landscape`;
+}
+
 /** K-121: cara membuka shift. */
 export const CARA_BUKA_SHIFT = ['SAMA_KEMARIN', 'HITUNG', 'HITUNG_NANTI'] as const;
 export type CaraBukaShift = (typeof CARA_BUKA_SHIFT)[number];

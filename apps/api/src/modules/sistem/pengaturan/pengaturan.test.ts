@@ -1,5 +1,6 @@
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { TampilanToko } from '@sit/shared';
 import {
   aturKonfigurasi,
   json,
@@ -70,6 +71,11 @@ describe('pengaturan › baca dan ubah', () => {
       struk_tampilkan_nama: 'true',
       struk_tampilkan_logo: 'false',
       struk_cetak: 'OTOMATIS',
+      invoice_cetak: 'TIDAK',
+      surat_jalan_cetak: 'OTOMATIS',
+      kertas_invoice: 'A4_LANSKAP',
+      kertas_surat_jalan: 'A4_LANSKAP',
+      kertas_dokumen_lain: 'A4_POTRET',
     });
     const sekarang = await baca();
 
@@ -156,6 +162,26 @@ describe('pengaturan › validasi', () => {
     expect((await ubah({ profil: { ...p.profil, strukCetak: 'TANYA' } })).status).toBe(200);
     expect((await baca()).profil.strukCetak).toBe('TANYA');
     expect((await ubah({ profil: { ...p.profil, strukCetak: 'KADANG' } })).status).toBe(400);
+    // K-124: cetak otomatis invoice/surat jalan dan kertas per jenis dokumen, terbaca layar kasir.
+    const k124 = {
+      ...p.profil,
+      invoiceCetak: 'TANYA',
+      suratJalanCetak: 'TIDAK',
+      kertasInvoice: 'A5_LANSKAP',
+    };
+    expect((await ubah({ profil: k124 })).status).toBe(200);
+    const tampil = (
+      await json<{ data: TampilanToko }>(
+        await minta('/api/pengaturan/tampilan', { cookie: admin.cookie }),
+      )
+    ).data;
+    expect(tampil).toMatchObject({
+      invoiceCetak: 'TANYA',
+      suratJalanCetak: 'TIDAK',
+      kertasInvoice: 'A5_LANSKAP',
+      kertasSuratJalan: 'A4_LANSKAP',
+    });
+    expect((await ubah({ profil: { ...k124, kertasSuratJalan: 'A3_POTRET' } })).status).toBe(400);
 
     const kosong = await ubah({});
     expect(kosong.status).toBe(400);

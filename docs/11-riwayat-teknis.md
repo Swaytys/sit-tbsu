@@ -587,6 +587,23 @@ Esc serta info penjualan; angka stok di hasil cari tebal merah.
 
 **Tes:** barang.test (cari sebagian), promo.test (label keterjualan), e2e POS/order/barang.
 
+### C17. Cetak: logo, kepekatan, kertas per dokumen, cetak otomatis (24 Oktober 2026, K-124)
+
+**Solusi:** `packages/shared/src/escpos.ts`: `KEPEKATAN_STRUK` (NORMAL/TEBAL/PALING_TEBAL; TEBAL = `ESC G 1` +
+semua huruf `ESC E 1`; PALING_TEBAL menambah `ESC 7 7 200 2`, waktu pemanasan kepala cetak), `rasterDariAbu`
+(Floyd–Steinberg ke 1 bit/titik), `StrukEscPos.gambar()` (`GS v 0` per pita 64 baris). Web: `lib/logo-struk.ts`
+mengolah logo toko di kanvas (maks. separuh lebar kertas, tinggi 160 titik) dan menyimpan hasilnya di memori;
+logo dicetak bila *Kop struk memakai logo toko* menyala; pratinjau hitam-putih di kartu printer. Setelan printer
+`pekat` lama dibaca sebagai TEBAL/NORMAL. Konfigurasi baru `invoice_cetak`, `surat_jalan_cetak`, `kertas_*`
+(tanpa migrasi, nilai bawaan = perilaku lama); `ukuranKertasCss()` di enums; `AreaCetak` menerima ukuran dari
+Pengaturan; `lib/cetak-otomatis.ts` (OTOMATIS = cetak, TANYA = toast dengan tombol Cetak, TIDAK = diam) dipakai
+layar pengantaran, detail penjualan, dan papan Pengiriman (`components/cetak-surat-jalan.tsx`). Kartu Pengaturan
+*Invoice, surat jalan & kertas* berisi langkah cetak A4 tanpa jendela (mode kasir `--kiosk-printing` + printer
+bawaan Windows; struk tetap ESC/POS).
+
+**Tes:** escpos.test (kepekatan, raster, pita), pengaturan.test (simpan/tolak setelan baru, tampilan toko), e2e
+cetak-dokumen.spec.
+
 ---
 
 ## Riwayat dokumen
@@ -608,3 +625,4 @@ Esc serta info penjualan; angka stok di hasil cari tebal merah.
 - 2026-10-24 — Bagian C14 arsip tahunan dan pembaruan aman (K-165, K-166).
 - 2026-10-24 — Bagian C15 data bersih, notifikasi rinci, order (K-129–K-143).
 - 2026-10-24 — Bagian C16 cari atribut sebagian dan label keterjualan (K-123).
+- 2026-10-24 — Bagian C17 cetak: logo, kepekatan, kertas per dokumen, cetak otomatis (K-124).

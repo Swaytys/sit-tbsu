@@ -166,7 +166,7 @@ komputer mati.
 | **Tidak keluar apa-apa** | Yang dipilih di Langkah 2 bukan printernya, atau printer mati | Periksa lampu/kertas; Langkah 2, **Pilih printer lain…**, pilih baris lain; uji lagi |
 | **Keluar huruf acak** | Kecepatan port tidak cocok (printer kabel), atau printer bukan ESC/POS | *Pengaturan lanjutan* › Kecepatan port: coba 115200, lalu 19200, 38400, 57600 |
 | **Baris angka turun / ada ruang kosong** | Karakter per baris tidak cocok dengan kertas | Langkah 3: turun → angka lebih kecil (32, lalu 30); ruang kosong → lebih besar (48) |
-| **Tercetak tetapi pudar** | Baterai lemah, kertas jelek, atau cetak tebal mati | *Pengaturan lanjutan* › **Cetak lebih tebal**; isi daya; ganti kertas |
+| **Tercetak tetapi pudar** | Baterai lemah, kertas jelek, atau kepekatan terlalu rendah | *Pengaturan lanjutan* › **Kepekatan cetak**: Tebal, lalu Paling tebal; isi daya; ganti kertas |
 
 Halaman uji yang benar (kertas 58 mm):
 
@@ -179,7 +179,8 @@ angka di bawah harus pas satu
 baris, tidak turun.
 12345678901234567890123456789012
 --------------------------------
-Cetak tebal: NYALA
+Kepekatan: Tebal
+Logo: tidak dicetak
 Semen Gresik 40 kg
   2 sak x 55.000         110.000
 TOTAL                 Rp 110.000
@@ -206,9 +207,9 @@ atau dari halaman *Detail Penjualan* (**Cetak ulang struk**).
 
 | Pilihan | Bawaan | Kegunaan |
 |---|---|---|
-| Cetak lebih tebal | Nyala | Tiap titik dicetak dua kali agar hitam pekat. Matikan bila ingin lebih cepat/hemat baterai |
+| Kepekatan cetak | Tebal | **Normal** = apa adanya. **Tebal** = tiap titik dicetak dua kali dan semua huruf tebal. **Paling tebal** = Tebal + pemanasan kepala cetak lebih lama (perintah `ESC 7`, dikenali banyak printer thermal murah, diabaikan yang lain). Makin tebal makin lambat dan boros baterai |
 | Potong kertas otomatis | Nyala | Untuk printer berpemotong. Printer tanpa pemotong mengabaikannya; sobek di gerigi |
-| Buka laci uang | Mati | Laci yang tersambung ke printer terbuka saat struk penjualan tunai dicetak |
+| Buka laci uang | Mati | Laci uang elektronik yang dicolokkan ke printer struk (kabel RJ11 di belakang printer) terbuka sendiri saat struk penjualan tunai dicetak. Printer genggam seperti RPP02 tidak punya colokan laci: biarkan mati |
 | Kecepatan port (baud) | 9600 | Tidak berpengaruh pada Bluetooth. Untuk printer kabel bila hasil uji huruf acak |
 
 ## 11. Penjelasan teknis
@@ -228,7 +229,13 @@ atau dari halaman *Detail Penjualan* (**Cetak ulang struk**).
 - **Penyimpanan.** Pilihan di kartu printer disimpan di peramban komputer itu (`localStorage`, kunci
   `tbsu:printer-struk`): preferensi perangkat, bukan data bisnis. Izin port diingat peramban untuk alamat
   aplikasi itu. Membersihkan data peramban menghapus keduanya: ulangi Langkah 2–5.
-- **Batas.** Logo toko tidak dicetak di jalur langsung (hanya teks). Huruf non-ASCII diganti padanannya.
+- **Logo (K-124).** Bila *Kop struk memakai logo toko* menyala (Pengaturan › Struk & printer › Struk penjualan),
+  logo diubah menjadi gambar hitam-putih (abu-abu menjadi pola titik), selebar paling banyak separuh kertas dan
+  setinggi ± 2 cm, lalu dikirim dengan `GS v 0`. Pratinjaunya tampil di kartu printer di bagian *Logo di struk*.
+  Logo gelap di atas latar putih hasilnya paling jelas. Bila logo gagal dimuat, struk tetap dicetak tanpa logo.
+- **Setelan tidak perlu diulang** setelah aplikasi atau komputer dimatikan. Perlu diulang hanya bila data
+  peramban dibersihkan, memakai peramban/profil/alamat lain, atau printer dipasangkan ulang (nomor COM berganti).
+- **Batas.** Huruf non-ASCII diganti padanannya.
 
 ## 12. Daftar masalah dan jalan keluarnya
 

@@ -398,9 +398,9 @@ definisi selesai:
    (migrasi 0031) **selesai 2026-10-24**; sisa gelombang 3–4 (K-129, K-130, K-131, K-137,
    K-138, K-139, K-143) **selesai 2026-10-24**; berikutnya K-123 dst. dan K-163 bagian 2 (voucher, kupon).
 4. **Pencarian dan tampilan** (K-123): atribut dicocokkan sebagian, label keterjualan, angka stok merah tebal,
-   teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan.
+   teks kecil penting lebih jelas, panel rincian dengan tombol tutup dan info penjualan. **Selesai 2026-10-24.**
 5. **Cetak** (K-124): logo dan kepekatan struk, setelan dokumen A4 tersimpan (invoice/surat jalan lanskap),
-   cetak otomatis per jenis dokumen, panduan cetak A4 tanpa jendela.
+   cetak otomatis per jenis dokumen, panduan cetak A4 tanpa jendela. **Selesai 2026-10-24.**
 6. **Metode rekomendasi pesan** (K-127): metode statistik Z, min–maks, tren; cache memori; "?" kelebihan dan
    kekurangan.
 7. **Hasil Penjualan** (K-126).

@@ -1,4 +1,4 @@
-import { formatRupiah, LABEL_METODE_PEMBAYARAN_PEMASOK } from '@sit/shared';
+import { formatRupiah, LABEL_METODE_PEMBAYARAN_PEMASOK, ukuranKertasCss } from '@sit/shared';
 import { ArrowLeft, Printer, Wallet } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
@@ -143,7 +143,7 @@ export function HalamanDetailKonsinyasi() {
         />
       )}
       {cetak && toko && (
-        <AreaCetak ukuranKertas="A4">
+        <AreaCetak ukuranKertas={ukuranKertasCss(toko.kertasDokumenLain)}>
           <NotaSetoranKonsinyasiA4 k={k} toko={toko} />
         </AreaCetak>
       )}

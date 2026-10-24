@@ -1,7 +1,9 @@
 import {
   DASAR_MARKUP,
+  KERTAS_DOKUMEN,
   KODE_DOKUMEN,
   PILIHAN_BARIS_PER_HALAMAN,
+  type KertasDokumen,
   type KodeDokumen,
   type Pengaturan,
   type StrukCetak,
@@ -41,6 +43,11 @@ function strukCetak(nilai: string | null | undefined): StrukCetak {
   return nilai === 'TANYA' || nilai === 'TIDAK' ? nilai : 'OTOMATIS';
 }
 
+/** K-124: kertas dokumen; nilai tidak dikenal memakai bawaan. */
+function kertas(nilai: string | null | undefined, bawaan: KertasDokumen): KertasDokumen {
+  return KERTAS_DOKUMEN.find((k) => k === nilai) ?? bawaan;
+}
+
 /** Lebar kertas struk thermal yang didukung; nilai lain dianggap 80 mm. */
 function lebarStruk(mm: number): 57 | 58 | 80 {
   return mm === 57 || mm === 58 ? mm : 80;
@@ -71,6 +78,12 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       strukTampilkanNama: bool(m, 'struk_tampilkan_nama', true),
       strukTampilkanLogo: bool(m, 'struk_tampilkan_logo', false),
       strukCetak: strukCetak(m.get('struk_cetak')),
+      // Bawaan K-124 = perilaku sebelumnya: invoice hanya bila diminta, surat jalan langsung dicetak.
+      invoiceCetak: m.has('invoice_cetak') ? strukCetak(m.get('invoice_cetak')) : 'TIDAK',
+      suratJalanCetak: strukCetak(m.get('surat_jalan_cetak')),
+      kertasInvoice: kertas(m.get('kertas_invoice'), 'A4_LANSKAP'),
+      kertasSuratJalan: kertas(m.get('kertas_surat_jalan'), 'A4_LANSKAP'),
+      kertasDokumenLain: kertas(m.get('kertas_dokumen_lain'), 'A4_POTRET'),
     },
     penomoran: {
       prefix: Object.fromEntries(KODE_DOKUMEN.map((k) => [k, teks(m, `prefix_${k}`, k)])) as Record<
@@ -132,6 +145,11 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     b('struk_tampilkan_nama', p.profil.strukTampilkanNama);
     b('struk_tampilkan_logo', p.profil.strukTampilkanLogo);
     t('struk_cetak', p.profil.strukCetak);
+    t('invoice_cetak', p.profil.invoiceCetak);
+    t('surat_jalan_cetak', p.profil.suratJalanCetak);
+    t('kertas_invoice', p.profil.kertasInvoice);
+    t('kertas_surat_jalan', p.profil.kertasSuratJalan);
+    t('kertas_dokumen_lain', p.profil.kertasDokumenLain);
   }
   if (p.penomoran) {
     for (const k of KODE_DOKUMEN) t(`prefix_${k}`, p.penomoran.prefix[k]);
@@ -257,6 +275,11 @@ export async function tampilanToko(): Promise<TampilanToko> {
     strukTampilkanNama: p.profil.strukTampilkanNama,
     strukTampilkanLogo: p.profil.strukTampilkanLogo,
     strukCetak: p.profil.strukCetak,
+    invoiceCetak: p.profil.invoiceCetak,
+    suratJalanCetak: p.profil.suratJalanCetak,
+    kertasInvoice: p.profil.kertasInvoice,
+    kertasSuratJalan: p.profil.kertasSuratJalan,
+    kertasDokumenLain: p.profil.kertasDokumenLain,
   };
 }
 

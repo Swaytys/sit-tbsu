@@ -287,6 +287,16 @@ Admin/Owner (pemeriksaan) | desktop
   `[KODE: api/modules/sistem/pemeriksaan-data/service.ts]`; `[DOK: docs/05 §19, K-137]`; tes `mitra.test.ts`,
   `pemeriksaan-data.test.ts`. Status: BERFUNGSI.
 
+**F49. Pengaturan cetak: logo, kepekatan, kertas, cetak otomatis** | Pengaturan › Struk & printer | Admin/Owner
+(kertas & cetak otomatis), tiap komputer kasir (printer) | desktop
+- Fungsi: logo toko dicetak di struk thermal sebagai gambar hitam-putih dengan pratinjau; kepekatan Normal /
+  Tebal / Paling tebal; penjelasan laci uang; ukuran dan arah kertas invoice, surat jalan, dan dokumen lain
+  (bawaan A4 lanskap); invoice pengantaran dan surat jalan dicetak langsung, ditanya dulu, atau tidak dicetak
+  setelah dibuat; langkah cetak A4 tanpa jendela (mode kasir).
+- Bukti: `[KODE: shared/escpos.ts]`, `[KODE: web/lib/logo-struk.ts]`, `[KODE: web/lib/cetak-otomatis.ts]`,
+  `[KODE: web/features/pengaturan/form-dokumen.tsx]`; `[DOK: K-124]`; tes `escpos.test.ts`, `pengaturan.test.ts`.
+  Status: BERFUNGSI.
+
 ### 4.2 Data master
 
 **F9. Data Barang** | Data Master | Admin, Owner | desktop
@@ -1225,6 +1235,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
 - 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).
+- 2026-10-24 — F49 pengaturan cetak: logo, kepekatan, kertas, cetak otomatis (K-124).
 - 2026-10-24 — F48 data bersih (K-137); notifikasi rinci + dashboard Perlu perhatian (K-131); order: F10, saringan Semua, penginput (K-129, K-138, K-139).
 - 2026-10-24 — F45 FMS pendukung: BBM, servis, pengingat, statistik armada (K-162).
 - 2026-10-24 — F43: isi massal data muatan lewat Excel (K-161 selesai). Lampiran A: endpoint perjalanan, kendaraan,

@@ -1,4 +1,4 @@
-import { formatRupiah, LABEL_PENYELESAIAN_RETUR_PEMASOK } from '@sit/shared';
+import { formatRupiah, LABEL_PENYELESAIAN_RETUR_PEMASOK, ukuranKertasCss } from '@sit/shared';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
@@ -151,7 +151,7 @@ export function HalamanDetailReturPemasok() {
         </Table>
       </Card>
       {cetak && toko && (
-        <AreaCetak ukuranKertas="A4">
+        <AreaCetak ukuranKertas={ukuranKertasCss(toko.kertasDokumenLain)}>
           <NotaReturPemasokA4 r={r} toko={toko} />
         </AreaCetak>
       )}
