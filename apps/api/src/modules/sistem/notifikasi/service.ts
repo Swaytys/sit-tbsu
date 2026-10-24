@@ -9,6 +9,7 @@ import { jumlahDisimpanLewat, jumlahOrderBasi } from '../../penjualan/order/serv
 import { piutangJatuhTempo } from '../../penjualan/piutang/service';
 import { jumlahPerluDipesan } from '../../persediaan/saran-pesan/service';
 import { peringatanStok } from '../../persediaan/stok/service';
+import { pengingatArmada } from '../../master/armada/service';
 import { peringatanCadangan } from '../cadangan/service';
 
 /** Notifikasi topbar per pengguna (docs/05 ST2), disaring menurut izin. */
@@ -94,6 +95,29 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         keterangan: `${basi} order menunggu terlalu lama dan masih menahan stok.`,
         jumlah: basi,
         tautan: '/order?status=MENUNGGU',
+      });
+    }
+  }
+  // K-162: STNK/KIR dan servis berkala kendaraan aktif.
+  if (izin.has('master.armada.kelola')) {
+    const p = await pengingatArmada();
+    if (p.surat.length > 0) {
+      hasil.push({
+        jenis: 'ARMADA_SURAT',
+        judul:
+          p.suratLewat > 0 ? 'STNK/KIR kendaraan sudah habis' : 'STNK/KIR kendaraan hampir habis',
+        keterangan: p.surat.slice(0, 3).join('; ') + (p.surat.length > 3 ? '; …' : ''),
+        jumlah: p.surat.length,
+        tautan: '/armada',
+      });
+    }
+    if (p.servis.length > 0) {
+      hasil.push({
+        jenis: 'ARMADA_SERVIS',
+        judul: p.servisLewat > 0 ? 'Servis kendaraan terlewat' : 'Servis kendaraan sudah dekat',
+        keterangan: p.servis.slice(0, 3).join('; ') + (p.servis.length > 3 ? '; …' : ''),
+        jumlah: p.servis.length,
+        tautan: '/armada',
       });
     }
   }

@@ -516,6 +516,21 @@ dikunci `FOR UPDATE`, semua atau tidak sama sekali. Izin `master.barang.kelola`.
 
 **Tes:** import.test (+2: unduh, konversi satuan, pratinjau tanpa simpan, simpan + log, berkas belum lengkap; galat
 per baris, kolom yang tidak ada tidak mengubah data, kasir 403), satuan-muatan.test (shared), e2e muatan-excel.spec.
+### C12. FMS pendukung: BBM, servis, pengingat, statistik (24 Oktober 2026, K-162)
+
+**Masalah:** biaya dan kesehatan armada (BBM, servis, STNK/KIR) dicatat di luar aplikasi; tidak ada pengingat
+servis atau surat kendaraan yang habis, dan tidak ada angka pemakaian kendaraan.
+
+**Solusi:** migrasi 0028 (docs/03 v3.25). `armada/catatan.ts` + `catatan-repo.ts` (catat BBM/servis, batas odometer
+menurut tanggal dengan kunci baris kendaraan, batal dengan alasan, daftar berhalaman); `hitungKesehatan` di
+`armada/service.ts` (odometer terakhir, servis berikutnya per km/bulan, STNK/KIR) ikut di setiap `Kendaraan`;
+`pengingatArmada` mengisi notifikasi `ARMADA_SURAT`/`ARMADA_SERVIS`; `armada/statistik.ts` (dua kueri SQL
+berparameter: per kendaraan dan per sopir). Helper `tambahBulan` di `lib/waktu.ts`. Web: tab BBM, Servis, Statistik di
+Logistik › Kendaraan & Sopir; kolom *Odometer · servis · surat*; isian jadwal servis; tanda *KIR/STNK habis* di
+pilihan kendaraan rit dan berangkat.
+
+**Tes:** fms.test (5: odometer mundur/susulan/batal, izin servis, rit milik kendaraan, `hitungKesehatan`,
+notifikasi per izin, statistik), e2e fms.spec.
 
 ---
 
@@ -533,3 +548,4 @@ per baris, kolom yang tidak ada tidak mengubah data, kasir 403), satuan-muatan.t
 - 2026-10-24 — Bagian C9 data muatan (K-161 bagian 1).
 - 2026-10-24 — Bagian C10 rit rencana dan papan Pengiriman (K-160).
 - 2026-10-24 — Bagian C11 isi massal data muatan lewat Excel (K-161 bagian 2).
+- 2026-10-24 — Bagian C12 FMS pendukung (K-162).

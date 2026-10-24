@@ -9,9 +9,11 @@ import {
   type StatusAktif,
   type StatusPerjalanan,
   type StatusSuratJalan,
+  type TingkatPengingat,
 } from '../enums';
 import { skemaQtyTeks } from './barang';
-import { skemaHalaman, teksOpsional } from './umum';
+import { skemaTanggal } from './persediaan';
+import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
 
 /*
  * Kendaraan, sopir, perjalanan, dan hasil pengantaran (docs/05 §7 S8–S12; K-149–K-151).
@@ -69,6 +71,21 @@ export const skemaKendaraan = z.object({
   bakTinggiCm: ukuranBak('Tinggi bak'),
   berlakuStnk: tanggalOpsional,
   berlakuKir: tanggalOpsional,
+  /** K-162: jadwal servis berkala (salah satu atau keduanya). */
+  servisTiapKm: z
+    .number('Jarak servis harus angka (km).')
+    .int('Jarak servis dalam km bulat.')
+    .min(100, 'Jarak servis minimal 100 km.')
+    .max(100_000, 'Jarak servis terlalu besar.')
+    .nullable()
+    .default(null),
+  servisTiapBulan: z
+    .number('Jarak servis harus angka (bulan).')
+    .int('Jarak servis dalam bulan bulat.')
+    .min(1, 'Jarak servis minimal 1 bulan.')
+    .max(60, 'Jarak servis maksimal 60 bulan.')
+    .nullable()
+    .default(null),
   catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
 });
 export type InputKendaraan = z.input<typeof skemaKendaraan>;
@@ -109,10 +126,24 @@ export type Kendaraan = {
   bakTinggiCm: number | null;
   berlakuStnk: string | null;
   berlakuKir: string | null;
+  servisTiapKm: number | null;
+  servisTiapBulan: number | null;
   catatan: string | null;
   statusAktif: StatusAktif;
   jumlahPerjalanan: number;
   sedangJalan: SedangJalan | null;
+  kesehatan: KesehatanKendaraan;
+};
+
+/** K-162: odometer terakhir, servis berikutnya, dan masa berlaku surat (docs/13 §5.2). */
+export type KesehatanKendaraan = {
+  odometerKm: number | null;
+  odometerTanggal: string | null;
+  servisTerakhir: { tanggal: string; odometerKm: number | null; jenis: string } | null;
+  /** `null` bila jadwal servis belum diatur atau belum ada catatan servis. */
+  servisBerikut: { km: number | null; tanggal: string | null; tingkat: TingkatPengingat } | null;
+  stnk: TingkatPengingat | null;
+  kir: TingkatPengingat | null;
 };
 
 export type Sopir = {
@@ -283,4 +314,145 @@ export type HasilSuratJalan = {
     qtyDitolak: string;
     kondisiDitolak: KondisiRetur | null;
   }[];
+};
+
+// --- Catatan BBM dan servis (K-162, docs/13 §5) ---
+
+const odometer = z
+  .number('Odometer harus angka (km).')
+  .int('Odometer dalam km bulat.')
+  .min(0, 'Odometer tidak boleh negatif.')
+  .max(9_999_999, 'Odometer terlalu besar.')
+  .nullable()
+  .default(null);
+
+const idOpsional = z.number().int().positive().nullable().default(null);
+
+export const skemaCatatBbm = z.object({
+  idKendaraan: z.number('Kendaraan wajib dipilih.').int().positive('Kendaraan wajib dipilih.'),
+  tanggal: skemaTanggal('Tanggal'),
+  idSopir: idOpsional,
+  idPerjalanan: idOpsional,
+  odometerKm: odometer,
+  liter: z.preprocess(
+    (v) =>
+      typeof v === 'number' ? String(v) : typeof v === 'string' ? v.trim().replace(',', '.') : v,
+    z
+      .string('Liter wajib diisi.')
+      .regex(/^\d{1,4}(\.\d{1,2})?$/, 'Liter: angka dengan paling banyak 2 angka di belakang koma.')
+      .refine((v) => Number(v) > 0, 'Liter harus lebih dari 0.'),
+  ),
+  totalRp: skemaRupiah,
+  penuh: z.boolean().default(false),
+  catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+});
+export type InputCatatBbm = z.input<typeof skemaCatatBbm>;
+export type DataCatatBbm = z.output<typeof skemaCatatBbm>;
+
+export const skemaCatatServis = z.object({
+  idKendaraan: z.number('Kendaraan wajib dipilih.').int().positive('Kendaraan wajib dipilih.'),
+  tanggal: skemaTanggal('Tanggal'),
+  odometerKm: odometer,
+  jenis: z
+    .string('Jenis servis wajib diisi.')
+    .trim()
+    .min(3, 'Jenis servis minimal 3 huruf, mis. Ganti oli.')
+    .max(100, 'Jenis servis maksimal 100 karakter.'),
+  biayaRp: skemaRupiah,
+  bengkel: teksOpsional(100, 'Nama bengkel maksimal 100 karakter.'),
+  catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+});
+export type InputCatatServis = z.input<typeof skemaCatatServis>;
+export type DataCatatServis = z.output<typeof skemaCatatServis>;
+
+export const skemaBatalCatatan = z.object({
+  alasan: z.string().trim().min(3, 'Alasan wajib diisi (min. 3 huruf).').max(255),
+});
+
+export const skemaCariCatatanArmada = skemaHalaman.extend({
+  idKendaraan: z.coerce.number().int().positive().optional(),
+});
+
+type Batal = { batalPada: string | null; alasanBatal: string | null };
+
+export type CatatanBbm = Batal & {
+  id: number;
+  idKendaraan: number;
+  plat: string;
+  tanggal: string;
+  namaSopir: string | null;
+  nomorPerjalanan: string | null;
+  odometerKm: number | null;
+  liter: string;
+  totalRp: number;
+  penuh: boolean;
+  catatan: string | null;
+  pencatat: string;
+  dibuatPada: string;
+};
+
+export type CatatanServis = Batal & {
+  id: number;
+  idKendaraan: number;
+  plat: string;
+  tanggal: string;
+  odometerKm: number | null;
+  jenis: string;
+  biayaRp: number;
+  bengkel: string | null;
+  catatan: string | null;
+  pencatat: string;
+  dibuatPada: string;
+};
+
+// --- Statistik armada (K-162, docs/13 §5.3) ---
+
+export const skemaPeriodeStatistik = z
+  .object({ dari: skemaTanggal('Tanggal awal'), sampai: skemaTanggal('Tanggal akhir') })
+  .refine((p) => p.dari <= p.sampai, {
+    message: 'Tanggal awal setelah tanggal akhir.',
+    path: ['dari'],
+  });
+
+type StatistikRit = {
+  rit: number;
+  suratJalan: number;
+  /** Rata-rata lama di jalan rit yang sudah kembali (menit). */
+  rataLamaMenit: number | null;
+  /** Rit rencana yang berangkat paling lambat 30 menit dari jadwal. */
+  tepatWaktu: number;
+  /** Rit rencana (punya jadwal) yang sudah berangkat. */
+  berjadwal: number;
+};
+
+export type StatistikKendaraan = StatistikRit & {
+  idKendaraan: number;
+  plat: string;
+  jenis: string;
+  muatanKg: string;
+  /** Rata-rata berat muatan dibanding daya angkut (persen bulat); null bila daya angkut kosong. */
+  rataPakaiPersen: number | null;
+  bbmLiter: string;
+  bbmRp: number;
+  /** Selisih odometer terbesar–terkecil dalam periode (dari catatan BBM/servis). */
+  kmTempuh: number | null;
+  /** Perkiraan: km tempuh / liter BBM. */
+  kmPerLiter: string | null;
+  servisRp: number;
+  /** (BBM + servis) / km tempuh, rupiah bulat. */
+  biayaPerKm: number | null;
+};
+
+export type StatistikSopir = StatistikRit & {
+  idSopir: number;
+  nama: string;
+  /** Surat jalan dengan barang kembali, ditolak, atau rusak. */
+  suratJalanBermasalah: number;
+};
+
+export type StatistikArmada = {
+  dari: string;
+  sampai: string;
+  kendaraan: StatistikKendaraan[];
+  sopir: StatistikSopir[];
 };

@@ -1,5 +1,13 @@
 import { TZDate } from '@date-fns/tz';
-import { addDays, addHours, addMinutes, differenceInSeconds, format, parseISO } from 'date-fns';
+import {
+  addDays,
+  addHours,
+  addMinutes,
+  addMonths,
+  differenceInSeconds,
+  format,
+  parseISO,
+} from 'date-fns';
 
 /** Zona waktu operasional toko (K-042). Database dan server tetap UTC. */
 export const ZONA_TOKO = 'Asia/Jakarta';
@@ -44,4 +52,9 @@ export function selisihDetik(akhir: Date, awal: Date): number {
 /** Tanggal kalender `YYYY-MM-DD` ditambah `hari` (mis. jatuh tempo = tanggal operasional + term). */
 export function tambahHari(tanggal: string, hari: number): string {
   return format(addDays(parseISO(tanggal), hari), 'yyyy-MM-dd');
+}
+
+/** Tanggal kalender ditambah `bulan` (31 Jan + 1 bulan = 28/29 Feb), mis. servis berikutnya (K-162). */
+export function tambahBulan(tanggal: string, bulan: number): string {
+  return format(addMonths(parseISO(tanggal), bulan), 'yyyy-MM-dd');
 }

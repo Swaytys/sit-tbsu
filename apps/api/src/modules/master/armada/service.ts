@@ -3,16 +3,24 @@ import {
   type DataKendaraan,
   type DataSopir,
   type Kendaraan,
+  type KesehatanKendaraan,
   type SedangJalan,
   type Sopir,
   type StatusAktif,
+  type TingkatPengingat,
 } from '@sit/shared';
 import { db, type Executor } from '../../../db/client';
 import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { selisih } from '../../../lib/perubahan';
 import { dalamTransaksi } from '../../../lib/transaksi';
-import { jamLokal, sekarang, tanggalOperasional } from '../../../lib/waktu';
+import {
+  jamLokal,
+  sekarang,
+  tambahBulan,
+  tambahHari,
+  tanggalOperasional,
+} from '../../../lib/waktu';
 import { catatLog } from '../../sistem/log-aktivitas';
 import * as repo from './repo';
 
@@ -21,7 +29,7 @@ import * as repo from './repo';
  * dinonaktifkan agar perjalanannya tetap bisa diselesaikan.
  */
 
-type BarisRepo<T> = Omit<T, 'sedangJalan'> & {
+type BarisRepo<T> = Omit<T, 'sedangJalan' | 'kesehatan'> & {
   sedangJalan: { idPerjalanan: number; nomor: string; waktuBerangkat: string } | null;
 };
 
@@ -31,10 +39,75 @@ function rapikanJalan(j: BarisRepo<Kendaraan>['sedangJalan']): SedangJalan | nul
   return { ...j, waktuBerangkat: new Date(j.waktuBerangkat).toISOString() };
 }
 
-const keKendaraan = (b: BarisRepo<Kendaraan>): Kendaraan => ({
-  ...b,
-  sedangJalan: rapikanJalan(b.sedangJalan),
-});
+// --- Kesehatan kendaraan (K-162, docs/13 §5.2) ---
+
+const HARI_SEGERA_SERVIS = 14;
+const KM_SEGERA_SERVIS = 500;
+const HARI_SEGERA_SURAT = 30;
+const PERINGKAT: Record<TingkatPengingat, number> = { AMAN: 0, SEGERA: 1, LEWAT: 2 };
+
+/** LEWAT bila `batas` sudah lewat (hari ini > batas), SEGERA bila tinggal ≤ `hariSegera` hari. */
+function tingkatTanggal(batas: string | null, hariSegera: number, hariIni: string) {
+  if (!batas) return null;
+  if (batas < hariIni) return 'LEWAT';
+  return batas <= tambahHari(hariIni, hariSegera) ? 'SEGERA' : 'AMAN';
+}
+
+function terburuk(...t: (TingkatPengingat | null)[]): TingkatPengingat | null {
+  return t.reduce<TingkatPengingat | null>(
+    (a, b) => (b === null ? a : a === null || PERINGKAT[b] > PERINGKAT[a] ? b : a),
+    null,
+  );
+}
+
+export function hitungKesehatan(
+  k: {
+    servisTiapKm: number | null;
+    servisTiapBulan: number | null;
+    berlakuStnk: string | null;
+    berlakuKir: string | null;
+  },
+  odo: { odometerKm: number; tanggal: string } | undefined,
+  servis: { tanggal: string; odometerKm: number | null; jenis: string } | undefined,
+  hariIni: string = tanggalOperasional(),
+): KesehatanKendaraan {
+  let servisBerikut: KesehatanKendaraan['servisBerikut'] = null;
+  if (servis && (k.servisTiapKm || k.servisTiapBulan)) {
+    const km =
+      k.servisTiapKm && servis.odometerKm !== null ? servis.odometerKm + k.servisTiapKm : null;
+    const tanggal = k.servisTiapBulan ? tambahBulan(servis.tanggal, k.servisTiapBulan) : null;
+    const tingkatKm: TingkatPengingat | null =
+      km === null || !odo
+        ? null
+        : odo.odometerKm >= km
+          ? 'LEWAT'
+          : odo.odometerKm >= km - KM_SEGERA_SERVIS
+            ? 'SEGERA'
+            : 'AMAN';
+    const tingkat = terburuk(tingkatKm, tingkatTanggal(tanggal, HARI_SEGERA_SERVIS, hariIni));
+    if (km !== null || tanggal !== null)
+      servisBerikut = { km, tanggal, tingkat: tingkat ?? 'AMAN' };
+  }
+  return {
+    odometerKm: odo?.odometerKm ?? null,
+    odometerTanggal: odo?.tanggal ?? null,
+    servisTerakhir: servis ?? null,
+    servisBerikut,
+    stnk: tingkatTanggal(k.berlakuStnk, HARI_SEGERA_SURAT, hariIni),
+    kir: tingkatTanggal(k.berlakuKir, HARI_SEGERA_SURAT, hariIni),
+  };
+}
+
+async function keKendaraanSemua(ex: Executor, baris: BarisRepo<Kendaraan>[]): Promise<Kendaraan[]> {
+  const id = baris.map((b) => b.id);
+  const odo = await repo.odometerTerakhir(ex, id);
+  const servis = await repo.servisTerakhir(ex, id);
+  return baris.map((b) => ({
+    ...b,
+    sedangJalan: rapikanJalan(b.sedangJalan),
+    kesehatan: hitungKesehatan(b, odo.get(b.id), servis.get(b.id)),
+  }));
+}
 const keSopir = (b: BarisRepo<Sopir>): Sopir => ({
   ...b,
   sedangJalan: rapikanJalan(b.sedangJalan),
@@ -43,7 +116,9 @@ const keSopir = (b: BarisRepo<Sopir>): Sopir => ({
 async function muatKendaraan(ex: Executor, id: number): Promise<Kendaraan> {
   const b = await repo.kendaraanById(ex, id);
   if (!b) throw new AppError('TIDAK_DITEMUKAN', 'Kendaraan tidak ditemukan.', 404);
-  return keKendaraan(b);
+  const [k] = await keKendaraanSemua(ex, [b]);
+  if (!k) throw new Error('kendaraan hilang');
+  return k;
 }
 
 async function muatSopir(ex: Executor, id: number): Promise<Sopir> {
@@ -82,12 +157,14 @@ function nilaiKendaraan(input: DataKendaraan): repo.NilaiKendaraan {
     bakTinggiCm: input.bakTinggiCm,
     berlakuStnk: input.berlakuStnk,
     berlakuKir: input.berlakuKir,
+    servisTiapKm: input.servisTiapKm,
+    servisTiapBulan: input.servisTiapBulan,
     catatan: input.catatan ?? null,
   };
 }
 
 export async function daftarKendaraan(status: StatusAktif | 'SEMUA'): Promise<Kendaraan[]> {
-  return (await repo.daftarKendaraan(db, status)).map(keKendaraan);
+  return keKendaraanSemua(db, await repo.daftarKendaraan(db, status));
 }
 
 export async function tambahKendaraan(
@@ -172,6 +249,41 @@ export async function ubahStatusKendaraan(
     });
   });
   return muatKendaraan(db, id);
+}
+
+/** Pengingat notifikasi (K-162): kendaraan aktif dengan STNK/KIR atau servis SEGERA/LEWAT. */
+export async function pengingatArmada(): Promise<{
+  surat: string[];
+  suratLewat: number;
+  servis: string[];
+  servisLewat: number;
+}> {
+  const daftar = await daftarKendaraan('AKTIF');
+  const teks = (t: TingkatPengingat) => (t === 'LEWAT' ? 'habis' : 'hampir habis');
+  const surat: string[] = [];
+  const servis: string[] = [];
+  let suratLewat = 0;
+  let servisLewat = 0;
+  for (const k of daftar) {
+    const { stnk, kir, servisBerikut } = k.kesehatan;
+    const bagian = [
+      stnk && stnk !== 'AMAN' ? `STNK ${teks(stnk)}` : null,
+      kir && kir !== 'AMAN' ? `KIR ${teks(kir)}` : null,
+    ].filter((x): x is string => x !== null);
+    if (bagian.length > 0) {
+      surat.push(`${k.plat}: ${bagian.join(', ')}`);
+      if (stnk === 'LEWAT' || kir === 'LEWAT') suratLewat++;
+    }
+    if (servisBerikut && servisBerikut.tingkat !== 'AMAN') {
+      servis.push(
+        `${k.plat}: ${servisBerikut.tingkat === 'LEWAT' ? 'terlewat' : 'segera'}` +
+          (servisBerikut.km !== null ? ` (${servisBerikut.km.toLocaleString('id-ID')} km)` : '') +
+          (servisBerikut.tanggal ? ` (${teksTanggalAngka(servisBerikut.tanggal)})` : ''),
+      );
+      if (servisBerikut.tingkat === 'LEWAT') servisLewat++;
+    }
+  }
+  return { surat, suratLewat, servis, servisLewat };
 }
 
 // --- Sopir ---

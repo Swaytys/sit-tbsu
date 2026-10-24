@@ -267,6 +267,30 @@ jenis, **daya angkut** dari buku KIR/STNK, **ukuran bak** dalam cm, masa berlaku
 kolom **Perjalanan** untuk melihat riwayat perjalanannya. Kendaraan/sopir yang tidak dipakai lagi dinonaktifkan
 (tidak bisa selama masih di jalan). Plat dan nama sopir yang sudah ada tidak bisa didaftarkan dua kali.
 
+**Servis berkala**: di data kendaraan isi **Tiap … km** dan/atau **Tiap … bulan** (mis. 5000 km atau 6 bulan). Kolom
+*Odometer · servis · surat* di daftar kendaraan menunjukkan km terakhir yang tercatat, servis berikutnya (kuning bila
+tinggal ≤ 500 km atau ≤ 14 hari, merah bila terlewat), dan tanda **STNK/KIR hampir habis** (≤ 30 hari) atau
+**habis**. Pengingat yang sama muncul di lonceng notifikasi Admin/Owner. Kendaraan yang surat-suratnya habis tetap
+bisa dipilih saat membuat rit, tetapi pilihannya bertanda *KIR habis*/*STNK habis*.
+
+**Catat BBM** (Kasir, Admin, Owner; tab **BBM**): saat sopir kembali membawa struk SPBU, klik **Catat BBM** → pilih
+kendaraan → tanggal → sopir (boleh kosong) → **Odometer** (angka km di dasbor saat mengisi) → **Liter** (boleh koma,
+mis. 35,5) → **Total bayar** → centang **Tangki diisi penuh** bila penuh → **Simpan**. Odometer yang lebih kecil dari
+catatan sebelumnya ditolak dan pesannya menyebut angka sebelumnya. Catatan ini tidak mengubah uang shift; bila BBM
+dibayar dari laci, catat juga di Shift sebagai uang keluar.
+
+**Catat servis** (Admin/Owner; tab **Servis**): **Catat servis** → kendaraan → tanggal → odometer → jenis servis
+(mis. Ganti oli + filter) → biaya → bengkel → **Simpan**. Servis terakhir menjadi dasar servis berikutnya.
+
+**Catatan salah**: klik ikon ⦸ di barisnya → tulis alasan → **Batalkan catatan** (Admin/Owner). Catatan tetap terlihat
+bertanda *Batal* dan tidak dihitung lagi; lalu catat ulang dengan angka yang benar.
+
+**Statistik** (Admin/Owner; tab **Statistik**): pilih tanggal **Dari** dan **sampai** (bawaan bulan ini). Per
+kendaraan: jumlah rit dan surat jalan, total muatan dan rata-rata pemakaian daya angkut, rata-rata lama di jalan,
+**tepat jadwal** (rit rencana yang berangkat paling lambat 30 menit dari jadwalnya), biaya BBM (liter) dan servis, km
+tempuh (dari odometer catatan BBM/servis dalam periode), perkiraan km per liter, dan biaya per km. Per sopir: rit,
+surat jalan, lama di jalan, tepat jadwal, dan surat jalan yang barangnya kembali/ditolak/rusak.
+
 **Piutang** (*Transaksi › Piutang*): daftar tagihan belum lunas dan jatuh temponya; **Terima pembayaran** untuk
 pelunasan.
 

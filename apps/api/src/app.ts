@@ -22,7 +22,7 @@ import { importRoutes } from './modules/master/import/routes';
 import { jenisAtributRoutes } from './modules/master/jenis-atribut/routes';
 import { kategoriRoutes } from './modules/master/kategori/routes';
 import { golonganPelangganRoutes } from './modules/master/golongan-pelanggan/routes';
-import { kendaraanRoutes, sopirRoutes } from './modules/master/armada/routes';
+import { armadaRoutes, kendaraanRoutes, sopirRoutes } from './modules/master/armada/routes';
 import { merkRoutes } from './modules/master/merk/routes';
 import { pelangganRoutes } from './modules/master/pelanggan/routes';
 import { pemasokRoutes } from './modules/master/pemasok/routes';
@@ -79,6 +79,7 @@ const rute = new Hono<EnvApp>()
   .route('/perjalanan', perjalananRoutes)
   .route('/kendaraan', kendaraanRoutes)
   .route('/sopir', sopirRoutes)
+  .route('/armada', armadaRoutes)
   .route('/piutang', piutangRoutes)
   .route('/shift', shiftRoutes)
   .route('/rekening', rekeningRoutes)

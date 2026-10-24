@@ -1,6 +1,6 @@
 # 13 — Rancangan Logistik: muatan, rit, dan papan pengiriman (K-160–K-162)
 
-Status: **v2 (24 Oktober 2026)** — §3 dan §4 sudah dibangun; §5 belum. Dasar: keputusan pemilik K-160–K-162
+Status: **v3 (24 Oktober 2026)** — §3, §4, dan §5 sudah dibangun. Dasar: keputusan pemilik K-160–K-162
 (`keputusan/2026-10-24-masukan-uji-dan-fms-lanjutan.md`) dan FMS inti K-149–K-151 yang sudah berjalan (kendaraan,
 sopir, perjalanan, hasil per barang). Angka ambang di bawah adalah **bawaan yang bisa diubah di Pengaturan**, bukan
 aturan mati.
@@ -120,10 +120,39 @@ Aturan papan:
 - Dependency baru: `@dnd-kit/core` 6.3.1 (seret-lepas dengan dukungan keyboard dan pembaca layar). `@dnd-kit/sortable`
   tidak dipakai karena urutan kartu dalam kolom tidak bermakna bisnis.
 
-## 5. FMS pendukung (K-162, setelah papan)
+## 5. FMS pendukung (K-162)
 
-Dashboard Logistik: rit per hari, rata-rata utilisasi berat/volume, lama di jalan, rit per sopir, kendaraan yang
-STNK/KIR-nya hampir habis, jadwal servis (km atau tanggal), catatan BBM per rit (liter, rupiah, odometer).
+Tujuan: pemilik tahu biaya dan kesehatan armada tanpa buku catatan terpisah. Hanya pencatatan dan statistik; tidak
+mengubah kas shift (BBM/servis yang dibayar dari laci tetap dicatat sebagai pengeluaran kas shift seperti biasa).
+
+### 5.1 Data baru (migrasi 0028)
+
+| Tabel/kolom | Isi | Aturan |
+|---|---|---|
+| `catatan_bbm` [APPEND] | kendaraan, tanggal, sopir (opsional), rit (opsional), odometer km, liter, total rupiah, *isi penuh*, catatan, pencatat | liter > 0; rupiah ≥ 0; odometer tidak boleh lebih kecil dari catatan terakhir kendaraan itu |
+| `catatan_servis` [APPEND] | kendaraan, tanggal, odometer km, jenis servis (mis. ganti oli), biaya rupiah, bengkel, catatan, pencatat | sama untuk odometer |
+| kolom batal pada kedua tabel | `batal_pada`, `alasan_batal`, `dibatalkan_oleh` | catatan salah dibatalkan dengan alasan (tidak dihapus/diubah) lalu dicatat ulang |
+| `kendaraan.servis_tiap_km`, `servis_tiap_bulan` | jadwal servis berkala | opsional; salah satu atau keduanya |
+
+### 5.2 Aturan
+
+- **Odometer terakhir** kendaraan = angka terbesar dari catatan BBM/servis yang tidak batal. Angka baru yang lebih
+  kecil ditolak (salah ketik atau salah kendaraan); bila catatan lama yang salah, batalkan dulu.
+- **Servis jatuh tempo**: dari servis terakhir, + `servis_tiap_km` dan/atau + `servis_tiap_bulan`. Pengingat muncul
+  bila sisa ≤ 500 km atau ≤ 14 hari, merah bila terlewat. Kendaraan tanpa catatan servis: "belum ada catatan servis".
+- **STNK/KIR**: pengingat 30 hari sebelum habis, merah bila sudah habis. Kendaraan yang surat-suratnya habis tetap
+  bisa dipilih (keputusan di tangan atasan) tetapi pilihannya bertanda *KIR habis*/*STNK habis*.
+- Pengingat servis dan surat tampil di notifikasi topbar untuk pemegang `master.armada.kelola`.
+- Izin: catat BBM = `penjualan.surat_jalan.kelola` (kasir mencatat struk BBM saat sopir kembali); catat servis, atur
+  jadwal servis, batalkan catatan, dan statistik = `master.armada.kelola`.
+
+### 5.3 Statistik (Logistik › Kendaraan & Sopir › Statistik)
+
+Periode bebas (bawaan bulan ini). Per kendaraan: jumlah rit dan surat jalan, total muatan, rata-rata pemakaian daya
+angkut (%), rata-rata lama di jalan, ketepatan berangkat (rit rencana yang berangkat ≤ 30 menit dari jadwal), BBM
+(liter, rupiah), km tempuh dan perkiraan km/liter (dari odometer pertama–terakhir dalam periode), biaya servis, biaya
+per km. Per sopir: rit, surat jalan, rata-rata lama di jalan, ketepatan berangkat, surat jalan dengan barang
+kembali/ditolak/rusak.
 
 ## 6. Urutan pengerjaan
 
@@ -131,12 +160,13 @@ STNK/KIR-nya hampir habis, jadwal servis (km atau tanggal), catatan BBM per rit 
    saring *Data muatan belum lengkap* di Data Barang dan isi massal lewat Excel (*Data muatan Excel*: unduh semua
    atau yang belum lengkap, isi dengan satuan bebas, pratinjau lama → baru, simpan) — **selesai 24 Okt**.
 2. Rit rencana (DIRENCANAKAN) + papan Pengiriman dengan seret-lepas (K-160) — **selesai 24 Okt**.
-3. STNK/KIR, servis, BBM, dashboard (K-162).
+3. STNK/KIR, servis, BBM, statistik (K-162) — **selesai 24 Okt** (§5).
 
 ## Riwayat
 
 - 2026-10-24 — v1 dibuat (rancangan K-160–K-162).
 - 2026-10-24 — Langkah 1 (K-161) selesai sebagian; julur bawaan 100 cm.
 - 2026-10-24 — Langkah 1 lengkap: isi massal data muatan lewat Excel.
+- 2026-10-24 — v3: langkah 3 (K-162) selesai; §5 dirinci (data, aturan odometer, pengingat, statistik).
 - 2026-10-24 — v2: langkah 2 (K-160) selesai; §4 disesuaikan dengan yang dibangun (Dimuat = lencana, tindak lanjut
   lewat Backlog *Kirim ulang*).

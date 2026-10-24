@@ -143,6 +143,7 @@ Sumber izin: `[KODE: shared/roles.ts:9-76]`; izin per endpoint: daftar di Lampir
 | Penjualan Langsung / Pengantaran (checkout) | — | T, C struk/invoice | + harga manual | sama |
 | Pembayaran & Piutang | — | L T (terima pembayaran) | sama | sama |
 | Surat jalan, berangkat, catat hasil antar | — | T U (dimuat, berangkat, hasil), batal | sama | sama |
+| Catatan BBM / servis, statistik armada | — | T BBM, L | + T servis, batal catatan, L statistik | sama |
 | Papan Pengiriman (rit rencana) | — | L T U (rit baru, isi, pindah, dimuat, berangkat), batal rit | sama | sama |
 | Kendaraan & sopir | — | L (memilih saat berangkat), riwayat perjalanan | L T U N | sama |
 | Retur penjualan / Void | — | T (ajukan), batal pengajuan sendiri; S dengan kode atasan | + S, tolak | sama |
@@ -239,6 +240,19 @@ Admin/Owner menerima | desktop + Telegram/email atasan
 - Tabel: `cadangan`.
 - Bukti: `[KODE: api/modules/sistem/cadangan/service.ts:323,458,528]` `[DOK: K-084]`.
 - Status: SEBAGIAN — berfungsi di tes; bergantung pada pemasangan restic/rclone di server; cadangan ke cloud akan diaktifkan saat deploy `[JAWAB 1]`.
+
+**F45. FMS pendukung: BBM, servis, pengingat, statistik armada** | Logistik › Kendaraan & Sopir (tab BBM, Servis,
+Statistik) | Kasir (catat BBM), Admin/Owner (servis, batal, statistik) | desktop
+- Fungsi: catatan BBM (liter, rupiah, odometer, isi penuh) dan servis (jenis, biaya, bengkel); odometer tidak boleh
+  mundur menurut tanggal; catatan salah dibatalkan dengan alasan. Pengingat servis berkala (km/bulan) dan STNK/KIR di
+  daftar kendaraan, notifikasi, dan pilihan kendaraan. Statistik per kendaraan (rit, muatan, pemakaian daya angkut,
+  lama di jalan, tepat jadwal, BBM, servis, km tempuh, km/L, biaya per km) dan per sopir (rit, tepat jadwal, surat
+  jalan bermasalah).
+- Input → Proses → Output: struk BBM/nota servis → validasi + kunci baris kendaraan → catatan, pengingat, statistik.
+- Tabel: `catatan_bbm`, `catatan_servis`, `kendaraan.servis_tiap_km/bulan` (migrasi 0028).
+- Bukti: `[KODE: api/modules/master/armada/catatan.ts]`, `[KODE: api/modules/master/armada/statistik.ts]`,
+  `hitungKesehatan` di `[KODE: api/modules/master/armada/service.ts]`; `[DOK: docs/05 S15, docs/13 §5, K-162]`; tes
+  `fms.test.ts`, e2e `fms.spec.ts`. Status: BERFUNGSI.
 
 **F44. Pencarian universal** | topbar (Ctrl+K) | semua (hasil disaring izin) | desktop
 - Fungsi: satu kotak cari untuk halaman, barang, pelanggan, pemasok, dan nomor dokumen; panah + Enter membuka hasil;
@@ -1087,6 +1101,13 @@ master/armada/routes.ts POST /api/sopir/ master.armada.kelola
 master/armada/routes.ts PATCH /api/sopir/:id master.armada.kelola
 master/armada/routes.ts PATCH /api/sopir/:id/status master.armada.kelola
 sistem/cari/routes.ts GET /api/cari dashboard.dasar (hasil disaring per izin)
+master/armada/routes.ts GET /api/armada/bbm penjualan.surat_jalan.kelola
+master/armada/routes.ts POST /api/armada/bbm penjualan.surat_jalan.kelola
+master/armada/routes.ts POST /api/armada/bbm/:id/batal master.armada.kelola
+master/armada/routes.ts GET /api/armada/servis penjualan.surat_jalan.kelola
+master/armada/routes.ts POST /api/armada/servis master.armada.kelola
+master/armada/routes.ts POST /api/armada/servis/:id/batal master.armada.kelola
+master/armada/routes.ts GET /api/armada/statistik master.armada.kelola
 persediaan/penerimaan/routes.ts:13 GET /api/penerimaan/ persediaan.penerimaan.kelola
 persediaan/penerimaan/routes.ts:16 GET /api/penerimaan/:id persediaan.penerimaan.kelola
 persediaan/penerimaan/routes.ts:19 POST /api/penerimaan/ persediaan.penerimaan.kelola
@@ -1132,17 +1153,19 @@ sistem/saluran/routes.ts:47 POST /api/saluran/saya/telegram/periksa LOGIN
 sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 ```
 
-## Lampiran B — Daftar tabel database (49)
+## Lampiran B — Daftar tabel database (57)
 
 | Berkas skema | Tabel (baris deklarasi) |
 |---|---|
-| `apps/api/src/db/schema/sistem.ts` | konfigurasi:37, penghitung_nomor:51, pengguna:61, sesi_login:89, log_aktivitas:114, cadangan:146 |
+| `apps/api/src/db/schema/sistem.ts` | konfigurasi:37, penghitung_nomor:51, pengguna:61, sesi_login:89, log_aktivitas:114, cadangan:146, kunci_idempoten (K-164) |
 | `…/master.ts` | kategori:41, merk:56, satuan:69, jenis_atribut:95, pemasok:119, tingkat_harga:136, golongan_pelanggan:178, pelanggan:191, barang:224, barang_atribut:288, barang_satuan_jual:321, harga_barang:351, promo:402, promo_pelanggan:488 |
 | `…/persediaan.ts` | persediaan:41, penerimaan_barang:79, penerimaan_barang_detail:139, penyesuaian_stok:184, penyesuaian_stok_detail:213, mutasi_persediaan:274 |
 | `…/penjualan.ts` | order_penjualan:46, order_penjualan_detail:116, penjualan:180, penjualan_detail:269, surat_jalan:349, surat_jalan_detail:390, pembayaran_penjualan:416 |
 | `…/kas.ts` | rekening_toko:46, shift_kasir:72, kas_shift:130, clerical_check:181, hitung_kas:247 |
 | `…/koreksi.ts` | retur_penjualan:42, retur_penjualan_detail:111, void_transaksi:172, void_transaksi_detail:236, permintaan_persetujuan:275, kode_persetujuan:347 |
 | `…/transaksi-pemasok.ts` | retur_pemasok:28, retur_pemasok_detail:73, penyelesaian_konsinyasi:106, penyelesaian_konsinyasi_detail:152, pembayaran_pemasok:193 |
+| `…/armada.ts` (K-150, K-160–K-162) | kendaraan, sopir, perjalanan, catatan_bbm, catatan_servis |
+| `…/hasil-pengantaran.ts` (K-149, K-151) | surat_jalan_hasil, surat_jalan_hasil_detail |
 
 ---
 
@@ -1160,6 +1183,8 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Rekening penerimaan wajib dipilih + No. referensi wajib (K-154), satu shift dijamin database (K-155), Harga dasar dengan kalkulator (K-158), tampilan pas layar dan pengingat diciutkan (K-152–K-157).
 - 2026-10-24 — Pencarian universal Ctrl+K (K-167); kebal kiriman ganda (kunci idempoten) dan cek versi data master (K-164).
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
+- 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
+- 2026-10-24 — F45 FMS pendukung: BBM, servis, pengingat, statistik armada (K-162).
 - 2026-10-24 — F43: isi massal data muatan lewat Excel (K-161 selesai). Lampiran A: endpoint perjalanan, kendaraan,
   sopir, hasil surat jalan, pencarian, dan data muatan ditambahkan.
 - 2026-10-24 — F42 papan Pengiriman dan rit rencana (K-160); F43 muatan, F44 pencarian universal, baris kiriman ganda

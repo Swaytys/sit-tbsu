@@ -52,6 +52,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { jalankanDenganToast } from '@/lib/aksi';
 import { formatWaktu } from '@/lib/format';
 import { tampilkanGalatForm } from '@/lib/form';
+import { SelKesehatan } from './kesehatan';
+import { TabBbm, TabServis } from './tab-catatan';
+import { TabStatistik } from './tab-statistik';
 
 /** Tanda "sedang jalan" (K-150): kendaraan/sopir ini belum bisa dipakai perjalanan lain. */
 export function BadgeJalan({ jalan }: { jalan: SedangJalan | null }) {
@@ -97,6 +100,8 @@ function DialogKendaraan({ k, onTutup }: { k: Kendaraan | null; onTutup: () => v
       bakTinggiCm: k?.bakTinggiCm ?? null,
       berlakuStnk: k?.berlakuStnk ?? null,
       berlakuKir: k?.berlakuKir ?? null,
+      servisTiapKm: k?.servisTiapKm ?? null,
+      servisTiapBulan: k?.servisTiapBulan ?? null,
       catatan: k?.catatan ?? '',
     },
   });
@@ -106,7 +111,14 @@ function DialogKendaraan({ k, onTutup }: { k: Kendaraan | null; onTutup: () => v
       toast.success(`Kendaraan ${data.plat} disimpan.`);
       onTutup();
     } catch (err) {
-      tampilkanGalatForm(err, form.setError, ['plat', 'jenis', 'kapasitasKg', 'catatan']);
+      tampilkanGalatForm(err, form.setError, [
+        'plat',
+        'jenis',
+        'kapasitasKg',
+        'servisTiapKm',
+        'servisTiapBulan',
+        'catatan',
+      ]);
     }
   }
   return (
@@ -214,6 +226,36 @@ function DialogKendaraan({ k, onTutup }: { k: Kendaraan | null; onTutup: () => v
                   )}
                 />
               ))}
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-medium">Servis berkala (boleh salah satu)</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    ['servisTiapKm', 'Tiap … km'],
+                    ['servisTiapBulan', 'Tiap … bulan'],
+                  ] as const
+                ).map(([nama, label]) => (
+                  <FormField
+                    key={nama}
+                    control={form.control}
+                    name={nama}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs text-slate-600">{label}</FormLabel>
+                        <FormControl>
+                          <IsianBulat value={field.value} onChange={field.onChange} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Mis. 5000 km atau 6 bulan. Pengingat muncul 500 km / 14 hari sebelumnya, dihitung
+                dari catatan servis terakhir.
+              </p>
             </div>
             <FormField
               control={form.control}
@@ -433,6 +475,7 @@ function TabKendaraan({ bolehKelola }: { bolehKelola: boolean }) {
       ),
     },
     { kunci: 'jalan', judul: 'Posisi', sel: (k) => <BadgeJalan jalan={k.sedangJalan} /> },
+    { kunci: 'kesehatan', judul: 'Odometer · servis · surat', sel: (k) => <SelKesehatan k={k} /> },
     {
       kunci: 'trip',
       judul: 'Perjalanan',
@@ -590,7 +633,10 @@ function TabSopir({ bolehKelola }: { bolehKelola: boolean }) {
   );
 }
 
-/** Data Master › Kendaraan & Sopir (K-150): data tetap untuk pengantaran, beserta riwayat perjalanannya. */
+/**
+ * Logistik › Kendaraan & Sopir (K-150): data tetap untuk pengantaran, riwayat perjalanan, catatan BBM dan servis,
+ * serta statistik armada (K-162).
+ */
 export function HalamanArmada() {
   const bolehKelola = usePengguna().izin.includes('master.armada.kelola');
   return (
@@ -605,6 +651,9 @@ export function HalamanArmada() {
         <TabsList>
           <TabsTrigger value="kendaraan">Kendaraan</TabsTrigger>
           <TabsTrigger value="sopir">Sopir</TabsTrigger>
+          <TabsTrigger value="bbm">BBM</TabsTrigger>
+          <TabsTrigger value="servis">Servis</TabsTrigger>
+          {bolehKelola && <TabsTrigger value="statistik">Statistik</TabsTrigger>}
         </TabsList>
         <TabsContent value="kendaraan">
           <TabKendaraan bolehKelola={bolehKelola} />
@@ -612,6 +661,17 @@ export function HalamanArmada() {
         <TabsContent value="sopir">
           <TabSopir bolehKelola={bolehKelola} />
         </TabsContent>
+        <TabsContent value="bbm">
+          <TabBbm bolehBatal={bolehKelola} />
+        </TabsContent>
+        <TabsContent value="servis">
+          <TabServis bolehKelola={bolehKelola} />
+        </TabsContent>
+        {bolehKelola && (
+          <TabsContent value="statistik">
+            <TabStatistik />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

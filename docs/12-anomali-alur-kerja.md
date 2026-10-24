@@ -103,6 +103,10 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | A16 | Dua orang mengubah rit yang sama (satu memberangkatkan, satu memindah kartu) | Kartu masuk rit yang sudah jalan | Muat ulang halaman | Baris rit dikunci; aksi pada rit yang bukan rencana lagi ditolak; papan menyegarkan tiap 30 detik | Pesan "sudah berangkat; muat ulang halaman" | Ada (K-160) |
 | A17 | Rit rencana dibatalkan padahal barang sudah dinaikkan | Barang di truk tanpa rit | Masukkan ke rit lain atau keluarkan barangnya | Surat jalan tidak ikut batal, kembali ke *Belum direncanakan* dengan status Dimuat | Lencana *Dimuat* tetap terlihat | Ada (K-160) |
 | A18 | Kartu terseret ke kolom yang salah | Surat jalan batal tanpa sengaja | — | Seret ke Backlog hanya membuka dialog batal (alasan wajib), tidak langsung membatalkan | Dialog menjelaskan akibatnya | Ada (K-160) |
+| A19 | Odometer salah ketik (lebih kecil dari sebelumnya, atau angka susulan tidak urut) | km tempuh dan km/L kacau | Batalkan catatan yang salah, catat ulang | Ditolak dengan angka pembanding; diperiksa menurut urutan tanggal | Pesan menyebut angka sebelumnya dan cara memperbaikinya | Ada (K-162) |
+| A20 | Servis terlupa | Kendaraan rusak di jalan | Catat servis | Pengingat 500 km / 14 hari sebelumnya, merah bila terlewat, di daftar kendaraan dan notifikasi | Teks "Jadwal servis belum diatur" mengajak mengisi jadwal | Ada (K-162) |
+| A21 | STNK/KIR habis tetapi kendaraan tetap dipakai | Tilang, kendaraan ditahan | Perpanjang surat, ubah tanggal di data kendaraan | Pengingat 30 hari; pilihan kendaraan bertanda *KIR habis* (keputusan tetap di atasan) | Notifikasi menyebut plat | Ada (K-162) |
+| A22 | Struk BBM dicatat dua kali | Biaya ganda | Batalkan salah satunya | Daftar BBM per kendaraan menampilkan tanggal, odometer, liter berdampingan | Catatan batal tetap terlihat dengan alasannya | Ada sebagian (tanpa deteksi otomatis) |
 | A11 | Plat/nama sopir diketik beda-beda | Data ganda, riwayat terpecah | Ubah data master | Plat dirapikan huruf besar + satu spasi, unik; nama sopir unik tanpa beda huruf | Contoh format di form | Ada |
 
 ---
@@ -119,4 +123,5 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-24 — Shift ganda kini mustahil (indeks unik, K-155); pembayaran non-tunai tanpa rekening terdaftar/referensi dicegah (K-154).
 - 2026-10-24 — A12–A14 muatan kendaraan (K-161).
 - 2026-10-24 — A14 menjadi *Ada* (saring belum lengkap + isi massal Excel).
+- 2026-10-24 — A19–A22 catatan BBM/servis dan pengingat (K-162).
 - 2026-10-24 — A15–A18 rit rencana dan papan Pengiriman (K-160); A5 menunjuk kolom Backlog.
