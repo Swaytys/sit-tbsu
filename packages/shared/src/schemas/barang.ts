@@ -158,7 +158,9 @@ export const skemaBarang = z
       .min(1, 'Nama barang wajib diisi.')
       .max(150, 'Nama barang maksimal 150 karakter.')
       // Tanda * dipakai kasir untuk qty ("3*semen" / "semen*3").
-      .refine((v) => !v.includes('*'), 'Nama barang tidak boleh memakai tanda *.'),
+      .refine((v) => !v.includes('*'), 'Nama barang tidak boleh memakai tanda *.')
+      // K-137: spasi berlebih dirapikan.
+      .transform((v) => v.replace(/\s+/g, ' ')),
     idKategori: idWajib('Kategori wajib dipilih.'),
     /** `null` = tanpa merk (K-063). */
     idMerk: z.number().int().positive().nullable().optional(),
@@ -182,6 +184,8 @@ export const skemaBarang = z
     muatan: skemaMuatanBarang.optional(),
     /** K-164: versi data yang dimuat form (waktu ubah terakhir); beda dengan versi sekarang = ditolak. */
     versi: z.string().max(40).nullable().optional(),
+    /** K-137: pengguna menegaskan ini barang berbeda walau namanya sama dengan barang lain. */
+    abaikanMirip: z.boolean().optional(),
   })
   .superRefine((d, ctx) => {
     if (d.kepemilikan === 'KONSINYASI') {

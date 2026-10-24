@@ -22,7 +22,7 @@ test('Staf menambah pelanggan tanpa mengatur tier; Admin mengatur tier, term, da
   await expect(dialog.getByText(/diatur Admin\/Owner/)).toBeVisible();
   await expect(dialog.getByLabel('Golongan pelanggan')).toHaveCount(0);
 
-  await dialog.getByLabel('No. HP').fill('0812 3456 7890');
+  await dialog.getByLabel('No. HP').fill(`08${String(Date.now()).slice(-10)}`);
   await dialog.getByRole('button', { name: 'Simpan' }).click();
   await expect(staf.getByText(/ditambahkan \(PLG-\d{5}\)/)).toBeVisible();
 
@@ -105,7 +105,7 @@ test('Admin menambah pemasok; Kasir tidak melihat menu Data Pemasok', async ({ p
   await page.getByRole('button', { name: 'Tambah pemasok' }).click();
   const dialog = page.getByRole('dialog', { name: 'Tambah pemasok' });
   await dialog.getByLabel('Nama pemasok').fill(nama);
-  await dialog.getByLabel('No. HP / telepon').fill('0321 861234');
+  await dialog.getByLabel('No. HP / telepon').fill(`0321${String(Date.now()).slice(-7)}`);
   await dialog.getByLabel('Kontak person').fill('Pak Susanto');
   await dialog.getByRole('button', { name: 'Simpan' }).click();
   await expect(page.getByText(/ditambahkan \(PMS-\d{5}\)/)).toBeVisible();

@@ -40,6 +40,12 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U74 | Data muatan barang | *Data Barang › Ubah* semen → kartu *Data muatan*: pilih **g**, isi 50000; pilih **mm**, isi 700 × 450 × 120 → Simpan | Tersimpan sebagai 50 kg dan 70 × 45 × 12 cm (buka lagi: angka tampil dalam kg/cm) | Belum | Coba juga *Barang curah* untuk pasir |
 | U77 | Barang belum lengkap & pengaturan muatan | *Data Barang*: nyalakan **Data muatan belum lengkap**; *Pengaturan › Operasional*: ubah faktor isi/julur | Daftar hanya barang tanpa berat/ukuran; pengaturan tersimpan dan dipakai saat Berangkat | Belum | |
 | U75 | Data kendaraan | *Kendaraan & Sopir* → ubah kendaraan: isi daya angkut, ukuran bak, STNK/KIR | Kolom *Daya angkut · bak* terisi | Belum | |
+| U102 | No. HP format baru | Tambah pelanggan: ketik `0812 3456 7890` di kotak nomor | 0 dibuang dengan pemberitahuan, tersimpan `+6281234567890`; nomor 16 angka ditolak | Belum | Kode negara bisa diganti |
+| U103 | Cegah pelanggan dobel | Tambah pelanggan "Toko Sumber Jaya"; lalu tambah "sumber jaya" (No. HP lain); lalu "Pak Andi" dengan No. HP sama | Dua yang terakhir: kotak kuning "Pelanggan yang mirip sudah ada"; klik **tetap simpan** baru tersimpan | Belum | Sama untuk pemasok dan barang (nama) |
+| U104 | Pemeriksaan data | *Pengaturan › Pemeriksaan data* → **Rapikan No. HP** | Daftar kemungkinan dobel dan format salah; setelah dirapikan, No. HP lama jadi +62… | Belum | |
+| U105 | Daftar order & penginput | *Order Penjualan* → **F10** (atau tombol Daftar order) → **Esc** kembali | Tanpa tab Input cepat; daftar bawaan **Semua**; kartu menulis "oleh <nama>"; order disimpan yang waktunya diambil tersemat di atas (bisa disembunyikan hari ini) | Belum | |
+| U106 | Notifikasi rinci & dashboard | Klik lonceng; buka Dashboard | Tiap notifikasi menampilkan sampai 3 rincian (nomor, nama, nilai); dashboard punya bagian **Perlu perhatian** | Belum | |
+| U107 | Label F9 kasir | Di kasir buka order dari antrean | Tombol tertulis *Tunda / kembalikan order (F9)*; tiket antrean menulis "oleh <nama>" | Belum | |
 | U98 | Arsip tahunan: penghalang | Login Owner → *Pengaturan › Arsip tahunan* | Kartu 2026 "Belum ditutup", tombol Tutup mati, daftar kuning menyebut "Tahun berjalan belum selesai" dan dokumen yang belum selesai | Belum | |
 | U99 | Tutup, periksa, unduh | (Butuh data tahun lalu) kartu tahun lalu → **Tutup tahun** → **Periksa** → **Unduh berkas** | "Ditutup"; "Berkas utuh dan sama dengan database"; berkas `arsip-<tahun>-….json.gz` terunduh | Belum | Bila belum ada data tahun lalu, cukup baca penjelasan "?" |
 | U100 | Tahun terkunci & buka kembali | Setelah U99: *Kendaraan & Sopir › BBM* → catat BBM bertanggal tahun lalu; lalu **Buka kembali** (alasan) dan ulangi | Pertama ditolak "Tahun … sudah ditutup"; setelah dibuka berhasil; kartu "Dibuka kembali" | Belum | Tutup lagi sesudahnya |
@@ -192,6 +198,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.
 - 2026-10-24 — U71–U73 pencarian universal, cek versi, kiriman tidak ganda (K-164, K-167).
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
+- 2026-10-24 — U102–U107 No. HP, cegah dobel, pemeriksaan data, daftar order, notifikasi rinci, label F9 (K-129–K-143).
 - 2026-10-24 — U98–U101 arsip tahunan, Tentang aplikasi (K-165, K-166).
 - 2026-10-24 — U93–U97 kampanye promo (K-163 bagian 1).
 - 2026-10-24 — U88–U92 BBM, servis, pengingat, statistik armada (K-162).

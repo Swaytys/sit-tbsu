@@ -45,6 +45,7 @@ import {
 import { muatSatuanJual } from '../satuan-jual/service';
 import * as satuanJualRepo from '../satuan-jual/repo';
 import * as repo from './repo';
+import { pastikanTidakMirip } from '../mirip';
 
 /*
  * Barang (docs/03 §3.2, docs/05 L10, docs/06 H2–H5, KS1). Tidak dihapus; dinonaktifkan (K-021).
@@ -540,6 +541,16 @@ export async function tambahBarang(
 ): Promise<DetailBarang> {
   pastikanBolehTambahBarang(pelaku);
   const id = await dalamTransaksi(async (tx) => {
+    await pastikanTidakMirip(
+      tx,
+      'barang',
+      {
+        nama: input.namaBarang,
+        kepemilikan: input.kepemilikan,
+        idPemasokKonsinyasi: input.idPemasokKonsinyasi ?? null,
+      },
+      input.abaikanMirip,
+    );
     const baru = await buatBarang(tx, input, pelaku.id);
     await catatLogBarangBaru(tx, baru, pelaku, asal);
     if (input.muatan) {
@@ -597,6 +608,19 @@ export async function ubahBarang(
     const konteks = await muatKonteksHarga(tx);
     const dasarSebelum = dasarMarkup(dataDasarDari(lama, stok), konteks.modeDasar);
     const beda = selisih(lama, nilai);
+    if (beda.kolom.includes('namaBarang')) {
+      await pastikanTidakMirip(
+        tx,
+        'barang',
+        {
+          nama: input.namaBarang,
+          kepemilikan: input.kepemilikan,
+          idPemasokKonsinyasi: input.idPemasokKonsinyasi ?? null,
+        },
+        input.abaikanMirip,
+        id,
+      );
+    }
 
     if (beda.kolom.includes('barcode')) await pastikanBarcodeBebas(tx, nilai.barcode, id);
     await pastikanReferensiAktif(tx, nilai, lama);

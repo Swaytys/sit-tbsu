@@ -47,6 +47,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { InputNoHp } from '@/components/input-no-hp';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { jalankanDenganToast } from '@/lib/aksi';
@@ -331,7 +332,7 @@ function DialogSopir({ s, onTutup }: { s: Sopir | null; onTutup: () => void }) {
                 <FormItem>
                   <FormLabel>No. HP (boleh kosong)</FormLabel>
                   <FormControl>
-                    <Input inputMode="tel" {...field} value={field.value ?? ''} />
+                    <InputNoHp value={field.value} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

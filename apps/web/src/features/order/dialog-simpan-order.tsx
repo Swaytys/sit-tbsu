@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { InputNoHp } from '@/components/input-no-hp';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatTanggal, tanggalHariIni } from '@/lib/format';
@@ -159,15 +160,12 @@ export function DialogSimpanOrder({
           </div>
           <div className="space-y-1">
             <Label htmlFor="simpan-hp">No. HP pembeli</Label>
-            <Input
+            <InputNoHp
               id="simpan-hp"
+              label="No. HP pembeli"
               value={hp}
-              maxLength={20}
-              inputMode="tel"
               autoFocus={!!order.namaPelanggan}
-              onChange={(e) => setHp(e.target.value)}
-              placeholder="mis. 0812 3456 7890"
-              aria-invalid={!!galat.noHp}
+              onChange={setHp}
             />
             {galat.noHp && <p className="text-xs text-red-600">{galat.noHp}</p>}
           </div>

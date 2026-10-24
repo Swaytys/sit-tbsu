@@ -1,6 +1,7 @@
 import { formatRupiah, LABEL_PERAN, teksTanggalPanjang, type Izin } from '@sit/shared';
 import {
   AlertTriangle,
+  Bell,
   BarChart3,
   Calculator,
   ClipboardCheck,
@@ -20,7 +21,7 @@ import { Link } from 'react-router';
 import { usePengguna } from '@/api/auth';
 import { useAktivitasDashboard, useRingkasanDashboard } from '@/api/laporan';
 import { useTampilanToko } from '@/api/pengaturan';
-import { usePeringatanStok } from '@/api/persediaan';
+import { useNotifikasi, usePeringatanStok } from '@/api/persediaan';
 import { BadgeStatusStok } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -127,6 +128,34 @@ const AKSI_CEPAT: AksiCepat[] = [
     izin: ['laporan.penjualan', 'laporan.persediaan'],
   },
 ];
+
+/** K-131: notifikasi (sumber sama dengan lonceng) sebagai bagian dashboard, dengan rinciannya. */
+function PerluPerhatian() {
+  const daftar = useNotifikasi().data ?? [];
+  if (daftar.length === 0) return null;
+  return (
+    <Card className="gap-3 p-5" data-testid="perlu-perhatian">
+      <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-slate-800 uppercase">
+        <Bell className="size-4 text-orange-600" /> Perlu perhatian
+      </h2>
+      <ul className="divide-y text-sm">
+        {daftar.map((n) => (
+          <li key={n.jenis} className="py-2">
+            <Link to={n.tautan} className="font-medium text-blue-700 hover:underline">
+              {n.judul} ({n.jumlah})
+            </Link>
+            <div className="text-xs text-slate-500">{n.keterangan}</div>
+            {n.rincian?.map((x) => (
+              <div key={x} className="truncate text-xs text-slate-700" title={x}>
+                • {x}
+              </div>
+            ))}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
 
 function PeringatanStok({ bolehBuka }: { bolehBuka: boolean }) {
   const data = usePeringatanStok(true).data;
@@ -349,6 +378,7 @@ export function HalamanBeranda() {
               <GrafikTujuhHari data={r.omzet.tujuhHari} />
             </Card>
           )}
+          <PerluPerhatian />
           {punya('dashboard.dasar') && (
             <PeringatanStok bolehBuka={punya('persediaan.stok.lihat')} />
           )}

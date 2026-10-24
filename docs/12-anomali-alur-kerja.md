@@ -85,6 +85,9 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | P7 | Catatan bertanggal tahun yang sudah ditutup | Arsip tidak sama dengan database | Buka kembali tahun (Owner, alasan), koreksi, tutup ulang | Isian bertanggal tahun ditutup ditolak; Periksa arsip mendeteksi selisih | Pesan menyebut tahun ditutup | Ada (K-165) |
 | P8 | Tahun ditutup padahal masih ada order/shift/retur setengah jalan | Dokumen menggantung di tahun terkunci | — | Tutup tahun ditolak dengan daftar penghalang | Penghalang tampil di kartu tahun | Ada (K-165) |
 | P9 | Pembaruan aplikasi merusak data lama | Data hilang/aplikasi mati | Mundur otomatis ke versi lama; pulihkan cadangan sebelum pembaruan | Uji migrasi pada salinan sebelum migrasi asli; server dihentikan sebelum cadangan | Versi dan status migrasi di Tentang aplikasi | Ada (K-166) |
+| P10 | Pelanggan/pemasok/barang dibuat dua kali (beda ejaan, awalan Toko/Pak, No. HP sama) | Riwayat dan piutang terpecah | Pemeriksaan data: buka keduanya, pakai satu, nonaktifkan yang lain | Simpan ditolak dengan daftar data mirip; harus ditegaskan berbeda | Panel "yang mirip sudah ada" di form | Ada (K-137) |
+| P11 | No. HP diketik 0812… / +62 0812… / berspasi | Tidak bisa dicari/dihubungi seragam | Rapikan No. HP (Pemeriksaan data) | Dirapikan otomatis ke +62…; 0 dibuang dengan pemberitahuan; panjang dibatasi | Isian kode negara terpisah | Ada (K-137) |
+| P12 | Order disimpan lewat tanggal ambil terlupa | Stok tertahan, pembeli tidak dihubungi | Hubungi pembeli, proses/batalkan | Tersemat di atas daftar order walau saringan lain | Lencana merah "lewat, hubungi pembeli" | Ada (K-139) |
 
 ---
 
@@ -132,4 +135,5 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-24 — A19–A22 catatan BBM/servis dan pengingat (K-162).
 - 2026-10-24 — P4–P6 kampanye promo (K-163).
 - 2026-10-24 — P7–P9 arsip tahunan dan pembaruan aman (K-165, K-166).
+- 2026-10-24 — P10–P12 data ganda, No. HP, order disimpan (K-137, K-139).
 - 2026-10-24 — A15–A18 rit rencana dan papan Pengiriman (K-160); A5 menunjuk kolom Backlog.

@@ -292,6 +292,8 @@ describe('stok persediaan (docs/05 ST1–ST3)', () => {
       ['STOK_HABIS', 2],
       ['STOK_KRITIS', 1],
     ]);
+    // K-131: nama barang dan stoknya.
+    expect(notif.find((n) => n.jenis === 'STOK_KRITIS')?.rincian?.[0]).toMatch(/ · stok 2 /);
 
     const kasir = await sesiUji('KASIR');
     const { data: notifKasir } = await ambil<{ data: Notifikasi[] }>('/api/notifikasi', kasir);

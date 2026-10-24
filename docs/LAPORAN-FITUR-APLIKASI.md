@@ -278,6 +278,15 @@ semua (lihat versi) | server/desktop
   `[KODE: shared/versi.ts]`; `[DOK: K-166]`; tes `uji-migrasi-salinan.test.ts`, `health.test.ts`. Status: BERFUNGSI
   (uji migrasi penuh butuh hak CREATEDB di server).
 
+**F48. Data bersih dan pencegahan data ganda** | semua form master; Pengaturan › Pemeriksaan data | semua (form),
+Admin/Owner (pemeriksaan) | desktop
+- Fungsi: No. HP format internasional dengan kode negara (0 di depan dibuang otomatis); nama dirapikan; menyimpan
+  pelanggan/pemasok/barang yang mirip data lain (nama setelah dirapikan, No. HP) ditolak dengan daftar data mirip
+  kecuali ditegaskan berbeda; pemindaian data lama (dobel, format salah) dan rapikan No. HP sekaligus.
+- Bukti: `[KODE: shared/nohp.ts]`, `[KODE: api/modules/master/mirip.ts]`,
+  `[KODE: api/modules/sistem/pemeriksaan-data/service.ts]`; `[DOK: docs/05 §19, K-137]`; tes `mitra.test.ts`,
+  `pemeriksaan-data.test.ts`. Status: BERFUNGSI.
+
 ### 4.2 Data master
 
 **F9. Data Barang** | Data Master | Admin, Owner | desktop
@@ -1122,6 +1131,8 @@ master/armada/routes.ts POST /api/sopir/ master.armada.kelola
 master/armada/routes.ts PATCH /api/sopir/:id master.armada.kelola
 master/armada/routes.ts PATCH /api/sopir/:id/status master.armada.kelola
 sistem/cari/routes.ts GET /api/cari dashboard.dasar (hasil disaring per izin)
+sistem/pemeriksaan-data/routes.ts GET /api/pemeriksaan-data sistem.pengaturan.kelola
+sistem/pemeriksaan-data/routes.ts POST /api/pemeriksaan-data/rapikan-no-hp sistem.pengaturan.kelola
 sistem/arsip/routes.ts GET /api/arsip sistem.cadangan.kelola
 sistem/arsip/routes.ts POST /api/arsip/:tahun/tutup sistem.cadangan.kelola
 sistem/arsip/routes.ts POST /api/arsip/:tahun/buka sistem.cadangan.kelola
@@ -1212,6 +1223,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
 - 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).
+- 2026-10-24 — F48 data bersih (K-137); notifikasi rinci + dashboard Perlu perhatian (K-131); order: F10, saringan Semua, penginput (K-129, K-138, K-139).
 - 2026-10-24 — F45 FMS pendukung: BBM, servis, pengingat, statistik armada (K-162).
 - 2026-10-24 — F43: isi massal data muatan lewat Excel (K-161 selesai). Lampiran A: endpoint perjalanan, kendaraan,
   sopir, hasil surat jalan, pencarian, dan data muatan ditambahkan.

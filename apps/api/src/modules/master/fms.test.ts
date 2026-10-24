@@ -231,9 +231,9 @@ describe('kesehatan kendaraan dan pengingat', () => {
     const n = await notif(admin);
     expect(n.find((x) => x.jenis === 'ARMADA_SURAT')).toMatchObject({
       judul: 'STNK/KIR kendaraan sudah habis',
-      keterangan: 'S 1234 AB: KIR habis',
+      rincian: ['S 1234 AB: KIR habis'],
     });
-    expect(n.find((x) => x.jenis === 'ARMADA_SERVIS')?.keterangan).toContain(
+    expect(n.find((x) => x.jenis === 'ARMADA_SERVIS')?.rincian?.[0]).toContain(
       'S 1234 AB: segera (15.000 km)',
     );
     expect((await notif(kasir)).some((x) => x.jenis.startsWith('ARMADA_'))).toBe(false);

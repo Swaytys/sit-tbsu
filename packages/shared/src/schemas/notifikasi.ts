@@ -33,4 +33,6 @@ export type Notifikasi = {
   jumlah: number;
   /** Path halaman web tujuan. */
   tautan: string;
+  /** K-131: paling banyak 3 butir teratas (nomor, nama, nilai/umur). */
+  rincian?: string[];
 };

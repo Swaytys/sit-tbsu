@@ -6,6 +6,7 @@ import {
   type DataPelanggan,
   type InputPelanggan,
   type Pelanggan,
+  type DataMirip,
 } from '@sit/shared';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -39,6 +40,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { InputNoHp } from '@/components/input-no-hp';
+import { PanelMirip } from '@/components/panel-mirip';
+import { miripDariGalat } from '@/lib/mirip';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -117,7 +121,10 @@ function IsiDialogPelanggan({
     (g) => g.statusAktif === 'AKTIF' || g.id === pelanggan?.idGolongan,
   );
 
+  const [mirip, setMirip] = useState<DataMirip[] | null>(null);
+
   async function kirim(data: DataPelanggan) {
+    setMirip(null);
     // Tanpa izin: kolom kredit tidak dikirim, sehingga API memakai bawaan / nilai lama (K-059).
     const json: DataPelanggan = bolehKredit
       ? data
@@ -146,6 +153,11 @@ function IsiDialogPelanggan({
       onTersimpan?.(hasil);
       onTutup();
     } catch (err) {
+      const m = miripDariGalat(err);
+      if (m) {
+        setMirip(m);
+        return;
+      }
       tampilkanGalatForm(err, form.setError, [
         'namaPelanggan',
         'noHp',
@@ -193,7 +205,7 @@ function IsiDialogPelanggan({
                 <FormItem>
                   <FormLabel>No. HP</FormLabel>
                   <FormControl>
-                    <Input inputMode="tel" placeholder="08xx" {...field} />
+                    <InputNoHp value={field.value} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -357,6 +369,17 @@ function IsiDialogPelanggan({
                 menekan tombol di bawah, sistem mengirim kode sekali pakai beserta rincian perubahan
                 ke atasan; ketik kode yang disebutkan atasan untuk menyimpan.
               </p>
+            )}
+            {mirip && (
+              <div className="col-span-2">
+                <PanelMirip
+                  mirip={mirip}
+                  apa="Pelanggan"
+                  onTetapSimpan={() =>
+                    void form.handleSubmit((d) => kirim({ ...d, abaikanMirip: true }))()
+                  }
+                />
+              </div>
             )}
             <DialogFooter className="col-span-2">
               <Button type="button" variant="outline" onClick={onTutup}>

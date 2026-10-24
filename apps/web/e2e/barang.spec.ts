@@ -26,7 +26,7 @@ test('Admin menambah barang dengan atribut dan harga; tinjau harga lalu simpan d
   const penitip = `Penitip E2E ${Date.now()}`;
   await masukCepat(page, 'ADMIN');
   const pemasok = await page.request.post('/api/pemasok', {
-    data: { namaPemasok: penitip, noHp: '081234567890' },
+    data: { namaPemasok: penitip, noHp: '081234567890', abaikanMirip: true },
     headers: { origin: new URL(page.url()).origin },
   });
   expect(pemasok.ok()).toBe(true);

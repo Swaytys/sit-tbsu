@@ -324,3 +324,4 @@ nomor dokumen untuk transaksi), `ip`. Log tidak bisa diubah atau dihapus dari ap
 - 2026-10-23 — Izin `penjualan.diskon` dihapus: diskon manual tidak ada lagi, potongan hanya lewat Promo (K-146).
 - 2026-10-23 — Izin `master.armada.kelola` (Admin, Owner); `penjualan.surat_jalan.kelola` mencakup berangkat dan catat hasil (K-149, K-150).
 - 2026-10-24 — K-162: catatan BBM (kasir+), servis/batal/statistik (`master.armada.kelola`).
+- 2026-10-24 — K-165 arsip tahunan (`sistem.cadangan.kelola`); K-137 pemeriksaan data dan rapikan No. HP (`sistem.pengaturan.kelola`).

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PERAN, STATUS_AKTIF } from '../enums';
 import { skemaPasswordBaru } from './auth';
-import { skemaHalaman, teksOpsional } from './umum';
+import { skemaHalaman, skemaNoHpOpsional } from './umum';
 
 /** Username: 3–50 karakter huruf kecil, angka, titik, garis bawah, atau strip; disimpan huruf kecil. */
 export const skemaUsername = z
@@ -20,10 +20,7 @@ const dataPengguna = {
     .max(100, 'Nama pengguna maksimal 100 karakter.'),
   username: skemaUsername,
   peran: z.enum(PERAN, 'Peran wajib dipilih.'),
-  noHp: teksOpsional(20, 'No. HP maksimal 20 karakter.').refine(
-    (v) => v === null || v === undefined || /^[0-9+\-\s]+$/.test(v),
-    'No. HP hanya boleh angka, spasi, +, atau -.',
-  ),
+  noHp: skemaNoHpOpsional,
 };
 
 /** Tambah pengguna (Owner). Password awal wajib diganti pengguna saat login pertama (docs/04 §7). */

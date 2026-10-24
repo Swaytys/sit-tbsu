@@ -19,7 +19,7 @@ test('Admin mengisi lama kirim pemasok; Saran Pesan menampilkan barangnya besert
   await page.getByRole('button', { name: /Tambah pemasok/ }).click();
   const dialog = page.getByRole('dialog', { name: 'Tambah pemasok' });
   await dialog.getByLabel('Nama pemasok').fill(namaPemasok);
-  await dialog.getByLabel('No. HP / telepon').fill('081234500011');
+  await dialog.getByLabel('No. HP / telepon').fill(`08${String(Date.now()).slice(-10)}`);
   await dialog.getByLabel('Lama kirim (hari)').fill('2');
   await dialog.getByLabel('Belanja tiap (hari)').fill('5');
   await dialog.getByRole('button', { name: 'Simpan' }).click();

@@ -8,6 +8,7 @@ export * from './escpos';
 export * from './label';
 export * from './log';
 export * from './money';
+export * from './nohp';
 export * from './penomoran';
 export * from './permissions';
 export * from './qty';

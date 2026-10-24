@@ -154,7 +154,7 @@ describe('pengguna › ubah', () => {
     expect((await json<{ data: Pengguna }>(res)).data.peran).toBe('ADMIN');
 
     const log = await logTerakhir('PENGGUNA_UBAH');
-    expect(log?.dataLama).toEqual({ peran: 'KASIR', noHp: '0857-1234-1234' });
+    expect(log?.dataLama).toEqual({ peran: 'KASIR', noHp: '+6285712341234' });
     expect(log?.dataBaru).toEqual({ peran: 'ADMIN', noHp: null });
   });
 

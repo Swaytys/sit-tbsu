@@ -34,6 +34,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { InputNoHp } from '@/components/input-no-hp';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -157,7 +158,7 @@ export function DialogTambahPengguna({
                 <FormItem>
                   <FormLabel>No. HP</FormLabel>
                   <FormControl>
-                    <Input placeholder="08xx" {...field} value={field.value ?? ''} />
+                    <InputNoHp value={field.value} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -281,7 +282,7 @@ export function DialogUbahPengguna({
                 <FormItem>
                   <FormLabel>No. HP</FormLabel>
                   <FormControl>
-                    <Input {...field} value={field.value ?? ''} />
+                    <InputNoHp value={field.value} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

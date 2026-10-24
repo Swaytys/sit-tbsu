@@ -33,6 +33,7 @@ import { simpanKonfigurasi } from '../../sistem/pengaturan/repo';
 import { terbitkanKodeMaster } from '../../sistem/penomoran';
 import { golonganById } from '../golongan-pelanggan/repo';
 import * as repo from './repo';
+import { pastikanTidakMirip } from '../mirip';
 
 /** Pelanggan (docs/03 §3.2). Kode `PLG-00001` tetap (N5). Tidak dihapus; dinonaktifkan (K-021). */
 
@@ -192,6 +193,12 @@ export async function tambahPelanggan(
         });
       }
 
+      await pastikanTidakMirip(
+        tx,
+        'pelanggan',
+        { nama: input.namaPelanggan, noHp: input.noHp },
+        input.abaikanMirip,
+      );
       const nilai = { ...dataKontak(input), ...kredit, kode: await terbitkanKodeMaster(tx, 'PLG') };
       const idBaru = await repo.tambahPelanggan(tx, nilai);
       await catatLog(tx, {
@@ -370,6 +377,15 @@ export async function ubahPelanggan(
     const baru = { ...dataKontak(input), ...kredit };
     const beda = selisih(lama, baru);
     if (beda.kolom.length === 0) return;
+    if (beda.kolom.includes('namaPelanggan') || beda.kolom.includes('noHp')) {
+      await pastikanTidakMirip(
+        tx,
+        'pelanggan',
+        { nama: input.namaPelanggan, noHp: input.noHp },
+        input.abaikanMirip,
+        id,
+      );
+    }
     if (!langsung) {
       // Data berubah di antara pemeriksaan dan penguncian: kodenya tidak lagi untuk keadaan ini.
       if (!sah) throw butuhKode();

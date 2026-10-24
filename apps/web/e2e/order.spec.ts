@@ -42,7 +42,10 @@ test('Staf membuat order lewat input cepat, mengubahnya dari Daftar order → Ka
     await expect(staf.getByTestId('order-terakhir')).toBeVisible();
 
     // K-129: tidak ada form order lengkap; Ubah membuka order di input cepat (mode ubah, F8 simpan).
-    await staf.getByRole('tab', { name: 'Daftar order' }).click();
+    // K-129: tidak ada tab; F10 membuka daftar order (bawaan saringan Semua, K-139).
+    await staf.keyboard.press('F10');
+    await expect(staf.getByRole('button', { name: /Kembali ke input/ })).toBeVisible();
+    await expect(staf.getByRole('tab', { name: 'Semua' })).toHaveAttribute('data-state', 'active');
     await expect(staf.getByRole('link', { name: 'Form order lengkap' })).toHaveCount(0);
     await staf
       .getByRole('button', { name: new RegExp(nama) })

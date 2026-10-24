@@ -24,15 +24,25 @@ export function menuUtama(page: Page) {
  */
 export const CATATAN_UJI_E2E = '(uji e2e)';
 
+/** Data master yang dibuat tes lewat API memakai nama/No. HP berulang antar-run: pencegah data ganda (K-137) dilewati. */
+const MASTER_FIXTUR = /^\/(pelanggan|pemasok|barang)(\/\d+)?$/;
+
 /**
  * Memanggil API memakai sesi halaman (cookie login `page`), untuk menyiapkan data tes tanpa lewat layar.
  * Header `origin` wajib agar lolos pemeriksaan CSRF; permintaan selain GET tanpa isi dikirim sebagai JSON
  * kosong. Gagal (bukan 2xx) = tes gagal dengan isi jawaban server.
  */
 export async function api<T>(page: Page, path: string, method = 'GET', data?: unknown): Promise<T> {
+  const isi =
+    (method === 'POST' || method === 'PATCH') &&
+    MASTER_FIXTUR.test(path) &&
+    typeof data === 'object' &&
+    data !== null
+      ? { abaikanMirip: true, ...data }
+      : data;
   const res = await page.request.fetch(`/api${path}`, {
     method,
-    data: data ?? (method === 'GET' ? undefined : {}),
+    data: isi ?? (method === 'GET' ? undefined : {}),
     headers: { origin: new URL(page.url()).origin },
   });
   expect(res.ok(), `${method} ${path}: ${await res.text()}`).toBe(true);

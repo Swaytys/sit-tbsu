@@ -20,6 +20,9 @@ export const CATATAN_RILIS: CatatanRilis[] = [
       'Arsip tahunan (Pengaturan › Arsip tahunan): tutup tahun, berkas arsip, periksa, buka kembali.',
       'Pencarian universal Ctrl+K; kiriman ganda dicegah; perubahan data master bersamaan terdeteksi.',
       'Pembaruan aplikasi lebih aman: uji migrasi pada salinan database dan pemeriksaan setelah menyala.',
+      'No. HP format internasional (+62) dan pencegahan data dobel; Pengaturan › Pemeriksaan data.',
+      'Notifikasi menampilkan rincian; dashboard punya bagian Perlu perhatian.',
+      'Order Penjualan: Daftar order lewat F10, saringan Semua, order disimpan jatuh tempo tersemat, nama penginput.',
     ],
   },
 ];

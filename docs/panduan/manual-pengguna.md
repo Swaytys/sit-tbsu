@@ -416,6 +416,16 @@ Semua tugas kasir, ditambah:
     anggaran diisi, angka ini harus lebih kecil dari anggaran.
   - Anggaran dan batas per pembeli boleh diubah walau promo sudah terpakai; anggaran tidak boleh di bawah yang
     sudah diberikan.
+- **No. HP** di semua form: pilih kode negara (bawaan **+62**), lalu ketik nomor **tanpa 0 di depan**, mis.
+  `812 3456 7890`. Bila terketik `0812…`, angka 0 dibuang otomatis dan muncul pemberitahuan. Tersimpan sebagai
+  `+6281234567890` (paling banyak 15 angka).
+- **Data dobel dicegah**: saat menyimpan pelanggan, pemasok, atau barang yang namanya sama dengan data lain
+  (huruf besar/kecil, spasi, tanda baca, dan awalan Toko/CV/PT/Pak/Bu diabaikan) atau No. HP-nya sama, muncul kotak
+  kuning **"… yang mirip sudah ada"** berisi daftarnya. Pakai data yang sudah ada (tutup form), atau bila memang
+  berbeda klik **Ini … berbeda, tetap simpan**.
+- **Pemeriksaan data** (*Pengaturan › Pemeriksaan data*, Admin/Owner): daftar data lama yang kemungkinan dobel dan
+  yang formatnya salah. Klik kodenya untuk membuka data itu. **Rapikan No. HP** memperbaiki sekaligus semua No. HP
+  yang bisa dirapikan (0812… → +62812…); sisanya tertulis "perbaiki manual".
 - **Arsip tahunan** (*Pengaturan › Arsip tahunan*, Owner): satu kartu per tahun berisi ringkasan (penjualan, void,
   retur, penerimaan, piutang yang belum lunas) dan jumlah baris transaksinya.
   1. Awal tahun, selesaikan dulu semua dokumen tahun lalu: daftar **penghalang** (kotak kuning) menyebut apa yang

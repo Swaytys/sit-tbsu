@@ -103,6 +103,18 @@ function LoncengNotifikasi() {
             >
               <span className="text-sm font-medium">{n.judul}</span>
               <span className="text-xs text-slate-500">{n.keterangan}</span>
+              {n.rincian && n.rincian.length > 0 && (
+                <ul className="w-full space-y-0.5 pl-2 text-xs text-slate-700">
+                  {n.rincian.map((x) => (
+                    <li key={x} className="truncate" title={x}>
+                      • {x}
+                    </li>
+                  ))}
+                  {n.jumlah > n.rincian.length && (
+                    <li className="text-slate-400">+{n.jumlah - n.rincian.length} lainnya</li>
+                  )}
+                </ul>
+              )}
             </DropdownMenuItem>
           ))
         )}

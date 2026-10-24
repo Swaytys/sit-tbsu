@@ -138,6 +138,8 @@ const kirim = (sesi: Sesi, path: string, body: unknown, method = 'POST') =>
 
 function barangBaru(ubah: Record<string, unknown> = {}) {
   return {
+    // Fixtur sengaja memakai nama berulang; pencegah data ganda (K-137) diuji terpisah di mitra.test.
+    abaikanMirip: true,
     namaBarang: 'Semen Gresik 40kg',
     idKategori: ref.kategori,
     idSatuanDasar: ref.sak,
