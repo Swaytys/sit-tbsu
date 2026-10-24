@@ -201,14 +201,20 @@ invoice; service menjaga Σ qty_kirim (SJ tidak batal) ≤ qty baris − qty voi
 v3.20 (K-149, K-150, migrasi 0023): `surat_jalan.id_perjalanan` (diisi saat berangkat); kolom teks `sopir` dan
 `kendaraan` tetap sebagai salinan untuk cetakan dan data lama. DIKIRIM hanya lewat perjalanan, SELESAI hanya lewat
 catat hasil.
+v3.24 (K-160): `id_perjalanan` juga diisi saat surat jalan dimasukkan ke rit rencana dan boleh berubah (pindah rit,
+keluar dari rit, rit rencana batal) selama surat jalan belum DIKIRIM. Kolom ini kolom penugasan, bukan isi dokumen;
+setelah DIKIRIM tidak berubah lagi.
 
 **`kendaraan`**, **`sopir`** [MASTER] (v3.20, K-150) — kendaraan: `plat` (unik tanpa beda huruf, indeks
 `upper(plat)`), `jenis`, `kapasitas_kg` (opsional, > 0), `catatan`, `status_aktif`. Sopir: `nama` (unik tanpa beda
 huruf, indeks `lower(nama)`), `no_hp`, `catatan`, `status_aktif`. Sopir tidak punya akun.
 
-**`perjalanan`** [APPEND kecuali status dan `waktu_kembali`] (v3.20, K-150) — satu kendaraan + satu sopir membawa
-satu atau lebih surat jalan. Nomor `TRP`. `status` JALAN → SELESAI (CHECK: `waktu_kembali` terisi tepat saat
-SELESAI). Indeks unik parsial `uq_perjalanan_kendaraan_jalan` dan `uq_perjalanan_sopir_jalan` (`where status =
+**`perjalanan`** [APPEND kecuali status dan kolom waktu/muatan per status] (v3.20, K-150; v3.24, K-160) — satu
+kendaraan + satu sopir membawa satu atau lebih surat jalan. Nomor `TRP`. `status` DIRENCANAKAN → JALAN → SELESAI,
+atau DIRENCANAKAN → BATAL. Rit rencana punya `jadwal_berangkat`; `waktu_berangkat`, `muatan_berat_kg`,
+`muatan_volume_m3`, dan `alasan_muatan` diisi sekali saat berangkat; `alasan_batal` saat batal. CHECK
+`chk_perjalanan_kembali`: DIRENCANAKAN/BATAL tanpa `waktu_kembali`; JALAN wajib `waktu_berangkat`; SELESAI wajib
+keduanya. Indeks unik parsial `uq_perjalanan_kendaraan_jalan` dan `uq_perjalanan_sopir_jalan` (`where status =
 'JALAN'`): satu perjalanan berjalan per kendaraan dan per sopir.
 
 **`surat_jalan_hasil`** + **`surat_jalan_hasil_detail`** [APPEND] (v3.20, K-149, K-151) — hasil pengantaran, sekali per
@@ -353,7 +359,7 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | status_pengambilan | DIAMBIL, BELUM_DIAMBIL |
 | status_pengiriman (invoice) | BELUM, SEBAGIAN, SELESAI |
 | status_surat_jalan | DIPROSES, DIMUAT, DIKIRIM, SELESAI, BATAL |
-| status_perjalanan | JALAN, SELESAI |
+| status_perjalanan | DIRENCANAKAN, JALAN, SELESAI, BATAL |
 | penanganan_rusak | KIRIM_PENGGANTI, KURANGI_TAGIHAN |
 | jenis_pembayaran | PENUH, DP, PELUNASAN |
 | metode_pembayaran | TUNAI, TRANSFER, EDC, QRIS |
@@ -510,3 +516,6 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.21: indeks unik `uq_shift_toko_terbuka` pada `shift_kasir` (`where status <> 'TUTUP'`), migrasi 0024 dengan pemeriksaan shift ganda (K-155).
 - 2026-10-24 — v3.22: tabel teknis `kunci_idempoten` (PK kunci + id_pengguna, status PROSES/SELESAI, jawaban tersimpan; dibersihkan setelah 24 jam; migrasi 0025, K-164).
 - 2026-10-24 — v3.23: `barang.berat_kg`, `panjang_cm`, `lebar_cm`, `tinggi_cm`, `curah`, `volume_m3` (CHECK `chk_barang_muatan`); `kendaraan.bak_panjang_cm`, `bak_lebar_cm`, `bak_tinggi_cm`, `berlaku_stnk`, `berlaku_kir` (`kapasitas_kg` = daya angkut); `perjalanan.muatan_berat_kg`, `muatan_volume_m3`, `alasan_muatan` (migrasi 0026, K-161). Konfigurasi `muatan_faktor_isi_persen` (85), `muatan_julur_maks_cm` (100).
+- 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
+  `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
+  `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).

@@ -168,6 +168,7 @@ terakhir). Pengaman yang berlaku:
 | Kode persetujuan dipakai dua kali | status kode dikunci dan ditandai terpakai di transaksi persetujuannya | persetujuan.test |
 | Kendaraan/sopir berangkat dua kali | `FOR UPDATE` kendaraan & sopir + indeks unik parsial perjalanan JALAN | surat-jalan.test (dua keberangkatan bersamaan) |
 | Hasil surat jalan dicatat dua kali | `FOR UPDATE` surat jalan + UNIQUE `surat_jalan_hasil.id_surat_jalan` | surat-jalan.test |
+| Rit rencana diubah dua orang (isi/pindah/berangkat/batal) | `FOR UPDATE` baris perjalanan; semua aksi rit rencana menolak rit yang bukan DIRENCANAKAN lagi; surat jalan dikunci saat dipindah (K-160) | surat-jalan.test (rit rencana) |
 
 | Kiriman yang sama dikirim ulang karena jaringan putus | header `Idempotency-Key` dari klien + tabel `kunci_idempoten`: jawaban pertama dikembalikan, tidak dijalankan dua kali (K-164, `middleware/idempoten.ts`) | idempoten.test (checkout tunai diulang = 1 penjualan) |
 | Dua admin mengubah barang/pelanggan/pemasok yang sama | cek versi (`lib/versi.ts`): versi saat form dibuka ≠ versi sekarang → `KONFLIK` (K-164) | versi.test |
@@ -416,3 +417,4 @@ tidak di `.env` melainkan di tabel `konfigurasi` (bisa diubah Owner/Admin dari h
   cara verifikasi skema dan `db:reset --ya` (§9, K-052).
 - 2026-10-24 — §4 tabel pengaman race condition (K-155, K-164).
 - 2026-10-24 — §4 kunci idempoten dan cek versi (K-164).
+- 2026-10-24 — §4 baris rit rencana (K-160).

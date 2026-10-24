@@ -181,7 +181,19 @@ export async function buatSuratJalan(
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<BarisSuratJalan> {
-  const id = await dalamTransaksi(async (tx) => {
+  const id = await dalamTransaksi((tx) => buatSuratJalanTx(tx, idPenjualan, input, pelaku, asal));
+  return detailSuratJalan(id);
+}
+
+/** S1/S2 di dalam transaksi pemanggil (dipakai juga papan Pengiriman, K-160). Mengembalikan id surat jalan. */
+export async function buatSuratJalanTx(
+  tx: Tx,
+  idPenjualan: number,
+  input: Pick<DataSuratJalan, 'baris'> & Partial<DataSuratJalan>,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<number> {
+  {
     const pj = await pjRepo.kunciPenjualan(tx, idPenjualan);
     if (!pj) throw new AppError('TIDAK_DITEMUKAN', 'Penjualan tidak ditemukan.', 404);
     if (pj.jenisPenjualan !== 'PENGANTARAN') {
@@ -251,8 +263,7 @@ export async function buatSuratJalan(
       ip: asal.ip,
     });
     return sj.id;
-  });
-  return detailSuratJalan(id);
+  }
 }
 
 /**
@@ -549,9 +560,17 @@ export async function batalSuratJalan(
         409,
       );
     }
+    // K-160: surat jalan batal keluar dari rit rencana (rit yang sudah berangkat tidak mungkin: S5).
+    let ritTetap = sj.idPerjalanan;
+    if (
+      ritTetap !== null &&
+      (await perjalananRepo.kunci(tx, ritTetap))?.status === 'DIRENCANAKAN'
+    ) {
+      ritTetap = null;
+    }
     await tx
       .update(suratJalan)
-      .set({ status: 'BATAL', alasanBatal: alasan, diubahPada: sekarang() })
+      .set({ status: 'BATAL', alasanBatal: alasan, idPerjalanan: ritTetap, diubahPada: sekarang() })
       .where(eq(suratJalan.id, id));
     await sinkronStatusPengiriman(tx, sj.idPenjualan);
     await catatLog(tx, {

@@ -362,12 +362,26 @@ function DialogRiwayat({
                 {data.map((p) => (
                   <tr key={p.id} className="align-top">
                     <td className="py-1.5 font-mono text-xs">{p.nomor}</td>
-                    <td className="py-1.5">{formatWaktu(p.waktuBerangkat)}</td>
+                    <td className="py-1.5">
+                      {p.waktuBerangkat
+                        ? formatWaktu(p.waktuBerangkat)
+                        : `rencana ${formatWaktu(p.jadwalBerangkat)}`}
+                    </td>
                     <td className="py-1.5">
                       {p.waktuKembali ? (
                         formatWaktu(p.waktuKembali)
+                      ) : p.status === 'JALAN' && p.waktuBerangkat ? (
+                        <BadgeJalan
+                          jalan={{
+                            idPerjalanan: p.id,
+                            nomor: p.nomor,
+                            waktuBerangkat: p.waktuBerangkat,
+                          }}
+                        />
+                      ) : p.status === 'BATAL' ? (
+                        `batal: ${p.alasanBatal ?? ''}`
                       ) : (
-                        <BadgeJalan jalan={{ ...p, idPerjalanan: p.id }} />
+                        'belum berangkat'
                       )}
                     </td>
                     <td className="py-1.5">

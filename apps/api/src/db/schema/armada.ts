@@ -87,8 +87,9 @@ export const perjalanan = pgTable(
     idKendaraan: kolomRef('id_kendaraan').notNull(),
     idSopir: kolomRef('id_sopir').notNull(),
     idPengguna: kolomRef('id_pengguna').notNull(),
-    status: varchar('status', { length: 10, enum: STATUS_PERJALANAN }).notNull().default('JALAN'),
-    waktuBerangkat: timestamptz('waktu_berangkat').notNull().defaultNow(),
+    status: varchar('status', { length: 12, enum: STATUS_PERJALANAN }).notNull().default('JALAN'),
+    /** Diisi saat benar-benar berangkat; rit DIRENCANAKAN belum punya (K-160). */
+    waktuBerangkat: timestamptz('waktu_berangkat').defaultNow(),
     waktuKembali: timestamptz('waktu_kembali'),
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
@@ -97,6 +98,9 @@ export const perjalanan = pgTable(
     muatanBeratKg: numeric('muatan_berat_kg', { precision: 12, scale: 3 }),
     muatanVolumeM3: numeric('muatan_volume_m3', { precision: 12, scale: 4 }),
     alasanMuatan: varchar('alasan_muatan', { length: 500 }),
+    // K-160 (migrasi 0027): rit rencana.
+    jadwalBerangkat: timestamptz('jadwal_berangkat'),
+    alasanBatal: varchar('alasan_batal', { length: 255 }),
   },
   (t) => [
     foreignKey({
@@ -117,7 +121,9 @@ export const perjalanan = pgTable(
     check('chk_perjalanan_status', dalamDaftar('status', STATUS_PERJALANAN)),
     check(
       'chk_perjalanan_kembali',
-      sql`(status = 'JALAN' and waktu_kembali is null) or (status = 'SELESAI' and waktu_kembali is not null)`,
+      sql`(status in ('DIRENCANAKAN', 'BATAL') and waktu_kembali is null)
+        or (status = 'JALAN' and waktu_kembali is null and waktu_berangkat is not null)
+        or (status = 'SELESAI' and waktu_kembali is not null and waktu_berangkat is not null)`,
     ),
     uniqueIndex('uq_perjalanan_kendaraan_jalan')
       .on(t.idKendaraan)

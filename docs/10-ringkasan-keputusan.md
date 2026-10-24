@@ -670,7 +670,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-157 | Tombol bayar campuran tampil sebagai tombol. | Berlaku (selesai 24 Okt) |
 | K-158 | Pengaturan "Harga dasar" dengan penjelasan Average/LIFO/FIFO dan kalkulator. | Berlaku (selesai 24 Okt) |
 | K-159 | Cadangan: salin alamat folder, penjelasan server toko vs cloud. | Berlaku (selesai 24 Okt) |
-| K-160 | Halaman Pengiriman tersendiri (menu Logistik), papan kartu order kirim, grup per rit. | Berlaku (rencana) |
+| K-160 | Halaman Pengiriman tersendiri (menu Logistik), papan kartu order kirim, grup per rit. | Berlaku (selesai 24 Okt) |
 | K-161 | Dimensi & berat barang, kapasitas kendaraan, peringatan muatan bertingkat (ODOL). | Berlaku (bagian 1 selesai 24 Okt) |
 | K-162 | FMS pendukung: utilisasi, rit, STNK/KIR, servis, BBM. | Berlaku (rencana) |
 | K-163 | Editor kampanye promo: syarat + manfaat, jam-menit, banyak barang, templat. | Berlaku (rencana) |

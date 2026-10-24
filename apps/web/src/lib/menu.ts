@@ -7,6 +7,7 @@ import {
   Download,
   FileText,
   HandCoins,
+  KanbanSquare,
   Handshake,
   LayoutDashboard,
   Package,
@@ -74,12 +75,6 @@ export const MENU: EntriMenu[] = [
         fase: 3,
       },
       {
-        path: '/armada',
-        label: 'Kendaraan & Sopir',
-        ikon: Car,
-        izin: ['master.armada.kelola', 'penjualan.surat_jalan.kelola'],
-      },
-      {
         path: '/pengguna',
         label: 'Data Pengguna',
         ikon: Users,
@@ -130,6 +125,26 @@ export const MENU: EntriMenu[] = [
       },
       { path: '/retur', label: 'Retur Penjualan', ikon: Undo2, izin: 'retur.ajukan', fase: 6 },
       { path: '/void', label: 'Void Transaksi', ikon: XCircle, izin: 'void.ajukan', fase: 6 },
+    ],
+  },
+  {
+    jenis: 'grup',
+    id: 'logistik',
+    label: 'Logistik',
+    ikon: Truck,
+    item: [
+      {
+        path: '/pengiriman',
+        label: 'Pengiriman',
+        ikon: KanbanSquare,
+        izin: 'penjualan.surat_jalan.kelola',
+      },
+      {
+        path: '/armada',
+        label: 'Kendaraan & Sopir',
+        ikon: Car,
+        izin: ['master.armada.kelola', 'penjualan.surat_jalan.kelola'],
+      },
     ],
   },
   {

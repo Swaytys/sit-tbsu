@@ -304,6 +304,8 @@ export function useDaftarSuratJalan(p: {
         }),
       ),
     placeholderData: keepPreviousData,
+    // Surat jalan aktif tampil di papan Pengiriman; perubahan dari komputer lain ikut terlihat.
+    refetchInterval: p.status === 'AKTIF' ? 30_000 : false,
   });
 }
 

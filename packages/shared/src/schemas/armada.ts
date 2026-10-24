@@ -3,6 +3,7 @@ import {
   KONDISI_RETUR,
   METODE_REFUND,
   PENANGANAN_RUSAK,
+  STATUS_PERJALANAN,
   type KondisiRetur,
   type PenangananRusak,
   type StatusAktif,
@@ -172,9 +173,38 @@ export type Muatan = {
 };
 
 export const skemaCariPerjalanan = skemaHalaman.extend({
-  status: z.enum(['JALAN', 'SELESAI'] as const).optional(),
+  status: z.enum(STATUS_PERJALANAN).optional(),
   idKendaraan: z.coerce.number().int().positive().optional(),
   idSopir: z.coerce.number().int().positive().optional(),
+});
+
+/** K-160: rencana rit (kendaraan, sopir, jadwal) sebelum diisi surat jalan dan berangkat. */
+export const skemaRencanaRit = z.object({
+  idKendaraan: z.number('Pilih kendaraan.').int().positive('Pilih kendaraan.'),
+  idSopir: z.number('Pilih sopir.').int().positive('Pilih sopir.'),
+  /** Tanggal-jam rencana berangkat (ISO). */
+  jadwalBerangkat: z.iso.datetime({ offset: true, message: 'Isi tanggal dan jam berangkat.' }),
+  catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+});
+export type InputRencanaRit = z.input<typeof skemaRencanaRit>;
+export type DataRencanaRit = z.output<typeof skemaRencanaRit>;
+
+/** Isi rit: surat jalan yang sudah ada, atau invoice (dibuatkan surat jalan untuk semua sisa barangnya). */
+export const skemaIsiRit = z
+  .object({
+    idSuratJalan: z.number().int().positive().optional(),
+    idPenjualan: z.number().int().positive().optional(),
+  })
+  .refine((d) => (d.idSuratJalan === undefined) !== (d.idPenjualan === undefined), {
+    message: 'Pilih satu: surat jalan atau invoice.',
+  });
+
+export const skemaBerangkatRit = z.object({
+  alasanMuatan: teksOpsional(500, 'Alasan maksimal 500 karakter.'),
+});
+
+export const skemaBatalRit = z.object({
+  alasan: z.string().trim().min(3, 'Alasan wajib diisi (min. 3 huruf).').max(255),
 });
 
 export type Perjalanan = {
@@ -187,8 +217,16 @@ export type Perjalanan = {
   idSopir: number;
   namaSopir: string;
   noHpSopir: string | null;
-  waktuBerangkat: string;
+  /** `null` untuk rit yang masih direncanakan/batal. */
+  waktuBerangkat: string | null;
   waktuKembali: string | null;
+  /** K-160: jadwal berangkat rit rencana. */
+  jadwalBerangkat: string | null;
+  alasanBatal: string | null;
+  /** K-161: muatan rit rencana dihitung dari isinya sekarang; rit lain `null` (lihat muatanBeratKg). */
+  muatan: Muatan | null;
+  muatanBeratKg: string | null;
+  muatanVolumeM3: string | null;
   catatan: string | null;
   namaPengguna: string;
   suratJalan: {

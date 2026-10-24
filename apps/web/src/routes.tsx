@@ -29,6 +29,8 @@ const HALAMAN: Record<string, MuatHalaman> = {
   '/pelanggan': () =>
     import('@/features/pelanggan/halaman-pelanggan').then((m) => m.HalamanPelanggan),
   '/armada': () => import('@/features/armada/halaman-armada').then((m) => m.HalamanArmada),
+  '/pengiriman': () =>
+    import('@/features/pengiriman/halaman-pengiriman').then((m) => m.HalamanPengiriman),
   '/pemasok': () => import('@/features/pemasok/halaman-pemasok').then((m) => m.HalamanPemasok),
   '/pengguna': () => import('@/features/pengguna/halaman-pengguna').then((m) => m.HalamanPengguna),
   '/persediaan': () =>

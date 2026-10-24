@@ -483,6 +483,24 @@ di `perjalanan/service.ts` (qty dasar lewat helper qty, berat/volume sebagai per
 
 **Tes:** surat-jalan.test (+2: simpan data muatan, ditolak/perlu alasan/berhasil), e2e muatan.spec.
 
+### C10. Rit rencana dan papan Pengiriman (24 Oktober 2026, K-160)
+
+**Masalah:** surat jalan baru dibuat dan diberangkatkan dari daftar per invoice; tidak ada tempat untuk merencanakan
+"truk mana membawa apa jam berapa" sebelum berangkat, dan pengantaran bercampur dengan halaman penjualan.
+
+**Solusi:** migrasi 0027 (docs/03 v3.24): perjalanan berstatus DIRENCANAKAN/BATAL dengan `jadwal_berangkat`.
+Service perjalanan dipecah menjadi pembantu bersama (`kunciArmada`, `kunciSuratJalanSiap`, `periksaMuatan`,
+`kirimkanSuratJalan`) yang dipakai berangkat langsung (S9) dan rit rencana (S14: rencana, isi, keluar, dimuat,
+berangkat, batal). Pembuatan surat jalan dipisah menjadi `buatSuratJalanTx` agar kartu Backlog bisa langsung dibuatkan
+surat jalan di transaksi yang sama dengan pengisian rit. Web: menu baru *Logistik*; halaman
+`features/pengiriman/halaman-pengiriman.tsx` (4 kolom, seret-lepas `@dnd-kit/core` dengan sensor penunjuk dan
+keyboard, menu kartu, pintasan R); papan lama di halaman Pengantaran dihapus dan diganti tautan. Daftar rit rencana
+dan surat jalan aktif disegarkan tiap 30 detik.
+
+**Tes:** surat-jalan.test (+2: alur rit rencana lengkap; batal surat jalan melepas dari rit dan rit yang sudah
+berangkat menolak perubahan), e2e pengiriman.spec (rit baru lewat R, seret kartu, menu kartu, dimuat, berangkat,
+catat hasil, kirim ulang muncul di Backlog).
+
 ---
 
 ## Riwayat dokumen
@@ -497,3 +515,4 @@ di `perjalanan/service.ts` (qty dasar lewat helper qty, berat/volume sebagai per
 - 2026-10-24 — Bagian C7 perbaikan hasil uji 23 Oktober (K-152–K-159).
 - 2026-10-24 — Bagian C8 kunci idempoten, cek versi, pencarian universal (K-164, K-167).
 - 2026-10-24 — Bagian C9 data muatan (K-161 bagian 1).
+- 2026-10-24 — Bagian C10 rit rencana dan papan Pengiriman (K-160).

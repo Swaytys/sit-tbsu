@@ -190,30 +190,51 @@ alamat kirim dan ongkir → tambah barang. Pelanggan pengantaran wajib punya No.
 **Lunas** (L), **DP** (U), **Bayar nanti** (N), atau **Saat terima** (S: ditagih saat barang diterima) → **Buat
 invoice** → **P** cetak invoice, **S** buat surat jalan & cetak.
 
-**Mengantar barang** (*Penjualan Pengantaran* → tab **Pengiriman aktif**). Tiga kolom, kerjakan dari kiri ke kanan:
+**Mengantar barang** (*Logistik › Pengiriman*; dari halaman Penjualan Pengantaran juga ada tautan **Pengiriman
+(papan)**). Papan empat kolom seperti papan tugas; kartu dikerjakan dari kiri ke kanan. Istilah: **rit** = satu
+kendaraan + satu sopir berangkat sekali, membawa satu atau beberapa surat jalan.
 
-1. **Perlu surat jalan** — invoice yang barangnya belum dikirim (semua atau sebagian). Klik **Buat surat jalan**,
-   periksa qty (boleh sebagian), klik **Buat surat jalan**. Tanda *Kirim ulang* = sisa dari pengantaran sebelumnya
-   (barang kembali atau pengganti barang rusak). Tanda *Bayar di tempat* = sopir menagih uangnya.
-2. **Siap berangkat** — centang surat jalan yang dibawa **satu kendaraan** (tombol **A** = centang semua), lalu
-   **Berangkat** (atau tombol **B**). Pilih **Kendaraan** dan **Sopir** dari daftar → **Enter**. Kendaraan/sopir yang
-   masih di jalan tampil abu-abu bertuliskan *sedang jalan (TRP-…)* dan tidak bisa dipilih. **Dimuat** (opsional)
-   menandai barang sudah naik ke kendaraan. **Batalkan** hanya bisa sebelum berangkat (alasan wajib).
-3. **Di jalan** — satu kartu per perjalanan (nomor TRP, plat, sopir dan No. HP-nya, jam berangkat, lama di jalan).
+1. **Backlog** — invoice pengantaran yang barangnya belum dikirim (semua atau sebagian). Tanda *Kirim ulang* = sisa
+   dari pengantaran sebelumnya (barang kembali atau pengganti barang rusak). Tanda *Bayar di tempat* = sopir menagih
+   uangnya.
+2. **Dijadwalkan** — rencana rit.
+   - **Buat rit**: klik **Rit baru** (atau tekan **R**) → pilih **Kendaraan** dan **Sopir** → periksa **Jadwal
+     berangkat** → catatan bila perlu (mis. rute) → **Enter**. Kendaraan yang sedang di jalan boleh dipilih untuk
+     rit berikutnya (tertulis *sekarang di jalan: TRP-…*).
+   - **Isi rit**: tarik kartu invoice dari Backlog lewat pegangan ⋮⋮ di kiri atas kartu, lepas di atas grup rit
+     (grup berbingkai biru saat bisa dilepas). Tanpa menyeret: klik **⋮** di kanan atas kartu → pilih rit di bawah
+     *Masukkan ke rit*. Surat jalan untuk **semua** barang yang belum dikirim langsung dibuat. Bila hanya sebagian
+     barang yang dibawa: **⋮ › Buat surat jalan sebagian…**, isi qty, lalu masukkan surat jalannya ke rit.
+   - Surat jalan yang belum masuk rit berada di kotak bergaris putus-putus **Belum direncanakan**; surat jalan di
+     situ belum bisa berangkat.
+   - **Pindah atau keluarkan**: seret kartu surat jalan ke grup rit lain atau ke kotak *Belum direncanakan*, atau
+     klik **⋮** pada kartunya (*Pindah ke rit*, *Keluarkan dari rit*, *Batalkan surat jalan…*). Menyeret surat jalan
+     kembali ke Backlog membuka dialog batal surat jalan (alasan wajib); tidak ada yang batal tanpa konfirmasi.
+   - Header grup menunjukkan nomor rit, plat, jam, sopir, jumlah surat jalan, dan **bar muatan** (hijau aman, kuning
+     hampir penuh, oranye perlu alasan, merah melebihi). Klik panah di kiri header untuk menciutkan/membuka grup.
+   - **Dimuat**: klik setelah barang selesai dinaikkan ke kendaraan (grup bertanda *Dimuat*).
+   - **Berangkat**: klik pada grup → periksa panel muatan (tulis alasan bila oranye) → **Berangkat**. Kendaraan dan
+     sopir ditolak bila masih di jalan dengan rit lain.
+   - **Batal rit**: tulis alasannya. Surat jalannya tidak ikut batal; kembali ke *Belum direncanakan*.
+   - Papan memuat ulang sendiri tiap 30 detik. Bila dua orang mengubah rit yang sama, yang kedua mendapat pesan
+     "muat ulang halaman".
+3. **Di jalan** — satu kartu per rit (nomor TRP, plat, sopir dan No. HP-nya, jam berangkat, lama di jalan).
    Kartu menguning bila lebih dari 6 jam atau sudah ganti hari. Saat sopir kembali membawa surat jalan bertanda
    tangan, klik **Catat hasil** pada surat jalannya:
    - Semua barang sampai dengan baik → **Semua diterima** (atau **Enter**).
    - Ada yang tidak sampai: isi hanya kolom yang perlu, kolom **Diterima** terhitung sendiri.
      - **Kembali utuh** (rumah tutup, alamat salah, pembeli menunda): barang tetap milik pembeli, stok tidak
-       berubah, dan sisanya muncul di *Perlu surat jalan* untuk dikirim ulang.
+       berubah, dan sisanya muncul di *Backlog* bertanda *Kirim ulang*.
      - **Rusak di jalan**: ditanggung toko (masuk stok rusak). Tanyakan pembeli lalu pilih **Dikirim pengganti**
-       (tagihan tetap; pengganti muncul di *Perlu surat jalan*) atau **Tagihan dikurangi**.
+       (tagihan tetap; pengganti muncul di *Backlog*) atau **Tagihan dikurangi**.
      - **Ditolak** (pembeli tidak mau, bukan karena rusak di jalan): pilih kondisi barangnya. Tagihan berkurang;
        bila invoice sudah lunas, pilih cara uang dikembalikan (**Tunai** dari uang shift, atau **Transfer**).
    - Isi **Nama yang menerima** bila berbeda dari pembeli → **Simpan hasil**.
    Barang ditolak/rusak menjadi retur otomatis. Bila Anda kasir, retur itu menunggu persetujuan atasan (tampil
    *menunggu atasan* di surat jalan); barangnya baru bisa dikirim ulang setelah diputuskan. Perjalanan selesai
    sendiri setelah hasil semua surat jalannya dicatat; kendaraan dan sopir bebas lagi.
+4. **Selesai hari ini** — rit yang hasilnya sudah dicatat semua hari ini. Rit lebih lama: *Kendaraan & Sopir* →
+   klik angka di kolom **Perjalanan**.
 
 Uang yang dibawa pulang sopir (bayar di tempat) dicatat lewat **Terima pembayaran** di invoice-nya.
 
@@ -225,7 +246,7 @@ Berat tidak pernah boleh melebihi daya angkut. Perhitungan butuh **Data muatan**
 kartu *Data muatan*, isi berat dan ukuran kemasan untuk 1 satuan dasar (boleh dalam g/kg/ton dan mm/cm/m; centang
 *Barang curah* untuk pasir/batu dan isi volumenya).
 
-**Kendaraan & Sopir** (*Data Master › Kendaraan & Sopir*): daftar kendaraan (plat seperti di STNK, mis. `S 1234 AB`,
+**Kendaraan & Sopir** (*Logistik › Kendaraan & Sopir*): daftar kendaraan (plat seperti di STNK, mis. `S 1234 AB`,
 jenis, **daya angkut** dari buku KIR/STNK, **ukuran bak** dalam cm, masa berlaku STNK/KIR) dan sopir (nama, No. HP). Admin/Owner menambah dan mengubahnya; kasir melihat. Klik angka di
 kolom **Perjalanan** untuk melihat riwayat perjalanannya. Kendaraan/sopir yang tidak dipakai lagi dinonaktifkan
 (tidak bisa selama masih di jalan). Plat dan nama sopir yang sudah ada tidak bisa didaftarkan dua kali.

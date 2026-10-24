@@ -10,7 +10,7 @@ sini, tidak menulis ulang langkahnya.
 dan apa yang tampil (tangkapan layar membantu).
 
 Status: **Belum** = belum dicoba · **OK** = sesuai · **Masalah** = tidak sesuai (lihat catatan) · **Sebagian** =
-sebagian sudah dicoba.
+sebagian sudah dicoba · **Diganti** = fitur diganti, lihat uji pengganti di catatan.
 
 ---
 
@@ -40,7 +40,23 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U74 | Data muatan barang | *Data Barang › Ubah* semen → kartu *Data muatan*: pilih **g**, isi 50000; pilih **mm**, isi 700 × 450 × 120 → Simpan | Tersimpan sebagai 50 kg dan 70 × 45 × 12 cm (buka lagi: angka tampil dalam kg/cm) | Belum | Coba juga *Barang curah* untuk pasir |
 | U77 | Barang belum lengkap & pengaturan muatan | *Data Barang*: nyalakan **Data muatan belum lengkap**; *Pengaturan › Operasional*: ubah faktor isi/julur | Daftar hanya barang tanpa berat/ukuran; pengaturan tersimpan dan dipakai saat Berangkat | Belum | |
 | U75 | Data kendaraan | *Kendaraan & Sopir* → ubah kendaraan: isi daya angkut, ukuran bak, STNK/KIR | Kolom *Daya angkut · bak* terisi | Belum | |
-| U76 | Muatan saat berangkat | Buat surat jalan berisi barang yang datanya sudah diisi → **Berangkat** → pilih kendaraan kecil lalu besar | Bar berat/volume/panjang berwarna; merah = tombol mati; oranye = wajib alasan | Belum | |
+| U76 | Muatan saat berangkat | *Logistik › Pengiriman*: buat rit dengan kendaraan kecil, isi dengan invoice berisi barang yang datanya sudah diisi → **Berangkat**; ulangi dengan kendaraan besar | Bar berat/volume/panjang berwarna; merah = tombol mati; oranye = wajib alasan | Belum | |
+
+### Papan Pengiriman dan rit rencana (24 Oktober, K-160)
+
+**Sebelum menguji:** `pnpm db:migrate` (migrasi 0027), lalu buat 2 invoice pengantaran. Login sebagai Kasir atau Admin.
+
+| No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
+|---|---|---|---|---|---|
+| U78 | Menu dan papan | Sidebar **Logistik › Pengiriman** | Empat kolom pas layar: Backlog, Dijadwalkan, Di jalan, Selesai hari ini; kedua invoice ada di Backlog | Belum | *Kendaraan & Sopir* kini di menu Logistik |
+| U79 | Rit baru | Tekan `R` → pilih kendaraan dan sopir → `Enter` | Grup rit baru di kolom Dijadwalkan bertuliskan "Seret order kirim ke sini" | Belum | Coba juga tombol **Rit baru** |
+| U80 | Seret ke rit | Tarik invoice pertama lewat pegangan ⋮⋮ ke grup rit, lepas | Grup berbingkai biru saat di atasnya; setelah dilepas kartu pindah ke grup sebagai surat jalan, "1 surat jalan" | Belum | |
+| U81 | Tanpa menyeret | Invoice kedua: klik **⋮** → pilih rit tadi | Masuk grup yang sama, "2 surat jalan"; bar muatan berubah | Belum | |
+| U82 | Pindah, keluarkan, batal | Seret satu surat jalan ke kotak *Belum direncanakan*, lalu kembalikan; seret ke Backlog | Keluar/masuk rit; seret ke Backlog membuka dialog batal (tekan Batal: tidak terjadi apa-apa) | Belum | |
+| U83 | Dimuat → Berangkat | **Dimuat** → **Berangkat** → (alasan bila oranye) → **Berangkat** | Grup bertanda *Dimuat*; lalu pindah ke *Di jalan* | Belum | Kendaraan yang sedang jalan ditolak saat berangkat |
+| U84 | Catat hasil sampai selesai | Di kolom *Di jalan*: **Catat hasil** tiap surat jalan; satu dengan *Kembali utuh* 1 | Rit pindah ke *Selesai hari ini*; invoice itu muncul lagi di Backlog bertanda *Kirim ulang* | Belum | |
+| U85 | Batal rit | Buat rit, isi satu invoice, **Batal rit** → tulis alasan | Grup hilang; surat jalannya ada di *Belum direncanakan* | Belum | |
+| U86 | Dua komputer | Dua jendela membuka papan; jendela A memberangkatkan rit, jendela B (tanpa muat ulang) menyeret kartu ke rit itu | B mendapat pesan "sudah berangkat; muat ulang halaman"; dalam 30 detik papan B ikut berubah | Belum | |
 
 ### Pengantaran: kendaraan, sopir, hasil per barang (23 Oktober, K-149–K-151)
 
@@ -50,15 +66,15 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | No | Yang dicoba | Langkah | Yang seharusnya terjadi | Status | Catatan |
 |---|---|---|---|---|---|
 | U50 | Data kendaraan & sopir | Tambah kendaraan plat `s 1234 ab`; tambah lagi plat `S 1234 AB`; tambah sopir "Budi" lalu "budi" | Plat tersimpan `S 1234 AB`; yang kedua ditolak "sudah terdaftar"; "budi" ditolak "sudah ada" | Belum | |
-| U51 | Papan Pengiriman aktif | Buat 2 invoice pengantaran → *Penjualan Pengantaran* › **Pengiriman aktif** | Tiga kolom pas layar; kedua invoice ada di *Perlu surat jalan* | Belum | |
-| U52 | Berangkat bersama | **Buat surat jalan** untuk keduanya → centang keduanya (atau `A`) → `B` → pilih kendaraan & sopir → `Enter` | Satu kartu TRP di *Di jalan* berisi 2 surat jalan; kendaraan itu di Data Master tertulis *Sedang jalan* | Belum | |
-| U53 | Kendaraan terkunci | Buat invoice ketiga + surat jalannya → **Berangkat** | Kendaraan & sopir tadi abu-abu "sedang jalan (TRP-…)", tidak bisa dipilih | Belum | |
+| U51 | Papan Pengiriman aktif | — | — | Diganti | Tab ini diganti halaman *Logistik › Pengiriman* (K-160), uji U78 |
+| U52 | Berangkat bersama | — | — | Diganti | Lewat rit di papan Pengiriman, uji U79–U83 |
+| U53 | Kendaraan terkunci | Saat rit pertama di jalan, buat rit kedua dengan kendaraan yang sama, isi, **Berangkat** | Rit baru boleh dibuat (tertulis *sekarang di jalan*); **Berangkat** ditolak "sedang jalan sejak … (TRP-…)" | Belum | |
 | U54 | Semua diterima | Di kartu TRP: **Catat hasil** surat jalan pertama → `Enter` | Surat jalan hilang dari kartu; kartu TRP masih ada (surat jalan kedua belum) | Belum | |
-| U55 | Kembali utuh | Surat jalan kedua: **Catat hasil** → isi *Kembali utuh* 1 → **Simpan hasil** | Kolom *Diterima* berkurang otomatis; kartu TRP hilang; invoice muncul lagi di *Perlu surat jalan* bertanda *Kirim ulang* qty 1; stok tidak berubah | Belum | |
-| U56 | Rusak di jalan | Kirim lagi, lalu **Catat hasil** → *Rusak di jalan* 1 → pilih **Dikirim pengganti** → simpan | Stok jual −1, stok rusak +1, tagihan tetap, pengganti muncul di *Perlu surat jalan* | Belum | Coba juga **Tagihan dikurangi**: sisa tagihan turun |
-| U57 | Ditolak pembeli (kasir) | Login Kasir → catat hasil dengan *Ditolak* 1 → simpan | Toast "Retur RTR-… menunggu persetujuan atasan"; surat jalan menulis *menunggu atasan*; barang itu belum muncul di *Perlu surat jalan* | Belum | Setujui/tolak di Retur Penjualan |
+| U55 | Kembali utuh | Surat jalan kedua: **Catat hasil** → isi *Kembali utuh* 1 → **Simpan hasil** | Kolom *Diterima* berkurang otomatis; kartu TRP hilang; invoice muncul lagi di *Backlog* bertanda *Kirim ulang* qty 1; stok tidak berubah | Belum | |
+| U56 | Rusak di jalan | Kirim lagi, lalu **Catat hasil** → *Rusak di jalan* 1 → pilih **Dikirim pengganti** → simpan | Stok jual −1, stok rusak +1, tagihan tetap, pengganti muncul di *Backlog* | Belum | Coba juga **Tagihan dikurangi**: sisa tagihan turun |
+| U57 | Ditolak pembeli (kasir) | Login Kasir → catat hasil dengan *Ditolak* 1 → simpan | Toast "Retur RTR-… menunggu persetujuan atasan"; surat jalan menulis *menunggu atasan*; barang itu belum muncul di *Backlog* | Belum | Setujui/tolak di Retur Penjualan |
 | U58 | Ditolak saat invoice lunas | Invoice lunas tunai → catat hasil *Ditolak* 1 tanpa memilih cara uang kembali | Ditolak "pilih cara uang dikembalikan"; pilih **Tunai** → berhasil, uang keluar dari uang shift | Belum | |
-| U59 | Riwayat perjalanan | *Data Master › Kendaraan & Sopir* → klik angka di kolom **Perjalanan** | Daftar perjalanan: nomor, berangkat, kembali, surat jalan | Belum | |
+| U59 | Riwayat perjalanan | *Logistik › Kendaraan & Sopir* → klik angka di kolom **Perjalanan** | Daftar perjalanan: nomor, berangkat, kembali, surat jalan | Belum | |
 
 ### Diskon dihapus, mode ubah order, istilah uang shift (23 Oktober, K-146–K-148)
 
@@ -161,3 +177,4 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — Hasil uji 23 Okt: U7, U9, U11–U14, U16 OK; U10 tidak relevan (satu shift toko). U60–U70 perbaikan K-152–K-159.
 - 2026-10-24 — U71–U73 pencarian universal, cek versi, kiriman tidak ganda (K-164, K-167).
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
+- 2026-10-24 — U78–U86 papan Pengiriman dan rit rencana (K-160); U51–U52 diganti, U53, U55–U57, U59, U76 disesuaikan.
