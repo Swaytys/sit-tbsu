@@ -57,13 +57,40 @@ function MintaSandi([string]$judul, [string]$pesan) {
 }
 
 <#
-  Menjalankan SQL sebagai superuser postgres. Diminta password postgres (3 kali). Bila lupa: dengan persetujuan,
-  izin masuk lokal tanpa password dibuka SEMENTARA (pg_hba.conf dicadangkan lalu dikembalikan persis).
+  Menjalankan SQL sebagai superuser postgres TANPA bertanya password (pemasang berjalan sebagai Administrator di
+  komputer yang sama): izin masuk lokal untuk postgres dibuka SEMENTARA di pg_hba.conf (dicadangkan, lalu
+  dikembalikan persis), SQL dijalankan, PostgreSQL dimulai ulang. Hanya bila cara ini gagal, password postgres
+  diminta lewat jendela.
 #>
 function JalankanSuper([string[]]$perintah) {
+  $layanan = Get-CimInstance Win32_Service | Where-Object { $_.Name -like 'postgresql*' } | Select-Object -First 1
+  $dataDir = $null
+  if ($layanan -and ($layanan.PathName -match '-D\s+"?([^"]+?)"?(\s|$)')) { $dataDir = $Matches[1] }
+  if (-not $dataDir) {
+    $kandidat = Join-Path (Split-Path (Split-Path $psql)) 'data'
+    if (Test-Path (Join-Path $kandidat 'pg_hba.conf')) { $dataDir = $kandidat }
+  }
+  if ($layanan -and $dataDir -and (Test-Path (Join-Path $dataDir 'pg_hba.conf'))) {
+    $hba = Join-Path $dataDir 'pg_hba.conf'
+    $cadangan = "$hba.bonsaiurip-cadangan"
+    Copy-Item $hba $cadangan -Force
+    $gagal = $false
+    try {
+      @('host all postgres 127.0.0.1/32 trust', 'host all postgres ::1/128 trust') + (Get-Content $cadangan) |
+        Set-Content -Path $hba -Encoding ascii
+      Restart-Service $layanan.Name -Force; Start-Sleep -Seconds 4
+      foreach ($q in $perintah) {
+        & $psql -h 127.0.0.1 -p $PortDb -U postgres -d postgres -v ON_ERROR_STOP=1 -c $q
+        if ($LASTEXITCODE -ne 0) { $gagal = $true }
+      }
+    } catch { $gagal = $true } finally {
+      Copy-Item $cadangan $hba -Force; Remove-Item $cadangan -ErrorAction SilentlyContinue
+      Restart-Service $layanan.Name -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 4
+    }
+    if (-not $gagal) { return }
+  }
   for ($i = 1; $i -le 3; $i++) {
-    $sandi = MintaSandi 'Password PostgreSQL' ("Masukkan password user 'postgres' (dibuat saat memasang PostgreSQL)." +
-      "`nPercobaan $i dari 3. Lupa? Klik 'Saya lupa'.")
+    $sandi = MintaSandi 'Password PostgreSQL' ("Pemasang tidak bisa membuat database otomatis. Masukkan password user 'postgres' (dibuat saat memasang PostgreSQL)." + "`nPercobaan $i dari 3.")
     if ($null -eq $sandi) { break }
     $env:PGPASSWORD = $sandi
     & $psql -h $HostDb -p $PortDb -U postgres -d postgres -c 'select 1' 2>$null | Out-Null
@@ -74,26 +101,7 @@ function JalankanSuper([string[]]$perintah) {
     }
   }
   Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
-  $jawab = [Windows.Forms.MessageBox]::Show(
-    "Password postgres tidak cocok/lupa.`n`nPemasang bisa membuat database tanpa password dengan membuka izin masuk lokal SEMENTARA (berkas pengaturan PostgreSQL dicadangkan lalu dikembalikan persis setelah selesai). Lanjutkan?",
-    'BonsaiUrip', 'YesNo', 'Question')
-  if ($jawab -ne 'Yes') { throw 'Butuh password postgres untuk membuat database.' }
-  $layanan = Get-CimInstance Win32_Service | Where-Object { $_.Name -like 'postgresql*' } | Select-Object -First 1
-  if (-not $layanan -or $layanan.PathName -notmatch '-D\s+"?([^"]+?)"?(\s|$)') {
-    throw 'Layanan PostgreSQL tidak ditemukan; tidak bisa membuka izin sementara.'
-  }
-  $hba = Join-Path $Matches[1] 'pg_hba.conf'
-  $cadangan = "$hba.bonsaiurip-cadangan"
-  Copy-Item $hba $cadangan -Force -ErrorAction Stop
-  try {
-    @('host all postgres 127.0.0.1/32 trust', 'host all postgres ::1/128 trust') + (Get-Content $cadangan) |
-      Set-Content -Path $hba -Encoding ascii -ErrorAction Stop
-    Restart-Service $layanan.Name -ErrorAction Stop; Start-Sleep -Seconds 3
-    foreach ($q in $perintah) { & $psql -h $HostDb -p $PortDb -U postgres -d postgres -v ON_ERROR_STOP=1 -c $q }
-  } finally {
-    Copy-Item $cadangan $hba -Force; Remove-Item $cadangan -ErrorAction SilentlyContinue
-    Restart-Service $layanan.Name -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3
-  }
+  throw 'Database belum bisa dibuat. Pastikan layanan PostgreSQL berjalan, lalu jalankan Setup lagi.'
 }
 
 Langkah '1. Memeriksa program'
