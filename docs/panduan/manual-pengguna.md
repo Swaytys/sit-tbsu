@@ -499,6 +499,23 @@ Semua tugas kasir, ditambah:
 - **Toleransi dan batas hitung** (*Pengaturan › Operasional*): **Toleransi selisih kas** (rupiah; selisih sampai
   angka ini tidak wajib keterangan) dan **Batas hitung susulan** (menit; untuk shift yang dibuka dengan *hitung
   nanti*).
+- **Order pembelian** (*Persediaan › Order Pembelian*, Admin/Owner): pesanan ke pemasok sebelum barang datang.
+  1. **Order pembelian baru** → pilih pemasok → cari barang → isi qty dan harga beli perkiraan → **Simpan draf**.
+     Cara cepat: di *Stok Persediaan › Saran pesan* tekan **Buat order pembelian** pada kelompok pemasok; draf
+     terisi barang dan jumlah sarannya.
+  2. Periksa draf (boleh **Ubah**), lalu **Kirim ke pemasok**: nomor PO terbit dan isinya terkunci. Kirim ke
+     pemasok dengan **Cetak** atau **Salin teks** (tempel di WhatsApp).
+  3. Saat pemasok menjawab: **Konfirmasi pemasok** → isi tanggal janji kirim; ubah qty/harga hanya bila pemasok
+     mengubahnya.
+  4. Bila pemasok minta dibayar dulu: **Uang muka** (transfer atau tunai dari laci shift). Uang muka otomatis
+     menjadi pembayaran faktur saat barang datang.
+  5. Barang datang: **Terima barang** → halaman penerimaan terisi sisa barang PO; sesuaikan qty/harga dengan
+     faktur → **Simpan penerimaan**. Boleh berkali-kali (sebagian). Semua datang = *Selesai*.
+  6. Sisa tidak jadi dikirim: **Tutup sisa** (alasan). Belum ada barang datang dan batal: **Batalkan**. Bila ada
+     sisa uang muka, catat cara pemasok mengembalikannya.
+  7. Barang yang sudah dipesan tampil "+ … sudah dipesan" di Saran pesan dan tidak disarankan dua kali. Setelah 3
+     order dari satu pemasok, lama kirimnya dihitung dari kenyataan ("aktual"). Lonceng memberi tahu order yang
+     lewat tanggal janji kirim.
 - **Penerimaan barang** (*Persediaan › Penerimaan Barang*): catat barang datang dari pemasok (pembelian tunai/
   tempo atau titipan). Stok dan HPP rata-rata diperbarui otomatis.
 - **Stok** (*Persediaan › Stok Persediaan*): posisi stok, mutasi, kartu stok per barang, stok tertahan, dan

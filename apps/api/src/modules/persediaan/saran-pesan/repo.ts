@@ -135,6 +135,7 @@ export async function versiDataSaran(ex: Executor): Promise<string> {
       (select max(id) from mutasi_persediaan),
       (select max(coalesce(diubah_pada, dibuat_pada)) from barang),
       (select max(coalesce(diubah_pada, dibuat_pada)) from pemasok),
+      (select max(coalesce(diubah_pada, dibuat_pada)) from order_pembelian),
       (select count(*) from barang)) v`);
   return r.rows[0]?.v ?? '';
 }

@@ -40,6 +40,10 @@ const HALAMAN: Record<string, MuatHalaman> = {
   '/order': () => import('@/features/order/halaman-order').then((m) => m.HalamanOrder),
   '/retur': () => import('@/features/koreksi/halaman-retur').then((m) => m.HalamanRetur),
   '/void': () => import('@/features/koreksi/halaman-void').then((m) => m.HalamanVoid),
+  '/order-pembelian': () =>
+    import('@/features/order-pembelian/halaman-order-pembelian').then(
+      (m) => m.HalamanOrderPembelian,
+    ),
   '/hasil-penjualan': () =>
     import('@/features/hasil-penjualan/halaman-hasil-penjualan').then(
       (m) => m.HalamanHasilPenjualan,

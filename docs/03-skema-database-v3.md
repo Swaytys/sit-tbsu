@@ -163,6 +163,15 @@ Jenis mutasi dan arah:
 | RETUR_PEMASOK | keluar | BAIK atau RUSAK | retur_pemasok_detail |
 | MUSNAH | keluar | RUSAK | penyesuaian_stok_detail (jenis MUSNAH) |
 
+**`order_pembelian`** [APPEND; DRAF boleh diubah] + **`order_pembelian_detail`** — K-125: PO ke pemasok. `nomor`
+kosong selama DRAF (CHECK `chk_po_nomor`), `status` DRAF/DIPESAN/DIKONFIRMASI/SEBAGIAN/SELESAI/DITUTUP/BATAL,
+`tanggal_dipesan` (wajib setelah dikirim), `tanggal_janji_kirim`, `alasan_tutup`. Detail: `qty_pesan`,
+`harga_perkiraan`, `qty_konfirmasi`/`harga_konfirmasi` (jawaban pemasok), `qty_diterima` (cache Σ penerimaan,
+disinkronkan di transaksi penerimaan), UNIQUE (PO, barang). **`alokasi_uang_muka`** [APPEND]: pemakaian uang muka PO
+(DIPAKAI → `id_penerimaan`; DIKEMBALIKAN → `metode_kembali`). `penerimaan_barang.id_order_pembelian`,
+`penerimaan_barang_detail.id_order_pembelian_detail`, `pembayaran_pemasok.id_order_pembelian` (CHECK `chk_pbp_sumber`
+tepat satu dari penerimaan/konsinyasi/PO).
+
 **`penerimaan_barang`** [APPEND] + **`penerimaan_barang_detail`** [APPEND] — `jenis` PEMBELIAN/KONSINYASI; `syarat_bayar`
 TUNAI/TEMPO hanya untuk PEMBELIAN; TEMPO wajib `tanggal_jatuh_tempo` (CHECK). Hutang: `total_faktur`, `total_dibayar`
 (cache), `total_retur_potong` (cache, retur pemasok POTONG_HUTANG, M2), `sisa_hutang` (generated = faktur − dibayar −
@@ -531,6 +540,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-24 — v3.30: `order_pembelian`, `order_pembelian_detail`, `alokasi_uang_muka`; kolom PO di penerimaan,
+  detail penerimaan, dan pembayaran pemasok (migrasi 0033, K-125). Penomoran `PO`.
 - 2026-10-24 — v3.29: `barang.stok_maksimum` numeric(14,3) boleh kosong + CHECK `chk_barang_stok_maks` (migrasi 0032,
   K-127).
 - 2026-10-24 — v3.28: konfigurasi `invoice_cetak`, `surat_jalan_cetak`, `kertas_invoice`, `kertas_surat_jalan`,

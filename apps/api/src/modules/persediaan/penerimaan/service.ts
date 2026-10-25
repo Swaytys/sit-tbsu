@@ -20,6 +20,7 @@ import { petaDasar, tanggapiPerubahanDasar } from '../../master/harga/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import { catatMutasi, kunciPersediaan } from '../ledger';
+import { terimaDariPO } from '../order-pembelian/service';
 import * as repo from './repo';
 
 /*
@@ -67,6 +68,8 @@ export async function detailPenerimaan(id: number): Promise<DetailPenerimaan> {
     noSuratJalanPemasok: b.noSuratJalanPemasok,
     catatan: b.catatan,
     totalDibayar: b.totalDibayar,
+    idOrderPembelian: b.idOrderPembelian,
+    nomorOrderPembelian: b.nomorOrderPembelian,
     baris,
     pembayaran: pembayaran.map((x) => ({ ...x, tanggal: x.tanggal.toISOString() })),
   };
@@ -82,6 +85,9 @@ export async function simpanPenerimaan(
   asal: AsalRequest,
 ): Promise<DetailPenerimaan> {
   const tanggal = tanggalOperasional();
+  if (input.idOrderPembelian && input.jenis !== 'PEMBELIAN') {
+    throw galatKolom('idOrderPembelian', 'Order pembelian hanya untuk penerimaan jenis pembelian.');
+  }
   if (input.jenis === 'PEMBELIAN' && input.syaratBayar === 'TEMPO') {
     if (!input.tanggalJatuhTempo || input.tanggalJatuhTempo < tanggal) {
       throw galatKolom('tanggalJatuhTempo', 'Tanggal jatuh tempo tidak boleh sebelum hari ini.');
@@ -154,6 +160,7 @@ export async function simpanPenerimaan(
       totalFaktur,
       totalDibayar: tunai ? totalFaktur : 0,
       statusHutang,
+      idOrderPembelian: input.idOrderPembelian ?? null,
     });
 
     for (const b of baris) {
@@ -166,6 +173,7 @@ export async function simpanPenerimaan(
         hargaModalDasar: b.harga,
         subtotal: b.subtotal,
         keterangan: b.keterangan ?? null,
+        idOrderPembelianDetail: input.idOrderPembelian ? (b.idOrderPembelianDetail ?? null) : null,
       });
       await catatMutasi(tx, {
         idBarang: b.idBarang,
@@ -189,8 +197,36 @@ export async function simpanPenerimaan(
       });
     }
 
-    // E4: pembelian tunai langsung lunas. Uang TUNAI keluar dari laci shift BUKA pencatat (K2, K-075).
-    if (tunai && totalFaktur > 0) {
+    // K-125 PO5: penerimaan dari order pembelian: perbarui PO dan pakai uang mukanya untuk faktur ini.
+    let uangMuka = 0;
+    let nomorPO: string | null = null;
+    if (input.idOrderPembelian) {
+      const h = await terimaDariPO(tx, {
+        idPO: input.idOrderPembelian,
+        idPemasok: pms.id,
+        idPenerimaan: idBaru,
+        totalFaktur,
+        baris: baris.map((b) => ({
+          idOrderPembelianDetail: b.idOrderPembelianDetail,
+          idBarang: b.idBarang,
+          qty: b.qty,
+        })),
+        pelaku,
+        tanggal,
+      });
+      uangMuka = h.uangMukaTerpakai;
+      nomorPO = h.nomorPO;
+      if (!tunai && uangMuka > 0) {
+        await repo.aturDibayar(tx, idBaru, {
+          totalDibayar: uangMuka,
+          statusHutang: uangMuka >= totalFaktur ? 'LUNAS' : 'SEBAGIAN',
+        });
+      }
+    }
+
+    // E4: pembelian tunai langsung lunas (dikurangi uang muka PO). Uang TUNAI keluar dari laci shift BUKA (K2).
+    const bayarTunai = totalFaktur - uangMuka;
+    if (tunai && bayarTunai > 0) {
       const shift = input.metodeBayar === 'TUNAI' ? await shiftUntukCatat(tx) : null;
       if (input.metodeBayar === 'TUNAI' && !shift) {
         throw new AppError(
@@ -208,14 +244,14 @@ export async function simpanPenerimaan(
         idPenerimaan: idBaru,
         idPengguna: pelaku.id,
         idShift: shift?.id ?? null,
-        nominal: totalFaktur,
+        nominal: bayarTunai,
         metode: input.metodeBayar,
         catatan: `Pelunasan tunai penerimaan ${nomor}`,
       });
       if (shift) {
         await catatKas(tx, {
           jenis: 'BAYAR_PEMASOK',
-          nominal: totalFaktur,
+          nominal: bayarTunai,
           pelaku,
           keterangan: `${nomorBayar}: bayar ${pms.nama} (${nomor})`,
           idPembayaranPemasok: idBayar,
@@ -233,7 +269,10 @@ export async function simpanPenerimaan(
         `Penerimaan ${nomor} dari ${pms.nama}: ${baris.length} barang` +
         (konsinyasi
           ? ' (konsinyasi)'
-          : `, ${formatRupiah(totalFaktur)} ${tunai ? 'tunai' : 'tempo'}`),
+          : `, ${formatRupiah(totalFaktur)} ${tunai ? 'tunai' : 'tempo'}`) +
+        (nomorPO
+          ? ` (dari ${nomorPO}${uangMuka > 0 ? `, uang muka ${formatRupiah(uangMuka)}` : ''})`
+          : ''),
       ip: asal.ip,
     });
     return idBaru;

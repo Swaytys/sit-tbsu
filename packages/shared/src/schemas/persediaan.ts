@@ -54,6 +54,8 @@ export const skemaBarisPenerimaan = z.object({
   /** Per satuan dasar. KONSINYASI: diabaikan, diisi harga titip oleh server (E3). */
   hargaModalMasuk: z.preprocess((v) => (v === null || v === '' ? 0 : v), skemaRupiah),
   keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
+  /** K-125: baris order pembelian yang diterima. */
+  idOrderPembelianDetail: z.number().int().positive().nullable().optional(),
 });
 
 export const skemaPenerimaan = z
@@ -67,6 +69,8 @@ export const skemaPenerimaan = z
     noFakturPemasok: teksOpsional(50, 'No. faktur maksimal 50 karakter.'),
     noSuratJalanPemasok: teksOpsional(50, 'No. surat jalan maksimal 50 karakter.'),
     catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+    /** K-125: penerimaan dari order pembelian. */
+    idOrderPembelian: z.number().int().positive().nullable().optional(),
     baris: z
       .array(skemaBarisPenerimaan)
       .min(1, 'Tambahkan minimal satu barang.')
@@ -147,6 +151,9 @@ export type DetailPenerimaan = BarisDaftarPenerimaan & {
     keterangan: string | null;
   }[];
   pembayaran: { nomor: string; tanggal: string; nominal: number; metode: string }[];
+  /** K-125. */
+  nomorOrderPembelian: string | null;
+  idOrderPembelian: number | null;
 };
 
 // --- Penyesuaian stok (docs/05 §12, A1–A7) ---

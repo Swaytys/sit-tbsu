@@ -7,6 +7,7 @@ import { jumlahReturMenunggu } from '../../koreksi/retur/service';
 import { jumlahVoidMenunggu } from '../../koreksi/void/service';
 import { jumlahDisimpanLewat, jumlahOrderBasi } from '../../penjualan/order/service';
 import { piutangJatuhTempo } from '../../penjualan/piutang/service';
+import { jumlahPOTerlambat } from '../../persediaan/order-pembelian/service';
 import { jumlahPerluDipesan } from '../../persediaan/saran-pesan/service';
 import { peringatanStok } from '../../persediaan/stok/service';
 import { pengingatArmada } from '../../master/armada/service';
@@ -245,6 +246,19 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         keterangan: `${pesan} barang sudah di titik pesan ulang; lihat saran jumlah pesannya.`,
         jumlah: pesan,
         tautan: '/persediaan?tab=saran-pesan',
+      });
+    }
+  }
+  // K-125: order pembelian yang lewat tanggal janji kirim.
+  if (izin.has('persediaan.penerimaan.kelola')) {
+    const telat = await jumlahPOTerlambat();
+    if (telat > 0) {
+      hasil.push({
+        jenis: 'PO_TERLAMBAT',
+        judul: 'Order pembelian terlambat',
+        keterangan: `${telat} order pembelian lewat tanggal janji kirim dan barangnya belum lengkap.`,
+        jumlah: telat,
+        tautan: '/order-pembelian?status=BERJALAN',
       });
     }
   }

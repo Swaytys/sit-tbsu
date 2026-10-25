@@ -15,6 +15,7 @@ import {
   JENIS_PENYESUAIAN,
   KONDISI_STOK,
   STATUS_HUTANG,
+  STATUS_ORDER_PEMBELIAN,
   STATUS_PENYESUAIAN,
   SYARAT_BAYAR,
 } from '@sit/shared';
@@ -75,6 +76,92 @@ export const persediaan = pgTable(
   ],
 );
 
+/**
+ * K-125 order pembelian ke pemasok. [APPEND] isi baris boleh diubah hanya selama DRAF; setelah dikirim hanya
+ * kolom status, tanggal janji, konfirmasi baris, dan cache `qty_diterima` yang berubah.
+ */
+export const orderPembelian = pgTable(
+  'order_pembelian',
+  {
+    id: kolomId(),
+    /** Terbit saat dikirim ke pemasok; DRAF belum bernomor. */
+    nomor: varchar('nomor', { length: 30 }).unique('order_pembelian_nomor_key'),
+    tanggal: timestamptz('tanggal').notNull().defaultNow(),
+    idPemasok: kolomRef('id_pemasok').notNull(),
+    idPembuat: kolomRef('id_pembuat').notNull(),
+    status: varchar('status', { length: 12, enum: STATUS_ORDER_PEMBELIAN })
+      .notNull()
+      .default('DRAF'),
+    tanggalDipesan: tanggal('tanggal_dipesan'),
+    tanggalJanjiKirim: tanggal('tanggal_janji_kirim'),
+    catatan: varchar('catatan', { length: 255 }),
+    alasanTutup: varchar('alasan_tutup', { length: 255 }),
+    dibuatPada: dibuatPada(),
+    diubahPada: diubahPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'order_pembelian_id_pemasok_fkey',
+      columns: [t.idPemasok],
+      foreignColumns: [pemasok.id],
+    }),
+    foreignKey({
+      name: 'order_pembelian_id_pembuat_fkey',
+      columns: [t.idPembuat],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_po_status', dalamDaftar('status', STATUS_ORDER_PEMBELIAN)),
+    check(
+      'chk_po_nomor',
+      sql`(status = 'DRAF' and nomor is null) or status = 'BATAL'
+        or (status not in ('DRAF', 'BATAL') and nomor is not null)`,
+    ),
+    check('chk_po_dipesan', sql`status in ('DRAF', 'BATAL') or tanggal_dipesan is not null`),
+    index('idx_po_pemasok').on(t.idPemasok),
+    index('idx_po_status').on(t.status),
+  ],
+);
+
+/** [APPEND] Baris order pembelian; `qty_diterima` = cache Σ penerimaan dari baris ini (disinkronkan di transaksi). */
+export const orderPembelianDetail = pgTable(
+  'order_pembelian_detail',
+  {
+    id: kolomId(),
+    idOrderPembelian: kolomRef('id_order_pembelian').notNull(),
+    idBarang: kolomRef('id_barang').notNull(),
+    qtyPesan: qty('qty_pesan').notNull(),
+    hargaPerkiraan: uang('harga_perkiraan').notNull().default(0),
+    /** Jawaban pemasok saat konfirmasi; kosong = sama dengan pesanan. */
+    qtyKonfirmasi: qty('qty_konfirmasi'),
+    hargaKonfirmasi: uang('harga_konfirmasi'),
+    qtyDiterima: qty('qty_diterima')
+      .notNull()
+      .default(sql`0`),
+  },
+  (t) => [
+    foreignKey({
+      name: 'order_pembelian_detail_id_order_pembelian_fkey',
+      columns: [t.idOrderPembelian],
+      foreignColumns: [orderPembelian.id],
+    }),
+    foreignKey({
+      name: 'order_pembelian_detail_id_barang_fkey',
+      columns: [t.idBarang],
+      foreignColumns: [barang.id],
+    }),
+    check(
+      'chk_po_detail_qty',
+      sql`qty_pesan > 0 and (qty_konfirmasi is null or qty_konfirmasi >= 0) and qty_diterima >= 0`,
+    ),
+    check(
+      'chk_po_detail_harga',
+      sql`harga_perkiraan >= 0 and (harga_konfirmasi is null or harga_konfirmasi >= 0)`,
+    ),
+    unique('order_pembelian_detail_barang_key').on(t.idOrderPembelian, t.idBarang),
+    index('idx_po_detail_barang').on(t.idBarang),
+  ],
+);
+
 /** [APPEND] */
 export const penerimaanBarang = pgTable(
   'penerimaan_barang',
@@ -102,8 +189,15 @@ export const penerimaanBarang = pgTable(
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /** K-125: penerimaan dari order pembelian (boleh kosong). */
+    idOrderPembelian: kolomRef('id_order_pembelian'),
   },
   (t) => [
+    foreignKey({
+      name: 'penerimaan_barang_id_order_pembelian_fkey',
+      columns: [t.idOrderPembelian],
+      foreignColumns: [orderPembelian.id],
+    }),
     foreignKey({
       name: 'penerimaan_barang_id_pemasok_fkey',
       columns: [t.idPemasok],
@@ -153,8 +247,15 @@ export const penerimaanBarangDetail = pgTable(
     subtotal: uang('subtotal').notNull(),
     keterangan: varchar('keterangan', { length: 150 }),
     dibuatPada: dibuatPada(),
+    /** K-125: baris order pembelian yang diterima (boleh kosong). */
+    idOrderPembelianDetail: kolomRef('id_order_pembelian_detail'),
   },
   (t) => [
+    foreignKey({
+      name: 'penerimaan_barang_detail_id_order_pembelian_detail_fkey',
+      columns: [t.idOrderPembelianDetail],
+      foreignColumns: [orderPembelianDetail.id],
+    }),
     foreignKey({
       name: 'penerimaan_barang_detail_id_penerimaan_fkey',
       columns: [t.idPenerimaan],

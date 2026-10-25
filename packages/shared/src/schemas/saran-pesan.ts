@@ -83,6 +83,10 @@ export type BarisSaranPesan = {
   /** Alasan memakai metode lain, atau keterangan hitungan (mis. tren naik). */
   catatan: string | null;
   stokMaksimum: string | null;
+  /** K-125: qty di order pembelian berjalan yang belum datang (mengurangi saran). */
+  sudahDipesan: string;
+  /** Lama kirim dari rata-rata order pembelian (≥ 3 PO), bukan isian Data Pemasok. */
+  lamaKirimAktual: boolean;
   /** Hanya untuk pemegang `master.barang.lihat_hpp`. */
   hargaBeliTerakhir?: number;
   perkiraanBiaya?: number;

@@ -1,9 +1,11 @@
 import {
   formatRupiah,
   LABEL_PENYELESAIAN_RETUR_PEMASOK,
+  subtotalRupiah,
   type BarisSuratJalan,
   type DetailPenjualan,
   type DetailPenyelesaianKonsinyasi,
+  type DetailOrderPembelian,
   type DetailReturPemasok,
   type TampilanToko,
 } from '@sit/shared';
@@ -303,6 +305,86 @@ export function NotaSetoranKonsinyasiA4({
             <div className="mt-16 border-t border-black" />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** K-125: order pembelian ke pemasok (dicetak/dikirim ke pemasok). Harga tampil hanya bila dikirim server. */
+export function OrderPembelianA4({ po, toko }: { po: DetailOrderPembelian; toko: TampilanToko }) {
+  const adaHarga = po.baris.some((b) => b.hargaBerlaku !== undefined);
+  const total = po.baris.reduce((t, b) => t + subtotalRupiah(b.qtyBerlaku, b.hargaBerlaku ?? 0), 0);
+  return (
+    <div className="bg-white p-2 text-sm text-black" data-testid="order-pembelian-a4">
+      <Kop toko={toko} judul="ORDER PEMBELIAN" nomor={po.nomor ?? `DRAF #${po.id}`} />
+      <div className="mb-4 grid grid-cols-2 gap-4">
+        <div>
+          <Pasangan kiri="Kepada" kanan={<b>{po.namaPemasok}</b>} />
+        </div>
+        <div>
+          <Pasangan kiri="Tanggal pesan" kanan={formatTanggal(po.tanggalDipesan ?? po.tanggal)} />
+          {po.tanggalJanjiKirim && (
+            <Pasangan kiri="Janji kirim" kanan={formatTanggal(po.tanggalJanjiKirim)} />
+          )}
+          <Pasangan kiri="Dibuat oleh" kanan={po.namaPembuat} />
+        </div>
+      </div>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-y border-black text-left">
+            <th className="py-1 pr-2">No</th>
+            <th className="py-1 pr-2">Barang</th>
+            <th className="py-1 pr-2 text-right">Qty</th>
+            {adaHarga && <th className="py-1 pr-2 text-right">Harga</th>}
+            {adaHarga && <th className="py-1 text-right">Jumlah</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {po.baris.map((b, i) => (
+            <tr key={b.id} className="border-b border-slate-300">
+              <td className="py-1 pr-2">{i + 1}</td>
+              <td className="py-1 pr-2">
+                {b.namaBarang} <span className="text-xs text-slate-600">({b.kodeBarang})</span>
+              </td>
+              <td className="py-1 pr-2 text-right">
+                {formatDesimal(b.qtyBerlaku)} {b.kodeSatuan}
+              </td>
+              {adaHarga && (
+                <td className="py-1 pr-2 text-right">{formatRupiah(b.hargaBerlaku ?? 0)}</td>
+              )}
+              {adaHarga && (
+                <td className="py-1 text-right">
+                  {formatRupiah(subtotalRupiah(b.qtyBerlaku, b.hargaBerlaku ?? 0))}
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+        {adaHarga && (
+          <tfoot>
+            <tr className="border-t-2 border-black font-bold">
+              <td colSpan={4} className="py-1 pr-2 text-right">
+                Perkiraan total
+              </td>
+              <td className="py-1 text-right">{formatRupiah(total)}</td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+      {po.catatan && <p className="mt-3">Catatan: {po.catatan}</p>}
+      <p className="mt-3 text-xs">
+        Mohon konfirmasi ketersediaan barang dan tanggal kirim. Sertakan nomor order ini pada faktur
+        dan surat jalan.
+      </p>
+      <div className="mt-10 grid grid-cols-2 text-center">
+        <div>
+          Pemesan
+          <div className="mt-14 border-t border-black pt-1">{po.namaPembuat}</div>
+        </div>
+        <div>
+          Pemasok
+          <div className="mt-14 border-t border-black pt-1">&nbsp;</div>
+        </div>
       </div>
     </div>
   );

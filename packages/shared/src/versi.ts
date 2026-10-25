@@ -24,6 +24,7 @@ export const CATATAN_RILIS: CatatanRilis[] = [
       'Notifikasi menampilkan rincian; dashboard punya bagian Perlu perhatian.',
       'Order Penjualan: Daftar order lewat F10, saringan Semua, order disimpan jatuh tempo tersemat, nama penginput.',
       'Cari barang: atribut boleh sebagian; label Laris/Lambat/Tidak laku/Baru; stok tebal merah; panel rincian dengan info penjualan.',
+      'Order pembelian ke pemasok: draf, kirim, konfirmasi, uang muka, terima barang dari PO; mengurangi saran pesan.',
       'Halaman baru Transaksi › Hasil Penjualan: ringkasan, perbandingan periode lalu, barang ABC, kasir, jam ramai, cara bayar.',
       'Log aktivitas bisa diekspor ke Excel dengan rentang tanggal (Owner).',
       'Saran pesan: pilihan metode A rata-rata, B statistik, C min–maks (stok maksimum di Data Barang), D tren.',

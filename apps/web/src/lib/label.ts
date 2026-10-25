@@ -25,6 +25,13 @@ export const LABEL_STATUS_AKTIF: Record<StatusAktif, string> = {
 
 const LABEL_AKSI: Partial<Record<AksiLog, string>> = {
   LOGIN_SUKSES: 'Login berhasil',
+  PO_BUAT: 'Buat order pembelian',
+  PO_UBAH: 'Ubah draf order pembelian',
+  PO_KIRIM: 'Kirim order pembelian',
+  PO_KONFIRMASI: 'Konfirmasi order pembelian',
+  PO_UANG_MUKA: 'Uang muka order pembelian',
+  PO_TUTUP: 'Tutup sisa order pembelian',
+  PO_BATAL: 'Batalkan order pembelian',
   LOGIN_GAGAL: 'Login gagal',
   LOGOUT: 'Keluar',
   PENGGUNA_BUAT: 'Tambah pengguna',

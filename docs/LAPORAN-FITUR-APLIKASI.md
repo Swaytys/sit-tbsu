@@ -306,6 +306,19 @@ Admin/Owner (pemeriksaan) | desktop
 - Bukti: `[KODE: api/modules/hasil-penjualan/service.ts]` `[KODE: web/features/hasil-penjualan/halaman-hasil-penjualan.tsx]`;
   `[DOK: K-126]`; tes `hasil-penjualan.test.ts`, e2e `hasil-penjualan.spec.ts`. Status: BERFUNGSI.
 
+**F51. Order pembelian ke pemasok** | Persediaan › Order Pembelian | Admin, Owner | desktop
+- Fungsi: pesanan ke pemasok sebelum barang datang: draf, kirim (nomor PO, cetak A4, salin teks WhatsApp),
+  konfirmasi pemasok (tanggal janji, perubahan qty/harga), uang muka, penerimaan barang dari PO (boleh sebagian,
+  uang muka otomatis menjadi pembayaran faktur), tutup sisa/batal dengan pengembalian uang muka; mengurangi saran
+  pesan dan menghasilkan lama kirim aktual; notifikasi PO terlambat.
+- Input → Proses → Output: barang + qty + harga perkiraan → status DRAF…SELESAI (docs/05 §21 PO1–PO9) →
+  penerimaan, hutang, saran pesan.
+- Tabel: `order_pembelian`, `order_pembelian_detail`, `alokasi_uang_muka`, `penerimaan_barang(_detail)`,
+  `pembayaran_pemasok`.
+- Bukti: `[KODE: api/modules/persediaan/order-pembelian/service.ts]`
+  `[KODE: web/features/order-pembelian/halaman-order-pembelian.tsx]`; `[DOK: K-125]`; tes `order-pembelian.test.ts`,
+  e2e `order-pembelian.spec.ts`. Status: BERFUNGSI.
+
 ### 4.2 Data master
 
 **F9. Data Barang** | Data Master | Admin, Owner | desktop
@@ -1250,6 +1263,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
 - 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).
+- 2026-10-24 — F51 order pembelian ke pemasok (K-125); F40 saran pesan memakai sudah dipesan dan lama kirim aktual.
 - 2026-10-24 — F50 Hasil Penjualan (K-126).
 - 2026-10-24 — F5 log aktivitas: ekspor Excel.
 - 2026-10-24 — F40 saran pesan: metode A–D dan simpanan memori (K-127); kolom `barang.stok_maksimum`.

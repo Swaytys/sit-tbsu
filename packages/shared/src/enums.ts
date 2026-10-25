@@ -301,6 +301,39 @@ export function ukuranKertasCss(k: KertasDokumen): string {
   return ukuran === 'F4' ? '330mm 215mm' : `${dasar} landscape`;
 }
 
+/** K-125: status order pembelian ke pemasok (docs/05 §21). */
+export const STATUS_ORDER_PEMBELIAN = [
+  'DRAF',
+  'DIPESAN',
+  'DIKONFIRMASI',
+  'SEBAGIAN',
+  'SELESAI',
+  'DITUTUP',
+  'BATAL',
+] as const;
+export type StatusOrderPembelian = (typeof STATUS_ORDER_PEMBELIAN)[number];
+
+export const LABEL_STATUS_ORDER_PEMBELIAN: Record<StatusOrderPembelian, string> = {
+  DRAF: 'Draf',
+  DIPESAN: 'Dipesan',
+  DIKONFIRMASI: 'Dikonfirmasi',
+  SEBAGIAN: 'Diterima sebagian',
+  SELESAI: 'Selesai',
+  DITUTUP: 'Ditutup',
+  BATAL: 'Batal',
+};
+
+/** PO yang masih menunggu barang: sisa qty-nya dihitung "sudah dipesan" di saran pesan. */
+export const STATUS_PO_BERJALAN: readonly StatusOrderPembelian[] = [
+  'DIPESAN',
+  'DIKONFIRMASI',
+  'SEBAGIAN',
+];
+
+/** K-125: pemakaian uang muka PO: dipakai membayar penerimaan, atau dikembalikan pemasok. */
+export const JENIS_ALOKASI_UANG_MUKA = ['DIPAKAI', 'DIKEMBALIKAN'] as const;
+export type JenisAlokasiUangMuka = (typeof JENIS_ALOKASI_UANG_MUKA)[number];
+
 /** K-127: metode rekomendasi pemesanan ulang (docs/05 RO9–RO12). */
 export const METODE_SARAN_PESAN = ['RATA', 'STATISTIK', 'MIN_MAKS', 'TREN'] as const;
 export type MetodeSaranPesan = (typeof METODE_SARAN_PESAN)[number];

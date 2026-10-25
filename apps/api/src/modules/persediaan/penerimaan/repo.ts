@@ -12,7 +12,7 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import type { JenisPenerimaan } from '@sit/shared';
+import type { JenisPenerimaan, StatusHutang } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
   barang,
@@ -49,6 +49,9 @@ const kolom = {
   statusHutang: penerimaanBarang.statusHutang,
   jumlahBaris,
   namaPengguna: pengguna.namaPengguna,
+  idOrderPembelian: penerimaanBarang.idOrderPembelian,
+  nomorOrderPembelian: sql<string | null>`(select o.nomor from order_pembelian o
+    where o.id = ${kolomPenuh(penerimaanBarang.idOrderPembelian)})`,
 };
 
 export type SaringPenerimaan = {
@@ -192,4 +195,13 @@ export async function tambahPembayaran(
     .returning({ id: pembayaranPemasok.id });
   if (!b) throw new Error('insert pembayaran pemasok tidak mengembalikan id');
   return b.id;
+}
+
+/** K-125: pembayaran tercatat dari uang muka PO (kolom cache hutang, transaksi yang sama). */
+export async function aturDibayar(
+  tx: Tx,
+  id: number,
+  nilai: { totalDibayar: number; statusHutang: StatusHutang },
+) {
+  await tx.update(penerimaanBarang).set(nilai).where(eq(penerimaanBarang.id, id));
 }

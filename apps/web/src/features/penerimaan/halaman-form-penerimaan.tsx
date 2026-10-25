@@ -9,11 +9,12 @@ import {
   type InputPenerimaan,
 } from '@sit/shared';
 import { ArrowLeft, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { useDaftarPemasok } from '@/api/mitra';
+import { useDetailPO } from '@/api/order-pembelian';
 import { useSimpanPenerimaan } from '@/api/persediaan';
 import { InputRupiah } from '@/components/input-rupiah';
 import { PilihBarang } from '@/components/pilih-barang';
@@ -65,7 +66,29 @@ export function HalamanFormPenerimaan() {
   const simpan = useSimpanPenerimaan();
   const pemasok = useDaftarPemasok({ cari: '', status: 'AKTIF', halaman: 1, perHalaman: 100 });
   // Data tampilan barang per baris (kode, nama, satuan, harga titip).
-  const [infoBarang, setInfoBarang] = useState<Record<number, BarisBarang>>({});
+  const [infoBarang, setInfoBarang] = useState<
+    Record<number, Pick<BarisBarang, 'namaBarang' | 'kode' | 'kodeSatuan'> & { stokFisik?: string }>
+  >({});
+  // K-125: `?po=<id>` dari Order Pembelian: pemasok dan sisa barang yang belum datang langsung terisi.
+  const idPO = Number(url.get('po')) || null;
+  const po = useDetailPO(idPO).data;
+  const poTerisi = useRef(false);
+  // Pemasok PO selalu ada di pilihan (daftar pemasok dibatasi 100 baris).
+  const daftarPemasok = [
+    ...(pemasok.data?.data ?? []),
+    ...(po && !(pemasok.data?.data ?? []).some((x) => x.id === po.idPemasok)
+      ? [{ id: po.idPemasok, namaPemasok: po.namaPemasok }]
+      : []),
+  ];
+  const infoPO: Record<
+    number,
+    { namaBarang: string; kode: string; kodeSatuan: string; stokFisik?: string }
+  > = Object.fromEntries(
+    (po?.baris ?? []).map((b) => [
+      b.idBarang,
+      { namaBarang: b.namaBarang, kode: b.kodeBarang, kodeSatuan: b.kodeSatuan },
+    ]),
+  );
 
   const form = useForm<InputPenerimaan, unknown, DataPenerimaan>({
     resolver: zodResolver(skemaPenerimaan),
@@ -82,6 +105,25 @@ export function HalamanFormPenerimaan() {
     },
   });
   const baris = useFieldArray({ control: form.control, name: 'baris' });
+  useEffect(() => {
+    if (!po || poTerisi.current) return;
+    poTerisi.current = true;
+    const sisa = po.baris.filter((b) => Number(b.qtySisa) > 0);
+    form.reset({
+      ...form.getValues(),
+      jenis: 'PEMBELIAN',
+      idPemasok: po.idPemasok,
+      idOrderPembelian: po.id,
+      syaratBayar: form.getValues('syaratBayar') ?? 'TUNAI',
+      baris: sisa.map((b) => ({
+        idBarang: b.idBarang,
+        qtyMasuk: b.qtySisa.replace(/\.?0+$/, ''),
+        hargaModalMasuk: b.hargaBerlaku ?? 0,
+        keterangan: '',
+        idOrderPembelianDetail: b.id,
+      })),
+    });
+  }, [po, form]);
   const [jenis, syarat, idPemasok, isiBaris] = useWatch({
     control: form.control,
     name: ['jenis', 'syaratBayar', 'idPemasok', 'baris'],
@@ -92,7 +134,8 @@ export function HalamanFormPenerimaan() {
   /** Hapus baris dengan kesempatan mengurungkan (salah pencet tidak menghilangkan isian). */
   function hapusBaris(i: number) {
     const nilai = form.getValues(`baris.${i}`);
-    const nama = infoBarang[nilai.idBarang]?.namaBarang ?? `baris ${i + 1}`;
+    const nama =
+      (infoBarang[nilai.idBarang] ?? infoPO[nilai.idBarang])?.namaBarang ?? `baris ${i + 1}`;
     baris.remove(i);
     toast(`${nama} dihapus dari daftar.`, {
       duration: 8000,
@@ -178,7 +221,9 @@ export function HalamanFormPenerimaan() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Catat penerimaan barang</h1>
+          <h1 className="text-xl font-semibold text-slate-900">
+            Catat penerimaan barang{po?.nomor ? ` dari ${po.nomor}` : ''}
+          </h1>
           <p className="text-sm text-slate-500">
             Nomor penerimaan dibuat otomatis saat disimpan. Penerimaan tidak bisa diubah setelah
             disimpan; koreksi lewat penyesuaian stok.
@@ -202,6 +247,8 @@ export function HalamanFormPenerimaan() {
                     <Select
                       value={field.value ? String(field.value) : ''}
                       onValueChange={(v) => {
+                        // Radix memanggil "" bila nilai belum ada di daftar; jangan menghapus pilihan.
+                        if (!v) return;
                         field.onChange(Number(v));
                         if (konsinyasi && (isiBaris ?? []).length > 0) baris.replace([]);
                       }}
@@ -212,7 +259,7 @@ export function HalamanFormPenerimaan() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {(pemasok.data?.data ?? []).map((p) => (
+                        {daftarPemasok.map((p) => (
                           <SelectItem key={p.id} value={String(p.id)}>
                             {p.namaPemasok}
                           </SelectItem>
@@ -412,7 +459,7 @@ export function HalamanFormPenerimaan() {
                   </TableRow>
                 )}
                 {baris.fields.map((f, i) => {
-                  const b = infoBarang[f.idBarang];
+                  const b = infoBarang[f.idBarang] ?? infoPO[f.idBarang];
                   const isi = isiBaris?.[i];
                   return (
                     <TableRow key={f.id}>
@@ -421,7 +468,7 @@ export function HalamanFormPenerimaan() {
                         <div className="font-medium">{b?.namaBarang}</div>
                         <div className="text-xs text-slate-500">
                           <span className="font-mono">{b?.kode}</span> · stok sekarang{' '}
-                          {b ? formatDesimal(b.stokFisik) : '—'} {b?.kodeSatuan}
+                          {b?.stokFisik ? formatDesimal(b.stokFisik) : '—'} {b?.kodeSatuan}
                         </div>
                         <FormField
                           control={form.control}

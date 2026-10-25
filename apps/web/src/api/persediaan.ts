@@ -61,7 +61,9 @@ export function useSimpanPenerimaan() {
     mutationFn: async (json: DataPenerimaan) => ambilData(await api.penerimaan.$post({ json })),
     onSuccess: () =>
       Promise.all(
-        ['penerimaan', 'barang', 'persediaan'].map((k) => qc.invalidateQueries({ queryKey: [k] })),
+        ['penerimaan', 'barang', 'persediaan', 'order-pembelian'].map((k) =>
+          qc.invalidateQueries({ queryKey: [k] }),
+        ),
       ),
   });
 }

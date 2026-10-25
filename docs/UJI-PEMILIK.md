@@ -50,6 +50,9 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U115 | Stok maksimum (metode C) | *Data Barang › Ubah* semen: stok minimum 50, **Stok maksimum** 200 → Simpan; Saran pesan metode C | Baris semen: titik pesan 50, "maks. 200"; bila tersedia ≤ 50 → Pesan sekarang dengan saran 200 − tersedia. Maksimum lebih kecil dari minimum ditolak | Belum | |
 | U116 | Ekspor log | Login **Owner** → *Pengaturan › Log aktivitas*: pilih tanggal Dari/s.d. → **Ekspor Excel** | Berkas `log-aktivitas-….xlsx` terunduh berisi log rentang itu; log baru "Ekspor Excel log aktivitas (N baris)" tercatat | Belum | |
 | U117 | Hasil Penjualan | *Transaksi › Hasil Penjualan* (Owner): coba **Hari ini**, **7 hari**, **Bulan lalu**, lalu isi tanggal sendiri; tombol **?** di Barang terlaris | Kartu omzet/transaksi/rata-rata/bersih/laba/void dengan ▲▼ dibanding periode lalu; grafik per hari; barang terlaris berkelas A/B/C; per kategori, pelanggan, kasir, cara bayar, jam, hari, promo, retur & void. Angka omzet sama dengan Laporan Penjualan per Periode periode yang sama | Belum | Login Kasir: tanpa laba; Staf: menu tidak ada |
+| U118 | Order pembelian: buat, kirim, konfirmasi | *Persediaan › Order Pembelian* → **Order pembelian baru** (pemasok, 2 barang) → Simpan draf → **Kirim ke pemasok** → **Salin teks** dan **Cetak** → **Konfirmasi pemasok** (tanggal janji, ubah qty satu barang) | Nomor PO-… terbit setelah dikirim; draf tidak bisa diubah lagi; rincian menulis "pesan awal …" untuk qty yang diubah; teks tersalin bisa ditempel di WhatsApp | Belum | |
+| U119 | Terima barang dari PO + uang muka | Pada PO tadi: **Uang muka** Rp 100.000 transfer → **Terima barang** → simpan penerimaan tempo sebagian (kurangi qty satu barang) → lalu terima sisanya | Form penerimaan terisi sisa barang; hutang penerimaan pertama sudah dibayar Rp 100.000; PO *Diterima sebagian* lalu *Selesai*; detail penerimaan menautkan nomor PO | Belum | |
+| U120 | Saran pesan & PO | *Saran pesan* → **Buat order pembelian** di satu pemasok → kirim → kembali ke Saran pesan | Draf berisi barang + jumlah saran; setelah dikirim barangnya menulis "+ … sudah dipesan" dan sarannya turun | Belum | Tutup/Batal: coba juga **Batalkan** PO lain yang punya uang muka (wajib pilih cara pengembalian) |
 | U102 | No. HP format baru | Tambah pelanggan: ketik `0812 3456 7890` di kotak nomor | 0 dibuang dengan pemberitahuan, tersimpan `+6281234567890`; nomor 16 angka ditolak | Belum | Kode negara bisa diganti |
 | U103 | Cegah pelanggan dobel | Tambah pelanggan "Toko Sumber Jaya"; lalu tambah "sumber jaya" (No. HP lain); lalu "Pak Andi" dengan No. HP sama | Dua yang terakhir: kotak kuning "Pelanggan yang mirip sudah ada"; klik **tetap simpan** baru tersimpan | Belum | Sama untuk pemasok dan barang (nama) |
 | U104 | Pemeriksaan data | *Pengaturan › Pemeriksaan data* → **Rapikan No. HP** | Daftar kemungkinan dobel dan format salah; setelah dirapikan, No. HP lama jadi +62… | Belum | |
@@ -210,6 +213,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — U74–U76 data muatan dan pemeriksaan muatan (K-161).
 - 2026-10-24 — U108–U110 cari sebagian, label keterjualan, panel rincian (K-123).
 - 2026-10-24 — U111–U113 kepekatan, logo struk, kertas dan cetak otomatis invoice/surat jalan (K-124).
+- 2026-10-24 — U118–U120 order pembelian (K-125).
 - 2026-10-24 — U117 Hasil Penjualan (K-126).
 - 2026-10-24 — U116 ekspor log.
 - 2026-10-24 — U114–U115 metode saran pesan dan stok maksimum (K-127).

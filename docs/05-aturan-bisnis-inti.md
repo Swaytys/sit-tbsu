@@ -283,6 +283,20 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 | AR4 | Periksa arsip: berkas ada, SHA-256 cocok, dan jumlah baris tiap tabel di berkas = di database (selisih dilaporkan). Log `ARSIP_PERIKSA`. Unduh berkas lewat aplikasi. |
 | AR5 | Buka kembali (alasan ≥ 10 huruf, log `TAHUN_BUKA`) → status DIBUKA, kunci dilepas; tutup ulang memeriksa penghalang lagi dan menulis berkas baru (berkas lama tidak dihapus). |
 
+## 21. Order pembelian ke pemasok (K-125)
+
+| # | Aturan |
+|---|---|
+| PO1 | **Draf** dibuat Admin/Owner (`persediaan.penerimaan.kelola`) untuk satu pemasok aktif: barang aktif milik sendiri (titipan ditolak), tiap barang sekali, qty > 0, harga beli perkiraan per satuan dasar (mengisi harga butuh `master.barang.lihat_hpp`). Draf belum bernomor dan boleh diubah (baris diganti seluruhnya) atau dibatalkan. |
+| PO2 | **Kirim ke pemasok**: nomor `PO-yymmdd-nnn` terbit (penomoran), `tanggal_dipesan` = tanggal operasional, status DIPESAN, isi terkunci. Cetak A4 (kertas *dokumen lain*) atau salin teks untuk WhatsApp. |
+| PO3 | **Konfirmasi** (DIPESAN/DIKONFIRMASI/SEBAGIAN): `tanggal_janji_kirim` wajib; qty/harga per baris hanya bila pemasok mengubah, disimpan di `qty_konfirmasi`/`harga_konfirmasi` (angka pesanan tetap). Qty konfirmasi tidak boleh di bawah yang sudah diterima. Qty/harga **berlaku** = konfirmasi bila ada, selain itu pesanan. |
+| PO4 | **Uang muka** (DIPESAN/DIKONFIRMASI/SEBAGIAN): `pembayaran_pemasok` ber-`id_order_pembelian` (nomor PBP); TUNAI wajib shift terbuka dan tercatat kas BAYAR_PEMASOK; TRANSFER wajib rekening. |
+| PO5 | **Penerimaan dari PO**: hanya jenis PEMBELIAN, pemasok sama, PO berstatus DIPESAN/DIKONFIRMASI/SEBAGIAN (dikunci FOR UPDATE). Baris yang menunjuk baris PO menambah cache `qty_diterima`; baris tanpa PO boleh ditambahkan. Semua baris PO sudah diterima ≥ qty berlaku → SELESAI, selain itu SEBAGIAN. Sisa uang muka dipakai otomatis (uang muka terlama dulu) sebagai pembayaran faktur ini: TEMPO → `total_dibayar` = terpakai (status SEBAGIAN/LUNAS); TUNAI → yang dibayar saat itu = faktur − terpakai. Pemakaian tercatat di `alokasi_uang_muka` (DIPAKAI). |
+| PO6 | **Batal** hanya bila belum ada penerimaan (DRAF/DIPESAN/DIKONFIRMASI); **Tutup sisa** hanya SEBAGIAN. Alasan wajib. Sisa uang muka > 0 wajib dicatat dikembalikan pemasok (`alokasi_uang_muka` DIKEMBALIKAN, metode TUNAI → kas MASUK_LAIN di shift terbuka, atau TRANSFER). |
+| PO7 | **Saran pesan**: qty berlaku − diterima dari PO berjalan (DIPESAN/DIKONFIRMASI/SEBAGIAN) = *sudah dipesan*; posisi stok untuk status dan saran = tersedia + sudah dipesan; *cukup berapa hari* tetap dari stok tersedia. Tombol *Buat order pembelian* per pemasok membuat draf berisi barang dengan saran > 0. |
+| PO8 | **Lama kirim aktual** per pemasok = rata-rata (tanggal penerimaan pertama − `tanggal_dipesan`) dari PO yang sudah menerima barang, dibulatkan ke hari; dipakai saran pesan bila sudah ≥ 3 PO (menggantikan isian Data Pemasok, ditandai "aktual"). |
+| PO9 | **Notifikasi** PO_TERLAMBAT (`persediaan.penerimaan.kelola`): PO berjalan yang lewat tanggal janji kirim. Log: PO_BUAT, PO_UBAH, PO_KIRIM, PO_KONFIRMASI, PO_UANG_MUKA, PO_TUTUP, PO_BATAL. Stok tidak berubah oleh PO; hutang tetap lahir dari penerimaan. |
+
 ## 20. Hasil Penjualan (K-126)
 
 | # | Aturan |
