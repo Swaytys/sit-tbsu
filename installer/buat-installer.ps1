@@ -27,6 +27,30 @@ New-Item -ItemType Directory -Force -Path "$paket\apps" | Out-Null
 # Dependency produksi saja (tanpa alat pengembangan), lengkap dengan modul native (argon2).
 pnpm --filter '@sit/api' deploy --prod --legacy "$paket\apps\api"
 if ($LASTEXITCODE -ne 0) { throw 'pnpm deploy gagal.' }
+# Inno Setup tidak menyalin tautan (junction) pnpm: seluruh paket nyata disalin ke satu folder node_modules datar.
+$nm = "$paket\apps\api\node_modules"
+$datar = "$paket\apps\api\node_modules_datar"
+New-Item -ItemType Directory -Force -Path $datar | Out-Null
+foreach ($p in Get-ChildItem "$nm\.pnpm" -Directory -Force | Where-Object { $_.Name -ne 'node_modules' }) {
+  $dalam = Join-Path $p.FullName 'node_modules'
+  if (-not (Test-Path $dalam)) { continue }
+  foreach ($e in Get-ChildItem $dalam -Directory -Force) {
+    $anak = if ($e.Name.StartsWith('@')) { Get-ChildItem $e.FullName -Directory -Force | ForEach-Object { @{ Nama = "$($e.Name)\$($_.Name)"; Dir = $_ } } } else { @(@{ Nama = $e.Name; Dir = $e }) }
+    foreach ($a in $anak) {
+      if ($a.Dir.Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
+      $tujuan = Join-Path $datar $a.Nama
+      if (-not (Test-Path $tujuan)) {
+        New-Item -ItemType Directory -Force -Path (Split-Path $tujuan) | Out-Null
+        Copy-Item $a.Dir.FullName $tujuan -Recurse -Force
+      }
+    }
+  }
+}
+cmd /c rmdir /s /q "$nm" 2>$null
+Rename-Item $datar 'node_modules'
+foreach ($wajib in 'pino-std-serializers', 'argon2', 'pg', 'hono', 'drizzle-orm') {
+  if (-not (Test-Path "$paket\apps\api\node_modules\$wajib")) { throw "Paket tidak lengkap: modul $wajib hilang." }
+}
 Copy-Item "$repo\apps\api\dist" "$paket\apps\api\dist" -Recurse -Force
 Copy-Item "$repo\apps\api\src\db\migrations" "$paket\apps\api\dist\migrations" -Recurse -Force
 New-Item -ItemType Directory -Force -Path "$paket\apps\web" | Out-Null
