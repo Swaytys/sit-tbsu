@@ -97,18 +97,21 @@ function JalankanSuper([string[]]$perintah) {
 }
 
 Langkah '1. Memeriksa program'
-$node = (Get-Command node -ErrorAction SilentlyContinue).Source
+# Mode paket (dipasang dari Setup-BonsaiUrip.exe): Node ikut terbawa, tanpa pnpm/build; migrasi dan data awal
+# dijalankan dari hasil build. Mode kode sumber (git clone) memakai Node dan pnpm di komputer.
+$paket = (Test-Path (Join-Path $repo 'apps\api\dist\db\migrate.js')) -and -not (Test-Path (Join-Path $repo 'pnpm-workspace.yaml'))
+$node = if ($paket) { Join-Path $repo 'node\node.exe' } else { (Get-Command node -ErrorAction SilentlyContinue).Source }
 if (-not $node) { throw 'Node.js belum terpasang. Pasang Node.js 24 LTS (nodejs.org) lalu jalankan lagi.' }
 $versi = [int]((& $node --version).TrimStart('v').Split('.')[0])
 if ($versi -lt 24) { throw "Node.js minimal versi 24 (terpasang v$versi)." }
-if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) { throw 'pnpm belum terpasang. Jalankan: npm install -g pnpm' }
+if (-not $paket -and -not (Get-Command pnpm -ErrorAction SilentlyContinue)) { throw 'pnpm belum terpasang. Jalankan: npm install -g pnpm' }
 $psql = (Get-Command psql -ErrorAction SilentlyContinue).Source
 if (-not $psql) {
   $psql = Get-ChildItem 'C:\Program Files\PostgreSQL\*\bin\psql.exe', 'D:\PostgreSQL\*\bin\psql.exe' -ErrorAction SilentlyContinue |
     Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
 }
 if (-not $psql) { throw 'PostgreSQL (psql) tidak ditemukan. Pasang PostgreSQL 17 lalu jalankan lagi.' }
-Write-Host "Node $((& $node --version)), pnpm $((pnpm --version)), $psql"
+Write-Host "Node $((& $node --version)), $psql"
 
 Langkah '2. Berkas .env produksi dan database'
 # Akun database khusus aplikasi (bukan akun pengembangan 'sit'); password dibuat otomatis, tidak perlu diingat.
@@ -174,14 +177,21 @@ if (-not $adaDb) {
 }
 
 Langkah '3. Dependency, build, migrasi, data awal'
-pnpm install --frozen-lockfile
-if ($LASTEXITCODE -ne 0) { throw 'pnpm install gagal.' }
-pnpm build
-if ($LASTEXITCODE -ne 0) { throw 'Build gagal.' }
-pnpm db:migrate
-if ($LASTEXITCODE -ne 0) { throw 'Migrasi database gagal (lihat log\server.log).' }
-pnpm db:seed
-if ($LASTEXITCODE -ne 0) { throw 'Data awal gagal (lihat log\server.log).' }
+if ($paket) {
+  & $node (Join-Path $repo 'apps\api\dist\db\migrate.js')
+  if ($LASTEXITCODE -ne 0) { throw 'Migrasi database gagal (lihat log\server.log).' }
+  & $node (Join-Path $repo 'apps\api\dist\db\seed.js')
+  if ($LASTEXITCODE -ne 0) { throw 'Data awal gagal (lihat log\server.log).' }
+} else {
+  pnpm install --frozen-lockfile
+  if ($LASTEXITCODE -ne 0) { throw 'pnpm install gagal.' }
+  pnpm build
+  if ($LASTEXITCODE -ne 0) { throw 'Build gagal.' }
+  pnpm db:migrate
+  if ($LASTEXITCODE -ne 0) { throw 'Migrasi database gagal (lihat log\server.log).' }
+  pnpm db:seed
+  if ($LASTEXITCODE -ne 0) { throw 'Data awal gagal (lihat log\server.log).' }
+}
 
 Langkah '4. Sertifikat HTTPS dan firewall'
 $pfx = Join-Path $repo 'sertifikat\server.pfx'

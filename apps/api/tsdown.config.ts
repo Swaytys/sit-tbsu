@@ -4,7 +4,14 @@ import { defineConfig } from 'tsdown';
 // jadi ikut dibundel; dependency npm lain tetap diimpor dari node_modules.
 export default defineConfig({
   // cadangan.ts dan uji-migrasi.ts: skrip untuk perbarui-server.ps1 (K-084, K-166).
-  entry: ['src/index.ts', 'src/cadangan.ts', 'src/uji-migrasi.ts'],
+  entry: [
+    'src/index.ts',
+    'src/cadangan.ts',
+    'src/uji-migrasi.ts',
+    // K-188: installer menjalankan migrasi dan data awal tanpa tsx/pnpm.
+    'src/db/migrate.ts',
+    'src/db/seed.ts',
+  ],
   format: 'esm',
   platform: 'node',
   target: 'node24',

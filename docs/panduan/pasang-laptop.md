@@ -36,6 +36,15 @@ PS> mkdir C:\BonsaiUrip
 PS> git clone https://github.com/Swaytys/sit-tbsu.git C:\BonsaiUrip\sit-tbsu
 ```
 
+## 2b. Cara tercepat: Setup-BonsaiUrip.exe (K-188)
+
+Bila Anda mendapat berkas **Setup-BonsaiUrip.exe** (±37 MB, dibuat pengembang dengan
+`installeruat-installer.ps1`), bagian 2 dan 3 tidak perlu: klik dua kali berkas itu → **Ya** → Next → Install.
+Node dan aplikasi sudah di dalamnya; yang dibutuhkan hanya **PostgreSQL 17** terpasang di komputer. Setelah
+file tersalin, jendela pemasang meminta password `postgres` (atau **Saya lupa**), lalu menyiapkan semuanya dan
+membuka aplikasi. Pintasan **BonsaiUrip** muncul di desktop dan menu Start. Memasang ulang/memperbarui dengan
+Setup yang lebih baru tidak menghapus data (database, gambar, cadangan).
+
 ## 3. Pasang (klik dua kali, tanpa mengetik perintah)
 
 1. Buka folder `C:\BonsaiUrip\sit-tbsu`, klik dua kali **Pasang BonsaiUrip**. Windows bertanya izin

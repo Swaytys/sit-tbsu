@@ -78,9 +78,9 @@ prioritas di bagian akhir.
   `sit` dipakai ulang. Diperbaiki: berkas **Pasang BonsaiUrip** (klik dua kali, minta izin Administrator), semua
   isian lewat jendela, akun database aplikasi sendiri `bonsai`/`bonsaiurip` dengan password acak, jalan keluar
   "Saya lupa" (izin lokal sementara, pg_hba.conf dikembalikan), jendela akhir berisi password Owner yang bisa
-  disalin. **Selesai.** Lanjutan (*Rencana*): satu berkas **setup .exe** (Inno Setup) yang membawa Node,
-  PostgreSQL portabel, dan aplikasi hasil build, dengan wizard Next/Next, ikon, dan menu Start; butuh alat
-  pembuat installer dan ±300 MB paket.
+  disalin. **Selesai.** **Setup-BonsaiUrip.exe** (Inno Setup, 37 MB) **selesai 25 Okt**: membawa Node dan hasil
+  build, wizard, ikon, pintasan; dibuat dengan `installeruat-installer.ps1`. Lanjutan (*Rencana*, v2): membawa
+  PostgreSQL portabel (port 5433, password acak) agar tidak butuh PostgreSQL terpasang dan tanpa password postgres.
 - **K-189 Identitas visual.** Tanda BonsaiUrip (bonsai krem di papan kayu walnut, dari logo Sumber Urip Bonsai)
   dipakai sebagai ikon tab, sidebar, dan halaman masuk (`apps/web/public/favicon.svg`, `logo-bonsaiurip.svg`).
   **Selesai.** Ikon .ico untuk installer menyusul bersama K-188.
