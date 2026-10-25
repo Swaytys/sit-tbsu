@@ -26,6 +26,7 @@ import {
   XCircle,
   type LucideIcon,
   ChartColumnBig,
+  ClipboardList,
 } from 'lucide-react';
 
 /*
@@ -161,6 +162,13 @@ export const MENU: EntriMenu[] = [
     label: 'Persediaan',
     ikon: Warehouse,
     item: [
+      {
+        path: '/order-pembelian',
+        label: 'Order Pembelian',
+        ikon: ClipboardList,
+        izin: 'persediaan.penerimaan.kelola',
+        fase: 14,
+      },
       {
         path: '/penerimaan',
         label: 'Penerimaan Barang',

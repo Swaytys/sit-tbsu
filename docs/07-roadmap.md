@@ -405,7 +405,7 @@ definisi selesai:
    kekurangan. **Selesai 2026-10-24** (migrasi 0032); lama kirim aktual menyusul bersama K-125.
 7. **Hasil Penjualan** (K-126). **Selesai 2026-10-24.**
 8. **Order pembelian ke pemasok** (K-125): riset alur umum dan rancangan diajukan ke pemilik dulu; lead time aktual
-   mengisi rekomendasi pesan.
+   mengisi rekomendasi pesan. **Selesai 2026-10-24** (rancangan disetujui, migrasi 0033, docs/05 §21).
 9. **Tampilan tablet** untuk layar staf penjualan (K-113 butir 3), dengan tes Playwright pada 1280×800 dan
    800×1280.
 10. **Ekspor log aktivitas ke Excel** (Owner). **Selesai 2026-10-24.**

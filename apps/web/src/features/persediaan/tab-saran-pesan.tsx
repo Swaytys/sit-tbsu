@@ -11,8 +11,13 @@ import {
 } from '@sit/shared';
 import { FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { usePengguna } from '@/api/auth';
+import { pesanGalat as galat } from '@/api/client';
 import { useDaftarPemasok } from '@/api/mitra';
+import { useSimpanPO } from '@/api/order-pembelian';
 import { useSaranPesan, type SaringSaranPesan } from '@/api/persediaan';
 import { useDaftarKategori } from '@/api/referensi';
 import { ButirPenjelasan, Penjelasan } from '@/components/penjelasan';
@@ -73,6 +78,7 @@ export function TabSaranPesan() {
   const [kata, setKata] = useState('');
   const cari = useTunda(kata, 300);
   const q = useSaranPesan({ ...p, ...pilih, cari: cari || undefined });
+  const bolehPO = usePengguna().izin.includes('persediaan.penerimaan.kelola');
   const menghitung = q.isFetching && q.isPlaceholderData;
 
   function gantiMetode(x: Partial<PilihanMetode>) {
@@ -321,11 +327,13 @@ export function TabSaranPesan() {
               <p className="font-semibold text-slate-900">
                 {g.nama}{' '}
                 <span className="text-xs font-normal text-slate-500">
-                  kirim {g.baris[0]?.lamaKirimHari} hari · belanja tiap{' '}
-                  {g.baris[0]?.jarakBelanjaHari} hari
+                  kirim {g.baris[0]?.lamaKirimHari} hari
+                  {g.baris[0]?.lamaKirimAktual ? ' (aktual dari order pembelian)' : ''} · belanja
+                  tiap {g.baris[0]?.jarakBelanjaHari} hari
                 </span>
               </p>
-              <p className="text-sm text-slate-600">
+              <p className="flex items-center gap-2 text-sm text-slate-600">
+                {bolehPO && g.baris[0]?.idPemasok && <BuatPO baris={g.baris} />}
                 {g.baris.length} barang
                 {biayaPemasok.get(k) !== undefined && (
                   <>
@@ -368,6 +376,11 @@ export function TabSaranPesan() {
                       <p className="text-xs text-slate-500">
                         {b.hariCukup === null ? '—' : `cukup ±${formatDesimal(b.hariCukup)} hari`}
                       </p>
+                      {Number(b.sudahDipesan) > 0 && (
+                        <p className="text-xs font-medium text-blue-700">
+                          + {formatDesimal(b.sudahDipesan)} sudah dipesan
+                        </p>
+                      )}
                     </td>
                     <td className="px-2 py-2 text-right tabular-nums">
                       {formatDesimal(b.titikPesan)}
@@ -502,5 +515,42 @@ function PenjelasanSaran() {
         </li>
       </ButirPenjelasan>
     </Penjelasan>
+  );
+}
+
+/** K-125: buat draf order pembelian berisi saran pesan pemasok ini (yang sarannya > 0). */
+function BuatPO({ baris }: { baris: BarisSaranPesan[] }) {
+  const simpan = useSimpanPO();
+  const navigasi = useNavigate();
+  const isi = baris.filter((b) => Number(b.saranPesan) > 0);
+  if (isi.length === 0) return null;
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={simpan.isPending}
+      onClick={() =>
+        void simpan
+          .mutateAsync({
+            id: null,
+            json: {
+              idPemasok: isi[0]!.idPemasok!,
+              catatan: null,
+              baris: isi.map((b) => ({
+                idBarang: b.idBarang,
+                qty: b.saranPesan,
+                harga: b.hargaBeliTerakhir ?? 0,
+              })),
+            },
+          })
+          .then((po) => {
+            toast.success('Draf order pembelian dibuat dari saran. Periksa lalu kirim ke pemasok.');
+            void navigasi(`/order-pembelian?status=DRAF&id=${po.id}`);
+          })
+          .catch((err: unknown) => toast.error(galat(err)))
+      }
+    >
+      Buat order pembelian ({isi.length})
+    </Button>
   );
 }

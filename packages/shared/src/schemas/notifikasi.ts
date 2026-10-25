@@ -19,6 +19,8 @@ export const JENIS_NOTIFIKASI = [
   'NONTUNAI_BELUM_DICEK',
   'NONTUNAI_TIDAK_MASUK',
   'PERLU_DIPESAN',
+  /** K-125: order pembelian lewat tanggal janji kirim, barang belum lengkap. */
+  'PO_TERLAMBAT',
   'SHIFT_HITUNG_BUKA',
   'ORDER_DISIMPAN_LEWAT',
   'ARMADA_SURAT',

@@ -1,7 +1,7 @@
 # Rancangan Order Pembelian ke Pemasok (K-125)
 
 Tanggal: 24 Oktober 2026. Status: **disetujui pemilik 24 Oktober 2026** (termasuk uang muka; dikelola Admin dan
-Owner). Dikerjakan setelah K-126, sebelum deploy uji. Melanjutkan K-125 (PO masuk
+Owner). **Selesai 24 Oktober 2026** (migrasi 0033; aturan rinci docs/05 §21 PO1–PO9). Melanjutkan K-125 (PO masuk
 v1.0.0) dan K-127 butir 3 (lama kirim aktual).
 
 ## 1. Alur umum yang dipakai (praktik standar toko/distributor)

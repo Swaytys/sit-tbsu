@@ -102,6 +102,16 @@ export function HalamanDetailPenerimaan() {
           <Info label="No. surat jalan pemasok">{p.noSuratJalanPemasok ?? '—'}</Info>
           <Info label="Jatuh tempo">{formatTanggal(p.tanggalJatuhTempo)}</Info>
           <Info label="Dicatat oleh">{p.namaPengguna}</Info>
+          {p.idOrderPembelian && (
+            <Info label="Order pembelian">
+              <Link
+                className="text-blue-700 hover:underline"
+                to={`/order-pembelian?status=&id=${p.idOrderPembelian}`}
+              >
+                {p.nomorOrderPembelian}
+              </Link>
+            </Info>
+          )}
         </div>
         {p.catatan && <p className="text-sm text-slate-600">Catatan: {p.catatan}</p>}
 

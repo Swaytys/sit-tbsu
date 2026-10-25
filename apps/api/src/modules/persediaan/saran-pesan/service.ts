@@ -5,6 +5,8 @@ import {
   rapikanDesimal,
   STATUS_SARAN_PESAN,
   subtotalRupiah,
+  bagiQty,
+  tambahQty,
   Z_TINGKAT_LAYANAN,
   type BarisSaranPesan,
   type HasilSaranPesan,
@@ -18,6 +20,7 @@ import type { z } from 'zod';
 import { db } from '../../../db/client';
 import { tambahHari, tanggalOperasional } from '../../../lib/waktu';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
+import * as repoPO from '../order-pembelian/repo';
 import { hitungSaranMetode } from './hitung';
 import * as repo from './repo';
 
@@ -35,6 +38,8 @@ export type DataCariSaranPesan = Omit<Keluaran, 'metode' | 'layanan'> &
 type BarisPenuh = BarisSaranPesan & { idKategori: number };
 
 const UMUR_SIMPANAN_MS = 10 * 60 * 1000;
+/** K-127 butir 3: lama kirim aktual dipakai setelah minimal 3 order pembelian pemasok itu menerima barang. */
+export const MIN_PO_LAMA_KIRIM = 3;
 const simpanan = new Map<string, { waktu: number; mutasi: string; baris: BarisPenuh[] }>();
 
 /** Untuk tes: kosongkan simpanan. */
@@ -89,9 +94,17 @@ async function hitungSemua(prm: ParameterSaranPesan): Promise<BarisPenuh[]> {
     }
   }
   const z = Z_TINGKAT_LAYANAN[prm.tingkatLayanan];
+  // K-125: barang yang sudah dipesan tetapi belum datang, dan lama kirim aktual dari order pembelian.
+  const [dipesan, aktual] = await Promise.all([
+    repoPO.sudahDipesan(db),
+    repoPO.lamaKirimAktual(db),
+  ]);
   return barang.map((b) => {
     const pm = b.idPemasok === null ? undefined : pemasok.get(b.idPemasok);
-    const lamaKirimHari = pm?.lamaKirimHari ?? prm.lamaKirimBawaan;
+    const lk = b.idPemasok === null ? undefined : aktual.get(b.idPemasok);
+    const pakaiAktual = lk !== undefined && lk.jumlahPO >= MIN_PO_LAMA_KIRIM;
+    const lamaKirimHari = pakaiAktual ? lk.hari : (pm?.lamaKirimHari ?? prm.lamaKirimBawaan);
+    const sudahDipesan = dipesan.get(b.idBarang) ?? '0';
     const jarakBelanjaHari = pm?.jarakBelanjaHari ?? prm.jarakBelanjaBawaan;
     // RO1: barang yang riwayatnya lebih pendek dari periode diamati sejak mutasi pertamanya.
     const hariRiwayat = b.mutasiPertama ? jumlahHari(b.mutasiPertama, prm.sampai) : 0;
@@ -108,7 +121,8 @@ async function hitungSemua(prm: ParameterSaranPesan): Promise<BarisPenuh[]> {
       hariAmatan,
       harian: deret,
       z,
-      stokTersedia: b.stokTersedia,
+      // Posisi stok = tersedia + sudah dipesan (belum datang), supaya tidak dipesan dua kali.
+      stokTersedia: tambahQty(b.stokTersedia, sudahDipesan),
       stokMinimum: b.stokMinimum,
       stokMaksimum: b.stokMaksimum,
       lamaKirimHari,
@@ -142,7 +156,13 @@ async function hitungSemua(prm: ParameterSaranPesan): Promise<BarisPenuh[]> {
         h.saranKemasan !== null && b.kodeKemasan !== null && b.faktorKemasan !== null
           ? `${h.saranKemasan} ${b.kodeKemasan} (isi ${rapikanDesimal(b.faktorKemasan)})`
           : null,
-      hariCukup: h.hariCukup,
+      // Cukup berapa hari dihitung dari stok yang benar-benar ada (tanpa yang masih dipesan).
+      hariCukup:
+        bandingQty(h.rataPerHari, 0) > 0
+          ? bagiQty(bandingQty(b.stokTersedia, 0) > 0 ? b.stokTersedia : 0, h.rataPerHari)
+          : null,
+      sudahDipesan: keQty(sudahDipesan),
+      lamaKirimAktual: pakaiAktual,
       status: h.status,
       metode: h.metode,
       catatan: h.catatan,

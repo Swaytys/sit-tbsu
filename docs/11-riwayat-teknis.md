@@ -631,6 +631,21 @@ lint-staged gagal).
 
 **Tes:** hasil-penjualan.test, log.test, e2e hasil-penjualan.spec.
 
+### C20. Order pembelian ke pemasok (24 Oktober 2026, K-125)
+
+**Solusi:** migrasi 0033 (`order_pembelian`, `order_pembelian_detail`, `alokasi_uang_muka`, kolom PO di penerimaan dan
+pembayaran pemasok; tabel PO ditaruh di `schema/persediaan.ts` sebelum penerimaan agar FK tidak melingkar). Modul
+`persediaan/order-pembelian` (repo, service, routes `/api/order-pembelian`, izin `persediaan.penerimaan.kelola`).
+`simpanPenerimaan` memanggil `terimaDariPO` di transaksi yang sama: kunci PO, perbarui cache `qty_diterima` dan
+status, pakai sisa uang muka (alokasi FIFO), lalu pembayaran tunai hanya sisa faktur. Saran pesan memakai posisi =
+tersedia + sudah dipesan dan lama kirim aktual (≥ 3 PO); penanda simpanan memori ikut waktu ubah PO. Web: halaman
+Persediaan › Order Pembelian (daftar + rincian + dialog draf/konfirmasi/uang muka/tutup/batal, cetak A4, salin teks
+WhatsApp), form penerimaan `?po=` terisi sisa barang, tombol *Buat order pembelian* per pemasok di Saran pesan,
+notifikasi PO_TERLAMBAT. Form penerimaan: pemasok PO ditambahkan ke pilihan dan nilai kosong dari Radix Select
+diabaikan (daftar pemasok dibatasi 100).
+
+**Tes:** order-pembelian.test (alur, uang muka, batal/tutup, lama kirim aktual), e2e order-pembelian.spec.
+
 ---
 
 ## Riwayat dokumen
@@ -655,3 +670,4 @@ lint-staged gagal).
 - 2026-10-24 — Bagian C17 cetak: logo, kepekatan, kertas per dokumen, cetak otomatis (K-124).
 - 2026-10-24 — Bagian C18 saran pesan beberapa metode dan simpanan memori (K-127).
 - 2026-10-24 — Bagian C19 Hasil Penjualan dan ekspor log (K-126, K-113).
+- 2026-10-24 — Bagian C20 order pembelian ke pemasok (K-125).

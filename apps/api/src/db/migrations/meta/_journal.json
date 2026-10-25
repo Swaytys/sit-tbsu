@@ -232,6 +232,13 @@
       "when": 1792846316984,
       "tag": "0032_stok_maksimum",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792859050045,
+      "tag": "0033_order_pembelian",
+      "breakpoints": true
     }
   ]
 }

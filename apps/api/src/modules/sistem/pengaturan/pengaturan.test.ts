@@ -118,13 +118,13 @@ describe('pengaturan › baca dan ubah', () => {
     const lama = await dalamTransaksi((tx) => terbitkanNomor(tx, 'ORD', '2026-09-30'));
     const p = await baca();
     const res = await ubah({
-      penomoran: { ...p.penomoran, prefix: { ...p.penomoran.prefix, ORD: 'po' } },
+      penomoran: { ...p.penomoran, prefix: { ...p.penomoran.prefix, ORD: 'psn' } },
     });
     expect(res.status).toBe(200);
 
     const baru = await dalamTransaksi((tx) => terbitkanNomor(tx, 'ORD', '2026-09-30'));
     expect(lama).toBe('ORD-260930-001');
-    expect(baru).toBe('PO-260930-001');
+    expect(baru).toBe('PSN-260930-001');
   });
 
   it('password minimal baru langsung berlaku untuk ganti password', async () => {

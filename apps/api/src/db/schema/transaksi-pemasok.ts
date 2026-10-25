@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, unique, varchar } from 'drizzle-orm/pg-core';
 import {
   KONDISI_STOK,
+  JENIS_ALOKASI_UANG_MUKA,
   METODE_PEMBAYARAN_PEMASOK,
   PENYELESAIAN_RETUR_PEMASOK,
   STATUS_HUTANG,
@@ -19,7 +20,7 @@ import {
   uang,
 } from './kolom';
 import { barang, pemasok } from './master';
-import { penerimaanBarang } from './persediaan';
+import { orderPembelian, penerimaanBarang } from './persediaan';
 import { pengguna } from './sistem';
 
 // Bagian RETUR PEMASOK, KONSINYASI, dan PEMBAYARAN PEMASOK (tabel M2; UI mulai Fase 10–11).
@@ -209,8 +210,15 @@ export const pembayaranPemasok = pgTable(
     idShift: kolomRef('id_shift'),
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
+    /** K-125: uang muka order pembelian (dibayar sebelum barang datang). */
+    idOrderPembelian: kolomRef('id_order_pembelian'),
   },
   (t) => [
+    foreignKey({
+      name: 'pembayaran_pemasok_id_order_pembelian_fkey',
+      columns: [t.idOrderPembelian],
+      foreignColumns: [orderPembelian.id],
+    }),
     foreignKey({
       name: 'pembayaran_pemasok_id_pemasok_fkey',
       columns: [t.idPemasok],
@@ -241,12 +249,65 @@ export const pembayaranPemasok = pgTable(
       columns: [t.idShift],
       foreignColumns: [shiftKasir.id],
     }),
-    check('chk_pbp_sumber', sql`num_nonnulls(id_penerimaan, id_penyelesaian_konsinyasi) = 1`),
+    check(
+      'chk_pbp_sumber',
+      sql`num_nonnulls(id_penerimaan, id_penyelesaian_konsinyasi, id_order_pembelian) = 1`,
+    ),
     check('chk_pbp_metode', dalamDaftar('metode', METODE_PEMBAYARAN_PEMASOK)),
     check('chk_pbp_kompensasi', sql`(metode = 'KOMPENSASI') = (id_retur_pemasok is not null)`),
     check('chk_pbp_nominal', sql`nominal > 0`),
     index('idx_pbp_pemasok').on(t.idPemasok),
     index('idx_pbp_penerimaan').on(t.idPenerimaan),
     index('idx_pbp_ksg').on(t.idPenyelesaianKonsinyasi),
+  ],
+);
+
+/**
+ * K-125 [APPEND]: pemakaian uang muka order pembelian. DIPAKAI = menjadi pembayaran penerimaan dari PO itu;
+ * DIKEMBALIKAN = pemasok mengembalikan sisa uang muka (PO ditutup/batal). Sisa uang muka = Σ uang muka − Σ baris ini.
+ */
+export const alokasiUangMuka = pgTable(
+  'alokasi_uang_muka',
+  {
+    id: kolomId(),
+    idPembayaranPemasok: kolomRef('id_pembayaran_pemasok').notNull(),
+    jenis: varchar('jenis', { length: 12, enum: JENIS_ALOKASI_UANG_MUKA }).notNull(),
+    idPenerimaan: kolomRef('id_penerimaan'),
+    nominal: uang('nominal').notNull(),
+    metodeKembali: varchar('metode_kembali', { length: 10, enum: METODE_PEMBAYARAN_PEMASOK }),
+    idShift: kolomRef('id_shift'),
+    idPengguna: kolomRef('id_pengguna').notNull(),
+    tanggalOperasional: tanggal('tanggal_operasional').notNull(),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'alokasi_uang_muka_id_pembayaran_pemasok_fkey',
+      columns: [t.idPembayaranPemasok],
+      foreignColumns: [pembayaranPemasok.id],
+    }),
+    foreignKey({
+      name: 'alokasi_uang_muka_id_penerimaan_fkey',
+      columns: [t.idPenerimaan],
+      foreignColumns: [penerimaanBarang.id],
+    }),
+    foreignKey({
+      name: 'alokasi_uang_muka_id_shift_fkey',
+      columns: [t.idShift],
+      foreignColumns: [shiftKasir.id],
+    }),
+    foreignKey({
+      name: 'alokasi_uang_muka_id_pengguna_fkey',
+      columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_alokasi_jenis', dalamDaftar('jenis', JENIS_ALOKASI_UANG_MUKA)),
+    check('chk_alokasi_nominal', sql`nominal > 0`),
+    check(
+      'chk_alokasi_sumber',
+      sql`(jenis = 'DIPAKAI' and id_penerimaan is not null and metode_kembali is null)
+        or (jenis = 'DIKEMBALIKAN' and id_penerimaan is null and metode_kembali in ('TUNAI', 'TRANSFER'))`,
+    ),
+    index('idx_alokasi_pembayaran').on(t.idPembayaranPemasok),
   ],
 );
