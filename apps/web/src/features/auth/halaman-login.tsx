@@ -76,6 +76,7 @@ export function HalamanLogin() {
             <h1 className="text-xl font-bold text-slate-900">BonsaiUrip</h1>
           </div>
 
+          <img src="/logo-bonsaiurip.svg" alt="Sumber Urip Bonsai" className="mb-4 h-14" />
           <h2 className="mb-1 text-xl font-semibold text-slate-800">Masuk ke Sistem</h2>
           <p className="mb-6 text-sm text-slate-500">Masukkan username dan password Anda.</p>
 

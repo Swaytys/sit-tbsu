@@ -74,6 +74,17 @@ prioritas di bagian akhir.
   Pengaturan › Struk & printer › Invoice, surat jalan & kertas (bawaan menyala; konfigurasi
   `surat_jalan_rangkap`). **Selesai.**
 
+- **K-188 Pemasang tanpa terminal.** Bug: pemasangan berhenti karena password `postgres` salah/lupa dan akun dev
+  `sit` dipakai ulang. Diperbaiki: berkas **Pasang BonsaiUrip** (klik dua kali, minta izin Administrator), semua
+  isian lewat jendela, akun database aplikasi sendiri `bonsai`/`bonsaiurip` dengan password acak, jalan keluar
+  "Saya lupa" (izin lokal sementara, pg_hba.conf dikembalikan), jendela akhir berisi password Owner yang bisa
+  disalin. **Selesai.** Lanjutan (*Rencana*): satu berkas **setup .exe** (Inno Setup) yang membawa Node,
+  PostgreSQL portabel, dan aplikasi hasil build, dengan wizard Next/Next, ikon, dan menu Start; butuh alat
+  pembuat installer dan ±300 MB paket.
+- **K-189 Identitas visual.** Tanda BonsaiUrip (bonsai krem di papan kayu walnut, dari logo Sumber Urip Bonsai)
+  dipakai sebagai ikon tab, sidebar, dan halaman masuk (`apps/web/public/favicon.svg`, `logo-bonsaiurip.svg`).
+  **Selesai.** Ikon .ico untuk installer menyusul bersama K-188.
+
 ## Urutan pengerjaan berikutnya
 
 1. K-174 alur surat jalan (kritis), K-177 seret keyboard.

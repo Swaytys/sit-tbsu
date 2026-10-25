@@ -36,26 +36,20 @@ PS> mkdir C:\BonsaiUrip
 PS> git clone https://github.com/Swaytys/sit-tbsu.git C:\BonsaiUrip\sit-tbsu
 ```
 
-## 3. Pasang
+## 3. Pasang (klik dua kali, tanpa mengetik perintah)
 
-1. Klik Start, ketik `PowerShell`, klik kanan **Windows PowerShell** › **Run as administrator** › Yes.
-2. Ketik:
+1. Buka folder `C:\BonsaiUrip\sit-tbsu`, klik dua kali **Pasang BonsaiUrip**. Windows bertanya izin
+   Administrator: klik **Ya**.
+2. Jendela meminta **password PostgreSQL** (user `postgres`, dibuat saat memasang PostgreSQL). Lupa? Klik
+   **Saya lupa** lalu **Yes**: pemasang membuka izin masuk lokal sementara untuk membuat database, lalu
+   mengembalikan pengaturan PostgreSQL persis seperti semula.
+3. Tunggu ±5–10 menit (jendela hitam menampilkan kemajuan; tidak perlu diketik apa pun). Aplikasi memakai akun
+   database sendiri (`bonsai`, database `bonsaiurip`) dengan password acak; tidak mengganggu database pengembangan.
+4. Di akhir muncul jendela **BonsaiUrip siap dipakai** berisi **password awal Owner**: klik **Salin password**,
+   simpan, lalu **Buka BonsaiUrip**.
 
-   ```powershell
-   PS> cd C:\BonsaiUrip\sit-tbsu
-   PS> powershell -ExecutionPolicy Bypass -File scripts\server\pasang-server.ps1
-   ```
-
-3. Pertanyaan yang muncul:
-   - *Password user database 'sit'*: bila laptop pengembangan, ketik password user `sit` yang sudah ada (di
-     `D:\sit-tbsu\.env`, bagian `DATABASE_URL` setelah `sit:` sampai `@`). Laptop lain: buat password baru dan
-     catat.
-   - *Password user postgres*: hanya ditanya bila database `tbsu` belum ada.
-4. Tunggu ±5–10 menit (memasang, build, membuat database). Di akhir tertulis **SERVER SIAP** dan **password
-   awal Owner**. **Foto/catat password itu.**
-
-Bila berhenti dengan tulisan merah, foto layarnya dan kirim ke pengembang; jalankan ulang perintah yang sama
-setelah diperbaiki (aman diulang).
+Bila berhenti, jendela pesan menyebut sebabnya; perbaiki lalu klik dua kali **Pasang BonsaiUrip** lagi (aman
+diulang; pemasangan yang tadi gagal dilanjutkan, bukan diulang dari nol).
 
 ## 4. Buka dan siapkan aplikasi
 

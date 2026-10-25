@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BonsaiUrip">
+  <!-- Tanda BonsaiUrip: bonsai krem di atas papan kayu walnut (mengikuti logo Sumber Urip Bonsai). -->
+  <defs>
+    <linearGradient id="kayu" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6b4429"/>
+      <stop offset="1" stop-color="#2e1d12"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#kayu)"/>
+  <g fill="#ecd9b8">
+    <ellipse cx="22" cy="21" rx="11" ry="6.5"/>
+    <ellipse cx="41" cy="16.5" rx="12" ry="7"/>
+    <ellipse cx="44" cy="30" rx="9" ry="5.5"/>
+    <path d="M30 47c1-6-3-9-2-14 1-4 5-6 9-9l1.6 1.8c-3.4 2.6-6.3 4.4-7 7.6-.8 3.6 3 7.4 2.4 13.6z"/>
+    <path d="M30.5 33c-3-1.5-5.5-4-6.5-7l2-.8c1 2.4 3 4.4 5.4 5.6z"/>
+    <path d="M17 47h30l-3.5 8.5c-.3.9-1.2 1.5-2.2 1.5H22.7c-1 0-1.9-.6-2.2-1.5z"/>
+  </g>
+</svg>

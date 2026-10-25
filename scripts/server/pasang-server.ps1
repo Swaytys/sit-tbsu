@@ -15,8 +15,8 @@
 #>
 #Requires -RunAsAdministrator
 param(
-  [string]$NamaDatabase = 'tbsu',
-  [string]$PenggunaDb = 'sit',
+  [string]$NamaDatabase = 'bonsaiurip',
+  [string]$PenggunaDb = 'bonsai',
   [string]$HostDb = 'localhost',
   [int]$PortDb = 5432
 )
@@ -26,11 +26,74 @@ $ErrorActionPreference = 'Continue'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repo
 $namaTugas = 'BonsaiUrip Server'
+Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+
+# Galat apa pun ditampilkan sebagai jendela pesan (pengguna tidak perlu membaca terminal).
+trap {
+  [Windows.Forms.MessageBox]::Show(
+    "Pemasangan berhenti:`n`n$($_.Exception.Message)`n`nPerbaiki lalu klik dua kali 'Pasang BonsaiUrip' lagi (aman diulang).",
+    'BonsaiUrip - pemasangan gagal', 'OK', 'Error') | Out-Null
+  break
+}
 
 function Langkah([string]$teks) { Write-Host ''; Write-Host "== $teks ==" -ForegroundColor Cyan }
 function Acak([int]$n) { -join ((48..57) + (65..90) + (97..122) | Get-Random -Count $n | ForEach-Object { [char]$_ }) }
-function TeksBiasa([Security.SecureString]$s) {
-  [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
+
+<# Jendela isian password. Mengembalikan teks, atau $null bila dibatalkan. #>
+function MintaSandi([string]$judul, [string]$pesan) {
+  $f = New-Object Windows.Forms.Form
+  $f.Text = $judul; $f.Width = 460; $f.Height = 230; $f.StartPosition = 'CenterScreen'
+  $f.FormBorderStyle = 'FixedDialog'; $f.MaximizeBox = $false; $f.MinimizeBox = $false; $f.TopMost = $true
+  $l = New-Object Windows.Forms.Label
+  $l.Text = $pesan; $l.SetBounds(16, 14, 410, 70)
+  $t = New-Object Windows.Forms.TextBox
+  $t.UseSystemPasswordChar = $true; $t.SetBounds(16, 90, 410, 24)
+  $ok = New-Object Windows.Forms.Button
+  $ok.Text = 'Lanjut'; $ok.SetBounds(240, 130, 90, 30); $ok.DialogResult = 'OK'
+  $batal = New-Object Windows.Forms.Button
+  $batal.Text = 'Saya lupa'; $batal.SetBounds(336, 130, 90, 30); $batal.DialogResult = 'Cancel'
+  $f.Controls.AddRange(@($l, $t, $ok, $batal)); $f.AcceptButton = $ok; $f.CancelButton = $batal
+  if ($f.ShowDialog() -eq 'OK') { return $t.Text } else { return $null }
+}
+
+<#
+  Menjalankan SQL sebagai superuser postgres. Diminta password postgres (3 kali). Bila lupa: dengan persetujuan,
+  izin masuk lokal tanpa password dibuka SEMENTARA (pg_hba.conf dicadangkan lalu dikembalikan persis).
+#>
+function JalankanSuper([string[]]$perintah) {
+  for ($i = 1; $i -le 3; $i++) {
+    $sandi = MintaSandi 'Password PostgreSQL' ("Masukkan password user 'postgres' (dibuat saat memasang PostgreSQL)." +
+      "`nPercobaan $i dari 3. Lupa? Klik 'Saya lupa'.")
+    if ($null -eq $sandi) { break }
+    $env:PGPASSWORD = $sandi
+    & $psql -h $HostDb -p $PortDb -U postgres -d postgres -c 'select 1' 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+      foreach ($q in $perintah) { & $psql -h $HostDb -p $PortDb -U postgres -d postgres -v ON_ERROR_STOP=1 -c $q }
+      Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
+      return
+    }
+  }
+  Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
+  $jawab = [Windows.Forms.MessageBox]::Show(
+    "Password postgres tidak cocok/lupa.`n`nPemasang bisa membuat database tanpa password dengan membuka izin masuk lokal SEMENTARA (berkas pengaturan PostgreSQL dicadangkan lalu dikembalikan persis setelah selesai). Lanjutkan?",
+    'BonsaiUrip', 'YesNo', 'Question')
+  if ($jawab -ne 'Yes') { throw 'Butuh password postgres untuk membuat database.' }
+  $layanan = Get-CimInstance Win32_Service | Where-Object { $_.Name -like 'postgresql*' } | Select-Object -First 1
+  if (-not $layanan -or $layanan.PathName -notmatch '-D\s+"?([^"]+?)"?(\s|$)') {
+    throw 'Layanan PostgreSQL tidak ditemukan; tidak bisa membuka izin sementara.'
+  }
+  $hba = Join-Path $Matches[1] 'pg_hba.conf'
+  $cadangan = "$hba.bonsaiurip-cadangan"
+  Copy-Item $hba $cadangan -Force -ErrorAction Stop
+  try {
+    @('host all postgres 127.0.0.1/32 trust', 'host all postgres ::1/128 trust') + (Get-Content $cadangan) |
+      Set-Content -Path $hba -Encoding ascii -ErrorAction Stop
+    Restart-Service $layanan.Name -ErrorAction Stop; Start-Sleep -Seconds 3
+    foreach ($q in $perintah) { & $psql -h $HostDb -p $PortDb -U postgres -d postgres -v ON_ERROR_STOP=1 -c $q }
+  } finally {
+    Copy-Item $cadangan $hba -Force; Remove-Item $cadangan -ErrorAction SilentlyContinue
+    Restart-Service $layanan.Name -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3
+  }
 }
 
 Langkah '1. Memeriksa program'
@@ -48,22 +111,29 @@ if (-not $psql) { throw 'PostgreSQL (psql) tidak ditemukan. Pasang PostgreSQL 17
 Write-Host "Node $((& $node --version)), pnpm $((pnpm --version)), $psql"
 
 Langkah '2. Berkas .env produksi dan database'
+# Akun database khusus aplikasi (bukan akun pengembangan 'sit'); password dibuat otomatis, tidak perlu diingat.
 $envPath = Join-Path $repo '.env'
+$sandiOwner = $null
 if (Test-Path $envPath) {
-  Write-Host '.env sudah ada; dipakai apa adanya.'
   if (-not (Select-String -Path $envPath -Pattern '^NODE_ENV=production' -Quiet)) {
     throw '.env yang ada bukan produksi (NODE_ENV=production). Pindahkan/ganti namanya dulu, lalu jalankan lagi.'
   }
+  $isiEnv = Get-Content $envPath
+  # Pemasangan lama yang gagal memakai akun 'sit': diganti akun aplikasi sendiri.
+  if ($isiEnv -match '^DATABASE_URL=postgres://sit:') {
+    $baru = "DATABASE_URL=postgres://$($PenggunaDb):$(Acak 24)@$($HostDb):$PortDb/$NamaDatabase"
+    $isiEnv = $isiEnv | ForEach-Object { if ($_ -like 'DATABASE_URL=*') { $baru } else { $_ } }
+    $isiEnv | Set-Content -Path $envPath -Encoding ascii -ErrorAction Stop
+  }
+  Write-Host '.env sudah ada; dipakai.'
 } else {
-  $sandiDb = TeksBiasa (Read-Host "Password user database '$PenggunaDb' (buat baru bila belum ada)" -AsSecureString)
   $sandiOwner = Acak 12
-  $sandiPfx = Acak 24
   @(
-    '# .env PRODUKSI server toko - dibuat pasang-server.ps1. JANGAN dibagikan / di-commit.'
+    '# .env PRODUKSI - dibuat pasang-server.ps1. JANGAN dibagikan / di-commit.'
     'NODE_ENV=production'
     'PORT=443'
     'PORT_HTTP_ALIH=80'
-    "DATABASE_URL=postgres://$($PenggunaDb):$([uri]::EscapeDataString($sandiDb))@$($HostDb):$PortDb/$NamaDatabase"
+    "DATABASE_URL=postgres://$($PenggunaDb):$(Acak 24)@$($HostDb):$PortDb/$NamaDatabase"
     "SEED_OWNER_PASSWORD=$sandiOwner"
     'SESSION_IDLE_MENIT=60'
     'SESSION_ABSOLUT_JAM=12'
@@ -71,28 +141,36 @@ if (Test-Path $envPath) {
     "LOG_FILE=$repo\log\server.log"
     "STORAGE_DIR=$repo\storage"
     "HTTPS_PFX=$repo\sertifikat\server.pfx"
-    "HTTPS_PFX_PASSWORD=$sandiPfx"
+    "HTTPS_PFX_PASSWORD=$(Acak 24)"
     '# Alamat Tailscale (akses luar toko), mis. https://server-toko.tailxxxx.ts.net:8443'
     'ORIGIN_TAMBAHAN='
   ) | Set-Content -Path $envPath -Encoding ascii -ErrorAction Stop
-  Write-Host ".env dibuat. Password awal Owner: $sandiOwner  (catat; wajib diganti saat login pertama)" -ForegroundColor Yellow
-
-  # Database & user dibuat dengan akun superuser postgres bila belum ada.
+}
+if (-not $sandiOwner) {
+  $sandiOwner = ((Select-String -Path $envPath -Pattern '^SEED_OWNER_PASSWORD=(.*)$').Matches[0].Groups[1].Value)
+}
+$url = [uri]((Select-String -Path $envPath -Pattern '^DATABASE_URL=(.*)$').Matches[0].Groups[1].Value)
+$userDb = $url.UserInfo.Split(':')[0]
+$sandiDb = [uri]::UnescapeDataString($url.UserInfo.Split(':', 2)[1])
+$namaDb = $url.AbsolutePath.TrimStart('/')
+$env:PGPASSWORD = $sandiDb
+& $psql -h $HostDb -p $PortDb -U $userDb -d $namaDb -c 'select 1' 2>$null | Out-Null
+$adaDb = ($LASTEXITCODE -eq 0)
+Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
+if (-not $adaDb) {
+  Write-Host "Membuat akun '$userDb' dan database '$namaDb'..."
+  $s = $sandiDb.Replace("'", "''")
+  JalankanSuper @(
+    "DO `$`$BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$userDb') THEN CREATE ROLE $userDb LOGIN CREATEDB PASSWORD '$s'; ELSE ALTER ROLE $userDb LOGIN CREATEDB PASSWORD '$s'; END IF; END`$`$;",
+    "SELECT 'database sudah ada' WHERE EXISTS (SELECT FROM pg_database WHERE datname = '$namaDb')"
+  )
   $env:PGPASSWORD = $sandiDb
-  & $psql -h $HostDb -p $PortDb -U $PenggunaDb -d $NamaDatabase -c 'select 1' 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    Write-Host "Database '$NamaDatabase' atau user '$PenggunaDb' belum ada; dibuat dengan akun postgres."
-    $env:PGPASSWORD = TeksBiasa (Read-Host 'Password user postgres (superuser PostgreSQL)' -AsSecureString)
-    $sandiSql = $sandiDb.Replace("'", "''")
-    & $psql -h $HostDb -p $PortDb -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO `$`$BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$PenggunaDb') THEN CREATE ROLE $PenggunaDb LOGIN CREATEDB PASSWORD '$sandiSql'; END IF; END`$`$;"
-    if ($LASTEXITCODE -ne 0) { throw 'Gagal membuat user database.' }
-    # User yang sudah ada (mis. laptop pengembangan) diberi CREATEDB: perbarui-server.ps1 menguji migrasi pada
-    # salinan database (K-166).
-    & $psql -h $HostDb -p $PortDb -U postgres -d postgres -c "ALTER ROLE $PenggunaDb CREATEDB" | Out-Null
-    & $psql -h $HostDb -p $PortDb -U postgres -d postgres -c "CREATE DATABASE $NamaDatabase OWNER $PenggunaDb ENCODING 'UTF8' TEMPLATE template0"
-    if ($LASTEXITCODE -ne 0) { throw 'Gagal membuat database.' }
-  }
+  & $psql -h $HostDb -p $PortDb -U $userDb -d postgres -tAc "select 1 from pg_database where datname = '$namaDb'" | Out-String |
+    ForEach-Object { if ($_.Trim() -ne '1') { & $psql -h $HostDb -p $PortDb -U $userDb -d postgres -c "CREATE DATABASE $namaDb ENCODING 'UTF8' TEMPLATE template0" } }
+  & $psql -h $HostDb -p $PortDb -U $userDb -d $namaDb -c 'select 1' 2>$null | Out-Null
+  $ok = ($LASTEXITCODE -eq 0)
   Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
+  if (-not $ok) { throw "Database '$namaDb' belum bisa dibuka dengan akun '$userDb'." }
 }
 
 Langkah '3. Dependency, build, migrasi, data awal'
@@ -169,11 +247,28 @@ for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
 }
 if (-not $ok) { throw 'Server belum menjawab. Periksa log\server.log dan log\penjaga.log.' }
 
+# Jendela akhir: password awal Owner bisa disalin, lalu aplikasi dibuka.
+$f = New-Object Windows.Forms.Form
+$f.Text = 'BonsaiUrip siap dipakai'; $f.Width = 480; $f.Height = 260; $f.StartPosition = 'CenterScreen'
+$f.FormBorderStyle = 'FixedDialog'; $f.MaximizeBox = $false; $f.TopMost = $true
+$l = New-Object Windows.Forms.Label
+$l.Text = "Pemasangan selesai. Masuk dengan nama pengguna 'owner' dan password awal di bawah (wajib diganti saat masuk pertama). Simpan/salin password ini sekarang."
+$l.SetBounds(16, 14, 430, 60)
+$t = New-Object Windows.Forms.TextBox
+$t.Text = $sandiOwner; $t.ReadOnly = $true; $t.Font = New-Object Drawing.Font('Consolas', 14); $t.SetBounds(16, 80, 430, 32)
+$salin = New-Object Windows.Forms.Button
+$salin.Text = 'Salin password'; $salin.SetBounds(16, 140, 140, 32)
+$salin.Add_Click({ [Windows.Forms.Clipboard]::SetText($sandiOwner) })
+$buka = New-Object Windows.Forms.Button
+$buka.Text = 'Buka BonsaiUrip'; $buka.SetBounds(306, 140, 140, 32); $buka.DialogResult = 'OK'
+$f.Controls.AddRange(@($l, $t, $salin, $buka)); $f.AcceptButton = $buka
+if ($f.ShowDialog() -eq 'OK') { Start-Process 'https://localhost/' }
+
 Write-Host ''
 Write-Host 'SERVER SIAP.' -ForegroundColor Green
 Write-Host 'Alamat di komputer ini  : https://localhost/  (pintasan BonsaiUrip di desktop)'
 Write-Host "Alamat di jaringan toko : https://$($env:COMPUTERNAME)/"
 Write-Host 'Langkah berikutnya (lihat panduan):'
 Write-Host '  - Salin sertifikat\ca-toko.cer ke setiap komputer kasir/admin, jalankan scripts\kasir\pasang-sertifikat.ps1'
-Write-Host '  - Login Owner dengan password awal di atas (atau SEED_OWNER_PASSWORD di .env), lalu ganti password'
+Write-Host "  - Login Owner (owner / $sandiOwner), lalu ganti password"
 Write-Host '  - Atur cadangan data: Pengaturan > Cadangan'

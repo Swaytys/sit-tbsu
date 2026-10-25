@@ -40,18 +40,6 @@ export function Sidebar({ terbuka }: { terbuka: boolean }) {
   const menu = menuUntuk(pengguna);
   const toko = useTampilanToko().data;
   const namaToko = toko?.namaToko ?? 'BonsaiUrip';
-  // "BonsaiUrip" → "BU", "Toko Maju" → "TM".
-  const kapital = namaToko.match(/[A-Z]/g) ?? [];
-  const inisial = (
-    kapital.length >= 2
-      ? kapital.join('')
-      : namaToko
-          .split(/\s+/)
-          .map((k) => k.charAt(0))
-          .join('')
-  )
-    .slice(0, 2)
-    .toUpperCase();
 
   return (
     <aside
@@ -68,9 +56,7 @@ export function Sidebar({ terbuka }: { terbuka: boolean }) {
             className="size-7 shrink-0 rounded bg-white object-contain"
           />
         ) : (
-          <div className="flex size-7 shrink-0 items-center justify-center rounded bg-blue-600 text-xs font-black text-white">
-            {inisial}
-          </div>
+          <img src="/favicon.svg" alt="" className="size-7 shrink-0 rounded" />
         )}
         {terbuka && (
           <div className="ml-2.5 overflow-hidden leading-tight">
