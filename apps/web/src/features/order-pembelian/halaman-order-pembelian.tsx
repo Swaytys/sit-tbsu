@@ -26,6 +26,8 @@ import { useTampilanToko } from '@/api/pengaturan';
 import { AreaCetak } from '@/components/area-cetak';
 import { OrderPembelianA4 } from '@/components/dokumen-a4';
 import { InputRupiah } from '@/components/input-rupiah';
+import { SaranAlasan } from '@/components/saran-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 import { PilihBarang } from '@/components/pilih-barang';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -536,6 +538,10 @@ function DialogAkhiri({
             maxLength={255}
           />
         </label>
+        <SaranAlasan
+          saran={jenis === 'tutup' ? SARAN_ALASAN.tutupPO : SARAN_ALASAN.batalPO}
+          onPilih={setAlasan}
+        />
         {adaSisa && (
           <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
             <p>

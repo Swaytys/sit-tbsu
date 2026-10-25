@@ -50,7 +50,8 @@ const kolom = {
   alasanBatal: orderPenjualan.alasanBatal,
   idPenjualan: orderPenjualan.idPenjualan,
   diubahPada: orderPenjualan.diubahPada,
-  noHpPembeli: orderPenjualan.noHpPembeli,
+  // K-180: tanpa No. HP pembeli, pakai No. HP pelanggan terdaftar (isian simpan order langsung terisi).
+  noHpPembeli: sql<string | null>`coalesce(${orderPenjualan.noHpPembeli}, ${pelanggan.noHp})`,
   tanggalAmbil: orderPenjualan.tanggalAmbil,
 };
 

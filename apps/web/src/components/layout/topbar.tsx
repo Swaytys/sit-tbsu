@@ -2,7 +2,7 @@ import { LABEL_PERAN } from '@sit/shared';
 import { ID_SLOT_LENCANA } from '@/components/banner-lipat';
 import { KotakCari } from './kotak-cari';
 import { Bell, ChevronDown, Info, KeyRound, LockKeyhole, LogOut, Menu, Store } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
 import { useNotifikasi } from '@/api/persediaan';
@@ -31,6 +31,17 @@ function IndikatorShift() {
   const navigate = useNavigate();
   const st = useStatusShiftToko().data;
   const boleh = pengguna.izin.includes('kas.shift.kelola_sendiri');
+  // K-186: menutup tab/jendela saat shift toko masih terbuka memunculkan peringatan peramban. Shift yang
+  // tertinggal tetap aman (muncul sebagai "Shift kemarin belum ditutup" dan bisa ditutup belakangan).
+  const shiftTerbuka = boleh && st !== undefined && st !== null;
+  useEffect(() => {
+    if (!shiftTerbuka) return;
+    const tahan = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', tahan);
+    return () => window.removeEventListener('beforeunload', tahan);
+  }, [shiftTerbuka]);
   const [teks, warna, judul] =
     st === undefined
       ? ['Shift …', 'border-slate-200 text-slate-400', '']
@@ -41,9 +52,17 @@ function IndikatorShift() {
             'Shift toko belum dibuka.',
           ]
         : st.terlewat
-          ? ['Shift kemarin belum ditutup', 'border-red-300 bg-red-50 text-red-700', st.nomor]
+          ? [
+              'Shift kemarin belum ditutup',
+              'border-red-300 bg-red-50 text-red-700',
+              `${st.nomor} · shift kemarin belum ditutup`,
+            ]
           : st.status === 'DIHITUNG'
-            ? ['Shift sedang ditutup', 'border-blue-300 bg-blue-50 text-blue-700', st.nomor]
+            ? [
+                'Shift sedang ditutup',
+                'border-blue-300 bg-blue-50 text-blue-700',
+                `${st.nomor} · shift sedang ditutup`,
+              ]
             : [
                 'Shift buka',
                 st.lewatJadwal
@@ -63,11 +82,18 @@ function IndikatorShift() {
         warna,
       )}
     >
-      {st ? <Store className="size-3.5" /> : <LockKeyhole className="size-3.5" />}
-      {teks}
+      {st ? <Store className="size-3.5 shrink-0" /> : <LockKeyhole className="size-3.5 shrink-0" />}
+      {/* K-172: layar sempit cukup kata pertama ("Shift"); teks lengkap di judul. */}
+      <span className="hidden 2xl:inline">{teks}</span>
+      <span className="2xl:hidden">{PENDEK[teks] ?? teks}</span>
     </button>
   );
 }
+
+const PENDEK: Record<string, string> = {
+  'Shift kemarin belum ditutup': 'Belum ditutup',
+  'Shift sedang ditutup': 'Menutup',
+};
 
 /** Lonceng notifikasi (docs/05 ST2): isi dihitung API sesuai izin pengguna. */
 function LoncengNotifikasi() {

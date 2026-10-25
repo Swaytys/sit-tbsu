@@ -155,6 +155,10 @@ if (Test-Path $ca) {
 $pintasan = Join-Path ([Environment]::GetFolderPath('CommonDesktopDirectory')) 'BonsaiUrip.url'
 @('[InternetShortcut]', 'URL=https://localhost/', 'IconIndex=0') | Set-Content -Path $pintasan -Encoding ascii
 Write-Host "Pintasan desktop dibuat: $pintasan"
+# K-186: aplikasi juga terbuka sendiri di peramban setiap pengguna masuk ke Windows.
+$mulai = Join-Path ([Environment]::GetFolderPath('CommonStartup')) 'BonsaiUrip.url'
+@('[InternetShortcut]', 'URL=https://localhost/', 'IconIndex=0') | Set-Content -Path $mulai -Encoding ascii
+Write-Host 'Aplikasi terbuka otomatis setiap Windows dinyalakan (folder Startup).'
 
 Langkah '6. Memeriksa server'
 $ok = $false

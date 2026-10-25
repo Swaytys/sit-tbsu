@@ -84,6 +84,7 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       kertasInvoice: kertas(m.get('kertas_invoice'), 'A4_LANSKAP'),
       kertasSuratJalan: kertas(m.get('kertas_surat_jalan'), 'A4_LANSKAP'),
       kertasDokumenLain: kertas(m.get('kertas_dokumen_lain'), 'A4_POTRET'),
+      suratJalanRangkap: bool(m, 'surat_jalan_rangkap', true),
     },
     penomoran: {
       prefix: Object.fromEntries(KODE_DOKUMEN.map((k) => [k, teks(m, `prefix_${k}`, k)])) as Record<
@@ -150,6 +151,7 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     t('kertas_invoice', p.profil.kertasInvoice);
     t('kertas_surat_jalan', p.profil.kertasSuratJalan);
     t('kertas_dokumen_lain', p.profil.kertasDokumenLain);
+    b('surat_jalan_rangkap', p.profil.suratJalanRangkap);
   }
   if (p.penomoran) {
     for (const k of KODE_DOKUMEN) t(`prefix_${k}`, p.penomoran.prefix[k]);
@@ -280,6 +282,7 @@ export async function tampilanToko(): Promise<TampilanToko> {
     kertasInvoice: p.profil.kertasInvoice,
     kertasSuratJalan: p.profil.kertasSuratJalan,
     kertasDokumenLain: p.profil.kertasDokumenLain,
+    suratJalanRangkap: p.profil.suratJalanRangkap,
   };
 }
 

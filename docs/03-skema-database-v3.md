@@ -416,6 +416,7 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | kertas_invoice | A4_LANSKAP | kertas invoice: A4/A5/F4/LETTER × POTRET/LANSKAP (K-124) |
 | kertas_surat_jalan | A4_LANSKAP | kertas surat jalan (K-124) |
 | kertas_dokumen_lain | A4_POTRET | nota setoran titipan, nota retur pemasok (K-124) |
+| surat_jalan_rangkap | true | surat jalan dicetak 2 rangkap: asli + salinan (K-187) |
 | struk_tampilkan_nama | true | kop struk memakai nama toko (K-065) |
 | struk_tampilkan_logo | false | kop struk memakai logo toko (K-065) |
 | baris_per_halaman | 25 | 10, 25, 50, 100 (K-065) |

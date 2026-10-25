@@ -36,6 +36,8 @@ import {
 import { pesanGalat } from '@/api/client';
 import { useBatalSuratJalan, useDaftarSuratJalan, useDetailPenjualan } from '@/api/penjualan';
 import { CetakSuratJalan } from '@/components/cetak-surat-jalan';
+import { SaranAlasan } from '@/components/saran-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -171,7 +173,7 @@ function KartuOrder({
       <div className="rounded-md border bg-white p-2.5 pl-7 text-sm">
         <div className="flex flex-wrap items-start gap-1.5 pr-6">
           <Link
-            to={`/penjualan/${p.idPenjualan}`}
+            to={`/penjualan/${p.idPenjualan}?dari=pengiriman`}
             className="font-mono text-xs font-semibold whitespace-nowrap text-blue-700"
           >
             {p.nomor}
@@ -502,12 +504,14 @@ function DialogAlasan({
   judul,
   ket,
   label,
+  saran,
   onTutup,
   onKirim,
 }: {
   judul: string;
   ket: string;
   label: string;
+  saran: readonly string[];
   onTutup: () => void;
   onKirim: (alasan: string) => Promise<unknown>;
 }) {
@@ -540,6 +544,7 @@ function DialogAlasan({
           placeholder="Alasan"
           aria-label={label}
         />
+        <SaranAlasan saran={saran} onPilih={setAlasan} />
         <DialogFooter>
           <Button variant="outline" onClick={onTutup}>
             Kembali
@@ -797,6 +802,7 @@ export function HalamanPengiriman() {
           judul={`Batalkan rit ${dialog.rit.nomor}?`}
           ket="Surat jalan di dalamnya tidak ikut batal; kembali ke grup Belum direncanakan."
           label="Alasan batal rit"
+          saran={SARAN_ALASAN.batalRit}
           onTutup={() => setDialog(null)}
           onKirim={(alasan) =>
             batalRit
@@ -810,6 +816,7 @@ export function HalamanPengiriman() {
           judul={`Batalkan surat jalan ${dialog.sj.nomor}?`}
           ket="Barangnya kembali menjadi order kirim di Backlog."
           label="Alasan batal surat jalan"
+          saran={SARAN_ALASAN.batalSuratJalan}
           onTutup={() => setDialog(null)}
           onKirim={(alasan) =>
             batalSj

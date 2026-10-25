@@ -12,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { SaranAlasan } from '@/components/saran-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 import { Input } from '@/components/ui/input';
 
 /** Batalkan order dengan alasan (R5); reservasi stok dilepas. */
@@ -45,6 +47,7 @@ export function DialogBatal({
             onChange={(e) => setAlasan(e.target.value)}
             autoFocus
           />
+          <SaranAlasan saran={SARAN_ALASAN.batalOrder} onPilih={setAlasan} className="pt-1" />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onTutup}>

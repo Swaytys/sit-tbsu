@@ -123,7 +123,31 @@ export function InvoiceA4({ p, toko }: { p: DetailPenjualan; toko: TampilanToko 
 }
 
 /** Surat jalan A4 (docs/05 P14): referensi invoice, penerima, barang & qty kirim, sopir, tanda tangan. */
+/**
+ * K-187: surat jalan dicetak 2 rangkap (bila dinyalakan di Pengaturan) dalam satu perintah cetak: lembar asli untuk
+ * arsip toko dan lembar salinan untuk penerima, dengan keterangan di bagian bawah tiap lembar.
+ */
 export function SuratJalanA4({ sj, toko }: { sj: BarisSuratJalan; toko: TampilanToko }) {
+  if (!toko.suratJalanRangkap) return <LembarSuratJalan sj={sj} toko={toko} />;
+  return (
+    <>
+      <div className="break-after-page">
+        <LembarSuratJalan sj={sj} toko={toko} rangkap="ASLI - Arsip Toko (Kembali bersama Sopir)" />
+      </div>
+      <LembarSuratJalan sj={sj} toko={toko} rangkap="SALINAN - Arsip Customer / Penerima" />
+    </>
+  );
+}
+
+function LembarSuratJalan({
+  sj,
+  toko,
+  rangkap,
+}: {
+  sj: BarisSuratJalan;
+  toko: TampilanToko;
+  rangkap?: string;
+}) {
   return (
     <div className="bg-white p-2 text-sm text-black" data-testid="surat-jalan">
       <Kop toko={toko} judul="SURAT JALAN" nomor={sj.nomor} />
@@ -171,6 +195,11 @@ export function SuratJalanA4({ sj, toko }: { sj: BarisSuratJalan; toko: Tampilan
           </div>
         ))}
       </div>
+      {rangkap && (
+        <div className="mt-6 border-t border-dashed border-black pt-1 text-center text-xs font-bold tracking-wide">
+          {rangkap}
+        </div>
+      )}
     </div>
   );
 }

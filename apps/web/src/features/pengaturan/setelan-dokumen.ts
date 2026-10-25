@@ -8,5 +8,6 @@ export function ambilSetelanDokumen(p: Pengaturan['profil']) {
     kertasInvoice: p.kertasInvoice,
     kertasSuratJalan: p.kertasSuratJalan,
     kertasDokumenLain: p.kertasDokumenLain,
+    suratJalanRangkap: p.suratJalanRangkap,
   };
 }

@@ -1,6 +1,8 @@
 import { formatRupiah, type BarisDaftarPenerimaan, type JenisPenerimaan } from '@sit/shared';
 import { Plus, Search } from 'lucide-react';
 import { useState } from 'react';
+import { useDaftarPO } from '@/api/order-pembelian';
+import { BadgePO } from '@/features/order-pembelian/halaman-order-pembelian';
 import { Link } from 'react-router';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { useDaftarPenerimaan } from '@/api/persediaan';
@@ -123,6 +125,8 @@ export function HalamanPenerimaan() {
         </Button>
       </div>
 
+      <OrderPembelianMenunggu />
+
       <Card className="gap-0 overflow-hidden py-0">
         <div className="flex flex-wrap items-center gap-3 border-b p-3">
           <div className="relative max-w-sm flex-1">
@@ -194,5 +198,51 @@ export function HalamanPenerimaan() {
         />
       </Card>
     </div>
+  );
+}
+
+/** K-179: order pembelian yang menunggu barang/konfirmasi, dengan tombol langsung terima. */
+function OrderPembelianMenunggu() {
+  const q = useDaftarPO({ cari: '', status: 'BERJALAN', halaman: 1, perHalaman: 20 });
+  const daftar = q.data?.data ?? [];
+  if (daftar.length === 0) return null;
+  return (
+    <Card className="gap-2 p-3" data-testid="po-menunggu">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold text-slate-800">
+          Order pembelian menunggu barang ({q.data?.meta.total ?? daftar.length})
+        </h2>
+        <Link className="text-sm text-blue-700 hover:underline" to="/order-pembelian">
+          Semua order pembelian
+        </Link>
+      </div>
+      <ul className="divide-y text-sm">
+        {daftar.map((p) => (
+          <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+            <span className="min-w-0">
+              <Link
+                className="font-medium text-blue-700 hover:underline"
+                to={`/order-pembelian?status=&id=${p.id}`}
+              >
+                {p.nomor}
+              </Link>{' '}
+              <BadgePO status={p.status} /> · {p.namaPemasok} · {p.jumlahBarang} barang
+              {p.tanggalJanjiKirim && ` · janji ${formatTanggal(p.tanggalJanjiKirim)}`}
+              {p.terlambat && <b className="ml-1 text-red-700">terlambat</b>}
+            </span>
+            <span className="flex gap-2">
+              {p.status === 'DIPESAN' && (
+                <Button size="sm" variant="outline" asChild>
+                  <Link to={`/order-pembelian?status=&id=${p.id}`}>Konfirmasi</Link>
+                </Button>
+              )}
+              <Button size="sm" asChild>
+                <Link to={`/penerimaan/baru?po=${p.id}`}>Terima</Link>
+              </Button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
