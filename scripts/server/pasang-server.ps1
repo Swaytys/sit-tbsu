@@ -125,10 +125,11 @@ Langkah '2. Berkas .env produksi dan database'
 # Akun database khusus aplikasi (bukan akun pengembangan 'sit'); password dibuat otomatis, tidak perlu diingat.
 $envPath = Join-Path $repo '.env'
 $sandiOwner = $null
+# .env lama yang kosong/bukan produksi (sisa percobaan sebelumnya) dicadangkan, lalu dibuat yang baru.
+if ((Test-Path $envPath) -and -not (Select-String -Path $envPath -Pattern '^NODE_ENV=production' -Quiet)) {
+  Move-Item $envPath "$envPath.lama-$(Get-Date -Format yyyyMMddHHmmss)" -Force
+}
 if (Test-Path $envPath) {
-  if (-not (Select-String -Path $envPath -Pattern '^NODE_ENV=production' -Quiet)) {
-    throw '.env yang ada bukan produksi (NODE_ENV=production). Pindahkan/ganti namanya dulu, lalu jalankan lagi.'
-  }
   $isiEnv = Get-Content $envPath
   # Pemasangan lama yang gagal memakai akun 'sit': diganti akun aplikasi sendiri.
   if ($isiEnv -match '^DATABASE_URL=postgres://sit:') {
@@ -263,7 +264,11 @@ for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
   $hasil = & curl.exe -sk -o NUL -w '%{http_code}' https://localhost/api/health
   $ok = ($hasil -eq '200')
 }
-if (-not $ok) { throw 'Server belum menjawab. Periksa log\server.log dan log\penjaga.log.' }
+if (-not $ok) {
+  $log = Join-Path $repo 'log\penjaga.log'
+  $akhir = if (Test-Path $log) { (Get-Content $log -Tail 12) -join "`n" } else { '(log belum ada)' }
+  throw "Server belum menjawab setelah 60 detik. Isi log terakhir:`n$akhir"
+}
 
 # Jendela akhir: password awal Owner bisa disalin, lalu aplikasi dibuka.
 $f = New-Object Windows.Forms.Form
