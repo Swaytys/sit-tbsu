@@ -33,12 +33,12 @@ Source: "paket\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs igno
 [Icons]
 Name: "{commondesktop}\BonsaiUrip"; Filename: "https://localhost/"; IconFilename: "{app}\bonsaiurip.ico"
 Name: "{group}\Buka BonsaiUrip"; Filename: "https://localhost/"; IconFilename: "{app}\bonsaiurip.ico"
-Name: "{group}\Nyalakan / matikan server"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\server\copot-server.ps1"" -Nyalakan"; IconFilename: "{app}\bonsaiurip.ico"
+Name: "{group}\Nyalakan server"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\server\copot-server.ps1"" -Nyalakan"; IconFilename: "{app}\bonsaiurip.ico"
 
 [Run]
 ; Pemasang berjendela: membuat database, .env, sertifikat HTTPS, tugas otomatis, lalu membuka aplikasi.
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\server\pasang-server.ps1"""; \
-  StatusMsg: "Menyiapkan database dan server BonsaiUrip (isi password PostgreSQL di jendela yang muncul)..."; Flags: waituntilterminated
+  StatusMsg: "Menyiapkan database dan server BonsaiUrip (beberapa menit, jangan ditutup)..."; Flags: waituntilterminated runhidden
 
 [UninstallRun]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\server\copot-server.ps1"""; RunOnceId: "CopotServer"; Flags: runhidden
