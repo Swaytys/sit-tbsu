@@ -678,6 +678,26 @@ keputusan lama masih tertulis di berkasnya.
 | K-165 | Arsip/tutup buku tahunan; dokumen pembukuan disimpan 10 tahun. | Berlaku (selesai 24 Okt; data tetap di satu database, tahun dikunci + berkas arsip) |
 | K-166 | Alur pembaruan aplikasi yang aman bagi data lama. | Berlaku (selesai 24 Okt) |
 | K-167 | Pencarian universal di topbar (Ctrl+K). | Berlaku (selesai 24 Okt) |
+| K-168 | Mode demo terpisah; panduan penyiapan pertama dengan 5 contoh data asli per jenis. | Berlaku (rencana; `keputusan/2026-10-25-masukan-sebelum-deploy.md`) |
+| K-169 | Atribut dimensi/berat dan data muatan satu sumber, dengan aturan dimensi vs volume. | Berlaku (rencana) |
+| K-170 | Notifikasi dan lencana barang di order pengantaran yang belum punya data muatan. | Berlaku (rencana) |
+| K-171 | Hot page langsung/pengantaran: gulir panel dan pindah fokus dengan tombol, elemen lebih ringkas. | Berlaku (sebagian 25 Okt: ikon pengganti "Menghitung…") |
+| K-172 | Lencana topbar responsif, tidak meluap. | Berlaku (selesai 25 Okt) |
+| K-173 | Kartu Pengiriman: info cepat, nomor antrean, warna hasil pembagian, penanda hari, saringan. | Berlaku (rencana) |
+| K-174 | Surat jalan dibuat setelah rit punya kendaraan dan sopir; cetak/unduh semua surat jalan saat berangkat. | Berlaku (rencana, prioritas 1) |
+| K-175 | Detail yang dibuka dari Pengiriman kembali ke Pengiriman. | Berlaku (selesai 25 Okt) |
+| K-176 | Penyelesaian hasil pengantaran: alasan, potong tagihan, tugas transfer pengembalian, penanda kartu. | Berlaku (rencana) |
+| K-177 | Seret kartu Pengiriman dengan keyboard benar-benar berfungsi. | Berlaku (rencana) |
+| K-178 | BBM dan servis kendaraan ditunda ke v4/v5; tab disembunyikan. | Berlaku (selesai 25 Okt) |
+| K-179 | Order pembelian yang menunggu tampil di Penerimaan Barang. | Berlaku (selesai 25 Okt) |
+| K-180 | Isian otomatis (No. HP dari pelanggan) dan saran alasan sesuai konteks. | Berlaku (sebagian 25 Okt) |
+| K-181 | Tombol info cepat (pop-up) di setiap kode pada elemen interaktif. | Berlaku (rencana) |
+| K-182 | Laporan: menu di atas, pratinjau per halaman A4 besar. | Berlaku (rencana) |
+| K-183 | Pemeriksaan data diperluas selain No. HP. | Berlaku (rencana) |
+| K-184 | Harga dasar FIFO; penjelasan latest cost bukan LIFO. | Berlaku (rencana) |
+| K-185 | Promo: kelompok sasaran AND bertingkat; jenis beli N potong Rp X; penjelasan "?" diperjelas. | Berlaku (rencana) |
+| K-186 | Peringatan menutup aplikasi saat shift terbuka; peramban terbuka otomatis saat Windows mulai. | Berlaku (selesai 25 Okt) |
+| K-187 | Surat jalan dicetak 2 rangkap (asli arsip toko, salinan penerima) dengan keterangan per lembar. | Berlaku (selesai 25 Okt) |
 
 ---
 
@@ -720,3 +740,4 @@ Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supay
 - 2026-10-24 — K-165 (arsip tahunan) dan K-166 (pembaruan aman, versi aplikasi) selesai.
 - 2026-10-24 — Sisa gelombang 3–4 selesai: K-129, K-130, K-131, K-137, K-138, K-139, K-143.
 - 2026-10-24 — K-123 selesai (cari atribut sebagian, label keterjualan, stok menonjol, panel rincian).
+- 2026-10-25 — Masukan sebelum deploy dicatat sebagai K-168–K-186.

@@ -43,6 +43,8 @@ export const skemaProfilToko = z.object({
   kertasInvoice: z.enum(KERTAS_DOKUMEN, 'Pilihan kertas tidak valid.'),
   kertasSuratJalan: z.enum(KERTAS_DOKUMEN, 'Pilihan kertas tidak valid.'),
   kertasDokumenLain: z.enum(KERTAS_DOKUMEN, 'Pilihan kertas tidak valid.'),
+  /** K-187: surat jalan dicetak 2 rangkap (asli + salinan). */
+  suratJalanRangkap: z.boolean(),
 });
 
 /** Pilihan jumlah baris per halaman tabel (K-065). */
@@ -184,6 +186,7 @@ export type TampilanToko = {
   kertasInvoice: KertasDokumen;
   kertasSuratJalan: KertasDokumen;
   kertasDokumenLain: KertasDokumen;
+  suratJalanRangkap: boolean;
 };
 
 // --- Log aktivitas (Pengaturan › tab Log Aktivitas, izin sistem.log.lihat; docs/04 §8) ---

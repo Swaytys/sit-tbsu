@@ -54,8 +54,6 @@ import { jalankanDenganToast } from '@/lib/aksi';
 import { formatWaktu } from '@/lib/format';
 import { tampilkanGalatForm } from '@/lib/form';
 import { SelKesehatan } from './kesehatan';
-import { TabBbm, TabServis } from './tab-catatan';
-import { TabStatistik } from './tab-statistik';
 
 /** Tanda "sedang jalan" (K-150): kendaraan/sopir ini belum bisa dipakai perjalanan lain. */
 export function BadgeJalan({ jalan }: { jalan: SedangJalan | null }) {
@@ -652,9 +650,7 @@ export function HalamanArmada() {
         <TabsList>
           <TabsTrigger value="kendaraan">Kendaraan</TabsTrigger>
           <TabsTrigger value="sopir">Sopir</TabsTrigger>
-          <TabsTrigger value="bbm">BBM</TabsTrigger>
-          <TabsTrigger value="servis">Servis</TabsTrigger>
-          {bolehKelola && <TabsTrigger value="statistik">Statistik</TabsTrigger>}
+          {/* K-178: BBM, servis, dan statistik armada ditunda ke versi dengan pembukuan; data tetap utuh. */}
         </TabsList>
         <TabsContent value="kendaraan">
           <TabKendaraan bolehKelola={bolehKelola} />
@@ -662,17 +658,6 @@ export function HalamanArmada() {
         <TabsContent value="sopir">
           <TabSopir bolehKelola={bolehKelola} />
         </TabsContent>
-        <TabsContent value="bbm">
-          <TabBbm bolehBatal={bolehKelola} />
-        </TabsContent>
-        <TabsContent value="servis">
-          <TabServis bolehKelola={bolehKelola} />
-        </TabsContent>
-        {bolehKelola && (
-          <TabsContent value="statistik">
-            <TabStatistik />
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   );

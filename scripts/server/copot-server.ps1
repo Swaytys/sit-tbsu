@@ -40,6 +40,7 @@ Unregister-ScheduledTask -TaskName $namaTugas -Confirm:$false -ErrorAction Silen
 Remove-NetFirewallRule -DisplayName 'BonsaiUrip HTTPS' -ErrorAction SilentlyContinue
 $pintasan = Join-Path ([Environment]::GetFolderPath('CommonDesktopDirectory')) 'BonsaiUrip.url'
 Remove-Item $pintasan -ErrorAction SilentlyContinue
+Remove-Item (Join-Path ([Environment]::GetFolderPath('CommonStartup')) 'BonsaiUrip.url') -ErrorAction SilentlyContinue
 
 Write-Host ''
 Write-Host 'Server dilepas dari komputer ini. Data tidak dihapus (database, storage, cadangan, .env).' -ForegroundColor Green

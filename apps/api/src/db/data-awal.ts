@@ -91,6 +91,12 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     deskripsi: 'Kertas nota titip, retur pemasok, dan dokumen lembaran lain (K-124)',
   },
   {
+    kode: 'surat_jalan_rangkap',
+    nilai: 'true',
+    tipe: 'BOOL',
+    deskripsi: 'Surat jalan dicetak 2 rangkap: asli (arsip toko) dan salinan (penerima) (K-187)',
+  },
+  {
     kode: 'struk_tampilkan_nama',
     nilai: 'true',
     tipe: 'BOOL',

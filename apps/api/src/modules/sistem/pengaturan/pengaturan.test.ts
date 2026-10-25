@@ -76,6 +76,7 @@ describe('pengaturan › baca dan ubah', () => {
       kertas_invoice: 'A4_LANSKAP',
       kertas_surat_jalan: 'A4_LANSKAP',
       kertas_dokumen_lain: 'A4_POTRET',
+      surat_jalan_rangkap: 'true',
     });
     const sekarang = await baca();
 

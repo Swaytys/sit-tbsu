@@ -15,7 +15,7 @@ import {
   ukuranKertasCss,
 } from '@sit/shared';
 import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent } from 'react';
-import { Printer, RotateCcw } from 'lucide-react';
+import { Loader2, Printer, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
@@ -828,7 +828,12 @@ export function LayarPos({
             <div className="flex items-baseline justify-between rounded-md bg-slate-900 px-3 py-2 text-white">
               <span className="text-xs tracking-widest text-slate-300 uppercase">
                 Total
-                {tr.t.baris.length > 0 && !pratinjau.segar ? ' (menghitung…)' : ''}
+                {tr.t.baris.length > 0 && !pratinjau.segar && (
+                  <Loader2
+                    className="ml-1 inline size-3 animate-spin align-middle"
+                    aria-label="Menghitung total"
+                  />
+                )}
                 {pratinjau.segar && pratinjau.data && pratinjau.data.totalDiskonPromo > 0 && (
                   <span className="ml-2 tracking-normal text-emerald-300 normal-case">
                     hemat promo {formatRupiah(pratinjau.data.totalDiskonPromo)}

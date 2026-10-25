@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { KartuBagian } from './bagian';
 import { ambilSetelanDokumen } from './setelan-dokumen';
 import { useSimpanPengaturan } from './use-simpan-pengaturan';
@@ -130,6 +131,29 @@ export function FormDokumen({ pengaturan }: { pengaturan: Pengaturan }) {
           <div className="grid grid-cols-3 gap-4">
             {KERTAS.map(([n, l, k]) => pilihan(n, l, k, KERTAS_DOKUMEN, LABEL_KERTAS_DOKUMEN))}
           </div>
+          <FormField
+            control={form.control}
+            name="suratJalanRangkap"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                <div>
+                  <FormLabel>Cetak surat jalan 2 rangkap</FormLabel>
+                  <FormDescription>
+                    Satu kali cetak menghasilkan 2 lembar: &quot;ASLI - Arsip Toko (Kembali bersama
+                    Sopir)&quot; dan &quot;SALINAN - Arsip Customer / Penerima&quot;, tertulis di
+                    bawah tiap lembar.
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    aria-label="Cetak surat jalan 2 rangkap"
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
           <details className="rounded-md border bg-slate-50 p-3 text-sm text-slate-700">
             <summary className="cursor-pointer font-medium">
               Cetak invoice/surat jalan tanpa jendela cetak (langsung keluar di printer A4)

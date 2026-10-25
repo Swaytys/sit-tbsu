@@ -8,7 +8,7 @@ import {
 } from '@sit/shared';
 import { ArrowLeft, PackageCheck, Printer, Wallet } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
@@ -116,6 +116,8 @@ export function DialogTerimaPembayaran({
 /** Detail penjualan (langsung/pengantaran): baris, pembayaran, cetak ulang, pelunasan, konfirmasi diambil. */
 export function HalamanDetailPenjualan() {
   const { id } = useParams();
+  const [url] = useSearchParams();
+  const dariPengiriman = url.get('dari') === 'pengiriman';
   const detail = useDetailPenjualan(Number(id));
   const toko = useTampilanToko().data;
   const saya = usePengguna();
@@ -168,7 +170,14 @@ export function HalamanDetailPenjualan() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon-sm" asChild>
             <Link
-              to={langsung ? '/penjualan-langsung?tab=riwayat' : '/penjualan-pengantaran'}
+              to={
+                // K-175: kembali ke halaman asal.
+                dariPengiriman
+                  ? '/pengiriman'
+                  : langsung
+                    ? '/penjualan-langsung?tab=riwayat'
+                    : '/penjualan-pengantaran'
+              }
               aria-label="Kembali"
             >
               <ArrowLeft />
