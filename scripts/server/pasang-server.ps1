@@ -31,12 +31,17 @@ Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 # Galat apa pun ditampilkan sebagai jendela pesan (pengguna tidak perlu membaca terminal).
 trap {
   [Windows.Forms.MessageBox]::Show(
-    "Pemasangan berhenti:`n`n$($_.Exception.Message)`n`nPerbaiki lalu klik dua kali 'Pasang BonsaiUrip' lagi (aman diulang).",
+    "Pemasangan berhenti (baris $($_.InvocationInfo.ScriptLineNumber)):`n`n$($_.Exception.Message)`n`nPerbaiki lalu klik dua kali 'Pasang BonsaiUrip' lagi (aman diulang).",
     'BonsaiUrip - pemasangan gagal', 'OK', 'Error') | Out-Null
   break
 }
 
 function Langkah([string]$teks) { Write-Host ''; Write-Host "== $teks ==" -ForegroundColor Cyan }
+function AmbilEnv([string]$k) {
+  $b = Get-Content (Join-Path $repo '.env') | Where-Object { $_ -like "$k=*" } | Select-Object -First 1
+  if ($null -eq $b) { throw ".env tidak memuat $k. Hapus berkas .env di folder aplikasi lalu jalankan Setup lagi." }
+  return $b.Substring($k.Length + 1).Trim()
+}
 function Acak([int]$n) { -join ((48..57) + (65..90) + (97..122) | Get-Random -Count $n | ForEach-Object { [char]$_ }) }
 
 <# Jendela isian password. Mengembalikan teks, atau $null bila dibatalkan. #>
@@ -159,9 +164,9 @@ if (Test-Path $envPath) {
   ) | Set-Content -Path $envPath -Encoding ascii -ErrorAction Stop
 }
 if (-not $sandiOwner) {
-  $sandiOwner = ((Select-String -Path $envPath -Pattern '^SEED_OWNER_PASSWORD=(.*)$').Matches[0].Groups[1].Value)
+  $sandiOwner = (AmbilEnv 'SEED_OWNER_PASSWORD')
 }
-$url = [uri]((Select-String -Path $envPath -Pattern '^DATABASE_URL=(.*)$').Matches[0].Groups[1].Value)
+$url = [uri](AmbilEnv 'DATABASE_URL')
 $userDb = $url.UserInfo.Split(':')[0]
 $sandiDb = [uri]::UnescapeDataString($url.UserInfo.Split(':', 2)[1])
 $namaDb = $url.AbsolutePath.TrimStart('/')
@@ -205,7 +210,7 @@ if ($paket) {
 Langkah '4. Sertifikat HTTPS dan firewall'
 $pfx = Join-Path $repo 'sertifikat\server.pfx'
 if (-not (Test-Path $pfx)) {
-  $sandiPfx = ((Select-String -Path $envPath -Pattern '^HTTPS_PFX_PASSWORD=(.*)$').Matches[0].Groups[1].Value)
+  $sandiPfx = (AmbilEnv 'HTTPS_PFX_PASSWORD')
   & (Join-Path $PSScriptRoot 'buat-sertifikat.ps1') -Folder (Join-Path $repo 'sertifikat') -KataSandi $sandiPfx
 }
 if (-not (Get-NetFirewallRule -DisplayName 'BonsaiUrip HTTPS' -ErrorAction SilentlyContinue)) {
