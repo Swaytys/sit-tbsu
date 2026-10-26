@@ -104,6 +104,25 @@ prioritas di bagian akhir.
   Pengaturan dengan pemberitahuan ke pengguna (etika penelitian), dapat disaring per pengguna/periode/halaman, dan
   diekspor CSV/Excel untuk diolah. Pilihan yang perlu diputuskan pemilik: tingkat rincian (klik semua elemen atau
   hanya aksi bermakna) dan lama penyimpanan data.
+- **K-191 Setup v3 standar komersial (26 Oktober; dikerjakan SETELAH backlog sistem selesai, diuji, dan direvisi
+  pemilik).** Setup v2 sudah berjalan di komputer pemilik. Untuk v3:
+  1. **Layar pembuka (splash)** bermerek BonsaiUrip dengan animasi saat aplikasi dibuka, menggantikan kotak
+     "Menyiapkan..." yang tidak standar.
+  2. **Tanpa password bawaan di jendela pesan.** Pemakaian pertama membuka halaman **Buat akun pertama** (nama,
+     nama pengguna, password, pertanyaan/kode pemulihan) sebelum halaman masuk; halaman ini hanya ada selama belum ada
+     satu pengguna pun (masuk K-168, dikerjakan bersama backlog sistem).
+  3. **Lupa password / pemulihan akun** (terutama Owner): kode pemulihan sekali pakai yang dibuat saat akun pertama
+     dibuat dan bisa dicetak/disimpan, ditambah reset oleh Owner/Admin untuk pengguna lain (masuk backlog sistem).
+  4. **Keluar aplikasi yang jelas:** ikon di area notifikasi Windows (system tray, "Show hidden icons") dengan menu
+     Buka BonsaiUrip / Matikan BonsaiUrip; menutup peramban tidak mematikan server (penjelasan di tutorial).
+     Sementara (v2): menu Start › *Matikan BonsaiUrip*.
+  5. **Pilih lokasi pemasangan** di wizard (boleh drive D:), ditambah halaman ringkasan yang menyebut folder program
+     dan folder data. v2 memasang ke `%LOCALAPPDATA%\Programs\BonsaiUrip` tanpa bertanya, data di
+     `%LOCALAPPDATA%\BonsaiUrip`.
+  6. **Tutorial dari awal sampai akhir** (wizard Setup → akun pertama → pengaturan toko → transaksi pertama → keluar).
+  7. **Keamanan di Windows:** tanda tangan digital (SmartScreen), izin folder data, enkripsi cadangan, kunci layar
+     sesi; dibahas dengan pemilik sebelum v3.
+  8. Periksa ulang kekurangan v2 yang ditemukan saat uji pemilik.
 - **K-189 Identitas visual.** Tanda BonsaiUrip (bonsai krem di papan kayu walnut, dari logo Sumber Urip Bonsai)
   dipakai sebagai ikon tab, sidebar, dan halaman masuk (`apps/web/public/favicon.svg`, `logo-bonsaiurip.svg`).
   **Selesai.** Ikon .ico dipakai Setup dan BonsaiUrip.exe (K-188 v2).
