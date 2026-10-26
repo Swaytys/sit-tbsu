@@ -1,4 +1,6 @@
-; BonsaiUrip - skrip Inno Setup (K-188). Dikompilasi oleh installer\buat-installer.ps1.
+; BonsaiUrip - skrip Inno Setup (K-188 v2). Dikompilasi oleh installer\buat-installer.ps1.
+; Dipasang per pengguna (tanpa hak Administrator). Data (database, gambar, log) disimpan terpisah di
+; %LOCALAPPDATA%\BonsaiUrip sehingga memasang ulang/memperbarui/menghapus aplikasi tidak menghapus data.
 #ifndef Versi
   #define Versi "1.0.0"
 #endif
@@ -7,49 +9,62 @@
 AppId={{7B3A1E52-5C0D-4E8B-9A3F-2F6C81D0A5B7}
 AppName=BonsaiUrip
 AppVersion={#Versi}
+AppVerName=BonsaiUrip {#Versi}
 AppPublisher=UD. Sumber Urip
-DefaultDirName=C:\BonsaiUrip\aplikasi
+DefaultDirName={localappdata}\Programs\BonsaiUrip
 DefaultGroupName=BonsaiUrip
 DisableProgramGroupPage=yes
+DisableDirPage=yes
+PrivilegesRequired=lowest
 OutputDir=keluaran
-OutputBaseFilename=Setup-BonsaiUrip-2
+OutputBaseFilename=Setup-BonsaiUrip
 SetupIconFile=bonsaiurip.ico
-UninstallDisplayIcon={app}\bonsaiurip.ico
+UninstallDisplayIcon={app}\BonsaiUrip.exe
+UninstallDisplayName=BonsaiUrip
 Compression=lzma2/max
 SolidCompression=yes
-PrivilegesRequired=admin
+ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
-DisableWelcomePage=no
-; Data (database, storage, .env, sertifikat, log) berada di {app} tetapi TIDAK disentuh uninstaller/pembaruan.
-UninstallFilesDir={app}\uninstall
+CloseApplications=no
 
 [Languages]
 Name: "id"; MessagesFile: "compiler:Default.isl"
 
+[Messages]
+WelcomeLabel2=Setup akan memasang BonsaiUrip (sistem penjualan dan persediaan UD. Sumber Urip) di komputer ini.%n%nDatabase sudah termasuk; tidak ada program lain yang perlu dipasang.
+FinishedLabel=BonsaiUrip sudah terpasang. Buka lewat ikon BonsaiUrip di desktop atau menu Start.
+
+[Tasks]
+Name: "desktop"; Description: "Buat ikon di desktop"
+Name: "otomatis"; Description: "Nyalakan BonsaiUrip otomatis saat Windows dimulai (disarankan untuk komputer kasir)"
+
 [Files]
-Source: "paket\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; Excludes: ".env,sertifikat\*,storage\*,log\*"
+Source: "paket\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
-Name: "{commondesktop}\BonsaiUrip"; Filename: "https://localhost/"; IconFilename: "{app}\bonsaiurip.ico"
-Name: "{group}\Buka BonsaiUrip"; Filename: "https://localhost/"; IconFilename: "{app}\bonsaiurip.ico"
-Name: "{group}\Nyalakan server"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\server\copot-server.ps1"" -Nyalakan"; IconFilename: "{app}\bonsaiurip.ico"
+Name: "{autodesktop}\BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"; Tasks: desktop
+Name: "{group}\BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"
+Name: "{group}\Matikan BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"; Parameters: "--berhenti"
+Name: "{userstartup}\BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"; Parameters: "--latar"; Tasks: otomatis
 
 [Run]
-; Pemasang berjendela: membuat database, .env, sertifikat HTTPS, tugas otomatis, lalu membuka aplikasi.
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\server\pasang-server.ps1"""; \
-  StatusMsg: "Menyiapkan database dan server BonsaiUrip (beberapa menit, jangan ditutup)..."; Flags: waituntilterminated runhidden
+Filename: "{app}\BonsaiUrip.exe"; Description: "Buka BonsaiUrip sekarang"; Flags: postinstall nowait skipifsilent
+
+[InstallDelete]
+; Sisa pemasangan lama (v1, dengan PowerShell) tidak dipakai lagi.
+Type: filesandordirs; Name: "{app}\scripts"
 
 [UninstallRun]
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\server\copot-server.ps1"""; RunOnceId: "CopotServer"; Flags: runhidden
+Filename: "{app}\BonsaiUrip.exe"; Parameters: "--berhenti"; RunOnceId: "Matikan"; Flags: runhidden waituntilterminated
 
 [Code]
-function InitializeSetup(): Boolean;
+// Sebelum menimpa berkas (pembaruan): matikan server dan database yang sedang berjalan agar berkasnya tidak terkunci.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Kode: Integer;
 begin
-  Result := True;
-  if not FileExists(ExpandConstant('{commonpf}\PostgreSQL\17\bin\psql.exe')) and
-     not FileExists('D:\PostgreSQL\17\bin\psql.exe') then
-    Result := MsgBox('PostgreSQL 17 belum ditemukan di komputer ini.' + #13#10 + #13#10 +
-      'BonsaiUrip membutuhkan PostgreSQL 17 (gratis: postgresql.org/download/windows). Pasang dulu, lalu jalankan Setup ini lagi.' + #13#10 + #13#10 +
-      'Lanjutkan pemasangan tetap?', mbConfirmation, MB_YESNO) = IDYES;
+  Result := '';
+  if FileExists(ExpandConstant('{app}\BonsaiUrip.exe')) then
+    Exec(ExpandConstant('{app}\BonsaiUrip.exe'), '--berhenti', '', SW_HIDE, ewWaitUntilTerminated, Kode);
 end;

@@ -1,116 +1,70 @@
-# Panduan Uji Deploy di Satu Laptop (localhost)
+# Memasang BonsaiUrip di Komputer (Setup-BonsaiUrip.exe)
 
-Untuk: pemilik. Waktu: ± 45 menit pertama kali. Tujuannya mencoba aplikasi seperti nanti dipakai di toko, di
-**satu laptop** yang sekaligus menjadi server dan tempat membuka aplikasi.
+Untuk: pemilik dan siapa pun yang memasang di komputer toko. Waktu: ± 5 menit. Tidak perlu terminal, tidak perlu
+memasang program lain, tidak ada password database yang harus diingat.
+
+## Yang terjadi di balik layar (cukup dibaca sekali)
 
 ```
- ┌─────────────────────────────── Laptop server ───────────────────────────────┐
- │ PostgreSQL (database "tbsu")  ◄──  Aplikasi BonsaiUrip (menyala otomatis)    │
- │ Folder C:\BonsaiUrip\sit-tbsu (kode, storage, log, cadangan, sertifikat)     │
- │                         ▲                                                    │
- │ Chrome/Edge: https://localhost/  (pintasan "BonsaiUrip" di desktop)          │
- └──────────────────────────────────────────────────────────────────────────────┘
-   (opsional) HP/komputer lain di WiFi yang sama: https://NAMA-LAPTOP/
+ Setup-BonsaiUrip.exe (±54 MB) memasang ke  %LOCALAPPDATA%\Programs\BonsaiUrip
+   ├─ BonsaiUrip.exe   ← ikon di desktop / menu Start
+   ├─ aplikasi (server + tampilan), Node.js, PostgreSQL bawaan
+ Data disimpan terpisah di  %LOCALAPPDATA%\BonsaiUrip
+   ├─ pgdata\  database      ├─ storage\  gambar & logo      └─ log\  catatan
 ```
 
-- Semua data (database, gambar barang, cadangan) ada di laptop itu. Tidak ada server di internet.
-- Aplikasi menyala sendiri setiap laptop dinyalakan. Laptop mati/tidur = aplikasi mati; nyalakan lagi, tunggu ±30
-  detik, buka pintasan.
-- Ini **salinan terpisah** dari folder pengembangan `D:\sit-tbsu` dan memakai database terpisah (`tbsu`, bukan
-  `tbsu_dev`). Uji coba tidak mengganggu pengembangan, dan sebaliknya.
+- **Database ikut di dalam aplikasi.** PostgreSQL bawaan dibuat sendiri pada pemakaian pertama, memakai password
+  acak yang tidak perlu diketahui siapa pun, dan hanya bisa diakses dari komputer itu. PostgreSQL lain yang mungkin
+  sudah terpasang tidak disentuh.
+- **Tanpa hak Administrator.** Setup tidak meminta izin "Ya/Tidak" Windows.
+- **Membuka aplikasi** = klik ikon BonsaiUrip: database dan server dinyalakan, lalu peramban terbuka ke
+  `http://localhost:7878`. Menutup peramban tidak mematikan server; server berhenti saat komputer dimatikan atau
+  lewat menu Start › *Matikan BonsaiUrip*.
+- **Memperbarui** = jalankan Setup versi baru; data tidak hilang. **Menghapus** aplikasi (Setelan › Aplikasi) juga
+  tidak menghapus data; folder data dihapus sendiri bila memang ingin mulai dari nol.
 
-## 1. Sebelum mulai
+## Memasang
 
-1. Laptop dicolok listrik. Setelah dipasang, laptop **tidak tidur** saat dicolok listrik dan **menutup layar
-   tidak mematikan server**. Saat memakai baterai, Windows tetap boleh tidur.
-2. Program yang dibutuhkan: Node.js 24, pnpm, PostgreSQL 17, Git. Di laptop pengembangan semuanya **sudah
-   terpasang**. Di laptop lain, pasang dulu sesuai `fase-8-pasang-server.md` bagian 2 (nomor 1–4).
-3. Siapkan **password user `postgres`** (dibuat saat memasang PostgreSQL). Bila lupa, lihat bagian 7.
+1. Salin **Setup-BonsaiUrip.exe** ke komputer itu, lalu klik dua kali.
+2. Bila Windows menampilkan *"Windows melindungi PC Anda"* (karena aplikasi belum bertanda tangan digital):
+   klik **Info selengkapnya** › **Tetap jalankan**.
+3. Ikuti wizard: **Next** › centang pilihan yang diinginkan:
+   - *Buat ikon di desktop* (disarankan);
+   - *Nyalakan BonsaiUrip otomatis saat Windows dimulai* (disarankan untuk komputer kasir);
+   lalu **Install** › **Finish** (biarkan *Buka BonsaiUrip sekarang* tercentang).
+4. Muncul jendela **"Menyiapkan BonsaiUrip..."**. Pemakaian pertama ± 1–3 menit (database dibuat). Berikutnya
+   ± 10–20 detik.
+5. Muncul jendela **akun pertama** berisi password awal Owner. Password **sudah tersalin otomatis**. Catat juga di
+   kertas: jendela ini hanya muncul sekali.
+6. Peramban terbuka. Masuk dengan nama pengguna `owner` dan password tadi (tempel dengan **Ctrl+V**), lalu buat
+   password baru.
 
-## 2. Ambil aplikasi (sekali)
+## Sesudah masuk pertama
 
-Buka **PowerShell** biasa:
+Isi berurutan: *Pengaturan › Profil toko* (nama, alamat, logo) › *Pengaturan › Pembayaran* (rekening) ›
+*Data Pengguna* (akun tiap pegawai) › *Data Barang › Import* (barang, harga, saldo awal stok) › pelanggan dan
+pemasok › *Pengaturan › Struk & printer*.
 
-```powershell
-PS> mkdir C:\BonsaiUrip
-PS> git clone https://github.com/Swaytys/sit-tbsu.git C:\BonsaiUrip\sit-tbsu
-```
+## Bila ada masalah
 
-## 2b. Cara tercepat: Setup-BonsaiUrip.exe (K-188)
-
-Bila Anda mendapat berkas **Setup-BonsaiUrip.exe** (±37 MB, dibuat pengembang dengan
-`installeruat-installer.ps1`), bagian 2 dan 3 tidak perlu: klik dua kali berkas itu → **Ya** → Next → Install.
-Node dan aplikasi sudah di dalamnya; yang dibutuhkan hanya **PostgreSQL 17** terpasang di komputer. Setelah
-file tersalin, pemasang menyiapkan database **tanpa menanyakan password** (izin lokal dibuka sementara lalu
-dikembalikan), kemudian membuka aplikasi. Password `postgres` hanya diminta bila cara otomatis gagal. Pintasan **BonsaiUrip** muncul di desktop dan menu Start. Memasang ulang/memperbarui dengan
-Setup yang lebih baru tidak menghapus data (database, gambar, cadangan).
-
-## 3. Pasang (klik dua kali, tanpa mengetik perintah)
-
-1. Buka folder `C:\BonsaiUrip\sit-tbsu`, klik dua kali **Pasang BonsaiUrip**. Windows bertanya izin
-   Administrator: klik **Ya**.
-2. Jendela meminta **password PostgreSQL** (user `postgres`, dibuat saat memasang PostgreSQL). Lupa? Klik
-   **Saya lupa** lalu **Yes**: pemasang membuka izin masuk lokal sementara untuk membuat database, lalu
-   mengembalikan pengaturan PostgreSQL persis seperti semula.
-3. Tunggu ±5–10 menit (jendela hitam menampilkan kemajuan; tidak perlu diketik apa pun). Aplikasi memakai akun
-   database sendiri (`bonsai`, database `bonsaiurip`) dengan password acak; tidak mengganggu database pengembangan.
-4. Di akhir muncul jendela **BonsaiUrip siap dipakai** berisi **password awal Owner**: klik **Salin password**,
-   simpan, lalu **Buka BonsaiUrip**.
-
-Bila berhenti, jendela pesan menyebut sebabnya; perbaiki lalu klik dua kali **Pasang BonsaiUrip** lagi (aman
-diulang; pemasangan yang tadi gagal dilanjutkan, bukan diulang dari nol).
-
-## 4. Buka dan siapkan aplikasi
-
-1. Klik dua kali pintasan **BonsaiUrip** di desktop (atau buka Chrome ke `https://localhost/`). Gembok tampil
-   tanpa peringatan.
-2. Login `owner` dengan password awal → ganti password.
-3. Isi, berurutan:
-   - *Pengaturan › Profil toko* (nama, alamat, telepon, logo).
-   - *Pengaturan › Pembayaran* (rekening bank/QRIS).
-   - *Pengaturan › Operasional* (jadwal shift dan lainnya).
-   - *Data Pengguna*: akun tiap pegawai (Admin, Kasir, Staf Penjualan), masing-masing password sendiri.
-   - *Data Barang › Import* (templat Excel): barang, harga, saldo awal stok. Lalu pelanggan dan pemasok.
-   - *Pengaturan › Struk & printer*: printer struk dan kertas invoice/surat jalan.
-4. Coba alur inti: order → kasir bayar → struk; pengantaran + surat jalan; retur/void; buka/tutup shift;
-   penerimaan barang. Catat hasilnya di `docs/UJI-PEMILIK.md` (cukup sebut nomornya ke pengembang).
-
-## 5. Cadangan (wajib sebelum data sungguhan)
-
-Colok flashdisk/HDD eksternal, lalu ikuti `fase-8-pasang-server.md` bagian 7 (Google Drive boleh dilewati dulu).
-Periksa di *Pengaturan › Cadangan*: **Cadangkan sekarang** → *Berhasil*.
-
-## 6. Membuka dari HP/komputer lain (opsional)
-
-1. Laptop dan HP di WiFi yang sama. Di laptop: *Setelan › Jaringan & internet › WiFi* › nama WiFi › jenis
-   jaringan **Pribadi** (Private). Firewall hanya membuka akses di jaringan pribadi.
-2. Komputer lain (Windows): pasang sertifikat sesuai `fase-8-pasang-server.md` bagian 5, lalu buka
-   `https://NAMA-LAPTOP/` (nama di *Setelan › Sistem › Tentang*).
-3. HP Android sering tidak mengenal nama laptop dan tidak memercayai sertifikat toko; peramban HP akan memberi
-   peringatan. Untuk uji coba cukup di laptop. Akses HP yang rapi memakai Tailscale (bagian 6 panduan server).
-
-## 7. Mematikan, menyalakan, melepas, memperbarui
-
-Semua di PowerShell **Run as administrator**, dari `C:\BonsaiUrip\sit-tbsu`:
-
-| Mau apa | Perintah |
+| Gejala | Yang dilakukan |
 |---|---|
-| Matikan sementara (menyala lagi saat laptop restart) | `powershell -ExecutionPolicy Bypass -File scripts\server\copot-server.ps1 -Hentikan` |
-| Nyalakan lagi | `powershell -ExecutionPolicy Bypass -File scripts\server\copot-server.ps1 -Nyalakan` |
-| Lepas dari laptop (data tetap ada) | `powershell -ExecutionPolicy Bypass -File scripts\server\copot-server.ps1` |
-| Pasang perbaikan terbaru dari pengembang | `powershell -ExecutionPolicy Bypass -File scripts\server\perbarui-server.ps1` |
+| Jendela "BonsaiUrip gagal dinyalakan" | Pesannya menyebut sebab dan folder catatan. Foto jendelanya dan kirim ke pengembang. Catatan lengkap: `%LOCALAPPDATA%\BonsaiUrip\log` (`peluncur.log`, `postgres.log`, `server.log`). |
+| Peramban menampilkan "tidak dapat dijangkau" | Klik ikon BonsaiUrip sekali lagi (menyalakan ulang yang belum menyala). |
+| Lupa password Owner | Akun Admin/Owner lain bisa me-reset di *Data Pengguna*. Bila tidak ada, hubungi pengembang. |
+| Mulai dari nol (hapus semua data) | Menu Start › *Matikan BonsaiUrip*, hapus folder `%LOCALAPPDATA%\BonsaiUrip`, lalu buka BonsaiUrip lagi. **Semua data hilang.** |
 
-`perbarui-server.ps1` mencadangkan dulu, menguji perubahan database pada salinan, lalu menyalakan versi baru;
-bila gagal, kembali ke versi lama otomatis.
+## Batasan versi ini
 
-**Lupa password postgres:** pasang ulang PostgreSQL tidak perlu; minta pengembang menjalankan reset password
-lewat `pg_hba.conf` (butuh ±10 menit).
+- Dipakai di **satu komputer** (localhost). Membuka dari HP/komputer lain di jaringan toko butuh mode server
+  (HTTPS, `fase-8-pasang-server.md`) dan belum ada di Setup ini.
+- Cadangan otomatis ke disk/Google Drive belum diatur dari Setup; sementara salin folder
+  `%LOCALAPPDATA%\BonsaiUrip` ke flashdisk secara berkala saat aplikasi dimatikan.
 
-## 8. Masalah umum
+## Untuk pengembang: membuat Setup
 
-| Gejala | Jalan keluar |
-|---|---|
-| Pintasan membuka halaman "tidak dapat dijangkau" | Tunggu 30 detik setelah laptop menyala. Masih? `copot-server.ps1 -Nyalakan`. Lihat `C:\BonsaiUrip\sit-tbsu\log\penjaga.log`. |
-| Peringatan "koneksi tidak pribadi" | Jalankan lagi `pasang-server.ps1` (memasang ulang kepercayaan sertifikat), tutup lalu buka peramban. |
-| Aplikasi mati setelah laptop ditutup | Laptop sedang memakai baterai. Colok listrik. |
-| Port 443 dipakai program lain | Tutup program itu (mis. server web lain), lalu `copot-server.ps1 -Nyalakan`. |
+`powershell -ExecutionPolicy Bypass -File installer\buat-installer.ps1` (perlu Node 24, pnpm, PostgreSQL 17 sebagai
+sumber berkas `pgsql`, Inno Setup 6). Hasil: `installer\keluaran\Setup-BonsaiUrip.exe`. Peluncur:
+`apps/api/src/peluncur.ts` (data, database bawaan, migrasi, akun awal, server) dan `installer/peluncur/BonsaiUrip.cs`
+(jendela). Uji tanpa Setup: `node installer\paket\apps\api\dist\peluncur.js --latar` dengan `BONSAIURIP_DATA` diisi
+folder uji.

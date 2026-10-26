@@ -11,6 +11,8 @@ export default defineConfig({
     // K-188: installer menjalankan migrasi dan data awal tanpa tsx/pnpm.
     'src/db/migrate.ts',
     'src/db/seed.ts',
+    // K-188 v2: peluncur aplikasi desktop (BonsaiUrip.exe).
+    'src/peluncur.ts',
   ],
   format: 'esm',
   platform: 'node',
