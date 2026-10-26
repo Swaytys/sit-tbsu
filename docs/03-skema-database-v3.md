@@ -53,7 +53,8 @@ dokumennya. Tidak ada nomor ganda; nomor bisa berlubang bila transaksi dibatalka
 
 **`pengguna`** — akun. `peran` menentukan izin lewat `roles.ts`. Kolom keamanan: `wajib_ganti_password`,
 `gagal_login_berturut`, `terkunci_sampai`. `kode` = `USR-00001`. v3.12: `email` dan `telegram_chat_id` (keduanya
-boleh kosong) = tujuan kode persetujuan sekali pakai; diisi pemilik akun sendiri (K-102).
+boleh kosong) = tujuan kode persetujuan sekali pakai; diisi pemilik akun sendiri (K-102). v3.32: `kode_pemulihan_hash`
+(argon2id, boleh kosong) dan `kode_pemulihan_dibuat_pada` = kode pemulihan sekali pakai untuk lupa password (K-191).
 
 **`sesi_login`** [APPEND] — token disimpan sebagai `sha256` (kolom `token_hash`); cookie berisi token mentah.
 `kadaluarsa_absolut` dan `terakhir_aktif` untuk batas absolut dan idle. Logout = isi `dicabut_pada`.
@@ -550,6 +551,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-26 — v3.32: `pengguna.kode_pemulihan_hash`, `kode_pemulihan_dibuat_pada` (migrasi 0035, K-191). Seed tidak
+  membuat akun `owner` bila `SEED_OWNER_PASSWORD` kosong (akun pertama dibuat di halaman *Buat akun pertama*).
 - 2026-10-26 — v3.31: `log_interaksi` (migrasi 0034, K-190); konfigurasi `log_interaksi_aktif`,
   `log_interaksi_tingkat`.
 - 2026-10-24 — v3.30: `order_pembelian`, `order_pembelian_detail`, `alokasi_uang_muka`; kolom PO di penerimaan,

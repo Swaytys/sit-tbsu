@@ -685,6 +685,23 @@ halaman dan pemberitahuan sekali per sesi (`sessionStorage`, preferensi tampilan
 
 **Tes:** interaksi.test (mati = diabaikan, izin, penyamaran, validasi, saring/ringkasan/ekspor), e2e interaksi.spec.
 
+
+### C23. Akun pertama dan kode pemulihan (26 Oktober 2026, K-191 butir 2–3)
+
+**Solusi:** migrasi 0035 (`pengguna.kode_pemulihan_hash`, `kode_pemulihan_dibuat_pada`). `auth/pemulihan.ts`:
+`buatAkunPertama` (kunci `pg_advisory_xact_lock(hashtext('akun_pertama'))`, hitung pengguna = 0, Owner via repo
+pengguna, kode `USR` dari penomoran, sesi langsung), `pulihkanPassword` (cocokkan argon2id kode yang dirapikan; bila
+username/kode tidak ada tetap `verifikasiTiruan` agar waktu respons setara; sukses = ganti password, buka kunci,
+kode baru, cabut semua sesi), `buatKodePemulihan` (konfirmasi password). Kode 20 karakter dari alfabet tanpa 0/O/1/I/L
+memakai `crypto.randomInt`. Tiga rute publik ditambahkan ke `RUTE_PUBLIK` (docs/04 §7) dengan `batasPercobaanLogin`.
+Seed: `isiDataAwal({ passwordOwner: null })` tidak membuat Owner; peluncur tidak lagi mengirim password acak dan
+BonsaiUrip.exe hanya menghapus berkas password lama. Web: `/akun-pertama`, `/lupa-password`, `TampilKodePemulihan`
+(salin, unduh `.txt` lewat Blob, cetak lewat AreaCetak, centang wajib), kartu di *Akun saya*; halaman masuk
+mengalihkan ke akun pertama bila `GET /api/auth/penyiapan` = perlu.
+
+**Tes:** pemulihan.test (akun pertama sekali saja dan bersamaan, pemulihan benar/salah/tanpa kode, sesi dicabut,
+kunci dibuka, kode baru dengan password).
+
 ---
 
 ## Riwayat dokumen
@@ -712,3 +729,4 @@ halaman dan pemberitahuan sekali per sesi (`sessionStorage`, preferensi tampilan
 - 2026-10-24 — Bagian C20 order pembelian ke pemasok (K-125).
 - 2026-10-26 — Bagian C21 surat jalan hanya di dalam rit (K-174).
 - 2026-10-26 — Bagian C22 log interaksi penelitian (K-190).
+- 2026-10-26 — Bagian C23 akun pertama dan kode pemulihan (K-191).

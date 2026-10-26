@@ -278,6 +278,13 @@ Aturan lain:
 | Reset password | Owner mengisi password baru; pengguna wajib mengganti saat login berikutnya (`wajib_ganti_password`) | kode |
 | Owner terakhir | Tidak bisa dinonaktifkan atau diturunkan perannya bila ia satu-satunya Owner aktif | kode |
 | Tombol masuk cepat per peran | Hanya `NODE_ENV=development`; memakai akun seed dengan password seed | kode |
+| Akun pertama (K-191) | Bila belum ada pengguna sama sekali, halaman *Buat akun pertama* membuat akun **Owner** (nama, username, password) lalu langsung masuk; tidak ada password bawaan. Setelah ada satu pengguna, rute ini ditolak 409. Dua permintaan bersamaan diantrekan (kunci advisory). Produksi: seed tidak membuat Owner bila `SEED_OWNER_PASSWORD` kosong | kode |
+| Kode pemulihan (K-191) | 20 huruf/angka acak (± 99 bit), disimpan hash argon2id di `pengguna.kode_pemulihan_hash`, tampil sekali. Dibuat otomatis untuk akun pertama; pengguna mana pun bisa membuat ulang di *Akun saya* dengan konfirmasi password (kode lama batal). **Lupa password**: username + kode + password baru → password diganti, kunci akun dibuka, semua sesi dicabut, kode lama hangus dan kode baru diberikan. Gagal = pesan umum "Username atau kode pemulihan salah." + log `PENGGUNA_PULIHKAN_GAGAL`; batas laju sama dengan login | kode |
+
+**Rute publik** (tanpa login, CLAUDE.md aturan 5): `GET /api/health`, `POST /api/auth/login`, dan sejak K-191
+`GET /api/auth/penyiapan` (apakah perlu akun pertama), `POST /api/auth/akun-pertama` (hanya selama belum ada
+pengguna), `POST /api/auth/pulihkan` (lupa password dengan kode pemulihan). Selain itu semua rute wajib
+`requirePermission`/`requireLogin`; server menolak menyala bila ada rute tanpa deklarasi.
 
 ## 8. Log aktivitas
 
@@ -327,4 +334,6 @@ maks. 50.000 baris, dicatat LAPORAN_EKSPOR, K-113). Retensi: tidak dihapus pada 
 - 2026-10-23 — Izin `penjualan.diskon` dihapus: diskon manual tidak ada lagi, potongan hanya lewat Promo (K-146).
 - 2026-10-23 — Izin `master.armada.kelola` (Admin, Owner); `penjualan.surat_jalan.kelola` mencakup berangkat dan catat hasil (K-149, K-150).
 - 2026-10-24 — K-162: catatan BBM (kasir+), servis/batal/statistik (`master.armada.kelola`).
+- 2026-10-26 — K-191: akun pertama dan kode pemulihan (lupa password); tiga rute publik baru di §7. K-190: log interaksi
+  penelitian (`sistem.log.lihat` untuk mengatur/melihat; mengirim kejadian sendiri cukup login).
 - 2026-10-24 — K-165 arsip tahunan (`sistem.cadangan.kelola`); K-137 pemeriksaan data dan rapikan No. HP (`sistem.pengaturan.kelola`).

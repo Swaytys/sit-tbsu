@@ -618,6 +618,11 @@ Semua tugas admin, ditambah:
 
 - **Data Pengguna**: tambah akun karyawan (password awal wajib diganti saat login pertama), reset password,
   nonaktifkan akun karyawan yang keluar (sesinya langsung berakhir).
+- **Kode pemulihan** (untuk lupa password; terutama Owner): menu kanan atas › **Akun saya** › *Kode pemulihan* →
+  isi password saat ini → **Buat kode** → **Salin**, **Unduh berkas**, atau **Cetak** → simpan di tempat aman di
+  luar komputer → centang *Saya sudah menyimpan* → **Selesai**. Bila lupa password: halaman masuk › **Lupa
+  password?** → isi username, kode pemulihan, password baru (2 kali) → **Ganti password** → simpan kode baru yang
+  tampil → **Masuk sekarang**. Karyawan tanpa kode: minta Owner/Admin reset di Data Pengguna.
 - **Log aktivitas** (*Pengaturan › Log aktivitas*): siapa melakukan apa dan kapan — termasuk persetujuan,
   perubahan harga, ekspor/cetak laporan. **Ekspor Excel**: isi cari/aksi bila perlu, pilih tanggal *Dari* dan
   *s.d.* (kosong = semua), tekan **Ekspor Excel**; berkas berisi waktu, pengguna, aksi, dokumen, ringkasan, IP,

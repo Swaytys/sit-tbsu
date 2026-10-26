@@ -1,5 +1,12 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaGantiPassword, skemaLogin, skemaMasukCepat } from '@sit/shared';
+import {
+  skemaAkunPertama,
+  skemaBuatKodePemulihan,
+  skemaGantiPassword,
+  skemaLogin,
+  skemaMasukCepat,
+  skemaPulihkanPassword,
+} from '@sit/shared';
 import { Hono, type Context } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import { env } from '../../env';
@@ -8,6 +15,13 @@ import { kaitValidasi } from '../../lib/validasi';
 import { batasPercobaanLogin } from '../../middleware/batas-percobaan';
 import { penggunaWajib, requireLogin } from '../../middleware/require-permission';
 import { kotakKeluarUji } from '../sistem/saluran/service';
+import {
+  buatAkunPertama,
+  buatKodePemulihan,
+  infoKodePemulihan,
+  pulihkanPassword,
+  statusPenyiapan,
+} from './pemulihan';
 import { gantiPassword, keSaya, login, logout, masukCepat, type HasilLogin } from './service';
 import { NAMA_COOKIE_SESI } from './token';
 
@@ -29,6 +43,41 @@ export const authRoutes = new Hono<EnvApp>()
     pasangCookieSesi(c, hasil);
     return c.json({ data: hasil.pengguna }, 200);
   })
+  // K-191 (publik, docs/04 §7): halaman "Buat akun pertama" hanya berlaku selama belum ada pengguna, dan
+  // pemulihan password dengan kode sekali pakai. Keduanya memakai batas laju yang sama dengan login.
+  .get('/penyiapan', async (c) => c.json({ data: await statusPenyiapan() }, 200))
+  .post(
+    '/akun-pertama',
+    batasPercobaanLogin,
+    zValidator('json', skemaAkunPertama, kaitValidasi),
+    async (c) => {
+      const { kodePemulihan, ...hasil } = await buatAkunPertama(c.req.valid('json'), c.get('asal'));
+      pasangCookieSesi(c, hasil);
+      return c.json({ data: { pengguna: hasil.pengguna, kodePemulihan } }, 201);
+    },
+  )
+  .post(
+    '/pulihkan',
+    batasPercobaanLogin,
+    zValidator('json', skemaPulihkanPassword, kaitValidasi),
+    async (c) => c.json({ data: await pulihkanPassword(c.req.valid('json'), c.get('asal')) }, 200),
+  )
+  .get('/kode-pemulihan', requireLogin({ bolehWajibGantiPassword: true }), async (c) =>
+    c.json({ data: await infoKodePemulihan(penggunaWajib(c).id) }, 200),
+  )
+  .post(
+    '/kode-pemulihan',
+    requireLogin({ bolehWajibGantiPassword: true }),
+    zValidator('json', skemaBuatKodePemulihan, kaitValidasi),
+    async (c) => {
+      const data = await buatKodePemulihan(
+        penggunaWajib(c),
+        c.req.valid('json').password,
+        c.get('asal'),
+      );
+      return c.json({ data }, 200);
+    },
+  )
   .post('/logout', requireLogin({ bolehWajibGantiPassword: true }), async (c) => {
     await logout(penggunaWajib(c), c.get('asal'));
     deleteCookie(c, NAMA_COOKIE_SESI, { path: '/' });

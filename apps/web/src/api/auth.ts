@@ -1,4 +1,10 @@
-import type { InputGantiPassword, InputLogin, PenggunaSaya } from '@sit/shared';
+import type {
+  InputAkunPertama,
+  InputGantiPassword,
+  InputLogin,
+  InputPulihkanPassword,
+  PenggunaSaya,
+} from '@sit/shared';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { ambilData, api, GalatApi } from './client';
 
@@ -67,5 +73,50 @@ export function useGantiPassword() {
     mutationFn: async (input: InputGantiPassword) =>
       ambilData(await api.auth['ganti-password'].$post({ json: input })),
     onSuccess: (pengguna) => qc.setQueryData(kunciAuth.saya, pengguna),
+  });
+}
+
+// --- K-191: akun pertama dan pemulihan password ---
+
+export function useStatusPenyiapan() {
+  return useQuery({
+    queryKey: ['auth', 'penyiapan'],
+    queryFn: async () => ambilData(await api.auth.penyiapan.$get()),
+    staleTime: 30_000,
+  });
+}
+
+export function useBuatAkunPertama() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (json: InputAkunPertama) =>
+      ambilData(await api.auth['akun-pertama'].$post({ json })),
+    onSuccess: (hasil) => {
+      gantiPengguna(qc, hasil.pengguna);
+      qc.setQueryData(['auth', 'penyiapan'], { perluAkunPertama: false });
+    },
+  });
+}
+
+export function usePulihkanPassword() {
+  return useMutation({
+    mutationFn: async (json: InputPulihkanPassword) =>
+      ambilData(await api.auth.pulihkan.$post({ json })),
+  });
+}
+
+export function useInfoKodePemulihan() {
+  return useQuery({
+    queryKey: ['auth', 'kode-pemulihan'],
+    queryFn: async () => ambilData(await api.auth['kode-pemulihan'].$get()),
+  });
+}
+
+export function useBuatKodePemulihan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (password: string) =>
+      ambilData(await api.auth['kode-pemulihan'].$post({ json: { password } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['auth', 'kode-pemulihan'] }),
   });
 }

@@ -230,6 +230,17 @@ bergantung konfigurasi.
   `[KODE: api/modules/sistem/interaksi/]`, `[KODE: web/features/pengaturan/tab-interaksi.tsx]`; `[DOK: K-190]`;
   tes `interaksi.test.ts`, e2e `interaksi.spec.ts`. Status: BERFUNGSI.
 
+**F53. Akun pertama dan lupa password** | Halaman masuk; Akun saya | publik (akun pertama, lupa password);
+semua pengguna (kode pemulihan sendiri) | desktop
+- Fungsi: pemakaian pertama tanpa password bawaan: halaman *Buat akun pertama* membuat Owner dan langsung masuk
+  (hanya selama belum ada pengguna). Kode pemulihan sekali pakai (tampil sekali; salin/unduh/cetak) untuk *Lupa
+  password?*: username + kode + password baru, sesi lama dicabut, kode baru diberikan. Tanpa kode: reset oleh
+  Owner/Admin di Data Pengguna.
+- Tabel: kolom `pengguna.kode_pemulihan_hash`, `kode_pemulihan_dibuat_pada` (migrasi 0035).
+- Bukti: `[KODE: api/modules/auth/pemulihan.ts]`, `[KODE: web/features/auth/halaman-akun-pertama.tsx]`,
+  `[KODE: web/features/auth/kartu-kode-pemulihan.tsx]`; `[DOK: docs/04 §7, K-191]`; tes `pemulihan.test.ts`.
+  Status: BERFUNGSI.
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1278,6 +1289,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-26 — F53 akun pertama dan lupa password (K-191).
 - 2026-10-26 — F52 log interaksi penelitian (K-190).
 - 2026-10-26 — F42 surat jalan hanya di dalam rit, keluar/batal rit membatalkan surat jalan, cetak semua saat berangkat; F41 berangkat langsung tanpa rit dihapus (K-174).
 - 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).

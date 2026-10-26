@@ -80,6 +80,9 @@ export const pengguna = pgTable(
     /** K-102 (migrasi 0014): tujuan kode persetujuan sekali pakai. Keduanya boleh kosong. */
     email: varchar('email', { length: 120 }),
     telegramChatId: varchar('telegram_chat_id', { length: 20 }),
+    /** K-191 (migrasi 0035): hash argon2id kode pemulihan sekali pakai (lupa password); kosong = belum dibuat. */
+    kodePemulihanHash: varchar('kode_pemulihan_hash', { length: 255 }),
+    kodePemulihanDibuatPada: timestamptz('kode_pemulihan_dibuat_pada'),
   },
   () => [
     check('chk_pengguna_peran', dalamDaftar('peran', PERAN)),

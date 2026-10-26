@@ -133,6 +133,14 @@ prioritas di bagian akhir.
      satu pengguna pun (masuk K-168, dikerjakan bersama backlog sistem).
   3. **Lupa password / pemulihan akun** (terutama Owner): kode pemulihan sekali pakai yang dibuat saat akun pertama
      dibuat dan bisa dicetak/disimpan, ditambah reset oleh Owner/Admin untuk pengguna lain (masuk backlog sistem).
+     **Butir 2 dan 3 selesai (26 Okt):** halaman *Buat akun pertama* (nama, username, password, ulangi) muncul
+     sendiri dari halaman masuk selama belum ada pengguna; akun menjadi Owner dan langsung masuk. Kode pemulihan
+     XXXXX-XXXXX-XXXXX-XXXXX tampil sekali dengan tombol Salin/Unduh berkas/Cetak dan centang "sudah menyimpan".
+     *Lupa password?* di halaman masuk: username + kode + password baru (kode baru diberikan); tanpa kode: minta
+     Owner/Admin reset di Data Pengguna (sudah ada). *Akun saya* › Kode pemulihan: buat ulang dengan password.
+     Peluncur tidak lagi membuat password Owner acak dan BonsaiUrip.exe tidak lagi menampilkan jendela password
+     (berlaku di Setup berikutnya; pemasangan v2 yang sudah punya akun tidak berubah). Tiga rute publik baru
+     dicatat di docs/04 §7.
   4. **Keluar aplikasi yang jelas:** ikon di area notifikasi Windows (system tray, "Show hidden icons") dengan menu
      Buka BonsaiUrip / Matikan BonsaiUrip; menutup peramban tidak mematikan server (penjelasan di tutorial).
      Sementara (v2): menu Start › *Matikan BonsaiUrip*.

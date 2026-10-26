@@ -164,10 +164,14 @@ if (env.NODE_ENV === 'production') {
 app.notFound(notFoundHandler);
 app.onError(errorHandler);
 
-/** Rute tanpa login (CLAUDE.md aturan 5). Masuk cepat hanya ada di mode pengembangan. */
+/** Rute tanpa login (CLAUDE.md aturan 5, docs/04 §7). Masuk cepat hanya ada di mode pengembangan. */
 export const RUTE_PUBLIK: readonly string[] = [
   'GET /api/health',
   'POST /api/auth/login',
+  // K-191: akun pertama (hanya selama belum ada pengguna) dan lupa password dengan kode pemulihan.
+  'GET /api/auth/penyiapan',
+  'POST /api/auth/akun-pertama',
+  'POST /api/auth/pulihkan',
   ...(env.NODE_ENV === 'development' ? ['POST /api/auth/masuk-cepat'] : []),
 ];
 
