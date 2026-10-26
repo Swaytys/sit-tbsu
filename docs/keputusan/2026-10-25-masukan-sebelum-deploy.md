@@ -81,11 +81,36 @@ prioritas di bagian akhir.
   disalin. **Selesai.** **Setup-BonsaiUrip.exe** (Inno Setup, 37 MB) **selesai 25 Okt**: membawa Node dan hasil
   build, wizard, ikon, pintasan; dibuat dengan `installeruat-installer.ps1`. Lanjutan (*Rencana*, v2): membawa
   PostgreSQL portabel (port 5433, password acak) agar tidak butuh PostgreSQL terpasang dan tanpa password postgres.
+- **K-188 v2 Aplikasi desktop mandiri (26 Oktober).** Percobaan Setup v1 gagal berulang di komputer pemilik
+  (modul hilang karena tautan pnpm, `.env` lama, nama pintasan, password `postgres`, HTTPS/port 443) karena
+  rancangannya bergantung pada banyak hal di luar aplikasi dan tidak bisa diuji tanpa hak Administrator. Rancangan
+  diganti mengikuti pola aplikasi desktop: **PostgreSQL ikut di dalam Setup** (dibuat sendiri pada pemakaian pertama,
+  password acak, port pribadi 54329, hanya localhost), **dipasang per pengguna tanpa hak Administrator**,
+  **BonsaiUrip.exe** (peluncur berikon) menyalakan database + server lalu membuka `http://localhost:7878` (localhost
+  dianggap aman oleh peramban: cookie sesi dan cetak struk langsung tetap berfungsi, tanpa sertifikat), data di
+  `%LOCALAPPDATA%\BonsaiUrip` terpisah dari program (pembaruan/hapus aplikasi tidak menghapus data), password awal
+  Owner tampil sekali di jendela dan tersalin otomatis. Diuji di komputer pengembang dari folder ber-spasi: database
+  dibuat, migrasi 34/34, login owner 200, matikan 7 detik, nyala ulang 17 detik, password tidak dibuat ulang,
+  masuk-cepat 404. Setup 54 MB. **Selesai.** Mode server jaringan (HTTPS, banyak komputer) tetap lewat
+  `fase-8-pasang-server.md`; cadangan otomatis dari Setup dan tanda tangan digital Setup: *Rencana*.
+- **K-190 Log aktivitas untuk penelitian.** Ekspor log aktivitas ke Excel **sudah ada** sejak 24 Oktober
+  (Pengaturan › Log aktivitas › pilih tanggal › *Ekspor Excel*); kalimat "belum bisa diekspor" berasal dari status
+  lama di laporan fitur dan sudah diperbarui. Tambahan (*Rencana*, sebelum turun lapangan): **log interaksi rinci**
+  untuk data penelitian (DeLone & McLean: penggunaan sistem, kepuasan pengguna): halaman dibuka dan lamanya, tombol/
+  menu yang diklik, pintasan keyboard, pencarian (kata dan jumlah hasil), dialog dibuka/dibatalkan, galat yang
+  tampil ke pengguna, waktu menyelesaikan alur (mis. order → bayar). Rancangan: tabel terpisah `log_interaksi` (log
+  audit `log_aktivitas` tetap ringkas), dikumpulkan di tampilan dan dikirim berkelompok, **tidak mencatat isi
+  ketikan** (hanya nama elemen; password, nominal, data pribadi tidak direkam), dinyalakan/dimatikan Owner di
+  Pengaturan dengan pemberitahuan ke pengguna (etika penelitian), dapat disaring per pengguna/periode/halaman, dan
+  diekspor CSV/Excel untuk diolah. Pilihan yang perlu diputuskan pemilik: tingkat rincian (klik semua elemen atau
+  hanya aksi bermakna) dan lama penyimpanan data.
 - **K-189 Identitas visual.** Tanda BonsaiUrip (bonsai krem di papan kayu walnut, dari logo Sumber Urip Bonsai)
   dipakai sebagai ikon tab, sidebar, dan halaman masuk (`apps/web/public/favicon.svg`, `logo-bonsaiurip.svg`).
-  **Selesai.** Ikon .ico untuk installer menyusul bersama K-188.
+  **Selesai.** Ikon .ico dipakai Setup dan BonsaiUrip.exe (K-188 v2).
 
 ## Urutan pengerjaan berikutnya
+
+0. K-190 log interaksi untuk penelitian (diminta sebelum turun lapangan).
 
 1. K-174 alur surat jalan (kritis), K-177 seret keyboard.
 2. K-168 panduan penyiapan pertama + contoh data asli.

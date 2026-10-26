@@ -698,8 +698,9 @@ keputusan lama masih tertulis di berkasnya.
 | K-185 | Promo: kelompok sasaran AND bertingkat; jenis beli N potong Rp X; penjelasan "?" diperjelas. | Berlaku (rencana) |
 | K-186 | Peringatan menutup aplikasi saat shift terbuka; peramban terbuka otomatis saat Windows mulai. | Berlaku (selesai 25 Okt) |
 | K-187 | Surat jalan dicetak 2 rangkap (asli arsip toko, salinan penerima) dengan keterangan per lembar. | Berlaku (selesai 25 Okt) |
-| K-188 | Pemasang tanpa terminal (klik dua kali, isian di jendela, akun DB sendiri, jalan keluar lupa password postgres); setup .exe lengkap menyusul. | Berlaku (pemasang jendela selesai 25 Okt; .exe rencana) |
+| K-188 | Pemasang tanpa terminal (klik dua kali, isian di jendela, akun DB sendiri, jalan keluar lupa password postgres); setup .exe lengkap menyusul. | Berlaku (v2 selesai 26 Okt: Setup mandiri dengan PostgreSQL bawaan, tanpa Administrator) |
 | K-189 | Logo BonsaiUrip (bonsai di papan kayu) untuk ikon tab, sidebar, halaman masuk. | Berlaku (selesai 25 Okt) |
+| K-190 | Log aktivitas: ekspor Excel sudah ada; tambahan log interaksi rinci (klik, halaman, durasi, pencarian, galat) untuk penelitian, terpisah dari log audit, tanpa isi ketikan, bisa dinyalakan Owner dan diekspor. | Berlaku (rencana, sebelum turun lapangan) |
 
 ---
 
