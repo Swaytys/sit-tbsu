@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { api, masukCepat } from './pembantu';
 
-// K-161: data muatan diisi di form barang (dalam gram dan mm, disimpan kg dan cm), lalu dialog Berangkat
-// menampilkan muatan dan meminta alasan saat volume sedikit melebihi bak. Data uji dinonaktifkan di akhir.
+// K-161: data muatan diisi di form barang (dalam gram dan mm, disimpan kg dan cm), lalu dialog Berangkat rit di
+// papan Pengiriman menampilkan muatan dan meminta alasan saat volume sedikit melebihi bak. Data uji dinonaktifkan.
 
-test('Data muatan barang → pratinjau muatan di Berangkat: perlu alasan, berat lebih ditolak', async ({
+test('Data muatan barang → muatan rit di Berangkat: perlu alasan, berat lebih ditolak', async ({
   browser,
 }) => {
   test.slow();
@@ -80,19 +80,50 @@ test('Data muatan barang → pratinjau muatan di Berangkat: perlu alasan, berat 
         },
       },
     );
-    await api(admin, `/penjualan/${inv.id}/surat-jalan`, 'POST', {
+    const jadwal = new Date(Date.now() + 3600_000).toISOString();
+    const ritMotor = await api<{ id: number; nomor: string }>(
+      admin,
+      '/perjalanan/rencana',
+      'POST',
+      {
+        idKendaraan: motor.id,
+        idSopir: sopir.id,
+        jadwalBerangkat: jadwal,
+      },
+    );
+    const sj = await api<{ id: number }>(admin, `/penjualan/${inv.id}/surat-jalan`, 'POST', {
+      idPerjalanan: ritMotor.id,
       baris: [{ idPenjualanDetail: inv.baris[0]!.id, qtyKirim: '5' }],
     });
 
-    // 3. Berangkat dari detail invoice: motor (200 kg) ditolak, pikap perlu alasan.
-    await admin.goto(`/penjualan/${inv.id}`);
-    await admin.getByRole('button', { name: 'Berangkat kirim' }).click();
-    await admin.getByLabel('Kendaraan').selectOption(String(motor.id));
-    await admin.getByLabel('Sopir').selectOption(String(sopir.id));
+    // 3. Berangkat dari papan Pengiriman: motor (200 kg) ditolak; pindah ke rit pikap → perlu alasan.
+    await admin.goto('/pengiriman');
+    const grupMotor = admin.getByTestId(`rit-${ritMotor.nomor}`);
+    await grupMotor.getByRole('button', { name: 'Berangkat' }).click();
     await expect(admin.getByTestId('panel-muatan')).toContainText('melebihi daya angkut');
     await expect(admin.getByRole('button', { name: /^Berangkat/ })).toBeDisabled();
-    await admin.getByLabel('Kendaraan').selectOption(String(pikap.id));
+    await admin.keyboard.press('Escape');
+    const ritPikap = await api<{ id: number; nomor: string }>(
+      admin,
+      '/perjalanan/rencana',
+      'POST',
+      {
+        idKendaraan: pikap.id,
+        idSopir: sopir.id,
+        jadwalBerangkat: jadwal,
+      },
+    );
+    await api(admin, `/perjalanan/${ritPikap.id}/isi`, 'POST', { idSuratJalan: sj.id });
+    await api(admin, `/perjalanan/${ritMotor.id}/batal`, 'POST', {
+      alasan: 'Muatan terlalu berat',
+    });
+    await admin.reload();
+    await admin
+      .getByTestId(`rit-${ritPikap.nomor}`)
+      .getByRole('button', { name: 'Berangkat' })
+      .click();
     await expect(admin.getByTestId('muatan-volume')).toContainText('perlu alasan');
+    await admin.getByRole('radio', { name: /Tidak sekarang/ }).click();
     await admin.getByRole('button', { name: /^Berangkat/ }).click();
     await expect(admin.getByText(/Tulis alasan kenapa muatan tetap aman/)).toBeVisible();
     await admin

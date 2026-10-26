@@ -82,43 +82,59 @@ test(
       await kasir.goto(`/penjualan/${inv!.id}`);
       await expect(kasir.getByRole('heading', { name: /^INV-\d{6}-\d{3,}/ })).toContainText('DP');
 
-      // 2. Surat jalan pertama: 2 dari 5.
-      await kasir.getByRole('button', { name: 'Buat surat jalan' }).click();
+      // 2. Surat jalan pertama: 2 dari 5, di rit baru yang dibuat dari dialog (K-174).
+      const detailUrl = kasir.url();
+      await kasir.getByRole('button', { name: 'Kirim dengan rit…' }).click();
+      await kasir.keyboard.press('Alt+n');
+      await kasir.getByLabel('Kendaraan rit').selectOption(String(truk.id));
+      await kasir.getByLabel('Sopir rit').selectOption(String(sopir.id));
+      await kasir.keyboard.press('Enter');
+      await expect(kasir.getByLabel('Rit pengiriman')).not.toHaveValue('');
       await kasir.getByLabel(`Qty kirim ${nama}`).fill('2');
-      await kasir.getByRole('dialog').getByRole('button', { name: 'Buat surat jalan' }).click();
+      await kasir.keyboard.press('Enter');
       const sj1 = kasir.locator('[data-testid^="sj-SJ-"]').first();
+      await expect(sj1).toContainText(`Sopir Slamet E2E ${kode}`);
+      await expect(sj1).toContainText(truk.plat);
       await sj1.getByRole('button', { name: 'Selesai dimuat' }).click();
       await expect(sj1).toContainText('Barang dimuat');
-      await sj1.getByRole('button', { name: 'Berangkat kirim' }).click();
-      await kasir.getByLabel('Kendaraan').selectOption(String(truk.id));
-      await kasir.getByLabel('Sopir').selectOption(String(sopir.id));
-      await kasir
-        .getByRole('dialog')
-        .getByRole('button', { name: /^Berangkat/ })
-        .click();
+
+      // Rit berangkat dari papan Pengiriman (surat jalan tidak dicetak di uji ini: pilihan 3).
+      async function berangkatkan() {
+        await kasir.goto('/pengiriman');
+        const grup = kasir.locator('[data-testid^="rit-TRP-"]').filter({ hasText: truk.plat });
+        await grup.getByRole('button', { name: 'Berangkat' }).click();
+        await kasir.keyboard.press('3');
+        await kasir.keyboard.press('Enter');
+        await expect(
+          kasir.locator('[data-testid^="jalan-TRP-"]').filter({ hasText: truk.plat }),
+        ).toBeVisible();
+        await kasir.goto(detailUrl);
+      }
+      await berangkatkan();
       await expect(sj1).toContainText('Di jalan');
-      await expect(sj1).toContainText(truk.plat);
       await sj1.getByRole('button', { name: 'Catat hasil' }).click();
       await kasir.getByRole('button', { name: /Semua diterima/ }).click();
       await expect(sj1.getByTestId('ringkas-hasil')).toContainText('Semua diterima');
       await expect(kasir.getByText('Dikirim sebagian')).toBeVisible();
 
-      // 3. Surat jalan kedua: sisa 3.
-      await kasir.getByRole('button', { name: 'Buat surat jalan' }).click();
+      // 3. Surat jalan kedua: sisa 3, rit baru dengan kendaraan & sopir yang sama (bebas lagi setelah hasil
+      // surat jalan pertama dicatat).
+      await kasir.getByRole('button', { name: 'Kirim dengan rit…' }).click();
       await expect(kasir.getByLabel(`Qty kirim ${nama}`)).toHaveValue('3');
-      await kasir.getByRole('dialog').getByRole('button', { name: 'Buat surat jalan' }).click();
-      const sj2 = kasir.locator('[data-testid^="sj-SJ-"]').first();
-      await sj2.getByRole('button', { name: 'Selesai dimuat' }).click();
-      // Kendaraan & sopir bebas lagi setelah hasil SJ pertama dicatat.
-      await sj2.getByRole('button', { name: 'Berangkat kirim' }).click();
-      await kasir.getByLabel('Kendaraan').selectOption(String(truk.id));
-      await kasir.getByLabel('Sopir').selectOption(String(sopir.id));
+      await kasir.getByRole('button', { name: /^Rit baru/ }).click();
+      await kasir.getByLabel('Kendaraan rit').selectOption(String(truk.id));
+      await kasir.getByLabel('Sopir rit').selectOption(String(sopir.id));
       await kasir.keyboard.press('Enter');
+      await expect(kasir.getByLabel('Rit pengiriman')).not.toHaveValue('');
+      await kasir.getByRole('button', { name: /^Masukkan ke rit/ }).click();
+      const sj2 = kasir.locator('[data-testid^="sj-SJ-"]').first();
+      await expect(sj2).toContainText('Surat jalan dibuat');
+      await berangkatkan();
       await sj2.getByRole('button', { name: 'Catat hasil' }).click();
       await kasir.keyboard.press('Enter'); // fokus awal di "Semua diterima"
       await expect(sj2.getByTestId('ringkas-hasil')).toContainText('Semua diterima');
       await expect(kasir.getByText('Terkirim', { exact: true })).toBeVisible();
-      await expect(kasir.getByRole('button', { name: 'Buat surat jalan' })).toHaveCount(0);
+      await expect(kasir.getByRole('button', { name: 'Kirim dengan rit…' })).toHaveCount(0);
 
       // 4. Pelunasan sisa Rp 300.000 lewat EDC.
       await kasir.getByRole('button', { name: 'Terima pembayaran' }).click();

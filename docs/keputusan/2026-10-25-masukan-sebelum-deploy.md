@@ -32,7 +32,13 @@ prioritas di bagian akhir.
 - **K-174 Alur surat jalan dibenahi (kritis).** Surat jalan baru dibuat setelah order masuk rit yang sudah punya
   kendaraan dan sopir; membagi order (sebagian) tidak membuat surat jalan; grup "Belum direncanakan" dihapus;
   saat **Berangkat** semua surat jalan rit dicetak/diunduh (pilihan cetak atau unduh) dan rit tidak bisa berangkat
-  bila ada order tanpa surat jalan. Bug: berangkat tidak memunculkan cetak surat jalan. *Rencana (prioritas 1).*
+  bila ada order tanpa surat jalan. Bug: berangkat tidak memunculkan cetak surat jalan. **Selesai (26 Okt):**
+  surat jalan wajib memilih rit dan langsung berisi sopir/kendaraan rit; masuk rit sebagian lewat dialog qty + rit
+  (papan, detail invoice, tombol S kasir; rit baru bisa dibuat dari dialog); keluar dari rit atau batal rit
+  membatalkan surat jalan sehingga order kembali ke Backlog; berangkat langsung tanpa rit dihapus; dialog
+  Berangkat memberi pilihan 1 Cetak / 2 Simpan PDF / 3 Tidak sekarang dan mencetak semua surat jalan rit dalam
+  satu jendela; tombol Cetak di grup rit dan kartu Di jalan. Kolom baru di antara Backlog dan Dijadwalkan tidak
+  dibuat: grup rit sudah memisahkan yang dikerjakan sekarang dari yang menunggu.
 - **K-175 Kembali ke halaman asal.** Detail invoice yang dibuka dari Pengiriman kembali ke Pengiriman (**Selesai**).
 - **K-176 Penyelesaian hasil pengantaran.** Kolom *ditolak* diganti alasan per barang (kelebihan, salah barang,
   rusak saat dicek, rusak di jalan); barang kembali utuh mengurangi tagihan otomatis; pengembalian uang lewat

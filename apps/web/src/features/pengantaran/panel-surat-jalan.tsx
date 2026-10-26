@@ -4,12 +4,12 @@ import {
   type DetailPenjualan,
   type StatusSuratJalan,
 } from '@sit/shared';
-import { Check, ClipboardCheck, Printer, Truck, X } from 'lucide-react';
-import { useState } from 'react';
+import { CalendarPlus, Check, ClipboardCheck, Printer, Truck, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
+import { useDaftarPerjalanan } from '@/api/armada';
 import { pesanGalat } from '@/api/client';
-import { useTampilanToko } from '@/api/pengaturan';
 import { useBatalSuratJalan, useBuatSuratJalan, useMuatSuratJalan } from '@/api/penjualan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,10 +23,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { cetakMenurutSetelan } from '@/lib/cetak-otomatis';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { DialogBerangkat } from './dialog-berangkat';
+import { DialogRitBaru } from '../pengiriman/dialog-rit';
 import { DialogHasil } from './dialog-hasil';
 
 const LABEL_SJ: Record<StatusSuratJalan, string> = {
@@ -106,18 +105,39 @@ export function BadgeSuratJalan({ status }: { status: StatusSuratJalan }) {
   );
 }
 
-/** Dialog buat surat jalan; setelah dibuat, dicetak menurut Pengaturan bila `onCetak` diberikan (K-124). */
+const kelasPilih =
+  'h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200';
+
+const jamRit = (iso: string | null) => (iso ? formatWaktu(iso).slice(11) : '—');
+
+/**
+ * K-174: buat surat jalan (semua atau sebagian barang) langsung di dalam rit rencana. Rit menentukan sopir dan
+ * kendaraan yang tertulis di surat jalan; bila belum ada rit yang cocok, buat rit baru dari dialog ini. Surat jalan
+ * dicetak saat rit berangkat (atau dari tombol Cetak).
+ */
 export function DialogBuat({
   p,
   onTutup,
-  onCetak,
+  onBerhasil,
+  idRitAwal,
 }: {
   p: DetailPenjualan;
   onTutup: () => void;
-  onCetak?: (sj: BarisSuratJalan) => void;
+  onBerhasil?: () => void;
+  idRitAwal?: number;
 }) {
   const buat = useBuatSuratJalan();
-  const modeCetak = useTampilanToko().data?.suratJalanCetak;
+  const rencana = useDaftarPerjalanan({ status: 'DIRENCANAKAN' });
+  const daftarRit = rencana.data?.data ?? [];
+  const [idRit, setIdRit] = useState(idRitAwal ? String(idRitAwal) : '');
+  const [ritBaru, setRitBaru] = useState(false);
+  const pilihRit = useRef<HTMLSelectElement>(null);
+  // Dibuka dari menu kartu: fokus menu baru lepas setelah dialog terpasang, jadi fokus awal dipasang ulang.
+  useEffect(() => {
+    if (idRitAwal) return;
+    const t = window.setTimeout(() => pilihRit.current?.focus(), 50);
+    return () => window.clearTimeout(t);
+  }, [idRitAwal]);
   const [qty, setQty] = useState<Record<number, string>>(() =>
     Object.fromEntries(p.baris.map((b) => [b.id, b.qtyBelumDikirim.replace(/\.?0+$/, '') || '0'])),
   );
@@ -126,7 +146,9 @@ export function DialogBuat({
   const [alamat, setAlamat] = useState(p.alamatKirim ?? '');
 
   function simpan() {
+    if (buat.isPending) return;
     const data = skemaSuratJalan.safeParse({
+      idPerjalanan: Number(idRit) || undefined,
       alamatKirim: alamat,
       namaPenerima: penerima,
       noHpPenerima: noHp,
@@ -141,84 +163,127 @@ export function DialogBuat({
     buat
       .mutateAsync({ id: p.id, json: data.data })
       .then((sj) => {
-        toast.success(`Surat jalan ${sj.nomor} dibuat.`);
+        toast.success(`Surat jalan ${sj.nomor} masuk rit ${sj.nomorPerjalanan ?? ''}.`);
+        onBerhasil?.();
         onTutup();
-        if (onCetak) cetakMenurutSetelan(modeCetak, `surat jalan ${sj.nomor}`, () => onCetak(sj));
       })
       .catch((err: unknown) => toast.error(pesanGalat(err)));
   }
 
   return (
-    <Dialog open onOpenChange={(b) => !b && onTutup()}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Buat surat jalan</DialogTitle>
-          <DialogDescription>
-            Isi qty yang dikirim kali ini (boleh sebagian). Qty tidak boleh melebihi yang belum
-            dikirim.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <Input
-            value={penerima}
-            onChange={(e) => setPenerima(e.target.value)}
-            placeholder="Nama penerima"
-            aria-label="Nama penerima"
-          />
-          <Input
-            value={noHp}
-            onChange={(e) => setNoHp(e.target.value)}
-            placeholder="No. HP penerima"
-            aria-label="No. HP penerima"
-          />
-          <Input
-            className="col-span-2"
-            value={alamat}
-            onChange={(e) => setAlamat(e.target.value)}
-            placeholder="Alamat kirim"
-            aria-label="Alamat kirim"
-          />
-        </div>
-        <table className="w-full text-sm">
-          <thead className="text-xs text-slate-500">
-            <tr>
-              <th className="py-1 text-left">Barang</th>
-              <th className="py-1 text-right">Belum dikirim</th>
-              <th className="w-32 py-1 text-right">Qty kirim</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {p.baris.map((b) => (
-              <tr key={b.id}>
-                <td className="py-1.5">{b.namaBarang}</td>
-                <td className="py-1.5 text-right tabular-nums">
-                  {formatDesimal(b.qtyBelumDikirim)} {b.kodeSatuan}
-                </td>
-                <td className="py-1.5">
-                  <Input
-                    className="h-8 text-right"
-                    inputMode="decimal"
-                    value={qty[b.id] ?? ''}
-                    onChange={(e) =>
-                      setQty((q) => ({ ...q, [b.id]: e.target.value.replace(',', '.') }))
-                    }
-                    aria-label={`Qty kirim ${b.namaBarang}`}
-                  />
-                </td>
+    <>
+      <Dialog open={!ritBaru} onOpenChange={(b) => !b && onTutup()}>
+        <DialogContent
+          className="sm:max-w-2xl"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
+              e.preventDefault();
+              simpan();
+            } else if (e.altKey && (e.key === 'n' || e.key === 'N')) {
+              e.preventDefault();
+              setRitBaru(true);
+            }
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Kirim {p.nomor} dengan rit</DialogTitle>
+            <DialogDescription>
+              Pilih rit (kendaraan + sopir), lalu qty yang dikirim kali ini (boleh sebagian). Surat
+              jalan dicetak saat rit berangkat.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-end gap-2 text-sm">
+            <label className="grid flex-1 gap-1">
+              <span className="font-medium">Rit</span>
+              <select
+                ref={pilihRit}
+                autoFocus={!idRitAwal}
+                className={kelasPilih}
+                value={idRit}
+                onChange={(e) => setIdRit(e.target.value)}
+                aria-label="Rit pengiriman"
+              >
+                <option value="">
+                  {daftarRit.length === 0 ? '— belum ada rit rencana —' : '— pilih rit —'}
+                </option>
+                {daftarRit.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.nomor} · {r.plat} · {r.namaSopir} · jam {jamRit(r.jadwalBerangkat)} ·{' '}
+                    {r.suratJalan.length} surat jalan
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button variant="outline" onClick={() => setRitBaru(true)}>
+              <CalendarPlus /> Rit baru{' '}
+              <kbd className="ml-1 font-mono text-xs opacity-70">Alt+N</kbd>
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Input
+              value={penerima}
+              onChange={(e) => setPenerima(e.target.value)}
+              placeholder="Nama penerima"
+              aria-label="Nama penerima"
+            />
+            <Input
+              value={noHp}
+              onChange={(e) => setNoHp(e.target.value)}
+              placeholder="No. HP penerima"
+              aria-label="No. HP penerima"
+            />
+            <Input
+              className="col-span-2"
+              value={alamat}
+              onChange={(e) => setAlamat(e.target.value)}
+              placeholder="Alamat kirim"
+              aria-label="Alamat kirim"
+            />
+          </div>
+          <table className="w-full text-sm">
+            <thead className="text-xs text-slate-500">
+              <tr>
+                <th className="py-1 text-left">Barang</th>
+                <th className="py-1 text-right">Belum dikirim</th>
+                <th className="w-32 py-1 text-right">Qty kirim</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <DialogFooter>
-          <Button variant="outline" onClick={onTutup}>
-            Batal
-          </Button>
-          <Button disabled={buat.isPending} onClick={simpan}>
-            Buat surat jalan
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            </thead>
+            <tbody className="divide-y">
+              {p.baris.map((b) => (
+                <tr key={b.id}>
+                  <td className="py-1.5">{b.namaBarang}</td>
+                  <td className="py-1.5 text-right tabular-nums">
+                    {formatDesimal(b.qtyBelumDikirim)} {b.kodeSatuan}
+                  </td>
+                  <td className="py-1.5">
+                    <Input
+                      className="h-8 text-right"
+                      inputMode="decimal"
+                      value={qty[b.id] ?? ''}
+                      onChange={(e) =>
+                        setQty((q) => ({ ...q, [b.id]: e.target.value.replace(',', '.') }))
+                      }
+                      aria-label={`Qty kirim ${b.namaBarang}`}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <DialogFooter>
+            <Button variant="outline" onClick={onTutup}>
+              Batal
+            </Button>
+            <Button disabled={buat.isPending} onClick={simpan}>
+              <Truck /> {buat.isPending ? 'Menyimpan…' : 'Masukkan ke rit (Enter)'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {ritBaru && (
+        <DialogRitBaru onTutup={() => setRitBaru(false)} onDibuat={(r) => setIdRit(String(r.id))} />
+      )}
+    </>
   );
 }
 
@@ -231,7 +296,7 @@ export function KartuSuratJalan({
 }) {
   const muat = useMuatSuratJalan();
   const batal = useBatalSuratJalan();
-  const [dialog, setDialog] = useState<'berangkat' | 'hasil' | null>(null);
+  const [dialog, setDialog] = useState<'hasil' | null>(null);
   const langkah = sj.status === 'BATAL' ? -1 : URUTAN.indexOf(sj.status);
   const waktu: Record<string, string | null> = {
     DIPROSES: sj.tanggal,
@@ -253,9 +318,19 @@ export function KartuSuratJalan({
             )}
           </div>
           <div className="text-xs text-slate-500">
-            {sj.sopir ? `Sopir ${sj.sopir}` : 'Kendaraan & sopir dipilih saat berangkat'}
+            {sj.sopir
+              ? `Sopir ${sj.sopir}`
+              : 'Belum masuk rit (data lama): masukkan dari Pengiriman'}
             {sj.kendaraan && ` · ${sj.kendaraan}`} · {sj.alamatKirim}
           </div>
+          {siap && sj.idPerjalanan !== null && (
+            <div className="text-xs text-slate-500">
+              Berangkat bersama ritnya dari{' '}
+              <Link to="/pengiriman" className="text-blue-700 hover:underline">
+                Logistik › Pengiriman
+              </Link>
+            </div>
+          )}
           {sj.alasanBatal && <div className="text-xs text-red-600">Batal: {sj.alasanBatal}</div>}
         </div>
         <div className="flex flex-wrap justify-end gap-2">
@@ -296,11 +371,6 @@ export function KartuSuratJalan({
               <Check /> Selesai dimuat
             </Button>
           )}
-          {siap && (
-            <Button size="sm" onClick={() => setDialog('berangkat')}>
-              <Truck /> Berangkat kirim
-            </Button>
-          )}
           {sj.status === 'DIKIRIM' && (
             <Button size="sm" onClick={() => setDialog('hasil')}>
               <ClipboardCheck /> Catat hasil
@@ -330,9 +400,6 @@ export function KartuSuratJalan({
           .join(' · ')}
       </div>
       <RingkasHasil sj={sj} />
-      {dialog === 'berangkat' && (
-        <DialogBerangkat suratJalan={[sj]} onTutup={() => setDialog(null)} />
-      )}
       {dialog === 'hasil' && <DialogHasil sj={sj} onTutup={() => setDialog(null)} />}
     </Card>
   );
@@ -356,7 +423,7 @@ export function PanelSuratJalan({
         <h2 className="text-sm font-semibold text-slate-700">Surat jalan</h2>
         {bolehKelola && masihAda && p.statusTransaksi !== 'VOID' && (
           <Button size="sm" onClick={() => setBuat(true)}>
-            <Truck /> Buat surat jalan
+            <Truck /> Kirim dengan rit…
           </Button>
         )}
       </div>
@@ -366,7 +433,7 @@ export function PanelSuratJalan({
       {p.suratJalan.map((sj) => (
         <KartuSuratJalan key={sj.id} sj={sj} onCetak={onCetak} />
       ))}
-      {buat && <DialogBuat p={p} onTutup={() => setBuat(false)} onCetak={onCetak} />}
+      {buat && <DialogBuat p={p} onTutup={() => setBuat(false)} />}
     </div>
   );
 }

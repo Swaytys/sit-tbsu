@@ -451,14 +451,18 @@ Admin/Owner (pemeriksaan) | desktop
   dan sopir yang sedang jalan terkunci sampai hasil semua surat jalannya dicatat (dijaga service + indeks unik
   parsial). Riwayat perjalanan per kendaraan dan per sopir.
 - Tabel: `kendaraan`, `sopir`, `perjalanan`, kolom `surat_jalan.id_perjalanan` (migrasi 0023).
-- Bukti: `[KODE: api/modules/master/armada/]`, `[KODE: api/modules/penjualan/perjalanan/service.ts]` (`berangkat`);
-  `[DOK: K-150]`. Status: BERFUNGSI.
+- Bukti: `[KODE: api/modules/master/armada/]`, `[KODE: api/modules/penjualan/perjalanan/service.ts]`
+  (`berangkatkanRit`); `[DOK: K-150, K-174]`. Status: BERFUNGSI.
 
 **F42. Papan Pengiriman dan rit rencana** | Logistik › Pengiriman | Kasir+ | desktop
 - Fungsi: papan empat kolom (Backlog → Dijadwalkan → Di jalan → Selesai hari ini). Rit direncanakan lebih dulu
   (kendaraan, sopir, jadwal), lalu diisi dengan menyeret kartu order kirim ke grup rit atau lewat menu kartu; surat
-  jalan dibuat otomatis untuk sisa barang. Grup rit menampilkan bar muatan, bisa ditandai *Dimuat*, diberangkatkan
-  (pemeriksaan muatan F43, penguncian kendaraan/sopir F41), atau dibatalkan dengan alasan. Setiap aksi seret punya
+  jalan dibuat saat itu, untuk semua sisa barang atau sebagian (dialog qty + rit), dan langsung berisi sopir dan
+  kendaraan rit (K-174: tidak ada surat jalan tanpa rit; dialog yang sama dipakai di detail invoice dan tombol S
+  kasir, dengan pilihan membuat rit baru). Keluar dari rit atau batal rit membatalkan surat jalannya sehingga order
+  kembali ke Backlog. Grup rit menampilkan bar muatan, bisa ditandai *Dimuat*, dicetak, diberangkatkan
+  (pemeriksaan muatan F43, penguncian kendaraan/sopir F41; semua surat jalan rit dicetak atau disimpan PDF sekaligus
+  sesuai pilihan di dialog), atau dibatalkan dengan alasan. Setiap aksi seret punya
   padanan klik dan keyboard (R = rit baru). Data disegarkan tiap 30 detik; aksi pada rit yang sudah berubah ditolak.
 - Input → Proses → Output: kendaraan, sopir, jadwal, kartu order kirim → kunci baris rit dan surat jalan, buat/pindah
   surat jalan, log aktivitas → rit DIRENCANAKAN → JALAN → SELESAI (atau BATAL).
@@ -1154,8 +1158,6 @@ penjualan/surat-jalan/routes.ts:39 POST /api/surat-jalan/:id/batal penjualan.sur
 penjualan/surat-jalan/routes.ts GET /api/surat-jalan/perlu-kirim penjualan.surat_jalan.kelola
 penjualan/surat-jalan/routes.ts POST /api/surat-jalan/:id/hasil penjualan.surat_jalan.kelola
 penjualan/perjalanan/routes.ts GET /api/perjalanan/ penjualan.surat_jalan.kelola
-penjualan/perjalanan/routes.ts POST /api/perjalanan/pratinjau-muatan penjualan.surat_jalan.kelola
-penjualan/perjalanan/routes.ts POST /api/perjalanan/ penjualan.surat_jalan.kelola
 penjualan/perjalanan/routes.ts POST /api/perjalanan/rencana penjualan.surat_jalan.kelola
 penjualan/perjalanan/routes.ts POST /api/perjalanan/keluar penjualan.surat_jalan.kelola
 penjualan/perjalanan/routes.ts POST /api/perjalanan/:id/isi penjualan.surat_jalan.kelola
@@ -1262,6 +1264,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-26 — F42 surat jalan hanya di dalam rit, keluar/batal rit membatalkan surat jalan, cetak semua saat berangkat; F41 berangkat langsung tanpa rit dihapus (K-174).
 - 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).
 - 2026-10-24 — F51 order pembelian ke pemasok (K-125); F40 saran pesan memakai sudah dipesan dan lama kirim aktual.
 - 2026-10-24 — F50 Hasil Penjualan (K-126).

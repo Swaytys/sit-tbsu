@@ -1,8 +1,9 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { api, masukCepat } from './pembantu';
 
-// K-160: Logistik › Pengiriman (papan). Rit baru (R) → seret order kirim ke grup rit dan lewat menu kartu →
-// Dimuat → Berangkat → Catat hasil (1 kembali utuh) → Selesai + kirim ulang di Backlog. Data uji dinonaktifkan.
+// K-160/K-174: Logistik › Pengiriman (papan). Rit baru (R) → seret order kirim ke grup rit dan lewat menu kartu
+// (surat jalan dibuat saat masuk rit) → keluarkan ke Backlog → kirim lewat dialog rit → Dimuat → Berangkat (semua
+// surat jalan rit tercetak) → Catat hasil (1 kembali utuh) → Selesai + kirim ulang di Backlog. Data uji dinonaktifkan.
 
 async function seret(page: Page, kartu: Locator, tujuan: Locator) {
   const pegangan = kartu.getByRole('button', { name: /^Seret / });
@@ -64,6 +65,13 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
     const a = await invoice();
     const b = await invoice();
     const kasir = await browser.newPage({ viewport: { width: 1440, height: 810 } });
+    await kasir.addInitScript(() => {
+      const w = window as unknown as { cetakSj?: number; judulCetak?: string };
+      window.print = () => {
+        w.cetakSj = document.querySelectorAll('.area-cetak [data-testid="surat-jalan"]').length;
+        w.judulCetak = document.title;
+      };
+    });
     await masukCepat(kasir, 'KASIR');
     await kasir.goto('/pengiriman');
     await expect(kasir.getByTestId(`order-kirim-${a.nomor}`)).toBeVisible();
@@ -83,14 +91,48 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
     await kasir.getByRole('menuitem', { name: new RegExp(truk.plat) }).click();
     await expect(grup).toContainText('2 surat jalan');
     await expect(kasir.getByTestId(`order-kirim-${a.nomor}`)).toHaveCount(0);
+    const sjDi = await api<{ id: number; nomor: string; sopir: string | null }[]>(
+      admin,
+      `/surat-jalan?status=AKTIF&cari=${b.nomor}`,
+    );
+    expect(sjDi[0]!.sopir).toBe(`Papan E2E ${kode}`);
+
+    // 2b. K-174: keluarkan surat jalan B → batal, order B kembali ke Backlog; lalu kirim lewat dialog rit.
+    await grup.getByRole('button', { name: `Aksi ${sjDi[0]!.nomor}` }).click();
+    await kasir.getByRole('menuitem', { name: /Keluarkan ke Backlog/ }).click();
+    await expect(grup).toContainText('1 surat jalan');
+    await expect(kasir.getByTestId(`order-kirim-${b.nomor}`)).toBeVisible();
+    await kasir.getByRole('button', { name: `Aksi ${b.nomor}` }).click();
+    await kasir.getByRole('menuitem', { name: /Kirim sebagian/ }).click();
+    const dlg = kasir.getByRole('dialog');
+    const ritUji = (
+      await api<{ id: number; plat: string }[]>(admin, '/perjalanan?status=DIRENCANAKAN')
+    ).find((r) => r.plat === truk.plat)!;
+    await expect(dlg.getByLabel('Rit pengiriman')).toBeFocused();
+    await dlg.getByLabel('Rit pengiriman').selectOption(String(ritUji.id));
+    await kasir.keyboard.press('Enter');
+    await expect(grup).toContainText('2 surat jalan');
 
     // 3. Dimuat → Berangkat.
     await grup.getByRole('button', { name: 'Dimuat' }).click();
     await expect(grup.getByText('Dimuat').first()).toBeVisible();
     await grup.getByRole('button', { name: 'Berangkat' }).click();
-    await kasir.getByRole('dialog').getByRole('button', { name: 'Berangkat' }).click();
+    const dBerangkat = kasir.getByRole('dialog');
+    await dBerangkat.getByRole('radio', { name: /Cetak/ }).click();
+    await expect(dBerangkat.getByRole('radio', { name: /Cetak/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await dBerangkat.getByRole('button', { name: /^Berangkat/ }).click();
     const jalan = kasir.locator('[data-testid^="jalan-TRP-"]').filter({ hasText: truk.plat });
     await expect(jalan).toBeVisible();
+    // Semua surat jalan rit dicetak sekaligus (2 surat jalan; 4 lembar bila 2 rangkap).
+    await expect
+      .poll(() => kasir.evaluate(() => (window as unknown as { cetakSj?: number }).cetakSj))
+      .toBeGreaterThanOrEqual(2);
+    expect(
+      await kasir.evaluate(() => (window as unknown as { judulCetak?: string }).judulCetak),
+    ).toMatch(/^Surat jalan TRP-/);
 
     // 4. Catat hasil: SJ pertama semua diterima, SJ kedua 1 kembali utuh.
     await jalan

@@ -216,7 +216,7 @@ test('Kasir: FIFO menyorot order terlama; kasir boleh memilih order lain lalu me
   }
 });
 
-test('Pengantaran: order → invoice DP transfer → surat jalan semua barang, hanya keyboard', async ({
+test('Pengantaran: order → invoice DP transfer → kirim dengan rit (surat jalan semua barang)', async ({
   browser,
 }) => {
   const kode = Date.now();
@@ -227,6 +227,16 @@ test('Pengantaran: order → invoice DP transfer → surat jalan semua barang, h
     namaPelanggan: `CV POS ${kode}`,
     noHp: '081200000001',
     alamat: 'Jl. Proyek 7',
+  });
+  const truk = await api<{ id: number }>(admin, '/kendaraan', 'POST', {
+    plat: `L ${kode % 9000} PS`,
+    jenis: 'Pikap E2E',
+  });
+  const sopir = await api<{ id: number }>(admin, '/sopir', 'POST', { nama: `POS E2E ${kode}` });
+  const rit = await api<{ id: number }>(admin, '/perjalanan/rencana', 'POST', {
+    idKendaraan: truk.id,
+    idSopir: sopir.id,
+    jadwalBerangkat: new Date(Date.now() + 3600_000).toISOString(),
   });
   try {
     const staf = await browser.newPage();
@@ -272,20 +282,29 @@ test('Pengantaran: order → invoice DP transfer → surat jalan semua barang, h
     expect(await dicetak()).toBe('');
     await kasir.keyboard.press('p');
     await expect.poll(dicetak).toContain('INVOICE');
+    // K-174: S membuka dialog kirim dengan rit (semua sisa barang terisi); surat jalan dibuat di rit itu.
     await kasir.keyboard.press('s');
-    await expect(kasir.getByText(/Surat jalan SJ-\d{6}-\d{3,} dibuat/)).toBeVisible();
+    await kasir.getByLabel('Rit pengiriman').selectOption(String(rit.id));
+    await expect(kasir.getByLabel(`Qty kirim Besi POS ${kode}`)).toHaveValue('5');
+    await kasir.keyboard.press('Enter');
+    await expect(kasir.getByText(/Surat jalan SJ-\d{6}-\d{3,} masuk rit TRP-/)).toBeVisible();
+    await expect(hasil).toHaveCount(0);
 
     const pj = await api<{ id: number; statusPembayaran: string }[]>(
       admin,
       `/penjualan?jenis=PENGANTARAN&cari=${encodeURIComponent(`CV POS ${kode}`)}`,
     );
-    const detail = await api<{ statusPembayaran: string; suratJalan: unknown[] }>(
-      admin,
-      `/penjualan/${pj[0]!.id}`,
-    );
+    const detail = await api<{
+      statusPembayaran: string;
+      suratJalan: { idPerjalanan: number | null }[];
+    }>(admin, `/penjualan/${pj[0]!.id}`);
     expect(detail.statusPembayaran).toBe('DP');
     expect(detail.suratJalan).toHaveLength(1);
+    expect(detail.suratJalan[0]!.idPerjalanan).toBe(rit.id);
   } finally {
+    await api(admin, `/perjalanan/${rit.id}/batal`, 'POST', { alasan: 'Sisa uji otomatis POS' });
+    await api(admin, `/kendaraan/${truk.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+    await api(admin, `/sopir/${sopir.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
     await api(admin, `/barang/${besi.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
     await api(admin, `/pelanggan/${plg.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
   }

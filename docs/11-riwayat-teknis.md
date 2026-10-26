@@ -646,6 +646,29 @@ diabaikan (daftar pemasok dibatasi 100).
 
 **Tes:** order-pembelian.test (alur, uang muka, batal/tutup, lama kirim aktual), e2e order-pembelian.spec.
 
+### C21. Surat jalan hanya di dalam rit (26 Oktober 2026, K-174)
+
+**Masalah:** surat jalan bisa dibuat tanpa rit, sehingga pratinjau/cetakannya kosong di baris sopir dan kendaraan;
+membagi order membuat surat jalan sebelum kendaraan ditentukan; berangkat dari papan tidak mencetak surat jalan.
+
+**Solusi:** skema `skemaSuratJalan` mewajibkan `idPerjalanan` (kolom `sopir`/`kendaraan` lepas dari input).
+`buatSuratJalanTx` mengunci rit lebih dulu lewat `kunciRitTujuan` (rit harus DIRENCANAKAN; urutan kunci rit → invoice
+sama dengan isi rit dari papan) dan menyalin teks sopir/kendaraan rit. Pindah rit menyalin ulang teks itu.
+`batalSuratJalan` dipecah menjadi `batalSuratJalanTx` agar *keluarkan dari rit* dan *batal rit* bisa membatalkan
+surat jalan di transaksi yang sama (status pengiriman invoice ikut disinkronkan). Endpoint berangkat langsung
+`POST /api/perjalanan` dan `POST /api/perjalanan/pratinjau-muatan` dihapus beserta dialognya di web; muatan rit
+rencana sudah dihitung di daftar rit. Web: `DialogBuat` memilih rit (atau *Rit baru*, Alt+N, lewat `DialogRitBaru`
+`onDibuat`) dan dipakai papan, detail invoice, dan tombol S kasir; `DialogBerangkatRit` memberi pilihan 1 Cetak / 2
+Simpan PDF / 3 Tidak sekarang (bawaan dari setelan `suratJalanCetak`); `CetakSuratJalan` menerima daftar surat jalan
+(halaman baru per surat jalan, `document.title` menjadi nama berkas PDF). Menu kartu papan tidak mengembalikan fokus
+ke tombol ⋮ (Enter berikutnya membuka menu lagi dan menutup dialog), dan dialog surat jalan memasang fokus awal ke
+pilihan rit setelah terpasang.
+
+**Tes:** surat-jalan.test (surat jalan tanpa rit ditolak, sopir/kendaraan dari rit, rit sudah berangkat ditolak,
+berangkat bersamaan, muatan lewat rit, keluarkan/batal rit membatalkan surat jalan), void.test; e2e pengiriman.spec
+(keluarkan → kirim sebagian lewat dialog → berangkat mencetak semua surat jalan), pengantaran.spec, pos.spec,
+muatan.spec.
+
 ---
 
 ## Riwayat dokumen
@@ -671,3 +694,4 @@ diabaikan (daftar pemasok dibatasi 100).
 - 2026-10-24 — Bagian C18 saran pesan beberapa metode dan simpanan memori (K-127).
 - 2026-10-24 — Bagian C19 Hasil Penjualan dan ekspor log (K-126, K-113).
 - 2026-10-24 — Bagian C20 order pembelian ke pemasok (K-125).
+- 2026-10-26 — Bagian C21 surat jalan hanya di dalam rit (K-174).
