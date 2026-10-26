@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { api, masukCepat } from './pembantu';
+import { api, buangDrafSaya, masukCepat } from './pembantu';
 
 // Alur POS K-073 yang dijalankan HANYA dengan keyboard (tanpa klik) untuk Staf & Kasir. Menambah barang,
 // pelanggan, order, dan penjualan uji di database pengembangan (barang/pelanggan dinonaktifkan di akhir).
@@ -58,6 +58,7 @@ test(
       // Staf: halaman Order Penjualan langsung siap input; semua dengan keyboard.
       const staf = await browser.newPage();
       await masukCepat(staf, 'STAF_PENJUALAN');
+      await buangDrafSaya(staf);
       await staf.goto('/order');
       await expect(staf.getByLabel('Cari barang')).toBeFocused();
       await staf.keyboard.type(`3*Paku POS ${kode}`);
@@ -326,6 +327,7 @@ test('Staf: order pengantaran dengan keyboard (F3 jenis, F4 pelanggan, alamat te
   try {
     const staf = await browser.newPage();
     await masukCepat(staf, 'STAF_PENJUALAN');
+    await buangDrafSaya(staf);
     await staf.goto('/order');
     await expect(staf.getByLabel('Cari barang')).toBeFocused();
     await staf.keyboard.press('F3');
