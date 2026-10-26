@@ -700,7 +700,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-187 | Surat jalan dicetak 2 rangkap (asli arsip toko, salinan penerima) dengan keterangan per lembar. | Berlaku (selesai 25 Okt) |
 | K-188 | Pemasang tanpa terminal (klik dua kali, isian di jendela, akun DB sendiri, jalan keluar lupa password postgres); setup .exe lengkap menyusul. | Berlaku (v2 selesai 26 Okt: Setup mandiri dengan PostgreSQL bawaan, tanpa Administrator) |
 | K-189 | Logo BonsaiUrip (bonsai di papan kayu) untuk ikon tab, sidebar, halaman masuk. | Berlaku (selesai 25 Okt) |
-| K-190 | Log aktivitas: ekspor Excel sudah ada; tambahan log interaksi rinci (klik, halaman, durasi, pencarian, galat) untuk penelitian, terpisah dari log audit, tanpa isi ketikan, bisa dinyalakan Owner dan diekspor. | Berlaku (rencana, sebelum turun lapangan) |
+| K-190 | Log aktivitas: ekspor Excel sudah ada; tambahan log interaksi rinci (klik, halaman, durasi, pencarian, galat) untuk penelitian, terpisah dari log audit, tanpa isi ketikan, bisa dinyalakan Owner dan diekspor. | Berlaku (selesai 26 Okt; lama penyimpanan menunggu keputusan) |
 | K-191 | Setup v3: splash bermerek, buat akun pertama (tanpa password bawaan), lupa password/pemulihan, ikon tray untuk keluar, pilih lokasi pasang, tutorial, keamanan Windows. | Berlaku (rencana; akun pertama dan lupa password ikut backlog sistem, sisanya setelah backlog selesai) |
 
 ---

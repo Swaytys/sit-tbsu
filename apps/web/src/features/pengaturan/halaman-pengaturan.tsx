@@ -19,6 +19,7 @@ import { KartuPrinterStruk } from './kartu-printer-struk';
 import { TabArsip } from './tab-arsip';
 import { TabPemeriksaanData } from './tab-pemeriksaan-data';
 import { TabCadangan } from './tab-cadangan';
+import { TabInteraksi } from './tab-interaksi';
 import { TabLog } from './tab-log';
 import { TabPembayaran } from './tab-pembayaran';
 import { TabPersetujuan } from './tab-persetujuan';
@@ -74,6 +75,7 @@ export function HalamanPengaturan() {
             {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
             {bolehCadangan && <TabsTrigger value="arsip">Arsip tahunan</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
+            {bolehLihatLog && <TabsTrigger value="interaksi">Log interaksi</TabsTrigger>}
           </TabsList>
           <TabsContent value="profil">
             <div className="space-y-4">
@@ -127,6 +129,11 @@ export function HalamanPengaturan() {
           {bolehLihatLog && (
             <TabsContent value="log">
               <TabLog />
+            </TabsContent>
+          )}
+          {bolehLihatLog && (
+            <TabsContent value="interaksi">
+              <TabInteraksi />
             </TabsContent>
           )}
         </Tabs>

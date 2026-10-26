@@ -20,7 +20,7 @@ memakai kode di luar daftar gagal typecheck.
 | Kode | Arti |
 |---|---|
 | `sistem.pengaturan.kelola` | Ubah profil toko, prefix nomor, ambang, dsb. |
-| `sistem.log.lihat` | Lihat log aktivitas semua pengguna |
+| `sistem.log.lihat` | Lihat log aktivitas semua pengguna; menyalakan, melihat, dan mengekspor log interaksi penelitian (K-190). Mengirim kejadian interaksi milik sendiri cukup login (`requireLogin`), hanya saat Owner menyalakannya |
 | `sistem.cadangan.kelola` | Lihat status cadangan data, cadangkan sekarang, uji pulih (K-084) |
 | `master.pengguna.kelola` | Tambah/ubah/nonaktifkan pengguna, reset password, cabut sesi |
 | `master.barang.lihat` | Lihat daftar dan detail barang tanpa harga modal |
@@ -193,7 +193,7 @@ tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembe
 | Laporan | `laporan.penjualan` atau `laporan.persediaan` | Daftar laporan disaring per izin |
 | Hasil Penjualan (K-126) | `laporan.penjualan` | Laba kotor dan margin hanya untuk `laporan.laba` (disaring API) |
 | Order Pembelian (K-125) | `persediaan.penerimaan.kelola` | Harga beli, total perkiraan, dan uang muka hanya untuk `master.barang.lihat_hpp` (disaring API) |
-| Pengaturan | `sistem.pengaturan.kelola` | Tab "Log Aktivitas" bila `sistem.log.lihat`; tab "Cadangan" bila `sistem.cadangan.kelola`; tab "Promo" bila `promo.kelola` (menu Promo dipindah ke sini, K-110); tab "Pembayaran" = rekening toko (K-111) |
+| Pengaturan | `sistem.pengaturan.kelola` | Tab "Log Aktivitas" dan "Log interaksi" bila `sistem.log.lihat`; tab "Cadangan" bila `sistem.cadangan.kelola`; tab "Promo" bila `promo.kelola` (menu Promo dipindah ke sini, K-110); tab "Pembayaran" = rekening toko (K-111) |
 
 ## 5. Data sensitif
 

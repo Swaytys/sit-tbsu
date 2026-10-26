@@ -51,6 +51,7 @@ import { cariRoutes } from './modules/sistem/cari/routes';
 import { hasilPenjualanRoutes } from './modules/hasil-penjualan/routes';
 import { orderPembelianRoutes } from './modules/persediaan/order-pembelian/routes';
 import { healthRoutes } from './modules/sistem/health/routes';
+import { interaksiRoutes } from './modules/sistem/interaksi/routes';
 import { logRoutes } from './modules/sistem/log/routes';
 import { persetujuanRoutes } from './modules/sistem/kode-persetujuan/routes';
 import { notifikasiRoutes } from './modules/sistem/notifikasi/routes';
@@ -97,6 +98,7 @@ const rute = new Hono<EnvApp>()
   .route('/pengaturan', pengaturanRoutes)
   .route('/saluran', saluranRoutes)
   .route('/log-aktivitas', logRoutes)
+  .route('/log-interaksi', interaksiRoutes)
   .route('/notifikasi', notifikasiRoutes)
   .route('/persetujuan', persetujuanRoutes)
   .route('/dashboard', dashboardRoutes)

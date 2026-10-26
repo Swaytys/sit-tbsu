@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import {
   JENIS_CADANGAN,
+  JENIS_INTERAKSI,
   PEMICU_CADANGAN,
   PERAN,
   STATUS_AKTIF,
@@ -248,5 +249,35 @@ export const tutupTahun = pgTable(
       'chk_tutup_tahun_buka',
       sql`(status = 'DIBUKA') = (dibuka_pada is not null and alasan_buka is not null)`,
     ),
+  ],
+);
+
+/**
+ * K-190: log interaksi untuk penelitian (docs/03 §6). [APPEND] Terpisah dari log audit; hanya nama elemen, halaman,
+ * dan angka (lama/jumlah hasil), tidak pernah isi ketikan. `waktu` = saat kejadian di peramban (dikirim berkelompok).
+ */
+export const logInteraksi = pgTable(
+  'log_interaksi',
+  {
+    id: kolomId(),
+    idPengguna: kolomRef('id_pengguna').notNull(),
+    idSesiKlien: varchar('id_sesi_klien', { length: 40 }).notNull(),
+    waktu: timestamptz('waktu').notNull(),
+    jenis: varchar('jenis', { length: 10 }).notNull(),
+    halaman: varchar('halaman', { length: 120 }).notNull(),
+    elemen: varchar('elemen', { length: 150 }),
+    keterangan: varchar('keterangan', { length: 255 }),
+    angka: integer('angka'),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'log_interaksi_id_pengguna_fkey',
+      columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_log_interaksi_jenis', dalamDaftar('jenis', JENIS_INTERAKSI)),
+    index('idx_log_interaksi_waktu').on(t.waktu),
+    index('idx_log_interaksi_pengguna').on(t.idPengguna, t.waktu),
   ],
 );

@@ -622,6 +622,12 @@ Semua tugas admin, ditambah:
   perubahan harga, ekspor/cetak laporan. **Ekspor Excel**: isi cari/aksi bila perlu, pilih tanggal *Dari* dan
   *s.d.* (kosong = semua), tekan **Ekspor Excel**; berkas berisi waktu, pengguna, aksi, dokumen, ringkasan, IP,
   data lama/baru.
+- **Log interaksi** (*Pengaturan › Log interaksi*, untuk penelitian): centang **Catat interaksi** → pilih
+  **Rincian** (*Semua elemen yang diklik* atau *Tombol, tautan, menu saja*) → **Simpan**. Sejak itu setiap pengguna
+  mendapat pemberitahuan sekali saat masuk, dan halaman, klik, pintasan, dialog, pencarian, serta galat yang mereka
+  alami tercatat (isi ketikan, password, dan nominal tidak). Lihat di tabel di bawahnya (saring jenis, pengguna,
+  halaman, tanggal), lalu **Ekspor Excel** atau **Ekspor CSV** untuk diolah. Kolom *Lama / hasil*: lama di halaman
+  atau dialog (detik) dan jumlah hasil pencarian. Hilangkan centang lalu **Simpan** untuk berhenti mencatat.
 - **Cadangan** (*Pengaturan › Cadangan*): pastikan *cadangan terakhir* hari ini/kemarin dan *berhasil* (lokal &
   cloud). Lihat panduan server bagian 7 untuk mengatur, bagian 8 untuk memulihkan.
 - **Dashboard**: penjualan hari ini vs kemarin, grafik 7 hari, antrean, pengiriman aktif, peringatan stok.

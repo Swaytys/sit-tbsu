@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useMatches } from 'react-router';
+import { PencatatInteraksi } from './pencatat-interaksi';
 import { PeringatanShift } from './peringatan-shift';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
@@ -58,6 +59,7 @@ export function Layout() {
           <Topbar judul={judul} onToggleSidebar={toggleSidebar} />
         </div>
         <PeringatanShift />
+        <PencatatInteraksi />
         {/* relative: elemen absolut (mis. input berkas sr-only) ikut wadah ini, tidak memanjangkan dokumen. */}
         <div className="relative flex-1 overflow-auto print:overflow-visible">
           <Outlet />

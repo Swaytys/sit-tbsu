@@ -216,6 +216,20 @@ bergantung konfigurasi.
   `[KODE: apps/api/src/db/schema/sistem.ts:114-140]` `[KODE: api/modules/sistem/log/routes.ts:19-21]`.
 - Status: BERFUNGSI (ekspor Excel ditambahkan 24 Okt; tes `log.test.ts`).
 
+**F52. Log interaksi penelitian** | Pengaturan › Log interaksi | Owner (atur, lihat, ekspor); semua pengguna
+(dicatat bila menyala) | desktop
+- Fungsi: data pemakaian untuk mengukur *penggunaan sistem* dan *kepuasan pengguna* (DeLone & McLean): halaman yang
+  dibuka dan lamanya, elemen yang diklik (label), tombol pintasan, dialog dibuka/ditutup dan lamanya, pencarian
+  (jumlah hasil), dan galat yang tampil, per pengguna dan per sesi tab. Isi ketikan tidak pernah dicatat; deret angka
+  panjang disamarkan. Dinyalakan Owner (bawaan mati) dengan tingkat rincian; pengguna diberi tahu sekali per sesi.
+  Ekspor Excel/CSV untuk diolah (mis. waktu menyelesaikan alur order → bayar dari urutan kejadian satu sesi).
+- Input → Proses → Output: kejadian di peramban → dikumpulkan dan dikirim berkelompok (15 detik/50 kejadian/tab
+  disembunyikan) → disaring server (setelan, penyamaran, waktu) → tabel, ringkasan, berkas ekspor.
+- Tabel: `log_interaksi`; konfigurasi `log_interaksi_aktif`, `log_interaksi_tingkat`.
+- Bukti: `[KODE: web/lib/pencatat-interaksi.ts]`, `[KODE: web/components/layout/pencatat-interaksi.tsx]`,
+  `[KODE: api/modules/sistem/interaksi/]`, `[KODE: web/features/pengaturan/tab-interaksi.tsx]`; `[DOK: K-190]`;
+  tes `interaksi.test.ts`, e2e `interaksi.spec.ts`. Status: BERFUNGSI.
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1264,6 +1278,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-26 — F52 log interaksi penelitian (K-190).
 - 2026-10-26 — F42 surat jalan hanya di dalam rit, keluar/batal rit membatalkan surat jalan, cetak semua saat berangkat; F41 berangkat langsung tanpa rit dihapus (K-174).
 - 2026-10-24 — F46 arsip tahunan, F47 pembaruan aman dan versi aplikasi (K-165, K-166).
 - 2026-10-24 — F51 order pembelian ke pemasok (K-125); F40 saran pesan memakai sudah dipesan dan lama kirim aktual.

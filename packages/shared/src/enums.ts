@@ -386,3 +386,11 @@ export type StatusTutupTahun = (typeof STATUS_TUTUP_TAHUN)[number];
 /** K-123: label keterjualan barang dari penjualan 30 hari terakhir (dihitung server). */
 export const LABEL_KETERJUALAN = ['LARIS', 'LAMBAT', 'TIDAK_LAKU', 'BARU'] as const;
 export type LabelKeterjualan = (typeof LABEL_KETERJUALAN)[number];
+
+/** K-190: jenis kejadian log interaksi (penelitian). */
+export const JENIS_INTERAKSI = ['HALAMAN', 'KLIK', 'TOMBOL', 'CARI', 'DIALOG', 'GALAT'] as const;
+export type JenisInteraksi = (typeof JENIS_INTERAKSI)[number];
+
+/** K-190: SEMUA = setiap elemen yang bisa diklik; BERMAKNA = tombol, tautan, dan item menu saja. */
+export const TINGKAT_LOG_INTERAKSI = ['SEMUA', 'BERMAKNA'] as const;
+export type TingkatLogInteraksi = (typeof TINGKAT_LOG_INTERAKSI)[number];

@@ -115,7 +115,15 @@ prioritas di bagian akhir.
   ketikan** (hanya nama elemen; password, nominal, data pribadi tidak direkam), dinyalakan/dimatikan Owner di
   Pengaturan dengan pemberitahuan ke pengguna (etika penelitian), dapat disaring per pengguna/periode/halaman, dan
   diekspor CSV/Excel untuk diolah. Pilihan yang perlu diputuskan pemilik: tingkat rincian (klik semua elemen atau
-  hanya aksi bermakna) dan lama penyimpanan data.
+  hanya aksi bermakna) dan lama penyimpanan data. **Selesai (26 Okt):** *Pengaturan › Log interaksi* (Owner):
+  nyala/mati (bawaan mati) dan tingkat rincian dipilih sendiri di layar (*Semua elemen yang diklik* atau *Tombol,
+  tautan, menu saja*); tabel saring jenis/pengguna/halaman/tanggal; ekspor Excel dan CSV. Yang dicatat: halaman dan
+  lamanya, klik (label elemen), pintasan (F-key, Ctrl/Alt, huruf di luar kotak isian), dialog buka/tutup + lama,
+  pencarian (jumlah hasil; kata hanya pencarian barang, lainnya panjang kata), galat yang tampil. Isi kotak isian
+  tidak dibaca; server menyamarkan deret ≥ 7 angka. Pengguna diberi tahu sekali per sesi. Tabel `log_interaksi`
+  (migrasi 0034). Waktu menyelesaikan alur (order → bayar) dihitung dari data ini saat diolah (urutan halaman, klik,
+  dan waktu per sesi), tidak dicatat terpisah. **Masih menunggu pemilik:** lama penyimpanan. Sementara semua data
+  disimpan; menghapus data lama berarti pengecualian aturan log append-only, jadi perlu persetujuan.
 - **K-191 Setup v3 standar komersial (26 Oktober; dikerjakan SETELAH backlog sistem selesai, diuji, dan direvisi
   pemilik).** Setup v2 sudah berjalan di komputer pemilik. Untuk v3:
   1. **Layar pembuka (splash)** bermerek BonsaiUrip dengan animasi saat aplikasi dibuka, menggantikan kotak
