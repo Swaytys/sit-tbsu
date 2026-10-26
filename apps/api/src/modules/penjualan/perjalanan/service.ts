@@ -1,7 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import {
   kaliQty,
-  type DataBerangkat,
   type DataRencanaRit,
   type MetaHalaman,
   type Muatan,
@@ -21,14 +20,20 @@ import { masihJalan } from '../../master/armada/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import * as sjRepo from '../surat-jalan/repo';
-import { buatSuratJalanTx, sisaKirim } from '../surat-jalan/service';
+import {
+  batalSuratJalanTx,
+  buatSuratJalanTx,
+  kunciRitTujuan,
+  sisaKirim,
+} from '../surat-jalan/service';
 import * as repo from './repo';
 
 /*
- * Perjalanan (rit) pengantaran (docs/05 S9, S12–S14; K-150, K-160): satu kendaraan + satu sopir membawa satu atau
- * lebih surat jalan. Rit bisa langsung berangkat (S9) atau direncanakan dulu (DIRENCANAKAN: diisi surat jalan dari
- * papan Pengiriman, dimuat, lalu berangkat). Kendaraan dan sopir yang sedang jalan tidak bisa berangkat lagi sampai
- * hasil semua surat jalannya dicatat (perjalanan selesai otomatis, lihat surat-jalan/service.ts `catatHasil`).
+ * Perjalanan (rit) pengantaran (docs/05 S9, S12–S14; K-150, K-160, K-174): satu kendaraan + satu sopir membawa satu
+ * atau lebih surat jalan. Rit direncanakan dulu (DIRENCANAKAN), lalu surat jalan dibuat di dalamnya dari papan
+ * Pengiriman, kasir, atau detail invoice; dimuat; berangkat. Surat jalan tidak pernah ada di luar rit, sehingga
+ * sopir dan kendaraannya selalu tertulis. Kendaraan dan sopir yang sedang jalan tidak bisa berangkat lagi sampai hasil
+ * semua surat jalannya dicatat (perjalanan selesai otomatis, lihat surat-jalan/service.ts `catatHasil`).
  */
 
 async function keRespons(
@@ -170,60 +175,6 @@ async function kirimkanSuratJalan(
   }
 }
 
-/** S9: berangkatkan surat jalan DIPROSES/DIMUAT langsung (tanpa rencana) dengan kendaraan dan sopir bebas. */
-export async function berangkat(
-  input: DataBerangkat,
-  pelaku: PenggunaAktif,
-  asal: AsalRequest,
-): Promise<Perjalanan> {
-  const id = await dalamTransaksi(async (tx) => {
-    const { k, s } = await kunciArmada(tx, input.idKendaraan, input.idSopir, true);
-    const daftar = await kunciSuratJalanSiap(tx, input.idSuratJalan);
-    const daftarId = daftar.map((x) => x.id);
-    const { muatan, alasan } = await periksaMuatan(tx, k, daftarId, input.alasanMuatan);
-
-    const waktu = sekarang();
-    const nomor = await terbitkanNomor(tx, 'TRP', tanggalOperasional(waktu));
-    const idBaru = await repo.tambah(tx, {
-      nomor,
-      idKendaraan: k.id,
-      idSopir: s.id,
-      idPengguna: pelaku.id,
-      status: 'JALAN',
-      waktuBerangkat: waktu,
-      jadwalBerangkat: null,
-      catatan: input.catatan ?? null,
-      muatanBeratKg: muatan.beratKg,
-      muatanVolumeM3: muatan.volumeM3,
-      alasanMuatan: alasan,
-    });
-    await kirimkanSuratJalan(
-      tx,
-      idBaru,
-      daftarId,
-      {
-        sopir: s.nama,
-        kendaraan: `${k.plat} (${k.jenis})`,
-      },
-      waktu,
-    );
-    await catatLog(tx, {
-      aksi: 'PERJALANAN_BERANGKAT',
-      idPengguna: pelaku.id,
-      entitas: 'perjalanan',
-      idEntitas: idBaru,
-      nomorDokumen: nomor,
-      ringkasan:
-        `Perjalanan ${nomor}: ${k.plat}, sopir ${s.nama}, ${daftar.map((x) => x.nomor).join(', ')}; muatan ` +
-        `${muatan.beratKg} kg, ${muatan.volumeM3} m³` +
-        (alasan ? ` (melewati batas lunak: ${alasan})` : ''),
-      ip: asal.ip,
-    });
-    return idBaru;
-  });
-  return satuPerjalanan(id);
-}
-
 // --- Rit rencana (K-160, docs/13 §4) ---
 
 async function kunciRitRencana(tx: Tx, id: number) {
@@ -277,8 +228,8 @@ export async function rencanakanRit(
 }
 
 /**
- * Masukkan surat jalan (atau buat surat jalan untuk seluruh sisa barang sebuah invoice) ke rit rencana. Surat jalan
- * yang sudah ada di rit rencana lain dipindah.
+ * Masukkan order ke rit rencana: buat surat jalan untuk seluruh sisa barang sebuah invoice di rit ini, atau pindahkan
+ * surat jalan dari rit rencana lain (sopir dan kendaraan di surat jalan ikut berganti).
  */
 export async function isiRit(
   id: number,
@@ -303,7 +254,13 @@ export async function isiRit(
           409,
         );
       }
-      idSj = await buatSuratJalanTx(tx, input.idPenjualan, { baris: sisa }, pelaku, asal);
+      idSj = await buatSuratJalanTx(
+        tx,
+        input.idPenjualan,
+        { baris: sisa, idPerjalanan: id },
+        pelaku,
+        asal,
+      );
     }
     const [sj] = await kunciSuratJalanSiap(tx, [idSj]);
     if (!sj) throw new Error('surat jalan hilang');
@@ -313,10 +270,13 @@ export async function isiRit(
         throw new AppError('STATUS_TIDAK_VALID', `${sj.nomor} sudah di rit ${lain.nomor}.`, 409);
       }
     }
-    await tx
-      .update(suratJalan)
-      .set({ idPerjalanan: id, diubahPada: sekarang() })
-      .where(eq(suratJalan.id, sj.id));
+    if (sj.idPerjalanan !== id) {
+      const { teks } = await kunciRitTujuan(tx, id);
+      await tx
+        .update(suratJalan)
+        .set({ idPerjalanan: id, ...teks, diubahPada: sekarang() })
+        .where(eq(suratJalan.id, sj.id));
+    }
     await catatLog(tx, {
       aksi: 'PERJALANAN_ISI',
       idPengguna: pelaku.id,
@@ -330,7 +290,10 @@ export async function isiRit(
   return satuPerjalanan(id);
 }
 
-/** Keluarkan surat jalan dari rit rencana (kembali "belum direncanakan"). */
+/**
+ * K-174: keluarkan order dari rit rencana. Surat jalannya dibatalkan (surat jalan tidak boleh ada tanpa sopir dan
+ * kendaraan), barangnya kembali menjadi order kirim di Backlog.
+ */
 export async function keluarkanDariRit(
   idSj: number,
   pelaku: PenggunaAktif,
@@ -338,21 +301,26 @@ export async function keluarkanDariRit(
 ): Promise<void> {
   await dalamTransaksi(async (tx) => {
     const [sj] = await kunciSuratJalanSiap(tx, [idSj]);
-    if (!sj?.idPerjalanan) return;
-    const r = await kunciRitRencana(tx, sj.idPerjalanan);
-    await tx
-      .update(suratJalan)
-      .set({ idPerjalanan: null, diubahPada: sekarang() })
-      .where(eq(suratJalan.id, sj.id));
-    await catatLog(tx, {
-      aksi: 'PERJALANAN_ISI',
-      idPengguna: pelaku.id,
-      entitas: 'perjalanan',
-      idEntitas: r.id,
-      nomorDokumen: r.nomor,
-      ringkasan: `${sj.nomor} dikeluarkan dari rit ${r.nomor}`,
-      ip: asal.ip,
-    });
+    if (!sj) return;
+    const r = sj.idPerjalanan ? await kunciRitRencana(tx, sj.idPerjalanan) : null;
+    await batalSuratJalanTx(
+      tx,
+      sj.id,
+      r ? `Dikeluarkan dari rit ${r.nomor}` : 'Dikeluarkan (tanpa rit)',
+      pelaku,
+      asal,
+    );
+    if (r) {
+      await catatLog(tx, {
+        aksi: 'PERJALANAN_ISI',
+        idPengguna: pelaku.id,
+        entitas: 'perjalanan',
+        idEntitas: r.id,
+        nomorDokumen: r.nomor,
+        ringkasan: `${sj.nomor} dikeluarkan dari rit ${r.nomor} (surat jalan batal, barang kembali ke Backlog)`,
+        ip: asal.ip,
+      });
+    }
   });
 }
 
@@ -381,7 +349,7 @@ export async function muatRit(id: number, pelaku: PenggunaAktif, asal: AsalReque
   return satuPerjalanan(id);
 }
 
-/** Rit rencana berangkat: aturan sama dengan S9 (kendaraan/sopir bebas, muatan). */
+/** S9: rit rencana berangkat (kendaraan/sopir tidak sedang jalan, muatan diperiksa); semua surat jalan → DIKIRIM. */
 export async function berangkatkanRit(
   id: number,
   input: { alasanMuatan?: string | null | undefined },
@@ -430,7 +398,7 @@ export async function berangkatkanRit(
   return satuPerjalanan(id);
 }
 
-/** Batalkan rit rencana; surat jalannya kembali "belum direncanakan" (tidak ikut batal). */
+/** Batalkan rit rencana (K-174): surat jalannya ikut batal, barangnya kembali menjadi order kirim di Backlog. */
 export async function batalkanRit(
   id: number,
   alasan: string,
@@ -440,10 +408,9 @@ export async function batalkanRit(
   await dalamTransaksi(async (tx) => {
     const r = await kunciRitRencana(tx, id);
     const waktu = sekarang();
-    await tx
-      .update(suratJalan)
-      .set({ idPerjalanan: null, diubahPada: waktu })
-      .where(eq(suratJalan.idPerjalanan, id));
+    for (const idSj of await repo.idSuratJalanRit(tx, id)) {
+      await batalSuratJalanTx(tx, idSj, `Rit ${r.nomor} dibatalkan: ${alasan}`, pelaku, asal);
+    }
     await tx
       .update(perjalanan)
       .set({ status: 'BATAL', alasanBatal: alasan, diubahPada: waktu })
@@ -623,14 +590,4 @@ export async function hitungMuatan(
     pesan,
     saran,
   };
-}
-
-/** Pratinjau muatan untuk dialog Berangkat (tanpa menulis apa pun). */
-export async function pratinjauMuatan(input: {
-  idKendaraan: number;
-  idSuratJalan: number[];
-}): Promise<Muatan> {
-  const k = await armadaRepo.kendaraanById(db, input.idKendaraan);
-  if (!k) throw new AppError('TIDAK_DITEMUKAN', 'Kendaraan tidak ditemukan.', 404);
-  return hitungMuatan(db, k, input.idSuratJalan);
 }

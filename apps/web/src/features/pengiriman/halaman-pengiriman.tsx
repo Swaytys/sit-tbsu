@@ -7,7 +7,10 @@ import {
   useDroppable,
   useSensor,
   useSensors,
+  type ClientRect,
+  type CollisionDetection,
   type DragEndEvent,
+  type KeyboardCoordinateGetter,
 } from '@dnd-kit/core';
 import type { BarisSuratJalan, Perjalanan, PerluDikirim } from '@sit/shared';
 import {
@@ -19,10 +22,11 @@ import {
   GripVertical,
   MoreVertical,
   Phone,
+  Printer,
   Truck,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import {
@@ -34,7 +38,7 @@ import {
   usePerluDikirim,
 } from '@/api/armada';
 import { pesanGalat } from '@/api/client';
-import { useBatalSuratJalan, useDaftarSuratJalan, useDetailPenjualan } from '@/api/penjualan';
+import { useDaftarSuratJalan, useDetailPenjualan } from '@/api/penjualan';
 import { CetakSuratJalan } from '@/components/cetak-surat-jalan';
 import { SaranAlasan } from '@/components/saran-alasan';
 import { SARAN_ALASAN } from '@/lib/saran-alasan';
@@ -62,12 +66,14 @@ import { cn } from '@/lib/utils';
 import { DialogHasil } from '../pengantaran/dialog-hasil';
 import { DialogBuat } from '../pengantaran/panel-surat-jalan';
 import { BilahTombol } from '../pos/bilah-tombol';
-import { DialogBerangkatRit, DialogRitBaru } from './dialog-rit';
+import { DialogBerangkatRit, DialogRitBaru, type CaraCetakRit } from './dialog-rit';
 
 /*
- * Logistik › Pengiriman (K-160, docs/13 §4): papan kartu. Order kirim (Backlog) diseret ke grup rit
- * (Dijadwalkan), rit dimuat lalu berangkat (Di jalan), sopir kembali → catat hasil (Selesai). Status kartu selalu
- * dari dokumen (surat jalan & rit); menyeret kartu menjalankan aksi yang sama dengan tombol/menunya.
+ * Logistik › Pengiriman (K-160, K-174, docs/13 §4): papan kartu. Order kirim (Backlog) diseret ke grup rit
+ * (Dijadwalkan): saat itu surat jalannya dibuat dengan sopir dan kendaraan rit. Rit dimuat lalu berangkat (semua
+ * surat jalannya dicetak/disimpan PDF), sopir kembali → catat hasil (Selesai). Keluar dari rit atau batal rit
+ * membatalkan surat jalan sehingga order kembali ke Backlog. Status kartu selalu dari dokumen (surat jalan & rit);
+ * menyeret kartu menjalankan aksi yang sama dengan tombol/menunya.
  */
 
 const WARNA_MUATAN = {
@@ -78,6 +84,44 @@ const WARNA_MUATAN = {
 } as const;
 
 const jam = (iso: string | null) => (iso ? formatWaktu(iso).slice(11) : '—');
+
+const ARAH: Record<string, [number, number]> = {
+  ArrowRight: [1, 0],
+  ArrowLeft: [-1, 0],
+  ArrowDown: [0, 1],
+  ArrowUp: [0, -1],
+};
+const pusat = (r: ClientRect) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+
+/**
+ * K-177: seret dengan keyboard. Panah tidak menggeser kartu 25 px (terlalu lambat dan tidak pernah "kena" tujuan),
+ * tetapi melompat ke tempat lepas terdekat ke arah itu: Backlog atau grup rit. Tujuan terpilih disimpan di `tujuan`
+ * dan dipakai deteksi tabrakan, karena keyboard tidak punya posisi penunjuk.
+ */
+function koordinatPapan(tujuan: { current: string | null }): KeyboardCoordinateGetter {
+  return (e, { context }) => {
+    const arah = ARAH[e.code];
+    if (!arah || !context.collisionRect) return undefined;
+    e.preventDefault();
+    const dariRect = tujuan.current ? context.droppableRects.get(tujuan.current) : undefined;
+    const asal = pusat(dariRect ?? context.collisionRect);
+    let terbaik: { id: string; rect: ClientRect; skor: number } | null = null;
+    for (const c of context.droppableContainers.getEnabled()) {
+      const id = String(c.id);
+      const rect = context.droppableRects.get(c.id);
+      if (!rect || id === tujuan.current) continue;
+      const p = pusat(rect);
+      const maju = (p.x - asal.x) * arah[0] + (p.y - asal.y) * arah[1];
+      if (maju <= 10) continue;
+      const samping = Math.abs((p.x - asal.x) * arah[1]) + Math.abs((p.y - asal.y) * arah[0]);
+      const skor = maju + samping * 2;
+      if (!terbaik || skor < terbaik.skor) terbaik = { id, rect, skor };
+    }
+    if (!terbaik) return undefined;
+    tujuan.current = terbaik.id;
+    return { x: terbaik.rect.left + 8, y: terbaik.rect.top + 8 };
+  };
+}
 
 function Kolom({
   id,
@@ -199,7 +243,7 @@ function KartuOrder({
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onBuat}>Buat surat jalan sebagian…</DropdownMenuItem>
+            <DropdownMenuItem onSelect={onBuat}>Kirim sebagian / pilih rit…</DropdownMenuItem>
           </MenuKartu>
         </div>
         <div className="truncate font-medium">{p.namaPelanggan ?? '—'}</div>
@@ -227,7 +271,10 @@ function MenuKartu({ label, children }: { label: string; children: ReactNode }) 
           <MoreVertical />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">{children}</DropdownMenuContent>
+      {/* Fokus tidak dikembalikan ke tombol ⋮: aksi menu bisa membuka dialog (Enter berikutnya milik dialog). */}
+      <DropdownMenuContent align="end" onCloseAutoFocus={(e) => e.preventDefault()}>
+        {children}
+      </DropdownMenuContent>
     </DropdownMenu>
   );
 }
@@ -237,13 +284,11 @@ function KartuSj({
   rit,
   onIsi,
   onKeluar,
-  onBatal,
 }: {
   sj: BarisSuratJalan;
   rit: Perjalanan[];
   onIsi: (idRit: number) => void;
   onKeluar: () => void;
-  onBatal: () => void;
 }) {
   return (
     <Seret id={`sj-${sj.id}`} label={sj.nomor} testId={`kartu-${sj.nomor}`}>
@@ -265,11 +310,8 @@ function KartuSj({
                 </DropdownMenuItem>
               ))}
             <DropdownMenuSeparator />
-            {sj.idPerjalanan !== null && (
-              <DropdownMenuItem onSelect={onKeluar}>Keluarkan dari rit</DropdownMenuItem>
-            )}
-            <DropdownMenuItem variant="destructive" onSelect={onBatal}>
-              Batalkan surat jalan…
+            <DropdownMenuItem variant="destructive" onSelect={onKeluar}>
+              Keluarkan ke Backlog (surat jalan batal)
             </DropdownMenuItem>
           </MenuKartu>
         </div>
@@ -294,17 +336,17 @@ function GrupRit({
   aksiKartu,
   onBerangkat,
   onBatal,
+  onCetak,
 }: {
   rit: Perjalanan;
   isi: BarisSuratJalan[];
   semuaRit: Perjalanan[];
   terbuka: boolean;
   onBuka: () => void;
-  aksiKartu: (
-    sj: BarisSuratJalan,
-  ) => Pick<Parameters<typeof KartuSj>[0], 'onIsi' | 'onKeluar' | 'onBatal'>;
+  aksiKartu: (sj: BarisSuratJalan) => Pick<Parameters<typeof KartuSj>[0], 'onIsi' | 'onKeluar'>;
   onBerangkat: () => void;
   onBatal: () => void;
+  onCetak: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `rit-${rit.id}` });
   const muat = useMuatRit();
@@ -401,6 +443,15 @@ function GrupRit({
                 <Check /> Dimuat
               </Button>
             )}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isi.length === 0}
+              onClick={onCetak}
+              aria-label={`Cetak surat jalan ${rit.nomor}`}
+            >
+              <Printer /> Cetak
+            </Button>
             <Button size="sm" disabled={isi.length === 0} onClick={onBerangkat}>
               <Truck /> Berangkat
             </Button>
@@ -419,11 +470,13 @@ function KartuJalan({
   sjAktif,
   kini,
   onHasil,
+  onCetak,
 }: {
   p: Perjalanan;
   sjAktif: Map<number, BarisSuratJalan>;
   kini: number;
   onHasil: (sj: BarisSuratJalan) => void;
+  onCetak: () => void;
 }) {
   const menit = p.waktuBerangkat
     ? Math.max(0, Math.floor((kini - new Date(p.waktuBerangkat).getTime()) / 60_000))
@@ -454,6 +507,16 @@ function KartuJalan({
       <div className="flex items-center gap-1.5 font-medium">
         <Truck className="size-4 text-slate-500" /> {p.plat}
         <span className="font-normal text-slate-500">{p.jenisKendaraan}</span>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          className="ml-auto"
+          onClick={onCetak}
+          aria-label={`Cetak surat jalan ${p.nomor}`}
+          title="Cetak ulang surat jalan rit ini"
+        >
+          <Printer />
+        </Button>
       </div>
       <div className="flex items-center gap-1.5 text-xs text-slate-600">
         {p.namaSopir}
@@ -560,26 +623,27 @@ function DialogAlasan({
 
 function BuatDariPapan({
   idPenjualan,
+  idRit,
   onTutup,
-  onCetak,
 }: {
   idPenjualan: number;
+  idRit?: number;
   onTutup: () => void;
-  onCetak: (sj: BarisSuratJalan) => void;
 }) {
   const d = useDetailPenjualan(idPenjualan);
   if (!d.data) return null;
-  return <DialogBuat p={d.data} onTutup={onTutup} onCetak={onCetak} />;
+  return <DialogBuat p={d.data} idRitAwal={idRit} onTutup={onTutup} />;
 }
 
 type DialogPapan =
   | { jenis: 'rit-baru' }
   | { jenis: 'berangkat'; rit: Perjalanan }
   | { jenis: 'batal-rit'; rit: Perjalanan }
-  | { jenis: 'batal-sj'; sj: BarisSuratJalan }
-  | { jenis: 'buat'; id: number }
+  | { jenis: 'buat'; id: number; idRit?: number }
   | { jenis: 'hasil'; sj: BarisSuratJalan }
   | null;
+
+type Cetakan = { daftar: BarisSuratJalan[]; judulBerkas?: string };
 
 export function HalamanPengiriman() {
   const perlu = usePerluDikirim();
@@ -589,27 +653,51 @@ export function HalamanPengiriman() {
   const selesai = useDaftarPerjalanan({ status: 'SELESAI' });
   const isi = useIsiRit();
   const keluar = useKeluarRit();
-  const batalSj = useBatalSuratJalan();
   const batalRit = useBatalRit();
   const [dialog, setDialog] = useState<DialogPapan>(null);
-  const [cetakSj, setCetakSj] = useState<BarisSuratJalan | null>(null);
-  const selesaiCetak = useCallback(() => setCetakSj(null), []);
+  const [cetakan, setCetakan] = useState<Cetakan | null>(null);
+  const selesaiCetak = useCallback(() => setCetakan(null), []);
   const [tertutup, setTertutup] = useState<Set<number>>(new Set());
   const [kini, setKini] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setKini(Date.now()), 60_000);
     return () => window.clearInterval(t);
   }, []);
+  const tujuanKeyboard = useRef<string | null>(null);
   const sensor = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: (e, a) => koordinatPapan(tujuanKeyboard)(e, a),
+    }),
   );
+  // Mouse: tempat di bawah penunjuk. Keyboard: tempat yang dipilih dengan panah (koordinatPapan).
+  const deteksi: CollisionDetection = (args) =>
+    args.pointerCoordinates
+      ? pointerWithin(args)
+      : tujuanKeyboard.current
+        ? [{ id: tujuanKeyboard.current }]
+        : [];
 
   const semuaSj = aktif.data?.data ?? [];
   const ritRencana = rencana.data?.data ?? [];
   const idRencana = new Set(ritRencana.map((r) => r.id));
   const siap = semuaSj.filter((s) => s.status === 'DIPROSES' || s.status === 'DIMUAT');
+  // Data lama (sebelum K-174): surat jalan tanpa rit. Tampil terpisah sampai dimasukkan ke rit atau dikeluarkan.
   const tanpaRit = siap.filter((s) => s.idPerjalanan === null || !idRencana.has(s.idPerjalanan));
+  const isiRit = (id: number) => semuaSj.filter((s) => s.idPerjalanan === id);
+
+  function cetak(daftar: BarisSuratJalan[], nomorRit: string, cara: CaraCetakRit = 'CETAK') {
+    if (daftar.length === 0) {
+      toast.error(`Rit ${nomorRit} belum punya surat jalan.`);
+      return;
+    }
+    if (cara === 'PDF') {
+      toast.info('Di jendela cetak, pilih tujuan "Simpan sebagai PDF", lalu Simpan.', {
+        duration: 10000,
+      });
+    }
+    setCetakan({ daftar, judulBerkas: `Surat jalan ${nomorRit}` });
+  }
   const sjDikirim = new Map(semuaSj.filter((s) => s.status === 'DIKIRIM').map((s) => [s.id, s]));
   const hariIni = formatTanggal(tanggalHariIni());
   const selesaiHariIni = (selesai.data?.data ?? []).filter(
@@ -627,8 +715,11 @@ export function HalamanPengiriman() {
   function aksiKartu(sj: BarisSuratJalan) {
     return {
       onIsi: (idRit: number) => isiKe(idRit, { idSuratJalan: sj.id }),
-      onKeluar: () => jalankan(keluar.mutateAsync(sj.id), `${sj.nomor} dikeluarkan dari rit.`),
-      onBatal: () => setDialog({ jenis: 'batal-sj', sj }),
+      onKeluar: () =>
+        jalankan(
+          keluar.mutateAsync(sj.id),
+          `${sj.nomor} batal; ${sj.nomorPenjualan} kembali ke Backlog.`,
+        ),
     };
   }
 
@@ -642,14 +733,9 @@ export function HalamanPengiriman() {
       if (asal.startsWith('inv-')) isiKe(idRit, { idPenjualan: idAsal });
       else if (siap.find((s) => s.id === idAsal)?.idPerjalanan !== idRit)
         isiKe(idRit, { idSuratJalan: idAsal });
-    } else if (tujuan === 'tanpa-rit') {
-      if (asal.startsWith('inv-')) setDialog({ jenis: 'buat', id: idAsal });
-      else if (siap.find((s) => s.id === idAsal)?.idPerjalanan) {
-        jalankan(keluar.mutateAsync(idAsal), 'Dikeluarkan dari rit.');
-      }
     } else if (tujuan === 'backlog' && asal.startsWith('sj-')) {
       const sj = siap.find((s) => s.id === idAsal);
-      if (sj) setDialog({ jenis: 'batal-sj', sj });
+      if (sj) aksiKartu(sj).onKeluar();
     }
   }
 
@@ -669,13 +755,26 @@ export function HalamanPengiriman() {
 
   return (
     <div className="flex h-full min-h-[420px] flex-col gap-2 p-3">
-      <DndContext sensors={sensor} collisionDetection={pointerWithin} onDragEnd={lepas}>
+      <DndContext
+        sensors={sensor}
+        collisionDetection={deteksi}
+        onDragStart={() => {
+          tujuanKeyboard.current = null;
+        }}
+        onDragEnd={(e) => {
+          tujuanKeyboard.current = null;
+          lepas(e);
+        }}
+        onDragCancel={() => {
+          tujuanKeyboard.current = null;
+        }}
+      >
         <div className="flex min-h-0 flex-1 gap-2 overflow-x-auto">
           <Kolom
             id="backlog"
             judul="Backlog"
             jumlah={perlu.data?.length ?? 0}
-            bantu="Order kirim baru. Seret ke grup rit di kolom Dijadwalkan."
+            bantu="Order belum masuk rit. Seret ke grup rit: surat jalannya dibuat saat itu."
           >
             {(perlu.data ?? []).length === 0 && (
               <p className="py-6 text-center text-xs text-slate-400">
@@ -695,7 +794,7 @@ export function HalamanPengiriman() {
           <Kolom
             judul="Dijadwalkan"
             jumlah={ritRencana.length}
-            bantu="Grup = rit (kendaraan, sopir, jam). Dimuat → Berangkat."
+            bantu="Grup = rit (kendaraan, sopir, jam). Dimuat → Berangkat (cetak surat jalan)."
             aksi={
               <Button
                 size="sm"
@@ -711,6 +810,7 @@ export function HalamanPengiriman() {
                 key={r.id}
                 rit={r}
                 isi={siap.filter((s) => s.idPerjalanan === r.id)}
+                onCetak={() => cetak(isiRit(r.id), r.nomor)}
                 semuaRit={ritRencana}
                 terbuka={!tertutup.has(r.id)}
                 onBuka={() =>
@@ -726,11 +826,13 @@ export function HalamanPengiriman() {
                 onBatal={() => setDialog({ jenis: 'batal-rit', rit: r })}
               />
             ))}
-            <GrupTanpaRit>
-              {tanpaRit.map((sj) => (
-                <KartuSj key={sj.id} sj={sj} rit={ritRencana} {...aksiKartu(sj)} />
-              ))}
-            </GrupTanpaRit>
+            {tanpaRit.length > 0 && (
+              <GrupTanpaRit>
+                {tanpaRit.map((sj) => (
+                  <KartuSj key={sj.id} sj={sj} rit={ritRencana} {...aksiKartu(sj)} />
+                ))}
+              </GrupTanpaRit>
+            )}
           </Kolom>
           <Kolom
             judul="Di jalan"
@@ -749,6 +851,7 @@ export function HalamanPengiriman() {
                 sjAktif={sjDikirim}
                 kini={kini}
                 onHasil={(sj) => setDialog({ jenis: 'hasil', sj })}
+                onCetak={() => cetak(isiRit(p.id), p.nomor)}
               />
             ))}
           </Kolom>
@@ -780,27 +883,42 @@ export function HalamanPengiriman() {
       <BilahTombol
         daftar={[
           { kunci: 'R', label: 'Rit baru' },
-          { kunci: 'Spasi', label: 'Angkat kartu (pada pegangan) · panah pindah · Spasi lepas' },
-          { kunci: '⋮', label: 'Menu kartu: masukkan/pindah/keluarkan/batalkan' },
+          {
+            kunci: 'Spasi',
+            label:
+              'Angkat kartu (Tab ke pegangan ⋮⋮) · panah pilih Backlog/rit · Spasi lepas · Esc batal',
+          },
+          { kunci: '⋮', label: 'Menu kartu: masukkan ke rit, kirim sebagian, pindah, keluarkan' },
         ]}
       />
       {dialog?.jenis === 'rit-baru' && <DialogRitBaru onTutup={() => setDialog(null)} />}
       {dialog?.jenis === 'berangkat' && (
-        <DialogBerangkatRit rit={dialog.rit} onTutup={() => setDialog(null)} />
+        <DialogBerangkatRit
+          rit={dialog.rit}
+          isi={isiRit(dialog.rit.id)}
+          onTutup={() => setDialog(null)}
+          onCetak={(daftar, cara) => cetak(daftar, dialog.rit.nomor, cara)}
+        />
       )}
       {dialog?.jenis === 'hasil' && <DialogHasil sj={dialog.sj} onTutup={() => setDialog(null)} />}
       {dialog?.jenis === 'buat' && (
         <BuatDariPapan
           idPenjualan={dialog.id}
+          idRit={dialog.idRit}
           onTutup={() => setDialog(null)}
-          onCetak={setCetakSj}
         />
       )}
-      {cetakSj && <CetakSuratJalan sj={cetakSj} onSelesai={selesaiCetak} />}
+      {cetakan && (
+        <CetakSuratJalan
+          daftar={cetakan.daftar}
+          judulBerkas={cetakan.judulBerkas}
+          onSelesai={selesaiCetak}
+        />
+      )}
       {dialog?.jenis === 'batal-rit' && (
         <DialogAlasan
           judul={`Batalkan rit ${dialog.rit.nomor}?`}
-          ket="Surat jalan di dalamnya tidak ikut batal; kembali ke grup Belum direncanakan."
+          ket="Surat jalan di dalamnya ikut batal; ordernya kembali ke Backlog."
           label="Alasan batal rit"
           saran={SARAN_ALASAN.batalRit}
           onTutup={() => setDialog(null)}
@@ -811,39 +929,21 @@ export function HalamanPengiriman() {
           }
         />
       )}
-      {dialog?.jenis === 'batal-sj' && (
-        <DialogAlasan
-          judul={`Batalkan surat jalan ${dialog.sj.nomor}?`}
-          ket="Barangnya kembali menjadi order kirim di Backlog."
-          label="Alasan batal surat jalan"
-          saran={SARAN_ALASAN.batalSuratJalan}
-          onTutup={() => setDialog(null)}
-          onKirim={(alasan) =>
-            batalSj
-              .mutateAsync({ id: dialog.sj.id, alasan })
-              .then(() => toast.success(`${dialog.sj.nomor} dibatalkan.`))
-          }
-        />
-      )}
     </div>
   );
 }
 
+/** Surat jalan lama (dibuat sebelum K-174) yang belum punya rit: hanya bisa dimasukkan ke rit atau dikeluarkan. */
 function GrupTanpaRit({ children }: { children: ReactNode[] }) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'tanpa-rit' });
   return (
     <div
-      ref={setNodeRef}
-      className={cn(
-        'space-y-1.5 rounded-md border-2 border-dashed p-2',
-        isOver ? 'border-blue-500 bg-blue-50' : 'border-slate-300',
-      )}
+      className="space-y-1.5 rounded-md border-2 border-dashed border-amber-400 bg-amber-50 p-2"
       data-testid="tanpa-rit"
     >
-      <div className="text-xs font-semibold text-slate-600">
-        Belum direncanakan ({children.length})
-        <span className="block font-normal text-slate-500">
-          Surat jalan tanpa rit: belum bisa berangkat. Seret ke grup rit.
+      <div className="text-xs font-semibold text-amber-900">
+        Surat jalan lama tanpa rit ({children.length})
+        <span className="block font-normal">
+          Belum ada sopir & kendaraan. Seret ke grup rit, atau keluarkan ke Backlog.
         </span>
       </div>
       {children}

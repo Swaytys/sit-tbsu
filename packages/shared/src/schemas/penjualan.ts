@@ -659,11 +659,14 @@ export type PengajuanMenunggu = {
 // --- Surat jalan (docs/05 §7, S1–S7) ---
 
 export const skemaSuratJalan = z.object({
+  /** K-174: surat jalan hanya dibuat di dalam rit rencana; sopir dan kendaraannya diambil dari rit itu. */
+  idPerjalanan: z
+    .number('Pilih rit (kendaraan dan sopir).')
+    .int()
+    .positive('Pilih rit (kendaraan dan sopir).'),
   alamatKirim: teksOpsional(255, 'Alamat maksimal 255 karakter.'),
   namaPenerima: teksOpsional(100, 'Nama penerima maksimal 100 karakter.'),
   noHpPenerima: teksOpsional(20, 'No. HP maksimal 20 karakter.'),
-  sopir: teksOpsional(100, 'Nama sopir maksimal 100 karakter.'),
-  kendaraan: teksOpsional(50, 'Kendaraan maksimal 50 karakter.'),
   catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
   baris: z
     .array(

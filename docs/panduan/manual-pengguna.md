@@ -201,7 +201,8 @@ di layar kasir seperti order antrean.
 buat langsung di halaman ini**: klik *Pelanggan* (atau F4) → pilih pelanggan (atau **Pelanggan baru**) → isi
 alamat kirim dan ongkir → tambah barang. Pelanggan pengantaran wajib punya No. HP. Lalu pilih cara bayar:
 **Lunas** (L), **DP** (U), **Bayar nanti** (N), atau **Saat terima** (S: ditagih saat barang diterima) → **Buat
-invoice** → **P** cetak invoice, **S** buat surat jalan & cetak.
+invoice** → **P** cetak invoice, **S** kirim dengan rit: pilih rit (kendaraan + sopir) atau buat **Rit baru**
+(**Alt+N**), periksa qty, **Enter**. Surat jalan dicetak saat rit berangkat.
 
 **Mengantar barang** (*Logistik › Pengiriman*; dari halaman Penjualan Pengantaran juga ada tautan **Pengiriman
 (papan)**). Papan empat kolom seperti papan tugas; kartu dikerjakan dari kiri ke kanan. Istilah: **rit** = satu
@@ -216,19 +217,28 @@ kendaraan + satu sopir berangkat sekali, membawa satu atau beberapa surat jalan.
      rit berikutnya (tertulis *sekarang di jalan: TRP-…*).
    - **Isi rit**: tarik kartu invoice dari Backlog lewat pegangan ⋮⋮ di kiri atas kartu, lepas di atas grup rit
      (grup berbingkai biru saat bisa dilepas). Tanpa menyeret: klik **⋮** di kanan atas kartu → pilih rit di bawah
-     *Masukkan ke rit*. Surat jalan untuk **semua** barang yang belum dikirim langsung dibuat. Bila hanya sebagian
-     barang yang dibawa: **⋮ › Buat surat jalan sebagian…**, isi qty, lalu masukkan surat jalannya ke rit.
-   - Surat jalan yang belum masuk rit berada di kotak bergaris putus-putus **Belum direncanakan**; surat jalan di
-     situ belum bisa berangkat.
-   - **Pindah atau keluarkan**: seret kartu surat jalan ke grup rit lain atau ke kotak *Belum direncanakan*, atau
-     klik **⋮** pada kartunya (*Pindah ke rit*, *Keluarkan dari rit*, *Batalkan surat jalan…*). Menyeret surat jalan
-     kembali ke Backlog membuka dialog batal surat jalan (alasan wajib); tidak ada yang batal tanpa konfirmasi.
+     *Masukkan ke rit*. Surat jalan untuk **semua** barang yang belum dikirim langsung dibuat, dengan nama sopir dan
+     plat kendaraan rit itu. Bila hanya sebagian barang yang dibawa: **⋮ › Kirim sebagian / pilih rit…** → pilih
+     **Rit** → ubah **Qty kirim** → **Enter**. Sisanya tetap di Backlog.
+   - **Dengan keyboard saja**: tekan **Tab** sampai pegangan ⋮⋮ kartu tersorot → **Spasi** (kartu terangkat) →
+     **panah kanan/kiri/atas/bawah** memilih tempat lepas (grup rit atau kolom Backlog; yang terpilih berbingkai
+     biru) → **Spasi** melepas, **Esc** membatalkan.
+   - Surat jalan **tidak pernah** dibuat tanpa rit, jadi selalu tertulis sopir dan kendaraannya.
+   - **Pindah**: seret kartu surat jalan ke grup rit lain, atau **⋮ › Pindah ke rit** (sopir dan kendaraan di surat
+     jalan ikut berganti).
+   - **Keluarkan**: seret kartu surat jalan ke kolom Backlog, atau **⋮ › Keluarkan ke Backlog**. Surat jalannya
+     batal (tercatat di log) dan ordernya kembali ke Backlog untuk dijadwalkan lagi.
+   - **Cetak**: tombol **Cetak** pada grup rit mencetak semua surat jalan rit itu sekaligus (bisa juga sebelum
+     berangkat, mis. untuk dicek gudang).
    - Header grup menunjukkan nomor rit, plat, jam, sopir, jumlah surat jalan, dan **bar muatan** (hijau aman, kuning
      hampir penuh, oranye perlu alasan, merah melebihi). Klik panah di kiri header untuk menciutkan/membuka grup.
    - **Dimuat**: klik setelah barang selesai dinaikkan ke kendaraan (grup bertanda *Dimuat*).
-   - **Berangkat**: klik pada grup → periksa panel muatan (tulis alasan bila oranye) → **Berangkat**. Kendaraan dan
-     sopir ditolak bila masih di jalan dengan rit lain.
-   - **Batal rit**: tulis alasannya. Surat jalannya tidak ikut batal; kembali ke *Belum direncanakan*.
+   - **Berangkat**: klik pada grup → periksa panel muatan (tulis alasan bila oranye) → pilih surat jalan setelah
+     berangkat: **1 Cetak** (ke printer), **2 Simpan PDF** (di jendela cetak pilih tujuan *Simpan sebagai PDF*), atau
+     **3 Tidak sekarang** → **Berangkat** (atau **Enter**). Semua surat jalan rit keluar dalam satu jendela cetak,
+     tiap surat jalan di halaman baru (dua rangkap bila diatur di Pengaturan). Kendaraan dan sopir ditolak bila
+     masih di jalan dengan rit lain.
+   - **Batal rit**: tulis alasannya. Surat jalannya ikut batal; ordernya kembali ke Backlog.
    - Papan memuat ulang sendiri tiap 30 detik. Bila dua orang mengubah rit yang sama, yang kedua mendapat pesan
      "muat ulang halaman".
 3. **Di jalan** — satu kartu per rit (nomor TRP, plat, sopir dan No. HP-nya, jam berangkat, lama di jalan).

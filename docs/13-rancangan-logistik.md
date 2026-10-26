@@ -88,7 +88,7 @@ halaman ini per kendaraan/sopir). Aturan bisnis: docs/05 S14.
 | Kolom | Isi | Masuk dengan |
 |---|---|---|
 | **Backlog** | Order kirim (invoice pengantaran dengan barang belum dikirim), termasuk lencana *Kirim ulang* (barang kembali utuh) dan *Bayar di tempat*. | Otomatis setelah checkout atau setelah hasil kirim dicatat. |
-| **Dijadwalkan** | Grup **rit rencana** (nomor, plat, jam, sopir, catatan, bar muatan berwarna §3.1, lencana *Dimuat*) yang bisa dibuka-tutup, lalu kotak *Belum direncanakan* untuk surat jalan tanpa rit. | Seret kartu ke grup, atau menu kartu ⋮ › *Masukkan ke rit*. Kartu Backlog yang masuk rit langsung dibuatkan surat jalan untuk seluruh sisanya. |
+| **Dijadwalkan** | Grup **rit rencana** (nomor, plat, jam, sopir, catatan, bar muatan berwarna §3.1, lencana *Dimuat*, tombol *Cetak* dan *Berangkat*) yang bisa dibuka-tutup. Kotak kuning *Surat jalan lama tanpa rit* hanya muncul untuk data sebelum K-174. | Seret kartu ke grup, menu kartu ⋮ › *Masukkan ke rit* (seluruh sisa), atau ⋮ › *Kirim sebagian / pilih rit…* (dialog qty + rit). Surat jalan dibuat saat itu dengan sopir dan kendaraan rit (K-174). |
 | **Di jalan** | Rit JALAN: lama di jalan (kuning bila > 6 jam atau beda hari), nomor HP sopir, tombol *Catat hasil* per surat jalan. | Tombol *Berangkat* pada grup (dialog muatan, alasan bila perlu). |
 | **Selesai hari ini** | Rit yang semua hasilnya dicatat hari ini. | *Catat hasil* surat jalan terakhir. |
 
@@ -103,10 +103,12 @@ Perbedaan dari rancangan v1, dengan alasan:
 Aturan papan:
 - Status kartu **selalu dari dokumen** (surat jalan dan perjalanan); tidak ada status tampilan terpisah. Menyeret
   menjalankan aksi yang sama dengan menu kartu, sehingga S1–S14 tetap berlaku.
-- Seret ke *Belum direncanakan*: kartu Backlog membuka dialog surat jalan (bisa sebagian); surat jalan di rit keluar
-  dari rit. Seret surat jalan ke *Backlog* membuka dialog batal surat jalan (alasan wajib). Mundur hanya sebelum
-  berangkat.
-- Setiap aksi seret punya padanan klik dan keyboard: menu kartu ⋮ (masukkan/pindah/keluarkan/batalkan), tombol
+- K-174: kotak *Belum direncanakan* dihapus. Seret surat jalan ke *Backlog* (atau ⋮ › *Keluarkan ke Backlog*)
+  membatalkan surat jalannya dan ordernya kembali ke Backlog; batal rit juga membatalkan surat jalannya. Mundur
+  hanya sebelum berangkat.
+- Saat *Berangkat*, dialog meminta pilihan surat jalan: **1** Cetak, **2** Simpan PDF, **3** Tidak sekarang (bawaan
+  dari Pengaturan). Semua surat jalan rit dicetak dalam satu jendela cetak, tiap surat jalan di halaman baru.
+- Setiap aksi seret punya padanan klik dan keyboard: menu kartu ⋮ (masukkan, kirim sebagian, pindah, keluarkan), tombol
   *Rit baru* (pintasan **R**), dan pegangan seret yang bisa diangkat dengan Spasi lalu dipindah dengan panah.
 - Papan menyegarkan data berkala; aksi pada rit yang sudah berubah di komputer lain ditolak dengan pesan
   "muat ulang halaman" (kunci baris di DB, docs/02).

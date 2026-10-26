@@ -33,6 +33,7 @@ import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tanggalOperasional } from '../../../lib/waktu';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
+import * as armadaRepo from '../../master/armada/repo';
 import * as returRepo from '../../koreksi/retur/repo';
 import { ajukanReturTx } from '../../koreksi/retur/service';
 import { hitungTagihan } from '../pembayaran';
@@ -41,10 +42,35 @@ import * as pjRepo from '../penjualan/repo';
 import * as repo from './repo';
 
 /*
- * Surat jalan (docs/05 §7, S1–S12; K-024, K-149–K-151): banyak SJ per invoice, qty kirim per baris tidak
- * melebihi sisa, berangkat lewat perjalanan, selesai lewat catat hasil per barang, status pengiriman invoice =
- * agregat (cache, diperbarui di transaksi yang sama).
+ * Surat jalan (docs/05 §7, S1–S14; K-024, K-149–K-151, K-174): banyak SJ per invoice, qty kirim per baris tidak
+ * melebihi sisa, selalu dibuat di dalam rit rencana (sopir dan kendaraan sudah pasti), berangkat bersama ritnya,
+ * selesai lewat catat hasil per barang, status pengiriman invoice = agregat (cache, diperbarui di transaksi yang sama).
  */
+
+/**
+ * K-174: kunci rit rencana tujuan surat jalan dan siapkan teks sopir/kendaraan untuk cetakan. Rit yang sudah
+ * berangkat, selesai, atau batal tidak bisa diisi.
+ */
+export async function kunciRitTujuan(tx: Tx, idPerjalanan: number) {
+  const r = await perjalananRepo.kunci(tx, idPerjalanan);
+  if (!r) throw new AppError('TIDAK_DITEMUKAN', 'Rit tidak ditemukan.', 404);
+  if (r.status !== 'DIRENCANAKAN') {
+    throw new AppError(
+      'STATUS_TIDAK_VALID',
+      `Rit ${r.nomor} sudah ${r.status === 'JALAN' ? 'berangkat' : r.status.toLowerCase()}; pilih rit lain.`,
+      409,
+    );
+  }
+  const k = await armadaRepo.kendaraanById(tx, r.idKendaraan);
+  const s = await armadaRepo.sopirById(tx, r.idSopir);
+  return {
+    ...r,
+    teks: {
+      sopir: s?.nama ?? null,
+      kendaraan: k ? `${k.plat} (${k.jenis})`.slice(0, 50) : null,
+    },
+  };
+}
 
 /** Qty retur dalam satuan baris (K-091: qty retur dasar ÷ faktor satuan jual). */
 function qtyReturBaris(b: { qtyReturDasar: string; faktor: string }): string {
@@ -174,7 +200,7 @@ export async function detailSuratJalan(id: number): Promise<BarisSuratJalan> {
   return hasil;
 }
 
-/** S1/S2: membuat surat jalan (DIPROSES) untuk invoice pengantaran. */
+/** S1/S2/S14: membuat surat jalan (DIPROSES) untuk invoice pengantaran, langsung di dalam rit rencana. */
 export async function buatSuratJalan(
   idPenjualan: number,
   input: DataSuratJalan,
@@ -185,15 +211,17 @@ export async function buatSuratJalan(
   return detailSuratJalan(id);
 }
 
-/** S1/S2 di dalam transaksi pemanggil (dipakai juga papan Pengiriman, K-160). Mengembalikan id surat jalan. */
+/** S1/S2/S14 di dalam transaksi pemanggil (dipakai juga papan Pengiriman). Mengembalikan id surat jalan. */
 export async function buatSuratJalanTx(
   tx: Tx,
   idPenjualan: number,
-  input: Pick<DataSuratJalan, 'baris'> & Partial<DataSuratJalan>,
+  input: Pick<DataSuratJalan, 'baris' | 'idPerjalanan'> & Partial<DataSuratJalan>,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<number> {
   {
+    // Urutan kunci sama dengan isi rit dari papan: rit dulu, lalu invoice.
+    const rit = await kunciRitTujuan(tx, input.idPerjalanan);
     const pj = await pjRepo.kunciPenjualan(tx, idPenjualan);
     if (!pj) throw new AppError('TIDAK_DITEMUKAN', 'Penjualan tidak ditemukan.', 404);
     if (pj.jenisPenjualan !== 'PENGANTARAN') {
@@ -239,8 +267,9 @@ export async function buatSuratJalanTx(
         alamatKirim: input.alamatKirim ?? info?.alamatKirim ?? '-',
         namaPenerima: input.namaPenerima ?? null,
         noHpPenerima: input.noHpPenerima ?? null,
-        sopir: input.sopir ?? null,
-        kendaraan: input.kendaraan ?? null,
+        sopir: rit.teks.sopir,
+        kendaraan: rit.teks.kendaraan,
+        idPerjalanan: rit.id,
         catatan: input.catatan ?? null,
       })
       .returning({ id: suratJalan.id });
@@ -259,7 +288,7 @@ export async function buatSuratJalanTx(
       entitas: 'surat_jalan',
       idEntitas: sj.id,
       nomorDokumen: nomor,
-      ringkasan: `Surat jalan ${nomor} untuk ${pj.nomor}: ${input.baris.length} barang`,
+      ringkasan: `Surat jalan ${nomor} untuk ${pj.nomor} di rit ${rit.nomor}: ${input.baris.length} barang`,
       ip: asal.ip,
     });
     return sj.id;
@@ -267,7 +296,7 @@ export async function buatSuratJalanTx(
 }
 
 /**
- * S3: DIPROSES → DIMUAT. DIKIRIM hanya lewat berangkat (perjalanan, S9) dan SELESAI hanya lewat catat hasil
+ * S3: DIPROSES → DIMUAT. DIKIRIM hanya lewat berangkat rit (S9) dan SELESAI hanya lewat catat hasil
  * (S10), agar kendaraan, sopir, dan hasil per barang selalu tercatat.
  */
 export async function ubahStatusSuratJalan(
@@ -550,7 +579,19 @@ export async function batalSuratJalan(
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<BarisSuratJalan> {
-  await dalamTransaksi(async (tx) => {
+  await dalamTransaksi((tx) => batalSuratJalanTx(tx, id, alasan, pelaku, asal));
+  return detailSuratJalan(id);
+}
+
+/** S5 di dalam transaksi pemanggil (dipakai juga keluarkan dari rit dan batal rit, K-174). */
+export async function batalSuratJalanTx(
+  tx: Tx,
+  id: number,
+  alasan: string,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<void> {
+  {
     const sj = await repo.kunci(tx, id);
     if (!sj) throw new AppError('TIDAK_DITEMUKAN', 'Surat jalan tidak ditemukan.', 404);
     if (sj.status !== 'DIPROSES' && sj.status !== 'DIMUAT') {
@@ -582,6 +623,5 @@ export async function batalSuratJalan(
       ringkasan: `Surat jalan ${sj.nomor} dibatalkan: ${alasan}`,
       ip: asal.ip,
     });
-  });
-  return detailSuratJalan(id);
+  }
 }

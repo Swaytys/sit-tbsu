@@ -210,7 +210,11 @@ export function hasilDetail(ex: Executor, idHasil: number[]) {
     .orderBy(asc(suratJalanHasilDetail.id));
 }
 
-/** Invoice pengantaran yang mungkin masih punya barang belum dikirim (disaring lagi per baris di service). */
+/**
+ * Invoice pengantaran yang mungkin masih punya barang belum dikirim (disaring lagi per baris di service). Invoice yang
+ * semua barangnya sedang berada di surat jalan aktif (di rit, dimuat, di jalan) tidak diambil, agar batas jumlah tidak
+ * terisi invoice yang sudah dijadwalkan dan order baru tetap tampil di Backlog.
+ */
 export function calonPerluDikirim(ex: Executor) {
   return ex
     .select({
@@ -230,10 +234,15 @@ export function calonPerluDikirim(ex: Executor) {
         eq(penjualan.jenisPenjualan, 'PENGANTARAN'),
         ne(penjualan.statusTransaksi, 'VOID'),
         ne(penjualan.statusPengiriman, 'SELESAI'),
+        sql`exists (select 1 from ${penjualanDetail} d
+          where d.id_penjualan = ${kolomPenuh(penjualan.id)} and d.status_item <> 'VOID'
+            and d.qty > coalesce((select sum(x.qty_kirim) from ${suratJalanDetail} x
+              join ${suratJalan} s on s.id = x.id_surat_jalan
+              where x.id_penjualan_detail = d.id and s.status in ('DIPROSES', 'DIMUAT', 'DIKIRIM')), 0))`,
       ),
     )
     .orderBy(asc(penjualan.tanggal))
-    .limit(100);
+    .limit(300);
 }
 
 /**

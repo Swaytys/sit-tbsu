@@ -148,26 +148,6 @@ export type Sopir = {
 
 // --- Perjalanan ---
 
-export const skemaBerangkat = z.object({
-  idKendaraan: z.number('Pilih kendaraan.').int().positive('Pilih kendaraan.'),
-  idSopir: z.number('Pilih sopir.').int().positive('Pilih sopir.'),
-  idSuratJalan: z
-    .array(z.number().int().positive())
-    .min(1, 'Pilih minimal satu surat jalan.')
-    .max(30, 'Maksimal 30 surat jalan per perjalanan.'),
-  catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
-  /** K-161: wajib bila muatan melewati batas lunak (volume/panjang); kronologis dan logis. */
-  alasanMuatan: teksOpsional(500, 'Alasan maksimal 500 karakter.'),
-});
-export type InputBerangkat = z.input<typeof skemaBerangkat>;
-export type DataBerangkat = z.output<typeof skemaBerangkat>;
-
-/** K-161: pratinjau muatan sebelum berangkat. */
-export const skemaPratinjauMuatan = z.object({
-  idKendaraan: z.number().int().positive(),
-  idSuratJalan: z.array(z.number().int().positive()).min(1).max(30),
-});
-
 export type TingkatMuatan = 'AMAN' | 'HAMPIR_PENUH' | 'KONFIRMASI' | 'DITOLAK' | 'TIDAK_DIKETAHUI';
 
 /** Hasil hitung muatan satu rit (docs/13 §3); dihitung API. */

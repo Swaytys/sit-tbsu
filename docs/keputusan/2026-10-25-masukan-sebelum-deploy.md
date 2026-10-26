@@ -32,7 +32,13 @@ prioritas di bagian akhir.
 - **K-174 Alur surat jalan dibenahi (kritis).** Surat jalan baru dibuat setelah order masuk rit yang sudah punya
   kendaraan dan sopir; membagi order (sebagian) tidak membuat surat jalan; grup "Belum direncanakan" dihapus;
   saat **Berangkat** semua surat jalan rit dicetak/diunduh (pilihan cetak atau unduh) dan rit tidak bisa berangkat
-  bila ada order tanpa surat jalan. Bug: berangkat tidak memunculkan cetak surat jalan. *Rencana (prioritas 1).*
+  bila ada order tanpa surat jalan. Bug: berangkat tidak memunculkan cetak surat jalan. **Selesai (26 Okt):**
+  surat jalan wajib memilih rit dan langsung berisi sopir/kendaraan rit; masuk rit sebagian lewat dialog qty + rit
+  (papan, detail invoice, tombol S kasir; rit baru bisa dibuat dari dialog); keluar dari rit atau batal rit
+  membatalkan surat jalan sehingga order kembali ke Backlog; berangkat langsung tanpa rit dihapus; dialog
+  Berangkat memberi pilihan 1 Cetak / 2 Simpan PDF / 3 Tidak sekarang dan mencetak semua surat jalan rit dalam
+  satu jendela; tombol Cetak di grup rit dan kartu Di jalan. Kolom baru di antara Backlog dan Dijadwalkan tidak
+  dibuat: grup rit sudah memisahkan yang dikerjakan sekarang dari yang menunggu.
 - **K-175 Kembali ke halaman asal.** Detail invoice yang dibuka dari Pengiriman kembali ke Pengiriman (**Selesai**).
 - **K-176 Penyelesaian hasil pengantaran.** Kolom *ditolak* diganti alasan per barang (kelebihan, salah barang,
   rusak saat dicek, rusak di jalan); barang kembali utuh mengurangi tagihan otomatis; pengembalian uang lewat
@@ -40,7 +46,13 @@ prioritas di bagian akhir.
   belakangan, bukti/konfirmasi wajib). Kartu hasil diberi penanda: terkirim semua / sebagian kembali / ada rusak.
   *Rencana.*
 - **K-177 Seret kartu dengan keyboard** (Spasi angkat, panah pindah urutan/kolom, Spasi lepas) belum berfungsi;
-  diperbaiki. *Rencana.*
+  diperbaiki. **Selesai (26 Okt):** sebabnya, papan hanya mengenali tempat lepas dari posisi mouse. Kini panah
+  melompat ke tempat lepas terdekat ke arah itu (kolom Backlog atau grup rit; grup tujuan berbingkai biru), Spasi
+  melepas, Esc membatalkan. Urutan kartu di dalam satu kolom tidak bisa diatur manual: Backlog berurut tanggal
+  invoice dan grup rit berurut rit terbaru, sehingga "pindah urutan" tidak punya arti di data (usulan bila perlu
+  prioritas antar order: kolom prioritas). Ikut diperbaiki: Backlog bisa tidak menampilkan order baru bila banyak
+  invoice lama yang barangnya sedang di rit (batas 100 invoice tertua); kini invoice yang seluruh barangnya sudah di
+  surat jalan aktif tidak ikut dihitung.
 - **K-178 BBM dan servis dihapus dari v1.** Pencatatan BBM/servis tanpa integrasi jarak dan peta tidak sepadan
   dengan beban input; ditunda ke versi dengan pembukuan (v4/v5). Tab BBM, Servis, dan Statistik disembunyikan
   (**Selesai**); data dan tabel tetap utuh. Pengingat STNK/KIR tetap.

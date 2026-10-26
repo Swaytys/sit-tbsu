@@ -2,9 +2,7 @@ import {
   kunciBaris,
   formatRupiah,
   skemaCheckout,
-  skemaSuratJalan,
   type BarisBarang,
-  type BarisSuratJalan,
   type DataCheckout,
   type DataPembayaran,
   type DetailPenjualan,
@@ -24,7 +22,6 @@ import { useDaftarTingkatHarga } from '@/api/mitra';
 import { useTampilanToko } from '@/api/pengaturan';
 import {
   catatCetakUlang,
-  useBuatSuratJalan,
   useCheckout,
   useMintaKodeLimit,
   useLepasOrder,
@@ -38,7 +35,7 @@ import { AreaCetak } from '@/components/area-cetak';
 import { InfoTierBelanja } from '@/components/info-tier-belanja';
 import { DialogKodeAtasan } from '@/components/dialog-kode-atasan';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
-import { InvoiceA4, SuratJalanA4 } from '@/components/dokumen-a4';
+import { InvoiceA4 } from '@/components/dokumen-a4';
 import { PeringatanPiutang } from '@/components/peringatan-piutang';
 import { Struk } from '@/components/struk';
 import {
@@ -58,6 +55,7 @@ import { cetakLangsungAktif } from '@/lib/printer-thermal';
 import { cetakStrukLangsung } from '@/lib/struk-escpos';
 import { cn } from '@/lib/utils';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
+import { DialogBuat } from '../pengantaran/panel-surat-jalan';
 import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
 import { BilahTombol, type Tombol } from './bilah-tombol';
 import { DialogBukaShift } from '../shift/dialog-buka-shift';
@@ -82,8 +80,7 @@ const ID: Record<Zona, string> = {
   hasil: 'pos-hasil',
 };
 
-type Cetakan =
-  { jenis: 'struk' | 'invoice'; p: DetailPenjualan } | { jenis: 'sj'; sj: BarisSuratJalan } | null;
+type Cetakan = { jenis: 'struk' | 'invoice'; p: DetailPenjualan } | null;
 
 const TOMBOL_UMUM: Tombol[] = [
   { kunci: 'F2', label: 'Cari barang' },
@@ -161,7 +158,6 @@ export function LayarPos({
   const proses = useProsesOrder();
   const lepas = useLepasOrder();
   const checkout = useCheckout();
-  const buatSj = useBuatSuratJalan();
   const tr = useTransaksiPos(tierDefault);
 
   const [zona, setZona] = useState<Zona>(pengantaran || idOrderAwal ? 'antrean' : 'cari');
@@ -199,6 +195,8 @@ export function LayarPos({
   const [cetak, setCetak] = useState<Cetakan>(null);
   const [kunciPanel, setKunciPanel] = useState(0);
   const [dialogShift, setDialogShift] = useState(false);
+  // K-174: S = kirim invoice pengantaran dengan rit (surat jalan dibuat di dalam rit, dicetak saat berangkat).
+  const [kirimRit, setKirimRit] = useState<DetailPenjualan | null>(null);
   const [slotBayar, setSlotBayar] = useState<HTMLDivElement | null>(null);
   const [sedangProses, setSedangProses] = useState(false);
   const [pelangganBaru, setPelangganBaru] = useState(false);
@@ -475,30 +473,6 @@ export function LayarPos({
         toast.error(pesan);
         if (pesan.includes('Buka shift')) setDialogShift(true);
       });
-  }
-
-  function suratJalanSemua() {
-    if (!hasil || buatSj.isPending) return;
-    const data = skemaSuratJalan.safeParse({
-      baris: hasil.baris
-        .filter((b) => /[1-9]/.test(b.qtyBelumDikirim))
-        .map((b) => ({ idPenjualanDetail: b.id, qtyKirim: b.qtyBelumDikirim })),
-    });
-    if (!data.success) {
-      toast.error(data.error.issues[0]?.message ?? 'Tidak ada barang untuk dikirim.');
-      return;
-    }
-    buatSj
-      .mutateAsync({ id: hasil.id, json: data.data })
-      .then((sj) => {
-        toast.success(`Surat jalan ${sj.nomor} dibuat.`);
-        cetakMenurutSetelan(toko?.suratJalanCetak, `surat jalan ${sj.nomor}`, () =>
-          setCetak({ jenis: 'sj', sj }),
-        );
-        setHasil(null);
-        setZona('antrean');
-      })
-      .catch((err: unknown) => toast.error(pesanGalat(err)));
   }
 
   // Tombol fungsi berlaku di mana pun fokus berada.
@@ -785,7 +759,7 @@ export function LayarPos({
                 onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
                   if (e.key === 's' || e.key === 'S') {
                     e.preventDefault();
-                    suratJalanSemua();
+                    setKirimRit(hasil);
                   } else if (e.key === 'p' || e.key === 'P') {
                     e.preventDefault();
                     setCetak({ jenis: 'invoice', p: hasil });
@@ -811,9 +785,8 @@ export function LayarPos({
                 <div className="mt-1 text-slate-700">
                   <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">P</kbd> cetak
                   invoice ·{' '}
-                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">S</kbd> buat
-                  surat jalan semua barang
-                  {toko?.suratJalanCetak === 'OTOMATIS' ? ' & cetak' : ''} ·{' '}
+                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">S</kbd> kirim
+                  dengan rit (pilih kendaraan & sopir) ·{' '}
                   <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">Enter</kbd>{' '}
                   lanjut
                 </div>
@@ -997,10 +970,15 @@ export function LayarPos({
           <InvoiceA4 p={cetak.p} toko={toko} />
         </AreaCetak>
       )}
-      {toko && cetak?.jenis === 'sj' && (
-        <AreaCetak ukuranKertas={ukuranKertasCss(toko.kertasSuratJalan)}>
-          <SuratJalanA4 sj={cetak.sj} toko={toko} />
-        </AreaCetak>
+      {kirimRit && (
+        <DialogBuat
+          p={kirimRit}
+          onTutup={() => setKirimRit(null)}
+          onBerhasil={() => {
+            setHasil(null);
+            setZona('antrean');
+          }}
+        />
       )}
     </div>
   );

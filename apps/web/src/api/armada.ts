@@ -1,5 +1,4 @@
 import type {
-  DataBerangkat,
   InputRencanaRit,
   DataHasilSuratJalan,
   DataKendaraan,
@@ -115,30 +114,10 @@ export function useStatusSopir() {
   );
 }
 
-export function useBerangkat() {
-  return useMutasiArmada(async (json: DataBerangkat) =>
-    ambilData(await api.perjalanan.$post({ json })),
-  );
-}
-
 export function useCatatHasil() {
   return useMutasiArmada(async ({ id, json }: { id: number; json: DataHasilSuratJalan }) =>
     ambilData(await api['surat-jalan'][':id'].hasil.$post({ param: paramId(id), json })),
   );
-}
-
-/** K-161: pratinjau muatan rit sebelum berangkat (dihitung API; tidak menulis apa pun). */
-export function usePratinjauMuatan(idKendaraan: number | null, idSuratJalan: number[]) {
-  return useQuery({
-    queryKey: ['armada', 'muatan', idKendaraan, idSuratJalan],
-    queryFn: async () =>
-      ambilData(
-        await api.perjalanan['pratinjau-muatan'].$post({
-          json: { idKendaraan: idKendaraan ?? 0, idSuratJalan },
-        }),
-      ),
-    enabled: idKendaraan !== null && idSuratJalan.length > 0,
-  });
 }
 
 // --- Rit rencana (K-160) ---

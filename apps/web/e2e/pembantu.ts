@@ -109,3 +109,17 @@ export async function idRekening(page: Page, jenis: 'TRANSFER' | 'EDC' | 'QRIS' 
   if (!r) throw new Error(`Tidak ada rekening ${jenis} aktif`);
   return r.id;
 }
+
+/**
+ * Draf order milik pengguna ini dibuang. Halaman Order membuka draf sendiri yang belum selesai secara otomatis
+ * (K-122), jadi sisa draf dari uji lain akan ikut terhitung di total bila tidak dibersihkan.
+ */
+export async function buangDrafSaya(page: Page): Promise<void> {
+  const draf = await api<{ id: number }[]>(
+    page,
+    '/order?status=DRAFT&milikSaya=true&perHalaman=100',
+  );
+  for (const d of draf) {
+    await api(page, `/order/${d.id}/batal`, 'POST', { alasan: 'Bersih-bersih uji e2e' });
+  }
+}

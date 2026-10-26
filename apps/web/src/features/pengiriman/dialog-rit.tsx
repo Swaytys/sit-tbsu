@@ -1,9 +1,10 @@
-import type { Perjalanan } from '@sit/shared';
+import type { BarisSuratJalan, Perjalanan } from '@sit/shared';
 import { CalendarPlus, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useBerangkatRit, useDaftarKendaraan, useDaftarSopir, useRencanaRit } from '@/api/armada';
 import { pesanGalat } from '@/api/client';
+import { useTampilanToko } from '@/api/pengaturan';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { PanelMuatan } from '../pengantaran/panel-muatan';
 import { tandaSurat } from '../armada/tanda-surat';
 
@@ -28,8 +30,17 @@ function jadwalAwal(): string {
   return `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}T${dua(d.getHours())}:${dua(d.getMinutes())}`;
 }
 
-/** K-160: rencanakan rit (kendaraan, sopir, jadwal). Kendaraan yang sedang jalan boleh direncanakan untuk nanti. */
-export function DialogRitBaru({ onTutup }: { onTutup: () => void }) {
+/**
+ * K-160: rencanakan rit (kendaraan, sopir, jadwal). Kendaraan yang sedang jalan boleh direncanakan untuk nanti.
+ * `onDibuat` dipakai dialog surat jalan (K-174) agar rit yang baru dibuat langsung terpilih.
+ */
+export function DialogRitBaru({
+  onTutup,
+  onDibuat,
+}: {
+  onTutup: () => void;
+  onDibuat?: (r: Perjalanan) => void;
+}) {
   const kendaraan = useDaftarKendaraan('AKTIF');
   const sopir = useDaftarSopir('AKTIF');
   const rencana = useRencanaRit();
@@ -53,7 +64,12 @@ export function DialogRitBaru({ onTutup }: { onTutup: () => void }) {
         catatan: catatan.trim() || null,
       })
       .then((r) => {
-        toast.success(`Rit ${r.nomor} direncanakan. Seret order kirim ke grupnya.`);
+        toast.success(
+          onDibuat
+            ? `Rit ${r.nomor} direncanakan.`
+            : `Rit ${r.nomor} direncanakan. Seret order kirim ke grupnya.`,
+        );
+        onDibuat?.(r);
         onTutup();
       })
       .catch((err: unknown) => toast.error(pesanGalat(err)));
@@ -144,9 +160,34 @@ export function DialogRitBaru({ onTutup }: { onTutup: () => void }) {
   );
 }
 
-/** K-160/K-161: berangkatkan rit rencana; muatan dicek ulang (alasan bila perlu, ditolak bila melebihi). */
-export function DialogBerangkatRit({ rit, onTutup }: { rit: Perjalanan; onTutup: () => void }) {
+export type CaraCetakRit = 'CETAK' | 'PDF' | 'NANTI';
+
+const PILIHAN_CETAK: { nilai: CaraCetakRit; kunci: string; label: string; ket: string }[] = [
+  { nilai: 'CETAK', kunci: '1', label: 'Cetak', ket: 'ke printer' },
+  { nilai: 'PDF', kunci: '2', label: 'Simpan PDF', ket: 'pilih "Simpan sebagai PDF"' },
+  { nilai: 'NANTI', kunci: '3', label: 'Tidak sekarang', ket: 'cetak nanti dari kartu rit' },
+];
+
+/**
+ * K-160/K-161/K-174: berangkatkan rit rencana; muatan dicek ulang (alasan bila perlu, ditolak bila melebihi).
+ * Semua surat jalan rit dicetak atau disimpan PDF sekaligus setelah berangkat, sesuai pilihan di dialog
+ * (bawaan dari Pengaturan › Dokumen & kertas).
+ */
+export function DialogBerangkatRit({
+  rit,
+  isi,
+  onTutup,
+  onCetak,
+}: {
+  rit: Perjalanan;
+  isi: BarisSuratJalan[];
+  onTutup: () => void;
+  onCetak: (daftar: BarisSuratJalan[], cara: Exclude<CaraCetakRit, 'NANTI'>) => void;
+}) {
   const berangkat = useBerangkatRit();
+  const modeCetak = useTampilanToko().data?.suratJalanCetak;
+  const [cara, setCara] = useState<CaraCetakRit | null>(null);
+  const caraAktif: CaraCetakRit = cara ?? (modeCetak === 'TIDAK' ? 'NANTI' : 'CETAK');
   const [alasan, setAlasan] = useState('');
   const m = rit.muatan;
   const ditolak = m?.kesimpulan === 'DITOLAK';
@@ -157,23 +198,38 @@ export function DialogBerangkatRit({ rit, onTutup }: { rit: Perjalanan; onTutup:
       toast.error('Tulis alasan kenapa muatan tetap aman (minimal 10 huruf).');
       return;
     }
+    if (berangkat.isPending || ditolak) return;
     berangkat
       .mutateAsync({ id: rit.id, alasanMuatan: perluAlasan ? alasan.trim() : null })
       .then((r) => {
         toast.success(`${r.nomor} berangkat: ${r.plat}, sopir ${r.namaSopir}.`);
         onTutup();
+        if (caraAktif !== 'NANTI' && isi.length > 0) onCetak(isi, caraAktif);
       })
       .catch((err: unknown) => toast.error(pesanGalat(err)));
   }
 
   return (
     <Dialog open onOpenChange={(b) => !b && onTutup()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent
+        className="sm:max-w-lg"
+        onKeyDown={(e) => {
+          if (e.target instanceof HTMLTextAreaElement) return;
+          const pilih = PILIHAN_CETAK.find((p) => p.kunci === e.key);
+          if (pilih) {
+            e.preventDefault();
+            setCara(pilih.nilai);
+          } else if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
+            e.preventDefault();
+            kirim();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Berangkatkan {rit.nomor}</DialogTitle>
           <DialogDescription>
-            {rit.plat} · sopir {rit.namaSopir} · {rit.suratJalan.length} surat jalan. Semua surat
-            jalan menjadi <b>Di jalan</b>; kendaraan dan sopir terkunci sampai hasilnya dicatat.
+            {rit.plat} · sopir {rit.namaSopir} · {isi.length} surat jalan. Semua surat jalan menjadi{' '}
+            <b>Di jalan</b>; kendaraan dan sopir terkunci sampai hasilnya dicatat.
           </DialogDescription>
         </DialogHeader>
         {m && <PanelMuatan m={m} />}
@@ -194,6 +250,38 @@ export function DialogBerangkatRit({ rit, onTutup }: { rit: Perjalanan; onTutup:
             />
           </label>
         )}
+        <fieldset className="grid gap-1.5 text-sm">
+          <legend className="mb-1 font-medium">Surat jalan ({isi.length}) setelah berangkat</legend>
+          <div
+            className="grid grid-cols-3 gap-1.5"
+            role="radiogroup"
+            aria-label="Cetak surat jalan"
+          >
+            {PILIHAN_CETAK.map((p) => (
+              <button
+                key={p.nilai}
+                type="button"
+                role="radio"
+                aria-checked={caraAktif === p.nilai}
+                onClick={() => setCara(p.nilai)}
+                className={cn(
+                  'rounded-md border px-2 py-1.5 text-left',
+                  caraAktif === p.nilai
+                    ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
+                    : 'border-slate-300 hover:bg-slate-50',
+                )}
+              >
+                <span className="font-medium">
+                  <kbd className="mr-1 rounded bg-slate-800 px-1 font-mono text-xs text-white">
+                    {p.kunci}
+                  </kbd>
+                  {p.label}
+                </span>
+                <span className="block text-xs text-slate-500">{p.ket}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <DialogFooter>
           <Button variant="outline" onClick={onTutup}>
             Batal
@@ -203,7 +291,7 @@ export function DialogBerangkatRit({ rit, onTutup }: { rit: Perjalanan; onTutup:
             onClick={kirim}
             autoFocus={!perluAlasan}
           >
-            <Truck /> {berangkat.isPending ? 'Menyimpan…' : 'Berangkat'}
+            <Truck /> {berangkat.isPending ? 'Menyimpan…' : 'Berangkat (Enter)'}
           </Button>
         </DialogFooter>
       </DialogContent>
