@@ -46,7 +46,13 @@ prioritas di bagian akhir.
   belakangan, bukti/konfirmasi wajib). Kartu hasil diberi penanda: terkirim semua / sebagian kembali / ada rusak.
   *Rencana.*
 - **K-177 Seret kartu dengan keyboard** (Spasi angkat, panah pindah urutan/kolom, Spasi lepas) belum berfungsi;
-  diperbaiki. *Rencana.*
+  diperbaiki. **Selesai (26 Okt):** sebabnya, papan hanya mengenali tempat lepas dari posisi mouse. Kini panah
+  melompat ke tempat lepas terdekat ke arah itu (kolom Backlog atau grup rit; grup tujuan berbingkai biru), Spasi
+  melepas, Esc membatalkan. Urutan kartu di dalam satu kolom tidak bisa diatur manual: Backlog berurut tanggal
+  invoice dan grup rit berurut rit terbaru, sehingga "pindah urutan" tidak punya arti di data (usulan bila perlu
+  prioritas antar order: kolom prioritas). Ikut diperbaiki: Backlog bisa tidak menampilkan order baru bila banyak
+  invoice lama yang barangnya sedang di rit (batas 100 invoice tertua); kini invoice yang seluruh barangnya sudah di
+  surat jalan aktif tidak ikut dihitung.
 - **K-178 BBM dan servis dihapus dari v1.** Pencatatan BBM/servis tanpa integrasi jarak dan peta tidak sepadan
   dengan beban input; ditunda ke versi dengan pembukuan (v4/v5). Tab BBM, Servis, dan Statistik disembunyikan
   (**Selesai**); data dan tabel tetap utuh. Pengingat STNK/KIR tetap.

@@ -84,11 +84,22 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
     const grup = kasir.locator('[data-testid^="rit-TRP-"]').filter({ hasText: truk.plat });
     await expect(grup).toContainText('Seret order kirim ke sini');
 
-    // 2. Invoice A diseret ke grup; invoice B lewat menu kartu.
+    // 2. Invoice A diseret ke grup dengan mouse; invoice B dengan keyboard (K-177): Spasi angkat, panah memilih
+    // tempat lepas (grup tujuan berbingkai biru), Spasi lepas.
     await seret(kasir, kasir.getByTestId(`order-kirim-${a.nomor}`), grup);
     await expect(grup).toContainText('1 surat jalan');
-    await kasir.getByRole('button', { name: `Aksi ${b.nomor}` }).click();
-    await kasir.getByRole('menuitem', { name: new RegExp(truk.plat) }).click();
+    await kasir.getByRole('button', { name: `Seret ${b.nomor}` }).focus();
+    await kasir.keyboard.press('Space');
+    await kasir.keyboard.press('ArrowRight');
+    for (
+      let i = 0;
+      i < 15 && !/border-blue-500/.test((await grup.getAttribute('class')) ?? '');
+      i++
+    ) {
+      await kasir.keyboard.press('ArrowUp');
+    }
+    await expect(grup).toHaveClass(/border-blue-500/);
+    await kasir.keyboard.press('Space');
     await expect(grup).toContainText('2 surat jalan');
     await expect(kasir.getByTestId(`order-kirim-${a.nomor}`)).toHaveCount(0);
     const sjDi = await api<{ id: number; nomor: string; sopir: string | null }[]>(

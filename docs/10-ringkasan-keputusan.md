@@ -687,7 +687,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-174 | Surat jalan hanya dibuat di dalam rit (kendaraan dan sopir sudah pasti); keluar/batal rit membatalkan surat jalan; cetak atau simpan PDF semua surat jalan saat berangkat. | Berlaku (selesai 26 Okt) |
 | K-175 | Detail yang dibuka dari Pengiriman kembali ke Pengiriman. | Berlaku (selesai 25 Okt) |
 | K-176 | Penyelesaian hasil pengantaran: alasan, potong tagihan, tugas transfer pengembalian, penanda kartu. | Berlaku (rencana) |
-| K-177 | Seret kartu Pengiriman dengan keyboard benar-benar berfungsi. | Berlaku (rencana) |
+| K-177 | Seret kartu Pengiriman dengan keyboard benar-benar berfungsi: panah melompat ke Backlog/grup rit terdekat. | Berlaku (selesai 26 Okt) |
 | K-178 | BBM dan servis kendaraan ditunda ke v4/v5; tab disembunyikan. | Berlaku (selesai 25 Okt) |
 | K-179 | Order pembelian yang menunggu tampil di Penerimaan Barang. | Berlaku (selesai 25 Okt) |
 | K-180 | Isian otomatis (No. HP dari pelanggan) dan saran alasan sesuai konteks. | Berlaku (sebagian 25 Okt) |

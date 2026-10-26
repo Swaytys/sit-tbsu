@@ -220,6 +220,9 @@ kendaraan + satu sopir berangkat sekali, membawa satu atau beberapa surat jalan.
      *Masukkan ke rit*. Surat jalan untuk **semua** barang yang belum dikirim langsung dibuat, dengan nama sopir dan
      plat kendaraan rit itu. Bila hanya sebagian barang yang dibawa: **⋮ › Kirim sebagian / pilih rit…** → pilih
      **Rit** → ubah **Qty kirim** → **Enter**. Sisanya tetap di Backlog.
+   - **Dengan keyboard saja**: tekan **Tab** sampai pegangan ⋮⋮ kartu tersorot → **Spasi** (kartu terangkat) →
+     **panah kanan/kiri/atas/bawah** memilih tempat lepas (grup rit atau kolom Backlog; yang terpilih berbingkai
+     biru) → **Spasi** melepas, **Esc** membatalkan.
    - Surat jalan **tidak pernah** dibuat tanpa rit, jadi selalu tertulis sopir dan kendaraannya.
    - **Pindah**: seret kartu surat jalan ke grup rit lain, atau **⋮ › Pindah ke rit** (sopir dan kendaraan di surat
      jalan ikut berganti).

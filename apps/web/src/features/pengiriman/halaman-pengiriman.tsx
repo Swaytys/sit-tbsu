@@ -7,7 +7,10 @@ import {
   useDroppable,
   useSensor,
   useSensors,
+  type ClientRect,
+  type CollisionDetection,
   type DragEndEvent,
+  type KeyboardCoordinateGetter,
 } from '@dnd-kit/core';
 import type { BarisSuratJalan, Perjalanan, PerluDikirim } from '@sit/shared';
 import {
@@ -23,7 +26,7 @@ import {
   Truck,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import {
@@ -81,6 +84,44 @@ const WARNA_MUATAN = {
 } as const;
 
 const jam = (iso: string | null) => (iso ? formatWaktu(iso).slice(11) : '—');
+
+const ARAH: Record<string, [number, number]> = {
+  ArrowRight: [1, 0],
+  ArrowLeft: [-1, 0],
+  ArrowDown: [0, 1],
+  ArrowUp: [0, -1],
+};
+const pusat = (r: ClientRect) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+
+/**
+ * K-177: seret dengan keyboard. Panah tidak menggeser kartu 25 px (terlalu lambat dan tidak pernah "kena" tujuan),
+ * tetapi melompat ke tempat lepas terdekat ke arah itu: Backlog atau grup rit. Tujuan terpilih disimpan di `tujuan`
+ * dan dipakai deteksi tabrakan, karena keyboard tidak punya posisi penunjuk.
+ */
+function koordinatPapan(tujuan: { current: string | null }): KeyboardCoordinateGetter {
+  return (e, { context }) => {
+    const arah = ARAH[e.code];
+    if (!arah || !context.collisionRect) return undefined;
+    e.preventDefault();
+    const dariRect = tujuan.current ? context.droppableRects.get(tujuan.current) : undefined;
+    const asal = pusat(dariRect ?? context.collisionRect);
+    let terbaik: { id: string; rect: ClientRect; skor: number } | null = null;
+    for (const c of context.droppableContainers.getEnabled()) {
+      const id = String(c.id);
+      const rect = context.droppableRects.get(c.id);
+      if (!rect || id === tujuan.current) continue;
+      const p = pusat(rect);
+      const maju = (p.x - asal.x) * arah[0] + (p.y - asal.y) * arah[1];
+      if (maju <= 10) continue;
+      const samping = Math.abs((p.x - asal.x) * arah[1]) + Math.abs((p.y - asal.y) * arah[0]);
+      const skor = maju + samping * 2;
+      if (!terbaik || skor < terbaik.skor) terbaik = { id, rect, skor };
+    }
+    if (!terbaik) return undefined;
+    tujuan.current = terbaik.id;
+    return { x: terbaik.rect.left + 8, y: terbaik.rect.top + 8 };
+  };
+}
 
 function Kolom({
   id,
@@ -622,10 +663,20 @@ export function HalamanPengiriman() {
     const t = window.setInterval(() => setKini(Date.now()), 60_000);
     return () => window.clearInterval(t);
   }, []);
+  const tujuanKeyboard = useRef<string | null>(null);
   const sensor = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: (e, a) => koordinatPapan(tujuanKeyboard)(e, a),
+    }),
   );
+  // Mouse: tempat di bawah penunjuk. Keyboard: tempat yang dipilih dengan panah (koordinatPapan).
+  const deteksi: CollisionDetection = (args) =>
+    args.pointerCoordinates
+      ? pointerWithin(args)
+      : tujuanKeyboard.current
+        ? [{ id: tujuanKeyboard.current }]
+        : [];
 
   const semuaSj = aktif.data?.data ?? [];
   const ritRencana = rencana.data?.data ?? [];
@@ -704,7 +755,20 @@ export function HalamanPengiriman() {
 
   return (
     <div className="flex h-full min-h-[420px] flex-col gap-2 p-3">
-      <DndContext sensors={sensor} collisionDetection={pointerWithin} onDragEnd={lepas}>
+      <DndContext
+        sensors={sensor}
+        collisionDetection={deteksi}
+        onDragStart={() => {
+          tujuanKeyboard.current = null;
+        }}
+        onDragEnd={(e) => {
+          tujuanKeyboard.current = null;
+          lepas(e);
+        }}
+        onDragCancel={() => {
+          tujuanKeyboard.current = null;
+        }}
+      >
         <div className="flex min-h-0 flex-1 gap-2 overflow-x-auto">
           <Kolom
             id="backlog"
@@ -819,7 +883,11 @@ export function HalamanPengiriman() {
       <BilahTombol
         daftar={[
           { kunci: 'R', label: 'Rit baru' },
-          { kunci: 'Spasi', label: 'Angkat kartu (pada pegangan) · panah pindah · Spasi lepas' },
+          {
+            kunci: 'Spasi',
+            label:
+              'Angkat kartu (Tab ke pegangan ⋮⋮) · panah pilih Backlog/rit · Spasi lepas · Esc batal',
+          },
           { kunci: '⋮', label: 'Menu kartu: masukkan ke rit, kirim sebagian, pindah, keluarkan' },
         ]}
       />
