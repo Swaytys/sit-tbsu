@@ -2,8 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { skemaLogin, type InputLogin } from '@sit/shared';
 import { ChevronRight, Lock, Store, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { Navigate, useNavigate, useSearchParams } from 'react-router';
-import { useLogin, useSaya } from '@/api/auth';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
+import { useLogin, useSaya, useStatusPenyiapan } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +25,7 @@ function tujuanAman(kembali: string | null): string {
 
 export function HalamanLogin() {
   const saya = useSaya();
+  const penyiapan = useStatusPenyiapan();
   const login = useLogin();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -38,6 +39,8 @@ export function HalamanLogin() {
   if (saya.data) {
     return <Navigate to={saya.data.wajibGantiPassword ? '/ganti-password' : tujuan} replace />;
   }
+  // K-191: belum ada pengguna sama sekali (pemakaian pertama) → buat akun Owner dulu.
+  if (penyiapan.data?.perluAkunPertama) return <Navigate to="/akun-pertama" replace />;
 
   async function kirim(nilai: InputLogin) {
     try {
@@ -139,6 +142,11 @@ export function HalamanLogin() {
                   </>
                 )}
               </Button>
+              <div className="text-center">
+                <Link to="/lupa-password" className="text-sm text-blue-700 hover:underline">
+                  Lupa password?
+                </Link>
+              </div>
             </form>
           </Form>
 

@@ -13,6 +13,11 @@ export const AKSI_LOG = [
   'PENGGUNA_RESET_PASSWORD',
   'PENGGUNA_GANTI_PASSWORD',
   'PENGGUNA_CABUT_SESI',
+  // K-191: akun pertama dan pemulihan password.
+  'PENGGUNA_AKUN_PERTAMA',
+  'PENGGUNA_PULIHKAN_PASSWORD',
+  'PENGGUNA_PULIHKAN_GAGAL',
+  'PENGGUNA_KODE_PEMULIHAN',
   'PENGATURAN_UBAH',
   // Data master (Fase 3; *_AKTIFKAN dan referensi ditambahkan K-056).
   'KATEGORI_BUAT',

@@ -618,10 +618,21 @@ Semua tugas admin, ditambah:
 
 - **Data Pengguna**: tambah akun karyawan (password awal wajib diganti saat login pertama), reset password,
   nonaktifkan akun karyawan yang keluar (sesinya langsung berakhir).
+- **Kode pemulihan** (untuk lupa password; terutama Owner): menu kanan atas › **Akun saya** › *Kode pemulihan* →
+  isi password saat ini → **Buat kode** → **Salin**, **Unduh berkas**, atau **Cetak** → simpan di tempat aman di
+  luar komputer → centang *Saya sudah menyimpan* → **Selesai**. Bila lupa password: halaman masuk › **Lupa
+  password?** → isi username, kode pemulihan, password baru (2 kali) → **Ganti password** → simpan kode baru yang
+  tampil → **Masuk sekarang**. Karyawan tanpa kode: minta Owner/Admin reset di Data Pengguna.
 - **Log aktivitas** (*Pengaturan › Log aktivitas*): siapa melakukan apa dan kapan — termasuk persetujuan,
   perubahan harga, ekspor/cetak laporan. **Ekspor Excel**: isi cari/aksi bila perlu, pilih tanggal *Dari* dan
   *s.d.* (kosong = semua), tekan **Ekspor Excel**; berkas berisi waktu, pengguna, aksi, dokumen, ringkasan, IP,
   data lama/baru.
+- **Log interaksi** (*Pengaturan › Log interaksi*, untuk penelitian): centang **Catat interaksi** → pilih
+  **Rincian** (*Semua elemen yang diklik* atau *Tombol, tautan, menu saja*) → **Simpan**. Sejak itu setiap pengguna
+  mendapat pemberitahuan sekali saat masuk, dan halaman, klik, pintasan, dialog, pencarian, serta galat yang mereka
+  alami tercatat (isi ketikan, password, dan nominal tidak). Lihat di tabel di bawahnya (saring jenis, pengguna,
+  halaman, tanggal), lalu **Ekspor Excel** atau **Ekspor CSV** untuk diolah. Kolom *Lama / hasil*: lama di halaman
+  atau dialog (detik) dan jumlah hasil pencarian. Hilangkan centang lalu **Simpan** untuk berhenti mencatat.
 - **Cadangan** (*Pengaturan › Cadangan*): pastikan *cadangan terakhir* hari ini/kemarin dan *berhasil* (lokal &
   cloud). Lihat panduan server bagian 7 untuk mengatur, bagian 8 untuk memulihkan.
 - **Dashboard**: penjualan hari ini vs kemarin, grafik 7 hari, antrean, pengiriman aktif, peringatan stok.

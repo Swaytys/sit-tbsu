@@ -38,6 +38,15 @@ describe('seed data awal (docs/03 §6)', () => {
     expect(Object.values(kedua).every((n) => n === 0)).toBe(true);
   });
 
+  it('K-191: tanpa password Owner, data awal tetap diisi tetapi tidak ada akun (akun pertama dibuat di halaman)', async () => {
+    const hasil = await isiDataAwal(db, { passwordOwner: null, akunDemo: false });
+    expect(hasil).toMatchObject({ satuan: 21, pengguna: 0 });
+    expect(await db.select().from(pengguna)).toHaveLength(0);
+    await expect(isiDataAwal(db, { passwordOwner: null, akunDemo: true })).rejects.toThrow(
+      'Akun demo butuh SEED_OWNER_PASSWORD.',
+    );
+  });
+
   it('owner dibuat dengan kode dari penomoran, password argon2id, wajib ganti password', async () => {
     await isiDataAwal(db, { passwordOwner: PASSWORD, akunDemo: false });
     const [owner] = await db.select().from(pengguna).where(eq(pengguna.username, 'owner'));

@@ -40,7 +40,6 @@ const PGDATA = path.join(DATA, 'pgdata');
 const LOG = path.join(DATA, 'log');
 const BERKAS_KONFIG = path.join(DATA, 'peluncur.json');
 const BERKAS_GALAT = path.join(DATA, 'galat-peluncur.txt');
-const BERKAS_SANDI_AWAL = path.join(DATA, 'password-awal-owner.txt');
 const BERKAS_PID = path.join(DATA, 'server.pid');
 const NAMA_DB = 'bonsaiurip';
 const USER_DB = 'bonsai';
@@ -174,12 +173,14 @@ function lingkungan(k: Konfigurasi): NodeJS.ProcessEnv {
   };
 }
 
-/** 3: data awal. Pertama kali: password awal owner dibuat dan disimpan untuk ditampilkan BonsaiUrip.exe. */
+/**
+ * 3: data awal (konfigurasi, satuan, tier harga). Akun Owner TIDAK dibuat di sini (K-191): pemakaian pertama membuka
+ * halaman "Buat akun pertama" di peramban, jadi tidak ada password bawaan yang ditampilkan atau disimpan di berkas.
+ */
 function isiDataAwal(k: Konfigurasi): void {
-  const sandi = k.sudahAwal ? sandiAcak(16) : sandiAcak(10);
   const r = spawnSync(process.execPath, [path.join(DIST, 'db', 'seed.js')], {
     cwd: DATA,
-    env: { ...lingkungan(k), SEED_OWNER_PASSWORD: sandi },
+    env: { ...lingkungan(k), SEED_OWNER_PASSWORD: '' },
     encoding: 'utf8',
     windowsHide: true,
     timeout: 120_000,
@@ -187,7 +188,6 @@ function isiDataAwal(k: Konfigurasi): void {
   if (r.status !== 0)
     throw new Error(`Data awal gagal:\n${(r.stderr || r.stdout || '').slice(-2000)}`);
   if (!k.sudahAwal) {
-    writeFileSync(BERKAS_SANDI_AWAL, sandi);
     k.sudahAwal = true;
     simpanKonfig(k);
   }

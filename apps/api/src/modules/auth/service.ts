@@ -60,7 +60,7 @@ export async function pastikanPanjangPassword(password: string, kolom: string): 
   }
 }
 
-async function buatSesiLogin(
+export async function buatSesiLogin(
   calon: repo.CalonLogin,
   asal: AsalRequest,
   ringkasan: string,

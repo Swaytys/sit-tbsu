@@ -58,3 +58,57 @@ export type PenggunaDaftar = {
   loginTerakhir: string | null;
   sesiAktif: number;
 };
+
+// --- K-191: akun pertama dan pemulihan password ---
+
+/** Huruf/angka kode pemulihan: tanpa 0/O dan 1/I/L agar tidak salah baca saat diketik ulang dari kertas. */
+export const ALFABET_KODE_PEMULIHAN = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+/** Panjang kode pemulihan (tanpa strip), ditampilkan berkelompok 5: XXXXX-XXXXX-XXXXX-XXXXX. */
+export const PANJANG_KODE_PEMULIHAN = 20;
+
+/** Kode pemulihan seperti yang diketik pengguna → huruf besar tanpa spasi/strip (bentuk yang di-hash). */
+export function rapikanKodePemulihan(kode: string): string {
+  return kode.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/** Halaman "Buat akun pertama": hanya ada selama belum ada satu pengguna pun. Akun ini menjadi Owner. */
+export const skemaAkunPertama = z
+  .object({
+    namaPengguna: dataPengguna.namaPengguna,
+    username: skemaUsername,
+    password: skemaPasswordBaru,
+    konfirmasi: z.string(),
+  })
+  .refine((v) => v.password === v.konfirmasi, {
+    path: ['konfirmasi'],
+    error: 'Ulangi password tidak sama.',
+  });
+export type InputAkunPertama = z.input<typeof skemaAkunPertama>;
+export type DataAkunPertama = z.output<typeof skemaAkunPertama>;
+
+/** Lupa password: username + kode pemulihan + password baru. */
+export const skemaPulihkanPassword = z
+  .object({
+    username: z.string().trim().min(1, 'Username wajib diisi.').max(50),
+    kodePemulihan: z
+      .string()
+      .trim()
+      .min(1, 'Kode pemulihan wajib diisi.')
+      .max(40, 'Kode pemulihan terlalu panjang.'),
+    passwordBaru: skemaPasswordBaru,
+    konfirmasi: z.string(),
+  })
+  .refine((v) => v.passwordBaru === v.konfirmasi, {
+    path: ['konfirmasi'],
+    error: 'Ulangi password tidak sama.',
+  });
+export type InputPulihkanPassword = z.input<typeof skemaPulihkanPassword>;
+
+/** Membuat kode pemulihan baru untuk akun sendiri: konfirmasi dengan password saat ini. */
+export const skemaBuatKodePemulihan = z.object({
+  password: z.string().min(1, 'Password wajib diisi.').max(128),
+});
+
+export type StatusPenyiapan = { perluAkunPertama: boolean };
+export type InfoKodePemulihan = { ada: boolean; dibuatPada: string | null };
+export type HasilKodePemulihan = { kodePemulihan: string };

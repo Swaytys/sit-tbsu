@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
 import { Card } from '@/components/ui/card';
 import { FormGantiPassword } from './form-ganti-password';
+import { KartuKodePemulihan } from './kartu-kode-pemulihan';
 import { KartuKontakPersetujuan } from './kartu-kontak-persetujuan';
 
 /** Layar wajib ganti password (akun baru atau password direset Owner; docs/04 §7). */
@@ -67,6 +68,7 @@ export function HalamanGantiPasswordAkun() {
         </div>
         <FormGantiPassword onBerhasil={() => void navigate('/dashboard')} />
       </Card>
+      <KartuKodePemulihan username={pengguna.username} />
     </div>
   );
 }

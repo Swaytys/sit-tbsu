@@ -1,6 +1,6 @@
 // BonsaiUrip.exe - peluncur aplikasi desktop (K-188 v2). Dikompilasi installer\buat-installer.ps1 dengan csc bawaan
 // Windows (.NET Framework 4). Menjalankan node\node.exe apps\api\dist\peluncur.js tanpa jendela terminal,
-// menampilkan jendela "Menyiapkan..." selama menunggu, lalu password awal Owner (pertama kali) atau pesan galat.
+// menampilkan jendela "Menyiapkan..." selama menunggu, lalu pesan galat bila gagal. Akun pertama dibuat di peramban (K-191).
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -80,18 +80,10 @@ static class Program
             return kode;
         }
 
-        string sandiAwal = Path.Combine(data, "password-awal-owner.txt");
-        if (!berhenti && File.Exists(sandiAwal))
-        {
-            string sandi = File.ReadAllText(sandiAwal).Trim();
-            try { Clipboard.SetText(sandi); } catch { }
-            MessageBox.Show(
-                "Selamat datang di BonsaiUrip.\n\nMasuk dengan:\n   Nama pengguna : owner\n   Password awal : " + sandi +
-                "\n\nPassword ini sudah disalin (tinggal tempel dengan Ctrl+V) dan wajib diganti saat masuk pertama." +
-                " Catat sebelum menutup jendela ini; jendela ini hanya muncul sekali.",
-                "BonsaiUrip - akun pertama", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            File.Delete(sandiAwal);
-        }
+        // K-191: tidak ada lagi password awal di jendela pesan; akun pertama dibuat di halaman "Buat akun pertama".
+        // Sisa berkas password dari Setup v2 dihapus agar tidak tertinggal di disk.
+        string sandiLama = Path.Combine(data, "password-awal-owner.txt");
+        if (File.Exists(sandiLama)) { try { File.Delete(sandiLama); } catch { } }
         return 0;
     }
 }

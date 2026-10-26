@@ -475,10 +475,17 @@ async function pastikanPengguna(
 
 export async function isiDataAwal(
   db: Db,
-  opsi: { passwordOwner: string; akunDemo: boolean },
+  /**
+   * `passwordOwner` null (K-191): akun Owner tidak dibuat di sini; pemakaian pertama membuka halaman "Buat akun
+   * pertama". Akun demo (hanya pengembangan) tetap butuh password.
+   */
+  opsi: { passwordOwner: string | null; akunDemo: boolean },
 ): Promise<RingkasanSeed> {
+  if (opsi.passwordOwner === null && opsi.akunDemo) {
+    throw new Error('Akun demo butuh SEED_OWNER_PASSWORD.');
+  }
   // Hash dihitung di luar transaksi agar transaksi tetap singkat.
-  const hashOwner = await hashPassword(opsi.passwordOwner);
+  const hashOwner = opsi.passwordOwner === null ? null : await hashPassword(opsi.passwordOwner);
 
   return db.transaction(async (tx) => {
     const baruKonfigurasi = await tx
@@ -513,16 +520,18 @@ export async function isiDataAwal(
 
     await sinkronkanPenghitungPengguna(tx);
     let baruPengguna = 0;
-    const owner = await pastikanPengguna(tx, {
-      username: 'owner',
-      namaPengguna: 'Owner',
-      peran: 'OWNER',
-      passwordHash: hashOwner,
-      wajibGantiPassword: true,
-    });
-    if (owner) baruPengguna++;
+    if (hashOwner !== null) {
+      const owner = await pastikanPengguna(tx, {
+        username: 'owner',
+        namaPengguna: 'Owner',
+        peran: 'OWNER',
+        passwordHash: hashOwner,
+        wajibGantiPassword: true,
+      });
+      if (owner) baruPengguna++;
+    }
 
-    if (opsi.akunDemo) {
+    if (opsi.akunDemo && hashOwner !== null) {
       // Akun demo memakai password yang sama dengan SEED_OWNER_PASSWORD dan tidak wajib ganti.
       for (const peran of Object.keys(USERNAME_DEMO) as Peran[]) {
         const baru = await pastikanPengguna(tx, {

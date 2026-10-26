@@ -36,7 +36,7 @@ diuji di PostgreSQL 16 (2026-09-19): semua CHECK, UNIQUE, generated column, dan 
 | 12 Data Penerimaan Barang | `penerimaan_barang`, `penerimaan_barang_detail` |
 | 13 Data Persediaan | `persediaan`, `mutasi_persediaan`, `penyesuaian_stok`, `penyesuaian_stok_detail` |
 | 14 Data Clerical Check | `clerical_check`, `shift_kasir`, `kas_shift` |
-| (konfigurasi) | `konfigurasi`, `penghitung_nomor`, `log_aktivitas` |
+| (konfigurasi) | `konfigurasi`, `penghitung_nomor`, `log_aktivitas`, `log_interaksi` |
 | (M2, di luar DFD) | `promo`, `retur_pemasok`(+detail), `pembayaran_pemasok`, `penyelesaian_konsinyasi`(+detail) |
 
 ## 3. Tabel
@@ -53,7 +53,8 @@ dokumennya. Tidak ada nomor ganda; nomor bisa berlubang bila transaksi dibatalka
 
 **`pengguna`** — akun. `peran` menentukan izin lewat `roles.ts`. Kolom keamanan: `wajib_ganti_password`,
 `gagal_login_berturut`, `terkunci_sampai`. `kode` = `USR-00001`. v3.12: `email` dan `telegram_chat_id` (keduanya
-boleh kosong) = tujuan kode persetujuan sekali pakai; diisi pemilik akun sendiri (K-102).
+boleh kosong) = tujuan kode persetujuan sekali pakai; diisi pemilik akun sendiri (K-102). v3.32: `kode_pemulihan_hash`
+(argon2id, boleh kosong) dan `kode_pemulihan_dibuat_pada` = kode pemulihan sekali pakai untuk lupa password (K-191).
 
 **`sesi_login`** [APPEND] — token disimpan sebagai `sha256` (kolom `token_hash`); cookie berisi token mentah.
 `kadaluarsa_absolut` dan `terakhir_aktif` untuk batas absolut dan idle. Logout = isi `dicabut_pada`.
@@ -61,6 +62,15 @@ boleh kosong) = tujuan kode persetujuan sekali pakai; diisi pemilik akun sendiri
 **`log_aktivitas`** [APPEND] — jejak audit. `data_lama`/`data_baru` jsonb untuk perubahan master; `nomor_dokumen`
 untuk transaksi. `id_pengguna` null hanya untuk percobaan login dengan username tak dikenal dan aksi otomatis
 sistem (job order basi/kunci kadaluarsa, K-070; cadangan terjadwal, K-084).
+
+**`log_interaksi`** (v3.31) [APPEND] — data pemakaian untuk penelitian (K-190), terpisah dari jejak audit:
+`id_pengguna` (wajib), `id_sesi_klien` (acak per tab peramban), `waktu` (saat kejadian di peramban; dikirim
+berkelompok, waktu yang terpaut > 2 hari diganti waktu terima), `jenis` HALAMAN/KLIK/TOMBOL/CARI/DIALOG/GALAT (CHECK),
+`halaman` (alamat tanpa query, id angka menjadi `:id`), `elemen` (label tombol/judul dialog/alamat API pencarian),
+`keterangan` (jenis elemen, kunci pintasan, buka/tutup, kata cari barang, pesan galat), `angka` (lama ms atau jumlah
+hasil). Tidak pernah berisi isi kotak isian; deret ≥ 7 angka disamarkan `#`. Diisi hanya bila konfigurasi
+`log_interaksi_aktif` = `true` (bawaan `false`); `log_interaksi_tingkat` SEMUA/BERMAKNA. Lama penyimpanan belum
+dibatasi (menunggu keputusan pemilik; tabel ini append-only seperti log lain).
 
 **`cadangan`** (v3.4) — riwayat cadangan data dan uji pulih (K-084): `jenis` CADANGAN/UJI_PULIH, `status`
 BERJALAN/BERHASIL/GAGAL, `pemicu` JADWAL/MANUAL/SEBELUM_PEMBARUAN, `id_pengguna` (null bila terjadwal),
@@ -541,6 +551,10 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-26 — v3.32: `pengguna.kode_pemulihan_hash`, `kode_pemulihan_dibuat_pada` (migrasi 0035, K-191). Seed tidak
+  membuat akun `owner` bila `SEED_OWNER_PASSWORD` kosong (akun pertama dibuat di halaman *Buat akun pertama*).
+- 2026-10-26 — v3.31: `log_interaksi` (migrasi 0034, K-190); konfigurasi `log_interaksi_aktif`,
+  `log_interaksi_tingkat`.
 - 2026-10-24 — v3.30: `order_pembelian`, `order_pembelian_detail`, `alokasi_uang_muka`; kolom PO di penerimaan,
   detail penerimaan, dan pembayaran pemasok (migrasi 0033, K-125). Penomoran `PO`.
 - 2026-10-24 — v3.29: `barang.stok_maksimum` numeric(14,3) boleh kosong + CHECK `chk_barang_stok_maks` (migrasi 0032,

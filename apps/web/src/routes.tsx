@@ -7,6 +7,7 @@ import {
   HalamanGantiPasswordAkun,
   HalamanWajibGantiPassword,
 } from '@/features/auth/halaman-ganti-password';
+import { HalamanAkunPertama, HalamanLupaPassword } from '@/features/auth/halaman-akun-pertama';
 import { HalamanLogin } from '@/features/auth/halaman-login';
 import { HalamanGalat } from '@/features/umum/halaman-galat';
 import { HalamanSegera } from '@/features/umum/halaman-segera';
@@ -116,6 +117,9 @@ export const router = createBrowserRouter([
     errorElement: <HalamanGalat />,
     children: [
       { path: '/login', element: <HalamanLogin /> },
+      // K-191: halaman publik akun pertama (hanya selama belum ada pengguna) dan lupa password.
+      { path: '/akun-pertama', element: <HalamanAkunPertama /> },
+      { path: '/lupa-password', element: <HalamanLupaPassword /> },
       {
         path: '/ganti-password',
         element: (

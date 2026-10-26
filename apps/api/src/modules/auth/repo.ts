@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne, sql } from 'drizzle-orm';
+import { and, count, eq, isNull, ne, sql } from 'drizzle-orm';
 import type { Executor, Tx } from '../../db/client';
 import { pengguna, sesiLogin } from '../../db/schema';
 
@@ -159,4 +159,69 @@ export async function ubahPassword(
       diubahPada: waktu,
     })
     .where(eq(pengguna.id, idPengguna));
+}
+
+/** K-191: jumlah pengguna (akun pertama hanya boleh dibuat bila 0). */
+export async function jumlahPengguna(ex: Executor): Promise<number> {
+  const [b] = await ex.select({ n: count() }).from(pengguna);
+  return b?.n ?? 0;
+}
+
+/** K-191: data pemulihan satu pengguna (berdasarkan username huruf kecil). */
+export async function penggunaUntukPemulihan(ex: Executor, username: string) {
+  const [b] = await ex
+    .select({
+      id: pengguna.id,
+      username: pengguna.username,
+      statusAktif: pengguna.statusAktif,
+      kodePemulihanHash: pengguna.kodePemulihanHash,
+    })
+    .from(pengguna)
+    .where(eq(pengguna.username, username))
+    .limit(1);
+  return b;
+}
+
+export async function infoKodePemulihan(ex: Executor, idPengguna: number) {
+  const [b] = await ex
+    .select({
+      ada: sql<boolean>`${pengguna.kodePemulihanHash} is not null`,
+      dibuatPada: pengguna.kodePemulihanDibuatPada,
+    })
+    .from(pengguna)
+    .where(eq(pengguna.id, idPengguna));
+  return b;
+}
+
+export async function simpanKodePemulihan(
+  tx: Tx,
+  idPengguna: number,
+  kodeHash: string,
+  waktu: Date,
+): Promise<void> {
+  await tx
+    .update(pengguna)
+    .set({ kodePemulihanHash: kodeHash, kodePemulihanDibuatPada: waktu, diubahPada: waktu })
+    .where(eq(pengguna.id, idPengguna));
+}
+
+/** Setelah password dipulihkan: hitungan gagal dan kunci akun dihapus. */
+export async function bukaKunciAkun(tx: Tx, idPengguna: number): Promise<void> {
+  await tx
+    .update(pengguna)
+    .set({ gagalLoginBerturut: 0, terkunciSampai: null })
+    .where(eq(pengguna.id, idPengguna));
+}
+
+/** K-191: akun Owner pertama; password dibuat sendiri, jadi tidak wajib diganti. */
+export async function tambahOwnerPertama(
+  tx: Tx,
+  nilai: { kode: string; username: string; namaPengguna: string; passwordHash: string },
+): Promise<number> {
+  const [b] = await tx
+    .insert(pengguna)
+    .values({ ...nilai, peran: 'OWNER', wajibGantiPassword: false })
+    .returning({ id: pengguna.id });
+  if (!b) throw new Error('Akun pertama gagal disimpan');
+  return b.id;
 }

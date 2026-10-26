@@ -34,10 +34,13 @@ memasang program lain, tidak ada password database yang harus diingat.
    lalu **Install** › **Finish** (biarkan *Buka BonsaiUrip sekarang* tercentang).
 4. Muncul jendela **"Menyiapkan BonsaiUrip..."**. Pemakaian pertama ± 1–3 menit (database dibuat). Berikutnya
    ± 10–20 detik.
-5. Muncul jendela **akun pertama** berisi password awal Owner. Password **sudah tersalin otomatis**. Catat juga di
-   kertas: jendela ini hanya muncul sekali.
-6. Peramban terbuka. Masuk dengan nama pengguna `owner` dan password tadi (tempel dengan **Ctrl+V**), lalu buat
-   password baru.
+5. Peramban terbuka. **Setup v2** (yang sudah terpasang sekarang): muncul jendela berisi password awal Owner
+   (sudah tersalin); masuk dengan `owner` + password itu lalu buat password baru. **Setup berikutnya** (K-191):
+   tidak ada jendela password; peramban langsung membuka halaman **Buat akun pertama** → isi nama, username,
+   password (2 kali) → **Buat akun dan masuk**.
+6. Simpan **kode pemulihan** yang tampil (Salin/Unduh berkas/Cetak) di tempat aman, centang *sudah menyimpan*, lalu
+   **Lanjut ke aplikasi**. Kode ini dipakai di *Lupa password?* bila password Owner terlupa. Pada Setup v2, buat
+   kodenya sendiri di menu kanan atas › **Akun saya** › *Kode pemulihan*.
 
 ## Sesudah masuk pertama
 
@@ -51,7 +54,7 @@ pemasok › *Pengaturan › Struk & printer*.
 |---|---|
 | Jendela "BonsaiUrip gagal dinyalakan" | Pesannya menyebut sebab dan folder catatan. Foto jendelanya dan kirim ke pengembang. Catatan lengkap: `%LOCALAPPDATA%\BonsaiUrip\log` (`peluncur.log`, `postgres.log`, `server.log`). |
 | Peramban menampilkan "tidak dapat dijangkau" | Klik ikon BonsaiUrip sekali lagi (menyalakan ulang yang belum menyala). |
-| Lupa password Owner | Akun Admin/Owner lain bisa me-reset di *Data Pengguna*. Bila tidak ada, hubungi pengembang. |
+| Lupa password Owner | Halaman masuk › **Lupa password?** dengan kode pemulihan. Tanpa kode: akun Admin/Owner lain me-reset di *Data Pengguna*. Bila tidak ada keduanya, hubungi pengembang. |
 | Mulai dari nol (hapus semua data) | Menu Start › *Matikan BonsaiUrip*, hapus folder `%LOCALAPPDATA%\BonsaiUrip`, lalu buka BonsaiUrip lagi. **Semua data hilang.** |
 
 ## Batasan versi ini

@@ -115,7 +115,15 @@ prioritas di bagian akhir.
   ketikan** (hanya nama elemen; password, nominal, data pribadi tidak direkam), dinyalakan/dimatikan Owner di
   Pengaturan dengan pemberitahuan ke pengguna (etika penelitian), dapat disaring per pengguna/periode/halaman, dan
   diekspor CSV/Excel untuk diolah. Pilihan yang perlu diputuskan pemilik: tingkat rincian (klik semua elemen atau
-  hanya aksi bermakna) dan lama penyimpanan data.
+  hanya aksi bermakna) dan lama penyimpanan data. **Selesai (26 Okt):** *Pengaturan › Log interaksi* (Owner):
+  nyala/mati (bawaan mati) dan tingkat rincian dipilih sendiri di layar (*Semua elemen yang diklik* atau *Tombol,
+  tautan, menu saja*); tabel saring jenis/pengguna/halaman/tanggal; ekspor Excel dan CSV. Yang dicatat: halaman dan
+  lamanya, klik (label elemen), pintasan (F-key, Ctrl/Alt, huruf di luar kotak isian), dialog buka/tutup + lama,
+  pencarian (jumlah hasil; kata hanya pencarian barang, lainnya panjang kata), galat yang tampil. Isi kotak isian
+  tidak dibaca; server menyamarkan deret ≥ 7 angka. Pengguna diberi tahu sekali per sesi. Tabel `log_interaksi`
+  (migrasi 0034). Waktu menyelesaikan alur (order → bayar) dihitung dari data ini saat diolah (urutan halaman, klik,
+  dan waktu per sesi), tidak dicatat terpisah. **Masih menunggu pemilik:** lama penyimpanan. Sementara semua data
+  disimpan; menghapus data lama berarti pengecualian aturan log append-only, jadi perlu persetujuan.
 - **K-191 Setup v3 standar komersial (26 Oktober; dikerjakan SETELAH backlog sistem selesai, diuji, dan direvisi
   pemilik).** Setup v2 sudah berjalan di komputer pemilik. Untuk v3:
   1. **Layar pembuka (splash)** bermerek BonsaiUrip dengan animasi saat aplikasi dibuka, menggantikan kotak
@@ -125,6 +133,14 @@ prioritas di bagian akhir.
      satu pengguna pun (masuk K-168, dikerjakan bersama backlog sistem).
   3. **Lupa password / pemulihan akun** (terutama Owner): kode pemulihan sekali pakai yang dibuat saat akun pertama
      dibuat dan bisa dicetak/disimpan, ditambah reset oleh Owner/Admin untuk pengguna lain (masuk backlog sistem).
+     **Butir 2 dan 3 selesai (26 Okt):** halaman *Buat akun pertama* (nama, username, password, ulangi) muncul
+     sendiri dari halaman masuk selama belum ada pengguna; akun menjadi Owner dan langsung masuk. Kode pemulihan
+     XXXXX-XXXXX-XXXXX-XXXXX tampil sekali dengan tombol Salin/Unduh berkas/Cetak dan centang "sudah menyimpan".
+     *Lupa password?* di halaman masuk: username + kode + password baru (kode baru diberikan); tanpa kode: minta
+     Owner/Admin reset di Data Pengguna (sudah ada). *Akun saya* › Kode pemulihan: buat ulang dengan password.
+     Peluncur tidak lagi membuat password Owner acak dan BonsaiUrip.exe tidak lagi menampilkan jendela password
+     (berlaku di Setup berikutnya; pemasangan v2 yang sudah punya akun tidak berubah). Tiga rute publik baru
+     dicatat di docs/04 §7.
   4. **Keluar aplikasi yang jelas:** ikon di area notifikasi Windows (system tray, "Show hidden icons") dengan menu
      Buka BonsaiUrip / Matikan BonsaiUrip; menutup peramban tidak mematikan server (penjelasan di tutorial).
      Sementara (v2): menu Start › *Matikan BonsaiUrip*.
