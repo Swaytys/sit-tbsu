@@ -246,7 +246,18 @@ describe('void transaksi (docs/05 §9)', () => {
         baris: [{ idBarang: m.semen, qty: '4' }],
       },
     });
+    const k = await kirim<{ id: number }>(admin, '/api/kendaraan', {
+      plat: `S ${Date.now() % 10000} VD`,
+      jenis: 'Pikap',
+    });
+    const s = await kirim<{ id: number }>(admin, '/api/sopir', { nama: `Budi ${Date.now()}` });
+    const rit = await kirim<{ id: number }>(admin, '/api/perjalanan/rencana', {
+      idKendaraan: k.id,
+      idSopir: s.id,
+      jadwalBerangkat: new Date(Date.now() + 3600_000).toISOString(),
+    });
     const sj = await kirim<{ id: number }>(admin, `/api/penjualan/${inv.id}/surat-jalan`, {
+      idPerjalanan: rit.id,
       baris: [{ idPenjualanDetail: inv.baris[0]!.id, qtyKirim: '2' }],
     });
     const v = await kirim<BarisVoid>(admin, '/api/void', {
@@ -266,19 +277,11 @@ describe('void transaksi (docs/05 §9)', () => {
         baris: [{ idBarang: m.semen, qty: '1' }],
       },
     });
-    const sj2 = await kirim<{ id: number }>(admin, `/api/penjualan/${inv2.id}/surat-jalan`, {
+    await kirim<{ id: number }>(admin, `/api/penjualan/${inv2.id}/surat-jalan`, {
+      idPerjalanan: rit.id,
       baris: [{ idPenjualanDetail: inv2.baris[0]!.id, qtyKirim: '1' }],
     });
-    const k = await kirim<{ id: number }>(admin, '/api/kendaraan', {
-      plat: `S ${Date.now() % 10000} VD`,
-      jenis: 'Pikap',
-    });
-    const s = await kirim<{ id: number }>(admin, '/api/sopir', { nama: `Budi ${Date.now()}` });
-    await kirim(admin, '/api/perjalanan', {
-      idKendaraan: k.id,
-      idSopir: s.id,
-      idSuratJalan: [sj2.id],
-    });
+    await kirim(admin, `/api/perjalanan/${rit.id}/berangkat`, {});
     const ditolak = await galat(admin, '/api/void', {
       idPenjualan: inv2.id,
       lingkup: 'TRANSAKSI',
