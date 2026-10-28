@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { labelAksi } from '@/lib/label';
 import { cn } from '@/lib/utils';
+import { PengingatPenyiapan } from '../penyiapan/pengingat-penyiapan';
 import { GrafikTujuhHari } from './grafik-tujuh-hari';
 
 /*
@@ -252,6 +253,7 @@ export function HalamanBeranda() {
 
   return (
     <div className="space-y-6 p-6">
+      {punya('sistem.pengaturan.kelola') && <PengingatPenyiapan />}
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dashboard Operasional</h1>

@@ -19,6 +19,8 @@ export const AKSI_LOG = [
   'PENGGUNA_PULIHKAN_GAGAL',
   'PENGGUNA_KODE_PEMULIHAN',
   'PENGATURAN_UBAH',
+  // K-168: contoh data panduan penyiapan.
+  'PENYIAPAN_CONTOH',
   // Data master (Fase 3; *_AKTIFKAN dan referensi ditambahkan K-056).
   'KATEGORI_BUAT',
   'KATEGORI_UBAH',

@@ -702,6 +702,19 @@ mengalihkan ke akun pertama bila `GET /api/auth/penyiapan` = perlu.
 **Tes:** pemulihan.test (akun pertama sekali saja dan bersamaan, pemulihan benar/salah/tanpa kode, sesi dicabut,
 kunci dibuka, kode baru dengan password).
 
+
+### C24. Panduan penyiapan pertama dan contoh data (28 Oktober 2026, K-168)
+
+**Solusi:** modul `sistem/penyiapan` (izin `sistem.pengaturan.kelola`): `GET /api/penyiapan` menghitung status 9
+langkah dari data aktif tanpa id contoh (rekening, pengguna > 1, barang, saldo awal SELESAI, pelanggan, pemasok,
+kendaraan & sopir; profil dari konfigurasi `penyiapan_ditandai`; printer dibaca peramban dari setelan printer
+per komputer). Contoh dibuat lewat service master yang sama dengan form (validasi Zod, log per data) dari
+`contoh.ts`, id dicatat di konfigurasi `contoh_data`; nonaktifkan memanggil `ubahStatus…` dan menyimpan id yang gagal.
+Web: `/penyiapan`, pengingat Dashboard, tombol di Pengaturan; akun pertama melanjutkan ke panduan.
+
+**Tes:** penyiapan.test (status, tandai, contoh tidak dihitung, isi dua kali ditolak, nonaktifkan), e2e
+penyiapan.spec.
+
 ---
 
 ## Riwayat dokumen
@@ -730,3 +743,4 @@ kunci dibuka, kode baru dengan password).
 - 2026-10-26 — Bagian C21 surat jalan hanya di dalam rit (K-174).
 - 2026-10-26 — Bagian C22 log interaksi penelitian (K-190).
 - 2026-10-26 — Bagian C23 akun pertama dan kode pemulihan (K-191).
+- 2026-10-28 — Bagian C24 panduan penyiapan dan contoh data (K-168).

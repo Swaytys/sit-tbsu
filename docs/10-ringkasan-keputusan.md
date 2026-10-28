@@ -678,7 +678,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-165 | Arsip/tutup buku tahunan; dokumen pembukuan disimpan 10 tahun. | Berlaku (selesai 24 Okt; data tetap di satu database, tahun dikunci + berkas arsip) |
 | K-166 | Alur pembaruan aplikasi yang aman bagi data lama. | Berlaku (selesai 24 Okt) |
 | K-167 | Pencarian universal di topbar (Ctrl+K). | Berlaku (selesai 24 Okt) |
-| K-168 | Mode demo terpisah; panduan penyiapan pertama dengan 5 contoh data asli per jenis. | Berlaku (rencana; `keputusan/2026-10-25-masukan-sebelum-deploy.md`) |
+| K-168 | Mode demo terpisah; panduan penyiapan pertama dengan 5 contoh data asli per jenis. | Berlaku (panduan + contoh selesai 28 Okt; mode demo terpisah masih rencana) |
 | K-169 | Atribut dimensi/berat dan data muatan satu sumber, dengan aturan dimensi vs volume. | Berlaku (rencana) |
 | K-170 | Notifikasi dan lencana barang di order pengantaran yang belum punya data muatan. | Berlaku (rencana) |
 | K-171 | Hot page langsung/pengantaran: gulir panel dan pindah fokus dengan tombol, elemen lebih ringkas. | Berlaku (sebagian 25 Okt: ikon pengganti "Menghitung…") |

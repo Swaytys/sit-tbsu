@@ -44,9 +44,9 @@ memasang program lain, tidak ada password database yang harus diingat.
 
 ## Sesudah masuk pertama
 
-Isi berurutan: *Pengaturan › Profil toko* (nama, alamat, logo) › *Pengaturan › Pembayaran* (rekening) ›
-*Data Pengguna* (akun tiap pegawai) › *Data Barang › Import* (barang, harga, saldo awal stok) › pelanggan dan
-pemasok › *Pengaturan › Struk & printer*.
+Buka **Panduan penyiapan** (kotak biru di Dashboard, atau Pengaturan › *Panduan penyiapan*) dan kerjakan langkahnya
+dari atas: profil toko › rekening › akun karyawan › barang › stok awal › pelanggan › pemasok › kendaraan & sopir ›
+printer struk. Tiap langkah berisi petunjuk dan tombol ke layar yang tepat.
 
 ## Bila ada masalah
 

@@ -618,6 +618,10 @@ Semua tugas admin, ditambah:
 
 - **Data Pengguna**: tambah akun karyawan (password awal wajib diganti saat login pertama), reset password,
   nonaktifkan akun karyawan yang keluar (sesinya langsung berakhir).
+- **Panduan penyiapan** (Pengaturan › tombol *Panduan penyiapan*, atau kotak biru di Dashboard): kerjakan
+  langkah 1–9 dari atas. Tiap langkah menjelaskan gunanya, langkah pengisiannya, dan tombol **Buka …** ke layar
+  yang tepat; tanda hijau *Selesai* muncul sendiri setelah datanya ada. Untuk mencoba aplikasi dulu: tombol
+  **Isi 5 contoh …** membuat data contoh; setelah selesai mencoba, **Nonaktifkan semua contoh** › **Ya**.
 - **Kode pemulihan** (untuk lupa password; terutama Owner): menu kanan atas › **Akun saya** › *Kode pemulihan* →
   isi password saat ini → **Buat kode** → **Salin**, **Unduh berkas**, atau **Cetak** → simpan di tempat aman di
   luar komputer → centang *Saya sudah menyimpan* → **Selesai**. Bila lupa password: halaman masuk › **Lupa

@@ -11,6 +11,13 @@ prioritas di bagian akhir.
   pertama kali dibuka: profil toko → rekening → pengguna → impor barang/stok → pelanggan/pemasok → printer, dengan
   pilihan memuat **5 contoh data per jenis** bernama wajar (mis. "Semen Gresik 40 kg", "Toko Bangunan Makmur",
   "CV Sumber Rejeki") yang berbeda dari data demo dan bisa dihapus/dinonaktifkan sekali klik. *Rencana.*
+  **Panduan dan contoh selesai (28 Okt):** halaman *Panduan penyiapan* (Owner/Admin; dibuka setelah akun pertama,
+  tombol di Pengaturan, pengingat di Dashboard yang bisa disembunyikan) berisi 9 langkah berurutan: profil toko,
+  rekening, akun karyawan, barang, stok awal, pelanggan, pemasok, kendaraan & sopir (bila perlu), printer struk
+  (bila perlu). Status dihitung dari data asli; profil ditandai "sudah diperiksa". Tombol *Isi contoh* membuat
+  5 barang (tanpa stok: saldo awal tidak bisa dihapus), 5 pelanggan, 5 pemasok, 2 kendaraan + 2 sopir bertanda
+  "Data contoh"; *Nonaktifkan semua contoh* menonaktifkannya sekali klik (data master tidak dihapus). Mode demo
+  sebagai pemasangan terpisah belum dibuat (ikut Setup v3).
 - **K-169 Atribut dimensi ↔ data muatan satu sumber.** Panjang/lebar/tinggi/berat di atribut dan di data muatan
   harus satu data: mengisi salah satu mengisi yang lain. Aturan: barang tidak curah memakai P × L × T; barang curah
   memakai volume. Bila atribut dimensi dan volume sama-sama diisi, sistem memeriksa keselarasan (P × L × T dibanding
