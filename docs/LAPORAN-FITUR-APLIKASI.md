@@ -395,7 +395,8 @@ Admin/Owner (pemeriksaan) | desktop
 **F15. Harga jual per tier dan harga otomatis** | Harga Jual | Admin, Owner | desktop
 - Fungsi: harga dasar (Normal) tiap barang = Rp tetap, markup tier, atau markup sendiri; tier lain (mis. Grosir)
   selalu modal + markup tier dan berlaku menurut **total nilai belanja** satu transaksi; harga otomatis naik bila
-  modal naik, turun menunggu ditinjau.
+  modal naik, turun menunggu ditinjau. Dasar modal: rata-rata tertimbang, harga beli terakhir, atau **stok tertua
+  dulu (FIFO)** dari lapisan barang masuk (K-184) `[KODE: api/modules/persediaan/ledger.ts]`.
 - Tabel: `tingkat_harga`, `harga_barang`, `barang`, `persediaan`.
 - Bukti: `[KODE: api/modules/master/harga/service.ts:62,112,468]` `[KODE: api/modules/penjualan/harga-baris.ts:174]`.
 - Status: BERFUNGSI.
@@ -406,8 +407,9 @@ Admin/Owner (pemeriksaan) | desktop
 
 **F17. Promo** | Pengaturan › Promo | Admin, Owner (buat); semua (menerima) | desktop
 - Fungsi: kampanye promo (K-163): waktu berlaku sampai jam-menit, hari tertentu dan jam harian (happy hour);
-  sasaran semua barang atau beberapa barang/kategori/merk sekaligus; manfaat potongan persen, rupiah per satuan,
-  **harga khusus**, atau **beli X gratis Y** (barang sama); sasaran pembeli (semua/golongan/pelanggan tertentu);
+  sasaran semua barang, beberapa barang/kategori/merk sekaligus, atau **kombinasi** (kelompok kategori DAN merk DAN
+  barang, antar kelompok ATAU; K-185); manfaat potongan persen, rupiah per satuan, **harga khusus** (harga jadi),
+  **beli X gratis Y** (barang sama), atau **beli N potong Rp X** per kelipatan (K-185); sasaran pembeli (semua/golongan/pelanggan tertentu);
   syarat min qty, min belanja, belanja pelanggan N hari; **anggaran promo** dan **batas per pembeli**; jumlah
   potongan yang sudah diberikan; **templat kampanye** untuk dipakai ulang.
 - Tabel: `promo`, `promo_sasaran`, `promo_pelanggan`, `penjualan_detail` (kolom `id_promo`, `diskon_promo`).
@@ -451,7 +453,9 @@ Admin/Owner (pemeriksaan) | desktop
 - Fungsi: checkout dari antrean atau langsung; cara bayar Tunai, Transfer, EDC, QRIS, bayar campuran; pembeli
   terdata boleh DP/bayar nanti; struk otomatis; tanda barang belum diambil. Layar dibagi dua sama lebar (antrean |
   transaksi); barang yang disorot di hasil cari tampil rinci (foto, stok, harga per satuan/kemasan per tier,
-  atribut) menutupi area antrean `[KODE: web/features/pos/panel-detail-barang.tsx]` (K-114).
+  atribut) menutupi area antrean `[KODE: web/features/pos/panel-detail-barang.tsx]` (K-114). Pas layar: Alt+←/→
+  pindah panel, PgUp/PgDn menggulir panel aktif, bilah pintasan di baris tab, kotak tier ringkas
+  `[KODE: web/features/pos/layar-pos.tsx]` (K-171).
 - Input → Proses → Output: barang, pembeli, pembayaran → satu transaksi DB: penjualan + detail (snapshot harga &
   HPP), lepas reservasi, mutasi stok keluar, pembayaran, cek limit kredit → struk `STR-…`.
 - Tabel: `penjualan`, `penjualan_detail`, `pembayaran_penjualan`, `mutasi_persediaan`, `persediaan`, `kas_shift`.
@@ -642,7 +646,10 @@ dialog Berangkat | Admin/Owner (data), Kasir+ (berangkat) | desktop
   `qty-statistik.test.ts`.
 - Status: BERFUNGSI (K-113, K-127).
 
-**F37. Laporan (16 jenis)** — rincian di bagian 7. Status: BERFUNGSI.
+**F37. Laporan (16 jenis)** — rincian di bagian 7. Menu jenis laporan berupa tiga tombol kelompok di atas; pratinjau
+dibagi per lembar A4 bernomor seperti hasil cetak, tanpa memotong baris tabel (K-182)
+`[KODE: web/features/laporan/halaman-laporan.tsx]` `[KODE: web/features/laporan/pratinjau-halaman.tsx]`; uji
+`e2e/laporan.spec.ts`. Status: BERFUNGSI.
 
 **F38. Dashboard per peran** | Dashboard | semua | semua
 - Fungsi: penjualan hari ini vs kemarin dan grafik 7 hari (hanya yang berizin omzet), antrean order, pengiriman
@@ -1301,6 +1308,12 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-28 — F15: dasar markup FIFO (K-184).
+- 2026-10-28 — F17: promo kombinasi kategori + merk + barang dan beli N potong Rp X (K-185).
+- 2026-10-28 — F21: layar kasir pas layar, pindah/gulir panel dengan tombol (K-171).
+- 2026-10-28 — F37: menu laporan di atas dan pratinjau per halaman A4 (K-182).
+- 2026-10-28 — F48: pemeriksaan data alamat sama dan kelengkapan data (K-183).
+- 2026-10-28 — F43: atribut dimensi dan data muatan satu sumber; notifikasi & lencana barang tanpa data muatan (K-169, K-170).
 - 2026-10-28 — Info cepat nomor dokumen (K-181) di linimasa kas, dashboard, riwayat, retur, papan.
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).

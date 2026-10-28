@@ -744,7 +744,14 @@ export type PerluDikirim = {
   catatanKirim: string | null;
   /** Sebagian barang sudah dibuatkan surat jalan (order dibagi); sisa ini belum. */
   sebagian: boolean;
-  baris: { namaBarang: string; kodeSatuan: string; qtyBelumDikirim: string }[];
+  baris: {
+    idBarang: number;
+    namaBarang: string;
+    kodeSatuan: string;
+    qtyBelumDikirim: string;
+    /** K-170: berat atau ukuran barang belum diisi (muatan rit tidak bisa dihitung penuh). */
+    tanpaMuatan: boolean;
+  }[];
 };
 
 // --- Piutang (docs/06 PT1–PT4) ---

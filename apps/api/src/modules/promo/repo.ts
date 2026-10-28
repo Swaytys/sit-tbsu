@@ -16,7 +16,13 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import type { SasaranPromo, StatusAktif, StatusBerlakuPromo } from '@sit/shared';
+import type {
+  KelompokSasaran,
+  Promo,
+  SasaranPromo,
+  StatusAktif,
+  StatusBerlakuPromo,
+} from '@sit/shared';
 import type { Executor, Tx } from '../../db/client';
 import {
   barang,
@@ -75,6 +81,35 @@ export async function idSasaranPromo(
     .where(inArray(promoSasaran.idPromo, idPromo));
   for (const b of baris) hasil.set(b.idPromo, [...(hasil.get(b.idPromo) ?? []), b.id]);
   for (const d of hasil.values()) d.sort((a, b) => a - b);
+  return hasil;
+}
+
+/** K-185: kelompok sasaran per promo (sasaran KELOMPOK) beserta nama, urut id baris. */
+export async function kelompokPromo(
+  ex: Executor,
+  idPromo: number[],
+): Promise<Map<number, Promo['kelompok']>> {
+  const hasil = new Map<number, Promo['kelompok']>();
+  if (idPromo.length === 0) return hasil;
+  const baris = await ex
+    .select({
+      idPromo: promoSasaran.idPromo,
+      idKategori: promoSasaran.idKategori,
+      idMerk: promoSasaran.idMerk,
+      idBarang: promoSasaran.idBarang,
+      namaKategori: kategori.nama,
+      namaMerk: merk.nama,
+      kodeBarang: barang.kode,
+      namaBarang: barang.namaBarang,
+    })
+    .from(promoSasaran)
+    .innerJoin(promo, eq(promo.id, promoSasaran.idPromo))
+    .leftJoin(kategori, eq(kategori.id, promoSasaran.idKategori))
+    .leftJoin(merk, eq(merk.id, promoSasaran.idMerk))
+    .leftJoin(barang, eq(barang.id, promoSasaran.idBarang))
+    .where(and(inArray(promoSasaran.idPromo, idPromo), eq(promo.sasaran, 'KELOMPOK')))
+    .orderBy(asc(promoSasaran.id));
+  for (const { idPromo: id, ...k } of baris) hasil.set(id, [...(hasil.get(id) ?? []), k]);
   return hasil;
 }
 
@@ -193,6 +228,10 @@ export async function kandidatPromo(
     ex,
     baris.map((b) => b.id),
   );
+  const kelompok = await kelompokPromo(
+    ex,
+    baris.filter((b) => b.sasaran === 'KELOMPOK').map((b) => b.id),
+  );
   return baris.map(({ anggaran, maksPerPembeli, terpakai: t, terpakaiPembeli: tp, ...k }) => {
     const batas = [
       ...(anggaran === null ? [] : [anggaran - t]),
@@ -200,7 +239,12 @@ export async function kandidatPromo(
     ];
     return {
       ...k,
-      idSasaran: sasaran.get(k.id) ?? [],
+      idSasaran: k.sasaran === 'KELOMPOK' ? [] : (sasaran.get(k.id) ?? []),
+      kelompok: (kelompok.get(k.id) ?? []).map((x) => ({
+        idKategori: x.idKategori,
+        idMerk: x.idMerk,
+        idBarang: x.idBarang,
+      })),
       sisaPotongan: batas.length === 0 ? null : Math.max(0, Math.min(...batas)),
     };
   });
@@ -260,7 +304,7 @@ function dasar(ex: Executor) {
     .leftJoin(golonganPelanggan, eq(golonganPelanggan.id, promo.idGolongan));
 }
 
-/** K-163: barang/kategori/merk sasaran per promo dengan nama (untuk tampilan). */
+/** K-163: barang/kategori/merk sasaran per promo dengan nama (untuk tampilan; bukan sasaran KELOMPOK). */
 export async function sasaranPromo(ex: Executor, idPromo: number[]) {
   if (idPromo.length === 0) return [];
   return ex
@@ -276,7 +320,8 @@ export async function sasaranPromo(ex: Executor, idPromo: number[]) {
     .leftJoin(barang, eq(barang.id, promoSasaran.idBarang))
     .leftJoin(kategori, eq(kategori.id, promoSasaran.idKategori))
     .leftJoin(merk, eq(merk.id, promoSasaran.idMerk))
-    .where(inArray(promoSasaran.idPromo, idPromo))
+    .innerJoin(promo, eq(promo.id, promoSasaran.idPromo))
+    .where(and(inArray(promoSasaran.idPromo, idPromo), sql`${promo.sasaran} <> 'KELOMPOK'`))
     .orderBy(sql`2`);
 }
 
@@ -286,8 +331,15 @@ export async function gantiSasaranPromo(
   idPromo: number,
   sasaran: SasaranPromo,
   id: number[],
+  kelompok: KelompokSasaran[] = [],
 ): Promise<void> {
   await tx.delete(promoSasaran).where(eq(promoSasaran.idPromo, idPromo));
+  if (sasaran === 'KELOMPOK') {
+    if (kelompok.length > 0) {
+      await tx.insert(promoSasaran).values(kelompok.map((k) => ({ idPromo, ...k })));
+    }
+    return;
+  }
   if (sasaran === 'SEMUA' || id.length === 0) return;
   await tx.insert(promoSasaran).values(
     id.map((x) => ({
@@ -441,13 +493,57 @@ export async function ubahPromo(
     .where(eq(promo.id, id));
 }
 
+/**
+ * K-185: data untuk memeriksa kelompok: kategori dan merk yang AKTIF, serta barang AKTIF beserta kategori dan
+ * merknya (barang di kelompok harus termasuk kategori/merk kelompok itu).
+ */
+export async function dataKelompok(ex: Executor, kelompok: KelompokSasaran[]) {
+  const ambil = (f: (k: KelompokSasaran) => number | null) => [
+    ...new Set(kelompok.map(f).filter((x): x is number => x !== null)),
+  ];
+  const idKat = ambil((k) => k.idKategori);
+  const idMerk = ambil((k) => k.idMerk);
+  const idBrg = ambil((k) => k.idBarang);
+  const kat =
+    idKat.length === 0
+      ? []
+      : await ex
+          .select({ id: kategori.id })
+          .from(kategori)
+          .where(and(inArray(kategori.id, idKat), eq(kategori.statusAktif, 'AKTIF')));
+  const mrk =
+    idMerk.length === 0
+      ? []
+      : await ex
+          .select({ id: merk.id })
+          .from(merk)
+          .where(and(inArray(merk.id, idMerk), eq(merk.statusAktif, 'AKTIF')));
+  const brg =
+    idBrg.length === 0
+      ? []
+      : await ex
+          .select({
+            id: barang.id,
+            nama: barang.namaBarang,
+            idKategori: barang.idKategori,
+            idMerk: barang.idMerk,
+          })
+          .from(barang)
+          .where(and(inArray(barang.id, idBrg), eq(barang.statusAktif, 'AKTIF')));
+  return {
+    kategoriAktif: new Set(kat.map((x) => x.id)),
+    merkAktif: new Set(mrk.map((x) => x.id)),
+    barang: new Map(brg.map((x) => [x.id, x])),
+  };
+}
+
 /** K-163: id sasaran yang ada dan AKTIF untuk jenis `sasaran`. */
 export async function sasaranAktif(
   ex: Executor,
   sasaran: SasaranPromo,
   id: number[],
 ): Promise<Set<number>> {
-  if (sasaran === 'SEMUA' || id.length === 0) return new Set();
+  if (sasaran === 'SEMUA' || sasaran === 'KELOMPOK' || id.length === 0) return new Set();
   const tabel = sasaran === 'BARANG' ? barang : sasaran === 'KATEGORI' ? kategori : merk;
   const baris = await ex
     .select({ id: tabel.id })

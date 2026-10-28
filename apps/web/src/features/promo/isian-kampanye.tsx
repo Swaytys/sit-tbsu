@@ -1,7 +1,9 @@
-import type { SasaranPromo } from '@sit/shared';
-import { X } from 'lucide-react';
+import type { KelompokSasaran, SasaranPromo } from '@sit/shared';
+import { Plus, X } from 'lucide-react';
+import { Fragment } from 'react';
 import { useDaftarKategori, useDaftarMerk } from '@/api/referensi';
 import { PilihBarang } from '@/components/pilih-barang';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { dariIsianWaktu, keIsianWaktu, NAMA_HARI } from './waktu-kampanye';
@@ -88,7 +90,7 @@ export function PilihSasaranBanyak({
   onChange,
   disabled,
 }: {
-  sasaran: Exclude<SasaranPromo, 'SEMUA'>;
+  sasaran: Exclude<SasaranPromo, 'SEMUA' | 'KELOMPOK'>;
   value: ItemSasaran[];
   onChange: (v: ItemSasaran[]) => void;
   disabled?: boolean;
@@ -151,6 +153,149 @@ export function PilihSasaranBanyak({
               ))}
           </select>
         ))}
+    </div>
+  );
+}
+
+/** K-185: satu kelompok di form beserta nama barangnya (kategori/merk diambil dari daftar referensi). */
+export type IsianKelompok = KelompokSasaran & { namaBarang: string | null };
+
+/**
+ * K-185: kelompok sasaran. Tiap kelompok = kategori DAN merk DAN barang (yang diisi saja); barang cocok bila
+ * memenuhi salah satu kelompok. Pilihan barang di kelompok disaring menurut kategori/merk kelompok itu.
+ */
+export function PilihKelompok({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: IsianKelompok[];
+  onChange: (v: IsianKelompok[]) => void;
+  disabled?: boolean;
+}) {
+  const kategori = useDaftarKategori('AKTIF').data ?? [];
+  const merk = useDaftarMerk('AKTIF').data ?? [];
+  const ganti = (i: number, k: Partial<IsianKelompok>) =>
+    onChange(value.map((x, j) => (j === i ? { ...x, ...k } : x)));
+  return (
+    <div className="space-y-2">
+      {value.length === 0 && (
+        <p className="text-sm text-slate-400">Belum ada kelompok. Klik Tambah kelompok.</p>
+      )}
+      {value.map((k, i) => (
+        <Fragment key={i}>
+          {i > 0 && (
+            <p className="pl-1 text-xs font-semibold text-slate-500" aria-hidden>
+              ATAU
+            </p>
+          )}
+          <div
+            className="grid grid-cols-[auto_1fr_auto_1fr_auto_1.6fr_auto] items-center gap-1.5 rounded-md border bg-slate-50 p-2 text-sm"
+            role="group"
+            aria-label={`Kelompok ${i + 1}`}
+          >
+            <span className="font-semibold text-slate-600">{i + 1}.</span>
+            <select
+              className={kelasPilih}
+              aria-label={`Kategori kelompok ${i + 1}`}
+              disabled={disabled}
+              value={k.idKategori ?? ''}
+              onChange={(e) =>
+                ganti(i, {
+                  idKategori: e.target.value ? Number(e.target.value) : null,
+                  idBarang: null,
+                  namaBarang: null,
+                })
+              }
+            >
+              <option value="">Semua kategori</option>
+              {kategori.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.nama}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs font-semibold text-slate-500">DAN</span>
+            <select
+              className={kelasPilih}
+              aria-label={`Merk kelompok ${i + 1}`}
+              disabled={disabled}
+              value={k.idMerk ?? ''}
+              onChange={(e) =>
+                ganti(i, {
+                  idMerk: e.target.value ? Number(e.target.value) : null,
+                  idBarang: null,
+                  namaBarang: null,
+                })
+              }
+            >
+              <option value="">Semua merk</option>
+              {merk.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.nama}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs font-semibold text-slate-500">DAN</span>
+            {k.idBarang !== null ? (
+              <span className="inline-flex min-w-0 items-center gap-1 rounded bg-blue-50 px-2 py-1 text-blue-800">
+                <span className="truncate">{k.namaBarang ?? `#${k.idBarang}`}</span>
+                {!disabled && (
+                  <button
+                    type="button"
+                    aria-label={`Hapus barang kelompok ${i + 1}`}
+                    onClick={() => ganti(i, { idBarang: null, namaBarang: null })}
+                  >
+                    <X className="size-3" />
+                  </button>
+                )}
+              </span>
+            ) : disabled ? (
+              <span className="text-slate-500">Semua barang</span>
+            ) : (
+              <PilihBarang
+                label={`Barang kelompok ${i + 1}`}
+                placeholder="Semua barang (atau cari satu)"
+                saring={(b) =>
+                  (k.idKategori === null || b.idKategori === k.idKategori) &&
+                  (k.idMerk === null || b.idMerk === k.idMerk)
+                }
+                onPilih={(b) =>
+                  ganti(i, { idBarang: b.id, namaBarang: `${b.kode} · ${b.namaBarang}` })
+                }
+              />
+            )}
+            {!disabled ? (
+              <button
+                type="button"
+                className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-700"
+                aria-label={`Hapus kelompok ${i + 1}`}
+                title="Hapus kelompok"
+                onClick={() => onChange(value.filter((_, j) => j !== i))}
+              >
+                <X className="size-4" />
+              </button>
+            ) : (
+              <span />
+            )}
+          </div>
+        </Fragment>
+      ))}
+      {!disabled && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            onChange([
+              ...value,
+              { idKategori: null, idMerk: null, idBarang: null, namaBarang: null },
+            ])
+          }
+        >
+          <Plus /> Tambah kelompok
+        </Button>
+      )}
     </div>
   );
 }

@@ -35,6 +35,8 @@ const kolom = {
   idPemasokKonsinyasi: barang.idPemasokKonsinyasi,
   namaPemasokKonsinyasi: pemasok.namaPemasok,
   perluTinjauHarga: barang.perluTinjauHarga,
+  /** K-170: berat atau ukuran/volume belum diisi. */
+  muatanBelum: sql<boolean>`${syaratMuatanBelum()}`,
   hargaOtomatis: barang.hargaOtomatis,
   gambar: barang.gambar,
   keterangan: barang.keterangan,
@@ -45,6 +47,7 @@ const kolom = {
   hargaBeliTerakhir: persediaan.hargaBeliTerakhir,
   tanggalBeliTerakhir: persediaan.tanggalBeliTerakhir,
   terakhirMutasi: persediaan.terakhirMutasi,
+  hargaFifo: persediaan.hargaFifo,
 };
 
 function dasarQuery(ex: Executor) {

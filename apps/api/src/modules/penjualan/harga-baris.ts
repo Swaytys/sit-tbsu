@@ -143,6 +143,7 @@ async function dataBarang(tx: Tx, idBarang: number[]) {
       hppRata2: persediaan.hppRata2,
       hargaBeliTerakhir: persediaan.hargaBeliTerakhir,
       tanggalBeliTerakhir: persediaan.tanggalBeliTerakhir,
+      hargaFifo: persediaan.hargaFifo,
     })
     .from(barang)
     .innerJoin(persediaan, eq(persediaan.idBarang, barang.id))

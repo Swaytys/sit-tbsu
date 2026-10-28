@@ -9,6 +9,7 @@ import {
 } from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
+import { hitungUlangCache } from '../persediaan/ledger';
 import {
   barang,
   barangAtribut,
@@ -330,6 +331,67 @@ describe('metode harga (H4, H12)', () => {
     await putHarga([{ idBarang: b.id, idTingkatHarga: ref.normal, hargaTetap: 15_000 }]);
     expect((await harga(b.id, ref.grosir)).hargaJual).toBe(15_000); // 12.500 × 1,2
     expect((await harga(b.id, ref.distributor)).hargaJual).toBe(14_500); // 14.375 → kelipatan 500
+  });
+});
+
+describe('dasar markup FIFO (K-184, H3, L12)', () => {
+  it('D = harga beli lapisan tertua yang masih ada; stok lama habis → D naik dan harga otomatis ikut naik', async () => {
+    await aturKonfigurasi({ dasar_markup: 'FIFO' });
+    const b = await buat({ hargaOtomatis: true });
+    await terimaBerhasil([{ idBarang: b.id, harga: 11_000 }]); // 10 sak @ 11.000
+    await terimaBerhasil([{ idBarang: b.id, harga: 13_000 }]); // 10 sak @ 13.000
+    const detail = async () =>
+      (await json<{ data: Baris }>(await minta(`/api/barang/${b.id}`, { cookie: admin.cookie })))
+        .data;
+    // Stok 20: 10 lama (11.000) masih ada → D 11.000, bukan harga beli terakhir 13.000.
+    expect(await detail()).toMatchObject({ hargaBeliTerakhir: 13_000, dasarMarkup: 11_000 });
+    expect((await harga(b.id, ref.grosir)).hargaJual).toBe(13_200);
+
+    // 10 sak keluar (stok lama dianggap keluar dulu) → sisa lapisan 13.000.
+    const adj = await kirim(admin, '/api/penyesuaian', {
+      jenis: 'KOREKSI',
+      alasan: 'uji FIFO',
+      baris: [{ idBarang: b.id, qtySelisih: '-10' }],
+    });
+    expect(adj.status).toBe(201);
+    const { id } = (await json<{ data: { id: number } }>(adj)).data;
+    expect((await kirim(admin, `/api/penyesuaian/${id}/selesai`)).status).toBe(200);
+    expect(await detail()).toMatchObject({ dasarMarkup: 13_000 });
+    expect(await harga(b.id, ref.grosir)).toMatchObject({
+      hargaJual: 15_600,
+      dasarMarkupSaatHitung: 13_000,
+    });
+    expect((await logTerakhir('HARGA_UBAH', b.id))?.ringkasan).toContain('lapisan stok FIFO');
+    const audit = await hitungUlangCache(db, b.id);
+    expect(audit.masalah).toEqual([]);
+
+    // Stok habis → harga FIFO = harga beli terakhir.
+    const habis = await kirim(admin, '/api/penyesuaian', {
+      jenis: 'KOREKSI',
+      alasan: 'uji FIFO habis',
+      baris: [{ idBarang: b.id, qtySelisih: '-10' }],
+    });
+    const idHabis = (await json<{ data: { id: number } }>(habis)).data.id;
+    await kirim(admin, `/api/penyesuaian/${idHabis}/selesai`);
+    const [p] = await db.select().from(persediaan).where(eq(persediaan.idBarang, b.id));
+    expect(p).toMatchObject({ hargaFifo: 13_000 });
+  });
+
+  it('dasar markup bukan FIFO: perubahan lapisan tidak mengubah harga', async () => {
+    const b = await buat({ hargaOtomatis: true });
+    await terimaBerhasil([{ idBarang: b.id, harga: 11_000 }]);
+    await terimaBerhasil([{ idBarang: b.id, harga: 9_000 }]);
+    const sebelum = await harga(b.id, ref.grosir);
+    const adj = await kirim(admin, '/api/penyesuaian', {
+      jenis: 'KOREKSI',
+      alasan: 'uji',
+      baris: [{ idBarang: b.id, qtySelisih: '-15' }],
+    });
+    const { id } = (await json<{ data: { id: number } }>(adj)).data;
+    await kirim(admin, `/api/penyesuaian/${id}/selesai`);
+    expect((await harga(b.id, ref.grosir)).hargaJual).toBe(sebelum.hargaJual);
+    const [p] = await db.select().from(persediaan).where(eq(persediaan.idBarang, b.id));
+    expect(p).toMatchObject({ hargaFifo: 9_000 }); // cache tetap terjaga walau tidak dipakai
   });
 });
 

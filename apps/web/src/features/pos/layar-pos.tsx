@@ -13,6 +13,7 @@ import {
   ukuranKertasCss,
 } from '@sit/shared';
 import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { Loader2, Printer, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -89,7 +90,20 @@ const TOMBOL_UMUM: Tombol[] = [
   { kunci: 'F4', label: 'Pelanggan' },
   { kunci: 'F8', label: 'Bayar' },
   { kunci: 'F9', label: 'Mulai dari awal' },
+  { kunci: 'Alt+← →', label: 'Pindah panel' },
+  { kunci: 'PgUp/PgDn', label: 'Gulir panel' },
 ];
+
+/** Elemen yang benar-benar bisa digulir: dirinya, lalu isinya, lalu induknya. */
+function wadahGulir(awal: HTMLElement): HTMLElement | null {
+  const bisa = (el: HTMLElement) =>
+    el.scrollHeight > el.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(el).overflowY);
+  if (bisa(awal)) return awal;
+  const isi = [...awal.querySelectorAll<HTMLElement>('*')].find(bisa);
+  if (isi) return isi;
+  for (let el = awal.parentElement; el; el = el.parentElement) if (bisa(el)) return el;
+  return null;
+}
 
 const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
   antrean: [
@@ -138,9 +152,12 @@ const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
 export function LayarPos({
   jenis,
   idOrderAwal,
+  slotPintasan = null,
 }: {
   jenis: JenisPenjualan;
   idOrderAwal: number | null;
+  /** K-171: tempat bilah pintasan di baris tab halaman induk; tanpa ini bilah tampil di bawah layar. */
+  slotPintasan?: HTMLElement | null;
 }) {
   const navigasi = useNavigate();
   const saya = usePengguna();
@@ -485,6 +502,25 @@ export function LayarPos({
       F9: () => mintaMulaiDariAwal(),
     };
     const f = aksi[e.key];
+    // K-171: Alt+←/→ pindah antara panel kiri (antrean) dan kanan (transaksi); juga mencegah Alt+← browser
+    // (kembali ke halaman sebelumnya) yang membuang layar kasir.
+    if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      if (e.key === 'ArrowLeft') setZona('antrean');
+      else if (zona === 'antrean') setZona(tr.t.baris.length > 0 ? 'keranjang' : 'cari');
+      return;
+    }
+    // K-171: PageUp/PageDown menggulir panel yang sedang aktif (bukan halaman).
+    if ((e.key === 'PageDown' || e.key === 'PageUp') && !(e.target instanceof HTMLSelectElement)) {
+      const awal = document.getElementById(ID[zona]);
+      const wadah = awal ? wadahGulir(awal) : null;
+      if (wadah) {
+        e.preventDefault();
+        const arah = e.key === 'PageDown' ? 1 : -1;
+        wadah.scrollBy({ top: arah * wadah.clientHeight * 0.8, behavior: 'smooth' });
+      }
+      return;
+    }
     if (f) {
       e.preventDefault();
       f();
@@ -794,6 +830,7 @@ export function LayarPos({
             )}
 
             <InfoTierBelanja
+              ringkas
               info={pratinjau.data?.tierBelanja}
               idTierDasar={tierDefault}
               namaTier={(id) => tierAktif.find((t) => t.id === id)?.nama ?? 'tier lain'}
@@ -847,7 +884,11 @@ export function LayarPos({
           <div ref={setSlotBayar} className="shrink-0" />
         </div>
       </div>
-      <BilahTombol daftar={tombol} />
+      {slotPintasan ? (
+        createPortal(<BilahTombol daftar={tombol} />, slotPintasan)
+      ) : (
+        <BilahTombol daftar={tombol} />
+      )}
 
       <AlertDialog open={tanyaStruk !== null} onOpenChange={(buka) => !buka && setTanyaStruk(null)}>
         <AlertDialogContent>

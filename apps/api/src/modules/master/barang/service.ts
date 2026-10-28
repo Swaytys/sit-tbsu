@@ -46,6 +46,7 @@ import {
 import { muatSatuanJual } from '../satuan-jual/service';
 import * as satuanJualRepo from '../satuan-jual/repo';
 import * as repo from './repo';
+import { selaraskanMuatan } from './selaras-muatan';
 import { pastikanTidakMirip } from '../mirip';
 import { KETERJUALAN_KOSONG, petaKeterjualan } from './keterjualan';
 
@@ -113,6 +114,7 @@ function keBaris(
     idPemasokKonsinyasi: b.idPemasokKonsinyasi,
     namaPemasokKonsinyasi: b.namaPemasokKonsinyasi,
     perluTinjauHarga: b.perluTinjauHarga,
+    muatanBelum: b.muatanBelum,
     hargaOtomatis: b.hargaOtomatis,
     gambar: urlGambar(b.id, b.gambar),
     statusAktif: b.statusAktif,
@@ -445,7 +447,12 @@ function nilaiDari(
 
 function dataDasarDari(
   nilai: repo.NilaiBarang,
-  p: { hppRata2: number; hargaBeliTerakhir: number; tanggalBeliTerakhir: string | null },
+  p: {
+    hppRata2: number;
+    hargaBeliTerakhir: number;
+    tanggalBeliTerakhir: string | null;
+    hargaFifo: number;
+  },
 ) {
   return {
     kepemilikan: nilai.kepemilikan,
@@ -454,6 +461,7 @@ function dataDasarDari(
     hppRata2: p.hppRata2,
     hargaBeliTerakhir: p.hargaBeliTerakhir,
     tanggalBeliTerakhir: p.tanggalBeliTerakhir,
+    hargaFifo: p.hargaFifo,
   };
 }
 
@@ -572,13 +580,15 @@ export async function tambahBarang(
       },
       input.abaikanMirip,
     );
-    const baru = await buatBarang(tx, input, pelaku.id);
+    // K-169: atribut dimensi dan data muatan diselaraskan (satu data).
+    const data = { ...input, ...(await selaraskanMuatan(tx, input, undefined)) };
+    const baru = await buatBarang(tx, data, pelaku.id);
     await catatLogBarangBaru(tx, baru, pelaku, asal);
-    if (input.muatan) {
+    if (data.muatan) {
       await simpanMuatan(
         tx,
         baru.id,
-        input.muatan,
+        data.muatan,
         `${baru.nilai.kode} ${baru.nilai.namaBarang}`,
         pelaku,
         asal,
@@ -607,6 +617,12 @@ export async function ubahBarang(
   await dalamTransaksi(async (tx) => {
     const lama = await repo.kunciBarang(tx, id);
     if (!lama) throw tidakDitemukan();
+    // K-169: atribut dimensi dan data muatan diselaraskan (satu data).
+    const muatanLama = await repo.muatanBarang(tx, id);
+    const data = {
+      ...input,
+      ...(await selaraskanMuatan(tx, input, muatanLama ? rapikanMuatan(muatanLama) : undefined)),
+    };
     pastikanVersi(input.versi, await ambilVersi(tx, barang, id), `Barang ${lama.namaBarang}`);
     const stok = await kunciPersediaan(tx, id);
     const sudahAdaMutasi = stok.terakhirMutasi !== null;
@@ -675,7 +691,7 @@ export async function ubahBarang(
     }
 
     const lamaAtribut = await repo.atributBarang(tx, id);
-    const atribut = await siapkanAtribut(tx, input.atribut, {
+    const atribut = await siapkanAtribut(tx, data.atribut, {
       idJenis: new Set(lamaAtribut.map((a) => a.idJenisAtribut)),
       idSatuan: new Set(lamaAtribut.flatMap((a) => (a.idSatuan ? [a.idSatuan] : []))),
     });
@@ -750,8 +766,8 @@ export async function ubahBarang(
       });
     }
     await catatLogHarga(tx, id, nilai.namaBarang, perubahanHarga, pelaku, asal);
-    if (input.muatan) {
-      await simpanMuatan(tx, id, input.muatan, `${kode} ${nilai.namaBarang}`, pelaku, asal);
+    if (data.muatan) {
+      await simpanMuatan(tx, id, data.muatan, `${kode} ${nilai.namaBarang}`, pelaku, asal);
     }
   });
   return detailBarang(id, pelaku.izin);

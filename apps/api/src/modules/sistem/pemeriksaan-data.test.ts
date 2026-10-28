@@ -65,4 +65,27 @@ describe('pemeriksaan data (K-137)', () => {
     const [p3] = await db.select().from(pelanggan).where(eq(pelanggan.kode, 'PLG-3'));
     expect(p3?.noHp).toBe('+6285711112222');
   });
+
+  it('K-183: alamat sama dan data belum lengkap (pelanggan tanpa alamat)', async () => {
+    await db.insert(pelanggan).values([
+      {
+        kode: 'PLG-5',
+        namaPelanggan: 'Toko A',
+        noHp: '+6281200000005',
+        alamat: 'Jl. Merdeka No. 10',
+      },
+      { kode: 'PLG-6', namaPelanggan: 'CV B', noHp: '+6281200000006', alamat: 'jl merdeka no 10' },
+    ]);
+    const h = (
+      await json<{ data: HasilPemeriksaanData }>(
+        await minta('/api/pemeriksaan-data', { cookie: admin.cookie }),
+      )
+    ).data;
+    const alamat = h.ganda.find((g) => g.alasan === 'alamat sama' && g.jenis === 'pelanggan');
+    expect(alamat?.data.map((d) => d.kode).sort()).toEqual(['PLG-5', 'PLG-6']);
+    const tanpa = h.kurang.find((k) => k.jenis === 'pelanggan' && k.alasan.includes('alamat'));
+    expect(tanpa?.data.map((d) => d.kode)).toEqual(
+      expect.arrayContaining(['PLG-1', 'PLG-2', 'PLG-3', 'PLG-4']),
+    );
+  });
 });

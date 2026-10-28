@@ -679,9 +679,9 @@ keputusan lama masih tertulis di berkasnya.
 | K-166 | Alur pembaruan aplikasi yang aman bagi data lama. | Berlaku (selesai 24 Okt) |
 | K-167 | Pencarian universal di topbar (Ctrl+K). | Berlaku (selesai 24 Okt) |
 | K-168 | Mode demo terpisah; panduan penyiapan pertama dengan 5 contoh data asli per jenis. | Berlaku (panduan + contoh selesai 28 Okt; mode demo terpisah masih rencana) |
-| K-169 | Atribut dimensi/berat dan data muatan satu sumber, dengan aturan dimensi vs volume. | Berlaku (rencana) |
-| K-170 | Notifikasi dan lencana barang di order pengantaran yang belum punya data muatan. | Berlaku (rencana) |
-| K-171 | Hot page langsung/pengantaran: gulir panel dan pindah fokus dengan tombol, elemen lebih ringkas. | Berlaku (sebagian 25 Okt: ikon pengganti "Menghitung…") |
+| K-169 | Atribut dimensi/berat dan data muatan satu sumber, dengan aturan dimensi vs volume. | Berlaku (selesai 28 Okt) |
+| K-170 | Notifikasi dan lencana barang di order pengantaran yang belum punya data muatan. | Berlaku (selesai 28 Okt) |
+| K-171 | Hot page langsung/pengantaran: gulir panel dan pindah fokus dengan tombol, elemen lebih ringkas. | Berlaku (selesai 28 Okt) |
 | K-172 | Lencana topbar responsif, tidak meluap. | Berlaku (selesai 25 Okt) |
 | K-173 | Kartu Pengiriman: info cepat, nomor antrean, warna hasil pembagian, penanda hari, saringan. | Berlaku (selesai 28 Okt) |
 | K-174 | Surat jalan hanya dibuat di dalam rit (kendaraan dan sopir sudah pasti); keluar/batal rit membatalkan surat jalan; cetak atau simpan PDF semua surat jalan saat berangkat. | Berlaku (selesai 26 Okt) |
@@ -692,10 +692,10 @@ keputusan lama masih tertulis di berkasnya.
 | K-179 | Order pembelian yang menunggu tampil di Penerimaan Barang. | Berlaku (selesai 25 Okt) |
 | K-180 | Isian otomatis (No. HP dari pelanggan) dan saran alasan sesuai konteks. | Berlaku (selesai 28 Okt) |
 | K-181 | Tombol info cepat (pop-up) di setiap kode pada elemen interaktif. | Berlaku (selesai 28 Okt untuk dokumen penjualan/pengiriman/retur/void) |
-| K-182 | Laporan: menu di atas, pratinjau per halaman A4 besar. | Berlaku (rencana) |
-| K-183 | Pemeriksaan data diperluas selain No. HP. | Berlaku (rencana) |
-| K-184 | Harga dasar FIFO; penjelasan latest cost bukan LIFO. | Berlaku (rencana) |
-| K-185 | Promo: kelompok sasaran AND bertingkat; jenis beli N potong Rp X; penjelasan "?" diperjelas. | Berlaku (rencana) |
+| K-182 | Laporan: menu di atas, pratinjau per halaman A4 besar. | Berlaku (selesai 28 Okt) |
+| K-183 | Pemeriksaan data diperluas selain No. HP. | Berlaku (selesai 28 Okt) |
+| K-184 | Harga dasar FIFO; penjelasan latest cost bukan LIFO. | Berlaku (selesai 28 Okt) |
+| K-185 | Promo: kelompok sasaran AND bertingkat; jenis beli N potong Rp X; penjelasan "?" diperjelas. | Berlaku (selesai 28 Okt) |
 | K-186 | Peringatan menutup aplikasi saat shift terbuka; peramban terbuka otomatis saat Windows mulai. | Berlaku (selesai 25 Okt) |
 | K-187 | Surat jalan dicetak 2 rangkap (asli arsip toko, salinan penerima) dengan keterangan per lembar. | Berlaku (selesai 25 Okt) |
 | K-188 | Pemasang tanpa terminal (klik dua kali, isian di jendela, akun DB sendiri, jalan keluar lupa password postgres); setup .exe lengkap menyusul. | Berlaku (v2 selesai 26 Okt: Setup mandiri dengan PostgreSQL bawaan, tanpa Administrator) |

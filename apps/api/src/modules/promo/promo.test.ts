@@ -870,6 +870,7 @@ describe('kampanye promo (K-163)', () => {
       gratisQty: null,
       sasaran: 'SEMUA',
       idSasaran: [],
+      kelompok: [],
       minQty: null,
       minBelanja: null,
       sisaPotongan: null,
@@ -1012,6 +1013,95 @@ describe('kampanye promo (K-163)', () => {
       'PATCH',
     );
     expect(perpanjang.status).toBe(200);
+  });
+});
+
+describe('promo kelompok sasaran dan beli N potong Rp X (K-185)', () => {
+  it('PR16: kelompok = kategori DAN merk; antar kelompok ATAU; barang di luar kategori kelompok ditolak', async () => {
+    await tanpaGrosir();
+    const [mkA] = await db
+      .insert(merk)
+      .values({ nama: `Merk A ${Date.now()}` })
+      .returning();
+    const [mkB] = await db
+      .insert(merk)
+      .values({ nama: `Merk B ${Date.now()}` })
+      .returning();
+    await db.update(barang).set({ idMerk: mkA!.id }).where(eq(barang.id, m.semen));
+    const [smn] = await db.select().from(barang).where(eq(barang.id, m.semen));
+    const katSemen = smn!.idKategori;
+    const [psr] = await db.select().from(barang).where(eq(barang.id, m.pasir));
+
+    // Kategori semen DAN merk B: semen (merk A) tidak cocok.
+    const b = await buatPromo({
+      nama: 'Semen merk B',
+      sasaran: 'KELOMPOK',
+      kelompok: [{ idKategori: katSemen, idMerk: mkB!.id }],
+    });
+    expect(b.kelompok).toMatchObject([{ idKategori: katSemen, idMerk: mkB!.id, idBarang: null }]);
+    let p = await pratinjau(admin, [{ idBarang: m.semen, qty: '1' }]);
+    expect(p.baris[0]?.namaPromo).toBeNull();
+
+    // Kategori semen DAN merk A, ATAU barang pasir: keduanya kena.
+    const a = await buatPromo({
+      nama: 'Semen merk A atau pasir',
+      potonganPersen: '5',
+      sasaran: 'KELOMPOK',
+      kelompok: [{ idKategori: katSemen, idMerk: mkA!.id }, { idBarang: m.pasir }],
+    });
+    expect(a.kelompok.map((k) => k.namaMerk ?? k.namaBarang)).toEqual([mkA!.nama, psr!.namaBarang]);
+    p = await pratinjau(admin, [
+      { idBarang: m.semen, qty: '1' },
+      { idBarang: m.pasir, qty: '1' },
+    ]);
+    expect(p.baris.map((x) => [x.namaPromo, x.diskonPromo])).toEqual([
+      ['Semen merk A atau pasir', 600],
+      ['Semen merk A atau pasir', 200],
+    ]);
+
+    // Barang yang bukan termasuk kategori kelompoknya tidak akan pernah cocok: ditolak. Kelompok kosong ditolak.
+    const salah = await galat(
+      kirim(
+        admin,
+        '/api/promo',
+        promoBaru({ sasaran: 'KELOMPOK', kelompok: [{ idKategori: katSemen, idBarang: m.pasir }] }),
+      ),
+    );
+    expect(salah.status).toBe(400);
+    expect(salah.pesan).toContain('Kelompok 1');
+    for (const isi of [{ kelompok: [] }, { kelompok: [{}] }]) {
+      expect(
+        (await kirim(admin, '/api/promo', promoBaru({ sasaran: 'KELOMPOK', ...isi }))).status,
+      ).toBe(400);
+    }
+  });
+
+  it('PR17: beli N potong Rp X per kelipatan N; belum sampai N tidak dipotong', async () => {
+    await tanpaGrosir();
+    const p = await buatPromo({
+      nama: 'Semen beli 2 potong 1.000',
+      jenisPotongan: 'BELI_POTONG',
+      potonganPersen: null,
+      beliQty: '2',
+      potonganNominal: 1000,
+      sasaran: 'BARANG',
+      idSasaran: [m.semen],
+    });
+    expect(p).toMatchObject({ beliQty: '2.000', potonganNominal: 1000, gratisQty: null });
+    let r = await pratinjau(admin, [{ idBarang: m.semen, qty: '5' }]);
+    expect(r.baris[0]).toMatchObject({ namaPromo: 'Semen beli 2 potong 1.000', diskonPromo: 2000 });
+    r = await pratinjau(admin, [{ idBarang: m.semen, qty: '1' }]);
+    expect(r.baris[0]?.namaPromo).toBeNull();
+    // Potongan wajib diisi.
+    expect(
+      (
+        await kirim(
+          admin,
+          '/api/promo',
+          promoBaru({ jenisPotongan: 'BELI_POTONG', potonganPersen: null, beliQty: '2' }),
+        )
+      ).status,
+    ).toBe(400);
   });
 });
 

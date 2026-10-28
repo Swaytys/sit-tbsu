@@ -729,6 +729,45 @@ agregat hasil per surat jalan (`hasilRingkas`).
 **Tes:** surat-jalan.test (alasan wajib, kelebihan → potong tagihan, rusak terpisah, refund transfer menunggu →
 konfirmasi), e2e refund-transfer.spec, pengiriman.spec (alasan + penanda).
 
+### C26. Pratinjau laporan per halaman A4 (28 Oktober 2026, K-182)
+
+**Masalah:** pratinjau laporan satu lembar panjang tanpa batas halaman; daftar laporan di kiri memakan lebar.
+
+**Solusi:** `PratinjauHalaman` merender dokumen sekali di luar layar dengan lebar isi kertas (A4 dikurangi margin
+`@page` 12/14/16 mm), lalu menghitung titik potong di bawah baris tabel/blok terakhir yang muat. Tiap lembar
+menampilkan potongannya dengan `translateY` di wadah `overflow: hidden`. Isi lembar hanya dirender saat lembar dekat
+layar (IntersectionObserver): laporan stok rekap ~900 barang = 34 lembar, dan menyalin seluruh tabel ke tiap lembar
+membuat halaman macet. Pengecilan memakai `transform: scale` per lembar, bukan `zoom`, karena `zoom` mengubah
+pembulatan tata letak sehingga potongan bergeser beberapa piksel. Pratinjau memakai tata letak cetak
+(`DokumenLaporanFormal cetak`) agar lebar tabel sama dengan hasil cetak.
+
+**Tes:** e2e laporan.spec (pilih laporan lewat menu kelompok, isi terbaca di lembar).
+
+### C27. Promo kombinasi dan beli N potong Rp X (28 Oktober 2026, K-185)
+
+**Solusi:** migrasi 0037 tanpa kolom baru. `promo.sasaran` + KELOMPOK memakai tabel `promo_sasaran` yang sudah ada:
+CHECK `num_nonnulls = 1` dilonggarkan menjadi `>= 1`, sehingga satu baris dapat berisi kategori + merk + barang
+sekaligus (satu kelompok). Saringan kandidat di SQL tetap sama (kelompok yang cocok pasti punya minimal satu kolom
+yang sama dengan barang), lalu `promoCocok` menilai kelompok persis (`cocokKelompok`). Jenis BELI_POTONG memakai
+ulang `beli_qty` dan `potongan_nominal`; helper `kelipatanQty` di `packages/shared/qty.ts` (decimal.js) menghitung
+`⌊qty ÷ N⌋`. Kelompok dibandingkan lewat kunci teks `kategori-merk-barang` untuk deteksi perubahan dan kunci aturan
+setelah promo terpakai.
+
+**Tes:** promo.test (PR16 kelompok AND/ATAU dan penolakan barang di luar kategori kelompok; PR17 kelipatan),
+e2e promo.spec (form kombinasi + beli N potong).
+
+### C28. Dasar markup FIFO (28 Oktober 2026, K-184)
+
+**Solusi:** migrasi 0038 menambah `persediaan.harga_fifo` [CACHE] dan mengisinya dari ledger. `hitungHargaFifo()`
+di `ledger.ts` memakai satu kueri jendela (`sum(qty_masuk) over (order by id desc)`) atas baris masuk BAIK barang
+itu: lapisan pertama yang jumlah kumulatifnya ≥ stok fisik adalah lapisan tertua yang tersisa. `catatMutasi()`
+menghitungnya setelah menulis baris ledger; bila berubah, cache diperbarui di transaksi yang sama dan, bila konfigurasi
+`dasar_markup = FIFO`, `tanggapiPemicuHarga()` dijalankan untuk barang itu (urutan kunci tetap persediaan lalu
+barang, sama dengan penerimaan). L9 `hitungUlangCache()` ikut memeriksa harga FIFO. HPP tidak disentuh.
+
+**Tes:** harga.test (dasar FIFO tetap harga lama selama stok lama ada; keluar 10 → dasar naik dan harga otomatis
+naik dengan log; stok 0 → harga beli terakhir; mode lain tidak mengubah harga tetapi cache tetap terjaga).
+
 ---
 
 ## Riwayat dokumen
@@ -759,3 +798,6 @@ konfirmasi), e2e refund-transfer.spec, pengiriman.spec (alasan + penanda).
 - 2026-10-26 — Bagian C23 akun pertama dan kode pemulihan (K-191).
 - 2026-10-28 — Bagian C24 panduan penyiapan dan contoh data (K-168).
 - 2026-10-28 — Bagian C25 penyelesaian hasil pengantaran (K-176).
+- 2026-10-28 — Bagian C26 pratinjau laporan per halaman A4 (K-182).
+- 2026-10-28 — Bagian C27 promo kombinasi dan beli N potong (K-185).
+- 2026-10-28 — Bagian C28 dasar markup FIFO (K-184).

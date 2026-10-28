@@ -66,7 +66,14 @@ import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useTunda } from '@/lib/use-tunda';
-import { IsianWaktu, PilihHari, PilihSasaranBanyak, type ItemSasaran } from './isian-kampanye';
+import {
+  IsianWaktu,
+  PilihHari,
+  PilihKelompok,
+  PilihSasaranBanyak,
+  type IsianKelompok,
+  type ItemSasaran,
+} from './isian-kampanye';
 import { isoLokal, NAMA_HARI } from './waktu-kampanye';
 
 const SEMUA = 'SEMUA';
@@ -81,11 +88,26 @@ function uraianPotongan(p: Promo): string {
   if (p.jenisPotongan === 'GRATIS') {
     return `beli ${formatDesimal(p.beliQty ?? '0')} gratis ${formatDesimal(p.gratisQty ?? '0')}`;
   }
+  if (p.jenisPotongan === 'BELI_POTONG') {
+    return `beli ${formatDesimal(p.beliQty ?? '0')} potong ${formatRupiah(p.potonganNominal ?? 0)}`;
+  }
   return `${formatRupiah(p.potonganNominal ?? 0)} per satuan`;
+}
+
+/** K-185: "Cat + Avian; Semen + BRG-00001 Semen Gresik". */
+function uraianKelompok(p: Promo): string {
+  return p.kelompok
+    .map((k) =>
+      [k.namaKategori, k.namaMerk, k.kodeBarang ? `${k.kodeBarang} ${k.namaBarang ?? ''}` : null]
+        .filter(Boolean)
+        .join(' + '),
+    )
+    .join('; ');
 }
 
 function uraianSasaran(p: Promo): string {
   if (p.sasaran === 'SEMUA') return 'Semua barang';
+  if (p.sasaran === 'KELOMPOK') return uraianKelompok(p);
   const awalan = p.sasaran === 'KATEGORI' ? 'Kategori ' : p.sasaran === 'MERK' ? 'Merk ' : '';
   return awalan + p.sasaranDaftar.map((s) => (s.kode ? `${s.kode} ${s.nama}` : s.nama)).join(', ');
 }
@@ -159,6 +181,14 @@ function DialogPromo({
       nama: s.kode ? `${s.kode} · ${s.nama}` : s.nama,
     })),
   );
+  const [isiKelompok, setIsiKelompok] = useState<IsianKelompok[]>(() =>
+    (sumber?.kelompok ?? []).map((k) => ({
+      idKategori: k.idKategori,
+      idMerk: k.idMerk,
+      idBarang: k.idBarang,
+      namaBarang: k.kodeBarang ? `${k.kodeBarang} · ${k.namaBarang ?? ''}` : null,
+    })),
+  );
   const awal = waktuAwal();
   const form = useForm<InputPromo, unknown, DataPromo>({
     resolver: zodResolver(skemaIsianPromo),
@@ -178,6 +208,11 @@ function DialogPromo({
       gratisQty: sumber?.gratisQty ? formatDesimal(sumber.gratisQty) : null,
       sasaran: sumber?.sasaran ?? 'SEMUA',
       idSasaran: (sumber?.sasaranDaftar ?? []).map((s) => s.id),
+      kelompok: (sumber?.kelompok ?? []).map((k) => ({
+        idKategori: k.idKategori,
+        idMerk: k.idMerk,
+        idBarang: k.idBarang,
+      })),
       minQty: sumber?.minQty ? formatDesimal(sumber.minQty) : null,
       minBelanja: sumber?.minBelanja ?? null,
       keterangan: sumber?.keterangan ?? '',
@@ -221,6 +256,7 @@ function DialogPromo({
         'gratisQty',
         'sasaran',
         'idSasaran',
+        'kelompok',
         'minQty',
         'minBelanja',
         'keterangan',
@@ -420,6 +456,8 @@ function DialogPromo({
                         field.onChange(v);
                         setItemSasaran([]);
                         form.setValue('idSasaran', []);
+                        setIsiKelompok([]);
+                        form.setValue('kelompok', []);
                       }}
                       disabled={terkunci}
                     >
@@ -451,7 +489,38 @@ function DialogPromo({
                   </FormItem>
                 )}
               />
-              {sasaran !== 'SEMUA' && (
+              {sasaran === 'KELOMPOK' && (
+                <FormField
+                  control={form.control}
+                  name="kelompok"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Kelompok sasaran</FormLabel>
+                      <FormDescription>
+                        Dalam satu kelompok semua isian harus cocok (mis. kategori Cat DAN merk
+                        Avian = hanya cat merk Avian). Barang kena promo bila cocok dengan salah
+                        satu kelompok.
+                      </FormDescription>
+                      <PilihKelompok
+                        value={isiKelompok}
+                        disabled={terkunci}
+                        onChange={(v) => {
+                          setIsiKelompok(v);
+                          field.onChange(
+                            v.map(({ idKategori, idMerk, idBarang }) => ({
+                              idKategori,
+                              idMerk,
+                              idBarang,
+                            })),
+                          );
+                        }}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              {sasaran !== 'SEMUA' && sasaran !== 'KELOMPOK' && (
                 <FormField
                   control={form.control}
                   name="idSasaran"
@@ -568,12 +637,14 @@ function DialogPromo({
                   name="hargaKhusus"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Harga khusus per satuan dasar</FormLabel>
+                      <FormLabel>Harga jual jadi per satuan dasar</FormLabel>
                       <FormControl>
                         <InputRupiah {...field} disabled={terkunci} aria-label="Harga khusus" />
                       </FormControl>
                       <FormDescription>
-                        Hanya berlaku bila lebih murah dari harga tier barang itu.
+                        Yang dibayar pembeli per satuan, bukan besar potongannya. Mis. harga Rp
+                        50.000, isi Rp 48.000 → pembeli bayar Rp 48.000 (hemat Rp 2.000). Tidak
+                        berlaku bila harga tier barang sudah lebih murah.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -607,6 +678,42 @@ function DialogPromo({
                   <p className="col-span-2 text-xs text-slate-500">
                     Barang yang sama, satuan dasar. Kasir mengetik qty yang dibawa pembeli (termasuk
                     yang gratis); mis. beli 10 gratis 1, qty 22 = 2 gratis.
+                  </p>
+                </div>
+              )}
+              {jenis === 'BELI_POTONG' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <FormField
+                    control={form.control}
+                    name="beliQty"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Setiap beli</FormLabel>
+                        <FormControl>{isianQty(field, 'Qty beli', 'mis. 2')}</FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="potonganNominal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>potong</FormLabel>
+                        <FormControl>
+                          <InputRupiah
+                            {...field}
+                            disabled={terkunci}
+                            aria-label="Potongan per kelipatan"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="col-span-2 text-xs text-slate-500">
+                    Satuan dasar, berlaku per kelipatan: beli 2 potong Rp 2.000 → qty 5 dipotong Rp
+                    4.000 (dua kali 2), qty 1 tidak dipotong.
                   </p>
                 </div>
               )}
@@ -1031,9 +1138,16 @@ export function TabPromo() {
                 hour 13:00–15:00). Barang: semua, atau beberapa barang/kategori/merk sekaligus.
               </li>
               <li>
-                Manfaat: potongan persen, potongan rupiah per satuan, <b>harga khusus</b> per
-                satuan, atau <b>beli X gratis Y</b> (barang yang sama; kasir mengetik seluruh qty
-                yang dibawa, yang gratis dipotong otomatis).
+                <b>Kombinasi</b>: tiap kelompok berisi kategori, merk, dan/atau barang yang harus
+                cocok semuanya (kategori Cat DAN merk Avian = hanya cat Avian). Boleh beberapa
+                kelompok; barang kena promo bila cocok dengan salah satunya.
+              </li>
+              <li>
+                Manfaat: potongan persen; potongan rupiah per satuan; <b>harga khusus</b> = harga
+                jual jadi per satuan (yang dibayar pembeli, mis. Rp 50.000 → Rp 48.000), bukan besar
+                potongan; <b>beli X gratis Y</b> (barang yang sama; kasir mengetik seluruh qty yang
+                dibawa, yang gratis dipotong otomatis); <b>beli N potong Rp X</b> per kelipatan N
+                (beli 2 potong Rp 2.000: qty 5 dipotong Rp 4.000).
               </li>
               <li>
                 <b>Templat kampanye</b> menyimpan isian promo untuk dipakai lagi (menu ⋯ › Simpan

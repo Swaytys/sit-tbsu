@@ -12,7 +12,13 @@ import { jumlahPerluDipesan } from '../../persediaan/saran-pesan/service';
 import { peringatanStok } from '../../persediaan/stok/service';
 import { pengingatArmada } from '../../master/armada/service';
 import { peringatanCadangan } from '../cadangan/service';
-import { rincianHutang, rincianPengajuan, rincianPiutang, rincianRefundTransfer } from './rincian';
+import {
+  rincianHutang,
+  rincianMuatanKosong,
+  rincianPengajuan,
+  rincianPiutang,
+  rincianRefundTransfer,
+} from './rincian';
 
 /** Notifikasi topbar per pengguna (docs/05 ST2), disaring menurut izin. */
 export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifikasi[]> {
@@ -147,6 +153,19 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         rincian: await rincianPengajuan('void_transaksi'),
         jumlah: n,
         tautan: '/void?tab=persetujuan',
+      });
+    }
+  }
+  if (izin.has('master.barang.kelola')) {
+    const m = await rincianMuatanKosong();
+    if (m.jumlah > 0) {
+      hasil.push({
+        jenis: 'MUATAN_KOSONG',
+        judul: 'Barang kirim tanpa data muatan',
+        keterangan: `${m.jumlah} barang di order pengantaran belum punya berat/ukuran: muatan kendaraan tidak bisa dihitung penuh.`,
+        rincian: m.rincian,
+        jumlah: m.jumlah,
+        tautan: '/barang?muatan=belum',
       });
     }
   }

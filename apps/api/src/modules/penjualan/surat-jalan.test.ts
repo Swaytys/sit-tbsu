@@ -666,6 +666,17 @@ describe('muatan kendaraan (K-161, docs/13 §3)', () => {
     expect(salah.status).toBe(400);
   });
 
+  it('K-170: barang tanpa data muatan ditandai di Backlog dan masuk notifikasi Admin', async () => {
+    const inv = await invoice(); // semen & pasir belum punya data muatan
+    let perlu = await ambil<PerluDikirim[]>(kasir, '/api/surat-jalan/perlu-kirim');
+    expect(perlu.find((p) => p.idPenjualan === inv.id)?.baris[0]?.tanpaMuatan).toBe(true);
+    const notif = await ambil<{ jenis: string; jumlah: number }[]>(admin, '/api/notifikasi');
+    expect(notif.find((n) => n.jenis === 'MUATAN_KOSONG')?.jumlah).toBe(2);
+    await siapkanMuatan();
+    perlu = await ambil<PerluDikirim[]>(kasir, '/api/surat-jalan/perlu-kirim');
+    expect(perlu.find((p) => p.idPenjualan === inv.id)?.baris[0]?.tanpaMuatan).toBe(false);
+  });
+
   it('berat di atas daya angkut ditolak; volume sedikit lebih butuh alasan; aman tercatat di perjalanan', async () => {
     await siapkanMuatan();
     const inv = await invoice(); // semen 5 sak = 250 kg, 0,189 m³ (pasir tanpa data)

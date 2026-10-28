@@ -143,12 +143,16 @@ v3.26 (K-163): `mulai_pada`/`selesai_pada` (timestamptz, CHECK selesai > mulai),
 `templat`; `jenis_potongan` + HARGA_KHUSUS, GRATIS (CHECK `chk_promo_nilai` per jenis); `sasaran` + MERK.
 **`promo_sasaran`** (id_promo + tepat satu dari id_barang/id_kategori/id_merk, CHECK `num_nonnulls = 1`, unik per
 promo) menggantikan `promo.id_kategori`/`id_barang` (dipindah di migrasi 0029, kolom dihapus di 0030).
+v3.34 (K-185): `sasaran` + KELOMPOK; untuk KELOMPOK satu baris `promo_sasaran` = satu kelompok berisi 1–3 kolom
+sekaligus (CHECK `chk_promo_sasaran_isi`: `num_nonnulls >= 1`, menggantikan `chk_promo_sasaran_satu`).
+`jenis_potongan` + BELI_POTONG (`beli_qty` > 0 dan `potongan_nominal` > 0, kolom lain kosong; `chk_promo_nilai`).
 
 ### 3.3 Persediaan
 
 **`persediaan`** — satu baris per barang, dibuat saat barang dibuat. `stok_fisik` (bucket BAIK), `stok_dipesan`,
 `stok_tersedia` (generated = fisik − dipesan), `stok_rusak` (bucket RUSAK, M2), `hpp_rata2`, `harga_beli_terakhir`,
-`tanggal_beli_terakhir`. CHECK: fisik ≥ 0, 0 ≤ dipesan ≤ fisik, rusak ≥ 0. Konsekuensi CHECK dipesan ≤ fisik:
+`tanggal_beli_terakhir`, `harga_fifo` (v3.35, K-184: harga beli lapisan stok tertua yang masih ada, docs/05 L12;
+CHECK `chk_persediaan_fifo` ≥ 0). CHECK: fisik ≥ 0, 0 ≤ dipesan ≤ fisik, rusak ≥ 0. Konsekuensi CHECK dipesan ≤ fisik:
 penyesuaian yang menurunkan fisik di bawah dipesan ditolak; pengguna harus membatalkan/checkout order penahan dulu
 (UI menunjukkan order mana).
 
@@ -337,7 +341,7 @@ Semua sinkronisasi terjadi **di transaksi DB yang sama** dengan penulisan sumber
 
 | Kolom cache | Sumber kebenaran | Disinkronkan oleh |
 |---|---|---|
-| `persediaan.stok_fisik`, `stok_rusak`, `hpp_rata2`, `harga_beli_terakhir`, `terakhir_mutasi` | `mutasi_persediaan` | `ledger.catatMutasi()` |
+| `persediaan.stok_fisik`, `stok_rusak`, `hpp_rata2`, `harga_beli_terakhir`, `terakhir_mutasi`, `harga_fifo` | `mutasi_persediaan` | `ledger.catatMutasi()` |
 | `persediaan.stok_dipesan` | `order_penjualan_detail.qty_dasar` untuk order MENUNGGU/DIPROSES | service order (kirim ke antrean, ubah detail, batal, checkout) |
 | `order_penjualan.subtotal`, `total` | detail | service order |
 | `penjualan.total_dibayar`, `status_pembayaran` | `pembayaran_penjualan` | service pembayaran |
@@ -551,6 +555,10 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-28 — v3.35: `persediaan.harga_fifo` [CACHE] + CHECK `chk_persediaan_fifo`, diisi dari ledger saat migrasi;
+  konfigurasi `dasar_markup` boleh `FIFO` (migrasi 0038, K-184).
+- 2026-10-28 — v3.34: `promo.sasaran` KELOMPOK dan `jenis_potongan` BELI_POTONG; `promo_sasaran` boleh berisi
+  beberapa kolom per baris (CHECK `chk_promo_sasaran_isi`) (migrasi 0037, K-185).
 - 2026-10-28 — v3.33: `surat_jalan_hasil.id_retur_rusak`; `surat_jalan_hasil_detail.alasan_kembali`, `alasan_rusak`
   (CHECK `chk_surat_jalan_hasil_alasan`); `retur_penjualan.nominal_refund`, `status_transfer` MENUNGGU/SELESAI,
   `waktu_transfer`, `id_pengguna_transfer` (CHECK `chk_retur_transfer`) (migrasi 0036, K-176).

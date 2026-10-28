@@ -74,6 +74,7 @@ export function FormHarga({ pengaturan }: { pengaturan: Pengaturan }) {
                       <SelectItem value="HARGA_BELI_TERAKHIR">
                         Harga beli terakhir (Latest cost)
                       </SelectItem>
+                      <SelectItem value="FIFO">Stok tertua dulu (FIFO)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>
@@ -115,8 +116,10 @@ export function FormHarga({ pengaturan }: { pengaturan: Pengaturan }) {
                   <b>Harga beli terakhir (Latest cost / replacement cost).</b> Harga jual dihitung
                   dari harga pembelian paling baru, seakan-akan stok yang dijual harus dibeli lagi
                   dengan harga itu. Harga jual langsung mengikuti kenaikan pemasok, sehingga toko
-                  tidak rugi saat harus belanja ulang. Ini <i>mirip</i> semangat LIFO (yang terakhir
-                  masuk menentukan), tetapi bukan LIFO: stok tidak dinilai per lapisan pembelian.
+                  tidak rugi saat harus belanja ulang. Ini <b>bukan LIFO</b>: harga beli terakhir
+                  memakai <i>satu</i> harga (pembelian paling baru) untuk seluruh stok, sedangkan
+                  LIFO menghitung stok per lapisan pembelian, dari yang terbaru sampai lapisan itu
+                  habis, baru lapisan sebelumnya.
                 </li>
                 <li>
                   <b>LIFO (Last In, First Out)</b> menilai stok dengan menganggap barang yang
@@ -124,17 +127,22 @@ export function FormHarga({ pengaturan }: { pengaturan: Pengaturan }) {
                   diperbolehkan (PSAK 14), jadi tidak disediakan sebagai metode penilaian.
                 </li>
                 <li>
-                  <b>FIFO (First In, First Out)</b> menganggap barang yang lebih dulu masuk dijual
-                  lebih dulu, sehingga dasar harganya adalah harga beli lama sampai stok lama habis.
-                  Untuk itu sistem harus mencatat setiap lapisan pembelian; aplikasi ini memakai
-                  rata-rata tertimbang (K-008), jadi FIFO hanya tampil sebagai pembanding di
-                  kalkulator.
+                  <b>Stok tertua dulu (FIFO, First In, First Out)</b> menganggap barang yang lebih
+                  dulu masuk dijual lebih dulu, sehingga dasar harganya adalah harga beli stok lama
+                  sampai stok lama itu habis. Aplikasi menelusuri catatan barang masuk dari yang
+                  terbaru sampai jumlahnya menutup stok sekarang; harga lapisan terakhir yang
+                  tersentuh = dasar. Contoh: stok 20 sak (10 dibeli Rp 60.000, lalu 10 dibeli Rp
+                  65.000) → dasar Rp 60.000. Setelah 10 sak terjual → dasar Rp 65.000, dan harga
+                  jual otomatis ikut naik (bila turun, barang ditandai <i>perlu tinjau</i>). Jadi
+                  dengan FIFO harga jual bisa berubah setelah penjualan, bukan hanya setelah barang
+                  datang.
                 </li>
                 <li>
                   <b>Yang tidak berubah oleh pilihan ini:</b> nilai persediaan dan HPP di laporan
-                  laba selalu rata-rata tertimbang. Pilihan ini hanya menentukan angka dasar harga
-                  jual otomatis. Setelah diubah, barang yang harganya berubah ditandai{' '}
-                  <i>perlu tinjau</i> (atau langsung naik bila harga otomatis).
+                  laba selalu rata-rata tertimbang (K-008), juga bila dasar markup FIFO. Pilihan ini
+                  hanya menentukan angka dasar harga jual otomatis. Setelah diubah, barang yang
+                  harganya berubah ditandai <i>perlu tinjau</i> (atau langsung naik bila harga
+                  otomatis).
                 </li>
                 <li>
                   <b>Pembulatan</b>: harga hasil markup dibulatkan <i>ke atas</i> ke kelipatan angka

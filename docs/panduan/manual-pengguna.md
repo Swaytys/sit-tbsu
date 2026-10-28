@@ -427,10 +427,16 @@ Semua tugas kasir, ditambah:
      tidak ada yang dipilih = setiap hari) dan **Jam harian** mulai–sampai (mis. 13:00–15:00 untuk happy hour).
   2. **Barang**: **Semua barang**, atau **Per barang / Per kategori / Per merk (pilih beberapa)**: tambahkan satu
      per satu (barang lewat kotak cari, kategori/merk lewat daftar), hapus dengan ×. Minimal qty per baris (opsional).
+     **Kombinasi kategori + merk + barang**: klik **Tambah kelompok**, lalu isi kategori, merk, dan/atau barang
+     (kosong = semua). Di dalam satu kelompok semuanya harus cocok: kategori *Cat* + merk *Avian* = hanya cat merk
+     Avian. Barang kena promo bila cocok dengan salah satu kelompok (tulisan ATAU di antara kelompok). Kotak barang
+     hanya menampilkan barang dari kategori/merk yang dipilih di kelompok itu.
   3. **Manfaat**: **Potongan persen** (boleh batas rupiah per baris), **Potongan rupiah per satuan**, **Harga
-     khusus** (harga per satuan dasar; hanya berlaku bila lebih murah dari harga biasanya), atau **Beli X gratis Y**
-     (barang yang sama; mis. setiap beli 10 gratis 1). Untuk beli X gratis Y, kasir mengetik **semua** qty yang
-     dibawa pembeli (mis. 11), yang gratis otomatis menjadi potongan.
+     khusus (harga jadi)** (isi harga yang dibayar pembeli per satuan dasar, bukan besar potongannya: harga Rp
+     50.000 diisi Rp 48.000 = hemat Rp 2.000; tidak berlaku bila harga biasanya sudah lebih murah), **Beli X gratis Y**
+     (barang yang sama; mis. setiap beli 10 gratis 1), atau **Beli N potong Rp X** (setiap kelipatan N dipotong
+     Rp X: beli 2 potong Rp 2.000, qty 5 dipotong Rp 4.000). Untuk beli X gratis Y, kasir mengetik **semua** qty
+     yang dibawa pembeli (mis. 11), yang gratis otomatis menjadi potongan.
   4. **Syarat** (opsional): minimal total belanja, pembeli tertentu, riwayat belanja pelanggan.
   5. **Batas uang** (opsional): anggaran dan batas per pembeli (lihat di bawah).
   **Templat kampanye**: di daftar promo klik ⋯ › **Simpan sebagai templat** (isinya disalin, waktunya tidak). Klik
@@ -614,11 +620,16 @@ Semua tugas kasir, ditambah:
   dan hari ramai, promo, retur dan void. Untuk dicetak/Excel pakai **Laporan lengkap / cetak**.
 - **Laporan lengkap**: stok rekap, kartu stok, stok minimum, nilai persediaan (termasuk informasi barang rusak),
   riwayat harga beli (bandingkan harga antarpemasok), promo, gross profit (laba kotor), hutang usaha, umur
-  piutang, konsinyasi. Daftar laporan di kiri berupa tiga kelompok (Persediaan, Penjualan, Keuangan) yang bisa
-  dibuka dan ditutup dengan mengklik namanya; pilihan itu diingat di komputer tersebut.
+  piutang, konsinyasi. Di bagian atas ada tiga tombol kelompok (**Laporan Persediaan**, **Laporan Penjualan**,
+  **Laporan Keuangan**); klik salah satu lalu pilih jenis laporannya. Tombol kelompok laporan yang sedang dibuka
+  berwarna biru. Pratinjau di bawahnya tampil per lembar A4 seperti hasil cetak (Halaman 1, 2, 3, …); deretan
+  nomor di atas lembar pertama meloncat ke halaman itu.
 - **Pengaturan**: profil toko & logo, struk & printer, penomoran, aturan operasional (termasuk jadwal shift),
   pembayaran (rekening penerimaan), harga dasar (cara menghitung harga jual otomatis, dengan kalkulator contoh),
-  promo, keamanan, persetujuan, cadangan.
+  promo, keamanan, persetujuan, cadangan. Di **Harga dasar › Dasar markup** ada tiga pilihan: rata-rata
+  tertimbang, harga beli terakhir, dan **stok tertua dulu (FIFO)**. Dengan FIFO, harga jual dihitung dari harga
+  beli stok paling lama yang masih ada; setelah stok lama itu habis terjual, harga jual otomatis ikut naik ke harga
+  stok berikutnya (bila turun, barangnya muncul di Tinjau Harga). Laporan laba tetap memakai rata-rata.
 - **Mencetak laporan, invoice, atau surat jalan** (kertas A4): di jendela cetak, periksa kotak **Printer**
   lebih dulu. Peramban mengingat printer yang terakhir dipakai, jadi bila sebelumnya mencetak ke printer struk,
   ganti ke printer A4. Ukuran dan arah kertas sudah diatur tiap dokumen. Agar tidak perlu berganti-ganti,
@@ -670,6 +681,10 @@ Semua tugas admin, ditambah:
   penting (mis. dari biru menjadi kuning), pengingat tampil penuh lagi.
 - **Daftar tombol keyboard** di bawah layar Order, Penjualan Langsung, Pengantaran, dan Pengiriman bisa diciutkan
   dengan **Ciutkan** atau **Ctrl+/** (tekan lagi untuk membuka). Di layar pendek ia mulai dalam keadaan tertutup.
+  Di Penjualan Langsung dan Pengantaran daftar ini ada di sebelah kanan tab (*Kasir*, *Riwayat*, …).
+- **Pindah dan gulir panel di layar kasir**: **Alt+←** pindah ke antrean (kiri), **Alt+→** pindah ke transaksi
+  (kanan). **PgUp/PgDn** menggulir panel yang sedang aktif, mis. keranjang yang panjang. Dengan mouse cukup klik
+  panelnya dan gulir dengan roda tetikus.
 - **Teks yang terpotong** (catatan, alamat): klik **lihat semua** untuk membacanya utuh, **ringkas** untuk menutup.
 
 - Jangan berbagi akun: setiap aksi tercatat atas nama pemilik akun.

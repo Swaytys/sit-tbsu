@@ -154,7 +154,7 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     kode: 'dasar_markup',
     nilai: 'HARGA_BELI_TERAKHIR',
     tipe: 'TEKS',
-    deskripsi: 'HARGA_BELI_TERAKHIR atau HPP_RATA2 (K-009)',
+    deskripsi: 'HARGA_BELI_TERAKHIR, HPP_RATA2, atau FIFO (K-009, K-184)',
   },
   {
     kode: 'pembulatan_harga',

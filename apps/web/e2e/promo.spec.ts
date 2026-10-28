@@ -203,3 +203,68 @@ test('K-163: kampanye per barang (dua barang), beli 2 gratis 1, simpan sebagai t
     }
   }
 });
+
+test('K-185: kombinasi kategori + barang, beli N potong Rp X', async ({ page }) => {
+  test.slow();
+  const kode = Date.now();
+  await masukCepat(page, 'ADMIN');
+  const a = await barangUji(page, `Kombinasi A ${kode}`, 5000);
+  const b = await barangUji(page, `Kombinasi B ${kode}`, 5000);
+  const kategori = await api<{ id: number; nama: string }[]>(page, '/kategori?status=AKTIF');
+  const namaPromo = `Kombinasi E2E ${kode}`;
+  const dibuat: number[] = [];
+  try {
+    await page.goto('/pengaturan?tab=promo');
+    await page.getByRole('button', { name: 'Buat promo' }).click();
+    const d = page.getByRole('dialog', { name: 'Buat promo' });
+    await d.getByLabel('Nama promo').fill(namaPromo);
+    await d.getByLabel('Sasaran promo').click();
+    await page.getByRole('option', { name: 'Kombinasi kategori + merk + barang' }).click();
+    await d.getByRole('button', { name: 'Tambah kelompok' }).click();
+    await d.getByLabel('Kategori kelompok 1').selectOption(String(kategori[0]!.id));
+    await d.getByLabel('Barang kelompok 1').fill(a.kode);
+    await expect(page.getByRole('option', { name: new RegExp(a.kode) })).toBeVisible();
+    await d.getByLabel('Barang kelompok 1').press('Enter');
+    await expect(d.getByRole('group', { name: 'Kelompok 1' })).toContainText(a.kode);
+    await d.getByLabel('Jenis manfaat').click();
+    await page.getByRole('option', { name: 'Beli N potong Rp X' }).click();
+    await d.getByLabel('Qty beli').fill('2');
+    await d.getByLabel('Potongan per kelipatan').fill('1000');
+    await d.getByRole('button', { name: 'Simpan' }).click();
+    await expect(page.getByText(new RegExp(`Promo ${namaPromo} dibuat`))).toBeVisible();
+    const p = (await api<{ id: number }[]>(page, `/promo?cari=${kode}`))[0]!;
+    dibuat.push(p.id);
+    await page.getByLabel('Cari promo').fill(namaPromo);
+    await expect(page.getByRole('row').filter({ hasText: namaPromo })).toContainText(
+      'beli 2 potong Rp 1.000',
+    );
+
+    // A qty 5 = dua kelipatan 2 → Rp 2.000; B (kategori sama, barang lain) tidak kena.
+    const pr = await api<{ baris: { namaPromo: string | null; diskonPromo: number }[] }>(
+      page,
+      '/order/pratinjau',
+      'POST',
+      {
+        idOrder: null,
+        order: {
+          jenisPenjualan: 'LANGSUNG',
+          baris: [
+            { idBarang: a.id, qty: '5' },
+            { idBarang: b.id, qty: '5' },
+          ],
+        },
+      },
+    );
+    expect(pr.baris.map((x) => [x.namaPromo, x.diskonPromo])).toEqual([
+      [namaPromo, 2000],
+      [null, 0],
+    ]);
+  } finally {
+    for (const id of dibuat) {
+      await api(page, `/promo/${id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+    }
+    for (const x of [a, b]) {
+      await api(page, `/barang/${x.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });
+    }
+  }
+});

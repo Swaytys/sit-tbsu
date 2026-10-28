@@ -24,13 +24,25 @@ prioritas di bagian akhir.
   volume, toleransi pembulatan) dan menolak/memperingatkan bila berbeda; volume yang selaras dihitung otomatis dari
   P × L × T. Contoh barang yang wajar memiliki keduanya: dus/kotak kemasan (dimensi luar) dengan isi cairan dalam
   liter (cat 5 L dalam kaleng 20 × 20 × 25 cm) — di sini volume isi ≠ volume kemasan, jadi atribut "isi" (liter)
-  diperlakukan sebagai atribut produk, bukan volume muatan. *Rencana.*
+  diperlakukan sebagai atribut produk, bukan volume muatan. *Rencana.* **Selesai (28 Okt):** saat barang disimpan,
+  data muatan kosong diisi dari atribut Panjang/Lebar/Tinggi (lengkap ketiganya), Berat, dan Volume (barang curah)
+  setelah dikonversi satuannya; atribut yang belum ada diisi dari data muatan (cm, kg, m³); bila keduanya diisi dan
+  berbeda lebih dari 0,5% simpan ditolak dengan pesan yang menyebut kedua angka. Volume barang tidak curah tidak
+  disamakan (isi produk).
 - **K-170 Barang tanpa data muatan di order pengantaran.** Notifikasi "N barang di order pengantaran belum punya
   data muatan", lencana di kartu pengantaran dan di Data Barang, serta tautan langsung ke isian muatan barang itu.
-  *Rencana.*
+  *Rencana.* **Selesai (28 Okt):** notifikasi *Barang kirim tanpa data muatan* (Admin/Owner) membuka Data Barang
+  tersaring; lencana merah *N tanpa data muatan* di kartu Backlog Pengiriman (info cepat menautkan *isi data muatan*
+  per barang); lencana *Tanpa data muatan* di daftar Data Barang.
 - **K-171 Hot page penjualan langsung/pengantaran pas layar.** Tombol untuk menggulir panel yang sedang fokus
   (atas/bawah) dan pindah fokus kiri/kanan; tulisan "(Menghitung…)" diganti ikon kecil (**Selesai**); kotak
   "Belanja Rp … lagi" diperkecil, bilah pintasan dipindah sejajar tab Kasir/Riwayat/Belum diambil. *Sebagian.*
+  **Selesai (28 Okt):** di Penjualan Langsung dan Pengantaran, **Alt+←** memindah fokus ke panel antrean (kiri) dan
+  **Alt+→** ke panel transaksi (kanan; ke keranjang bila sudah berisi); Alt+← tidak lagi membuat peramban kembali ke
+  halaman sebelumnya. **PgUp/PgDn** menggulir panel yang sedang aktif (antrean, keranjang, …), bukan halaman. Kotak
+  tier (*Belanja Rp … lagi*, *Harga … berlaku*) versi kecil satu baris. Bilah pintasan pindah ke baris tab (kanan
+  tab Kasir/Riwayat/Belum diambil, atau Antrean/Invoice), sehingga area kerja lebih tinggi. Dengan mouse: klik
+  panel untuk memindah fokus, roda tetikus untuk menggulir.
 - **K-172 Lencana topbar responsif.** Lencana shift (mis. "Shift kemarin belum ditutup") tidak boleh meluap saat
   layar dipersempit (**Selesai**: teks dipendekkan dan disembunyikan di layar sempit, tetap ada judul lengkap).
 - **K-173 Kartu Pengiriman lebih informatif.** Tombol info cepat (pop-up: pelanggan, telepon, catatan, barang),
@@ -88,16 +100,34 @@ prioritas di bagian akhir.
   aktivitas terkini Dashboard, riwayat penjualan, daftar retur, dan papan Pengiriman. Dokumen pembelian (PO,
   penerimaan) menyusul.
 - **K-182 Laporan per halaman A4.** Menu jenis laporan pindah ke atas; pratinjau dibagi per halaman A4 (1, 2, 3, …)
-  dengan ukuran besar dan jelas seperti pratinjau cetak. *Rencana.*
+  dengan ukuran besar dan jelas seperti pratinjau cetak. *Rencana.* **Selesai (28 Okt):** daftar laporan kini
+  bilah di atas berisi tiga tombol kelompok (Persediaan, Penjualan, Keuangan) yang membuka menu jenis laporan; area
+  pratinjau memakai lebar penuh. Pratinjau dibagi lembar A4 bernomor (potret/lanskap sesuai laporan, margin sama
+  dengan cetak) dengan kaki *nama toko · judul* dan *Halaman i dari n*, serta tombol loncat ke halaman. Halaman tidak
+  memotong baris tabel. Kertas hanya diperkecil bila tidak muat lebar layar. Pembagian akhir saat dicetak bisa sedikit
+  berbeda menurut printer; judul kolom tabel diulang di tiap halaman hanya pada hasil cetak.
 - **K-183 Pemeriksaan data diperluas** ke nama/alamat ganda, barang tanpa harga/kategori/satuan, data muatan kosong,
-  dll. *Rencana.*
+  dll. *Rencana.* **Selesai (28 Okt):** *Pengaturan › Pemeriksaan data* juga mencari alamat sama (pelanggan/pemasok
+  aktif) dan kartu baru *Belum lengkap*: barang tanpa harga jual tier dasar, barang dengan kategori/satuan
+  nonaktif, barang tanpa data muatan, pelanggan tanpa alamat, pemasok tanpa No. HP (contoh berupa tautan ke data).
 - **K-184 Harga dasar FIFO.** FIFO ditambahkan sebagai pilihan; penjelasan bahwa *harga beli terakhir* (latest cost)
   bukan LIFO: latest cost memakai satu harga terakhir untuk semua stok, LIFO menghitung lapisan stok dari pembelian
-  terbaru sampai habis. *Rencana.*
+  terbaru sampai habis. *Rencana.* **Selesai (28 Okt):** *Pengaturan › Harga dasar › Dasar markup* punya pilihan
+  ketiga **Stok tertua dulu (FIFO)**: dasar harga jual = harga beli lapisan stok tertua yang masih ada, ditelusuri
+  dari catatan barang masuk (docs/05 L12, kolom cache `persediaan.harga_fifo`, migrasi 0038). Karena stok lama bisa
+  habis karena penjualan, dengan FIFO harga jual otomatis bisa naik setelah penjualan (turun → ditandai Tinjau Harga),
+  bukan hanya setelah barang datang. HPP, nilai persediaan, dan laporan laba tetap rata-rata tertimbang (K-008);
+  FIFO hanya dasar harga jual. Penjelasan "?" menegaskan harga beli terakhir bukan LIFO (satu harga untuk seluruh
+  stok vs lapisan).
 - **K-185 Promo: sasaran AND bertingkat dan potongan setelah beli N.** Satu kelompok sasaran = kategori AND merk AND
   barang (mengerucut); boleh banyak kelompok (OR antar kelompok). Jenis baru: *beli N potong Rp X* (mis. beli 2
   potong Rp 2.000). "Harga khusus per satuan" dijelaskan ulang di "?" (harga jual menjadi angka tetap, bukan
-  dipotong) atau digabung bila membingungkan. *Rencana.*
+  dipotong) atau digabung bila membingungkan. *Rencana.* **Selesai (28 Okt):** *Berlaku untuk* →
+  **Kombinasi kategori + merk + barang**: tiap kelompok berisi kategori, merk, dan/atau barang yang harus cocok
+  semuanya (pilihan barang disaring menurut kategori/merk kelompok); antar kelompok = ATAU (PR16). Jenis manfaat
+  **Beli N potong Rp X** berlaku per kelipatan N, sama seperti beli X gratis Y (beli 2 potong Rp 2.000: qty 5 →
+  Rp 4.000) (PR17). *Harga khusus* tidak digabung, tetapi diberi nama *Harga khusus (harga jadi)* dan dijelaskan di
+  form dan "?": angka yang dibayar pembeli per satuan, bukan besar potongan. Migrasi 0037.
 - **K-186 Aplikasi saat ditutup.** Menutup tab/jendela saat shift masih terbuka memunculkan peringatan peramban
   (**Selesai**); aplikasi menyala otomatis saat Windows dimulai (server sudah; pintasan peramban di folder Startup
   ditambahkan pemasang, **Selesai**). Shift yang tertinggal terbuka tetap aman: muncul sebagai "Shift kemarin belum

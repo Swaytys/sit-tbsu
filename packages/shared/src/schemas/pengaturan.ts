@@ -135,7 +135,9 @@ export const skemaOperasional = z
     { path: ['shiftJamTutup'], message: 'Jam tutup shift harus setelah jam buka.' },
   );
 
-export const DASAR_MARKUP = ['HARGA_BELI_TERAKHIR', 'HPP_RATA2'] as const;
+/** Dasar markup harga jual otomatis (docs/06 H3). K-184: FIFO = harga beli lapisan stok tertua yang masih ada. */
+export const DASAR_MARKUP = ['HARGA_BELI_TERAKHIR', 'HPP_RATA2', 'FIFO'] as const;
+export type DasarMarkup = (typeof DASAR_MARKUP)[number];
 
 export const skemaHargaDiskon = z.object({
   dasarMarkup: z.enum(DASAR_MARKUP),
