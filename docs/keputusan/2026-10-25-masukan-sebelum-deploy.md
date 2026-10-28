@@ -96,7 +96,9 @@ prioritas di bagian akhir.
 - **K-182 Laporan per halaman A4.** Menu jenis laporan pindah ke atas; pratinjau dibagi per halaman A4 (1, 2, 3, …)
   dengan ukuran besar dan jelas seperti pratinjau cetak. *Rencana.*
 - **K-183 Pemeriksaan data diperluas** ke nama/alamat ganda, barang tanpa harga/kategori/satuan, data muatan kosong,
-  dll. *Rencana.*
+  dll. *Rencana.* **Selesai (28 Okt):** *Pengaturan › Pemeriksaan data* juga mencari alamat sama (pelanggan/pemasok
+  aktif) dan kartu baru *Belum lengkap*: barang tanpa harga jual tier dasar, barang dengan kategori/satuan
+  nonaktif, barang tanpa data muatan, pelanggan tanpa alamat, pemasok tanpa No. HP (contoh berupa tautan ke data).
 - **K-184 Harga dasar FIFO.** FIFO ditambahkan sebagai pilihan; penjelasan bahwa *harga beli terakhir* (latest cost)
   bukan LIFO: latest cost memakai satu harga terakhir untuk semua stok, LIFO menghitung lapisan stok dari pembelian
   terbaru sampai habis. *Rencana.*

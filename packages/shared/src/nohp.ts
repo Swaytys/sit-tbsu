@@ -99,6 +99,13 @@ export type HasilPemeriksaanData = {
   ganda: { jenis: 'pelanggan' | 'pemasok' | 'barang'; alasan: string; data: DataMirip[] }[];
   /** Data dengan format salah (`alasan` = masalahnya). */
   format: (DataMirip & { jenis: 'pelanggan' | 'pemasok' | 'barang' })[];
+  /** K-183: data aktif yang belum lengkap, dikelompokkan per masalah (paling banyak 50 contoh per kelompok). */
+  kurang: {
+    jenis: 'pelanggan' | 'pemasok' | 'barang';
+    alasan: string;
+    jumlah: number;
+    data: DataMirip[];
+  }[];
 };
 
 export type HasilRapikanNoHp = { diubah: number; gagal: string[] };

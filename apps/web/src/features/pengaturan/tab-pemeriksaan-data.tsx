@@ -34,7 +34,9 @@ export function TabPemeriksaanData() {
         <div className="min-w-0 flex-1 basis-80">
           <h2 className="font-semibold text-slate-900">Pemeriksaan data</h2>
           <p className="text-sm text-slate-500">
-            Data lama yang mungkin dobel atau formatnya salah. Data baru sudah dicegah otomatis.
+            Data lama yang mungkin dobel (nama, No. HP, atau alamat sama), formatnya salah, atau
+            belum lengkap (barang tanpa harga jual/data muatan, kategori atau satuan nonaktif,
+            pelanggan tanpa alamat). Data baru sudah dicegah otomatis.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -127,6 +129,40 @@ export function TabPemeriksaanData() {
                     </Link>
                     <span className="text-xs text-slate-500">{LABEL[f.jenis]}</span>
                     <span className="text-xs text-amber-800">{f.alasan}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+          <Card className="gap-2 p-4" data-testid="belum-lengkap">
+            <h3 className="text-sm font-semibold text-slate-800">
+              Belum lengkap ({h.kurang.reduce((t, k) => t + k.jumlah, 0)})
+            </h3>
+            {h.kurang.length === 0 ? (
+              <p className="text-sm text-slate-500">Tidak ada.</p>
+            ) : (
+              <ul className="divide-y text-sm">
+                {h.kurang.map((k) => (
+                  <li key={`${k.jenis}-${k.alasan}`} className="py-2">
+                    <div className="text-xs font-medium text-amber-800">
+                      {LABEL[k.jenis]} {k.alasan}: {k.jumlah}
+                      {k.jumlah > k.data.length && ` (${k.data.length} pertama ditampilkan)`}
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {k.data.map((d) => (
+                        <Link
+                          key={d.id}
+                          to={
+                            k.jenis === 'barang'
+                              ? `/barang/${d.id}`
+                              : `${HALAMAN[k.jenis]}?cari=${encodeURIComponent(d.kode)}`
+                          }
+                          className="text-blue-700 hover:underline"
+                        >
+                          <span className="font-mono text-xs">{d.kode}</span> {d.nama}
+                        </Link>
+                      ))}
+                    </div>
                   </li>
                 ))}
               </ul>
