@@ -41,18 +41,10 @@ import {
 import { pesanGalat } from '@/api/client';
 import { useDaftarSuratJalan, useDetailPenjualan } from '@/api/penjualan';
 import { CetakSuratJalan } from '@/components/cetak-surat-jalan';
-import { SaranAlasan } from '@/components/saran-alasan';
+import { DialogAlasan } from '@/components/dialog-alasan';
 import { SARAN_ALASAN } from '@/lib/saran-alasan';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,7 +53,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { formatDesimal, formatTanggal, formatWaktu, tanggalHariIni } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { DialogHasil } from '../pengantaran/dialog-hasil';
@@ -632,64 +623,6 @@ function KartuJalan({
         })}
       </ul>
     </div>
-  );
-}
-
-function DialogAlasan({
-  judul,
-  ket,
-  label,
-  saran,
-  onTutup,
-  onKirim,
-}: {
-  judul: string;
-  ket: string;
-  label: string;
-  saran: readonly string[];
-  onTutup: () => void;
-  onKirim: (alasan: string) => Promise<unknown>;
-}) {
-  const [alasan, setAlasan] = useState('');
-  const [proses, setProses] = useState(false);
-  function kirim() {
-    if (alasan.trim().length < 3) {
-      toast.error('Alasan wajib diisi (min. 3 huruf).');
-      return;
-    }
-    setProses(true);
-    onKirim(alasan.trim())
-      .then(onTutup)
-      .catch((err: unknown) => toast.error(pesanGalat(err)))
-      .finally(() => setProses(false));
-  }
-  return (
-    <Dialog open onOpenChange={(b) => !b && onTutup()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{judul}</DialogTitle>
-          <DialogDescription>{ket}</DialogDescription>
-        </DialogHeader>
-        <Input
-          autoFocus
-          value={alasan}
-          maxLength={255}
-          onChange={(e) => setAlasan(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && kirim()}
-          placeholder="Alasan"
-          aria-label={label}
-        />
-        <SaranAlasan saran={saran} onPilih={setAlasan} />
-        <DialogFooter>
-          <Button variant="outline" onClick={onTutup}>
-            Kembali
-          </Button>
-          <Button variant="destructive" disabled={proses} onClick={kirim}>
-            Ya, batalkan
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

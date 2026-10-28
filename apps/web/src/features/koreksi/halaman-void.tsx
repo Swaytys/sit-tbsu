@@ -30,6 +30,8 @@ import {
   IsianRefund,
   SelStatusKoreksi,
 } from './komponen';
+import { SaranAlasan } from '@/components/saran-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 
 function FormAjukan() {
   const saya = usePengguna();
@@ -179,6 +181,7 @@ function FormAjukan() {
                 maxLength={255}
                 onChange={(e) => setAlasan(e.target.value)}
               />
+              <SaranAlasan saran={SARAN_ALASAN.void} onPilih={setAlasan} />
             </div>
             <IsianRefund
               nilai={refund}

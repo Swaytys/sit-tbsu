@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { formatWaktu } from '@/lib/format';
+import { SaranAlasan } from '@/components/saran-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 
 /*
  * K-165: Pengaturan › Arsip tahunan (Owner). Data tetap di database; tahun yang ditutup dikunci dan diekspor
@@ -80,6 +82,7 @@ function DialogBuka({ tahun, onTutup }: { tahun: number; onTutup: () => void }) 
           onChange={(e) => setAlasan(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && kirim()}
         />
+        <SaranAlasan saran={SARAN_ALASAN.bukaArsip} onPilih={setAlasan} />
         <DialogFooter>
           <Button variant="outline" onClick={onTutup}>
             Batal

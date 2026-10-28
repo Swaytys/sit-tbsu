@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SaranAlasan } from '@/components/saran-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 
 /**
  * Koreksi modal awal (K-121 butir 3). Modal awal tidak diubah; selisihnya dicatat sebagai kas "Koreksi modal"
@@ -102,6 +104,7 @@ export function DialogKoreksiModal({
               onChange={(e) => setAlasan(e.target.value)}
               placeholder="mis. salah ketik, kurang satu nol"
             />
+            <SaranAlasan saran={SARAN_ALASAN.koreksiModal} onPilih={setAlasan} />
           </div>
           <p className="text-xs text-slate-500">
             {butuhKode

@@ -25,4 +25,28 @@ export const SARAN_ALASAN = {
     'Salah barang/qty',
     'Masuk rit lain',
   ],
+  tolakPengajuan: [
+    'Barang tidak sesuai kondisi yang dilaporkan',
+    'Melewati batas waktu retur',
+    'Nominal/qty tidak sesuai',
+    'Perlu dicek ulang di gudang',
+  ],
+  batalPengajuan: ['Salah qty', 'Salah barang', 'Salah pilih transaksi', 'Pembeli tidak jadi'],
+  void: [
+    'Salah input barang/qty',
+    'Pembeli batal sebelum barang diambil',
+    'Transaksi ganda',
+    'Salah pilih pelanggan',
+  ],
+  bukaArsip: [
+    'Koreksi transaksi yang salah catat',
+    'Pemeriksaan pajak/audit',
+    'Data lupa diinput sebelum tutup tahun',
+  ],
+  kecualiOpname: [
+    'Lokasi barang tidak bisa diakses',
+    'Barang sedang dipinjam/di luar gudang',
+    'Dihitung di opname terpisah',
+  ],
+  koreksiModal: ['Salah hitung uang awal', 'Uang kecil belum dimasukkan', 'Salah ketik nominal'],
 } as const;

@@ -77,7 +77,9 @@ prioritas di bagian akhir.
 - **K-180 Isian otomatis dan saran alasan.** No. HP pembeli terisi dari data pelanggan (**Selesai** untuk "Simpan
   untuk diambil nanti"). Kotak alasan memakai saran sesuai konteks (batal order, void, retur, tutup PO, buka
   kembali arsip, dll.) yang bisa diklik lalu diubah (**Selesai** untuk komponen bersama dan dialog batal order;
-  dialog lain menyusul).
+  dialog lain menyusul). **Selesai seluruhnya (28 Okt):** saran alasan juga di tolak/batal pengajuan retur-void,
+  ajukan void, buka kembali arsip, kecualikan barang dari opname, koreksi modal shift, batal surat jalan, batal rit;
+  kotak `window.prompt` batal surat jalan di detail invoice diganti dialog beralasan.
 - **K-181 Info cepat di setiap kode.** Setiap kode dokumen/data yang tampil di elemen interaktif (linimasa kas,
   daftar, kartu) punya tombol info cepat (pop-up ringkas: barang, qty, total, pembeli, pengguna, status). *Rencana.*
 - **K-182 Laporan per halaman A4.** Menu jenis laporan pindah ke atas; pratinjau dibagi per halaman A4 (1, 2, 3, …)

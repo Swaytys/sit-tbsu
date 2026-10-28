@@ -16,6 +16,8 @@ import { useBatalSuratJalan, useBuatSuratJalan, useMuatSuratJalan } from '@/api/
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { DialogAlasan } from '@/components/dialog-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 import {
   Dialog,
   DialogContent,
@@ -310,7 +312,7 @@ export function KartuSuratJalan({
 }) {
   const muat = useMuatSuratJalan();
   const batal = useBatalSuratJalan();
-  const [dialog, setDialog] = useState<'hasil' | null>(null);
+  const [dialog, setDialog] = useState<'hasil' | 'batal' | null>(null);
   const langkah = sj.status === 'BATAL' ? -1 : URUTAN.indexOf(sj.status);
   const waktu: Record<string, string | null> = {
     DIPROSES: sj.tanggal,
@@ -358,14 +360,7 @@ export function KartuSuratJalan({
               size="sm"
               variant="outline"
               disabled={batal.isPending}
-              onClick={() => {
-                const alasan = window.prompt(`Alasan membatalkan ${sj.nomor}?`)?.trim();
-                if (!alasan || alasan.length < 3) return;
-                void batal
-                  .mutateAsync({ id: sj.id, alasan })
-                  .then(() => toast.success(`${sj.nomor} dibatalkan.`))
-                  .catch((err: unknown) => toast.error(pesanGalat(err)));
-              }}
+              onClick={() => setDialog('batal')}
             >
               <X /> Batalkan
             </Button>
@@ -415,6 +410,20 @@ export function KartuSuratJalan({
       </div>
       <RingkasHasil sj={sj} />
       {dialog === 'hasil' && <DialogHasil sj={sj} onTutup={() => setDialog(null)} />}
+      {dialog === 'batal' && (
+        <DialogAlasan
+          judul={`Batalkan surat jalan ${sj.nomor}?`}
+          ket="Barangnya kembali menjadi order kirim di Backlog Pengiriman."
+          label="Alasan batal surat jalan"
+          saran={SARAN_ALASAN.batalSuratJalan}
+          onTutup={() => setDialog(null)}
+          onKirim={(alasan) =>
+            batal
+              .mutateAsync({ id: sj.id, alasan })
+              .then(() => toast.success(`${sj.nomor} dibatalkan.`))
+          }
+        />
+      )}
     </Card>
   );
 }
