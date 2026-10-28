@@ -74,6 +74,7 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U139 | Penanda kartu | Papan Pengiriman, kolom *Di jalan* dan *Selesai hari ini* setelah hasil dicatat | Tiap surat jalan bertanda *Terkirim semua* / *Ada yang kembali* / *Ada yang rusak* | Belum | K-176 |
 | U140 | Kartu Pengiriman | *Pengiriman*: lihat kartu Backlog; klik (i); bagi satu order (Kirim sebagian) lalu lihat sisanya; klik saringan *Hari ini* / *Lebih lama* | #nomor antrean tebal sama di sisa dan surat jalannya; info cepat berisi telepon/alamat/catatan/barang; sisa order bergaris kuning *Sisa dibagi*; saringan menyaring Backlog | Belum | K-173 |
 | U141 | Saran alasan | Buka dialog: tolak retur/void, batalkan pengajuan, ajukan void, buka kembali arsip, kecualikan barang opname, koreksi modal shift, batalkan surat jalan (detail invoice) | Di bawah kotak alasan ada tombol-tombol saran; klik mengisi kotak (masih bisa diubah); batal surat jalan kini dialog, bukan kotak putih peramban | Belum | K-180 |
+| U142 | Info cepat nomor | Klik (i) di samping nomor: linimasa kas (Shift), Aktivitas terkini (Dashboard), Riwayat penjualan, Retur, kartu Pengiriman | Pop-up ringkas: jenis, pembeli, status, total/sisa, barang; *Buka halaman lengkap*; Esc menutup; login Staf membuka invoice → "tidak berizin" | Belum | K-181 |
 | U102 | No. HP format baru | Tambah pelanggan: ketik `0812 3456 7890` di kotak nomor | 0 dibuang dengan pemberitahuan, tersimpan `+6281234567890`; nomor 16 angka ditolak | Belum | Kode negara bisa diganti |
 | U103 | Cegah pelanggan dobel | Tambah pelanggan "Toko Sumber Jaya"; lalu tambah "sumber jaya" (No. HP lain); lalu "Pak Andi" dengan No. HP sama | Dua yang terakhir: kotak kuning "Pelanggan yang mirip sudah ada"; klik **tetap simpan** baru tersimpan | Belum | Sama untuk pemasok dan barang (nama) |
 | U104 | Pemeriksaan data | *Pengaturan › Pemeriksaan data* → **Rapikan No. HP** | Daftar kemungkinan dobel dan format salah; setelah dirapikan, No. HP lama jadi +62… | Belum | |
@@ -235,6 +236,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — U108–U110 cari sebagian, label keterjualan, panel rincian (K-123).
 - 2026-10-24 — U111–U113 kepekatan, logo struk, kertas dan cetak otomatis invoice/surat jalan (K-124).
 - 2026-10-25 — U121 perbaikan kecil sebelum deploy, U122 surat jalan 2 rangkap.
+- 2026-10-28 — U142 info cepat nomor dokumen (K-181).
 - 2026-10-28 — U141 saran alasan di semua dialog (K-180).
 - 2026-10-28 — U140 kartu Pengiriman (K-173).
 - 2026-10-28 — U137–U139 penyelesaian hasil pengantaran (K-176).

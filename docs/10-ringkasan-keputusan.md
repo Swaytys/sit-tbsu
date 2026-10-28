@@ -691,7 +691,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-178 | BBM dan servis kendaraan ditunda ke v4/v5; tab disembunyikan. | Berlaku (selesai 25 Okt) |
 | K-179 | Order pembelian yang menunggu tampil di Penerimaan Barang. | Berlaku (selesai 25 Okt) |
 | K-180 | Isian otomatis (No. HP dari pelanggan) dan saran alasan sesuai konteks. | Berlaku (selesai 28 Okt) |
-| K-181 | Tombol info cepat (pop-up) di setiap kode pada elemen interaktif. | Berlaku (rencana) |
+| K-181 | Tombol info cepat (pop-up) di setiap kode pada elemen interaktif. | Berlaku (selesai 28 Okt untuk dokumen penjualan/pengiriman/retur/void) |
 | K-182 | Laporan: menu di atas, pratinjau per halaman A4 besar. | Berlaku (rencana) |
 | K-183 | Pemeriksaan data diperluas selain No. HP. | Berlaku (rencana) |
 | K-184 | Harga dasar FIFO; penjelasan latest cost bukan LIFO. | Berlaku (rencana) |

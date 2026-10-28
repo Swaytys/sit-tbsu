@@ -60,6 +60,7 @@ import { DialogBuat } from '../pengantaran/panel-surat-jalan';
 import { BilahTombol } from '../pos/bilah-tombol';
 import { DialogBerangkatRit, DialogRitBaru, type CaraCetakRit } from './dialog-rit';
 import { InfoOrderKirim } from './info-order-kirim';
+import { KodeInfo } from '@/components/kode-info';
 
 /*
  * Logistik › Pengiriman (K-160, K-174, docs/13 §4): papan kartu. Order kirim (Backlog) diseret ke grup rit
@@ -357,7 +358,10 @@ function KartuSj({
       <div className="rounded-md border bg-white p-2 pl-7 text-sm">
         <div className="flex flex-wrap items-center gap-1.5 pr-6">
           <Antrean n={sj.noAntrean} />
-          <span className="font-mono text-xs font-semibold whitespace-nowrap">{sj.nomor}</span>
+          <KodeInfo
+            nomor={sj.nomor}
+            className="font-mono text-xs font-semibold whitespace-nowrap"
+          />
           {sj.status === 'DIMUAT' && (
             <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800">
               Dimuat
@@ -435,7 +439,7 @@ function GrupRit({
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 text-sm">
-            <span className="font-mono text-xs font-semibold">{rit.nomor}</span>
+            <KodeInfo nomor={rit.nomor} className="font-mono text-xs font-semibold" />
             <span className="font-medium">{rit.plat}</span>
             <span className="text-xs text-slate-500">jam {jam(rit.jadwalBerangkat)}</span>
             {semuaDimuat && (
@@ -602,7 +606,7 @@ function KartuJalan({
             <li key={s.id} className="rounded border bg-slate-50 p-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-28 flex-1 text-xs">
-                  <div className="font-mono font-semibold whitespace-nowrap">{s.nomor}</div>
+                  <KodeInfo nomor={s.nomor} className="font-mono font-semibold whitespace-nowrap" />
                   <div className="truncate">{s.namaPelanggan ?? '—'}</div>
                   <div className="truncate text-slate-500">{s.alamatKirim}</div>
                 </div>

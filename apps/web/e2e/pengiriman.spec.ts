@@ -130,6 +130,12 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
     );
     expect(sjDi[0]!.sopir).toBe(`Papan E2E ${kode}`);
 
+    // K-181: info cepat nomor surat jalan.
+    await grup.getByRole('button', { name: `Info cepat ${sjDi[0]!.nomor}` }).click();
+    await expect(kasir.getByTestId('info-cepat')).toContainText('Surat jalan');
+    await expect(kasir.getByTestId('info-cepat')).toContainText(b.nomor);
+    await kasir.keyboard.press('Escape');
+
     // 2b. K-174: keluarkan surat jalan B → batal, order B kembali ke Backlog; lalu kirim lewat dialog rit.
     await grup.getByRole('button', { name: `Aksi ${sjDi[0]!.nomor}` }).click();
     await kasir.getByRole('menuitem', { name: /Keluarkan ke Backlog/ }).click();

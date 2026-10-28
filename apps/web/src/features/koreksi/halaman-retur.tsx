@@ -41,6 +41,7 @@ import {
   IsianRefund,
   SelStatusKoreksi,
 } from './komponen';
+import { KodeInfo } from '@/components/kode-info';
 
 const ALASAN_CEPAT = [
   'Barang cacat / rusak',
@@ -482,13 +483,13 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
     {
       kunci: 'nomor',
       judul: 'No. Retur',
-      sel: (r) => <span className="font-mono text-xs">{r.nomor}</span>,
+      sel: (r) => <KodeInfo nomor={r.nomor} className="font-mono text-xs" />,
     },
     { kunci: 'tanggal', judul: 'Tanggal', sel: (r) => formatWaktu(r.tanggal) },
     {
       kunci: 'pj',
       judul: 'Transaksi',
-      sel: (r) => <span className="font-mono text-xs">{r.nomorPenjualan}</span>,
+      sel: (r) => <KodeInfo nomor={r.nomorPenjualan} className="font-mono text-xs" />,
     },
     {
       kunci: 'barang',

@@ -53,6 +53,7 @@ import { HITUNG_KOSONG, keJsonHitung, totalHitung, type NilaiHitung } from './hi
 import { InputHitungUang } from './input-hitung-uang';
 import { TabNonTunai } from './tab-nontunai';
 import { TampilBantuan, TampilTinjauan } from './tinjauan-shift';
+import { KodeInfo } from '@/components/kode-info';
 
 function Angka({ label, nilai, tebal }: { label: string; nilai: number; tebal?: boolean }) {
   return (
@@ -129,7 +130,10 @@ function DaftarKas({ d }: { d: DetailShift }) {
             <td className="py-1">
               {LABEL_JENIS_KAS[k.jenis]}
               {k.nomorDokumen && (
-                <span className="font-mono text-xs text-slate-500"> {k.nomorDokumen}</span>
+                <KodeInfo
+                  nomor={k.nomorDokumen}
+                  className="ml-1 font-mono text-xs text-slate-500"
+                />
               )}
               {k.keterangan && <div className="text-xs text-slate-500">{k.keterangan}</div>}
             </td>

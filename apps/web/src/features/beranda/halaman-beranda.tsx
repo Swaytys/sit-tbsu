@@ -31,6 +31,7 @@ import { labelAksi } from '@/lib/label';
 import { cn } from '@/lib/utils';
 import { PengingatPenyiapan } from '../penyiapan/pengingat-penyiapan';
 import { GrafikTujuhHari } from './grafik-tujuh-hari';
+import { KodeInfo } from '@/components/kode-info';
 
 /*
  * Dashboard operasional per peran (docs/05 ST3, mockup Dashboard): kartu ringkasan, grafik penjualan
@@ -224,7 +225,10 @@ function Aktivitas() {
                 <p className="text-sm font-medium text-slate-800">
                   {labelAksi(a.aksi)}
                   {a.nomorDokumen && (
-                    <span className="ml-1 font-mono text-xs text-slate-500">{a.nomorDokumen}</span>
+                    <KodeInfo
+                      nomor={a.nomorDokumen}
+                      className="ml-1 font-mono text-xs text-slate-500"
+                    />
                   )}
                 </p>
                 {a.ringkasan && <p className="truncate text-xs text-slate-500">{a.ringkasan}</p>}

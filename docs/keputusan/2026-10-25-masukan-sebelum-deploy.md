@@ -82,6 +82,11 @@ prioritas di bagian akhir.
   kotak `window.prompt` batal surat jalan di detail invoice diganti dialog beralasan.
 - **K-181 Info cepat di setiap kode.** Setiap kode dokumen/data yang tampil di elemen interaktif (linimasa kas,
   daftar, kartu) punya tombol info cepat (pop-up ringkas: barang, qty, total, pembeli, pengguna, status). *Rencana.*
+  **Selesai (28 Okt):** tombol (i) di samping nomor dokumen membuka info cepat (jenis, pihak, status, waktu,
+  total/sisa/pengguna, sampai 12 barang, tautan halaman lengkap) untuk invoice/struk, order, surat jalan, rit, retur,
+  dan void; izin sama dengan halaman detailnya (`GET /api/info-cepat?nomor=`). Dipasang di linimasa kas shift,
+  aktivitas terkini Dashboard, riwayat penjualan, daftar retur, dan papan Pengiriman. Dokumen pembelian (PO,
+  penerimaan) menyusul.
 - **K-182 Laporan per halaman A4.** Menu jenis laporan pindah ke atas; pratinjau dibagi per halaman A4 (1, 2, 3, …)
   dengan ukuran besar dan jelas seperti pratinjau cetak. *Rencana.*
 - **K-183 Pemeriksaan data diperluas** ke nama/alamat ganda, barang tanpa harga/kategori/satuan, data muatan kosong,

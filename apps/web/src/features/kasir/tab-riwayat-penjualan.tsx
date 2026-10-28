@@ -27,6 +27,7 @@ import {
 import { formatTanggal, formatWaktu } from '@/lib/format';
 import { LABEL_STATUS_PENGAMBILAN, LABEL_STATUS_PENGIRIMAN } from '@/lib/label';
 import { useTunda } from '@/lib/use-tunda';
+import { KodeInfo } from '@/components/kode-info';
 
 const SEMUA = 'SEMUA';
 
@@ -63,12 +64,14 @@ export function TabRiwayatPenjualan({
       kunci: 'nomor',
       judul: 'Nomor',
       sel: (p) => (
-        <Link
-          to={`/penjualan/${p.id}`}
-          className="font-mono text-xs font-medium text-blue-700 hover:underline"
-        >
-          {p.nomor}
-        </Link>
+        <KodeInfo nomor={p.nomor}>
+          <Link
+            to={`/penjualan/${p.id}`}
+            className="font-mono text-xs font-medium text-blue-700 hover:underline"
+          >
+            {p.nomor}
+          </Link>
+        </KodeInfo>
       ),
     },
     { kunci: 'waktu', judul: 'Waktu', sel: (p) => formatWaktu(p.tanggal) },
