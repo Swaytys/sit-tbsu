@@ -7,6 +7,8 @@ import {
   METODE_REFUND,
   PENYELESAIAN_RETUR,
   STATUS_PERSETUJUAN,
+  STATUS_TRANSFER,
+  type StatusTransfer,
   type JenisPenjualan,
   type KondisiRetur,
   type LingkupVoid,
@@ -200,6 +202,9 @@ export type BarisRetur = {
   penyelesaian: PenyelesaianRetur;
   totalRetur: number;
   metodeRefund: MetodeRefund | null;
+  /** K-176: uang yang dikembalikan dan status tugas transfernya (MENUNGGU/SELESAI; null = bukan transfer). */
+  nominalRefund: number;
+  statusTransfer: StatusTransfer | null;
   idPengaju: number;
   namaPengaju: string;
   /** Yang memutuskan: penyetuju, penolak, atau pembatal. */
@@ -217,3 +222,40 @@ export type BarisRetur = {
 };
 
 export type DaftarRetur = { data: BarisRetur[]; meta: MetaHalaman };
+
+// --- K-176: tugas refund transfer ---
+
+export type TugasRefundTransfer = {
+  id: number;
+  nomor: string;
+  tanggal: string;
+  idPenjualan: number;
+  nomorPenjualan: string;
+  namaPelanggan: string | null;
+  noHpPelanggan: string | null;
+  nominalRefund: number;
+  rekeningRefund: string | null;
+  referensiRefund: string | null;
+  statusTransfer: StatusTransfer;
+  waktuTransfer: string | null;
+  namaPenggunaTransfer: string | null;
+  alasan: string;
+};
+
+export const skemaKonfirmasiTransfer = z.object({
+  rekeningRefund: z
+    .string('Rekening tujuan wajib diisi.')
+    .trim()
+    .min(5, 'Rekening tujuan wajib diisi (bank, nomor, atas nama).')
+    .max(60, 'Rekening maksimal 60 karakter.'),
+  referensiRefund: z
+    .string('Bukti transfer wajib diisi.')
+    .trim()
+    .min(3, 'Isi nomor referensi/bukti transfer dari bank.')
+    .max(60, 'Referensi maksimal 60 karakter.'),
+});
+export type InputKonfirmasiTransfer = z.input<typeof skemaKonfirmasiTransfer>;
+
+export const skemaCariRefundTransfer = z.object({
+  status: z.enum(STATUS_TRANSFER).default('MENUNGGU'),
+});

@@ -678,20 +678,20 @@ keputusan lama masih tertulis di berkasnya.
 | K-165 | Arsip/tutup buku tahunan; dokumen pembukuan disimpan 10 tahun. | Berlaku (selesai 24 Okt; data tetap di satu database, tahun dikunci + berkas arsip) |
 | K-166 | Alur pembaruan aplikasi yang aman bagi data lama. | Berlaku (selesai 24 Okt) |
 | K-167 | Pencarian universal di topbar (Ctrl+K). | Berlaku (selesai 24 Okt) |
-| K-168 | Mode demo terpisah; panduan penyiapan pertama dengan 5 contoh data asli per jenis. | Berlaku (rencana; `keputusan/2026-10-25-masukan-sebelum-deploy.md`) |
+| K-168 | Mode demo terpisah; panduan penyiapan pertama dengan 5 contoh data asli per jenis. | Berlaku (panduan + contoh selesai 28 Okt; mode demo terpisah masih rencana) |
 | K-169 | Atribut dimensi/berat dan data muatan satu sumber, dengan aturan dimensi vs volume. | Berlaku (rencana) |
 | K-170 | Notifikasi dan lencana barang di order pengantaran yang belum punya data muatan. | Berlaku (rencana) |
 | K-171 | Hot page langsung/pengantaran: gulir panel dan pindah fokus dengan tombol, elemen lebih ringkas. | Berlaku (sebagian 25 Okt: ikon pengganti "Menghitung…") |
 | K-172 | Lencana topbar responsif, tidak meluap. | Berlaku (selesai 25 Okt) |
-| K-173 | Kartu Pengiriman: info cepat, nomor antrean, warna hasil pembagian, penanda hari, saringan. | Berlaku (rencana) |
+| K-173 | Kartu Pengiriman: info cepat, nomor antrean, warna hasil pembagian, penanda hari, saringan. | Berlaku (selesai 28 Okt) |
 | K-174 | Surat jalan hanya dibuat di dalam rit (kendaraan dan sopir sudah pasti); keluar/batal rit membatalkan surat jalan; cetak atau simpan PDF semua surat jalan saat berangkat. | Berlaku (selesai 26 Okt) |
 | K-175 | Detail yang dibuka dari Pengiriman kembali ke Pengiriman. | Berlaku (selesai 25 Okt) |
-| K-176 | Penyelesaian hasil pengantaran: alasan, potong tagihan, tugas transfer pengembalian, penanda kartu. | Berlaku (rencana) |
+| K-176 | Penyelesaian hasil pengantaran: alasan, potong tagihan, tugas transfer pengembalian, penanda kartu. | Berlaku (selesai 28 Okt) |
 | K-177 | Seret kartu Pengiriman dengan keyboard benar-benar berfungsi: panah melompat ke Backlog/grup rit terdekat. | Berlaku (selesai 26 Okt) |
 | K-178 | BBM dan servis kendaraan ditunda ke v4/v5; tab disembunyikan. | Berlaku (selesai 25 Okt) |
 | K-179 | Order pembelian yang menunggu tampil di Penerimaan Barang. | Berlaku (selesai 25 Okt) |
-| K-180 | Isian otomatis (No. HP dari pelanggan) dan saran alasan sesuai konteks. | Berlaku (sebagian 25 Okt) |
-| K-181 | Tombol info cepat (pop-up) di setiap kode pada elemen interaktif. | Berlaku (rencana) |
+| K-180 | Isian otomatis (No. HP dari pelanggan) dan saran alasan sesuai konteks. | Berlaku (selesai 28 Okt) |
+| K-181 | Tombol info cepat (pop-up) di setiap kode pada elemen interaktif. | Berlaku (selesai 28 Okt untuk dokumen penjualan/pengiriman/retur/void) |
 | K-182 | Laporan: menu di atas, pratinjau per halaman A4 besar. | Berlaku (rencana) |
 | K-183 | Pemeriksaan data diperluas selain No. HP. | Berlaku (rencana) |
 | K-184 | Harga dasar FIFO; penjelasan latest cost bukan LIFO. | Berlaku (rencana) |

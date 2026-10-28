@@ -117,5 +117,5 @@ test('Halaman masuk mengarah ke Buat akun pertama bila belum ada pengguna; kode 
   await page.getByRole('button', { name: 'Buat akun dan masuk' }).click();
   await expect(page.getByRole('heading', { name: 'Simpan kode pemulihan' })).toBeVisible();
   await expect(page.getByTestId('kode-pemulihan')).toContainText('ABCDE-FGHJK-MNPQR-STUVW');
-  await expect(page.getByRole('button', { name: 'Lanjut ke aplikasi' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Lanjut ke panduan penyiapan' })).toBeDisabled();
 });

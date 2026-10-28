@@ -19,6 +19,8 @@ export const AKSI_LOG = [
   'PENGGUNA_PULIHKAN_GAGAL',
   'PENGGUNA_KODE_PEMULIHAN',
   'PENGATURAN_UBAH',
+  // K-168: contoh data panduan penyiapan.
+  'PENYIAPAN_CONTOH',
   // Data master (Fase 3; *_AKTIFKAN dan referensi ditambahkan K-056).
   'KATEGORI_BUAT',
   'KATEGORI_UBAH',
@@ -110,6 +112,8 @@ export const AKSI_LOG = [
   'RETUR_SETUJUI',
   'RETUR_TOLAK',
   'RETUR_BATAL',
+  // K-176: refund transfer dikonfirmasi sudah ditransfer.
+  'RETUR_TRANSFER',
   'VOID_AJUKAN',
   'VOID_SETUJUI',
   'VOID_TOLAK',

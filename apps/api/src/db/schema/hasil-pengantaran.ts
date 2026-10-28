@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, pgTable, unique, varchar } from 'drizzle-orm/pg-core';
-import { KONDISI_RETUR, PENANGANAN_RUSAK } from '@sit/shared';
+import { ALASAN_KEMBALI, ALASAN_RUSAK, KONDISI_RETUR, PENANGANAN_RUSAK } from '@sit/shared';
 import { returPenjualan } from './koreksi';
 import { dalamDaftar, kolomId, kolomRef, qty, timestamptz } from './kolom';
 import { suratJalan, suratJalanDetail } from './penjualan';
@@ -25,6 +25,8 @@ export const suratJalanHasil = pgTable(
     /** Retur potong tagihan/refund untuk barang ditolak dan rusak yang tagihannya dikurangi. */
     idReturUang: kolomRef('id_retur_uang'),
     catatan: varchar('catatan', { length: 255 }),
+    /** K-176 (migrasi 0036): retur barang rusak yang mengurangi tagihan, terpisah dari barang kembali utuh. */
+    idReturRusak: kolomRef('id_retur_rusak'),
   },
   (t) => [
     foreignKey({
@@ -47,6 +49,11 @@ export const suratJalanHasil = pgTable(
       columns: [t.idReturUang],
       foreignColumns: [returPenjualan.id],
     }),
+    foreignKey({
+      name: 'surat_jalan_hasil_id_retur_rusak_fkey',
+      columns: [t.idReturRusak],
+      foreignColumns: [returPenjualan.id],
+    }),
     unique('uq_surat_jalan_hasil').on(t.idSuratJalan),
     check(
       'chk_surat_jalan_hasil_penanganan',
@@ -66,6 +73,9 @@ export const suratJalanHasilDetail = pgTable(
     qtyRusak: qty('qty_rusak').notNull(),
     qtyDitolak: qty('qty_ditolak').notNull(),
     kondisiDitolak: varchar('kondisi_ditolak', { length: 10, enum: KONDISI_RETUR }),
+    /** K-176 (migrasi 0036): alasan barang kembali utuh / rusak. */
+    alasanKembali: varchar('alasan_kembali', { length: 15, enum: ALASAN_KEMBALI }),
+    alasanRusak: varchar('alasan_rusak', { length: 20, enum: ALASAN_RUSAK }),
   },
   (t) => [
     foreignKey({
@@ -82,6 +92,11 @@ export const suratJalanHasilDetail = pgTable(
     check(
       'chk_surat_jalan_hasil_qty',
       sql`qty_diterima >= 0 and qty_kembali >= 0 and qty_rusak >= 0 and qty_ditolak >= 0`,
+    ),
+    check(
+      'chk_surat_jalan_hasil_alasan',
+      sql`(alasan_kembali is null or ${dalamDaftar('alasan_kembali', ALASAN_KEMBALI)})
+        and (alasan_rusak is null or ${dalamDaftar('alasan_rusak', ALASAN_RUSAK)})`,
     ),
     check(
       'chk_surat_jalan_hasil_kondisi',

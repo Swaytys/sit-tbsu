@@ -75,6 +75,28 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
     await masukCepat(kasir, 'KASIR');
     await kasir.goto('/pengiriman');
     await expect(kasir.getByTestId(`order-kirim-${a.nomor}`)).toBeVisible();
+    // K-173: nomor antrean, penanda hari ini, info cepat, saringan Backlog.
+    const kartuA = kasir.getByTestId(`order-kirim-${a.nomor}`);
+    await expect(kartuA).toContainText('Hari ini');
+    await expect(kartuA).toContainText(/#\d+/);
+    await kasir.getByRole('button', { name: `Info ${a.nomor}` }).click();
+    await expect(kasir.getByRole('dialog')).toContainText('Belum dikirim');
+    await expect(kasir.getByRole('dialog')).toContainText(`${nama} 3 sak`.replace(' 3 sak', ''));
+    await kasir.keyboard.press('Escape');
+    await kasir
+      .getByRole('group', { name: 'Saring Backlog' })
+      .getByRole('button', { name: 'Lebih lama' })
+      .click();
+    await expect(kartuA).toHaveCount(0);
+    await kasir
+      .getByRole('group', { name: 'Saring Backlog' })
+      .getByRole('button', { name: 'Hari ini' })
+      .click();
+    await expect(kartuA).toBeVisible();
+    await kasir
+      .getByRole('group', { name: 'Saring Backlog' })
+      .getByRole('button', { name: 'Semua' })
+      .click();
 
     // 1. Rit baru lewat tombol R.
     await kasir.keyboard.press('r');
@@ -107,6 +129,12 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
       `/surat-jalan?status=AKTIF&cari=${b.nomor}`,
     );
     expect(sjDi[0]!.sopir).toBe(`Papan E2E ${kode}`);
+
+    // K-181: info cepat nomor surat jalan.
+    await grup.getByRole('button', { name: `Info cepat ${sjDi[0]!.nomor}` }).click();
+    await expect(kasir.getByTestId('info-cepat')).toContainText('Surat jalan');
+    await expect(kasir.getByTestId('info-cepat')).toContainText(b.nomor);
+    await kasir.keyboard.press('Escape');
 
     // 2b. K-174: keluarkan surat jalan B → batal, order B kembali ke Backlog; lalu kirim lewat dialog rit.
     await grup.getByRole('button', { name: `Aksi ${sjDi[0]!.nomor}` }).click();
@@ -151,17 +179,23 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
       .first()
       .click();
     await kasir.getByRole('button', { name: /Semua diterima/ }).click();
-    await expect(jalan.getByText('hasil dicatat')).toHaveCount(1);
+    await expect(jalan.getByTestId('penanda-hasil')).toHaveText('Terkirim semua');
     await jalan
       .getByRole('button', { name: /^Catat hasil SJ-/ })
       .first()
       .click();
     await kasir.getByLabel(`Kembali utuh ${nama}`).fill('1');
+    // K-176: alasan wajib; kirim ulang = barang tetap milik pembeli dan kembali ke Backlog.
+    await kasir.getByLabel(`Alasan kembali ${nama}`).selectOption('KIRIM_ULANG');
     await kasir.getByRole('button', { name: 'Simpan hasil' }).click();
     await expect(jalan).toHaveCount(0);
-    await expect(
-      kasir.locator('[data-testid^="selesai-TRP-"]').filter({ hasText: truk.plat }),
-    ).toBeVisible();
+    const kartuSelesai = kasir
+      .locator('[data-testid^="selesai-TRP-"]')
+      .filter({ hasText: truk.plat });
+    await expect(kartuSelesai).toBeVisible();
+    // K-176: penanda hasil per surat jalan.
+    await expect(kartuSelesai).toContainText('Terkirim semua');
+    await expect(kartuSelesai).toContainText('Ada yang kembali');
     const ulang = kasir
       .locator('[data-testid^="order-kirim-INV-"]')
       .filter({ hasText: `${nama} 1 sak` });

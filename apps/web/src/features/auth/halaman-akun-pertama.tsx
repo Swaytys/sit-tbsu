@@ -74,8 +74,8 @@ export function HalamanAkunPertama() {
         <TampilKodePemulihan
           kode={kode.kode}
           username={kode.username}
-          labelLanjut="Lanjut ke aplikasi"
-          onLanjut={() => void navigate('/dashboard', { replace: true })}
+          labelLanjut="Lanjut ke panduan penyiapan"
+          onLanjut={() => void navigate('/penyiapan', { replace: true })}
         />
       </Bingkai>
     );

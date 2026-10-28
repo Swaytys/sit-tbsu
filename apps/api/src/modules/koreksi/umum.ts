@@ -128,6 +128,8 @@ export async function catatRefund(
     nomorPenjualan: string;
     idRetur?: number;
     idVoid?: number;
+    /** K-176: retur boleh tanpa rekening dulu (tugas transfer menunggu); void tetap wajib. */
+    rekeningBolehNanti?: boolean;
   },
 ): Promise<number | null> {
   if (r.nominal <= 0) return null;
@@ -141,7 +143,7 @@ export async function catatRefund(
     );
   }
   if (metode === 'TRANSFER') {
-    if (!r.persetujuan.rekeningRefund) {
+    if (!r.persetujuan.rekeningRefund && !r.rekeningBolehNanti) {
       throw new AppError('VALIDASI', 'Isi rekening tujuan refund transfer.', 400, {
         kolom: { rekeningRefund: ['Rekening wajib diisi.'] },
       });

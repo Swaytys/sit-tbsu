@@ -2,6 +2,8 @@ import { zValidator } from '@hono/zod-validator';
 import {
   skemaBatalKoreksi,
   skemaCariKoreksi,
+  skemaCariRefundTransfer,
+  skemaKonfirmasiTransfer,
   skemaRetur,
   skemaSetujui,
   skemaSetujuiKode,
@@ -15,9 +17,11 @@ import { penggunaWajib, requirePermission } from '../../../middleware/require-pe
 import {
   ajukanRetur,
   batalRetur,
+  daftarRefundTransfer,
   daftarRetur,
   detailRetur,
   kandidatRetur,
+  konfirmasiTransfer,
   mintaKodeRetur,
   setujuiRetur,
   setujuiReturDenganKode,
@@ -37,6 +41,28 @@ export const returRoutes = new Hono<EnvApp>()
   )
   .get('/', ajukan, zValidator('query', skemaCariKoreksi, kaitValidasi), async (c) =>
     c.json(await daftarRetur(c.req.valid('query')), 200),
+  )
+  // K-176: tugas refund transfer (Admin/Owner yang memegang rekening toko).
+  .get(
+    '/refund-transfer',
+    setujui,
+    zValidator('query', skemaCariRefundTransfer, kaitValidasi),
+    async (c) => c.json({ data: await daftarRefundTransfer(c.req.valid('query').status) }, 200),
+  )
+  .post(
+    '/:id/transfer',
+    setujui,
+    paramId,
+    zValidator('json', skemaKonfirmasiTransfer, kaitValidasi),
+    async (c) => {
+      const data = await konfirmasiTransfer(
+        c.req.valid('param').id,
+        c.req.valid('json'),
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data }, 200);
+    },
   )
   .get('/:id', ajukan, paramId, async (c) =>
     c.json({ data: await detailRetur(c.req.valid('param').id) }, 200),

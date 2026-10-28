@@ -143,6 +143,10 @@ export const router = createBrowserRouter([
               // K-110: Promo pindah ke Pengaturan › Promo; alamat lama tetap sampai ke sana.
               { path: 'promo', element: <Navigate to="/pengaturan?tab=promo" replace /> },
               ...ruteMenu,
+              // K-168: panduan penyiapan pertama.
+              ruteLazy('penyiapan', 'Panduan penyiapan', 'sistem.pengaturan.kelola', () =>
+                import('@/features/penyiapan/halaman-penyiapan').then((m) => m.HalamanPenyiapan),
+              ),
               ruteLazy('barang/import', 'Data Barang', 'master.import.jalankan', () =>
                 import('@/features/barang/halaman-import-barang').then(
                   (m) => m.HalamanImportBarang,

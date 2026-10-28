@@ -1,4 +1,5 @@
-import { useSearchParams } from 'react-router';
+import { ListChecks } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router';
 import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
 import { usePengaturan } from '@/api/pengaturan';
@@ -40,11 +41,19 @@ export function HalamanPengaturan() {
 
   return (
     <div className={cn('space-y-4 p-6', tab !== 'promo' && 'max-w-5xl')}>
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Pengaturan sistem</h1>
-        <p className="text-sm text-slate-500">
-          Profil toko, penomoran dokumen, dan aturan operasional. Setiap perubahan tercatat di log.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">Pengaturan sistem</h1>
+          <p className="text-sm text-slate-500">
+            Profil toko, penomoran dokumen, dan aturan operasional. Setiap perubahan tercatat di
+            log.
+          </p>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/penyiapan">
+            <ListChecks /> Panduan penyiapan
+          </Link>
+        </Button>
       </div>
 
       {pengaturan.isPending ? (

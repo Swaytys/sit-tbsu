@@ -11,6 +11,13 @@ prioritas di bagian akhir.
   pertama kali dibuka: profil toko → rekening → pengguna → impor barang/stok → pelanggan/pemasok → printer, dengan
   pilihan memuat **5 contoh data per jenis** bernama wajar (mis. "Semen Gresik 40 kg", "Toko Bangunan Makmur",
   "CV Sumber Rejeki") yang berbeda dari data demo dan bisa dihapus/dinonaktifkan sekali klik. *Rencana.*
+  **Panduan dan contoh selesai (28 Okt):** halaman *Panduan penyiapan* (Owner/Admin; dibuka setelah akun pertama,
+  tombol di Pengaturan, pengingat di Dashboard yang bisa disembunyikan) berisi 9 langkah berurutan: profil toko,
+  rekening, akun karyawan, barang, stok awal, pelanggan, pemasok, kendaraan & sopir (bila perlu), printer struk
+  (bila perlu). Status dihitung dari data asli; profil ditandai "sudah diperiksa". Tombol *Isi contoh* membuat
+  5 barang (tanpa stok: saldo awal tidak bisa dihapus), 5 pelanggan, 5 pemasok, 2 kendaraan + 2 sopir bertanda
+  "Data contoh"; *Nonaktifkan semua contoh* menonaktifkannya sekali klik (data master tidak dihapus). Mode demo
+  sebagai pemasangan terpisah belum dibuat (ikut Setup v3).
 - **K-169 Atribut dimensi ↔ data muatan satu sumber.** Panjang/lebar/tinggi/berat di atribut dan di data muatan
   harus satu data: mengisi salah satu mengisi yang lain. Aturan: barang tidak curah memakai P × L × T; barang curah
   memakai volume. Bila atribut dimensi dan volume sama-sama diisi, sistem memeriksa keselarasan (P × L × T dibanding
@@ -29,6 +36,10 @@ prioritas di bagian akhir.
 - **K-173 Kartu Pengiriman lebih informatif.** Tombol info cepat (pop-up: pelanggan, telepon, catatan, barang),
   **nomor antrean** tampil tebal di kartu (kode pendek yang mudah diingat, juga setelah dibagi), warna untuk kartu
   hasil pembagian/surat jalan sebagian, penanda hari ini vs sebelumnya, dan saringan Backlog. *Rencana.*
+  **Selesai (28 Okt):** kartu Backlog dan surat jalan menampilkan **#nomor antrean** tebal (dari order asal, sama
+  walau order dibagi); garis kiri biru = order baru, kuning + *Sisa dibagi* = sisa order yang sebagian sudah masuk
+  rit, oranye + *Kirim ulang*; lencana *Hari ini* atau tanggal; tombol (i) membuka info cepat (pembeli, telepon,
+  alamat, catatan kirim, barang belum dikirim); saringan Backlog *Semua / Hari ini / Lebih lama*.
 - **K-174 Alur surat jalan dibenahi (kritis).** Surat jalan baru dibuat setelah order masuk rit yang sudah punya
   kendaraan dan sopir; membagi order (sebagian) tidak membuat surat jalan; grup "Belum direncanakan" dihapus;
   saat **Berangkat** semua surat jalan rit dicetak/diunduh (pilihan cetak atau unduh) dan rit tidak bisa berangkat
@@ -44,7 +55,12 @@ prioritas di bagian akhir.
   rusak saat dicek, rusak di jalan); barang kembali utuh mengurangi tagihan otomatis; pengembalian uang lewat
   transfer menjadi tugas lanjutan dengan status *menunggu transfer → sudah ditransfer* (rekening boleh diisi
   belakangan, bukti/konfirmasi wajib). Kartu hasil diberi penanda: terkirim semua / sebagian kembali / ada rusak.
-  *Rencana.*
+  **Selesai (28 Okt):** kolom *Ditolak* dihapus; *Kembali utuh* dan *Rusak* wajib beralasan. Kembali karena
+  kelebihan/salah barang/pembeli batal mengurangi tagihan otomatis (stok kembali); *kirim ulang nanti* tetap
+  dikirim lagi. Rusak di jalan / saat dicek ditanggung toko (dikirim pengganti atau tagihan dikurangi, retur
+  terpisah). Refund transfer menjadi tugas *Retur Penjualan › Refund transfer* (menunggu → sudah ditransfer,
+  rekening boleh diisi saat konfirmasi, nomor referensi wajib), dengan notifikasi lonceng. Penanda hasil di kartu
+  Di jalan dan Selesai hari ini.
 - **K-177 Seret kartu dengan keyboard** (Spasi angkat, panah pindah urutan/kolom, Spasi lepas) belum berfungsi;
   diperbaiki. **Selesai (26 Okt):** sebabnya, papan hanya mengenali tempat lepas dari posisi mouse. Kini panah
   melompat ke tempat lepas terdekat ke arah itu (kolom Backlog atau grup rit; grup tujuan berbingkai biru), Spasi
@@ -61,9 +77,16 @@ prioritas di bagian akhir.
 - **K-180 Isian otomatis dan saran alasan.** No. HP pembeli terisi dari data pelanggan (**Selesai** untuk "Simpan
   untuk diambil nanti"). Kotak alasan memakai saran sesuai konteks (batal order, void, retur, tutup PO, buka
   kembali arsip, dll.) yang bisa diklik lalu diubah (**Selesai** untuk komponen bersama dan dialog batal order;
-  dialog lain menyusul).
+  dialog lain menyusul). **Selesai seluruhnya (28 Okt):** saran alasan juga di tolak/batal pengajuan retur-void,
+  ajukan void, buka kembali arsip, kecualikan barang dari opname, koreksi modal shift, batal surat jalan, batal rit;
+  kotak `window.prompt` batal surat jalan di detail invoice diganti dialog beralasan.
 - **K-181 Info cepat di setiap kode.** Setiap kode dokumen/data yang tampil di elemen interaktif (linimasa kas,
   daftar, kartu) punya tombol info cepat (pop-up ringkas: barang, qty, total, pembeli, pengguna, status). *Rencana.*
+  **Selesai (28 Okt):** tombol (i) di samping nomor dokumen membuka info cepat (jenis, pihak, status, waktu,
+  total/sisa/pengguna, sampai 12 barang, tautan halaman lengkap) untuk invoice/struk, order, surat jalan, rit, retur,
+  dan void; izin sama dengan halaman detailnya (`GET /api/info-cepat?nomor=`). Dipasang di linimasa kas shift,
+  aktivitas terkini Dashboard, riwayat penjualan, daftar retur, dan papan Pengiriman. Dokumen pembelian (PO,
+  penerimaan) menyusul.
 - **K-182 Laporan per halaman A4.** Menu jenis laporan pindah ke atas; pratinjau dibagi per halaman A4 (1, 2, 3, …)
   dengan ukuran besar dan jelas seperti pratinjau cetak. *Rencana.*
 - **K-183 Pemeriksaan data diperluas** ke nama/alamat ganda, barang tanpa harga/kategori/satuan, data muatan kosong,

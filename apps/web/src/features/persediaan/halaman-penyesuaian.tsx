@@ -62,6 +62,8 @@ import { LABEL_JENIS_PENYESUAIAN } from '@/lib/label';
 import { qtyDariIsian } from '@/lib/qty';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { BadgeStatusPenyesuaian } from './tab-penyesuaian';
+import { SaranAlasan } from '@/components/saran-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 
 type Info = { kode: string; nama: string; satuan: string; sistem: string; belum: string };
 
@@ -821,6 +823,7 @@ function DialogKecualikan({
             placeholder="Contoh: gudang belakang terkunci"
             autoFocus
           />
+          <SaranAlasan saran={SARAN_ALASAN.kecualiOpname} onPilih={setAlasan} />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onTutup}>

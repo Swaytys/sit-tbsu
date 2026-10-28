@@ -696,6 +696,8 @@ export const skemaCariSuratJalan = skemaHalaman.extend({
 export type BarisSuratJalan = {
   id: number;
   nomor: string;
+  /** K-173: nomor antrean order asal (null bila invoice langsung dari kasir). */
+  noAntrean: number | null;
   tanggal: string;
   idPenjualan: number;
   nomorPenjualan: string;
@@ -736,6 +738,12 @@ export type PerluDikirim = {
   bayarSaatTerima: boolean;
   /** Ada surat jalan selesai sebelumnya: sisa ini kiriman ulang/pengganti. */
   kirimUlang: boolean;
+  /** K-173: nomor antrean order asal (null bila invoice langsung dari kasir). */
+  noAntrean: number | null;
+  noHp: string | null;
+  catatanKirim: string | null;
+  /** Sebagian barang sudah dibuatkan surat jalan (order dibagi); sisa ini belum. */
+  sebagian: boolean;
   baris: { namaBarang: string; kodeSatuan: string; qtyBelumDikirim: string }[];
 };
 

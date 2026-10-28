@@ -45,6 +45,8 @@ const kolom = {
   penyelesaian: returPenjualan.penyelesaian,
   totalRetur: returPenjualan.totalRetur,
   metodeRefund: returPenjualan.metodeRefund,
+  nominalRefund: returPenjualan.nominalRefund,
+  statusTransfer: returPenjualan.statusTransfer,
   rekeningRefund: returPenjualan.rekeningRefund,
   referensiRefund: returPenjualan.referensiRefund,
   idPengaju: returPenjualan.idPengaju,
@@ -288,4 +290,51 @@ export async function stokTersedia(ex: Executor, idBarang: number): Promise<stri
     .from(persediaan)
     .where(eq(persediaan.idBarang, idBarang));
   return p?.tersedia ?? '0';
+}
+
+/** K-176: tugas refund transfer (MENUNGGU terlama dulu; SELESAI terbaru dulu). */
+export function daftarRefundTransfer(ex: Executor, status: 'MENUNGGU' | 'SELESAI') {
+  const petugas = aliasedTable(pengguna, 'petugas_transfer');
+  return ex
+    .select({
+      id: returPenjualan.id,
+      nomor: returPenjualan.nomor,
+      tanggal: returPenjualan.tanggal,
+      idPenjualan: returPenjualan.idPenjualan,
+      nomorPenjualan: penjualan.nomor,
+      namaPelanggan: pelanggan.namaPelanggan,
+      noHpPelanggan: pelanggan.noHp,
+      nominalRefund: returPenjualan.nominalRefund,
+      rekeningRefund: returPenjualan.rekeningRefund,
+      referensiRefund: returPenjualan.referensiRefund,
+      statusTransfer: returPenjualan.statusTransfer,
+      waktuTransfer: returPenjualan.waktuTransfer,
+      namaPenggunaTransfer: petugas.namaPengguna,
+      alasan: returPenjualan.alasan,
+    })
+    .from(returPenjualan)
+    .innerJoin(penjualan, eq(penjualan.id, returPenjualan.idPenjualan))
+    .leftJoin(pelanggan, eq(pelanggan.id, penjualan.idPelanggan))
+    .leftJoin(petugas, eq(petugas.id, returPenjualan.idPenggunaTransfer))
+    .where(eq(returPenjualan.statusTransfer, status))
+    .orderBy(
+      status === 'MENUNGGU'
+        ? asc(returPenjualan.waktuPersetujuan)
+        : desc(returPenjualan.waktuTransfer),
+    )
+    .limit(200);
+}
+
+export async function kunciRetur(tx: Tx, id: number) {
+  const [b] = await tx
+    .select({
+      id: returPenjualan.id,
+      nomor: returPenjualan.nomor,
+      statusTransfer: returPenjualan.statusTransfer,
+      nominalRefund: returPenjualan.nominalRefund,
+    })
+    .from(returPenjualan)
+    .where(eq(returPenjualan.id, id))
+    .for('update');
+  return b;
 }

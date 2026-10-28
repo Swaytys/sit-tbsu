@@ -4,6 +4,9 @@ import {
   bandingQty,
   formatRupiah,
   hargaSatuanEfektif,
+  LABEL_ALASAN_KEMBALI,
+  LABEL_ALASAN_RUSAK,
+  nomorAntrean,
   keQty,
   subtotalRupiah,
   tambahQty,
@@ -13,7 +16,6 @@ import {
   type DataHasilSuratJalan,
   type DataSuratJalan,
   type HasilSuratJalan,
-  type KondisiRetur,
   type MetaHalaman,
   type PerluDikirim,
   type StatusPengiriman,
@@ -149,11 +151,16 @@ async function keRespons(ex: Executor, rows: Header[]): Promise<BarisSuratJalan[
         h.idReturUang && h.nomorReturUang
           ? { id: h.idReturUang, nomor: h.nomorReturUang, status: h.statusReturUang ?? '' }
           : null,
+      returRusak:
+        h.idReturRusak && h.nomorReturRusak
+          ? { id: h.idReturRusak, nomor: h.nomorReturRusak, status: h.statusReturRusak ?? '' }
+          : null,
       baris: hasilBaris.filter((b) => b.idHasil === h.id).map(({ idHasil: _, ...b }) => b),
     };
   };
-  return rows.map((r) => ({
+  return rows.map(({ nomorOrder, ...r }) => ({
     ...r,
+    noAntrean: nomorOrder ? nomorAntrean(nomorOrder) : null,
     tanggal: r.tanggal.toISOString(),
     waktuDimuat: r.waktuDimuat?.toISOString() ?? null,
     waktuDikirim: r.waktuDikirim?.toISOString() ?? null,
@@ -175,7 +182,15 @@ export async function perluDikirim(): Promise<PerluDikirim[]> {
         qtyBelumDikirim: sisaKirim(b),
       }))
       .filter((b) => bandingQty(b.qtyBelumDikirim, 0) > 0);
-    if (baris.length > 0) hasil.push({ ...c, tanggal: c.tanggal.toISOString(), baris });
+    if (baris.length > 0) {
+      const { nomorOrder, ...isi } = c;
+      hasil.push({
+        ...isi,
+        tanggal: c.tanggal.toISOString(),
+        noAntrean: nomorOrder ? nomorAntrean(nomorOrder) : null,
+        baris,
+      });
+    }
   }
   return hasil;
 }
@@ -337,10 +352,11 @@ type BarisHasil = DataHasilSuratJalan['baris'][number];
 type ReturDibuat = { id: number; nomor: string; disetujui: boolean };
 
 /**
- * S10–S11 (K-149, K-151): mencatat hasil pengantaran per barang, sekali per surat jalan DIKIRIM. Barang ditolak
- * dan rusak (tagihan dikurangi) menjadi satu retur potong tagihan/refund; rusak yang dikirim pengganti menjadi
- * retur tukar barang. Kembali utuh tanpa mutasi stok (barang pembeli dititipkan di toko) dan menjadi belum
- * dikirim lagi. Perjalanannya selesai bila tidak ada lagi surat jalan DIKIRIM di dalamnya.
+ * S10–S11 (K-149, K-151, K-176): mencatat hasil pengantaran per barang, sekali per surat jalan DIKIRIM, dengan alasan.
+ * Kembali utuh "kirim ulang" tanpa mutasi stok (barang pembeli dititipkan di toko) dan menjadi belum dikirim lagi;
+ * kembali utuh karena kelebihan/salah barang/pembeli batal mengurangi tagihan (retur kondisi baik, stok kembali).
+ * Rusak (di jalan atau saat dicek) ditanggung toko: dikirim pengganti (retur tukar) atau tagihan dikurangi (retur
+ * kondisi rusak, dokumen terpisah). Perjalanannya selesai bila tidak ada lagi surat jalan DIKIRIM di dalamnya.
  */
 export async function catatHasil(
   id: number,
@@ -375,7 +391,7 @@ export async function catatHasil(
       const m = masukan.get(d.idPenjualanDetail);
       if (!m) throw new AppError('VALIDASI', `${d.namaBarang}: hasil belum diisi.`, 400);
       const { r, i } = m;
-      const jumlah = [r.qtyDiterima, r.qtyKembali, r.qtyRusak, r.qtyDitolak].reduce(
+      const jumlah = [r.qtyDiterima, r.qtyKembali, r.qtyRusak].reduce(
         (t, q) => tambahQty(t, q),
         '0',
       );
@@ -383,12 +399,31 @@ export async function catatHasil(
         const kirim = `${teksQty(keQty(d.qtyKirim))} ${d.kodeSatuan}`;
         throw new AppError(
           'VALIDASI',
-          `${d.namaBarang}: diterima + kembali + rusak + ditolak harus sama dengan qty kirim (${kirim}).`,
+          `${d.namaBarang}: diterima + kembali + rusak harus sama dengan qty kirim (${kirim}).`,
           400,
           { kolom: { [`baris.${i}.qtyDiterima`]: [`Jumlah harus ${kirim}.`] } },
         );
       }
-      return { d, r };
+      const kembali = bandingQty(r.qtyKembali, 0) > 0;
+      const rusak = bandingQty(r.qtyRusak, 0) > 0;
+      if (kembali && !r.alasanKembali) {
+        throw new AppError('VALIDASI', `${d.namaBarang}: pilih alasan barang kembali.`, 400, {
+          kolom: { [`baris.${i}.alasanKembali`]: ['Pilih alasan.'] },
+        });
+      }
+      if (rusak && !r.alasanRusak) {
+        throw new AppError('VALIDASI', `${d.namaBarang}: pilih alasan barang rusak.`, 400, {
+          kolom: { [`baris.${i}.alasanRusak`]: ['Pilih alasan.'] },
+        });
+      }
+      // Kembali utuh selain "kirim ulang" = dikembalikan pembeli (dulu kolom "ditolak", kondisi baik).
+      const dikembalikan = kembali && r.alasanKembali !== 'KIRIM_ULANG';
+      return {
+        d,
+        r,
+        qtyKirimUlang: dikembalikan ? '0' : r.qtyKembali,
+        qtyDikembalikan: dikembalikan ? r.qtyKembali : '0',
+      };
     });
     const adaRusak = isi.some((x) => bandingQty(x.r.qtyRusak, 0) > 0);
     if (adaRusak && !input.penangananRusak) {
@@ -409,70 +444,79 @@ export async function catatHasil(
       .where(eq(suratJalan.id, id));
 
     const alasanDasar = `Hasil pengantaran ${sj.nomor}`;
-    // Retur potong tagihan/refund: ditolak (kondisi dipilih) + rusak bila tagihan dikurangi (RUSAK).
-    const barisUang: {
-      idPenjualanDetail: number;
-      qtyRetur: string;
-      kondisi: KondisiRetur;
-      keterangan: string;
-    }[] = [];
-    for (const { d, r } of isi) {
-      const tolak = bandingQty(r.qtyDitolak, 0) > 0;
-      const rusak = penanganan === 'KURANGI_TAGIHAN' && bandingQty(r.qtyRusak, 0) > 0;
-      if (!tolak && !rusak) continue;
-      if (tolak && rusak && r.kondisiDitolak === 'BAIK') {
-        throw new AppError(
-          'VALIDASI',
-          `${d.namaBarang}: ada yang ditolak (kondisi baik) dan rusak sekaligus. Catat yang ditolak dengan ` +
-            'kondisi rusak, atau pilih kirim pengganti untuk yang rusak.',
-          400,
-        );
-      }
-      barisUang.push({
-        idPenjualanDetail: d.idPenjualanDetail,
-        qtyRetur: keQty(tambahQty(tolak ? r.qtyDitolak : '0', rusak ? r.qtyRusak : '0')),
-        kondisi: tolak ? r.kondisiDitolak : 'RUSAK',
-        keterangan: [tolak ? 'ditolak pembeli' : '', rusak ? 'rusak di jalan' : '']
-          .filter(Boolean)
-          .join(', '),
-      });
-    }
-    let returUang: ReturDibuat | null = null;
-    if (barisUang.length > 0) {
-      const harga = new Map((await returRepo.barisPenjualan(tx, pj.id)).map((b) => [b.id, b]));
-      const nilai = barisUang.reduce((t, x) => {
-        const b = harga.get(x.idPenjualanDetail);
-        return b ? t + subtotalRupiah(x.qtyRetur, hargaSatuanEfektif(b.subtotal, b.qty)) : t;
-      }, 0);
-      const { sisa } = hitungTagihan(pj);
-      const potong = nilai <= sisa;
-      if (!potong && !input.metodeRefund) {
-        throw new AppError(
-          'VALIDASI',
-          `Nilai barang ditolak/rusak ${formatRupiah(nilai)} melebihi sisa tagihan ` +
-            `${formatRupiah(Math.max(0, sisa))}: pilih cara uang dikembalikan (tunai/transfer).`,
-          400,
-          { kolom: { metodeRefund: ['Pilih cara uang dikembalikan.'] } },
-        );
-      }
-      returUang = await ajukanReturTx(
-        tx,
-        {
-          idPenjualan: pj.id,
-          alasan: `${alasanDasar}: ${[...new Set(barisUang.map((x) => x.keterangan))].join('; ')}`,
-          penyelesaian: potong ? 'POTONG_TAGIHAN' : 'REFUND',
-          catatan: input.catatan ?? null,
-          baris: barisUang,
-          persetujuan: {
-            metodeRefund: potong ? null : input.metodeRefund,
-            rekeningRefund: potong ? null : (input.rekeningRefund ?? null),
-            referensiRefund: null,
-          },
-        },
-        pelaku,
-        asal,
+    const harga = new Map((await returRepo.barisPenjualan(tx, pj.id)).map((b) => [b.id, b]));
+    const nilaiBaris = (x: { idPenjualanDetail: number; qtyRetur: string }) => {
+      const b = harga.get(x.idPenjualanDetail);
+      return b ? subtotalRupiah(x.qtyRetur, hargaSatuanEfektif(b.subtotal, b.qty)) : 0;
+    };
+    // K-176: barang dikembalikan pembeli (kondisi baik) dan barang rusak yang tagihannya dikurangi = dua retur.
+    const barisKembali = isi
+      .filter((x) => bandingQty(x.qtyDikembalikan, 0) > 0)
+      .map((x) => ({
+        idPenjualanDetail: x.d.idPenjualanDetail,
+        qtyRetur: keQty(x.qtyDikembalikan),
+        kondisi: 'BAIK' as const,
+        keterangan: LABEL_ALASAN_KEMBALI[x.r.alasanKembali ?? 'BATAL_BELI'],
+      }));
+    const barisRusak =
+      penanganan === 'KURANGI_TAGIHAN'
+        ? isi
+            .filter((x) => bandingQty(x.r.qtyRusak, 0) > 0)
+            .map((x) => ({
+              idPenjualanDetail: x.d.idPenjualanDetail,
+              qtyRetur: keQty(x.r.qtyRusak),
+              kondisi: 'RUSAK' as const,
+              keterangan: LABEL_ALASAN_RUSAK[x.r.alasanRusak ?? 'RUSAK_DI_JALAN'],
+            }))
+        : [];
+    const nilai = [...barisKembali, ...barisRusak].reduce((t, x) => t + nilaiBaris(x), 0);
+    const { sisa } = hitungTagihan(pj);
+    const potong = nilai <= sisa;
+    if (nilai > 0 && !potong && !input.metodeRefund) {
+      throw new AppError(
+        'VALIDASI',
+        `Nilai barang dikembalikan/rusak ${formatRupiah(nilai)} melebihi sisa tagihan ` +
+          `${formatRupiah(Math.max(0, sisa))}: pilih cara uang dikembalikan (tunai/transfer).`,
+        400,
+        { kolom: { metodeRefund: ['Pilih cara uang dikembalikan.'] } },
       );
     }
+    const ajukanUang = async (
+      baris: {
+        idPenjualanDetail: number;
+        qtyRetur: string;
+        kondisi: 'BAIK' | 'RUSAK';
+        keterangan: string;
+      }[],
+      ket: string,
+    ) =>
+      baris.length === 0
+        ? null
+        : ajukanReturTx(
+            tx,
+            {
+              idPenjualan: pj.id,
+              alasan: `${alasanDasar}: ${ket}`.slice(0, 255),
+              penyelesaian: potong ? 'POTONG_TAGIHAN' : 'REFUND',
+              catatan: input.catatan ?? null,
+              baris,
+              persetujuan: {
+                metodeRefund: potong ? null : input.metodeRefund,
+                rekeningRefund: potong ? null : (input.rekeningRefund ?? null),
+                referensiRefund: null,
+              },
+            },
+            pelaku,
+            asal,
+          );
+    const returUang: ReturDibuat | null = await ajukanUang(
+      barisKembali,
+      [...new Set(barisKembali.map((x) => x.keterangan.toLowerCase()))].join('; '),
+    );
+    const returRusak: ReturDibuat | null = await ajukanUang(
+      barisRusak,
+      `${[...new Set(barisRusak.map((x) => x.keterangan.toLowerCase()))].join('; ')}, tagihan dikurangi`,
+    );
     // K-151: rusak, dikirim pengganti → tukar barang (rusak masuk stok rusak, pengganti keluar dari stok jual).
     let returTukar: ReturDibuat | null = null;
     const barisTukar =
@@ -482,14 +526,14 @@ export async function catatHasil(
         tx,
         {
           idPenjualan: pj.id,
-          alasan: `${alasanDasar}: rusak di jalan, dikirim pengganti`,
+          alasan: `${alasanDasar}: rusak, dikirim pengganti`,
           penyelesaian: 'TUKAR_BARANG',
           catatan: input.catatan ?? null,
           baris: barisTukar.map((x) => ({
             idPenjualanDetail: x.d.idPenjualanDetail,
             qtyRetur: keQty(x.r.qtyRusak),
             kondisi: 'RUSAK' as const,
-            keterangan: 'rusak di jalan',
+            keterangan: LABEL_ALASAN_RUSAK[x.r.alasanRusak ?? 'RUSAK_DI_JALAN'],
           })),
           persetujuan: { metodeRefund: null, rekeningRefund: null, referensiRefund: null },
         },
@@ -508,19 +552,23 @@ export async function catatHasil(
         penangananRusak: penanganan,
         idReturTukar: returTukar?.id ?? null,
         idReturUang: returUang?.id ?? null,
+        idReturRusak: returRusak?.id ?? null,
         catatan: input.catatan ?? null,
       })
       .returning({ id: suratJalanHasil.id });
     if (!h) throw new Error('insert hasil surat jalan tidak mengembalikan id');
     await tx.insert(suratJalanHasilDetail).values(
-      isi.map(({ d, r }) => ({
+      isi.map(({ d, r, qtyKirimUlang, qtyDikembalikan }) => ({
         idHasil: h.id,
         idSuratJalanDetail: d.id,
         qtyDiterima: keQty(r.qtyDiterima),
-        qtyKembali: keQty(r.qtyKembali),
+        // qty_kembali = dikirim ulang (S2 menghitungnya belum dikirim); qty_ditolak = dikembalikan pembeli.
+        qtyKembali: keQty(qtyKirimUlang),
         qtyRusak: keQty(r.qtyRusak),
-        qtyDitolak: keQty(r.qtyDitolak),
-        kondisiDitolak: bandingQty(r.qtyDitolak, 0) > 0 ? r.kondisiDitolak : null,
+        qtyDitolak: keQty(qtyDikembalikan),
+        kondisiDitolak: bandingQty(qtyDikembalikan, 0) > 0 ? ('BAIK' as const) : null,
+        alasanKembali: bandingQty(r.qtyKembali, 0) > 0 ? r.alasanKembali : null,
+        alasanRusak: bandingQty(r.qtyRusak, 0) > 0 ? r.alasanRusak : null,
       })),
     );
     await sinkronStatusPengiriman(tx, sj.idPenjualan);
@@ -543,12 +591,23 @@ export async function catatHasil(
       }
     }
     const total = (k: 'qtyKembali' | 'qtyRusak' | 'qtyDitolak') =>
-      isi.reduce((t, x) => tambahQty(t, x.r[k]), '0');
+      isi.reduce(
+        (t, x) =>
+          tambahQty(
+            t,
+            k === 'qtyKembali'
+              ? x.qtyKirimUlang
+              : k === 'qtyDitolak'
+                ? x.qtyDikembalikan
+                : x.r.qtyRusak,
+          ),
+        '0',
+      );
     const catat = (
       [
-        ['kembali', 'qtyKembali'],
+        ['kirim ulang', 'qtyKembali'],
         ['rusak', 'qtyRusak'],
-        ['ditolak', 'qtyDitolak'],
+        ['dikembalikan', 'qtyDitolak'],
       ] as const
     )
       .filter(([, k]) => bandingQty(total(k), 0) > 0)
@@ -564,6 +623,7 @@ export async function catatHasil(
       ringkasan:
         `Hasil ${sj.nomor} (${pj.nomor}): ${catat.length ? catat.join(', ') : 'semua diterima'}` +
         teksRetur(returUang, 'retur') +
+        teksRetur(returRusak, 'retur rusak') +
         teksRetur(returTukar, 'tukar') +
         ringkasPerjalanan,
       ip: asal.ip,

@@ -28,6 +28,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabRefundTransfer } from './tab-refund-transfer';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { qtySah } from '@/lib/qty';
 import { useTunda } from '@/lib/use-tunda';
@@ -40,6 +41,7 @@ import {
   IsianRefund,
   SelStatusKoreksi,
 } from './komponen';
+import { KodeInfo } from '@/components/kode-info';
 
 const ALASAN_CEPAT = [
   'Barang cacat / rusak',
@@ -481,13 +483,13 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
     {
       kunci: 'nomor',
       judul: 'No. Retur',
-      sel: (r) => <span className="font-mono text-xs">{r.nomor}</span>,
+      sel: (r) => <KodeInfo nomor={r.nomor} className="font-mono text-xs" />,
     },
     { kunci: 'tanggal', judul: 'Tanggal', sel: (r) => formatWaktu(r.tanggal) },
     {
       kunci: 'pj',
       judul: 'Transaksi',
-      sel: (r) => <span className="font-mono text-xs">{r.nomorPenjualan}</span>,
+      sel: (r) => <KodeInfo nomor={r.nomorPenjualan} className="font-mono text-xs" />,
     },
     {
       kunci: 'barang',
@@ -639,6 +641,7 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
 export function HalamanRetur() {
   const [url, setUrl] = useSearchParams();
   const tab = url.get('tab') ?? 'ajukan';
+  const bolehSetujui = usePengguna().izin.includes('retur.setujui');
   return (
     <div className="space-y-4 p-6">
       <div>
@@ -652,6 +655,7 @@ export function HalamanRetur() {
           <TabsTrigger value="ajukan">Ajukan retur</TabsTrigger>
           <TabsTrigger value="persetujuan">Menunggu persetujuan</TabsTrigger>
           <TabsTrigger value="riwayat">Riwayat retur</TabsTrigger>
+          {bolehSetujui && <TabsTrigger value="transfer">Refund transfer</TabsTrigger>}
         </TabsList>
         <TabsContent value="ajukan">
           <FormAjukan />
@@ -662,6 +666,11 @@ export function HalamanRetur() {
         <TabsContent value="riwayat">
           <Daftar menunggu={false} />
         </TabsContent>
+        {bolehSetujui && (
+          <TabsContent value="transfer">
+            <TabRefundTransfer />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

@@ -30,6 +30,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { SaranAlasan } from '@/components/saran-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 
 const WARNA: Record<StatusPersetujuan, string> = {
   MENUNGGU: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -212,6 +214,7 @@ export function DialogPutuskan({
               maxLength={255}
               onChange={(e) => setAlasan(e.target.value)}
             />
+            <SaranAlasan saran={SARAN_ALASAN.tolakPengajuan} onPilih={setAlasan} />
           </div>
         ) : (
           <IsianRefund nilai={refund} onUbah={setRefund} />
@@ -335,6 +338,7 @@ export function DialogBatalPengajuan({
             placeholder="mis. salah qty"
             onChange={(e) => setAlasan(e.target.value)}
           />
+          <SaranAlasan saran={SARAN_ALASAN.batalPengajuan} onPilih={setAlasan} />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onTutup}>

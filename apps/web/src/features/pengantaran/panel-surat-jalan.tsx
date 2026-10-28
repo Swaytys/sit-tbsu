@@ -1,4 +1,6 @@
 import {
+  LABEL_ALASAN_KEMBALI,
+  LABEL_ALASAN_RUSAK,
   skemaSuratJalan,
   type BarisSuratJalan,
   type DetailPenjualan,
@@ -14,6 +16,8 @@ import { useBatalSuratJalan, useBuatSuratJalan, useMuatSuratJalan } from '@/api/
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { DialogAlasan } from '@/components/dialog-alasan';
+import { SARAN_ALASAN } from '@/lib/saran-alasan';
 import {
   Dialog,
   DialogContent,
@@ -47,9 +51,21 @@ export function RingkasHasil({ sj }: { sj: BarisSuratJalan }) {
     const satuan = b?.kodeSatuan ?? '';
     const teks: string[] = [];
     if (/[1-9]/.test(r.qtyKembali))
-      teks.push(`kembali utuh ${formatDesimal(r.qtyKembali)} ${satuan}`);
-    if (/[1-9]/.test(r.qtyRusak)) teks.push(`rusak ${formatDesimal(r.qtyRusak)} ${satuan}`);
-    if (/[1-9]/.test(r.qtyDitolak)) teks.push(`ditolak ${formatDesimal(r.qtyDitolak)} ${satuan}`);
+      teks.push(`kembali, dikirim ulang ${formatDesimal(r.qtyKembali)} ${satuan}`);
+    if (/[1-9]/.test(r.qtyDitolak))
+      teks.push(
+        `dikembalikan ${formatDesimal(r.qtyDitolak)} ${satuan}${
+          r.alasanKembali
+            ? ` (${LABEL_ALASAN_KEMBALI[r.alasanKembali].split(' (')[0]!.toLowerCase()})`
+            : ''
+        }`,
+      );
+    if (/[1-9]/.test(r.qtyRusak))
+      teks.push(
+        `rusak ${formatDesimal(r.qtyRusak)} ${satuan}${
+          r.alasanRusak ? ` (${LABEL_ALASAN_RUSAK[r.alasanRusak].toLowerCase()})` : ''
+        }`,
+      );
     return teks.length ? [`${b?.namaBarang ?? '?'}: ${teks.join(', ')}`] : [];
   });
   return (
@@ -69,7 +85,7 @@ export function RingkasHasil({ sj }: { sj: BarisSuratJalan }) {
       </div>
       <div className="text-slate-500">
         Dicatat {h.namaPengguna}, {formatWaktu(h.waktu)}
-        {[h.returUang, h.returTukar].map(
+        {[h.returUang, h.returRusak, h.returTukar].map(
           (r) =>
             r && (
               <span key={r.id}>
@@ -296,7 +312,7 @@ export function KartuSuratJalan({
 }) {
   const muat = useMuatSuratJalan();
   const batal = useBatalSuratJalan();
-  const [dialog, setDialog] = useState<'hasil' | null>(null);
+  const [dialog, setDialog] = useState<'hasil' | 'batal' | null>(null);
   const langkah = sj.status === 'BATAL' ? -1 : URUTAN.indexOf(sj.status);
   const waktu: Record<string, string | null> = {
     DIPROSES: sj.tanggal,
@@ -344,14 +360,7 @@ export function KartuSuratJalan({
               size="sm"
               variant="outline"
               disabled={batal.isPending}
-              onClick={() => {
-                const alasan = window.prompt(`Alasan membatalkan ${sj.nomor}?`)?.trim();
-                if (!alasan || alasan.length < 3) return;
-                void batal
-                  .mutateAsync({ id: sj.id, alasan })
-                  .then(() => toast.success(`${sj.nomor} dibatalkan.`))
-                  .catch((err: unknown) => toast.error(pesanGalat(err)));
-              }}
+              onClick={() => setDialog('batal')}
             >
               <X /> Batalkan
             </Button>
@@ -401,6 +410,20 @@ export function KartuSuratJalan({
       </div>
       <RingkasHasil sj={sj} />
       {dialog === 'hasil' && <DialogHasil sj={sj} onTutup={() => setDialog(null)} />}
+      {dialog === 'batal' && (
+        <DialogAlasan
+          judul={`Batalkan surat jalan ${sj.nomor}?`}
+          ket="Barangnya kembali menjadi order kirim di Backlog Pengiriman."
+          label="Alasan batal surat jalan"
+          saran={SARAN_ALASAN.batalSuratJalan}
+          onTutup={() => setDialog(null)}
+          onKirim={(alasan) =>
+            batal
+              .mutateAsync({ id: sj.id, alasan })
+              .then(() => toast.success(`${sj.nomor} dibatalkan.`))
+          }
+        />
+      )}
     </Card>
   );
 }

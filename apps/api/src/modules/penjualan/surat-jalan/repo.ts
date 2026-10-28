@@ -3,6 +3,7 @@ import type { StatusSuratJalan } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
   barang,
+  orderPenjualan,
   barangSatuanJual,
   pelanggan,
   pengguna,
@@ -21,6 +22,10 @@ import { alias } from 'drizzle-orm/pg-core';
 import { kolomPenuh } from '../../../db/kolom-penuh';
 import { kodeSatuanBaris, satuanBaris } from '../satuan-baris';
 import { polaCari } from '../../../lib/paginasi';
+
+/** K-173: nomor order asal invoice (null bila invoice dibuat langsung di kasir). */
+const nomorOrder = sql<string | null>`(select o.nomor from ${orderPenjualan} o
+  where o.id = ${kolomPenuh(penjualan.idOrder)})`;
 
 const kolom = {
   id: suratJalan.id,
@@ -43,6 +48,8 @@ const kolom = {
   namaPengguna: pengguna.namaPengguna,
   idPerjalanan: suratJalan.idPerjalanan,
   nomorPerjalanan: perjalanan.nomor,
+  /** K-173: nomor order asal (sumber nomor antrean). */
+  nomorOrder: nomorOrder,
 };
 
 function dasar(ex: Executor) {
@@ -165,6 +172,7 @@ export function detailUntukHasil(ex: Executor, idSuratJalan: number) {
 
 const returTukar = alias(returPenjualan, 'retur_tukar');
 const returUang = alias(returPenjualan, 'retur_uang');
+const returRusak = alias(returPenjualan, 'retur_rusak');
 
 /** Header hasil pengantaran beserta retur yang dibuatnya (S10). */
 export function hasilHeader(ex: Executor, idSuratJalan: number[]) {
@@ -184,11 +192,15 @@ export function hasilHeader(ex: Executor, idSuratJalan: number[]) {
       idReturUang: suratJalanHasil.idReturUang,
       nomorReturUang: returUang.nomor,
       statusReturUang: returUang.status,
+      idReturRusak: suratJalanHasil.idReturRusak,
+      nomorReturRusak: returRusak.nomor,
+      statusReturRusak: returRusak.status,
     })
     .from(suratJalanHasil)
     .innerJoin(pengguna, eq(pengguna.id, suratJalanHasil.idPengguna))
     .leftJoin(returTukar, eq(returTukar.id, suratJalanHasil.idReturTukar))
     .leftJoin(returUang, eq(returUang.id, suratJalanHasil.idReturUang))
+    .leftJoin(returRusak, eq(returRusak.id, suratJalanHasil.idReturRusak))
     .where(inArray(suratJalanHasil.idSuratJalan, idSuratJalan));
 }
 
@@ -203,6 +215,8 @@ export function hasilDetail(ex: Executor, idHasil: number[]) {
       qtyRusak: suratJalanHasilDetail.qtyRusak,
       qtyDitolak: suratJalanHasilDetail.qtyDitolak,
       kondisiDitolak: suratJalanHasilDetail.kondisiDitolak,
+      alasanKembali: suratJalanHasilDetail.alasanKembali,
+      alasanRusak: suratJalanHasilDetail.alasanRusak,
     })
     .from(suratJalanHasilDetail)
     .innerJoin(suratJalanDetail, eq(suratJalanDetail.id, suratJalanHasilDetail.idSuratJalanDetail))
@@ -226,6 +240,14 @@ export function calonPerluDikirim(ex: Executor) {
       bayarSaatTerima: penjualan.bayarSaatTerima,
       kirimUlang: sql<boolean>`exists (select 1 from ${suratJalan} s
         where s.id_penjualan = ${kolomPenuh(penjualan.id)} and s.status = 'SELESAI')`,
+      // K-173: info cepat kartu Backlog.
+      nomorOrder,
+      noHp: sql<
+        string | null
+      >`coalesce(${pelanggan.noHp}, (select o.no_hp_pembeli from ${orderPenjualan} o
+        where o.id = ${kolomPenuh(penjualan.idOrder)}))`,
+      catatanKirim: penjualan.catatanKirim,
+      sebagian: sql<boolean>`${penjualan.statusPengiriman} = 'SEBAGIAN'`,
     })
     .from(penjualan)
     .leftJoin(pelanggan, eq(pelanggan.id, penjualan.idPelanggan))

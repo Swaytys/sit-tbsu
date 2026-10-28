@@ -11,6 +11,7 @@ import {
   subtotalRupiah,
   tambahQty,
   type BarisRetur,
+  type TugasRefundTransfer,
   type DaftarRetur,
   type DataKodePersetujuan,
   type DataRetur,
@@ -420,6 +421,7 @@ async function terapkan(tx: Tx, idRetur: number, persetujuan: DataSetujui, oleh:
         nomorDokumen: r.nomor,
         nomorPenjualan: pj.nomor,
         idRetur,
+        rekeningBolehNanti: true,
       });
     }
     await simpanTagihan(tx, pj.id, {
@@ -440,6 +442,9 @@ async function terapkan(tx: Tx, idRetur: number, persetujuan: DataSetujui, oleh:
           metodeRefund: metode,
           rekeningRefund: setuju.rekeningRefund ?? null,
           referensiRefund: setuju.referensiRefund ?? null,
+          nominalRefund: refund,
+          // K-176: transfer dikerjakan belakangan dan dikonfirmasi dengan bukti.
+          statusTransfer: metode === 'TRANSFER' && refund > 0 ? ('MENUNGGU' as const) : null,
         }
       : {}),
     idShift,
@@ -624,4 +629,62 @@ export async function tolakRetur(
 
 export function jumlahReturMenunggu(): Promise<number> {
   return repo.jumlahMenunggu(db);
+}
+
+// --- K-176: tugas refund transfer ---
+
+export async function daftarRefundTransfer(
+  status: 'MENUNGGU' | 'SELESAI',
+): Promise<TugasRefundTransfer[]> {
+  const baris = await repo.daftarRefundTransfer(db, status);
+  return baris.map((b) => ({
+    ...b,
+    tanggal: b.tanggal.toISOString(),
+    waktuTransfer: b.waktuTransfer?.toISOString() ?? null,
+    statusTransfer: b.statusTransfer ?? status,
+  }));
+}
+
+/**
+ * Menandai refund transfer sudah dikirim: rekening tujuan (boleh baru diisi sekarang) dan bukti/nomor referensi
+ * bank wajib. Hanya sekali; yang sudah SELESAI ditolak.
+ */
+export async function konfirmasiTransfer(
+  id: number,
+  input: { rekeningRefund: string; referensiRefund: string },
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<TugasRefundTransfer[]> {
+  await dalamTransaksi(async (tx) => {
+    const r = await repo.kunciRetur(tx, id);
+    if (!r) throw new AppError('TIDAK_DITEMUKAN', 'Retur tidak ditemukan.', 404);
+    if (r.statusTransfer !== 'MENUNGGU') {
+      throw new AppError(
+        'STATUS_TIDAK_VALID',
+        r.statusTransfer === 'SELESAI'
+          ? `Refund ${r.nomor} sudah dikonfirmasi ditransfer.`
+          : `Retur ${r.nomor} tidak punya tugas refund transfer.`,
+        409,
+      );
+    }
+    const waktu = sekarang();
+    await repo.ubahHeader(tx, id, {
+      statusTransfer: 'SELESAI',
+      rekeningRefund: input.rekeningRefund,
+      referensiRefund: input.referensiRefund,
+      waktuTransfer: waktu,
+      idPenggunaTransfer: pelaku.id,
+      diubahPada: waktu,
+    });
+    await catatLog(tx, {
+      aksi: 'RETUR_TRANSFER',
+      idPengguna: pelaku.id,
+      entitas: 'retur_penjualan',
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      ringkasan: `Refund ${formatRupiah(r.nominalRefund)} sudah ditransfer ke ${input.rekeningRefund} (ref. ${input.referensiRefund})`,
+      ip: asal.ip,
+    });
+  });
+  return daftarRefundTransfer('MENUNGGU');
 }
