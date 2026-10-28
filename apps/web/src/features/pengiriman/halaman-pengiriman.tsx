@@ -20,6 +20,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   GripVertical,
+  Info,
   MoreVertical,
   Phone,
   Printer,
@@ -67,6 +68,7 @@ import { DialogHasil } from '../pengantaran/dialog-hasil';
 import { DialogBuat } from '../pengantaran/panel-surat-jalan';
 import { BilahTombol } from '../pos/bilah-tombol';
 import { DialogBerangkatRit, DialogRitBaru, type CaraCetakRit } from './dialog-rit';
+import { InfoOrderKirim } from './info-order-kirim';
 
 /*
  * Logistik › Pengiriman (K-160, K-174, docs/13 §4): papan kartu. Order kirim (Backlog) diseret ke grup rit
@@ -146,6 +148,7 @@ function Kolom({
   jumlah,
   bantu,
   aksi,
+  bawah,
   children,
 }: {
   id?: string;
@@ -153,6 +156,8 @@ function Kolom({
   jumlah: number;
   bantu: string;
   aksi?: ReactNode;
+  /** Baris tambahan di bawah keterangan kolom (mis. saringan). */
+  bawah?: ReactNode;
   children: ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: id ?? `kolom-${judul}`, disabled: !id });
@@ -173,6 +178,7 @@ function Kolom({
           {aksi}
         </div>
         <p className="text-xs text-slate-500">{bantu}</p>
+        {bawah}
       </header>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">{children}</div>
     </section>
@@ -218,21 +224,48 @@ function Seret({
   );
 }
 
+/** Nomor antrean order asal: kode pendek yang mudah diingat (juga setelah order dibagi). */
+function Antrean({ n }: { n: number | null }) {
+  if (n === null) return null;
+  return (
+    <span
+      className="rounded bg-slate-900 px-1.5 text-sm leading-5 font-black text-white"
+      title="Nomor antrean order"
+    >
+      #{n}
+    </span>
+  );
+}
+
 function KartuOrder({
   p,
   rit,
+  hariIni,
   onIsi,
   onBuat,
+  onInfo,
 }: {
   p: PerluDikirim;
   rit: Perjalanan[];
+  hariIni: boolean;
   onIsi: (idRit: number) => void;
   onBuat: () => void;
+  onInfo: () => void;
 }) {
   return (
     <Seret id={`inv-${p.idPenjualan}`} label={p.nomor} testId={`order-kirim-${p.nomor}`}>
-      <div className="rounded-md border bg-white p-2.5 pl-7 text-sm">
-        <div className="flex flex-wrap items-start gap-1.5 pr-6">
+      <div
+        className={cn(
+          'rounded-md border border-l-4 bg-white p-2.5 pl-7 text-sm',
+          p.kirimUlang
+            ? 'border-l-orange-400'
+            : p.sebagian
+              ? 'border-l-amber-400 bg-amber-50/40'
+              : 'border-l-blue-400',
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-1.5 pr-12">
+          <Antrean n={p.noAntrean} />
           <Link
             to={`/penjualan/${p.idPenjualan}?dari=pengiriman`}
             className="font-mono text-xs font-semibold whitespace-nowrap text-blue-700"
@@ -240,15 +273,36 @@ function KartuOrder({
             {p.nomor}
           </Link>
           {p.kirimUlang && (
-            <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+            <Badge variant="outline" className="border-orange-300 bg-orange-50 text-orange-800">
               Kirim ulang
             </Badge>
           )}
+          {!p.kirimUlang && p.sebagian && (
+            <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+              Sisa dibagi
+            </Badge>
+          )}
+          <Badge
+            variant="outline"
+            className={hariIni ? 'border-emerald-300 text-emerald-700' : 'text-slate-500'}
+          >
+            {hariIni ? 'Hari ini' : formatWaktu(p.tanggal).slice(0, 10)}
+          </Badge>
           {p.bayarSaatTerima && (
             <Badge variant="outline" className="border-violet-300 bg-violet-50 text-violet-800">
               Bayar di tempat
             </Badge>
           )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-1 right-8"
+            aria-label={`Info ${p.nomor}`}
+            title="Info cepat: pembeli, telepon, catatan, barang"
+            onClick={onInfo}
+          >
+            <Info />
+          </Button>
           <MenuKartu label={p.nomor}>
             <DropdownMenuLabel>Masukkan ke rit</DropdownMenuLabel>
             {rit.length === 0 && (
@@ -310,7 +364,8 @@ function KartuSj({
   return (
     <Seret id={`sj-${sj.id}`} label={sj.nomor} testId={`kartu-${sj.nomor}`}>
       <div className="rounded-md border bg-white p-2 pl-7 text-sm">
-        <div className="flex flex-wrap items-start gap-1.5 pr-6">
+        <div className="flex flex-wrap items-center gap-1.5 pr-6">
+          <Antrean n={sj.noAntrean} />
           <span className="font-mono text-xs font-semibold whitespace-nowrap">{sj.nomor}</span>
           {sj.status === 'DIMUAT' && (
             <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800">
@@ -658,6 +713,7 @@ type DialogPapan =
   | { jenis: 'batal-rit'; rit: Perjalanan }
   | { jenis: 'buat'; id: number; idRit?: number }
   | { jenis: 'hasil'; sj: BarisSuratJalan }
+  | { jenis: 'info'; p: PerluDikirim }
   | null;
 
 type Cetakan = { daftar: BarisSuratJalan[]; judulBerkas?: string };
@@ -715,6 +771,14 @@ export function HalamanPengiriman() {
     }
     setCetakan({ daftar, judulBerkas: `Surat jalan ${nomorRit}` });
   }
+  const [saringBacklog, setSaringBacklog] = useState<'SEMUA' | 'HARI_INI' | 'LAMA'>('SEMUA');
+  const hariIniIso = tanggalHariIni();
+  // Tanggal invoice di zona toko (ISO tersimpan UTC).
+  const diHariIni = (p: PerluDikirim) =>
+    formatWaktu(p.tanggal).startsWith(formatTanggal(hariIniIso));
+  const backlog = (perlu.data ?? []).filter((p) =>
+    saringBacklog === 'SEMUA' ? true : saringBacklog === 'HARI_INI' ? diHariIni(p) : !diHariIni(p),
+  );
   const sjDikirim = new Map(semuaSj.filter((s) => s.status === 'DIKIRIM').map((s) => [s.id, s]));
   const hariIni = formatTanggal(tanggalHariIni());
   const selesaiHariIni = (selesai.data?.data ?? []).filter(
@@ -790,18 +854,48 @@ export function HalamanPengiriman() {
           <Kolom
             id="backlog"
             judul="Backlog"
-            jumlah={perlu.data?.length ?? 0}
+            jumlah={backlog.length}
             bantu="Order belum masuk rit. Seret ke grup rit: surat jalannya dibuat saat itu."
+            bawah={
+              <div
+                className="mt-1 flex w-fit rounded-md border text-xs"
+                role="group"
+                aria-label="Saring Backlog"
+              >
+                {(
+                  [
+                    ['SEMUA', 'Semua'],
+                    ['HARI_INI', 'Hari ini'],
+                    ['LAMA', 'Lebih lama'],
+                  ] as const
+                ).map(([v, label]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    aria-pressed={saringBacklog === v}
+                    onClick={() => setSaringBacklog(v)}
+                    className={cn(
+                      'px-1.5 py-0.5',
+                      saringBacklog === v ? 'bg-slate-900 text-white' : 'hover:bg-slate-100',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            }
           >
-            {(perlu.data ?? []).length === 0 && (
+            {backlog.length === 0 && (
               <p className="py-6 text-center text-xs text-slate-400">
                 {perlu.isLoading ? 'Memuat…' : 'Tidak ada order kirim baru.'}
               </p>
             )}
-            {(perlu.data ?? []).map((p) => (
+            {backlog.map((p) => (
               <KartuOrder
                 key={p.idPenjualan}
                 p={p}
+                hariIni={diHariIni(p)}
+                onInfo={() => setDialog({ jenis: 'info', p })}
                 rit={ritRencana}
                 onIsi={(idRit) => isiKe(idRit, { idPenjualan: p.idPenjualan })}
                 onBuat={() => setDialog({ jenis: 'buat', id: p.idPenjualan })}
@@ -932,6 +1026,7 @@ export function HalamanPengiriman() {
         />
       )}
       {dialog?.jenis === 'hasil' && <DialogHasil sj={dialog.sj} onTutup={() => setDialog(null)} />}
+      {dialog?.jenis === 'info' && <InfoOrderKirim p={dialog.p} onTutup={() => setDialog(null)} />}
       {dialog?.jenis === 'buat' && (
         <BuatDariPapan
           idPenjualan={dialog.id}

@@ -75,6 +75,28 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
     await masukCepat(kasir, 'KASIR');
     await kasir.goto('/pengiriman');
     await expect(kasir.getByTestId(`order-kirim-${a.nomor}`)).toBeVisible();
+    // K-173: nomor antrean, penanda hari ini, info cepat, saringan Backlog.
+    const kartuA = kasir.getByTestId(`order-kirim-${a.nomor}`);
+    await expect(kartuA).toContainText('Hari ini');
+    await expect(kartuA).toContainText(/#\d+/);
+    await kasir.getByRole('button', { name: `Info ${a.nomor}` }).click();
+    await expect(kasir.getByRole('dialog')).toContainText('Belum dikirim');
+    await expect(kasir.getByRole('dialog')).toContainText(`${nama} 3 sak`.replace(' 3 sak', ''));
+    await kasir.keyboard.press('Escape');
+    await kasir
+      .getByRole('group', { name: 'Saring Backlog' })
+      .getByRole('button', { name: 'Lebih lama' })
+      .click();
+    await expect(kartuA).toHaveCount(0);
+    await kasir
+      .getByRole('group', { name: 'Saring Backlog' })
+      .getByRole('button', { name: 'Hari ini' })
+      .click();
+    await expect(kartuA).toBeVisible();
+    await kasir
+      .getByRole('group', { name: 'Saring Backlog' })
+      .getByRole('button', { name: 'Semua' })
+      .click();
 
     // 1. Rit baru lewat tombol R.
     await kasir.keyboard.press('r');

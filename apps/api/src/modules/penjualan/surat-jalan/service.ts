@@ -6,6 +6,7 @@ import {
   hargaSatuanEfektif,
   LABEL_ALASAN_KEMBALI,
   LABEL_ALASAN_RUSAK,
+  nomorAntrean,
   keQty,
   subtotalRupiah,
   tambahQty,
@@ -157,8 +158,9 @@ async function keRespons(ex: Executor, rows: Header[]): Promise<BarisSuratJalan[
       baris: hasilBaris.filter((b) => b.idHasil === h.id).map(({ idHasil: _, ...b }) => b),
     };
   };
-  return rows.map((r) => ({
+  return rows.map(({ nomorOrder, ...r }) => ({
     ...r,
+    noAntrean: nomorOrder ? nomorAntrean(nomorOrder) : null,
     tanggal: r.tanggal.toISOString(),
     waktuDimuat: r.waktuDimuat?.toISOString() ?? null,
     waktuDikirim: r.waktuDikirim?.toISOString() ?? null,
@@ -180,7 +182,15 @@ export async function perluDikirim(): Promise<PerluDikirim[]> {
         qtyBelumDikirim: sisaKirim(b),
       }))
       .filter((b) => bandingQty(b.qtyBelumDikirim, 0) > 0);
-    if (baris.length > 0) hasil.push({ ...c, tanggal: c.tanggal.toISOString(), baris });
+    if (baris.length > 0) {
+      const { nomorOrder, ...isi } = c;
+      hasil.push({
+        ...isi,
+        tanggal: c.tanggal.toISOString(),
+        noAntrean: nomorOrder ? nomorAntrean(nomorOrder) : null,
+        baris,
+      });
+    }
   }
   return hasil;
 }

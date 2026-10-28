@@ -683,7 +683,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-170 | Notifikasi dan lencana barang di order pengantaran yang belum punya data muatan. | Berlaku (rencana) |
 | K-171 | Hot page langsung/pengantaran: gulir panel dan pindah fokus dengan tombol, elemen lebih ringkas. | Berlaku (sebagian 25 Okt: ikon pengganti "Menghitung…") |
 | K-172 | Lencana topbar responsif, tidak meluap. | Berlaku (selesai 25 Okt) |
-| K-173 | Kartu Pengiriman: info cepat, nomor antrean, warna hasil pembagian, penanda hari, saringan. | Berlaku (rencana) |
+| K-173 | Kartu Pengiriman: info cepat, nomor antrean, warna hasil pembagian, penanda hari, saringan. | Berlaku (selesai 28 Okt) |
 | K-174 | Surat jalan hanya dibuat di dalam rit (kendaraan dan sopir sudah pasti); keluar/batal rit membatalkan surat jalan; cetak atau simpan PDF semua surat jalan saat berangkat. | Berlaku (selesai 26 Okt) |
 | K-175 | Detail yang dibuka dari Pengiriman kembali ke Pengiriman. | Berlaku (selesai 25 Okt) |
 | K-176 | Penyelesaian hasil pengantaran: alasan, potong tagihan, tugas transfer pengembalian, penanda kartu. | Berlaku (selesai 28 Okt) |

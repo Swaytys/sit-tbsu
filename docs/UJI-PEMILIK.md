@@ -72,6 +72,7 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U137 | Hasil dengan alasan | Rit berangkat → *Catat hasil*: isi **Kembali utuh** 1 → pilih alasan **Kelebihan pesanan**; barang lain **Rusak** 1 → alasan **Rusak di jalan** → **Tagihan dikurangi** → Simpan | Tanpa alasan ditolak ("Pilih alasan…"); setelah disimpan sisa tagihan berkurang kedua barang; ringkasan hasil menyebut alasannya; tidak ada lagi kolom *Ditolak* | Belum | K-176 |
 | U138 | Refund transfer | Invoice pengantaran sudah lunas → hasil kembali (kelebihan) → cara uang dikembalikan **Transfer** tanpa rekening → Simpan; lalu *Retur Penjualan › Refund transfer* → **Sudah ditransfer** → isi rekening + nomor referensi | Lonceng *Refund menunggu transfer*; tanpa nomor referensi ditolak; setelah dikonfirmasi pindah ke *Sudah ditransfer* lengkap dengan bukti dan petugasnya | Belum | K-176 |
 | U139 | Penanda kartu | Papan Pengiriman, kolom *Di jalan* dan *Selesai hari ini* setelah hasil dicatat | Tiap surat jalan bertanda *Terkirim semua* / *Ada yang kembali* / *Ada yang rusak* | Belum | K-176 |
+| U140 | Kartu Pengiriman | *Pengiriman*: lihat kartu Backlog; klik (i); bagi satu order (Kirim sebagian) lalu lihat sisanya; klik saringan *Hari ini* / *Lebih lama* | #nomor antrean tebal sama di sisa dan surat jalannya; info cepat berisi telepon/alamat/catatan/barang; sisa order bergaris kuning *Sisa dibagi*; saringan menyaring Backlog | Belum | K-173 |
 | U102 | No. HP format baru | Tambah pelanggan: ketik `0812 3456 7890` di kotak nomor | 0 dibuang dengan pemberitahuan, tersimpan `+6281234567890`; nomor 16 angka ditolak | Belum | Kode negara bisa diganti |
 | U103 | Cegah pelanggan dobel | Tambah pelanggan "Toko Sumber Jaya"; lalu tambah "sumber jaya" (No. HP lain); lalu "Pak Andi" dengan No. HP sama | Dua yang terakhir: kotak kuning "Pelanggan yang mirip sudah ada"; klik **tetap simpan** baru tersimpan | Belum | Sama untuk pemasok dan barang (nama) |
 | U104 | Pemeriksaan data | *Pengaturan › Pemeriksaan data* → **Rapikan No. HP** | Daftar kemungkinan dobel dan format salah; setelah dirapikan, No. HP lama jadi +62… | Belum | |
@@ -233,6 +234,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — U108–U110 cari sebagian, label keterjualan, panel rincian (K-123).
 - 2026-10-24 — U111–U113 kepekatan, logo struk, kertas dan cetak otomatis invoice/surat jalan (K-124).
 - 2026-10-25 — U121 perbaikan kecil sebelum deploy, U122 surat jalan 2 rangkap.
+- 2026-10-28 — U140 kartu Pengiriman (K-173).
 - 2026-10-28 — U137–U139 penyelesaian hasil pengantaran (K-176).
 - 2026-10-28 — U135–U136 panduan penyiapan dan contoh data (K-168).
 - 2026-10-26 — U132–U134 akun pertama dan lupa password (K-191).

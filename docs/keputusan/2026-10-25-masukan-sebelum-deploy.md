@@ -36,6 +36,10 @@ prioritas di bagian akhir.
 - **K-173 Kartu Pengiriman lebih informatif.** Tombol info cepat (pop-up: pelanggan, telepon, catatan, barang),
   **nomor antrean** tampil tebal di kartu (kode pendek yang mudah diingat, juga setelah dibagi), warna untuk kartu
   hasil pembagian/surat jalan sebagian, penanda hari ini vs sebelumnya, dan saringan Backlog. *Rencana.*
+  **Selesai (28 Okt):** kartu Backlog dan surat jalan menampilkan **#nomor antrean** tebal (dari order asal, sama
+  walau order dibagi); garis kiri biru = order baru, kuning + *Sisa dibagi* = sisa order yang sebagian sudah masuk
+  rit, oranye + *Kirim ulang*; lencana *Hari ini* atau tanggal; tombol (i) membuka info cepat (pembeli, telepon,
+  alamat, catatan kirim, barang belum dikirim); saringan Backlog *Semua / Hari ini / Lebih lama*.
 - **K-174 Alur surat jalan dibenahi (kritis).** Surat jalan baru dibuat setelah order masuk rit yang sudah punya
   kendaraan dan sopir; membagi order (sebagian) tidak membuat surat jalan; grup "Belum direncanakan" dihapus;
   saat **Berangkat** semua surat jalan rit dicetak/diunduh (pilihan cetak atau unduh) dan rit tidak bisa berangkat

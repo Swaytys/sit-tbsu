@@ -208,9 +208,12 @@ invoice** → **P** cetak invoice, **S** kirim dengan rit: pilih rit (kendaraan 
 (papan)**). Papan empat kolom seperti papan tugas; kartu dikerjakan dari kiri ke kanan. Istilah: **rit** = satu
 kendaraan + satu sopir berangkat sekali, membawa satu atau beberapa surat jalan.
 
-1. **Backlog** — invoice pengantaran yang barangnya belum dikirim (semua atau sebagian). Tanda *Kirim ulang* = sisa
-   dari pengantaran sebelumnya (barang kembali atau pengganti barang rusak). Tanda *Bayar di tempat* = sopir menagih
-   uangnya.
+1. **Backlog** — invoice pengantaran yang barangnya belum dikirim (semua atau sebagian). **#angka** hitam = nomor
+   antrean order (kode pendek untuk mengenali order; sama walau order dibagi). Garis kiri: biru = order baru, kuning
+   *Sisa dibagi* = sisa order yang sebagian sudah dijadwalkan, oranye *Kirim ulang* = sisa dari pengantaran
+   sebelumnya (barang kembali atau pengganti barang rusak). Lencana *Hari ini* atau tanggal order. Tanda *Bayar di
+   tempat* = sopir menagih uangnya. Tombol **(i)** = info cepat (telepon, alamat, catatan, barang). Saringan di
+   bawah judul kolom: **Semua / Hari ini / Lebih lama**.
 2. **Dijadwalkan** — rencana rit.
    - **Buat rit**: klik **Rit baru** (atau tekan **R**) → pilih **Kendaraan** dan **Sopir** → periksa **Jadwal
      berangkat** → catatan bila perlu (mis. rute) → **Enter**. Kendaraan yang sedang di jalan boleh dipilih untuk
