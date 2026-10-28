@@ -188,10 +188,14 @@ export function DialogBuat({
 
   return (
     <>
-      <Dialog open={!ritBaru} onOpenChange={(b) => !b && onTutup()}>
+      {/* Dialog Rit baru bertumpuk di atas dialog ini (tidak menutup-buka dialog ini: perpindahan dua dialog
+          sekaligus kadang meninggalkan lapisan penghalang klik). */}
+      <Dialog open onOpenChange={(b) => !b && !ritBaru && onTutup()}>
         <DialogContent
           className="sm:max-w-2xl"
           onKeyDown={(e) => {
+            // Tombol dari dialog Rit baru ikut menjalar ke sini lewat pohon React: abaikan.
+            if (ritBaru) return;
             if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
               e.preventDefault();
               simpan();
@@ -297,7 +301,14 @@ export function DialogBuat({
         </DialogContent>
       </Dialog>
       {ritBaru && (
-        <DialogRitBaru onTutup={() => setRitBaru(false)} onDibuat={(r) => setIdRit(String(r.id))} />
+        <DialogRitBaru
+          onTutup={() => {
+            setRitBaru(false);
+            // Fokus kembali ke pilihan rit agar Enter langsung memasukkan ke rit (bukan membuka Rit baru lagi).
+            window.setTimeout(() => pilihRit.current?.focus(), 0);
+          }}
+          onDibuat={(r) => setIdRit(String(r.id))}
+        />
       )}
     </>
   );
