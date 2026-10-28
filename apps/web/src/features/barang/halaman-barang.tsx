@@ -81,7 +81,10 @@ export function HalamanBarang() {
   const [idMerk, setIdMerk] = useState<number | null>(null);
   const [kepemilikan, setKepemilikan] = useState<Kepemilikan | null>(null);
   const [perluTinjau, setPerluTinjau] = useState(false);
-  const [muatanBelum, setMuatanBelum] = useState(false);
+  // K-170: tautan notifikasi "barang tanpa data muatan" membuka daftar yang sudah tersaring.
+  const [muatanBelum, setMuatanBelum] = useState(
+    () => new URLSearchParams(window.location.search).get('muatan') === 'belum',
+  );
   const [halaman, setHalaman] = useState(1);
   const saring = useKolomTampil(
     'saring-barang',
@@ -185,6 +188,15 @@ export function HalamanBarang() {
                 title="Harga modal atau markup berubah. Harga usulan menunggu persetujuan di Harga Jual › Tinjau Harga."
               >
                 Perlu tinjau harga
+              </Badge>
+            )}
+            {b.muatanBelum && (
+              <Badge
+                variant="outline"
+                className="border-slate-300 text-slate-600"
+                title="Berat atau ukuran kemasan belum diisi: muatan kendaraan tidak bisa dihitung penuh. Isi di Ubah › Data muatan."
+              >
+                Tanpa data muatan
               </Badge>
             )}
           </div>

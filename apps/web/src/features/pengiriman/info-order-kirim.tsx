@@ -57,6 +57,14 @@ export function InfoOrderKirim({ p, onTutup }: { p: PerluDikirim; onTutup: () =>
                   <b className="tabular-nums">
                     {formatDesimal(b.qtyBelumDikirim)} {b.kodeSatuan}
                   </b>
+                  {b.tanpaMuatan && (
+                    <Link
+                      to={`/barang/${b.idBarang}`}
+                      className="ml-1 text-xs text-red-700 hover:underline"
+                    >
+                      isi data muatan
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

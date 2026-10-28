@@ -76,3 +76,20 @@ export async function rincianRefundTransfer(): Promise<{ jumlah: number; rincian
     rincian: r.map((x) => `${x.nomor} · ${formatRupiah(Number(x.nilai))}`),
   };
 }
+
+/** K-170: barang dalam order pengantaran yang belum terkirim tetapi belum punya data muatan. */
+export async function rincianMuatanKosong(): Promise<{ jumlah: number; rincian: string[] }> {
+  const syarat = sql`from penjualan p
+      join penjualan_detail d on d.id_penjualan = p.id and d.status_item <> 'VOID'
+      join barang b on b.id = d.id_barang
+     where p.jenis_penjualan = 'PENGANTARAN' and p.status_transaksi <> 'VOID'
+       and coalesce(p.status_pengiriman, 'BELUM') <> 'SELESAI'
+       and (b.berat_kg is null
+         or (not b.curah and b.panjang_cm is null and b.volume_m3 is null)
+         or (b.curah and b.volume_m3 is null))`;
+  const [n] = await baris<{ n: string }>(sql`select count(distinct b.id)::text n ${syarat}`);
+  const r = await baris<{ nama: string }>(
+    sql`select distinct b.nama_barang nama ${syarat} order by b.nama_barang limit ${MAKS}`,
+  );
+  return { jumlah: Number(n?.n ?? 0), rincian: r.map((x) => x.nama) };
+}

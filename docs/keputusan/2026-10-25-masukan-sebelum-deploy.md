@@ -24,10 +24,16 @@ prioritas di bagian akhir.
   volume, toleransi pembulatan) dan menolak/memperingatkan bila berbeda; volume yang selaras dihitung otomatis dari
   P × L × T. Contoh barang yang wajar memiliki keduanya: dus/kotak kemasan (dimensi luar) dengan isi cairan dalam
   liter (cat 5 L dalam kaleng 20 × 20 × 25 cm) — di sini volume isi ≠ volume kemasan, jadi atribut "isi" (liter)
-  diperlakukan sebagai atribut produk, bukan volume muatan. *Rencana.*
+  diperlakukan sebagai atribut produk, bukan volume muatan. *Rencana.* **Selesai (28 Okt):** saat barang disimpan,
+  data muatan kosong diisi dari atribut Panjang/Lebar/Tinggi (lengkap ketiganya), Berat, dan Volume (barang curah)
+  setelah dikonversi satuannya; atribut yang belum ada diisi dari data muatan (cm, kg, m³); bila keduanya diisi dan
+  berbeda lebih dari 0,5% simpan ditolak dengan pesan yang menyebut kedua angka. Volume barang tidak curah tidak
+  disamakan (isi produk).
 - **K-170 Barang tanpa data muatan di order pengantaran.** Notifikasi "N barang di order pengantaran belum punya
   data muatan", lencana di kartu pengantaran dan di Data Barang, serta tautan langsung ke isian muatan barang itu.
-  *Rencana.*
+  *Rencana.* **Selesai (28 Okt):** notifikasi *Barang kirim tanpa data muatan* (Admin/Owner) membuka Data Barang
+  tersaring; lencana merah *N tanpa data muatan* di kartu Backlog Pengiriman (info cepat menautkan *isi data muatan*
+  per barang); lencana *Tanpa data muatan* di daftar Data Barang.
 - **K-171 Hot page penjualan langsung/pengantaran pas layar.** Tombol untuk menggulir panel yang sedang fokus
   (atas/bawah) dan pindah fokus kiri/kanan; tulisan "(Menghitung…)" diganti ikon kecil (**Selesai**); kotak
   "Belanja Rp … lagi" diperkecil, bilah pintasan dipindah sejajar tab Kasir/Riwayat/Belum diambil. *Sebagian.*

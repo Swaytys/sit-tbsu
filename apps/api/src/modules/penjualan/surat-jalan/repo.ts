@@ -20,6 +20,7 @@ import {
 } from '../../../db/schema';
 import { alias } from 'drizzle-orm/pg-core';
 import { kolomPenuh } from '../../../db/kolom-penuh';
+import { syaratMuatanBelum } from '../../master/barang/repo';
 import { kodeSatuanBaris, satuanBaris } from '../satuan-baris';
 import { polaCari } from '../../../lib/paginasi';
 
@@ -293,7 +294,10 @@ export function qtyBaris(ex: Executor, idPenjualan: number) {
   return ex
     .select({
       id: penjualanDetail.id,
+      idBarang: barang.id,
       namaBarang: barang.namaBarang,
+      /** K-170: berat atau ukuran/volume barang belum diisi. */
+      tanpaMuatan: sql<boolean>`${syaratMuatanBelum()}`,
       kodeSatuan: kodeSatuanBaris,
       qty: penjualanDetail.qty,
       faktor: penjualanDetail.faktor,

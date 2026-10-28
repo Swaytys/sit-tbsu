@@ -318,6 +318,8 @@ export type BarisBarang = {
   idPemasokKonsinyasi: number | null;
   namaPemasokKonsinyasi: string | null;
   perluTinjauHarga: boolean;
+  /** K-170: data muatan (berat, ukuran/volume) belum lengkap. */
+  muatanBelum: boolean;
   /** H7: harga IKUT_TIER/MARKUP mengikuti dasar markup secara otomatis. */
   hargaOtomatis: boolean;
   /** URL gambar (dilayani API dengan izin), `null` bila belum ada. */

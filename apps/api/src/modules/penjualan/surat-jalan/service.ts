@@ -177,9 +177,11 @@ export async function perluDikirim(): Promise<PerluDikirim[]> {
   for (const c of calon) {
     const baris = (await repo.qtyBaris(db, c.idPenjualan))
       .map((b) => ({
+        idBarang: b.idBarang,
         namaBarang: b.namaBarang,
         kodeSatuan: b.kodeSatuan,
         qtyBelumDikirim: sisaKirim(b),
+        tanpaMuatan: b.tanpaMuatan,
       }))
       .filter((b) => bandingQty(b.qtyBelumDikirim, 0) > 0);
     if (baris.length > 0) {

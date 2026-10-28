@@ -347,6 +347,7 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-24 — P8 rekening penerimaan wajib dipilih dan No. referensi wajib (K-154); K25 satu shift toko dijamin indeks unik (K-155).
 - 2026-10-24 — S13 muatan saat berangkat (K-161).
 - 2026-10-24 — S14 rit rencana dan papan Pengiriman (K-160).
+- 2026-10-28 — S13: atribut dimensi ↔ data muatan diselaraskan saat barang disimpan, beda ditolak (K-169); notifikasi barang kirim tanpa data muatan (K-170).
 - 2026-10-28 — S10: alasan per barang, kembali utuh selain kirim ulang mengurangi tagihan, retur rusak terpisah, tugas refund transfer (K-176).
 - 2026-10-26 — S1, S9, S13, S14: surat jalan hanya di dalam rit; keluar/batal rit membatalkan surat jalan; cetak semua surat jalan saat berangkat (K-174).
 - 2026-10-24 — S15 catatan BBM/servis, pengingat, statistik armada (K-162).

@@ -280,6 +280,18 @@ function KartuOrder({
           >
             {hariIni ? 'Hari ini' : formatWaktu(p.tanggal).slice(0, 10)}
           </Badge>
+          {p.baris.some((b) => b.tanpaMuatan) && (
+            <Badge
+              variant="outline"
+              className="border-red-300 bg-red-50 text-red-700"
+              title={`Belum ada berat/ukuran: ${p.baris
+                .filter((b) => b.tanpaMuatan)
+                .map((b) => b.namaBarang)
+                .join(', ')}. Muatan kendaraan tidak bisa dihitung penuh.`}
+            >
+              {p.baris.filter((b) => b.tanpaMuatan).length} tanpa data muatan
+            </Badge>
+          )}
           {p.bayarSaatTerima && (
             <Badge variant="outline" className="border-violet-300 bg-violet-50 text-violet-800">
               Bayar di tempat

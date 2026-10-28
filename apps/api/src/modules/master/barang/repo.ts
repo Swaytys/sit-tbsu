@@ -35,6 +35,8 @@ const kolom = {
   idPemasokKonsinyasi: barang.idPemasokKonsinyasi,
   namaPemasokKonsinyasi: pemasok.namaPemasok,
   perluTinjauHarga: barang.perluTinjauHarga,
+  /** K-170: berat atau ukuran/volume belum diisi. */
+  muatanBelum: sql<boolean>`${syaratMuatanBelum()}`,
   hargaOtomatis: barang.hargaOtomatis,
   gambar: barang.gambar,
   keterangan: barang.keterangan,
