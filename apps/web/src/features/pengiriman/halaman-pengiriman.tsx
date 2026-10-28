@@ -85,6 +85,23 @@ const WARNA_MUATAN = {
 
 const jam = (iso: string | null) => (iso ? formatWaktu(iso).slice(11) : '—');
 
+const PENANDA_HASIL = {
+  SEMUA_DITERIMA: ['Terkirim semua', 'border-emerald-300 bg-emerald-50 text-emerald-800'],
+  ADA_KEMBALI: ['Ada yang kembali', 'border-amber-300 bg-amber-50 text-amber-800'],
+  ADA_RUSAK: ['Ada yang rusak', 'border-red-300 bg-red-50 text-red-700'],
+} as const;
+
+/** K-176: penanda hasil pengantaran satu surat jalan (rinciannya di detail invoice). */
+function PenandaHasil({ h }: { h: Perjalanan['suratJalan'][number]['hasilRingkas'] }) {
+  if (!h) return null;
+  const [teks, kelas] = PENANDA_HASIL[h];
+  return (
+    <Badge variant="outline" className={kelas} data-testid="penanda-hasil">
+      {teks}
+    </Badge>
+  );
+}
+
 const ARAH: Record<string, [number, number]> = {
   ArrowRight: [1, 0],
   ArrowLeft: [-1, 0],
@@ -552,7 +569,7 @@ function KartuJalan({
                     <ClipboardCheck /> Catat hasil
                   </Button>
                 ) : (
-                  <span className="text-xs text-emerald-700">hasil dicatat</span>
+                  <PenandaHasil h={s.hasilRingkas} />
                 )}
               </div>
             </li>
@@ -875,6 +892,20 @@ export function HalamanPengiriman() {
                 <div>
                   {r.plat} · {r.namaSopir} · {r.suratJalan.length} surat jalan
                 </div>
+                <ul className="mt-1 space-y-0.5">
+                  {r.suratJalan.map((s) => (
+                    <li key={s.id} className="flex flex-wrap items-center gap-1">
+                      <Link
+                        to={`/penjualan/${s.idPenjualan}?dari=pengiriman`}
+                        className="font-mono text-blue-700 hover:underline"
+                      >
+                        {s.nomor}
+                      </Link>
+                      <span className="truncate text-slate-600">{s.namaPelanggan ?? '—'}</span>
+                      <PenandaHasil h={s.hasilRingkas} />
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </Kolom>

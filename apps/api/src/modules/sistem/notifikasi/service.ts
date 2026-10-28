@@ -12,7 +12,7 @@ import { jumlahPerluDipesan } from '../../persediaan/saran-pesan/service';
 import { peringatanStok } from '../../persediaan/stok/service';
 import { pengingatArmada } from '../../master/armada/service';
 import { peringatanCadangan } from '../cadangan/service';
-import { rincianHutang, rincianPengajuan, rincianPiutang } from './rincian';
+import { rincianHutang, rincianPengajuan, rincianPiutang, rincianRefundTransfer } from './rincian';
 
 /** Notifikasi topbar per pengguna (docs/05 ST2), disaring menurut izin. */
 export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifikasi[]> {
@@ -160,6 +160,17 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         rincian: await rincianPengajuan('retur_penjualan'),
         jumlah: n,
         tautan: '/retur?tab=persetujuan',
+      });
+    }
+    const transfer = await rincianRefundTransfer();
+    if (transfer.jumlah > 0) {
+      hasil.push({
+        jenis: 'REFUND_TRANSFER',
+        judul: 'Refund menunggu transfer',
+        keterangan: `${transfer.jumlah} pengembalian uang lewat transfer belum dikonfirmasi.`,
+        rincian: transfer.rincian,
+        jumlah: transfer.jumlah,
+        tautan: '/retur?tab=transfer',
       });
     }
   }

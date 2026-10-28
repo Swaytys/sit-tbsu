@@ -165,6 +165,7 @@ export function detailUntukHasil(ex: Executor, idSuratJalan: number) {
 
 const returTukar = alias(returPenjualan, 'retur_tukar');
 const returUang = alias(returPenjualan, 'retur_uang');
+const returRusak = alias(returPenjualan, 'retur_rusak');
 
 /** Header hasil pengantaran beserta retur yang dibuatnya (S10). */
 export function hasilHeader(ex: Executor, idSuratJalan: number[]) {
@@ -184,11 +185,15 @@ export function hasilHeader(ex: Executor, idSuratJalan: number[]) {
       idReturUang: suratJalanHasil.idReturUang,
       nomorReturUang: returUang.nomor,
       statusReturUang: returUang.status,
+      idReturRusak: suratJalanHasil.idReturRusak,
+      nomorReturRusak: returRusak.nomor,
+      statusReturRusak: returRusak.status,
     })
     .from(suratJalanHasil)
     .innerJoin(pengguna, eq(pengguna.id, suratJalanHasil.idPengguna))
     .leftJoin(returTukar, eq(returTukar.id, suratJalanHasil.idReturTukar))
     .leftJoin(returUang, eq(returUang.id, suratJalanHasil.idReturUang))
+    .leftJoin(returRusak, eq(returRusak.id, suratJalanHasil.idReturRusak))
     .where(inArray(suratJalanHasil.idSuratJalan, idSuratJalan));
 }
 
@@ -203,6 +208,8 @@ export function hasilDetail(ex: Executor, idHasil: number[]) {
       qtyRusak: suratJalanHasilDetail.qtyRusak,
       qtyDitolak: suratJalanHasilDetail.qtyDitolak,
       kondisiDitolak: suratJalanHasilDetail.kondisiDitolak,
+      alasanKembali: suratJalanHasilDetail.alasanKembali,
+      alasanRusak: suratJalanHasilDetail.alasanRusak,
     })
     .from(suratJalanHasilDetail)
     .innerJoin(suratJalanDetail, eq(suratJalanDetail.id, suratJalanHasilDetail.idSuratJalanDetail))

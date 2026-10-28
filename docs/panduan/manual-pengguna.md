@@ -245,15 +245,25 @@ kendaraan + satu sopir berangkat sekali, membawa satu atau beberapa surat jalan.
    Kartu menguning bila lebih dari 6 jam atau sudah ganti hari. Saat sopir kembali membawa surat jalan bertanda
    tangan, klik **Catat hasil** pada surat jalannya:
    - Semua barang sampai dengan baik → **Semua diterima** (atau **Enter**).
-   - Ada yang tidak sampai: isi hanya kolom yang perlu, kolom **Diterima** terhitung sendiri.
-     - **Kembali utuh** (rumah tutup, alamat salah, pembeli menunda): barang tetap milik pembeli, stok tidak
-       berubah, dan sisanya muncul di *Backlog* bertanda *Kirim ulang*.
-     - **Rusak di jalan**: ditanggung toko (masuk stok rusak). Tanyakan pembeli lalu pilih **Dikirim pengganti**
-       (tagihan tetap; pengganti muncul di *Backlog*) atau **Tagihan dikurangi**.
-     - **Ditolak** (pembeli tidak mau, bukan karena rusak di jalan): pilih kondisi barangnya. Tagihan berkurang;
-       bila invoice sudah lunas, pilih cara uang dikembalikan (**Tunai** dari uang shift, atau **Transfer**).
+   - Ada yang tidak sampai: isi hanya kolom yang perlu, lalu **pilih alasannya** di kotak yang muncul di bawah
+     angka. Kolom **Diterima** terhitung sendiri.
+     - **Kembali utuh** (barang dibawa pulang dalam keadaan baik), alasan:
+       - *Kirim ulang nanti* (rumah tutup, alamat salah, pembeli menunda): barang tetap milik pembeli, stok tidak
+         berubah, dan muncul lagi di *Backlog* bertanda *Kirim ulang*.
+       - *Kelebihan pesanan*, *Salah barang*, atau *Pembeli batal*: barang kembali ke stok jual dan **tagihan
+         dikurangi otomatis**.
+     - **Rusak**, alasan *Rusak di jalan* atau *Rusak/cacat saat dicek pembeli*: ditanggung toko (masuk stok rusak).
+       Tanyakan pembeli lalu pilih **Dikirim pengganti** (tagihan tetap; pengganti muncul di *Backlog*) atau
+       **Tagihan dikurangi**.
+     - Bila invoice sudah lunas dan ada nilai yang dikurangi, pilih cara uang dikembalikan: **Tunai** (dari uang
+       shift, langsung) atau **Transfer**. Rekening pembeli boleh dikosongkan dulu: transfer menjadi tugas di
+       *Retur Penjualan › Refund transfer* (lonceng: *Refund menunggu transfer*). Setelah uang dikirim dari rekening
+       toko, buka tab itu → **Sudah ditransfer** → isi rekening tujuan dan **nomor referensi/bukti** dari bank →
+       **Enter**.
    - Isi **Nama yang menerima** bila berbeda dari pembeli → **Simpan hasil**.
-   Barang ditolak/rusak menjadi retur otomatis. Bila Anda kasir, retur itu menunggu persetujuan atasan (tampil
+   Kartu surat jalan di *Di jalan* dan *Selesai hari ini* diberi penanda: **Terkirim semua** (hijau), **Ada yang
+   kembali** (kuning), **Ada yang rusak** (merah); klik nomornya untuk rincian.
+   Barang dikembalikan/rusak menjadi retur otomatis. Bila Anda kasir, retur itu menunggu persetujuan atasan (tampil
    *menunggu atasan* di surat jalan); barangnya baru bisa dikirim ulang setelah diputuskan. Perjalanan selesai
    sendiri setelah hasil semua surat jalannya dicatat; kendaraan dan sopir bebas lagi.
 4. **Selesai hari ini** — rit yang hasilnya sudah dicatat semua hari ini. Rit lebih lama: *Kendaraan & Sopir* →

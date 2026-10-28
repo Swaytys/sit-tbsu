@@ -1,9 +1,14 @@
 import {
+  ALASAN_KEMBALI,
+  ALASAN_RUSAK,
   bandingQty,
   kurangQty,
+  LABEL_ALASAN_KEMBALI,
+  LABEL_ALASAN_RUSAK,
   tambahQty,
+  type AlasanKembali,
+  type AlasanRusak,
   type BarisSuratJalan,
-  type KondisiRetur,
   type MetodeRefund,
   type PenangananRusak,
 } from '@sit/shared';
@@ -25,22 +30,23 @@ import { Input } from '@/components/ui/input';
 import { formatDesimal } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-type Kolom = 'qtyKembali' | 'qtyRusak' | 'qtyDitolak';
-type Isian = Record<Kolom, string> & { kondisiDitolak: KondisiRetur };
+type Isian = {
+  qtyKembali: string;
+  alasanKembali: AlasanKembali | '';
+  qtyRusak: string;
+  alasanRusak: AlasanRusak | '';
+};
 
 const POLA = /^\d+(\.\d{1,3})?$/;
 const angka = (v: string) => (v.trim() === '' ? '0' : v.trim().replace(',', '.'));
 const sah = (v: string) => POLA.test(angka(v));
+const ada = (v: string) => sah(v) && bandingQty(angka(v), 0) > 0;
 
-const KOLOM: { kunci: Kolom; label: string; bantu: string }[] = [
-  { kunci: 'qtyKembali', label: 'Kembali utuh', bantu: 'Dibawa pulang utuh; dikirim ulang nanti' },
-  { kunci: 'qtyRusak', label: 'Rusak di jalan', bantu: 'Ditanggung toko' },
-  { kunci: 'qtyDitolak', label: 'Ditolak', bantu: 'Pembeli tidak mau; jadi retur' },
-];
+const kelasPilih = 'h-8 w-full rounded-md border border-slate-300 bg-white px-1 text-xs';
 
 /**
- * S10–S11 (K-149, K-151): catat hasil pengantaran per barang. Isi hanya yang tidak diterima; sisanya dianggap
- * diterima. Hitungan "diterima" di layar hanya tampilan; angka final dicek API.
+ * S10–S11 (K-149, K-151, K-176): catat hasil pengantaran per barang. Isi hanya yang tidak diterima beserta
+ * alasannya; sisanya dihitung diterima. Hitungan "diterima" di layar hanya tampilan; angka final dicek API.
  */
 export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () => void }) {
   const catat = useCatatHasil();
@@ -48,7 +54,7 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
     Object.fromEntries(
       sj.baris.map((b) => [
         b.idPenjualanDetail,
-        { qtyKembali: '', qtyRusak: '', qtyDitolak: '', kondisiDitolak: 'BAIK' },
+        { qtyKembali: '', alasanKembali: '', qtyRusak: '', alasanRusak: '' },
       ]),
     ),
   );
@@ -60,27 +66,39 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
 
   const baris = sj.baris.map((b) => {
     const x = isi[b.idPenjualanDetail]!;
-    const valid = KOLOM.every((k) => sah(x[k.kunci]));
-    const lain = valid ? KOLOM.reduce((t, k) => tambahQty(t, angka(x[k.kunci])), '0') : '0';
+    const valid = sah(x.qtyKembali) && sah(x.qtyRusak);
+    const lain = valid ? tambahQty(angka(x.qtyKembali), angka(x.qtyRusak)) : '0';
     const diterima = valid ? kurangQty(b.qtyKirim, lain) : null;
-    return { b, x, valid, diterima, lebih: diterima !== null && bandingQty(diterima, 0) < 0 };
+    const tanpaAlasan =
+      (ada(x.qtyKembali) && !x.alasanKembali) || (ada(x.qtyRusak) && !x.alasanRusak);
+    return {
+      b,
+      x,
+      valid,
+      diterima,
+      tanpaAlasan,
+      lebih: diterima !== null && bandingQty(diterima, 0) < 0,
+    };
   });
-  const adaRusak = baris.some((r) => r.valid && bandingQty(angka(r.x.qtyRusak), 0) > 0);
+  const adaRusak = baris.some((r) => ada(r.x.qtyRusak));
   const adaUang = baris.some(
     (r) =>
-      r.valid &&
-      (bandingQty(angka(r.x.qtyDitolak), 0) > 0 ||
-        (penanganan === 'KURANGI_TAGIHAN' && bandingQty(angka(r.x.qtyRusak), 0) > 0)),
+      (ada(r.x.qtyKembali) && r.x.alasanKembali !== '' && r.x.alasanKembali !== 'KIRIM_ULANG') ||
+      (penanganan === 'KURANGI_TAGIHAN' && ada(r.x.qtyRusak)),
   );
   const adaSalah = baris.some((r) => !r.valid || r.lebih);
 
-  function ubah(id: number, k: keyof Isian, v: string) {
+  function ubah<K extends keyof Isian>(id: number, k: K, v: Isian[K]) {
     setIsi((s) => ({ ...s, [id]: { ...s[id]!, [k]: v } }));
   }
 
   function simpan(semuaDiterima: boolean) {
     if (!semuaDiterima && adaSalah) {
       toast.error('Periksa angka yang merah: jumlahnya tidak boleh melebihi qty kirim.');
+      return;
+    }
+    if (!semuaDiterima && baris.some((r) => r.tanpaAlasan)) {
+      toast.error('Pilih alasan untuk setiap barang yang kembali atau rusak.');
       return;
     }
     if (!semuaDiterima && adaRusak && !penanganan) {
@@ -95,9 +113,9 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
             idPenjualanDetail: r.b.idPenjualanDetail,
             qtyDiterima: semuaDiterima ? r.b.qtyKirim : (r.diterima ?? '0'),
             qtyKembali: semuaDiterima ? '0' : angka(r.x.qtyKembali),
+            alasanKembali: semuaDiterima || !ada(r.x.qtyKembali) ? null : r.x.alasanKembali || null,
             qtyRusak: semuaDiterima ? '0' : angka(r.x.qtyRusak),
-            qtyDitolak: semuaDiterima ? '0' : angka(r.x.qtyDitolak),
-            kondisiDitolak: r.x.kondisiDitolak,
+            alasanRusak: semuaDiterima || !ada(r.x.qtyRusak) ? null : r.x.alasanRusak || null,
           })),
           penangananRusak: semuaDiterima || !adaRusak ? null : penanganan,
           metodeRefund: semuaDiterima ? null : metode,
@@ -108,7 +126,7 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
       })
       .then((h) => {
         const pesan = [`Hasil ${h.nomor} dicatat.`];
-        for (const r of [h.hasil?.returUang, h.hasil?.returTukar]) {
+        for (const r of [h.hasil?.returUang, h.hasil?.returRusak, h.hasil?.returTukar]) {
           if (r && r.status === 'MENUNGGU')
             pesan.push(`Retur ${r.nomor} menunggu persetujuan atasan.`);
         }
@@ -116,11 +134,15 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
           !semuaDiterima &&
           baris.some(
             (r) =>
-              bandingQty(angka(r.x.qtyKembali), 0) > 0 ||
-              (penanganan === 'KIRIM_PENGGANTI' && bandingQty(angka(r.x.qtyRusak), 0) > 0),
+              (ada(r.x.qtyKembali) && r.x.alasanKembali === 'KIRIM_ULANG') ||
+              (penanganan === 'KIRIM_PENGGANTI' && ada(r.x.qtyRusak)),
           );
-        if (ulang) pesan.push('Sisa barang masuk kolom "Perlu surat jalan" untuk dikirim ulang.');
-        toast.success(pesan.join(' '));
+        if (ulang) pesan.push('Barang yang dikirim ulang muncul lagi di Backlog Pengiriman.');
+        if (!semuaDiterima && metode === 'TRANSFER' && adaUang)
+          pesan.push(
+            'Pengembalian uang lewat transfer menunggu di Retur Penjualan › Refund transfer.',
+          );
+        toast.success(pesan.join(' '), { duration: 10_000 });
         onTutup();
       })
       .catch((err: unknown) => toast.error(pesanGalat(err)));
@@ -128,13 +150,13 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
 
   return (
     <Dialog open onOpenChange={(b) => !b && onTutup()}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Catat hasil {sj.nomor}</DialogTitle>
           <DialogDescription>
             {sj.namaPelanggan ?? '—'} · {sj.alamatKirim}
-            {sj.sopir ? ` · sopir ${sj.sopir}` : ''}. Isi hanya barang yang <b>tidak</b> diterima;
-            sisanya dihitung diterima.
+            {sj.sopir ? ` · sopir ${sj.sopir}` : ''}. Isi hanya barang yang <b>tidak</b> diterima,
+            beserta alasannya; sisanya dihitung diterima.
           </DialogDescription>
         </DialogHeader>
         <Button
@@ -152,60 +174,92 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
               <tr>
                 <th className="py-1 text-left">Barang</th>
                 <th className="w-20 py-1 text-right">Dikirim</th>
-                {KOLOM.map((k) => (
-                  <th key={k.kunci} className="w-24 py-1 text-right" title={k.bantu}>
-                    {k.label}
-                  </th>
-                ))}
+                <th className="w-48 py-1 pl-2 text-left" title="Barang kembali dalam keadaan baik">
+                  Kembali utuh · alasan
+                </th>
+                <th className="w-48 py-1 pl-2 text-left" title="Ditanggung toko">
+                  Rusak · alasan
+                </th>
                 <th className="w-20 py-1 text-right">Diterima</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {baris.map(({ b, x, valid, diterima, lebih }) => (
                 <tr key={b.idPenjualanDetail} className="align-top">
-                  <td className="py-1.5">
-                    <div className="font-medium">{b.namaBarang}</div>
-                    {valid && bandingQty(angka(x.qtyDitolak), 0) > 0 && (
-                      <label className="mt-1 flex items-center gap-1 text-xs text-slate-600">
-                        Kondisi yang ditolak:
-                        <select
-                          className="rounded border px-1 py-0.5"
-                          value={x.kondisiDitolak}
-                          onChange={(e) =>
-                            ubah(b.idPenjualanDetail, 'kondisiDitolak', e.target.value)
-                          }
-                          aria-label={`Kondisi ditolak ${b.namaBarang}`}
-                        >
-                          <option value="BAIK">Baik (kembali ke stok jual)</option>
-                          <option value="RUSAK">Rusak</option>
-                          <option value="CACAT">Cacat</option>
-                        </select>
-                      </label>
-                    )}
-                  </td>
+                  <td className="py-1.5 font-medium">{b.namaBarang}</td>
                   <td className="py-1.5 text-right tabular-nums">
                     {formatDesimal(b.qtyKirim)} {b.kodeSatuan}
                   </td>
-                  {KOLOM.map((k) => (
-                    <td key={k.kunci} className="py-1 pl-2">
-                      <Input
-                        className={cn(
-                          'h-8 text-right',
-                          !sah(x[k.kunci]) && 'border-red-500 ring-2 ring-red-200',
-                        )}
-                        inputMode="decimal"
-                        placeholder="0"
-                        value={x[k.kunci]}
-                        onChange={(e) => ubah(b.idPenjualanDetail, k.kunci, e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
-                        aria-label={`${k.label} ${b.namaBarang}`}
-                      />
-                    </td>
-                  ))}
+                  <td className="space-y-1 py-1 pl-2">
+                    <Input
+                      className={cn(
+                        'h-8 text-right',
+                        !sah(x.qtyKembali) && 'border-red-500 ring-2 ring-red-200',
+                      )}
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={x.qtyKembali}
+                      onChange={(e) => ubah(b.idPenjualanDetail, 'qtyKembali', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                      aria-label={`Kembali utuh ${b.namaBarang}`}
+                    />
+                    {ada(x.qtyKembali) && (
+                      <select
+                        className={cn(kelasPilih, !x.alasanKembali && 'border-red-500')}
+                        value={x.alasanKembali}
+                        onChange={(e) =>
+                          ubah(
+                            b.idPenjualanDetail,
+                            'alasanKembali',
+                            e.target.value as AlasanKembali,
+                          )
+                        }
+                        aria-label={`Alasan kembali ${b.namaBarang}`}
+                      >
+                        <option value="">— pilih alasan —</option>
+                        {ALASAN_KEMBALI.map((a) => (
+                          <option key={a} value={a}>
+                            {LABEL_ALASAN_KEMBALI[a]}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
+                  <td className="space-y-1 py-1 pl-2">
+                    <Input
+                      className={cn(
+                        'h-8 text-right',
+                        !sah(x.qtyRusak) && 'border-red-500 ring-2 ring-red-200',
+                      )}
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={x.qtyRusak}
+                      onChange={(e) => ubah(b.idPenjualanDetail, 'qtyRusak', e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                      aria-label={`Rusak ${b.namaBarang}`}
+                    />
+                    {ada(x.qtyRusak) && (
+                      <select
+                        className={cn(kelasPilih, !x.alasanRusak && 'border-red-500')}
+                        value={x.alasanRusak}
+                        onChange={(e) =>
+                          ubah(b.idPenjualanDetail, 'alasanRusak', e.target.value as AlasanRusak)
+                        }
+                        aria-label={`Alasan rusak ${b.namaBarang}`}
+                      >
+                        <option value="">— pilih alasan —</option>
+                        {ALASAN_RUSAK.map((a) => (
+                          <option key={a} value={a}>
+                            {LABEL_ALASAN_RUSAK[a]}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
                   <td
                     className={cn(
                       'py-1.5 text-right font-semibold tabular-nums',
-                      lebih ? 'text-red-600' : 'text-emerald-700',
+                      lebih || !valid ? 'text-red-600' : 'text-emerald-700',
                     )}
                     data-testid={`diterima-${b.idPenjualanDetail}`}
                   >
@@ -216,10 +270,15 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
             </tbody>
           </table>
         </div>
+        <p className="text-xs text-slate-500">
+          <b>Kirim ulang nanti</b>: barang tetap milik pembeli dan muncul lagi di Backlog.{' '}
+          <b>Kelebihan / salah barang / pembeli batal</b>: barang kembali ke stok dan tagihan
+          dikurangi otomatis.
+        </p>
         {adaRusak && (
           <fieldset className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
             <legend className="px-1 font-semibold text-amber-900">
-              Barang rusak di jalan ditanggung toko. Pembeli memilih:
+              Barang rusak ditanggung toko. Pembeli memilih:
             </legend>
             <div className="flex flex-wrap gap-4">
               {(
@@ -243,7 +302,7 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
         )}
         {adaUang && (
           <fieldset className="rounded-md border p-3 text-sm">
-            <legend className="px-1 font-semibold">Nilai barang ditolak/rusak</legend>
+            <legend className="px-1 font-semibold">Nilai barang dikembalikan/rusak</legend>
             <p className="text-slate-600">
               Memotong sisa tagihan. Bila tagihan sudah lunas, uangnya dikembalikan lewat:
             </p>
@@ -266,14 +325,20 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
               ))}
               {metode === 'TRANSFER' && (
                 <Input
-                  className="h-8 w-56"
+                  className="h-8 w-64"
                   value={rekening}
                   onChange={(e) => setRekening(e.target.value)}
-                  placeholder="Rekening pembeli"
+                  placeholder="Rekening pembeli (boleh diisi nanti)"
                   aria-label="Rekening pembeli"
                 />
               )}
             </div>
+            {metode === 'TRANSFER' && (
+              <p className="mt-1 text-xs text-slate-500">
+                Transfer dikerjakan belakangan: tugasnya muncul di Retur Penjualan › Refund transfer
+                sampai dikonfirmasi dengan nomor referensi/bukti transfer.
+              </p>
+            )}
           </fieldset>
         )}
         <div className="grid grid-cols-2 gap-2">

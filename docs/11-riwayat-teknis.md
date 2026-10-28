@@ -715,6 +715,20 @@ Web: `/penyiapan`, pengingat Dashboard, tombol di Pengaturan; akun pertama melan
 **Tes:** penyiapan.test (status, tandai, contoh tidak dihitung, isi dua kali ditolak, nonaktifkan), e2e
 penyiapan.spec.
 
+
+### C25. Penyelesaian hasil pengantaran (28 Oktober 2026, K-176)
+
+**Solusi:** migrasi 0036. Skema hasil: `alasanKembali`/`alasanRusak` (wajib bila qty > 0), `qtyDitolak` tidak lagi
+diterima dari klien; service memetakan kembali non-KIRIM_ULANG ke kolom lama `qty_ditolak` kondisi BAIK sehingga S2
+dan laporan lama tetap benar. Dua retur uang terpisah (kembali BAIK dan rusak RUSAK) karena retur menolak baris ganda
+per barang; penyelesaian keduanya ditentukan dari total nilai terhadap sisa tagihan. `catatRefund` menerima
+`rekeningBolehNanti` (retur saja; void tetap wajib rekening); `terapkan` retur menyimpan `nominal_refund` dan
+`status_transfer`. Daftar/konfirmasi tugas di modul retur, notifikasi `REFUND_TRANSFER`. Penanda kartu dari subkueri
+agregat hasil per surat jalan (`hasilRingkas`).
+
+**Tes:** surat-jalan.test (alasan wajib, kelebihan → potong tagihan, rusak terpisah, refund transfer menunggu →
+konfirmasi), e2e refund-transfer.spec, pengiriman.spec (alasan + penanda).
+
 ---
 
 ## Riwayat dokumen
@@ -744,3 +758,4 @@ penyiapan.spec.
 - 2026-10-26 — Bagian C22 log interaksi penelitian (K-190).
 - 2026-10-26 — Bagian C23 akun pertama dan kode pemulihan (K-191).
 - 2026-10-28 — Bagian C24 panduan penyiapan dan contoh data (K-168).
+- 2026-10-28 — Bagian C25 penyelesaian hasil pengantaran (K-176).

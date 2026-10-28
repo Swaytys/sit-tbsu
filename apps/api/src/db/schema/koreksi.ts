@@ -18,6 +18,7 @@ import {
   PENYELESAIAN_RETUR,
   STATUS_KODE_PERSETUJUAN,
   STATUS_PERSETUJUAN,
+  STATUS_TRANSFER,
 } from '@sit/shared';
 import { shiftKasir } from './kas';
 import { penyelesaianKonsinyasi } from './transaksi-pemasok';
@@ -67,8 +68,25 @@ export const returPenjualan = pgTable(
     diubahPada:
       diubahPada() /** K-099 (migrasi 0013): cara disetujui; terisi tepat saat DISETUJUI. */,
     caraPersetujuan: varchar('cara_persetujuan', { length: 12, enum: CARA_PERSETUJUAN }),
+    /**
+     * K-176 (migrasi 0036): refund yang benar-benar dikembalikan (dibatasi uang yang sudah dibayar, T6) dan tugas
+     * refund transfer: MENUNGGU sampai dikonfirmasi sudah ditransfer (SELESAI) dengan bukti. Kolom status.
+     */
+    nominalRefund: uang('nominal_refund').notNull().default(0),
+    statusTransfer: varchar('status_transfer', { length: 10, enum: STATUS_TRANSFER }),
+    waktuTransfer: timestamptz('waktu_transfer'),
+    idPenggunaTransfer: kolomRef('id_pengguna_transfer'),
   },
   (t) => [
+    foreignKey({
+      name: 'retur_penjualan_id_pengguna_transfer_fkey',
+      columns: [t.idPenggunaTransfer],
+      foreignColumns: [pengguna.id],
+    }),
+    check(
+      'chk_retur_transfer',
+      sql`status_transfer is null or (status_transfer in ('MENUNGGU','SELESAI') and metode_refund = 'TRANSFER')`,
+    ),
     foreignKey({
       name: 'retur_penjualan_id_penjualan_fkey',
       columns: [t.idPenjualan],

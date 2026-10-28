@@ -25,6 +25,8 @@ export const JENIS_NOTIFIKASI = [
   'ORDER_DISIMPAN_LEWAT',
   'ARMADA_SURAT',
   'ARMADA_SERVIS',
+  /** K-176: refund transfer belum dikonfirmasi sudah ditransfer. */
+  'REFUND_TRANSFER',
 ] as const;
 export type JenisNotifikasi = (typeof JENIS_NOTIFIKASI)[number];
 

@@ -51,7 +51,12 @@ prioritas di bagian akhir.
   rusak saat dicek, rusak di jalan); barang kembali utuh mengurangi tagihan otomatis; pengembalian uang lewat
   transfer menjadi tugas lanjutan dengan status *menunggu transfer → sudah ditransfer* (rekening boleh diisi
   belakangan, bukti/konfirmasi wajib). Kartu hasil diberi penanda: terkirim semua / sebagian kembali / ada rusak.
-  *Rencana.*
+  **Selesai (28 Okt):** kolom *Ditolak* dihapus; *Kembali utuh* dan *Rusak* wajib beralasan. Kembali karena
+  kelebihan/salah barang/pembeli batal mengurangi tagihan otomatis (stok kembali); *kirim ulang nanti* tetap
+  dikirim lagi. Rusak di jalan / saat dicek ditanggung toko (dikirim pengganti atau tagihan dikurangi, retur
+  terpisah). Refund transfer menjadi tugas *Retur Penjualan › Refund transfer* (menunggu → sudah ditransfer,
+  rekening boleh diisi saat konfirmasi, nomor referensi wajib), dengan notifikasi lonceng. Penanda hasil di kartu
+  Di jalan dan Selesai hari ini.
 - **K-177 Seret kartu dengan keyboard** (Spasi angkat, panah pindah urutan/kolom, Spasi lepas) belum berfungsi;
   diperbaiki. **Selesai (26 Okt):** sebabnya, papan hanya mengenali tempat lepas dari posisi mouse. Kini panah
   melompat ke tempat lepas terdekat ke arah itu (kolom Backlog atau grup rit; grup tujuan berbingkai biru), Spasi

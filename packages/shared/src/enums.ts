@@ -394,3 +394,28 @@ export type JenisInteraksi = (typeof JENIS_INTERAKSI)[number];
 /** K-190: SEMUA = setiap elemen yang bisa diklik; BERMAKNA = tombol, tautan, dan item menu saja. */
 export const TINGKAT_LOG_INTERAKSI = ['SEMUA', 'BERMAKNA'] as const;
 export type TingkatLogInteraksi = (typeof TINGKAT_LOG_INTERAKSI)[number];
+
+/**
+ * K-176: alasan barang kembali utuh dari pengantaran. KIRIM_ULANG = barang tetap milik pembeli dan dikirim lagi;
+ * selain itu barang dikembalikan pembeli → tagihan dikurangi otomatis (retur kondisi baik, stok kembali).
+ */
+export const ALASAN_KEMBALI = ['KIRIM_ULANG', 'KELEBIHAN', 'SALAH_BARANG', 'BATAL_BELI'] as const;
+export type AlasanKembali = (typeof ALASAN_KEMBALI)[number];
+export const LABEL_ALASAN_KEMBALI: Record<AlasanKembali, string> = {
+  KIRIM_ULANG: 'Kirim ulang nanti (penerima tidak ada/ditunda)',
+  KELEBIHAN: 'Kelebihan pesanan (tagihan dikurangi)',
+  SALAH_BARANG: 'Salah barang (tagihan dikurangi)',
+  BATAL_BELI: 'Pembeli batal (tagihan dikurangi)',
+};
+
+/** K-176: alasan barang rusak; keduanya ditanggung toko (S11). */
+export const ALASAN_RUSAK = ['RUSAK_DI_JALAN', 'RUSAK_SAAT_DICEK'] as const;
+export type AlasanRusak = (typeof ALASAN_RUSAK)[number];
+export const LABEL_ALASAN_RUSAK: Record<AlasanRusak, string> = {
+  RUSAK_DI_JALAN: 'Rusak di jalan',
+  RUSAK_SAAT_DICEK: 'Rusak/cacat saat dicek pembeli',
+};
+
+/** K-176: tugas pengembalian uang lewat transfer. */
+export const STATUS_TRANSFER = ['MENUNGGU', 'SELESAI'] as const;
+export type StatusTransfer = (typeof STATUS_TRANSFER)[number];

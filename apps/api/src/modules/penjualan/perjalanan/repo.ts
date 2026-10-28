@@ -1,4 +1,5 @@
-import { and, count, desc, eq, inArray, ne, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import type { StatusPerjalanan } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
@@ -12,7 +13,19 @@ import {
   penjualanDetail,
   suratJalan,
   suratJalanDetail,
+  suratJalanHasil,
+  suratJalanHasilDetail,
 } from '../../../db/schema';
+
+/** K-176: ringkasan hasil per surat jalan untuk penanda kartu (null = hasil belum dicatat). */
+const hasilRingkas = sql<'SEMUA_DITERIMA' | 'ADA_KEMBALI' | 'ADA_RUSAK' | null>`(
+  select case
+    when sum(d.qty_rusak) > 0 then 'ADA_RUSAK'
+    when sum(d.qty_kembali + d.qty_ditolak) > 0 then 'ADA_KEMBALI'
+    else 'SEMUA_DITERIMA' end
+  from ${suratJalanHasilDetail} d
+  join ${suratJalanHasil} h on h.id = d.id_hasil
+  where h.id_surat_jalan = ${kolomPenuh(suratJalan.id)})`;
 
 /* Perjalanan pengantaran (S9, S12). */
 
@@ -87,6 +100,7 @@ export function suratJalanPerjalanan(ex: Executor, idPerjalanan: number[]) {
       nomorPenjualan: penjualan.nomor,
       namaPelanggan: pelanggan.namaPelanggan,
       alamatKirim: suratJalan.alamatKirim,
+      hasilRingkas,
     })
     .from(suratJalan)
     .innerJoin(penjualan, eq(penjualan.id, suratJalan.idPenjualan))

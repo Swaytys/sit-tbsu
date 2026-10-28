@@ -1,4 +1,6 @@
 import {
+  LABEL_ALASAN_KEMBALI,
+  LABEL_ALASAN_RUSAK,
   skemaSuratJalan,
   type BarisSuratJalan,
   type DetailPenjualan,
@@ -47,9 +49,21 @@ export function RingkasHasil({ sj }: { sj: BarisSuratJalan }) {
     const satuan = b?.kodeSatuan ?? '';
     const teks: string[] = [];
     if (/[1-9]/.test(r.qtyKembali))
-      teks.push(`kembali utuh ${formatDesimal(r.qtyKembali)} ${satuan}`);
-    if (/[1-9]/.test(r.qtyRusak)) teks.push(`rusak ${formatDesimal(r.qtyRusak)} ${satuan}`);
-    if (/[1-9]/.test(r.qtyDitolak)) teks.push(`ditolak ${formatDesimal(r.qtyDitolak)} ${satuan}`);
+      teks.push(`kembali, dikirim ulang ${formatDesimal(r.qtyKembali)} ${satuan}`);
+    if (/[1-9]/.test(r.qtyDitolak))
+      teks.push(
+        `dikembalikan ${formatDesimal(r.qtyDitolak)} ${satuan}${
+          r.alasanKembali
+            ? ` (${LABEL_ALASAN_KEMBALI[r.alasanKembali].split(' (')[0]!.toLowerCase()})`
+            : ''
+        }`,
+      );
+    if (/[1-9]/.test(r.qtyRusak))
+      teks.push(
+        `rusak ${formatDesimal(r.qtyRusak)} ${satuan}${
+          r.alasanRusak ? ` (${LABEL_ALASAN_RUSAK[r.alasanRusak].toLowerCase()})` : ''
+        }`,
+      );
     return teks.length ? [`${b?.namaBarang ?? '?'}: ${teks.join(', ')}`] : [];
   });
   return (
@@ -69,7 +83,7 @@ export function RingkasHasil({ sj }: { sj: BarisSuratJalan }) {
       </div>
       <div className="text-slate-500">
         Dicatat {h.namaPengguna}, {formatWaktu(h.waktu)}
-        {[h.returUang, h.returTukar].map(
+        {[h.returUang, h.returRusak, h.returTukar].map(
           (r) =>
             r && (
               <span key={r.id}>

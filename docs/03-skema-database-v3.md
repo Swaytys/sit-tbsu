@@ -551,6 +551,9 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-28 — v3.33: `surat_jalan_hasil.id_retur_rusak`; `surat_jalan_hasil_detail.alasan_kembali`, `alasan_rusak`
+  (CHECK `chk_surat_jalan_hasil_alasan`); `retur_penjualan.nominal_refund`, `status_transfer` MENUNGGU/SELESAI,
+  `waktu_transfer`, `id_pengguna_transfer` (CHECK `chk_retur_transfer`) (migrasi 0036, K-176).
 - 2026-10-26 — v3.32: `pengguna.kode_pemulihan_hash`, `kode_pemulihan_dibuat_pada` (migrasi 0035, K-191). Seed tidak
   membuat akun `owner` bila `SEED_OWNER_PASSWORD` kosong (akun pertama dibuat di halaman *Buat akun pertama*).
 - 2026-10-26 — v3.31: `log_interaksi` (migrasi 0034, K-190); konfigurasi `log_interaksi_aktif`,

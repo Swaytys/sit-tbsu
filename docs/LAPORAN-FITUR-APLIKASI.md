@@ -472,6 +472,9 @@ Admin/Owner (pemeriksaan) | desktop
 - **Catat hasil per barang** (K-149, K-151): diterima / kembali utuh (dikirim ulang, stok tetap) / rusak di jalan
   (ditanggung toko: kirim pengganti = retur tukar, atau tagihan dikurangi) / ditolak pembeli (retur otomatis,
   potong tagihan atau uang kembali). Retur mengikuti aturan persetujuan yang sama dengan retur biasa.
+- K-176: hasil per barang wajib beralasan (kembali: kirim ulang / kelebihan / salah barang / pembeli batal; rusak: di
+  jalan / saat dicek); kembali selain kirim ulang mengurangi tagihan otomatis; refund transfer menjadi tugas
+  *menunggu → sudah ditransfer* dengan bukti; penanda hasil di kartu Pengiriman.
 - Tabel: `surat_jalan`, `surat_jalan_detail`, `surat_jalan_hasil`, `surat_jalan_hasil_detail`.
 - Bukti: `[KODE: api/modules/penjualan/surat-jalan/service.ts]` (`catatHasil`, `sisaKirim`,
   `sinkronStatusPengiriman`, `buatSuratJalanTx`), `[KODE: web/features/pengantaran/panel-surat-jalan.tsx]`; tes
@@ -1298,6 +1301,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
 - 2026-10-28 — F54 panduan penyiapan pertama dan contoh data (K-168).
 - 2026-10-26 — F53 akun pertama dan lupa password (K-191).
 - 2026-10-26 — F52 log interaksi penelitian (K-190).

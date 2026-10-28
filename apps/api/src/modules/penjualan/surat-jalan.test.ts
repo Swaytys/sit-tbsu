@@ -164,7 +164,7 @@ function hasil(
   ubah: Record<
     number,
     Partial<
-      Record<'qtyDiterima' | 'qtyKembali' | 'qtyRusak' | 'qtyDitolak' | 'kondisiDitolak', string>
+      Record<'qtyDiterima' | 'qtyKembali' | 'qtyRusak' | 'alasanKembali' | 'alasanRusak', string>
     >
   > = {},
 ) {
@@ -173,7 +173,6 @@ function hasil(
     qtyDiterima: b.qty,
     qtyKembali: '0',
     qtyRusak: '0',
-    qtyDitolak: '0',
     ...ubah[b.id],
   }));
 }
@@ -278,7 +277,6 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
           qtyDiterima: '3',
           qtyKembali: '0',
           qtyRusak: '0',
-          qtyDitolak: '0',
         },
       ],
     });
@@ -292,7 +290,6 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
           qtyDiterima: '3',
           qtyKembali: '0',
           qtyRusak: '0',
-          qtyDitolak: '0',
         },
       ],
     });
@@ -305,14 +302,12 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
           qtyDiterima: '2',
           qtyKembali: '0',
           qtyRusak: '0',
-          qtyDitolak: '0',
         },
         {
           idPenjualanDetail: pasir!.id,
           qtyDiterima: '2',
           qtyKembali: '0',
           qtyRusak: '0',
-          qtyDitolak: '0',
         },
       ],
       namaPenerima: 'Mandor Joko',
@@ -381,7 +376,17 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     const rusak = await galat(kasir, `/api/surat-jalan/${sj.id}/hasil`, {
       baris: hasil(inv, { [semen!.id]: { qtyDiterima: '4', qtyRusak: '1' } }),
     });
-    expect(rusak.pesan).toContain('pilih kirim pengganti atau kurangi tagihan');
+    expect(rusak.pesan).toContain('pilih alasan barang rusak');
+    const tanpaPilihan = await galat(kasir, `/api/surat-jalan/${sj.id}/hasil`, {
+      baris: hasil(inv, {
+        [semen!.id]: { qtyDiterima: '4', qtyRusak: '1', alasanRusak: 'RUSAK_DI_JALAN' },
+      }),
+    });
+    expect(tanpaPilihan.pesan).toContain('pilih kirim pengganti atau kurangi tagihan');
+    const tanpaAlasan = await galat(kasir, `/api/surat-jalan/${sj.id}/hasil`, {
+      baris: hasil(inv, { [semen!.id]: { qtyDiterima: '4', qtyKembali: '1' } }),
+    });
+    expect(tanpaAlasan.pesan).toContain('pilih alasan barang kembali');
     expect((await ambil<BarisSuratJalan>(kasir, `/api/surat-jalan/${sj.id}`)).status).toBe(
       'DIKIRIM',
     );
@@ -393,7 +398,9 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     const sebelum = await stok(m.semen);
     const sj = await sjBerangkat(inv);
     await kirim(kasir, `/api/surat-jalan/${sj.id}/hasil`, {
-      baris: hasil(inv, { [semen!.id]: { qtyDiterima: '3', qtyKembali: '2' } }),
+      baris: hasil(inv, {
+        [semen!.id]: { qtyDiterima: '3', qtyKembali: '2', alasanKembali: 'KIRIM_ULANG' },
+      }),
     });
     expect(await stok(m.semen)).toEqual(sebelum);
     const d = await detail(inv.id);
@@ -418,7 +425,6 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
           qtyDiterima: '2',
           qtyKembali: '0',
           qtyRusak: '0',
-          qtyDitolak: '0',
         },
       ],
     });
@@ -426,20 +432,21 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     expect(await ambil<PerluDikirim[]>(kasir, '/api/surat-jalan/perlu-kirim')).toEqual([]);
   });
 
-  it('S10: ditolak pembeli (kondisi baik) → retur potong tagihan, stok kembali, pengiriman selesai', async () => {
+  it('K-176: kembali utuh karena kelebihan → tagihan dikurangi otomatis, stok kembali, pengiriman selesai', async () => {
     const inv = await invoice(); // 5 × 12.000 + 2 × 4.000 = 68.000, belum bayar
     const [semen] = inv.baris;
     const sebelum = await stok(m.semen);
     const sj = await sjBerangkat(inv);
     const s = await kirim<BarisSuratJalan>(admin, `/api/surat-jalan/${sj.id}/hasil`, {
       baris: hasil(inv, {
-        [semen!.id]: { qtyDiterima: '4', qtyDitolak: '1', kondisiDitolak: 'BAIK' },
+        [semen!.id]: { qtyDiterima: '4', qtyKembali: '1', alasanKembali: 'KELEBIHAN' },
       }),
     });
     expect(s.hasil?.returUang?.status).toBe('DISETUJUI');
     const r = await ambil<BarisRetur>(admin, `/api/retur/${s.hasil!.returUang!.id}`);
     expect(r).toMatchObject({ penyelesaian: 'POTONG_TAGIHAN', totalRetur: 12000 });
-    expect(r.alasan).toContain(`Hasil pengantaran ${sj.nomor}`);
+    expect(r.alasan).toContain(`Hasil pengantaran ${sj.nomor}: kelebihan pesanan`);
+    expect(s.hasil?.baris[0]).toMatchObject({ alasanKembali: 'KELEBIHAN', qtyDitolak: '1.000' });
     expect(Number((await stok(m.semen)).baik)).toBe(Number(sebelum.baik) + 1);
     const d = await detail(inv.id);
     expect(d.statusPengiriman).toBe('SELESAI');
@@ -452,7 +459,9 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     const sebelum = await stok(m.semen);
     const sj = await sjBerangkat(inv);
     const s = await kirim<BarisSuratJalan>(admin, `/api/surat-jalan/${sj.id}/hasil`, {
-      baris: hasil(inv, { [semen!.id]: { qtyDiterima: '4', qtyRusak: '1' } }),
+      baris: hasil(inv, {
+        [semen!.id]: { qtyDiterima: '4', qtyRusak: '1', alasanRusak: 'RUSAK_DI_JALAN' },
+      }),
       penangananRusak: 'KIRIM_PENGGANTI',
     });
     expect(s.hasil).toMatchObject({ penangananRusak: 'KIRIM_PENGGANTI', returUang: null });
@@ -471,10 +480,13 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     const sebelum = await stok(m.semen);
     const sj = await sjBerangkat(inv);
     const s = await kirim<BarisSuratJalan>(admin, `/api/surat-jalan/${sj.id}/hasil`, {
-      baris: hasil(inv, { [semen!.id]: { qtyDiterima: '3', qtyRusak: '2' } }),
+      baris: hasil(inv, {
+        [semen!.id]: { qtyDiterima: '3', qtyRusak: '2', alasanRusak: 'RUSAK_SAAT_DICEK' },
+      }),
       penangananRusak: 'KURANGI_TAGIHAN',
     });
-    const r = await ambil<BarisRetur>(admin, `/api/retur/${s.hasil!.returUang!.id}`);
+    expect(s.hasil?.returUang).toBeNull();
+    const r = await ambil<BarisRetur>(admin, `/api/retur/${s.hasil!.returRusak!.id}`);
     expect(r).toMatchObject({ penyelesaian: 'POTONG_TAGIHAN', totalRetur: 24000 });
     expect(r.baris[0]).toMatchObject({ kondisi: 'RUSAK' });
     expect(Number((await stok(m.semen)).rusak)).toBe(Number(sebelum.rusak) + 2);
@@ -487,7 +499,11 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     const inv = await invoice([{ metode: 'TUNAI', nominal: 68000, uangDiterima: 68000 }]);
     const [semen] = inv.baris;
     const sj = await sjBerangkat(inv);
-    const isi = { baris: hasil(inv, { [semen!.id]: { qtyDiterima: '3', qtyDitolak: '2' } }) };
+    const isi = {
+      baris: hasil(inv, {
+        [semen!.id]: { qtyDiterima: '3', qtyKembali: '2', alasanKembali: 'BATAL_BELI' },
+      }),
+    };
     const tanpa = await galat(admin, `/api/surat-jalan/${sj.id}/hasil`, isi);
     expect(tanpa.pesan).toContain('melebihi sisa tagihan Rp 0');
     const s = await kirim<BarisSuratJalan>(admin, `/api/surat-jalan/${sj.id}/hasil`, {
@@ -499,12 +515,54 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     expect((await detail(inv.id)).statusPembayaran).toBe('LUNAS');
   });
 
+  it('K-176: refund transfer tanpa rekening → tugas menunggu transfer; konfirmasi wajib rekening + bukti, sekali saja', async () => {
+    await kirim(admin, '/api/shift/buka', { modalAwal: 100000 });
+    const inv = await invoice([{ metode: 'TUNAI', nominal: 68000, uangDiterima: 68000 }]);
+    const [semen] = inv.baris;
+    const sj = await sjBerangkat(inv);
+    const s = await kirim<BarisSuratJalan>(admin, `/api/surat-jalan/${sj.id}/hasil`, {
+      baris: hasil(inv, {
+        [semen!.id]: { qtyDiterima: '4', qtyKembali: '1', alasanKembali: 'KELEBIHAN' },
+      }),
+      metodeRefund: 'TRANSFER',
+    });
+    const idRetur = s.hasil!.returUang!.id;
+    const r = await ambil<BarisRetur>(admin, `/api/retur/${idRetur}`);
+    expect(r).toMatchObject({ statusTransfer: 'MENUNGGU', nominalRefund: 12000 });
+    const tugas = await ambil<
+      { id: number; nominalRefund: number; rekeningRefund: string | null }[]
+    >(admin, '/api/retur/refund-transfer');
+    expect(tugas).toEqual([expect.objectContaining({ id: idRetur, rekeningRefund: null })]);
+    expect((await galat(kasir, '/api/retur/refund-transfer', undefined, 'GET')).status).toBe(403);
+    const tanpaBukti = await galat(admin, `/api/retur/${idRetur}/transfer`, {
+      rekeningRefund: 'BCA 123456 a.n. Proyek',
+    });
+    expect(tanpaBukti.status).toBe(400);
+    await kirim(admin, `/api/retur/${idRetur}/transfer`, {
+      rekeningRefund: 'BCA 123456 a.n. Proyek',
+      referensiRefund: 'TRF-889900',
+    });
+    expect(await ambil(admin, '/api/retur/refund-transfer')).toEqual([]);
+    const selesai = await ambil<{ statusTransfer: string; referensiRefund: string }[]>(
+      admin,
+      '/api/retur/refund-transfer?status=SELESAI',
+    );
+    expect(selesai[0]).toMatchObject({ statusTransfer: 'SELESAI', referensiRefund: 'TRF-889900' });
+    const ulang = await galat(admin, `/api/retur/${idRetur}/transfer`, {
+      rekeningRefund: 'BCA 123456',
+      referensiRefund: 'TRF-1',
+    });
+    expect(ulang.pesan).toContain('sudah dikonfirmasi');
+  });
+
   it('S10/S2: kasir mencatat barang ditolak → retur menunggu atasan; qty-nya tidak bisa dikirim ulang dulu', async () => {
     const inv = await invoice();
     const [semen] = inv.baris;
     const sj = await sjBerangkat(inv);
     const s = await kirim<BarisSuratJalan>(kasir, `/api/surat-jalan/${sj.id}/hasil`, {
-      baris: hasil(inv, { [semen!.id]: { qtyDiterima: '4', qtyDitolak: '1' } }),
+      baris: hasil(inv, {
+        [semen!.id]: { qtyDiterima: '4', qtyKembali: '1', alasanKembali: 'SALAH_BARANG' },
+      }),
     });
     expect(s.hasil?.returUang?.status).toBe('MENUNGGU');
     let d = await detail(inv.id);

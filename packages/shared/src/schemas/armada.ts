@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import {
-  KONDISI_RETUR,
+  ALASAN_KEMBALI,
+  ALASAN_RUSAK,
   METODE_REFUND,
   PENANGANAN_RUSAK,
   STATUS_PERJALANAN,
+  type AlasanKembali,
+  type AlasanRusak,
   type KondisiRetur,
   type PenangananRusak,
   type StatusAktif,
@@ -238,6 +241,8 @@ export type Perjalanan = {
     nomorPenjualan: string;
     namaPelanggan: string | null;
     alamatKirim: string;
+    /** K-176: penanda hasil (null = belum dicatat). */
+    hasilRingkas: 'SEMUA_DITERIMA' | 'ADA_KEMBALI' | 'ADA_RUSAK' | null;
   }[];
 };
 
@@ -251,15 +256,23 @@ export const skemaHasilSuratJalan = z.object({
         idPenjualanDetail: z.number().int().positive(),
         qtyDiterima: skemaQtyTeks('Qty diterima'),
         qtyKembali: skemaQtyTeks('Qty kembali utuh'),
+        /** K-176: wajib bila qty kembali > 0. */
+        alasanKembali: z
+          .enum(ALASAN_KEMBALI, 'Pilih alasan barang kembali.')
+          .nullable()
+          .default(null),
         qtyRusak: skemaQtyTeks('Qty rusak'),
-        qtyDitolak: skemaQtyTeks('Qty ditolak'),
-        kondisiDitolak: z.enum(KONDISI_RETUR).default('BAIK'),
+        /** K-176: wajib bila qty rusak > 0. */
+        alasanRusak: z.enum(ALASAN_RUSAK, 'Pilih alasan barang rusak.').nullable().default(null),
       }),
     )
     .min(1, 'Isi hasil minimal satu barang.'),
   /** Wajib bila ada qty rusak (K-151): pilihan pembeli. */
   penangananRusak: z.enum(PENANGANAN_RUSAK).nullable().default(null),
-  /** Dipakai bila nilai barang ditolak/rusak melebihi sisa tagihan (uang dikembalikan). */
+  /**
+   * Dipakai bila nilai barang dikembalikan/rusak melebihi sisa tagihan (uang dikembalikan). TRANSFER: rekening boleh
+   * diisi belakangan; menjadi tugas "menunggu transfer" sampai dikonfirmasi dengan bukti (K-176).
+   */
   metodeRefund: z.enum(METODE_REFUND).nullable().default(null),
   rekeningRefund: teksOpsional(60, 'Rekening maksimal 60 karakter.'),
   namaPenerima: teksOpsional(100, 'Nama penerima maksimal 100 karakter.'),
@@ -276,13 +289,18 @@ export type HasilSuratJalan = {
   catatan: string | null;
   returTukar: { id: number; nomor: string; status: string } | null;
   returUang: { id: number; nomor: string; status: string } | null;
+  /** K-176: retur barang rusak yang mengurangi tagihan (terpisah dari barang kembali utuh). */
+  returRusak: { id: number; nomor: string; status: string } | null;
   baris: {
     idPenjualanDetail: number;
     qtyDiterima: string;
     qtyKembali: string;
     qtyRusak: string;
+    /** Data sebelum K-176: barang ditolak; sejak K-176 = kembali utuh yang mengurangi tagihan. */
     qtyDitolak: string;
     kondisiDitolak: KondisiRetur | null;
+    alasanKembali: AlasanKembali | null;
+    alasanRusak: AlasanRusak | null;
   }[];
 };
 

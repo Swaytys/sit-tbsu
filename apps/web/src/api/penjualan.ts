@@ -674,3 +674,24 @@ export function useTolakRetur() {
     ambilData(await api.retur[':id'].tolak.$post({ param: paramId(id), json: { alasan } })),
   );
 }
+
+/** K-176: tugas refund transfer (menunggu/selesai). */
+export function useRefundTransfer(status: 'MENUNGGU' | 'SELESAI', aktifkan = true) {
+  return useQuery({
+    queryKey: ['koreksi', 'refund-transfer', status],
+    queryFn: async () => ambilData(await api.retur['refund-transfer'].$get({ query: { status } })),
+    enabled: aktifkan,
+  });
+}
+
+export function useKonfirmasiTransfer() {
+  return useMutasiKoreksi(
+    async ({
+      id,
+      json,
+    }: {
+      id: number;
+      json: { rekeningRefund: string; referensiRefund: string };
+    }) => ambilData(await api.retur[':id'].transfer.$post({ param: paramId(id), json })),
+  );
+}

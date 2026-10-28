@@ -151,17 +151,23 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
       .first()
       .click();
     await kasir.getByRole('button', { name: /Semua diterima/ }).click();
-    await expect(jalan.getByText('hasil dicatat')).toHaveCount(1);
+    await expect(jalan.getByTestId('penanda-hasil')).toHaveText('Terkirim semua');
     await jalan
       .getByRole('button', { name: /^Catat hasil SJ-/ })
       .first()
       .click();
     await kasir.getByLabel(`Kembali utuh ${nama}`).fill('1');
+    // K-176: alasan wajib; kirim ulang = barang tetap milik pembeli dan kembali ke Backlog.
+    await kasir.getByLabel(`Alasan kembali ${nama}`).selectOption('KIRIM_ULANG');
     await kasir.getByRole('button', { name: 'Simpan hasil' }).click();
     await expect(jalan).toHaveCount(0);
-    await expect(
-      kasir.locator('[data-testid^="selesai-TRP-"]').filter({ hasText: truk.plat }),
-    ).toBeVisible();
+    const kartuSelesai = kasir
+      .locator('[data-testid^="selesai-TRP-"]')
+      .filter({ hasText: truk.plat });
+    await expect(kartuSelesai).toBeVisible();
+    // K-176: penanda hasil per surat jalan.
+    await expect(kartuSelesai).toContainText('Terkirim semua');
+    await expect(kartuSelesai).toContainText('Ada yang kembali');
     const ulang = kasir
       .locator('[data-testid^="order-kirim-INV-"]')
       .filter({ hasText: `${nama} 1 sak` });

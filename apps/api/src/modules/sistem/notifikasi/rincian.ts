@@ -62,3 +62,17 @@ export async function rincianPengajuan(
      where k.status = 'MENUNGGU' order by k.id limit ${MAKS}`);
   return r.map((x) => `${x.nomor} · ${formatRupiah(Number(x.nilai))} · diajukan ${x.pengaju}`);
 }
+
+/** K-176: refund transfer yang belum dikonfirmasi (terlama dulu). */
+export async function rincianRefundTransfer(): Promise<{ jumlah: number; rincian: string[] }> {
+  const [n] = await baris<{ n: string }>(
+    sql`select count(*)::text n from retur_penjualan where status_transfer = 'MENUNGGU'`,
+  );
+  const r = await baris<{ nomor: string; nilai: string }>(sql`
+    select nomor, nominal_refund::text nilai from retur_penjualan
+     where status_transfer = 'MENUNGGU' order by waktu_persetujuan, id limit ${MAKS}`);
+  return {
+    jumlah: Number(n?.n ?? 0),
+    rincian: r.map((x) => `${x.nomor} · ${formatRupiah(Number(x.nilai))}`),
+  };
+}
