@@ -729,6 +729,20 @@ agregat hasil per surat jalan (`hasilRingkas`).
 **Tes:** surat-jalan.test (alasan wajib, kelebihan → potong tagihan, rusak terpisah, refund transfer menunggu →
 konfirmasi), e2e refund-transfer.spec, pengiriman.spec (alasan + penanda).
 
+### C26. Pratinjau laporan per halaman A4 (28 Oktober 2026, K-182)
+
+**Masalah:** pratinjau laporan satu lembar panjang tanpa batas halaman; daftar laporan di kiri memakan lebar.
+
+**Solusi:** `PratinjauHalaman` merender dokumen sekali di luar layar dengan lebar isi kertas (A4 dikurangi margin
+`@page` 12/14/16 mm), lalu menghitung titik potong di bawah baris tabel/blok terakhir yang muat. Tiap lembar
+menampilkan potongannya dengan `translateY` di wadah `overflow: hidden`. Isi lembar hanya dirender saat lembar dekat
+layar (IntersectionObserver): laporan stok rekap ~900 barang = 34 lembar, dan menyalin seluruh tabel ke tiap lembar
+membuat halaman macet. Pengecilan memakai `transform: scale` per lembar, bukan `zoom`, karena `zoom` mengubah
+pembulatan tata letak sehingga potongan bergeser beberapa piksel. Pratinjau memakai tata letak cetak
+(`DokumenLaporanFormal cetak`) agar lebar tabel sama dengan hasil cetak.
+
+**Tes:** e2e laporan.spec (pilih laporan lewat menu kelompok, isi terbaca di lembar).
+
 ---
 
 ## Riwayat dokumen
@@ -759,3 +773,4 @@ konfirmasi), e2e refund-transfer.spec, pengiriman.spec (alasan + penanda).
 - 2026-10-26 — Bagian C23 akun pertama dan kode pemulihan (K-191).
 - 2026-10-28 — Bagian C24 panduan penyiapan dan contoh data (K-168).
 - 2026-10-28 — Bagian C25 penyelesaian hasil pengantaran (K-176).
+- 2026-10-28 — Bagian C26 pratinjau laporan per halaman A4 (K-182).

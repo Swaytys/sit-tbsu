@@ -42,22 +42,25 @@ test('Admin: laporan penjualan & gross profit hari ini, ekspor Excel, cetak terc
 
     await menuUtama(admin).getByRole('link', { name: 'Laporan' }).click();
     const daftar = admin.getByRole('navigation', { name: 'Daftar laporan' });
-    await daftar.getByRole('button', { name: 'Penjualan per Periode' }).click();
+    await daftar.getByRole('button', { name: 'Kelompok Laporan Penjualan' }).click();
+    await admin.getByRole('menuitem', { name: 'Penjualan per Periode' }).click();
     await expect(
       admin.getByRole('heading', { name: 'Laporan Penjualan per Periode' }).first(),
     ).toBeVisible();
     await admin.getByRole('button', { name: 'Hari ini' }).click();
-    const dokumen = admin.getByTestId('dokumen-laporan');
-    await expect(dokumen.getByText(pj.nomor)).toBeVisible();
-    await expect(dokumen.getByText('PENJUALAN BERSIH', { exact: true })).toBeVisible();
+    // K-182: pratinjau per lembar A4; tiap lembar memuat potongan dokumen.
+    const dokumen = admin.getByTestId('lembar-laporan');
+    await expect(dokumen.getByText(pj.nomor).first()).toBeVisible();
+    await expect(dokumen.getByText('PENJUALAN BERSIH', { exact: true }).first()).toBeVisible();
 
-    await daftar.getByRole('button', { name: 'Gross Profit (Laba Kotor)' }).click();
+    await daftar.getByRole('button', { name: 'Kelompok Laporan Keuangan' }).click();
+    await admin.getByRole('menuitem', { name: 'Gross Profit (Laba Kotor)' }).click();
     await expect(
       admin.getByRole('heading', { name: 'Laporan Gross Profit Penjualan' }).first(),
     ).toBeVisible();
     await admin.getByRole('button', { name: 'Hari ini' }).click();
     // Baris barang uji: penjualan 100.000, HPP 80.000, laba kotor 20.000, margin 20%.
-    const baris = dokumen.getByRole('row').filter({ hasText: nama });
+    const baris = dokumen.getByRole('row').filter({ hasText: nama }).first();
     await expect(baris).toContainText('100.000');
     await expect(baris).toContainText('80.000');
     await expect(baris).toContainText('20,0%');
@@ -86,10 +89,14 @@ test('Kasir hanya melihat laporan penjualan & piutang; laporan laba dialihkan', 
     page.getByRole('heading', { name: 'Laporan Penjualan per Periode' }).first(),
   ).toBeVisible();
   const daftar = page.getByRole('navigation', { name: 'Daftar laporan' });
-  await expect(daftar.getByRole('button', { name: 'Piutang Usaha' })).toBeVisible();
-  await expect(daftar.getByRole('button', { name: 'Stok Rekap' })).toHaveCount(0);
-  await expect(daftar.getByRole('button', { name: 'Gross Profit (Laba Kotor)' })).toHaveCount(0);
-  await expect(page.getByTestId('dokumen-laporan')).not.toContainText('HPP');
+  // K-182: menu laporan berupa kelompok di atas; Kasir tidak punya kelompok Persediaan.
+  await expect(daftar.getByRole('button', { name: 'Kelompok Laporan Persediaan' })).toHaveCount(0);
+  await daftar.getByRole('button', { name: 'Kelompok Laporan Keuangan' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Piutang Usaha' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Gross Profit (Laba Kotor)' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('lembar-laporan').first()).toBeVisible();
+  await expect(page.getByTestId('lembar-laporan').first()).not.toContainText('HPP');
 });
 
 test('Dashboard per peran: Owner melihat omzet & grafik, Staf tidak', async ({ browser }) => {

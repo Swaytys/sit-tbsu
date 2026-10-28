@@ -642,7 +642,10 @@ dialog Berangkat | Admin/Owner (data), Kasir+ (berangkat) | desktop
   `qty-statistik.test.ts`.
 - Status: BERFUNGSI (K-113, K-127).
 
-**F37. Laporan (16 jenis)** — rincian di bagian 7. Status: BERFUNGSI.
+**F37. Laporan (16 jenis)** — rincian di bagian 7. Menu jenis laporan berupa tiga tombol kelompok di atas; pratinjau
+dibagi per lembar A4 bernomor seperti hasil cetak, tanpa memotong baris tabel (K-182)
+`[KODE: web/features/laporan/halaman-laporan.tsx]` `[KODE: web/features/laporan/pratinjau-halaman.tsx]`; uji
+`e2e/laporan.spec.ts`. Status: BERFUNGSI.
 
 **F38. Dashboard per peran** | Dashboard | semua | semua
 - Fungsi: penjualan hari ini vs kemarin dan grafik 7 hari (hanya yang berizin omzet), antrean order, pengiriman
@@ -1301,6 +1304,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-28 — F37: menu laporan di atas dan pratinjau per halaman A4 (K-182).
 - 2026-10-28 — F48: pemeriksaan data alamat sama dan kelengkapan data (K-183).
 - 2026-10-28 — F43: atribut dimensi dan data muatan satu sumber; notifikasi & lencana barang tanpa data muatan (K-169, K-170).
 - 2026-10-28 — Info cepat nomor dokumen (K-181) di linimasa kas, dashboard, riwayat, retur, papan.

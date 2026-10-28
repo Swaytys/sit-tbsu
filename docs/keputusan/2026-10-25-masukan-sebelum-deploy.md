@@ -94,7 +94,12 @@ prioritas di bagian akhir.
   aktivitas terkini Dashboard, riwayat penjualan, daftar retur, dan papan Pengiriman. Dokumen pembelian (PO,
   penerimaan) menyusul.
 - **K-182 Laporan per halaman A4.** Menu jenis laporan pindah ke atas; pratinjau dibagi per halaman A4 (1, 2, 3, …)
-  dengan ukuran besar dan jelas seperti pratinjau cetak. *Rencana.*
+  dengan ukuran besar dan jelas seperti pratinjau cetak. *Rencana.* **Selesai (28 Okt):** daftar laporan kini
+  bilah di atas berisi tiga tombol kelompok (Persediaan, Penjualan, Keuangan) yang membuka menu jenis laporan; area
+  pratinjau memakai lebar penuh. Pratinjau dibagi lembar A4 bernomor (potret/lanskap sesuai laporan, margin sama
+  dengan cetak) dengan kaki *nama toko · judul* dan *Halaman i dari n*, serta tombol loncat ke halaman. Halaman tidak
+  memotong baris tabel. Kertas hanya diperkecil bila tidak muat lebar layar. Pembagian akhir saat dicetak bisa sedikit
+  berbeda menurut printer; judul kolom tabel diulang di tiap halaman hanya pada hasil cetak.
 - **K-183 Pemeriksaan data diperluas** ke nama/alamat ganda, barang tanpa harga/kategori/satuan, data muatan kosong,
   dll. *Rencana.* **Selesai (28 Okt):** *Pengaturan › Pemeriksaan data* juga mencari alamat sama (pelanggan/pemasok
   aktif) dan kartu baru *Belum lengkap*: barang tanpa harga jual tier dasar, barang dengan kategori/satuan

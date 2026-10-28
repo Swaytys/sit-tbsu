@@ -614,8 +614,10 @@ Semua tugas kasir, ditambah:
   dan hari ramai, promo, retur dan void. Untuk dicetak/Excel pakai **Laporan lengkap / cetak**.
 - **Laporan lengkap**: stok rekap, kartu stok, stok minimum, nilai persediaan (termasuk informasi barang rusak),
   riwayat harga beli (bandingkan harga antarpemasok), promo, gross profit (laba kotor), hutang usaha, umur
-  piutang, konsinyasi. Daftar laporan di kiri berupa tiga kelompok (Persediaan, Penjualan, Keuangan) yang bisa
-  dibuka dan ditutup dengan mengklik namanya; pilihan itu diingat di komputer tersebut.
+  piutang, konsinyasi. Di bagian atas ada tiga tombol kelompok (**Laporan Persediaan**, **Laporan Penjualan**,
+  **Laporan Keuangan**); klik salah satu lalu pilih jenis laporannya. Tombol kelompok laporan yang sedang dibuka
+  berwarna biru. Pratinjau di bawahnya tampil per lembar A4 seperti hasil cetak (Halaman 1, 2, 3, …); deretan
+  nomor di atas lembar pertama meloncat ke halaman itu.
 - **Pengaturan**: profil toko & logo, struk & printer, penomoran, aturan operasional (termasuk jadwal shift),
   pembayaran (rekening penerimaan), harga dasar (cara menghitung harga jual otomatis, dengan kalkulator contoh),
   promo, keamanan, persetujuan, cadangan.
