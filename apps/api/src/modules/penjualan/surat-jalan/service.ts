@@ -471,7 +471,15 @@ export async function catatHasil(
         { kolom: { metodeRefund: ['Pilih cara uang dikembalikan.'] } },
       );
     }
-    const ajukanUang = async (baris: typeof barisKembali, ket: string) =>
+    const ajukanUang = async (
+      baris: {
+        idPenjualanDetail: number;
+        qtyRetur: string;
+        kondisi: 'BAIK' | 'RUSAK';
+        keterangan: string;
+      }[],
+      ket: string,
+    ) =>
       baris.length === 0
         ? null
         : ajukanReturTx(
