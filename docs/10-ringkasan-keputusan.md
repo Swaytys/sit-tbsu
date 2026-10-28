@@ -694,7 +694,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-181 | Tombol info cepat (pop-up) di setiap kode pada elemen interaktif. | Berlaku (selesai 28 Okt untuk dokumen penjualan/pengiriman/retur/void) |
 | K-182 | Laporan: menu di atas, pratinjau per halaman A4 besar. | Berlaku (selesai 28 Okt) |
 | K-183 | Pemeriksaan data diperluas selain No. HP. | Berlaku (selesai 28 Okt) |
-| K-184 | Harga dasar FIFO; penjelasan latest cost bukan LIFO. | Berlaku (rencana) |
+| K-184 | Harga dasar FIFO; penjelasan latest cost bukan LIFO. | Berlaku (selesai 28 Okt) |
 | K-185 | Promo: kelompok sasaran AND bertingkat; jenis beli N potong Rp X; penjelasan "?" diperjelas. | Berlaku (selesai 28 Okt) |
 | K-186 | Peringatan menutup aplikasi saat shift terbuka; peramban terbuka otomatis saat Windows mulai. | Berlaku (selesai 25 Okt) |
 | K-187 | Surat jalan dicetak 2 rangkap (asli arsip toko, salinan penerima) dengan keterangan per lembar. | Berlaku (selesai 25 Okt) |

@@ -447,7 +447,12 @@ function nilaiDari(
 
 function dataDasarDari(
   nilai: repo.NilaiBarang,
-  p: { hppRata2: number; hargaBeliTerakhir: number; tanggalBeliTerakhir: string | null },
+  p: {
+    hppRata2: number;
+    hargaBeliTerakhir: number;
+    tanggalBeliTerakhir: string | null;
+    hargaFifo: number;
+  },
 ) {
   return {
     kepemilikan: nilai.kepemilikan,
@@ -456,6 +461,7 @@ function dataDasarDari(
     hppRata2: p.hppRata2,
     hargaBeliTerakhir: p.hargaBeliTerakhir,
     tanggalBeliTerakhir: p.tanggalBeliTerakhir,
+    hargaFifo: p.hargaFifo,
   };
 }
 

@@ -395,7 +395,8 @@ Admin/Owner (pemeriksaan) | desktop
 **F15. Harga jual per tier dan harga otomatis** | Harga Jual | Admin, Owner | desktop
 - Fungsi: harga dasar (Normal) tiap barang = Rp tetap, markup tier, atau markup sendiri; tier lain (mis. Grosir)
   selalu modal + markup tier dan berlaku menurut **total nilai belanja** satu transaksi; harga otomatis naik bila
-  modal naik, turun menunggu ditinjau.
+  modal naik, turun menunggu ditinjau. Dasar modal: rata-rata tertimbang, harga beli terakhir, atau **stok tertua
+  dulu (FIFO)** dari lapisan barang masuk (K-184) `[KODE: api/modules/persediaan/ledger.ts]`.
 - Tabel: `tingkat_harga`, `harga_barang`, `barang`, `persediaan`.
 - Bukti: `[KODE: api/modules/master/harga/service.ts:62,112,468]` `[KODE: api/modules/penjualan/harga-baris.ts:174]`.
 - Status: BERFUNGSI.
@@ -1307,6 +1308,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-28 — F15: dasar markup FIFO (K-184).
 - 2026-10-28 — F17: promo kombinasi kategori + merk + barang dan beli N potong Rp X (K-185).
 - 2026-10-28 — F21: layar kasir pas layar, pindah/gulir panel dengan tombol (K-171).
 - 2026-10-28 — F37: menu laporan di atas dan pratinjau per halaman A4 (K-182).

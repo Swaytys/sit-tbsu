@@ -21,6 +21,7 @@ import {
 } from '../../db/schema';
 import { AppError } from '../../lib/errors';
 import { sekarang } from '../../lib/waktu';
+import { muatKonteksHarga, tanggapiPemicuHarga } from '../master/harga/service';
 
 /*
  * SATU-SATUNYA berkas yang menulis tabel `persediaan` (CLAUDE.md aturan 2, docs/05 §2).
@@ -41,9 +42,37 @@ function hppAwal(b: NilaiHppMaster): { hppRata2: number; hargaBeliTerakhir: numb
     : { hppRata2: b.hargaModalAwal, hargaBeliTerakhir: b.hargaModalAwal };
 }
 
-/** L10: baris `persediaan` dibuat bersamaan dengan barang, stok 0. */
+/** L10: baris `persediaan` dibuat bersamaan dengan barang, stok 0 (harga FIFO = harga beli terakhir, K-184). */
 export async function buatPersediaan(tx: Tx, idBarang: number, b: NilaiHppMaster): Promise<void> {
-  await tx.insert(persediaan).values({ idBarang, ...hppAwal(b) });
+  const awal = hppAwal(b);
+  await tx.insert(persediaan).values({ idBarang, ...awal, hargaFifo: awal.hargaBeliTerakhir });
+}
+
+/**
+ * K-184 L12: harga FIFO = `hpp_satuan` lapisan masuk BAIK tertua yang masih ada. Baris masuk BAIK ditelusuri dari
+ * yang terbaru; lapisan pertama yang membuat jumlahnya ≥ `stokFisik` adalah lapisan tertua yang tersisa (stok
+ * keluar dianggap mengambil yang lama dulu). Stok 0 → `cadangan` (harga beli terakhir). Jumlah masuk kurang dari
+ * stok (tidak semestinya) → lapisan masuk paling awal.
+ */
+export async function hitungHargaFifo(
+  ex: Executor,
+  idBarang: number,
+  stokFisik: string,
+  cadangan: number,
+): Promise<number> {
+  if (bandingQty(stokFisik, 0) <= 0) return cadangan;
+  const hasil = await ex.execute(sql`
+    select coalesce(
+      (select m.hpp_satuan from (
+         select id, hpp_satuan, sum(qty_masuk) over (order by id desc) as kum
+           from ${mutasiPersediaan}
+          where id_barang = ${idBarang} and kondisi = 'BAIK' and qty_masuk > 0
+       ) m where m.kum >= ${stokFisik}::numeric order by m.kum, m.id desc limit 1),
+      (select hpp_satuan from ${mutasiPersediaan}
+        where id_barang = ${idBarang} and kondisi = 'BAIK' and qty_masuk > 0 order by id limit 1)
+    ) as h`);
+  const h = (hasil.rows[0] as { h: string | number | null } | undefined)?.h;
+  return h === null || h === undefined ? cadangan : Number(h);
 }
 
 /** Baris persediaan barang, dikunci sampai transaksi selesai (L1). */
@@ -57,6 +86,7 @@ export async function kunciPersediaan(tx: Tx, idBarang: number) {
       hargaBeliTerakhir: persediaan.hargaBeliTerakhir,
       tanggalBeliTerakhir: persediaan.tanggalBeliTerakhir,
       terakhirMutasi: persediaan.terakhirMutasi,
+      hargaFifo: persediaan.hargaFifo,
     })
     .from(persediaan)
     .where(eq(persediaan.idBarang, idBarang))
@@ -87,7 +117,12 @@ export async function selaraskanHppMaster(tx: Tx, idBarang: number, b: NilaiHppM
   }
   await tx
     .update(persediaan)
-    .set({ ...baru, diubahPada: sekarang() })
+    .set({
+      ...baru,
+      // K-184: tanpa mutasi belum ada lapisan; harga FIFO mengikuti harga beli terakhir.
+      ...(lama.terakhirMutasi === null ? { hargaFifo: baru.hargaBeliTerakhir } : {}),
+      diubahPada: sekarang(),
+    })
     .where(eq(persediaan.idBarang, idBarang));
   return {
     lama: { hppRata2: lama.hppRata2, hargaBeliTerakhir: lama.hargaBeliTerakhir },
@@ -248,6 +283,32 @@ export async function catatMutasi(tx: Tx, m: InputMutasi): Promise<HasilMutasi> 
     })
     .returning({ id: mutasiPersediaan.id });
   if (!baris) throw new Error('insert mutasi tidak mengembalikan id');
+
+  // K-184 L12: cache harga FIFO diselaraskan di transaksi yang sama (aturan 15). Bila dasar markup toko FIFO dan
+  // angkanya berubah (mis. stok lama habis terjual), harga jual barang ini ditanggapi seperti pemicu H5/H7.
+  if (kondisi === 'BAIK') {
+    const stokBaik = saldoBaru;
+    const fifo = await hitungHargaFifo(
+      tx,
+      m.idBarang,
+      stokBaik,
+      perubahan.hargaBeliTerakhir ?? p.hargaBeliTerakhir,
+    );
+    if (fifo !== p.hargaFifo) {
+      await tx
+        .update(persediaan)
+        .set({ hargaFifo: fifo })
+        .where(eq(persediaan.idBarang, m.idBarang));
+      const konteks = await muatKonteksHarga(tx);
+      if (konteks.modeDasar === 'FIFO' && b.kepemilikan === 'MILIK_SENDIRI') {
+        await tanggapiPemicuHarga(tx, [m.idBarang], {
+          sebab: `lapisan stok FIFO berubah (${m.jenis.toLowerCase().replace(/_/g, ' ')})`,
+          idPengguna: m.idPengguna,
+          konteks,
+        });
+      }
+    }
+  }
   return { idMutasi: baris.id, saldoSetelah: saldoBaru, hppSetelah: hppBaru, hppSatuan };
 }
 
@@ -345,6 +406,8 @@ export async function hitungUlangCache(ex: Executor, idBarang: number): Promise<
       stokRusak: persediaan.stokRusak,
       stokDipesan: persediaan.stokDipesan,
       hppRata2: persediaan.hppRata2,
+      hargaBeliTerakhir: persediaan.hargaBeliTerakhir,
+      hargaFifo: persediaan.hargaFifo,
       kepemilikan: barang.kepemilikan,
       hargaModalAwal: barang.hargaModalAwal,
     })
@@ -417,5 +480,8 @@ export async function hitungUlangCache(ex: Executor, idBarang: number): Promise<
   if (cache.hppRata2 !== ledger.hppRata2) {
     masalah.push(`hpp_rata2 ${cache.hppRata2}, ledger ${ledger.hppRata2}.`);
   }
+  // K-184 L12: harga FIFO dari ledger.
+  const fifo = await hitungHargaFifo(ex, idBarang, ledger.stokFisik, p.hargaBeliTerakhir);
+  if (p.hargaFifo !== fifo) masalah.push(`harga_fifo ${p.hargaFifo}, ledger ${fifo}.`);
   return { idBarang, cocok: masalah.length === 0, cache, ledger, masalah };
 }

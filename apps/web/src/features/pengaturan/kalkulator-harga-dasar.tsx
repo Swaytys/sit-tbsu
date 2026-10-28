@@ -1,4 +1,4 @@
-import { formatRupiah } from '@sit/shared';
+import { formatRupiah, type DasarMarkup } from '@sit/shared';
 import { Calculator } from 'lucide-react';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -54,7 +54,7 @@ export function KalkulatorHargaDasar({
   dipilih,
 }: {
   pembulatan: number;
-  dipilih: 'HPP_RATA2' | 'HARGA_BELI_TERAKHIR';
+  dipilih: DasarMarkup;
 }) {
   const [qLama, setQLama] = useState('20');
   const [hLama, setHLama] = useState('60000');
@@ -83,7 +83,7 @@ export function KalkulatorHargaDasar({
     },
     {
       kode: 'FIFO',
-      nama: 'FIFO (pembanding, tidak tersedia)',
+      nama: 'Stok tertua dulu (FIFO)',
       dasar: q1 > 0 ? h1 : h2,
       cara: q1 > 0 ? 'stok lama dijual dulu, jadi harga beli lama' : 'stok lama habis',
     },

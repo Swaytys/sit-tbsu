@@ -112,7 +112,13 @@ prioritas di bagian akhir.
   nonaktif, barang tanpa data muatan, pelanggan tanpa alamat, pemasok tanpa No. HP (contoh berupa tautan ke data).
 - **K-184 Harga dasar FIFO.** FIFO ditambahkan sebagai pilihan; penjelasan bahwa *harga beli terakhir* (latest cost)
   bukan LIFO: latest cost memakai satu harga terakhir untuk semua stok, LIFO menghitung lapisan stok dari pembelian
-  terbaru sampai habis. *Rencana.*
+  terbaru sampai habis. *Rencana.* **Selesai (28 Okt):** *Pengaturan › Harga dasar › Dasar markup* punya pilihan
+  ketiga **Stok tertua dulu (FIFO)**: dasar harga jual = harga beli lapisan stok tertua yang masih ada, ditelusuri
+  dari catatan barang masuk (docs/05 L12, kolom cache `persediaan.harga_fifo`, migrasi 0038). Karena stok lama bisa
+  habis karena penjualan, dengan FIFO harga jual otomatis bisa naik setelah penjualan (turun → ditandai Tinjau Harga),
+  bukan hanya setelah barang datang. HPP, nilai persediaan, dan laporan laba tetap rata-rata tertimbang (K-008);
+  FIFO hanya dasar harga jual. Penjelasan "?" menegaskan harga beli terakhir bukan LIFO (satu harga untuk seluruh
+  stok vs lapisan).
 - **K-185 Promo: sasaran AND bertingkat dan potongan setelah beli N.** Satu kelompok sasaran = kategori AND merk AND
   barang (mengerucut); boleh banyak kelompok (OR antar kelompok). Jenis baru: *beli N potong Rp X* (mis. beli 2
   potong Rp 2.000). "Harga khusus per satuan" dijelaskan ulang di "?" (harga jual menjadi angka tetap, bukan

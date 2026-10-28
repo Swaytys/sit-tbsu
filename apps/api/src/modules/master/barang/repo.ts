@@ -47,6 +47,7 @@ const kolom = {
   hargaBeliTerakhir: persediaan.hargaBeliTerakhir,
   tanggalBeliTerakhir: persediaan.tanggalBeliTerakhir,
   terakhirMutasi: persediaan.terakhirMutasi,
+  hargaFifo: persediaan.hargaFifo,
 };
 
 function dasarQuery(ex: Executor) {

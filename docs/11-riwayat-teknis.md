@@ -756,6 +756,18 @@ setelah promo terpakai.
 **Tes:** promo.test (PR16 kelompok AND/ATAU dan penolakan barang di luar kategori kelompok; PR17 kelipatan),
 e2e promo.spec (form kombinasi + beli N potong).
 
+### C28. Dasar markup FIFO (28 Oktober 2026, K-184)
+
+**Solusi:** migrasi 0038 menambah `persediaan.harga_fifo` [CACHE] dan mengisinya dari ledger. `hitungHargaFifo()`
+di `ledger.ts` memakai satu kueri jendela (`sum(qty_masuk) over (order by id desc)`) atas baris masuk BAIK barang
+itu: lapisan pertama yang jumlah kumulatifnya ≥ stok fisik adalah lapisan tertua yang tersisa. `catatMutasi()`
+menghitungnya setelah menulis baris ledger; bila berubah, cache diperbarui di transaksi yang sama dan, bila konfigurasi
+`dasar_markup = FIFO`, `tanggapiPemicuHarga()` dijalankan untuk barang itu (urutan kunci tetap persediaan lalu
+barang, sama dengan penerimaan). L9 `hitungUlangCache()` ikut memeriksa harga FIFO. HPP tidak disentuh.
+
+**Tes:** harga.test (dasar FIFO tetap harga lama selama stok lama ada; keluar 10 → dasar naik dan harga otomatis
+naik dengan log; stok 0 → harga beli terakhir; mode lain tidak mengubah harga tetapi cache tetap terjaga).
+
 ---
 
 ## Riwayat dokumen
@@ -788,3 +800,4 @@ e2e promo.spec (form kombinasi + beli N potong).
 - 2026-10-28 — Bagian C25 penyelesaian hasil pengantaran (K-176).
 - 2026-10-28 — Bagian C26 pratinjau laporan per halaman A4 (K-182).
 - 2026-10-28 — Bagian C27 promo kombinasi dan beli N potong (K-185).
+- 2026-10-28 — Bagian C28 dasar markup FIFO (K-184).

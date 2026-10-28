@@ -62,6 +62,12 @@ export const persediaan = pgTable(
     terakhirMutasi: timestamptz('terakhir_mutasi'),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /**
+     * K-184 (migrasi 0038) [CACHE]: harga beli lapisan stok BAIK tertua yang masih ada (FIFO), dari ledger: baris
+     * masuk BAIK ditelusuri dari yang terbaru sampai jumlahnya menutup `stok_fisik`. Stok 0 = harga beli terakhir.
+     * Dasar markup bila `konfigurasi.dasar_markup = FIFO`; HPP dan laporan laba tetap rata-rata tertimbang.
+     */
+    hargaFifo: uang('harga_fifo').notNull().default(0),
   },
   (t) => [
     foreignKey({
@@ -73,6 +79,7 @@ export const persediaan = pgTable(
     check('chk_persediaan_dipesan', sql`stok_dipesan >= 0 and stok_dipesan <= stok_fisik`),
     check('chk_persediaan_rusak', sql`stok_rusak >= 0`),
     check('chk_persediaan_hpp', sql`hpp_rata2 >= 0 and harga_beli_terakhir >= 0`),
+    check('chk_persediaan_fifo', sql`harga_fifo >= 0`),
   ],
 );
 

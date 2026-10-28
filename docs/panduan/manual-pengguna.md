@@ -626,7 +626,10 @@ Semua tugas kasir, ditambah:
   nomor di atas lembar pertama meloncat ke halaman itu.
 - **Pengaturan**: profil toko & logo, struk & printer, penomoran, aturan operasional (termasuk jadwal shift),
   pembayaran (rekening penerimaan), harga dasar (cara menghitung harga jual otomatis, dengan kalkulator contoh),
-  promo, keamanan, persetujuan, cadangan.
+  promo, keamanan, persetujuan, cadangan. Di **Harga dasar › Dasar markup** ada tiga pilihan: rata-rata
+  tertimbang, harga beli terakhir, dan **stok tertua dulu (FIFO)**. Dengan FIFO, harga jual dihitung dari harga
+  beli stok paling lama yang masih ada; setelah stok lama itu habis terjual, harga jual otomatis ikut naik ke harga
+  stok berikutnya (bila turun, barangnya muncul di Tinjau Harga). Laporan laba tetap memakai rata-rata.
 - **Mencetak laporan, invoice, atau surat jalan** (kertas A4): di jendela cetak, periksa kotak **Printer**
   lebih dulu. Peramban mengingat printer yang terakhir dipakai, jadi bila sebelumnya mencetak ke printer struk,
   ganti ke printer A4. Ukuran dan arah kertas sudah diatur tiap dokumen. Agar tidak perlu berganti-ganti,

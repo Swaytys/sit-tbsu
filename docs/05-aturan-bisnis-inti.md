@@ -42,6 +42,7 @@ catatMutasi(tx, {
 | L8 | Bucket RUSAK: M1 hanya jenis PINDAH_KONDISI (dari penyesuaian RUSAK) yang menulis ke bucket RUSAK. Halaman pengelolaan bucket RUSAK (retur pemasok, musnah) dibangun Fase 10. |
 | L9 | `hitungUlangCache(idBarang)`: menghitung `stok_fisik`, `stok_rusak`, `hpp_rata2` dari ledger dan membandingkan dengan `persediaan`. Dipakai tes dan perintah `pnpm db:audit` (Fase 4). Selisih apa pun = bug. |
 | L10 | Saat barang dibuat: baris `persediaan` dibuat dengan `stok_fisik = 0`, `hpp_rata2 = harga_beli_terakhir = harga_modal_awal` (KONSINYASI: `hpp_rata2 = harga_titip`, `harga_beli_terakhir = 0`). |
+| L12 | **[K-184] Harga FIFO.** `persediaan.harga_fifo` [CACHE] = `hpp_satuan` lapisan masuk BAIK tertua yang masih ada: baris `mutasi_persediaan` masuk BAIK ditelusuri dari yang terbaru, lapisan pertama yang membuat jumlah masuknya ≥ `stok_fisik` = lapisan tertua yang tersisa (stok keluar dianggap mengambil yang lama dulu). Stok 0 → `harga_beli_terakhir`; barang belum bermutasi → `harga_beli_terakhir` (L10). Diperbarui `catatMutasi()` di transaksi yang sama; bila berubah dan `dasar_markup = FIFO`, harga jual barang ditanggapi seperti pemicu H5/H7 (docs/06). Diperiksa juga oleh L9. Hanya dasar harga jual; HPP tetap L4. |
 | L11 | Dua transaksi paralel pada barang yang sama harus serial (dijamin `FOR UPDATE`). Tes: 20 penjualan paralel masing-masing 1 dari stok 10 → tepat 10 berhasil, 10 gagal `STOK_TIDAK_CUKUP`, saldo akhir 0. |
 
 ## 3. Stok tersedia dan reservasi order
@@ -354,3 +355,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-24 — §18 arsip tahunan / tutup tahun AR1–AR5 (K-165).
 - 2026-10-24 — §19 data bersih DB1–DB4 (K-137).
 - 2026-10-24 — S13: isi massal data muatan lewat Excel (K-161).
+- 2026-10-28 — L12 harga FIFO sebagai cache ledger (K-184).

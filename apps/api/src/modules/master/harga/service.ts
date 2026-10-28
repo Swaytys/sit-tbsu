@@ -13,6 +13,7 @@ import {
   type Kepemilikan,
   type MetaHalaman,
   type MetodeHarga,
+  type DasarMarkup,
 } from '@sit/shared';
 import { db, type Executor, type Tx } from '../../../db/client';
 import { AppError, galatKolom } from '../../../lib/errors';
@@ -30,12 +31,12 @@ import * as repo from './repo';
  * markup (H5), harga otomatis (H7), dan Tinjau Harga (H6) diputuskan di modul ini (K-086).
  */
 
-export type KonteksHarga = { kelipatan: number; modeDasar: 'HARGA_BELI_TERAKHIR' | 'HPP_RATA2' };
+export type KonteksHarga = { kelipatan: number; modeDasar: DasarMarkup };
 
 export function konteksDari(kelipatan: number, mode: string): KonteksHarga {
   return {
     kelipatan: kelipatan >= 1 ? kelipatan : 1,
-    modeDasar: mode === 'HPP_RATA2' ? 'HPP_RATA2' : 'HARGA_BELI_TERAKHIR',
+    modeDasar: mode === 'HPP_RATA2' || mode === 'FIFO' ? mode : 'HARGA_BELI_TERAKHIR',
   };
 }
 
@@ -53,15 +54,19 @@ export type DataDasar = {
   hppRata2: number;
   hargaBeliTerakhir: number;
   tanggalBeliTerakhir: string | null;
+  /** K-184: harga beli lapisan stok tertua yang masih ada (cache ledger). */
+  hargaFifo: number;
 };
 
 /**
  * H3: dasar markup `D`. KONSINYASI → harga titip. Sebelum ada penerimaan pembelian (tanggal beli terakhir
- * kosong) → harga modal awal. Sesudahnya → harga beli terakhir atau HPP rata-rata sesuai konfigurasi.
+ * kosong) → harga modal awal. Sesudahnya → harga beli terakhir, HPP rata-rata, atau harga FIFO (K-184) sesuai
+ * konfigurasi.
  */
 export function dasarMarkup(b: DataDasar, modeDasar: KonteksHarga['modeDasar']): number {
   if (b.kepemilikan === 'KONSINYASI') return b.hargaTitip ?? 0;
   if (b.tanggalBeliTerakhir === null) return b.hargaModalAwal;
+  if (modeDasar === 'FIFO') return b.hargaFifo;
   return modeDasar === 'HPP_RATA2' ? b.hppRata2 : b.hargaBeliTerakhir;
 }
 

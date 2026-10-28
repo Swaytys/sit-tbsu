@@ -21,6 +21,7 @@ export const kolomDasar = {
   hppRata2: persediaan.hppRata2,
   hargaBeliTerakhir: persediaan.hargaBeliTerakhir,
   tanggalBeliTerakhir: persediaan.tanggalBeliTerakhir,
+  hargaFifo: persediaan.hargaFifo,
 };
 
 export async function dataDasar(ex: Executor, idBarang: number[]) {
