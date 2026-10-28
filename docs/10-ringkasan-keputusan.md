@@ -681,7 +681,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-168 | Mode demo terpisah; panduan penyiapan pertama dengan 5 contoh data asli per jenis. | Berlaku (panduan + contoh selesai 28 Okt; mode demo terpisah masih rencana) |
 | K-169 | Atribut dimensi/berat dan data muatan satu sumber, dengan aturan dimensi vs volume. | Berlaku (selesai 28 Okt) |
 | K-170 | Notifikasi dan lencana barang di order pengantaran yang belum punya data muatan. | Berlaku (selesai 28 Okt) |
-| K-171 | Hot page langsung/pengantaran: gulir panel dan pindah fokus dengan tombol, elemen lebih ringkas. | Berlaku (sebagian 25 Okt: ikon pengganti "Menghitung…") |
+| K-171 | Hot page langsung/pengantaran: gulir panel dan pindah fokus dengan tombol, elemen lebih ringkas. | Berlaku (selesai 28 Okt) |
 | K-172 | Lencana topbar responsif, tidak meluap. | Berlaku (selesai 25 Okt) |
 | K-173 | Kartu Pengiriman: info cepat, nomor antrean, warna hasil pembagian, penanda hari, saringan. | Berlaku (selesai 28 Okt) |
 | K-174 | Surat jalan hanya dibuat di dalam rit (kendaraan dan sopir sudah pasti); keluar/batal rit membatalkan surat jalan; cetak atau simpan PDF semua surat jalan saat berangkat. | Berlaku (selesai 26 Okt) |

@@ -37,6 +37,12 @@ prioritas di bagian akhir.
 - **K-171 Hot page penjualan langsung/pengantaran pas layar.** Tombol untuk menggulir panel yang sedang fokus
   (atas/bawah) dan pindah fokus kiri/kanan; tulisan "(Menghitung…)" diganti ikon kecil (**Selesai**); kotak
   "Belanja Rp … lagi" diperkecil, bilah pintasan dipindah sejajar tab Kasir/Riwayat/Belum diambil. *Sebagian.*
+  **Selesai (28 Okt):** di Penjualan Langsung dan Pengantaran, **Alt+←** memindah fokus ke panel antrean (kiri) dan
+  **Alt+→** ke panel transaksi (kanan; ke keranjang bila sudah berisi); Alt+← tidak lagi membuat peramban kembali ke
+  halaman sebelumnya. **PgUp/PgDn** menggulir panel yang sedang aktif (antrean, keranjang, …), bukan halaman. Kotak
+  tier (*Belanja Rp … lagi*, *Harga … berlaku*) versi kecil satu baris. Bilah pintasan pindah ke baris tab (kanan
+  tab Kasir/Riwayat/Belum diambil, atau Antrean/Invoice), sehingga area kerja lebih tinggi. Dengan mouse: klik
+  panel untuk memindah fokus, roda tetikus untuk menggulir.
 - **K-172 Lencana topbar responsif.** Lencana shift (mis. "Shift kemarin belum ditutup") tidak boleh meluap saat
   layar dipersempit (**Selesai**: teks dipendekkan dan disembunyikan di layar sempit, tetap ada judul lengkap).
 - **K-173 Kartu Pengiriman lebih informatif.** Tombol info cepat (pop-up: pelanggan, telepon, catatan, barang),

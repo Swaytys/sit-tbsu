@@ -451,7 +451,9 @@ Admin/Owner (pemeriksaan) | desktop
 - Fungsi: checkout dari antrean atau langsung; cara bayar Tunai, Transfer, EDC, QRIS, bayar campuran; pembeli
   terdata boleh DP/bayar nanti; struk otomatis; tanda barang belum diambil. Layar dibagi dua sama lebar (antrean |
   transaksi); barang yang disorot di hasil cari tampil rinci (foto, stok, harga per satuan/kemasan per tier,
-  atribut) menutupi area antrean `[KODE: web/features/pos/panel-detail-barang.tsx]` (K-114).
+  atribut) menutupi area antrean `[KODE: web/features/pos/panel-detail-barang.tsx]` (K-114). Pas layar: Alt+←/→
+  pindah panel, PgUp/PgDn menggulir panel aktif, bilah pintasan di baris tab, kotak tier ringkas
+  `[KODE: web/features/pos/layar-pos.tsx]` (K-171).
 - Input → Proses → Output: barang, pembeli, pembayaran → satu transaksi DB: penjualan + detail (snapshot harga &
   HPP), lepas reservasi, mutasi stok keluar, pembayaran, cek limit kredit → struk `STR-…`.
 - Tabel: `penjualan`, `penjualan_detail`, `pembayaran_penjualan`, `mutasi_persediaan`, `persediaan`, `kas_shift`.
@@ -1304,6 +1306,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-28 — F21: layar kasir pas layar, pindah/gulir panel dengan tombol (K-171).
 - 2026-10-28 — F37: menu laporan di atas dan pratinjau per halaman A4 (K-182).
 - 2026-10-28 — F48: pemeriksaan data alamat sama dan kelengkapan data (K-183).
 - 2026-10-28 — F43: atribut dimensi dan data muatan satu sumber; notifikasi & lencana barang tanpa data muatan (K-169, K-170).

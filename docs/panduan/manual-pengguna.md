@@ -672,6 +672,10 @@ Semua tugas admin, ditambah:
   penting (mis. dari biru menjadi kuning), pengingat tampil penuh lagi.
 - **Daftar tombol keyboard** di bawah layar Order, Penjualan Langsung, Pengantaran, dan Pengiriman bisa diciutkan
   dengan **Ciutkan** atau **Ctrl+/** (tekan lagi untuk membuka). Di layar pendek ia mulai dalam keadaan tertutup.
+  Di Penjualan Langsung dan Pengantaran daftar ini ada di sebelah kanan tab (*Kasir*, *Riwayat*, …).
+- **Pindah dan gulir panel di layar kasir**: **Alt+←** pindah ke antrean (kiri), **Alt+→** pindah ke transaksi
+  (kanan). **PgUp/PgDn** menggulir panel yang sedang aktif, mis. keranjang yang panjang. Dengan mouse cukup klik
+  panelnya dan gulir dengan roda tetikus.
 - **Teks yang terpotong** (catatan, alamat): klik **lihat semua** untuk membacanya utuh, **ringkas** untuk menutup.
 
 - Jangan berbagi akun: setiap aksi tercatat atas nama pemilik akun.

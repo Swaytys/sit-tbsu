@@ -1,4 +1,5 @@
 import { KanbanSquare } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TabRiwayatPenjualan } from '../kasir/tab-riwayat-penjualan';
@@ -15,6 +16,8 @@ export function HalamanPenjualanPengantaran() {
   const [url, setUrl] = useSearchParams();
   const idOrder = Number(url.get('order')) || null;
   const tab: Tab = idOrder ? 'antrean' : (TAB.find((t) => t === url.get('tab')) ?? 'antrean');
+  // K-171: bilah pintasan sejajar tab.
+  const [slotPintasan, setSlotPintasan] = useState<HTMLDivElement | null>(null);
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 p-3">
       <Tabs
@@ -22,8 +25,8 @@ export function HalamanPenjualanPengantaran() {
         value={tab}
         onValueChange={(v) => setUrl(v === 'antrean' ? {} : { tab: v }, { replace: true })}
       >
-        <div className="flex items-center gap-2">
-          <TabsList className="h-8">
+        <div className="flex items-start gap-2">
+          <TabsList className="h-8 shrink-0">
             <TabsTrigger value="antrean">Antrean</TabsTrigger>
             <TabsTrigger value="invoice">Invoice</TabsTrigger>
           </TabsList>
@@ -34,9 +37,10 @@ export function HalamanPenjualanPengantaran() {
           >
             <KanbanSquare className="size-3.5" /> Pengiriman (papan)
           </Link>
+          <div ref={setSlotPintasan} className="min-w-0 flex-1" />
         </div>
         <TabsContent value="antrean" className="min-h-0">
-          <LayarPos jenis="PENGANTARAN" idOrderAwal={idOrder} />
+          <LayarPos jenis="PENGANTARAN" idOrderAwal={idOrder} slotPintasan={slotPintasan} />
         </TabsContent>
         <TabsContent value="invoice">
           <TabRiwayatPenjualan jenis="PENGANTARAN" />

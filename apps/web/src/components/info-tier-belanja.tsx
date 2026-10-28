@@ -14,20 +14,31 @@ export function InfoTierBelanja({
   info,
   idTierDasar,
   namaTier,
+  ringkas = false,
   className,
 }: {
   info: DataTierBelanja | undefined;
   idTierDasar: number | null;
   namaTier: (idTier: number) => string;
+  /** K-171: versi kecil satu baris untuk layar kasir yang harus pas layar. */
+  ringkas?: boolean;
   className?: string;
 }) {
   if (!info) return null;
   const naik = info.idTingkatHarga !== idTierDasar;
   if (!naik && !info.berikut) return null;
   return (
-    <div className={cn('space-y-1', className)} data-testid="info-tier-belanja">
+    <div
+      className={cn(ringkas ? 'flex flex-wrap gap-1' : 'space-y-1', className)}
+      data-testid="info-tier-belanja"
+    >
       {naik && (
-        <p className="flex items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-sm font-semibold text-emerald-800">
+        <p
+          className={cn(
+            'flex items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 font-semibold text-emerald-800',
+            ringkas ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1.5 text-sm',
+          )}
+        >
           <BadgeCheck className="size-4 shrink-0" />
           <span>
             {sebutTier(namaTier(info.idTingkatHarga)).replace(/^h/, 'H')} berlaku untuk semua
@@ -36,11 +47,21 @@ export function InfoTierBelanja({
         </p>
       )}
       {info.berikut && (
-        <p className="flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-sm font-medium text-amber-900">
+        <p
+          className={cn(
+            'flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 font-medium text-amber-900',
+            ringkas ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1.5 text-sm',
+          )}
+        >
           <TrendingUp className="size-4 shrink-0" />
           <span>
             Belanja{' '}
-            <b className="text-base font-bold text-red-600 tabular-nums">
+            <b
+              className={cn(
+                'font-bold text-red-600 tabular-nums',
+                ringkas ? 'text-sm' : 'text-base',
+              )}
+            >
               {formatRupiah(info.berikut.kurang)}
             </b>{' '}
             lagi untuk {sebutTier(namaTier(info.berikut.idTingkatHarga))}.
