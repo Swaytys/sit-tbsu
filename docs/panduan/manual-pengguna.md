@@ -427,10 +427,16 @@ Semua tugas kasir, ditambah:
      tidak ada yang dipilih = setiap hari) dan **Jam harian** mulai–sampai (mis. 13:00–15:00 untuk happy hour).
   2. **Barang**: **Semua barang**, atau **Per barang / Per kategori / Per merk (pilih beberapa)**: tambahkan satu
      per satu (barang lewat kotak cari, kategori/merk lewat daftar), hapus dengan ×. Minimal qty per baris (opsional).
+     **Kombinasi kategori + merk + barang**: klik **Tambah kelompok**, lalu isi kategori, merk, dan/atau barang
+     (kosong = semua). Di dalam satu kelompok semuanya harus cocok: kategori *Cat* + merk *Avian* = hanya cat merk
+     Avian. Barang kena promo bila cocok dengan salah satu kelompok (tulisan ATAU di antara kelompok). Kotak barang
+     hanya menampilkan barang dari kategori/merk yang dipilih di kelompok itu.
   3. **Manfaat**: **Potongan persen** (boleh batas rupiah per baris), **Potongan rupiah per satuan**, **Harga
-     khusus** (harga per satuan dasar; hanya berlaku bila lebih murah dari harga biasanya), atau **Beli X gratis Y**
-     (barang yang sama; mis. setiap beli 10 gratis 1). Untuk beli X gratis Y, kasir mengetik **semua** qty yang
-     dibawa pembeli (mis. 11), yang gratis otomatis menjadi potongan.
+     khusus (harga jadi)** (isi harga yang dibayar pembeli per satuan dasar, bukan besar potongannya: harga Rp
+     50.000 diisi Rp 48.000 = hemat Rp 2.000; tidak berlaku bila harga biasanya sudah lebih murah), **Beli X gratis Y**
+     (barang yang sama; mis. setiap beli 10 gratis 1), atau **Beli N potong Rp X** (setiap kelipatan N dipotong
+     Rp X: beli 2 potong Rp 2.000, qty 5 dipotong Rp 4.000). Untuk beli X gratis Y, kasir mengetik **semua** qty
+     yang dibawa pembeli (mis. 11), yang gratis otomatis menjadi potongan.
   4. **Syarat** (opsional): minimal total belanja, pembeli tertentu, riwayat belanja pelanggan.
   5. **Batas uang** (opsional): anggaran dan batas per pembeli (lihat di bawah).
   **Templat kampanye**: di daftar promo klik ⋯ › **Simpan sebagai templat** (isinya disalin, waktunya tidak). Klik

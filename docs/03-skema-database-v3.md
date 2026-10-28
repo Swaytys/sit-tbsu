@@ -143,6 +143,9 @@ v3.26 (K-163): `mulai_pada`/`selesai_pada` (timestamptz, CHECK selesai > mulai),
 `templat`; `jenis_potongan` + HARGA_KHUSUS, GRATIS (CHECK `chk_promo_nilai` per jenis); `sasaran` + MERK.
 **`promo_sasaran`** (id_promo + tepat satu dari id_barang/id_kategori/id_merk, CHECK `num_nonnulls = 1`, unik per
 promo) menggantikan `promo.id_kategori`/`id_barang` (dipindah di migrasi 0029, kolom dihapus di 0030).
+v3.34 (K-185): `sasaran` + KELOMPOK; untuk KELOMPOK satu baris `promo_sasaran` = satu kelompok berisi 1–3 kolom
+sekaligus (CHECK `chk_promo_sasaran_isi`: `num_nonnulls >= 1`, menggantikan `chk_promo_sasaran_satu`).
+`jenis_potongan` + BELI_POTONG (`beli_qty` > 0 dan `potongan_nominal` > 0, kolom lain kosong; `chk_promo_nilai`).
 
 ### 3.3 Persediaan
 
@@ -551,6 +554,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-28 — v3.34: `promo.sasaran` KELOMPOK dan `jenis_potongan` BELI_POTONG; `promo_sasaran` boleh berisi
+  beberapa kolom per baris (CHECK `chk_promo_sasaran_isi`) (migrasi 0037, K-185).
 - 2026-10-28 — v3.33: `surat_jalan_hasil.id_retur_rusak`; `surat_jalan_hasil_detail.alasan_kembali`, `alasan_rusak`
   (CHECK `chk_surat_jalan_hasil_alasan`); `retur_penjualan.nominal_refund`, `status_transfer` MENUNGGU/SELESAI,
   `waktu_transfer`, `id_pengguna_transfer` (CHECK `chk_retur_transfer`) (migrasi 0036, K-176).

@@ -484,7 +484,10 @@ export const promo = pgTable(
     jamSelesai: varchar('jam_selesai', { length: 5 }),
     /** HARGA_KHUSUS: harga per satuan dasar. */
     hargaKhusus: uang('harga_khusus'),
-    /** GRATIS: setiap beli `beli_qty` mendapat `gratis_qty` gratis (satuan dasar, barang yang sama). */
+    /**
+     * GRATIS: setiap beli `beli_qty` mendapat `gratis_qty` gratis (satuan dasar, barang yang sama). K-185
+     * BELI_POTONG: setiap kelipatan `beli_qty` dipotong `potongan_nominal` rupiah.
+     */
     beliQty: qty('beli_qty'),
     gratisQty: qty('gratis_qty'),
     /** Templat kampanye: tidak pernah berlaku, hanya disalin menjadi promo baru. */
@@ -527,7 +530,9 @@ export const promo = pgTable(
         or (jenis_potongan = 'HARGA_KHUSUS' and harga_khusus > 0 and potongan_persen is null
           and potongan_nominal is null and beli_qty is null and gratis_qty is null)
         or (jenis_potongan = 'GRATIS' and beli_qty > 0 and gratis_qty > 0 and potongan_persen is null
-          and potongan_nominal is null and harga_khusus is null)`,
+          and potongan_nominal is null and harga_khusus is null)
+        or (jenis_potongan = 'BELI_POTONG' and beli_qty > 0 and potongan_nominal > 0
+          and potongan_persen is null and harga_khusus is null and gratis_qty is null)`,
     ),
     check('chk_promo_sasaran', dalamDaftar('sasaran', SASARAN_PROMO)),
     check('chk_promo_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
@@ -537,6 +542,8 @@ export const promo = pgTable(
 /**
  * K-163 (migrasi 0029): sasaran promo, boleh beberapa: tepat satu dari barang, kategori, atau merk per baris,
  * sesuai `promo.sasaran`. Tabel penghubung master (diganti seluruhnya saat promo diubah, sebelum dipakai).
+ * K-185 (migrasi 0037): untuk `promo.sasaran = KELOMPOK` satu baris = satu kelompok, berisi satu sampai tiga
+ * kolom sekaligus (kategori DAN merk DAN barang).
  */
 export const promoSasaran = pgTable(
   'promo_sasaran',
@@ -568,7 +575,7 @@ export const promoSasaran = pgTable(
       columns: [t.idMerk],
       foreignColumns: [merk.id],
     }),
-    check('chk_promo_sasaran_satu', sql`num_nonnulls(id_barang, id_kategori, id_merk) = 1`),
+    check('chk_promo_sasaran_isi', sql`num_nonnulls(id_barang, id_kategori, id_merk) >= 1`),
     uniqueIndex('uq_promo_sasaran').on(
       t.idPromo,
       sql`coalesce(id_barang, 0)`,

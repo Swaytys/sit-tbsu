@@ -67,6 +67,26 @@ function isianLama(v: unknown): unknown {
   return o;
 }
 
+/**
+ * K-185: satu kelompok sasaran = kategori DAN merk DAN barang (yang diisi saja, minimal satu). Mis. kategori Cat +
+ * merk Avian = hanya cat merk Avian.
+ */
+export const skemaKelompokSasaran = z
+  .object({
+    idKategori: z.number().int().positive().nullable().default(null),
+    idMerk: z.number().int().positive().nullable().default(null),
+    idBarang: z.number().int().positive().nullable().default(null),
+  })
+  .refine(
+    (k) => k.idKategori !== null || k.idMerk !== null || k.idBarang !== null,
+    'Isi minimal satu dari kategori, merk, atau barang pada setiap kelompok.',
+  );
+export type KelompokSasaran = z.output<typeof skemaKelompokSasaran>;
+
+/** Kunci teks satu kelompok (mis. "3-7-0"), untuk membuang kelompok ganda dan membandingkan perubahan. */
+export const kunciKelompok = (k: KelompokSasaran) =>
+  `${k.idKategori ?? 0}-${k.idMerk ?? 0}-${k.idBarang ?? 0}`;
+
 /** Isian promo (form web dan API). */
 export const skemaIsianPromo = z
   .object({
@@ -104,6 +124,15 @@ export const skemaIsianPromo = z
       .max(200, 'Maksimal 200 pilihan per promo.')
       .default([])
       .transform((d) => [...new Set(d)].sort((a, b) => a - b)),
+    /** K-185: kelompok sasaran (hanya `sasaran` KELOMPOK); antar kelompok = ATAU. */
+    kelompok: z
+      .array(skemaKelompokSasaran)
+      .max(50, 'Maksimal 50 kelompok per promo.')
+      .default([])
+      .transform((d) => {
+        const lihat = new Set<string>();
+        return d.filter((k) => !lihat.has(kunciKelompok(k)) && lihat.add(kunciKelompok(k)));
+      }),
     /** PR2: syarat qty per baris (satuan dasar). */
     minQty: z.preprocess(kosongJadiNull, skemaQtyPositif('Minimal qty').nullable()).default(null),
     /** PR2: syarat total belanja (total bruto transaksi). */
@@ -165,7 +194,13 @@ export const skemaIsianPromo = z
       if (d.beliQty === null) masalah('beliQty', 'Isi qty yang harus dibeli.');
       if (d.gratisQty === null) masalah('gratisQty', 'Isi qty gratisnya.');
     }
-    if (d.sasaran !== 'SEMUA' && d.idSasaran.length === 0) {
+    if (d.jenisPotongan === 'BELI_POTONG') {
+      if (d.beliQty === null) masalah('beliQty', 'Isi qty yang harus dibeli.');
+      if (d.potonganNominal === null) masalah('potonganNominal', 'Isi potongannya (rupiah).');
+    }
+    if (d.sasaran === 'KELOMPOK') {
+      if (d.kelompok.length === 0) masalah('kelompok', 'Tambah minimal satu kelompok sasaran.');
+    } else if (d.sasaran !== 'SEMUA' && d.idSasaran.length === 0) {
       masalah(
         'idSasaran',
         d.sasaran === 'BARANG'
@@ -231,8 +266,15 @@ export type Promo = {
   gratisQty: string | null;
   templat: boolean;
   sasaran: SasaranPromo;
-  /** K-163: barang/kategori/merk sasaran (`kode` hanya untuk barang). */
+  /** K-163: barang/kategori/merk sasaran (`kode` hanya untuk barang). Kosong untuk sasaran KELOMPOK. */
   sasaranDaftar: { id: number; kode: string | null; nama: string }[];
+  /** K-185: kelompok sasaran beserta namanya (sasaran KELOMPOK). */
+  kelompok: (KelompokSasaran & {
+    namaKategori: string | null;
+    namaMerk: string | null;
+    kodeBarang: string | null;
+    namaBarang: string | null;
+  })[];
   minQty: string | null;
   minBelanja: number | null;
   keterangan: string | null;

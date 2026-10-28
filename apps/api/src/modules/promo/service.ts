@@ -2,8 +2,10 @@ import {
   formatRupiah,
   keQty,
   keTeksPersen,
+  kunciKelompok,
   teksQty,
   type DataPromo,
+  type KelompokSasaran,
   type MetaHalaman,
   type Promo,
   type SasaranPromo,
@@ -48,6 +50,7 @@ function keRespons(
   saat: Date,
   pelanggan: PelangganPromo,
   sasaranDaftar: SasaranDaftar,
+  kelompok: Promo['kelompok'],
 ): Promo {
   return {
     id: b.id,
@@ -70,6 +73,7 @@ function keRespons(
     templat: b.templat,
     sasaran: b.sasaran,
     sasaranDaftar,
+    kelompok,
     minQty: b.minQty,
     minBelanja: b.minBelanja,
     keterangan: b.keterangan,
@@ -109,6 +113,9 @@ export function uraianPotongan(p: {
   if (p.jenisPotongan === 'HARGA_KHUSUS') return `harga ${formatRupiah(p.hargaKhusus ?? 0)}/satuan`;
   if (p.jenisPotongan === 'GRATIS') {
     return `beli ${teksQty(p.beliQty ?? '0')} gratis ${teksQty(p.gratisQty ?? '0')}`;
+  }
+  if (p.jenisPotongan === 'BELI_POTONG') {
+    return `beli ${teksQty(p.beliQty ?? '0')} potong ${formatRupiah(p.potonganNominal ?? 0)}`;
   }
   return `${formatRupiah(p.potonganNominal ?? 0)}/satuan`;
 }
@@ -150,8 +157,17 @@ export async function daftarPromo(
   const id = baris.map((b) => b.id);
   const pelanggan = await pelangganPer(id);
   const sasaran = await sasaranPer(id);
+  const kelompok = await repo.kelompokPromo(db, id);
   return {
-    data: baris.map((b) => keRespons(b, saat, pelanggan.get(b.id) ?? [], sasaran.get(b.id) ?? [])),
+    data: baris.map((b) =>
+      keRespons(
+        b,
+        saat,
+        pelanggan.get(b.id) ?? [],
+        sasaran.get(b.id) ?? [],
+        kelompok.get(b.id) ?? [],
+      ),
+    ),
     meta: metaHalaman(total, p),
   };
 }
@@ -168,6 +184,7 @@ export async function detailPromo(id: number): Promise<Promo> {
     sekarang(),
     (await pelangganPer([id])).get(id) ?? [],
     (await sasaranPer([id])).get(id) ?? [],
+    (await repo.kelompokPromo(db, [id])).get(id) ?? [],
   );
 }
 
@@ -187,10 +204,13 @@ function nilaiDari(input: DataPromo): repo.NilaiPromo {
     jamSelesai: input.jamSelesai,
     jenisPotongan: j,
     potonganPersen: j === 'PERSEN' ? keTeksPersen(input.potonganPersen ?? '0') : null,
-    potonganNominal: j === 'NOMINAL' ? input.potonganNominal : null,
+    potonganNominal: j === 'NOMINAL' || j === 'BELI_POTONG' ? input.potonganNominal : null,
     maksPotongan: j === 'PERSEN' ? input.maksPotongan : null,
     hargaKhusus: j === 'HARGA_KHUSUS' ? input.hargaKhusus : null,
-    beliQty: j === 'GRATIS' && input.beliQty !== null ? keQty(input.beliQty) : null,
+    beliQty:
+      (j === 'GRATIS' || j === 'BELI_POTONG') && input.beliQty !== null
+        ? keQty(input.beliQty)
+        : null,
     gratisQty: j === 'GRATIS' && input.gratisQty !== null ? keQty(input.gratisQty) : null,
     sasaran: input.sasaran,
     minQty: input.minQty === null ? null : keQty(input.minQty),
@@ -214,7 +234,45 @@ function pelangganDari(input: DataPromo): number[] {
 }
 
 function sasaranDari(input: DataPromo): number[] {
-  return input.sasaran === 'SEMUA' ? [] : input.idSasaran;
+  return input.sasaran === 'SEMUA' || input.sasaran === 'KELOMPOK' ? [] : input.idSasaran;
+}
+
+/** K-185: kelompok sasaran (kosong bila sasaran bukan KELOMPOK). */
+function kelompokDari(input: DataPromo): KelompokSasaran[] {
+  return input.sasaran === 'KELOMPOK' ? input.kelompok : [];
+}
+
+/**
+ * K-185: kelompok yang baru ditambahkan harus berisi kategori/merk/barang yang ada dan AKTIF, dan barangnya
+ * termasuk kategori/merk kelompok itu (kalau tidak, kelompok itu tidak akan pernah cocok).
+ */
+async function pastikanKelompok(tx: Tx, kelompok: KelompokSasaran[], lama: KelompokSasaran[] = []) {
+  const kunciLama = new Set(lama.map(kunciKelompok));
+  const baru = kelompok.filter((k) => !kunciLama.has(kunciKelompok(k)));
+  if (baru.length === 0) return;
+  const d = await repo.dataKelompok(tx, baru);
+  for (const k of baru) {
+    const no = kelompok.indexOf(k) + 1;
+    if (k.idKategori !== null && !d.kategoriAktif.has(k.idKategori)) {
+      throw galatKolom('kelompok', `Kelompok ${no}: kategori tidak ditemukan atau nonaktif.`);
+    }
+    if (k.idMerk !== null && !d.merkAktif.has(k.idMerk)) {
+      throw galatKolom('kelompok', `Kelompok ${no}: merk tidak ditemukan atau nonaktif.`);
+    }
+    if (k.idBarang !== null) {
+      const b = d.barang.get(k.idBarang);
+      if (!b) throw galatKolom('kelompok', `Kelompok ${no}: barang tidak ditemukan atau nonaktif.`);
+      if (
+        (k.idKategori !== null && b.idKategori !== k.idKategori) ||
+        (k.idMerk !== null && b.idMerk !== k.idMerk)
+      ) {
+        throw galatKolom(
+          'kelompok',
+          `Kelompok ${no}: ${b.nama} bukan termasuk kategori/merk kelompok itu, jadi tidak akan pernah cocok.`,
+        );
+      }
+    }
+  }
 }
 
 /** K-097: golongan dan pelanggan sasaran harus ada dan aktif bila baru dipilih. */
@@ -278,12 +336,14 @@ export async function tambahPromo(
   }
   const idPelanggan = pelangganDari(input);
   const idSasaran = sasaranDari(input);
+  const kelompok = kelompokDari(input);
   const id = await dalamTransaksi(async (tx) => {
     await pastikanSasaran(tx, nilai.sasaran, idSasaran);
+    await pastikanKelompok(tx, kelompok);
     await pastikanPembeli(tx, nilai, idPelanggan);
     const kode = await terbitkanKodeMaster(tx, 'PRM');
     const idBaru = await repo.tambahPromo(tx, { ...nilai, kode });
-    await repo.gantiSasaranPromo(tx, idBaru, nilai.sasaran, idSasaran);
+    await repo.gantiSasaranPromo(tx, idBaru, nilai.sasaran, idSasaran, kelompok);
     await repo.gantiPelangganPromo(tx, idBaru, idPelanggan);
     await catatLog(tx, {
       aksi: 'PROMO_BUAT',
@@ -291,7 +351,7 @@ export async function tambahPromo(
       entitas: 'promo',
       idEntitas: idBaru,
       ringkasan: `Menambah ${nilai.templat ? 'templat' : 'promo'} ${ringkasPromo(kode, nilai)}`,
-      dataBaru: { kode, ...nilai, idSasaran, idPelanggan },
+      dataBaru: { kode, ...nilai, idSasaran, kelompok, idPelanggan },
       ip: asal.ip,
     });
     return idBaru;
@@ -314,6 +374,7 @@ const KOLOM_ATURAN = [
   'gratisQty',
   'sasaran',
   'idSasaran',
+  'kelompok',
   'minQty',
   'minBelanja',
   'sasaranPembeli',
@@ -325,7 +386,12 @@ const KOLOM_ATURAN = [
 ];
 
 /** Bentuk yang bisa dibandingkan `selisih` (waktu sebagai ISO, daftar id sebagai teks). */
-function bandingan(n: repo.NilaiPromo, idSasaran: number[], idPelanggan: number[]) {
+function bandingan(
+  n: repo.NilaiPromo,
+  idSasaran: number[],
+  idPelanggan: number[],
+  kelompok: KelompokSasaran[],
+) {
   return {
     nama: n.nama,
     mulaiPada: n.mulaiPada.toISOString(),
@@ -342,6 +408,7 @@ function bandingan(n: repo.NilaiPromo, idSasaran: number[], idPelanggan: number[
     gratisQty: n.gratisQty ?? null,
     sasaran: n.sasaran,
     idSasaran: idSasaran.join(','),
+    kelompok: kelompok.map(kunciKelompok).join(','),
     minQty: n.minQty ?? null,
     minBelanja: n.minBelanja ?? null,
     keterangan: n.keterangan ?? null,
@@ -371,10 +438,15 @@ export async function ubahPromo(
     const idPelangganLama = (await repo.pelangganPromo(tx, [id]))
       .map((p) => p.id)
       .sort((a, b) => a - b);
-    const idSasaranLama = (await repo.idSasaranPromo(tx, [id])).get(id) ?? [];
+    const kelompok = kelompokDari(input);
+    const kelompokLama = (
+      lama.sasaran === 'KELOMPOK' ? ((await repo.kelompokPromo(tx, [id])).get(id) ?? []) : []
+    ).map((k) => ({ idKategori: k.idKategori, idMerk: k.idMerk, idBarang: k.idBarang }));
+    const idSasaranLama =
+      lama.sasaran === 'KELOMPOK' ? [] : ((await repo.idSasaranPromo(tx, [id])).get(id) ?? []);
     const beda = selisih(
-      bandingan(lama, idSasaranLama, idPelangganLama),
-      bandingan(baru, idSasaran, idPelanggan),
+      bandingan(lama, idSasaranLama, idPelangganLama, kelompokLama),
+      bandingan(baru, idSasaran, idPelanggan, kelompok),
     );
     if (beda.kolom.length === 0) return;
     // K-110: anggaran dan batas per pembeli boleh diubah kapan saja (bukan aturan potongan), tetapi anggaran
@@ -402,13 +474,14 @@ export async function ubahPromo(
       sasaran: lama.sasaran,
       id: idSasaranLama,
     });
+    await pastikanKelompok(tx, kelompok, kelompokLama);
     await pastikanPembeli(tx, baru, idPelanggan, {
       idGolongan: lama.idGolongan,
       idPelanggan: idPelangganLama,
     });
     await repo.ubahPromo(tx, id, baru, sekarang());
-    if (beda.kolom.includes('sasaran') || beda.kolom.includes('idSasaran')) {
-      await repo.gantiSasaranPromo(tx, id, baru.sasaran, idSasaran);
+    if (['sasaran', 'idSasaran', 'kelompok'].some((k) => beda.kolom.includes(k))) {
+      await repo.gantiSasaranPromo(tx, id, baru.sasaran, idSasaran, kelompok);
     }
     if (beda.kolom.includes('idPelanggan')) await repo.gantiPelangganPromo(tx, id, idPelanggan);
     await catatLog(tx, {

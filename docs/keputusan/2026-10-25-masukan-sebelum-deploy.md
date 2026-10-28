@@ -116,7 +116,12 @@ prioritas di bagian akhir.
 - **K-185 Promo: sasaran AND bertingkat dan potongan setelah beli N.** Satu kelompok sasaran = kategori AND merk AND
   barang (mengerucut); boleh banyak kelompok (OR antar kelompok). Jenis baru: *beli N potong Rp X* (mis. beli 2
   potong Rp 2.000). "Harga khusus per satuan" dijelaskan ulang di "?" (harga jual menjadi angka tetap, bukan
-  dipotong) atau digabung bila membingungkan. *Rencana.*
+  dipotong) atau digabung bila membingungkan. *Rencana.* **Selesai (28 Okt):** *Berlaku untuk* →
+  **Kombinasi kategori + merk + barang**: tiap kelompok berisi kategori, merk, dan/atau barang yang harus cocok
+  semuanya (pilihan barang disaring menurut kategori/merk kelompok); antar kelompok = ATAU (PR16). Jenis manfaat
+  **Beli N potong Rp X** berlaku per kelipatan N, sama seperti beli X gratis Y (beli 2 potong Rp 2.000: qty 5 →
+  Rp 4.000) (PR17). *Harga khusus* tidak digabung, tetapi diberi nama *Harga khusus (harga jadi)* dan dijelaskan di
+  form dan "?": angka yang dibayar pembeli per satuan, bukan besar potongan. Migrasi 0037.
 - **K-186 Aplikasi saat ditutup.** Menutup tab/jendela saat shift masih terbuka memunculkan peringatan peramban
   (**Selesai**); aplikasi menyala otomatis saat Windows dimulai (server sudah; pintasan peramban di folder Startup
   ditambahkan pemasang, **Selesai**). Shift yang tertinggal terbuka tetap aman: muncul sebagai "Shift kemarin belum

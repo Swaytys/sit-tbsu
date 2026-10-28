@@ -406,8 +406,9 @@ Admin/Owner (pemeriksaan) | desktop
 
 **F17. Promo** | Pengaturan › Promo | Admin, Owner (buat); semua (menerima) | desktop
 - Fungsi: kampanye promo (K-163): waktu berlaku sampai jam-menit, hari tertentu dan jam harian (happy hour);
-  sasaran semua barang atau beberapa barang/kategori/merk sekaligus; manfaat potongan persen, rupiah per satuan,
-  **harga khusus**, atau **beli X gratis Y** (barang sama); sasaran pembeli (semua/golongan/pelanggan tertentu);
+  sasaran semua barang, beberapa barang/kategori/merk sekaligus, atau **kombinasi** (kelompok kategori DAN merk DAN
+  barang, antar kelompok ATAU; K-185); manfaat potongan persen, rupiah per satuan, **harga khusus** (harga jadi),
+  **beli X gratis Y** (barang sama), atau **beli N potong Rp X** per kelipatan (K-185); sasaran pembeli (semua/golongan/pelanggan tertentu);
   syarat min qty, min belanja, belanja pelanggan N hari; **anggaran promo** dan **batas per pembeli**; jumlah
   potongan yang sudah diberikan; **templat kampanye** untuk dipakai ulang.
 - Tabel: `promo`, `promo_sasaran`, `promo_pelanggan`, `penjualan_detail` (kolom `id_promo`, `diskon_promo`).
@@ -1306,6 +1307,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-28 — F17: promo kombinasi kategori + merk + barang dan beli N potong Rp X (K-185).
 - 2026-10-28 — F21: layar kasir pas layar, pindah/gulir panel dengan tombol (K-171).
 - 2026-10-28 — F37: menu laporan di atas dan pratinjau per halaman A4 (K-182).
 - 2026-10-28 — F48: pemeriksaan data alamat sama dan kelengkapan data (K-183).

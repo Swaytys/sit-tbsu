@@ -1,10 +1,12 @@
 import {
   bandingQty,
+  kelipatanQty,
   potonganGratisRupiah,
   potonganPersenRupiah,
   qtyGratis,
   subtotalRupiah,
   type JenisPotongan,
+  type KelompokSasaran,
   type SasaranPromo,
 } from '@sit/shared';
 import { hariJamLokal } from '../../lib/waktu';
@@ -35,8 +37,10 @@ export type KandidatPromo = {
   beliQty: string | null;
   gratisQty: string | null;
   sasaran: SasaranPromo;
-  /** Id barang/kategori/merk sasaran sesuai `sasaran` (kosong bila SEMUA). */
+  /** Id barang/kategori/merk sasaran sesuai `sasaran` (kosong bila SEMUA atau KELOMPOK). */
   idSasaran: number[];
+  /** K-185: kelompok sasaran (hanya `sasaran` KELOMPOK). */
+  kelompok: KelompokSasaran[];
   minQty: string | null;
   minBelanja: number | null;
   /**
@@ -107,8 +111,18 @@ export function promoBerlaku(p: KandidatPromo, saat: Date): boolean {
   return true;
 }
 
+/** K-185 PR16: barang cocok dengan satu kelompok bila semua kolom yang diisi di kelompok itu sama. */
+export function cocokKelompok(k: KelompokSasaran, b: BarisUntukPromo): boolean {
+  return (
+    (k.idKategori === null || k.idKategori === b.idKategori) &&
+    (k.idMerk === null || k.idMerk === b.idMerk) &&
+    (k.idBarang === null || k.idBarang === b.idBarang)
+  );
+}
+
 /** PR2 + PR13: sasaran cocok, qty ≥ min_qty (bila diisi), total bruto transaksi ≥ min_belanja (bila diisi). */
 export function promoCocok(p: KandidatPromo, b: BarisUntukPromo, totalBruto: number): boolean {
+  if (p.sasaran === 'KELOMPOK' && !p.kelompok.some((k) => cocokKelompok(k, b))) return false;
   if (p.sasaran === 'KATEGORI' && !p.idSasaran.includes(b.idKategori)) return false;
   if (p.sasaran === 'MERK' && (b.idMerk === null || !p.idSasaran.includes(b.idMerk))) return false;
   if (p.sasaran === 'BARANG' && !p.idSasaran.includes(b.idBarang)) return false;
@@ -121,7 +135,7 @@ export function promoCocok(p: KandidatPromo, b: BarisUntukPromo, totalBruto: num
  * PR3 + PR14: potongan baris. PERSEN = bulatkanRupiah(qty × harga × persen ÷ 100), dibatasi maks_potongan;
  * NOMINAL = bulatkanRupiah(qty × potongan per satuan); HARGA_KHUSUS = bruto − bulatkanRupiah(qty dasar × harga
  * khusus); GRATIS = nilai qty gratis (⌊qty ÷ (beli + gratis)⌋ × gratis) dari harga baris. Selalu 0 ≤ potongan ≤
- * bruto (dan ≤ batas potongan baris).
+ * bruto (dan ≤ batas potongan baris). BELI_POTONG = ⌊qty dasar ÷ N⌋ × Rp X (K-185).
  */
 export function potonganPromo(p: KandidatPromo, b: BarisUntukPromo): number {
   let nilai: number;
@@ -141,6 +155,13 @@ export function potonganPromo(p: KandidatPromo, b: BarisUntukPromo): number {
         p.beliQty === null || p.gratisQty === null
           ? 0
           : potonganGratisRupiah(b.bruto, qtyGratis(b.qty, p.beliQty, p.gratisQty), b.qty);
+      break;
+    case 'BELI_POTONG':
+      // K-185 PR17: setiap kelipatan N (satuan dasar) dipotong Rp X; beli 2 potong Rp 2.000, qty 5 → Rp 4.000.
+      nilai =
+        p.beliQty === null || p.potonganNominal === null
+          ? 0
+          : kelipatanQty(b.qty, p.beliQty) * p.potonganNominal;
       break;
   }
   return Math.max(0, Math.min(nilai, b.bruto, b.batasPotongan ?? b.bruto));
