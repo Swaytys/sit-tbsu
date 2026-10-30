@@ -277,10 +277,12 @@ describe('void transaksi (docs/05 §9)', () => {
         baris: [{ idBarang: m.semen, qty: '1' }],
       },
     });
-    await kirim<{ id: number }>(admin, `/api/penjualan/${inv2.id}/surat-jalan`, {
+    const sj2 = await kirim<{ id: number }>(admin, `/api/penjualan/${inv2.id}/surat-jalan`, {
       idPerjalanan: rit.id,
       baris: [{ idPenjualanDetail: inv2.baris[0]!.id, qtyKirim: '1' }],
     });
+    // K-203: rit berangkat setelah semua surat jalan dicentang dimuat.
+    await kirim(admin, `/api/surat-jalan/${sj2.id}/status`, { status: 'DIMUAT' });
     await kirim(admin, `/api/perjalanan/${rit.id}/berangkat`, {});
     const ditolak = await galat(admin, '/api/void', {
       idPenjualan: inv2.id,
