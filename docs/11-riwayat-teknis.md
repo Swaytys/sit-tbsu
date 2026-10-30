@@ -850,3 +850,11 @@ pengantaran (centang sebelum berangkat).
 - 2026-10-30 — Bagian C31 centang muat, ubah rit, toleransi muatan (K-203).
 - 2026-10-30 — Bagian C30 dependensi alur dan tutup shift (K-197).
 - 2026-10-30 — Bagian C29 referensi tunggal, penyelesaian hasil kirim, pengembalian uang (K-196, K-192, K-193).
+- 2026-10-30 — K-204 Setup v3 (versi 1.15.0): `peluncur.ts` menulis langkah ke `<data>/status-peluncur.txt` (dihapus
+  saat siap) dan memasang `CADANGAN_RESTIC` bila `alat/restic.exe` ada. `BonsaiUrip.cs` (C# 5, csc .NET 4) kini
+  WinForms: layar pembuka tanpa bingkai yang membaca berkas status tiap 300 ms, `NotifyIcon` dengan menu Buka/Matikan;
+  satu ikon per sesi lewat mutex `BonsaiUrip-Ikon`; `--berhenti` memberi sinyal event `BonsaiUrip-Berhenti` lalu
+  menunggu mutex dilepas (≤10 detik) supaya Setup pembaruan tidak menabrak berkas terkunci. `bonsaiurip.iss`:
+  halaman lokasi aktif, pesan Indonesia, `UpdateReadyMemo` menyebut folder data, pintasan panduan.
+  `buat-installer.ps1` mengunduh restic 0.17.3 windows_amd64 + SHA256SUMS ke `installer/alat-cache` (diabaikan git),
+  memeriksa hash, mengekstrak ke `paket/alat/restic.exe`, menyalin `installer/panduan`.

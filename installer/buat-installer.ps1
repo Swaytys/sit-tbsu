@@ -88,6 +88,27 @@ foreach ($wajib in 'initdb.exe', 'pg_ctl.exe', 'postgres.exe', 'pg_dump.exe') {
 }
 Copy-Item "$PgDir\server_license.txt" "$paket\pgsql\LICENSE-PostgreSQL.txt" -ErrorAction SilentlyContinue
 
+# K-198/K-204: program cadangan restic (BSD-2) bawaan, versi tetap dan diperiksa SHA-256-nya.
+$resticVersi = '0.17.3'
+$cache = Join-Path $PSScriptRoot 'alat-cache'
+New-Item -ItemType Directory -Force -Path $cache | Out-Null
+$zip = Join-Path $cache "restic_${resticVersi}_windows_amd64.zip"
+$sums = Join-Path $cache "SHA256SUMS-$resticVersi"
+$dasar = "https://github.com/restic/restic/releases/download/v$resticVersi"
+if (-not (Test-Path $zip)) { Invoke-WebRequest "$dasar/restic_${resticVersi}_windows_amd64.zip" -OutFile $zip }
+if (-not (Test-Path $sums)) { Invoke-WebRequest "$dasar/SHA256SUMS" -OutFile $sums }
+$harap = (Select-String -Path $sums -Pattern "restic_${resticVersi}_windows_amd64.zip").Line.Split(' ')[0]
+$nyata = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+if ($harap -ne $nyata) { Remove-Item $zip; throw "restic: checksum tidak cocok ($nyata)." }
+New-Item -ItemType Directory -Force -Path "$paket\alat" | Out-Null
+Expand-Archive $zip -DestinationPath "$paket\alat" -Force
+Get-ChildItem "$paket\alat" -Filter 'restic*.exe' | Rename-Item -NewName 'restic.exe' -Force
+if (-not (Test-Path "$paket\alat\restic.exe")) { throw 'restic.exe tidak ada setelah diekstrak.' }
+
+# K-204: panduan mulai pakai (dibuka dari menu Start).
+New-Item -ItemType Directory -Force -Path "$paket\panduan" | Out-Null
+Copy-Item "$PSScriptRoot\panduan\*" "$paket\panduan" -Recurse -Force
+
 # Peluncur BonsaiUrip.exe (C#, berikon logo).
 & $csc -nologo -target:winexe "-win32icon:$PSScriptRoot\bonsaiurip.ico" "-out:$paket\BonsaiUrip.exe" `
   -r:System.Windows.Forms.dll -r:System.Drawing.dll "$PSScriptRoot\peluncur\BonsaiUrip.cs"

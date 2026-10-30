@@ -95,7 +95,14 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
   *Pengaturan › Operasional* berlaku untuk berat dan ruang (sebelumnya berat tanpa toleransi, ruang 115%); tombol
   **Ubah** pada grup rit mengganti kendaraan, sopir, jadwal. Tombol *Selesai dimuat* di detail invoice tetap ada.
 - **K-204 Pemasangan.** Setelah perbaikan ini: berkas .exe untuk laptop Windows (Setup v3, K-191), lalu versi untuk
-  HP dan tablet. *Rencana.*
+  HP dan tablet. *Rencana.* **Selesai bagian laptop (30 Okt, versi 1.15.0):** layar pembuka bermerek yang menulis
+  langkah peluncur; ikon di area notifikasi Windows (Buka / Matikan dengan konfirmasi, satu ikon per pengguna, ikut
+  tertutup saat dimatikan dari menu Start atau saat Setup memperbarui); lokasi program bisa dipilih, halaman *Siap
+  memasang* menyebut folder program dan folder data; panduan *Mulai pakai* (8 langkah) terpasang di menu Start;
+  program cadangan restic 0.17.3 ikut paket (unduhan diperiksa SHA-256) sehingga cadangan K-198 langsung jalan.
+  Keamanan Windows: Setup tetap per pengguna tanpa hak Administrator; tanda tangan digital butuh sertifikat
+  *code signing* berbayar atas nama toko (keputusan pemilik, belum dibeli), jadi SmartScreen masih muncul dan
+  panduan menjelaskan langkahnya. HP dan tablet menyusul.
 
 ## Urutan pengerjaan
 

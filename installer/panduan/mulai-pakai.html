@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mulai pakai BonsaiUrip</title>
+    <style>
+      :root {
+        --kayu: #36261c;
+        --krem: #f5ebd7;
+        --biru: #2563eb;
+        --abu: #475569;
+      }
+      body {
+        margin: 0;
+        font:
+          16px/1.6 'Segoe UI',
+          system-ui,
+          sans-serif;
+        color: #0f172a;
+        background: #f8fafc;
+      }
+      header {
+        background: var(--kayu);
+        color: var(--krem);
+        padding: 28px 24px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      header p {
+        margin: 4px 0 0;
+        opacity: 0.85;
+      }
+      main {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      section {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 18px 22px;
+        margin: 16px 0;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 20px;
+      }
+      h2 span {
+        display: inline-block;
+        min-width: 30px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        border-radius: 50%;
+        background: var(--biru);
+        color: #fff;
+        font-size: 15px;
+        margin-right: 8px;
+      }
+      ol,
+      ul {
+        padding-left: 22px;
+      }
+      li {
+        margin: 4px 0;
+      }
+      .catatan {
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 10px 14px;
+      }
+      .penting {
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+        border-radius: 8px;
+        padding: 10px 14px;
+      }
+      kbd {
+        background: #1e293b;
+        color: #fff;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 13px;
+      }
+      b.tombol {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 4px;
+        padding: 0 5px;
+        font-weight: 600;
+      }
+      nav a {
+        color: var(--biru);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Mulai pakai BonsaiUrip</h1>
+      <p>
+        Sistem penjualan dan persediaan UD. Sumber Urip. Ikuti langkah 1 sampai 8 berurutan;
+        masing-masing ± 2–10 menit.
+      </p>
+    </header>
+    <main>
+      <nav>
+        <b>Isi:</b> <a href="#l1">1 Membuka</a> · <a href="#l2">2 Akun pertama</a> ·
+        <a href="#l3">3 Kode pemulihan</a> · <a href="#l4">4 Panduan penyiapan</a> ·
+        <a href="#l5">5 Cadangan</a> · <a href="#l6">6 Transaksi pertama</a> ·
+        <a href="#l7">7 Mematikan</a> · <a href="#l8">8 Memperbarui</a> ·
+        <a href="#masalah">Bila ada masalah</a>
+      </nav>
+
+      <section id="l1">
+        <h2><span>1</span>Membuka BonsaiUrip</h2>
+        <ol>
+          <li>Klik dua kali ikon <b>BonsaiUrip</b> di desktop (atau menu Start › BonsaiUrip).</li>
+          <li>
+            Muncul layar cokelat bergambar bonsai dengan tulisan langkah yang sedang dikerjakan (<i
+              >Menyalakan database…</i
+            >, <i>Menyalakan BonsaiUrip…</i>). Pemakaian pertama ± 1–3 menit; berikutnya ± 10–20
+            detik.
+          </li>
+          <li>Peramban (Chrome/Edge) terbuka sendiri di alamat <b>http://localhost:7878</b>.</li>
+          <li>
+            Di pojok kanan bawah layar (dekat jam, klik panah <b>^</b> bila tersembunyi) muncul
+            <b>ikon BonsaiUrip</b>. Ikon ini tanda aplikasi sedang menyala.
+            <b>Menutup peramban tidak mematikan aplikasi.</b>
+          </li>
+        </ol>
+        <p class="catatan">
+          Bila Windows menampilkan <i>"Windows melindungi PC Anda"</i> saat memasang atau membuka:
+          klik <b>Info selengkapnya</b> › <b>Tetap jalankan</b>. Ini karena aplikasi belum bertanda
+          tangan digital berbayar.
+        </p>
+      </section>
+
+      <section id="l2">
+        <h2><span>2</span>Membuat akun pertama (Owner)</h2>
+        <ol>
+          <li>
+            Pemakaian pertama langsung membuka halaman <b>Buat akun pertama</b>. Isi <b>nama</b>,
+            <b>nama pengguna</b> (untuk masuk, mis. <i>pemilik</i>), dan <b>password</b> dua kali
+            (minimal 8 karakter, campur huruf dan angka).
+          </li>
+          <li>
+            Klik <b class="tombol">Buat akun dan masuk</b>. Akun ini adalah <b>Owner</b> (pemilik,
+            hak penuh).
+          </li>
+        </ol>
+      </section>
+
+      <section id="l3">
+        <h2><span>3</span>Menyimpan kode pemulihan</h2>
+        <ol>
+          <li>
+            Setelah akun dibuat, tampil <b>kode pemulihan</b> (XXXXX-XXXXX-XXXXX-XXXXX). Kode ini
+            satu-satunya cara masuk bila password Owner terlupa.
+          </li>
+          <li>
+            Klik <b class="tombol">Cetak</b> atau <b class="tombol">Unduh berkas</b>, simpan
+            kertasnya di tempat aman (bukan di laci kasir).
+          </li>
+          <li>Centang <i>sudah menyimpan</i> › <b class="tombol">Lanjut ke aplikasi</b>.</li>
+        </ol>
+        <p class="catatan">
+          Lupa password: halaman masuk › <b>Lupa password?</b> › nama pengguna + kode pemulihan +
+          password baru.
+        </p>
+      </section>
+
+      <section id="l4">
+        <h2><span>4</span>Panduan penyiapan (data toko)</h2>
+        <p>
+          Halaman <b>Panduan penyiapan</b> terbuka sendiri (bisa juga dari kotak biru di Dashboard
+          atau Pengaturan › <i>Panduan penyiapan</i>). Kerjakan dari atas; tiap langkah punya tombol
+          ke layar yang tepat:
+        </p>
+        <ol>
+          <li><b>Profil toko</b>: nama, alamat, telepon, logo (tercetak di struk dan laporan).</li>
+          <li>
+            <b>Rekening penerimaan</b>: rekening bank/EDC/QRIS toko untuk pembayaran non-tunai.
+          </li>
+          <li><b>Akun karyawan</b>: kasir, staf penjualan, admin (Data Pengguna › Tambah).</li>
+          <li>
+            <b>Barang</b>: satu per satu atau impor Excel; lalu <b>stok awal</b> (Penyesuaian Stok ›
+            Saldo awal).
+          </li>
+          <li>
+            <b>Pelanggan</b>, <b>pemasok</b>, <b>kendaraan &amp; sopir</b> (bila mengantar),
+            <b>printer struk</b>.
+          </li>
+        </ol>
+        <p class="catatan">
+          Mau mencoba dulu? Klik <b>Isi contoh</b>: 5 contoh tiap jenis data bertanda "Data contoh".
+          Setelah selesai mencoba, klik <b>Nonaktifkan semua contoh</b>.
+        </p>
+      </section>
+
+      <section id="l5">
+        <h2><span>5</span>Mengatur cadangan data (wajib)</h2>
+        <ol>
+          <li>
+            Colokkan <b>flashdisk atau hardisk eksternal</b> yang selalu terpasang di komputer ini
+            (atau gunakan disk kedua, mis. D: bila ada). Jangan hanya di C:.
+          </li>
+          <li>
+            Buka <b>Pengaturan › Cadangan</b>. Di kotak <b>Atur cadangan</b> tulis folder, mis.
+            <b>E:\BonsaiUrip-cadangan</b>.
+          </li>
+          <li>
+            Klik <b class="tombol">Buat sandi</b>. <b>Tulis sandi itu di kertas</b> dan simpan
+            bersama kode pemulihan. Tanpa sandi ini cadangan tidak bisa dibuka oleh siapa pun.
+          </li>
+          <li>
+            Centang <i>Sandi sudah saya catat</i> › <b class="tombol">Simpan</b> ›
+            <b class="tombol">Cadangkan sekarang</b>. Tunggu sampai riwayat menulis <b>Berhasil</b>.
+          </li>
+          <li>
+            Sesudah itu cadangan berjalan sendiri setiap hari (bawaan jam 21.00, atau segera setelah
+            komputer menyala bila terlewat). Sebulan sekali aplikasi menguji membuka cadangan (uji
+            pulih).
+          </li>
+        </ol>
+      </section>
+
+      <section id="l6">
+        <h2><span>6</span>Transaksi pertama</h2>
+        <ol>
+          <li>
+            Buka shift: menu <b>Shift &amp; Clerical Check</b> › <b class="tombol">Buka shift</b> ›
+            hitung uang di laci.
+          </li>
+          <li>
+            Penjualan langsung: menu <b>Penjualan Langsung</b>. <kbd>F2</kbd> cari barang (ketik
+            <i>2*semen</i> untuk qty 2) › <kbd>Enter</kbd> menambah › <kbd>F8</kbd> bayar › ketik
+            uang diterima › <kbd>Enter</kbd>. Struk tercetak.
+          </li>
+          <li>
+            Tombol keyboard lain tampil di bilah hitam di kanan atas layar kasir
+            (<kbd>Ctrl</kbd>+<kbd>/</kbd> menampilkan/ menyembunyikan).
+          </li>
+          <li>
+            Akhir hari: <b>Shift &amp; Clerical Check</b> › <b>Tutup shift</b>: baca kotak
+            <i>Sebelum menutup</i>, hitung uang, kirim, lalu tutup.
+          </li>
+        </ol>
+      </section>
+
+      <section id="l7">
+        <h2><span>7</span>Mematikan aplikasi</h2>
+        <ol>
+          <li>Pastikan shift sudah ditutup.</li>
+          <li>
+            Klik kanan <b>ikon BonsaiUrip</b> di pojok kanan bawah › <b>Matikan BonsaiUrip</b> ›
+            <b>Ya</b>. (Atau menu Start › BonsaiUrip › <i>Matikan BonsaiUrip</i>.)
+          </li>
+          <li>Mematikan komputer seperti biasa juga aman.</li>
+        </ol>
+        <p class="catatan">
+          Bila memilih <i>Nyalakan otomatis saat Windows dimulai</i> saat memasang, aplikasi menyala
+          sendiri (tanpa membuka peramban) setiap komputer dinyalakan. Buka lewat ikon di desktop
+          atau klik dua kali ikon tray.
+        </p>
+      </section>
+
+      <section id="l8">
+        <h2><span>8</span>Memperbarui ke versi baru</h2>
+        <ol>
+          <li>
+            Tutup shift, lalu jalankan <b>Setup-BonsaiUrip.exe</b> versi baru (aplikasi dimatikan
+            otomatis).
+          </li>
+          <li>
+            Ikuti wizard. Lokasi pemasangan lama dipakai lagi. <b>Data tidak hilang</b> (disimpan
+            terpisah di <i>%LOCALAPPDATA%\BonsaiUrip</i>).
+          </li>
+        </ol>
+      </section>
+
+      <section id="masalah">
+        <h2>Bila ada masalah</h2>
+        <ul>
+          <li>
+            <b>Jendela "BonsaiUrip gagal dinyalakan"</b>: foto jendelanya dan kirim ke pengembang.
+            Catatan lengkap ada di folder <i>%LOCALAPPDATA%\BonsaiUrip\log</i>.
+          </li>
+          <li>
+            <b>Peramban "tidak dapat dijangkau"</b>: klik ikon BonsaiUrip di desktop sekali lagi.
+          </li>
+          <li>
+            <b>Lupa password Owner</b>: halaman masuk › <b>Lupa password?</b> dengan kode pemulihan;
+            atau Admin/Owner lain me-reset di <i>Data Pengguna</i>.
+          </li>
+          <li>
+            <b>Cadangan gagal</b>: Pengaturan › Cadangan menulis sebabnya (mis. flashdisk tercabut).
+            Colokkan lagi lalu <b>Cadangkan sekarang</b>.
+          </li>
+        </ul>
+        <p class="penting">
+          Simpan bersama di tempat aman: <b>kode pemulihan</b> dan <b>sandi cadangan</b>. Keduanya
+          tidak bisa diminta ulang dari pengembang.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

@@ -41,6 +41,10 @@ const LOG = path.join(DATA, 'log');
 const BERKAS_KONFIG = path.join(DATA, 'peluncur.json');
 const BERKAS_GALAT = path.join(DATA, 'galat-peluncur.txt');
 const BERKAS_PID = path.join(DATA, 'server.pid');
+/** K-204: langkah yang sedang dikerjakan, dibaca layar pembuka BonsaiUrip.exe. */
+const BERKAS_STATUS = path.join(DATA, 'status-peluncur.txt');
+/** K-198/K-204: program cadangan restic bawaan paket (alat\restic.exe). */
+const RESTIC = path.join(AKAR, 'alat', 'restic.exe');
 const NAMA_DB = 'bonsaiurip';
 const USER_DB = 'bonsai';
 
@@ -48,6 +52,15 @@ function catat(pesan: string): void {
   mkdirSync(LOG, { recursive: true });
   const baris = `${new Date().toISOString()} ${pesan}\n`;
   writeFileSync(path.join(LOG, 'peluncur.log'), baris, { flag: 'a' });
+}
+
+/** K-204: tulis langkah untuk layar pembuka (gagal menulis tidak menghentikan peluncur). */
+function status(teks: string): void {
+  try {
+    writeFileSync(BERKAS_STATUS, teks);
+  } catch {
+    // Layar pembuka hanya tampilan.
+  }
 }
 
 /** Password mudah dibaca (tanpa huruf/angka yang mirip: 0/O, 1/l/I). */
@@ -170,6 +183,7 @@ function lingkungan(k: Konfigurasi): NodeJS.ProcessEnv {
     SESSION_IDLE_MENIT: '60',
     SESSION_ABSOLUT_JAM: '12',
     CADANGAN_PG_BIN: PGBIN,
+    ...(existsSync(RESTIC) ? { CADANGAN_RESTIC: RESTIC } : {}),
   };
 }
 
@@ -268,13 +282,18 @@ async function utama(): Promise<void> {
     };
     simpanKonfig(k);
   }
+  status('Menyalakan database…');
   await siapkanDatabase(k);
+  status('Memperbarui data…');
   catat('Migrasi database.');
   await jalankanMigrasi(urlDb(k));
   isiDataAwal(k);
+  status('Menyalakan BonsaiUrip…');
   await nyalakanServer(k);
+  status('Membuka peramban…');
   if (!args.includes('--latar')) bukaPeramban(k);
   catat(`Siap di http://localhost:${k.portAplikasi}/`);
+  rmSync(BERKAS_STATUS, { force: true });
 }
 
 utama().catch((err: unknown) => {

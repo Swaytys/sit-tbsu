@@ -250,6 +250,20 @@ desktop
 - Bukti: `[KODE: api/modules/sistem/penyiapan/]`, `[KODE: web/features/penyiapan/]`; `[DOK: K-168]`; tes
   `penyiapan.test.ts`, e2e `penyiapan.spec.ts`. Status: BERFUNGSI.
 
+**F55. Pemasang Windows (Setup v3)** | Setup-BonsaiUrip.exe; ikon desktop; area notifikasi | pemilik (memasang),
+semua (membuka) | komputer Windows toko
+- Fungsi: satu berkas Setup tanpa hak Administrator memasang aplikasi, Node.js, PostgreSQL bawaan, dan program
+  cadangan restic; lokasi program bisa dipilih, data selalu terpisah di `%LOCALAPPDATA%\BonsaiUrip` sehingga
+  memperbarui atau menghapus aplikasi tidak menghapus data. Peluncur menampilkan layar pembuka bermerek dengan
+  langkah yang sedang dikerjakan, lalu ikon di area notifikasi (Buka / Matikan dengan konfirmasi). Panduan *Mulai
+  pakai* 8 langkah ikut terpasang di menu Start. Setup pembaruan mematikan aplikasi dulu sebelum menimpa berkas.
+- Input → Proses → Output: klik Setup → wizard (lokasi, ikon, nyala otomatis) → berkas terpasang; klik ikon →
+  database dinyalakan, migrasi, server → peramban terbuka + ikon notifikasi.
+- Bukti: `[KODE: apps/api/src/peluncur.ts]`, `[KODE: installer/peluncur/BonsaiUrip.cs]`,
+  `[KODE: installer/bonsaiurip.iss]`, `[KODE: installer/buat-installer.ps1]`, `[KODE: installer/panduan/mulai-pakai.html]`;
+  `[DOK: docs/panduan/pasang-laptop.md, K-188, K-191, K-204]`; uji pemilik U160–U162. Status: BERFUNGSI (laptop);
+  tanda tangan digital belum (perlu sertifikat), akses dari HP/tablet menyusul.
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -273,7 +287,7 @@ Admin/Owner menerima | desktop + Telegram/email atasan
   bulanan/5 tahunan, uji pulih otomatis tiap tanggal 1, tombol cadangkan sekarang.
 - Tabel: `cadangan`.
 - Bukti: `[KODE: api/modules/sistem/cadangan/service.ts:323,458,528]` `[DOK: K-084]`.
-- Status: SEBAGIAN — berfungsi di tes; bergantung pada pemasangan restic/rclone di server; cadangan ke cloud akan diaktifkan saat deploy `[JAWAB 1]`.
+- Status: SEBAGIAN — cadangan lokal BERFUNGSI (folder dan sandi diatur Owner dari layar, K-198; restic ikut Setup, K-204); cadangan ke cloud (rclone) akan diaktifkan saat deploy `[JAWAB 1]`.
 
 **F45. FMS pendukung: BBM, servis, pengingat, statistik armada** | Logistik › Kendaraan & Sopir (tab BBM, Servis,
 Statistik) | Kasir (catat BBM), Admin/Owner (servis, batal, statistik) | desktop
@@ -1330,6 +1344,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — Info cepat nomor dokumen (K-181) di linimasa kas, dashboard, riwayat, retur, papan.
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
+- 2026-10-30 — F55 pemasang Windows Setup v3: layar pembuka, ikon area notifikasi, lokasi pasang, panduan mulai pakai, restic bawaan (K-204); F8 status cadangan lokal.
 - 2026-10-28 — F54 panduan penyiapan pertama dan contoh data (K-168).
 - 2026-10-26 — F53 akun pertama dan lupa password (K-191).
 - 2026-10-26 — F52 log interaksi penelitian (K-190).
