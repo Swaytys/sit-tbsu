@@ -723,6 +723,20 @@ keputusan lama masih tertulis di berkasnya.
 | K-203 | Muat rit dengan centang; berangkat bila semua dimuat; ≤110% beralasan, >110% stop; rit bisa diubah. | Berlaku (selesai 30 Okt) |
 | K-204 | Setup .exe laptop, lalu versi HP dan tablet. | Berlaku (Setup v3 laptop selesai 30 Okt, versi 1.15.0; HP/tablet menyusul) |
 
+---
+
+### 6.24 Uji Setup v3: setup awal dan tur — `2026-10-31-setup-awal-dan-tur.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-205 | Setup awal di aplikasi: form langkah demi langkah (usaha, operasional, akun Owner, pemulihan, cadangan, data awal), bisa diulang. | Berlaku (rencana) |
+| K-206 | Tur fitur: sorotan bagian layar dan tur per fitur, bisa dilewati dan diulang dari Pengaturan. | Berlaku (rencana) |
+| K-207 | Aplikasi umum: nama/alamat toko tidak tertulis mati; layar pembuka memakai slogan. | Berlaku (rencana) |
+| K-208 | Buku SOP dan buku panduan setelah K-205–K-207. | Berlaku (rencana) |
+| K-209 | Lupa password dengan kode verifikasi email (selain kode pemulihan). | Berlaku (rencana; dipilih 31 Okt) |
+| K-210 | Skrip buat Setup sekali klik dan skrip berulang lain untuk pemilik. | Berlaku (rencana) |
+| K-211 | Jalan keluar aman bila data lama berisi akun yang tidak bisa dimasuki. | Berlaku (rencana) |
+
 ## 7. Yang dijadwalkan sesudah ini
 
 Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supaya tidak hilang. Rinciannya di

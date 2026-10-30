@@ -38,3 +38,4 @@ installer/keluaran/
 installer/peluncur/*.exe
 installer/deploy-sementara/
 installer/alat-cache/
+pintasan/log/
