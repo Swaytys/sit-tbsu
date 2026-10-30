@@ -8,6 +8,7 @@ test(
   'Pengantaran: DP → dua surat jalan → pelunasan → lunas & terkirim',
   { tag: '@kritis' },
   async ({ browser }) => {
+    test.slow(); // alur panjang (dua rit, centang muat K-203, pelunasan); 30 dtk tidak cukup saat mesin sibuk
     const kode = Date.now();
     const nama = `Besi Antar E2E ${kode}`;
     const admin = await browser.newPage();
@@ -103,11 +104,15 @@ test(
         await kasir.goto('/pengiriman');
         const grup = kasir.locator('[data-testid^="rit-TRP-"]').filter({ hasText: truk.plat });
         // K-203: semua surat jalan rit dicentang Dimuat dulu.
-        await expect(grup.getByRole('checkbox', { name: /^Dimuat SJ-/ }).first()).toBeVisible();
-        const belum = grup.getByRole('checkbox', { name: /^Dimuat SJ-/, checked: false });
-        while ((await belum.count()) > 0) {
-          await belum.first().click();
-          await kasir.waitForTimeout(300);
+        const kotak = grup.getByRole('checkbox', { name: /^Dimuat SJ-/ });
+        await expect(kotak.first()).toBeVisible();
+        const jumlah = await kotak.count();
+        for (let i = 0; i < jumlah; i++) {
+          const k = kotak.nth(i);
+          if (!(await k.isChecked())) {
+            await k.click();
+            await expect(k).toBeChecked();
+          }
         }
         await grup.getByRole('button', { name: 'Berangkat' }).click();
         await kasir.keyboard.press('3');
