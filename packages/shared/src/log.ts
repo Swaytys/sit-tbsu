@@ -51,6 +51,8 @@ export const AKSI_LOG = [
   'BARANG_UBAH',
   'BARANG_NONAKTIF',
   'BARANG_AKTIFKAN',
+  // K-199: hapus permanen data ganda yang belum pernah dipakai.
+  'BARANG_HAPUS',
   'HARGA_UBAH',
   // Tinjau Harga (Fase 9, K-086).
   'HARGA_TINJAU_TERAPKAN',
@@ -64,10 +66,12 @@ export const AKSI_LOG = [
   'PELANGGAN_UBAH',
   'PELANGGAN_NONAKTIF',
   'PELANGGAN_AKTIFKAN',
+  'PELANGGAN_HAPUS',
   'PEMASOK_BUAT',
   'PEMASOK_UBAH',
   'PEMASOK_NONAKTIF',
   'PEMASOK_AKTIFKAN',
+  'PEMASOK_HAPUS',
   'IMPORT_BARANG',
   'IMPORT_SALDO_AWAL',
   'IMPORT_MUATAN',

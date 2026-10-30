@@ -14,6 +14,7 @@ import {
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import { golonganPelanggan, logAktivitas, pelanggan, pemasok, tingkatHarga } from '../../db/schema';
+import { adaMaster } from './hapus';
 
 type Galat = {
   error: { kode: string; pesan: string; detail?: { kolom?: Record<string, string[]> } };
@@ -206,7 +207,15 @@ describe('pelanggan', () => {
       expect((await json<Galat>(res)).error.kode).toBe('TIDAK_BERIZIN');
     }
     // Nilai yang sama dengan bawaan toko tetap diterima.
-    expect((await kirim(staf, '/api/pelanggan', { ...PLG, termHari: 14 })).status).toBe(201);
+    expect(
+      (
+        await kirim(staf, '/api/pelanggan', {
+          ...PLG,
+          namaPelanggan: `${PLG.namaPelanggan} Cabang`,
+          termHari: 14,
+        })
+      ).status,
+    ).toBe(201);
 
     // Pelanggan yang diatur Admin: Staf mengubah kontak tanpa menyentuh golongan/term/limit.
     const p = await buat(admin, '/api/pelanggan', {
@@ -497,5 +506,41 @@ describe('cegah data ganda dan No. HP rapi (K-137)', () => {
       noHp: '0321999888',
     });
     expect(p2.status).toBe(409);
+  });
+
+  it('K-199: nama dan No. HP sama persis ditolak walau ditegaskan; yang belum dipakai bisa dihapus permanen (log)', async () => {
+    const lama = await buat(admin, '/api/pelanggan', {
+      namaPelanggan: 'Bu Siti Aminah',
+      noHp: '081233334444',
+    });
+    await kirim(admin, `/api/pelanggan/${lama.id}/status`, { statusAktif: 'NONAKTIF' }, 'PATCH');
+    const ganda = await kirim(admin, '/api/pelanggan', {
+      namaPelanggan: 'Bu Siti Aminah',
+      noHp: '0812-3333-4444',
+      abaikanMirip: true,
+    });
+    expect(ganda.status).toBe(409);
+    const g = await json<{
+      error: { pesan: string; detail: { mirip: { id: number; persis: boolean }[] } };
+    }>(ganda);
+    expect(g.error.pesan).toContain('sama persis');
+    expect(g.error.detail.mirip).toEqual([expect.objectContaining({ id: lama.id, persis: true })]);
+
+    // Staf tidak boleh menghapus; Admin boleh karena belum pernah dipakai.
+    expect((await kirim(staf, `/api/pelanggan/${lama.id}`, undefined, 'DELETE')).status).toBe(403);
+    expect((await kirim(admin, `/api/pelanggan/${lama.id}`, undefined, 'DELETE')).status).toBe(200);
+    expect(await adaMaster('pelanggan', lama.id)).toBe(false);
+    const log = await logTerakhir('PELANGGAN_HAPUS');
+    expect(log?.ringkasan).toContain('Bu Siti Aminah');
+    expect(log?.dataLama).toMatchObject({ nama_pelanggan: 'Bu Siti Aminah' });
+    // Sekarang tidak ganda lagi.
+    expect(
+      (
+        await kirim(admin, '/api/pelanggan', {
+          namaPelanggan: 'Bu Siti Aminah',
+          noHp: '081233334444',
+        })
+      ).status,
+    ).toBe(201);
   });
 });

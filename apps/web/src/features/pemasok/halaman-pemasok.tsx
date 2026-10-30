@@ -213,6 +213,9 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
                 <PanelMirip
                   mirip={mirip}
                   apa="Pemasok"
+                  jenis="pemasok"
+                  idIni={pemasok?.id ?? null}
+                  onTerhapus={({ ini }) => (ini ? onTutup() : setMirip(null))}
                   onTetapSimpan={() =>
                     void form.handleSubmit((d) => kirim({ ...d, abaikanMirip: true }))()
                   }

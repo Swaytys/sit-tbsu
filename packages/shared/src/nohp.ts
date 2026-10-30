@@ -91,6 +91,8 @@ export type DataMirip = {
   noHp: string | null;
   statusAktif: string;
   alasan: string;
+  /** K-199: sama persis (nama dan No. HP sama; barang: nama sama) — tidak boleh disimpan ganda. */
+  persis?: boolean;
 };
 
 /** K-137 butir 3: hasil pemindaian data lama. */

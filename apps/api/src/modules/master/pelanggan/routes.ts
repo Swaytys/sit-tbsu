@@ -18,6 +18,7 @@ import {
   ubahPelanggan,
   ubahStatusPelanggan,
 } from './service';
+import { hapusMaster } from '../hapus';
 
 const kelola = requirePermission('master.pelanggan.kelola');
 
@@ -75,6 +76,12 @@ export const pelangganRoutes = new Hono<EnvApp>()
       return c.json({ data }, 200);
     },
   )
+  // K-199: hapus permanen data ganda yang belum pernah dipakai.
+  // Hapus permanen hanya Admin/Owner (Staf boleh menambah/mengubah pelanggan).
+  .delete('/:id', requirePermission('master.pelanggan.atur_kredit'), paramId, async (c) => {
+    await hapusMaster('pelanggan', c.req.valid('param').id, penggunaWajib(c), c.get('asal'));
+    return c.json({ data: { dihapus: true } }, 200);
+  })
   .patch(
     '/:id/status',
     kelola,

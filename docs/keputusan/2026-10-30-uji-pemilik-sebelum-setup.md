@@ -63,7 +63,9 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
   disimpan; penyelesaian: **ubah** nama/No. HP salah satunya (yang sedang diubah atau yang ditemukan), atau **hapus
   permanen** salah satunya **bila belum pernah dipakai di transaksi apa pun** (tercatat di log). Data yang sudah
   dipakai tidak bisa dihapus. Berlaku untuk semua data master. Pilihan "tetap simpan" hanya untuk data yang mirip
-  (bukan sama persis). *Rencana.*
+  (bukan sama persis). *Rencana.* **Selesai (30 Okt):** kotak merah *sama persis* dengan **Buka & ubah data itu**,
+  **Hapus data itu**, dan **Hapus data yang sedang diubah ini** (Admin/Owner; untuk barang/pemasok pemegang izin
+  kelolanya). Kepastian "belum pernah dipakai" dijaga kunci asing database, bukan pengecekan manual. docs/05 DB5.
 - **K-200 Selisih stok karena salah input atau salah serah (human error).** Contoh: tercatat 2 tetapi diserahkan 1,
   tercatat 1 tetapi diserahkan 2, barang lain ikut terinput, atau barang yang diserahkan/dikirim keliru. Disusun
   konsep tiga lapis **mencegah – mengajari – menangani** beserta langkah konkret untuk pengguna; fitur yang dibutuhkan

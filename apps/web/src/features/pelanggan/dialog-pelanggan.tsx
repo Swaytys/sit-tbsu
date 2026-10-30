@@ -375,6 +375,9 @@ function IsiDialogPelanggan({
                 <PanelMirip
                   mirip={mirip}
                   apa="Pelanggan"
+                  jenis="pelanggan"
+                  idIni={pelanggan?.id ?? null}
+                  onTerhapus={({ ini }) => (ini ? onTutup() : setMirip(null))}
                   onTetapSimpan={() =>
                     void form.handleSubmit((d) => kirim({ ...d, abaikanMirip: true }))()
                   }

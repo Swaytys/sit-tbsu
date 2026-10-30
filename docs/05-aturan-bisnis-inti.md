@@ -316,6 +316,7 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 | DB2 | Nama pelanggan, pemasok, barang: spasi di tepi dan spasi ganda dirapikan. |
 | DB3 | Cegah data ganda: menambah, atau mengubah nama/No. HP, pelanggan/pemasok/barang ditolak 409 bila ada data lain (aktif atau nonaktif) dengan **kunci nama** sama (huruf kecil, tanpa awalan Toko/Tk/CV/PT/UD/Pak/Bapak/Bpk/Bu/Ibu/Sdr/Mas/Mbak untuk pelanggan/pemasok, hanya huruf dan angka) atau No. HP sama (pelanggan/pemasok); untuk barang hanya sesama kepemilikan dan pemasok penitip yang sama (versi titipan K-094 boleh bernama sama). Jawaban memuat daftar data mirip (maks. 5). Pengguna boleh menegaskan data berbeda (`abaikanMirip`). Import Excel barang tidak memakai aturan ini (kode yang sudah ada dilewati). |
 | DB4 | Pemeriksaan data (`sistem.pengaturan.kelola`): kelompok data lama yang mirip (nama/No. HP) dan format salah (No. HP bukan format internasional, nama berspasi berlebih). *Rapikan No. HP* mengubah semua No. HP pelanggan/pemasok/sopir/pengguna yang bisa dirapikan otomatis dalam satu transaksi, melaporkan yang harus diperbaiki manual; log `DATA_RAPIKAN`. Nomor HP pembeli di order lama (tabel transaksi) tidak diubah. |
+| DB5 | **[K-199] Data sama persis.** Pelanggan/pemasok dengan kunci nama **dan** No. HP sama, atau barang dengan kunci nama sama (dalam lingkup kepemilikan yang sama), ditolak 409 `KONFLIK` dengan `detail.mirip[].persis = true` **walaupun** `abaikanMirip` dikirim. Penyelesaian: ubah salah satunya, atau hapus permanen salah satunya lewat `DELETE /api/{pelanggan\|pemasok\|barang}/:id` (izin: `master.pelanggan.atur_kredit`, `master.pemasok.kelola`, `master.barang.kelola`). Hapus hanya untuk data yang belum pernah dirujuk data lain: pelengkap milik barang (atribut, satuan jual, harga, baris persediaan) ikut dihapus; rujukan lain (transaksi, riwayat stok, promo, persetujuan, barang titipan) ditolak oleh kunci asing → 409 "sudah dipakai di …". Log `PELANGGAN_HAPUS`/`PEMASOK_HAPUS`/`BARANG_HAPUS` dengan salinan data. Pengecualian aturan 4 CLAUDE.md, diputuskan pemilik. |
 
 ## 22. Dependensi alur dan penutupan shift (K-197)
 
@@ -391,4 +392,5 @@ berpindah tangan.
 - 2026-10-30 — P8: No. referensi wajib di semua jalur uang non-tunai (K-196).
 - 2026-10-30 — S10: penyelesaian menurut status bayar dan pengembalian uang menunggu tunai/transfer (K-192, K-193).
 - 2026-10-30 — §22 dependensi alur dan hal menggantung saat tutup shift (K-197).
+- 2026-10-30 — DB5 data sama persis dan hapus permanen data yang belum dipakai (K-199).
 - 2026-10-30 — S9, S13, S14: centang muat per surat jalan, ubah rit, satu batas toleransi muatan (K-203).

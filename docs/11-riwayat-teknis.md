@@ -842,6 +842,7 @@ pengantaran (centang sebelum berangkat).
 - 2026-10-28 — Bagian C26 pratinjau laporan per halaman A4 (K-182).
 - 2026-10-28 — Bagian C27 promo kombinasi dan beli N potong (K-185).
 - 2026-10-28 — Bagian C28 dasar markup FIFO (K-184).
+- 2026-10-30 — K-199: `cariMirip` menandai `persis`; `pastikanTidakMirip` menolaknya walau `abaikanMirip`. `master/hapus.ts` menghapus baris master + pelengkap milik barang dalam transaksi; galat kunci asing 23503 dipetakan ke 409 dengan nama tempat dipakai (tidak ada pengecekan manual yang bisa terlewat). Web: `PanelMirip` mode merah + `useHapusMaster`. Tes mitra/barang + e2e data-ganda.
 - 2026-10-30 — K-201: konversi atribut ↔ muatan (`atributKeMuatan`, `muatanKeAtribut`, decimal.js) di packages/shared/satuan-muatan.ts; form barang menyelaraskan saat blur (yang terakhir diubah menang), KartuMuatan menyesuaikan angka layar bila nilai diubah dari luar; e2e muatan-selaras.spec.
 - 2026-10-30 — K-202: `useIngat` (web/lib/ingat-saring.ts) menyimpan saringan daftar per kunci halaman di memori; `lupakanSaring` dipanggil NavLink sidebar dan memberi sinyal reset (useSyncExternalStore) ke halaman yang sedang terbuka; e2e ingat-saring.spec.
 - 2026-10-30 — Bagian C31 centang muat, ubah rit, toleransi muatan (K-203).

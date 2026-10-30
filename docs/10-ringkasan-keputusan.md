@@ -716,7 +716,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-196 | Aturan bisnis berlaku sama di semua peran (No. referensi wajib juga untuk Owner); audit semua jalur. | Berlaku (selesai 30 Okt) |
 | K-197 | Dependensi alur; shift ditutup hanya bila yang menggantung selesai; transaksi di luar shift masuk shift berikutnya. | Berlaku (selesai 30 Okt) |
 | K-198 | Cadangan lokal diatur dari Pengaturan › Cadangan tanpa mengubah .env. | Berlaku (rencana) |
-| K-199 | Data master ganda persis tidak boleh disimpan; ubah salah satu atau hapus permanen yang belum pernah dipakai. | Berlaku (rencana) |
+| K-199 | Data master ganda persis tidak boleh disimpan; ubah salah satu atau hapus permanen yang belum pernah dipakai. | Berlaku (selesai 30 Okt) |
 | K-200 | Selisih stok karena salah input/salah serah: konsep mencegah–mengajari–menangani. | Berlaku (rencana) |
 | K-201 | Atribut ↔ data muatan selaras langsung di form. | Berlaku (selesai 30 Okt) |
 | K-202 | Pencarian dan saringan daftar diingat saat kembali dari halaman ubah/detail. | Berlaku (selesai 30 Okt) |

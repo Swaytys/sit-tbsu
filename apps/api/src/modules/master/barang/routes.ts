@@ -16,6 +16,7 @@ import {
   unggahGambar,
 } from './service';
 import { simpanSatuanJual } from '../satuan-jual/service';
+import { hapusMaster } from '../hapus';
 
 const lihat = requirePermission('master.barang.lihat');
 const kelola = requirePermission('master.barang.kelola');
@@ -54,6 +55,11 @@ export const barangRoutes = new Hono<EnvApp>()
       return c.json({ data }, 200);
     },
   )
+  // K-199: hapus permanen data ganda yang belum pernah dipakai.
+  .delete('/:id', kelola, paramId, async (c) => {
+    await hapusMaster('barang', c.req.valid('param').id, penggunaWajib(c), c.get('asal'));
+    return c.json({ data: { dihapus: true } }, 200);
+  })
   .patch(
     '/:id/status',
     kelola,

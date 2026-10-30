@@ -23,6 +23,7 @@ import {
   satuan,
   tingkatHarga,
 } from '../../db/schema';
+import { adaMaster } from './hapus';
 
 type Galat = {
   error: { kode: string; pesan: string; detail?: { kolom?: Record<string, string[]> } };
@@ -136,11 +137,12 @@ beforeEach(async () => {
 const kirim = (sesi: Sesi, path: string, body: unknown, method = 'POST') =>
   minta(path, { method, cookie: sesi.cookie, body });
 
+let urutNama = 0;
 function barangBaru(ubah: Record<string, unknown> = {}) {
   return {
-    // Fixtur sengaja memakai nama berulang; pencegah data ganda (K-137) diuji terpisah di mitra.test.
+    // Fixtur memakai nama mirip; K-199: nama sama persis ditolak, jadi tiap barang diberi nomor urut.
     abaikanMirip: true,
-    namaBarang: 'Semen Gresik 40kg',
+    namaBarang: `Semen Gresik 40kg ${String(++urutNama)}`,
     idKategori: ref.kategori,
     idSatuanDasar: ref.sak,
     hargaModalAwal: 41_234,
@@ -307,6 +309,33 @@ describe('tambah barang', () => {
   });
 });
 
+describe('hapus barang ganda (K-199)', () => {
+  it('nama sama persis ditolak; barang yang sudah punya riwayat stok tidak bisa dihapus, yang belum bisa', async () => {
+    const a = await buat(barangBaru({ namaBarang: 'Keramik Putih 40x40' }));
+    const ganda = await kirim(
+      admin,
+      '/api/barang',
+      barangBaru({ namaBarang: 'keramik putih 40X40' }),
+    );
+    expect(ganda.status).toBe(409);
+    expect((await galat(ganda)).error.pesan).toContain('sama persis');
+
+    const sa = await kirim(admin, '/api/penyesuaian', {
+      jenis: 'SALDO_AWAL',
+      baris: [{ idBarang: a.id, qtyFisik: '5', hppSatuan: 40000 }],
+    });
+    const idSa = (await json<{ data: { id: number } }>(sa)).data.id;
+    await kirim(admin, `/api/penyesuaian/${idSa}/selesai`, {});
+    const dipakai = await kirim(admin, `/api/barang/${a.id}`, undefined, 'DELETE');
+    expect(dipakai.status).toBe(409);
+    expect((await galat(dipakai)).error.pesan).toContain('sudah dipakai');
+
+    const b = await buat(barangBaru({ namaBarang: 'Keramik Abu 40x40' }));
+    expect((await kirim(admin, `/api/barang/${b.id}`, undefined, 'DELETE')).status).toBe(200);
+    expect(await adaMaster('barang', b.id)).toBe(false);
+  });
+});
+
 describe('data sensitif', () => {
   it('Kasir tidak menerima harga modal, HPP, harga titip, dasar markup (aturan 6)', async () => {
     const b = await buat(
@@ -451,7 +480,7 @@ describe('ubah barang', () => {
     await kirim(
       admin,
       `/api/barang/${b.id}`,
-      barangBaru({ idMerk: ref.gresik, hargaTier: undefined }),
+      barangBaru({ idMerk: ref.gresik, hargaTier: undefined, namaBarang: b.namaBarang }),
       'PATCH',
     );
     const log = await logTerakhir('BARANG_UBAH');

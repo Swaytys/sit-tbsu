@@ -1191,6 +1191,9 @@ function FormBarang({
               <PanelMirip
                 mirip={mirip}
                 apa="Barang"
+                jenis="barang"
+                idIni={barang?.id ?? null}
+                onTerhapus={({ ini }) => (ini ? void navigasi('/barang') : setMirip(null))}
                 onTetapSimpan={() =>
                   void form.handleSubmit((d) => kirim({ ...d, abaikanMirip: true }))()
                 }

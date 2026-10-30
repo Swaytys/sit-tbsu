@@ -488,6 +488,10 @@ Semua tugas kasir, ditambah:
   (huruf besar/kecil, spasi, tanda baca, dan awalan Toko/CV/PT/Pak/Bu diabaikan) atau No. HP-nya sama, muncul kotak
   kuning **"… yang mirip sudah ada"** berisi daftarnya. Pakai data yang sudah ada (tutup form), atau bila memang
   berbeda klik **Ini … berbeda, tetap simpan**.
+  **Sama persis** (kotak merah: nama dan No. HP sama; barang: nama sama) tidak bisa disimpan. Pilih salah satu:
+  ubah nama/No. HP di isian Anda; **Buka & ubah data itu**; atau **Hapus data itu** / **Hapus data yang sedang
+  diubah ini** → **Ya, hapus permanen** (Admin/Owner). Hapus hanya berhasil untuk data yang belum pernah dipakai
+  transaksi; bila sudah dipakai, ubah nama/No. HP-nya.
 - **Pemeriksaan data** (*Pengaturan › Pemeriksaan data*, Admin/Owner): daftar data lama yang kemungkinan dobel dan
   yang formatnya salah. Klik kodenya untuk membuka data itu. **Rapikan No. HP** memperbaiki sekaligus semua No. HP
   yang bisa dirapikan (0812… → +62812…); sisanya tertulis "perbaiki manual".

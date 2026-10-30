@@ -5,6 +5,7 @@ import type { EnvApp } from '../../../lib/konteks';
 import { kaitValidasi, paramId } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { daftarPemasok, tambahPemasok, ubahPemasok, ubahStatusPemasok } from './service';
+import { hapusMaster } from '../hapus';
 
 const kelola = requirePermission('master.pemasok.kelola');
 
@@ -24,6 +25,11 @@ export const pemasokRoutes = new Hono<EnvApp>()
     const { id } = c.req.valid('param');
     const data = await ubahPemasok(id, c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.json({ data }, 200);
+  })
+  // K-199: hapus permanen data ganda yang belum pernah dipakai.
+  .delete('/:id', kelola, paramId, async (c) => {
+    await hapusMaster('pemasok', c.req.valid('param').id, penggunaWajib(c), c.get('asal'));
+    return c.json({ data: { dihapus: true } }, 200);
   })
   .patch(
     '/:id/status',
