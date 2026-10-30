@@ -8,6 +8,7 @@ import {
   HardDrive,
   Loader2,
 } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
 import { useJalankanCadangan, useStatusCadangan } from '@/api/pengaturan';
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatWaktu } from '@/lib/format';
+import { FormAturCadangan } from './form-atur-cadangan';
 import { cn } from '@/lib/utils';
 
 /** Ukuran berkas: 1.234.567 byte → "1,2 MB". */
@@ -123,6 +125,7 @@ function PenjelasanLokasi() {
 export function TabCadangan() {
   const status = useStatusCadangan(true);
   const jalankan = useJalankanCadangan();
+  const [ubahAturan, setUbahAturan] = useState(false);
   const s = status.data;
   if (!s) {
     return status.error ? (
@@ -161,15 +164,7 @@ export function TabCadangan() {
       )}
 
       {!s.aktif ? (
-        <Card className="gap-2 p-5 text-sm">
-          <h2 className="font-semibold">Cadangan belum diatur</h2>
-          <p className="text-slate-600">
-            Cadangan diatur di server toko: isi <code>CADANGAN_REPO_LOKAL</code> (folder di disk
-            kedua / disk eksternal), <code>CADANGAN_SANDI</code>, dan bila ingin ke Google Drive{' '}
-            <code>CADANGAN_REPO_CLOUD</code> di berkas <code>.env</code>, lalu nyalakan ulang
-            server. Langkah lengkap ada di panduan pemasangan server, bagian Cadangan data.
-          </p>
-        </Card>
+        <FormAturCadangan folderSekarang={null} />
       ) : (
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="gap-1 p-5">
@@ -240,7 +235,15 @@ export function TabCadangan() {
         >
           Uji pulih sekarang
         </Button>
+        {s.aktif && s.sumberAturan !== 'ENV' && (
+          <Button variant="ghost" onClick={() => setUbahAturan((v) => !v)}>
+            Ubah folder/sandi
+          </Button>
+        )}
       </div>
+      {s.aktif && ubahAturan && (
+        <FormAturCadangan folderSekarang={s.repoLokal} onSelesai={() => setUbahAturan(false)} />
+      )}
 
       <Card className="gap-0 overflow-hidden py-0">
         <table className="w-full text-sm">

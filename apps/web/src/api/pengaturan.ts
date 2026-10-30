@@ -1,4 +1,4 @@
-import type { AksiLog, InputUbahPengaturan, TampilanToko } from '@sit/shared';
+import type { AksiLog, InputUbahPengaturan, TampilanToko, InputAturCadangan } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, ambilIsi, api, galatDariRespons } from './client';
 
@@ -103,6 +103,19 @@ export function useStatusCadangan(aktif: boolean) {
     enabled: aktif,
     // Selama cadangan/uji pulih berjalan, status diperbarui tiap 3 detik.
     refetchInterval: (q) => (q.state.data?.sedangBerjalan ? 3000 : false),
+  });
+}
+
+/** K-198: atur folder dan sandi cadangan dari layar. */
+export function useAturCadangan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (json: InputAturCadangan) =>
+      ambilData(await api.cadangan.aturan.$put({ json })),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['cadangan'] });
+      void qc.invalidateQueries({ queryKey: ['notifikasi'] });
+    },
   });
 }
 

@@ -57,7 +57,10 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
   berikutnya ditutup. Penegakan ada di API (bukan hanya layar).
 - **K-198 Cadangan lokal diatur dari layar.** U70: tidak ada tombol untuk mengatur cadangan; layar meminta mengubah
   berkas `.env`. Folder cadangan (disk kedua/eksternal) dan sandinya diatur dari *Pengaturan › Cadangan* oleh Owner,
-  dengan petunjuk langkah demi langkah. *Rencana.*
+  dengan petunjuk langkah demi langkah. *Rencana.* **Selesai (30 Okt):** kotak *Atur cadangan* (folder, sandi + ulangi,
+  **Buat sandi**, centang sudah dicatat) dan *Ubah folder/sandi*; disimpan di folder data server, bukan database;
+  peringatan bila folder di disk yang sama dengan data atau program cadangan (restic) belum ada. restic.exe ikut
+  dipasang oleh Setup (K-204).
 - **K-199 Data master ganda persis tidak boleh ada.** Pilihan "simpan saja, itu dua orang berbeda" salah bila nama
   dan No. HP sama persis (kasus: dua Bu Siti Aminah, satu aktif satu nonaktif). Bila sama persis, data tidak bisa
   disimpan; penyelesaian: **ubah** nama/No. HP salah satunya (yang sedang diubah atau yang ditemukan), atau **hapus

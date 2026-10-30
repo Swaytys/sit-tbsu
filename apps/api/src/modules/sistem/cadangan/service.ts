@@ -20,6 +20,7 @@ import { logger } from '../../../lib/logger';
 import { jamLokal, sekarang, tanggalOperasional, tambahJam } from '../../../lib/waktu';
 import { catatLog } from '../log-aktivitas';
 import { GalatProses, jalankan, ringkas, wajib } from './alat';
+import { akarDisk, bacaAturan, programAda, simpanAturan } from './aturan';
 
 /*
  * Cadangan data (docs/07 Fase 8, K-084).
@@ -45,10 +46,12 @@ export type KonfigCadangan = {
 };
 
 export function konfigCadangan(): KonfigCadangan {
+  // K-198: pengaturan dari layar menang atas .env.
+  const layar = bacaAturan();
   return {
-    repoLokal: env.CADANGAN_REPO_LOKAL ?? null,
-    repoCloud: env.CADANGAN_REPO_CLOUD ?? null,
-    sandi: env.CADANGAN_SANDI ?? null,
+    repoLokal: layar?.repoLokal ?? env.CADANGAN_REPO_LOKAL ?? null,
+    repoCloud: layar ? layar.repoCloud : (env.CADANGAN_REPO_CLOUD ?? null),
+    sandi: layar?.sandi ?? env.CADANGAN_SANDI ?? null,
     restic: env.CADANGAN_RESTIC,
     rclone: env.CADANGAN_RCLONE ?? null,
     pgBin: env.CADANGAN_PG_BIN ?? null,
@@ -217,7 +220,7 @@ async function mulai(
   if (!k.repoLokal || !k.sandi) {
     throw new AppError(
       'STATUS_TIDAK_VALID',
-      'Cadangan belum diatur: isi CADANGAN_REPO_LOKAL dan CADANGAN_SANDI di .env server (lihat panduan).',
+      'Cadangan belum diatur: Owner mengisi folder dan sandinya di Pengaturan › Cadangan.',
       409,
     );
   }
@@ -477,7 +480,9 @@ export async function jalankanUjiPulih(p: {
 export async function peringatanCadangan(k: KonfigCadangan = konfigCadangan()): Promise<string[]> {
   if (!k.repoLokal || !k.sandi) {
     return env.NODE_ENV === 'production'
-      ? ['Cadangan data belum diatur. Ikuti panduan pemasangan server bagian "Cadangan".']
+      ? [
+          'Cadangan data belum diatur. Owner: buka Pengaturan › Cadangan lalu isi folder dan sandinya.',
+        ]
       : [];
   }
   const hasil: string[] = [];
@@ -506,8 +511,24 @@ export async function statusCadangan(): Promise<StatusCadanganData> {
   const k = konfigCadangan();
   await rapikanYangTerhenti();
   const daftar = await riwayat(30);
+  const ada = await programAda(k.restic);
+  const peringatan = await peringatanCadangan(k);
+  if (!ada) {
+    peringatan.unshift(
+      'Program cadangan (restic) belum terpasang di komputer server: cadangan tidak bisa berjalan. Pasang ulang BonsaiUrip versi terbaru atau ikuti panduan pemasangan bagian "Cadangan".',
+    );
+  }
+  const diskSama = k.repoLokal !== null && akarDisk(k.repoLokal) === akarDisk(k.storageDir);
+  if (diskSama) {
+    peringatan.push(
+      'Folder cadangan berada di disk yang sama dengan data. Bila disk itu rusak, cadangan ikut hilang: pakai disk kedua atau flashdisk/hardisk eksternal.',
+    );
+  }
   return {
     aktif: !!(k.repoLokal && k.sandi),
+    sumberAturan: bacaAturan() ? 'LAYAR' : k.repoLokal ? 'ENV' : null,
+    programAda: ada,
+    diskSama,
     cloudAktif: !!k.repoCloud,
     repoLokal: k.repoLokal,
     repoCloud: k.repoCloud,
@@ -517,7 +538,7 @@ export async function statusCadangan(): Promise<StatusCadanganData> {
     terakhirBerhasil: (await riwayat(1, 'CADANGAN', 'BERHASIL'))[0] ?? null,
     ujiPulihTerakhir: (await riwayat(1, 'UJI_PULIH'))[0] ?? null,
     riwayat: daftar,
-    peringatan: await peringatanCadangan(k),
+    peringatan,
   };
 }
 
@@ -556,4 +577,27 @@ export async function cekJadwalCadangan(k: KonfigCadangan = konfigCadangan()): P
       }
     }
   }
+}
+
+/** K-198: Owner mengatur folder dan sandi cadangan dari layar. Sandi tidak pernah dikembalikan API atau dilog. */
+export async function aturCadangan(
+  input: { repoLokal: string; sandi: string },
+  pelaku: PenggunaAktif,
+  ip: string | null,
+): Promise<StatusCadanganData> {
+  const k = konfigCadangan();
+  await simpanAturan(
+    { repoLokal: input.repoLokal, sandi: input.sandi, repoCloud: k.repoCloud },
+    k.restic,
+  );
+  await db.transaction(async (tx) => {
+    await catatLog(tx, {
+      aksi: 'CADANGAN_ATUR',
+      idPengguna: pelaku.id,
+      entitas: 'cadangan',
+      ringkasan: `Folder cadangan diatur: ${input.repoLokal} (sandi diganti/diatur, tidak dicatat)`,
+      ip,
+    });
+  });
+  return statusCadangan();
 }

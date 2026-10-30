@@ -688,6 +688,12 @@ Semua tugas admin, ditambah:
   alami tercatat (isi ketikan, password, dan nominal tidak). Lihat di tabel di bawahnya (saring jenis, pengguna,
   halaman, tanggal), lalu **Ekspor Excel** atau **Ekspor CSV** untuk diolah. Kolom *Lama / hasil*: lama di halaman
   atau dialog (detik) dan jumlah hasil pencarian. Hilangkan centang lalu **Simpan** untuk berhenti mencatat.
+- **Mengatur cadangan pertama kali** (Owner, *Pengaturan › Cadangan* › kotak **Atur cadangan**): colokkan disk kedua
+  atau flashdisk/hardisk eksternal yang selalu terpasang → tulis folder lengkap, mis. `E:\BonsaiUrip-cadangan` →
+  isi sandi (atau **Buat sandi**) dua kali → **catat sandi di kertas** dan simpan di tempat aman → centang *sudah
+  dicatat* → **Simpan** → **Cadangkan sekarang**. Tanpa sandi itu cadangan tidak bisa dibuka. Mengganti folder:
+  **Ubah folder/sandi**. Kotak kuning di atas memberi tahu bila folder ada di disk yang sama dengan data atau bila
+  program cadangan belum terpasang.
 - **Cadangan** (*Pengaturan › Cadangan*): pastikan *cadangan terakhir* hari ini/kemarin dan *berhasil* (lokal &
   cloud). Lihat panduan server bagian 7 untuk mengatur, bagian 8 untuk memulihkan.
 - **Dashboard**: penjualan hari ini vs kemarin, grafik 7 hari, antrean, pengiriman aktif, peringatan stok.

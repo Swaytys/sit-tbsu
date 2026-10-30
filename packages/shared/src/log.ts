@@ -166,6 +166,8 @@ export const AKSI_LOG = [
   'KONSINYASI_SELESAIKAN',
   // Cadangan data (Fase 8, K-084).
   'CADANGAN_JALANKAN',
+  // K-198: folder/sandi cadangan diatur dari layar.
+  'CADANGAN_ATUR',
   'CADANGAN_UJI_PULIH',
   'TAHUN_TUTUP',
   'TAHUN_BUKA',
