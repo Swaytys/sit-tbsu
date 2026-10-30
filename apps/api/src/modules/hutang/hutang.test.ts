@@ -135,7 +135,14 @@ describe('hutang pemasok (HT1–HT4)', () => {
     const bayar1 = await kirim<{ nomor: string; sisa: number; statusHutang: string }>(
       admin,
       '/api/hutang/bayar',
-      { jenis: 'PENERIMAAN', id: a.id, nominal: 40_000, metode: 'TRANSFER', rekening: 'BCA 123' },
+      {
+        jenis: 'PENERIMAAN',
+        id: a.id,
+        nominal: 40_000,
+        metode: 'TRANSFER',
+        rekening: 'BCA 123',
+        referensi: 'TRF0001',
+      },
     );
     expect(bayar1).toMatchObject({ sisa: 60_000, statusHutang: 'SEBAGIAN' });
     expect(bayar1.nomor).toMatch(/^PBP-/);
@@ -149,6 +156,7 @@ describe('hutang pemasok (HT1–HT4)', () => {
           nominal: 60_001,
           metode: 'TRANSFER',
           rekening: 'BCA',
+          referensi: 'TRF0002',
         },
       }),
     );
@@ -256,6 +264,7 @@ describe('retur ke pemasok (RP1–RP7)', () => {
       idPemasok: m.pemasokA,
       jenis: 'PEMBELIAN',
       syaratBayar: 'TUNAI',
+      referensi: 'TRF0001',
       baris: [{ idBarang: m.semen, qtyMasuk: '10', hargaModalMasuk: 10_000 }],
     });
     // Pindahkan 3 sak ke stok rusak lewat penyesuaian RUSAK.

@@ -20,7 +20,13 @@ import {
 } from '../enums';
 import { skemaQtyPositif } from './persediaan';
 import { skemaKodePersetujuan } from './saluran';
-import { skemaHalaman, teksOpsional } from './umum';
+import {
+  PESAN_REFERENSI_KELUAR,
+  POLA_REFERENSI,
+  referensiSah,
+  skemaHalaman,
+  teksOpsional,
+} from './umum';
 
 /*
  * Koreksi penjualan (Fase 6): void (docs/05 §9, V1–V7) dan retur (§8, T1–T10), dengan persetujuan docs/04 §6.
@@ -34,11 +40,18 @@ const skemaAlasan = (label: string) =>
     .max(255, `${label} maksimal 255 karakter.`);
 
 /** Persetujuan: refund tunai keluar dari laci shift penyetuju; transfer cukup referensi. */
-export const skemaSetujui = z.object({
-  metodeRefund: z.enum(METODE_REFUND).nullable().default(null),
-  rekeningRefund: teksOpsional(60, 'Rekening maksimal 60 karakter.'),
-  referensiRefund: teksOpsional(60, 'Referensi maksimal 60 karakter.'),
-});
+export const skemaSetujui = z
+  .object({
+    metodeRefund: z.enum(METODE_REFUND).nullable().default(null),
+    rekeningRefund: teksOpsional(60, 'Rekening maksimal 60 karakter.'),
+    referensiRefund: teksOpsional(60, 'Referensi maksimal 60 karakter.'),
+  })
+  .superRefine((d, ctx) => {
+    // K-196: bila bukti transfer diisi sekarang, polanya sama dengan semua No. referensi.
+    if (d.metodeRefund === 'TRANSFER' && d.referensiRefund && !referensiSah(d.referensiRefund)) {
+      ctx.addIssue({ code: 'custom', path: ['referensiRefund'], message: PESAN_REFERENSI_KELUAR });
+    }
+  });
 export type DataSetujui = z.output<typeof skemaSetujui>;
 
 export const skemaTolak = z.object({ alasan: skemaAlasan('Alasan penolakan') });
@@ -249,10 +262,9 @@ export const skemaKonfirmasiTransfer = z.object({
     .min(5, 'Rekening tujuan wajib diisi (bank, nomor, atas nama).')
     .max(60, 'Rekening maksimal 60 karakter.'),
   referensiRefund: z
-    .string('Bukti transfer wajib diisi.')
+    .string(PESAN_REFERENSI_KELUAR)
     .trim()
-    .min(3, 'Isi nomor referensi/bukti transfer dari bank.')
-    .max(60, 'Referensi maksimal 60 karakter.'),
+    .regex(POLA_REFERENSI, PESAN_REFERENSI_KELUAR),
 });
 export type InputKonfirmasiTransfer = z.input<typeof skemaKonfirmasiTransfer>;
 

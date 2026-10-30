@@ -20,7 +20,13 @@ import {
 } from '../enums';
 import type { MetaHalaman } from '../api';
 import { POLA_QTY } from '../qty';
-import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
+import {
+  PESAN_REFERENSI_KELUAR,
+  referensiSah,
+  skemaHalaman,
+  skemaRupiah,
+  teksOpsional,
+} from './umum';
 
 /*
  * Persediaan (Fase 4): penerimaan barang (docs/05 §11), penyesuaian stok (§12), posisi dan kartu stok.
@@ -66,6 +72,8 @@ export const skemaPenerimaan = z
     tanggalJatuhTempo: skemaTanggal('Tanggal jatuh tempo').nullable().optional(),
     /** Cara bayar penerimaan TUNAI (E4). */
     metodeBayar: z.enum(METODE_BAYAR_PENERIMAAN).default('TRANSFER'),
+    /** K-196: No. referensi transfer ke pemasok (pembelian TUNAI dibayar transfer). */
+    referensi: teksOpsional(60, 'Referensi maksimal 60 karakter.'),
     noFakturPemasok: teksOpsional(50, 'No. faktur maksimal 50 karakter.'),
     noSuratJalanPemasok: teksOpsional(50, 'No. surat jalan maksimal 50 karakter.'),
     catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
@@ -83,6 +91,14 @@ export const skemaPenerimaan = z
         path: ['syaratBayar'],
         message: 'Syarat bayar wajib dipilih.',
       });
+    }
+    if (
+      d.jenis === 'PEMBELIAN' &&
+      d.syaratBayar === 'TUNAI' &&
+      d.metodeBayar === 'TRANSFER' &&
+      !referensiSah(d.referensi)
+    ) {
+      ctx.addIssue({ code: 'custom', path: ['referensi'], message: PESAN_REFERENSI_KELUAR });
     }
     if (d.jenis === 'PEMBELIAN' && d.syaratBayar === 'TEMPO' && !d.tanggalJatuhTempo) {
       ctx.addIssue({

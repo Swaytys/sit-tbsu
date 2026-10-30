@@ -199,6 +199,7 @@ describe('saran pesan dari data sungguhan', () => {
         idPemasok: m.pemasokA,
         jenis: 'PEMBELIAN',
         syaratBayar: 'TUNAI',
+        referensi: 'TRF0001',
         baris: [{ idBarang: m.semen, qtyMasuk: '100', hargaModalMasuk: 10000 }],
       }),
     );

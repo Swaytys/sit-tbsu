@@ -73,7 +73,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | # | Aturan |
 |---|---|
 | HT1 | Hutang = `penerimaan_barang` PEMBELIAN TEMPO dengan `status_hutang ∈ {BELUM_LUNAS, SEBAGIAN}` (sisa = `sisa_hutang`), dan `penyelesaian_konsinyasi` dengan `status_hutang ≠ LUNAS`. |
-| HT2 | Pembayaran ke pemasok (`PBP`): `nominal ≤ sisa_hutang` dokumen sumber; TUNAI wajib shift BUKA pengguna dan otomatis `kas_shift(BAYAR_PEMASOK, KELUAR)`; TRANSFER wajib `rekening` tujuan, `referensi` opsional (K-088). `status_hutang`: sisa 0 → LUNAS; sebagian dibayar → SEBAGIAN. |
+| HT2 | Pembayaran ke pemasok (`PBP`): `nominal ≤ sisa_hutang` dokumen sumber; TUNAI wajib shift BUKA pengguna dan otomatis `kas_shift(BAYAR_PEMASOK, KELUAR)`; TRANSFER wajib `rekening` tujuan dan `referensi` 4–40 huruf/angka (K-088; **K-196**: sama dengan P8, di semua peran). `status_hutang`: sisa 0 → LUNAS; sebagian dibayar → SEBAGIAN. |
 | HT3 | Halaman Hutang: daftar per dokumen (pemasok, nomor, tanggal, jatuh tempo, total, dibayar, potongan retur, sisa), ringkasan per pemasok (saringan pemasok), umur hutang (kelompok seperti PT5), riwayat pembayaran, tombol bayar (K-088). |
 | HT4 | Notifikasi hutang jatuh tempo H-3 dan terlambat (`hutang.lihat`). |
 | HT5 | Laporan Hutang: per pemasok, per dokumen, per kelompok umur; total. |
@@ -89,7 +89,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | RP3 | `kondisi_asal = BAIK` mengurangi stok tersedia; ditolak bila melanggar A6 (stok dipesan). |
 | RP4 | POTONG_HUTANG: wajib `id_penerimaan` dengan `sisa_hutang ≥ total_retur`; `total_retur_potong += total_retur` (HT6). |
 | RP5 | GANTI_BARANG: barang pengganti dicatat sebagai penerimaan PEMBELIAN baru dengan `harga_modal_masuk` = hpp yang diretur, syarat TUNAI, dan `pembayaran_pemasok` otomatis metode KOMPENSASI (`id_retur_pemasok` diisi) sehingga tidak ada uang bergerak dan HPP tidak terdistorsi. Barang pengganti dicatat masuk saat retur disimpan; mutasinya bukan pembelian (harga beli terakhir tetap, tidak ikut HT7) (K-088). |
-| RP6 | REFUND: pemasok mengembalikan uang; TUNAI → `kas_shift(MASUK_LAIN, MASUK, keterangan "Refund RTP-…")` pada shift pengguna; TRANSFER → dicatat di `catatan` retur pemasok dengan referensi. |
+| RP6 | REFUND: pemasok mengembalikan uang; TUNAI → `kas_shift(MASUK_LAIN, MASUK, keterangan "Refund RTP-…")` pada shift pengguna; TRANSFER → dicatat di `catatan` retur pemasok dengan referensi (wajib, pola P8, K-196). |
 | RP7 | PENGEMBALIAN_TITIPAN: hanya barang KONSINYASI; tanpa kompensasi; mengurangi stok titipan (RP2). |
 
 ## 7. Konsinyasi (Fase 3–4 penandaan, Fase 11 penyelesaian)
@@ -149,6 +149,7 @@ Konfigurasi: `dasar_markup`, `pembulatan_harga`, `batas_diskon_persen_<PERAN>`, 
 - 2026-10-11 — PT6: persetujuan dengan kode sekali pakai (K-102); limit kredit bawaan pelanggan baru (K-104).
 - 2026-10-12 — PR10 anggaran promo, PR11 batas per pembeli (K-110).
 - 2026-10-24 — PR1, PR2, PR8 disesuaikan; PR12–PR15 kampanye promo: waktu sampai menit, hari/jam, sasaran banyak, harga khusus, beli X gratis Y, templat (K-163 bagian 1).
+- 2026-10-30 — HT2, RP6: No. referensi transfer wajib dengan pola yang sama di semua jalur uang (K-196).
 - 2026-10-28 — H3: pilihan dasar markup FIFO (K-184).
 - 2026-10-28 — PR16 sasaran kombinasi (kelompok kategori DAN merk DAN barang), PR17 beli N potong Rp X (K-185).
 - 2026-10-23 — D0: diskon manual dihapus; D1–D6 hanya untuk data lama; konfigurasi `batas_diskon_persen_*` tidak dipakai lagi (K-146).

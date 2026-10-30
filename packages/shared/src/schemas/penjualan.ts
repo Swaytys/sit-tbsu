@@ -27,7 +27,14 @@ import type { HasilSuratJalan } from './armada';
 import type { RingkasAtribut } from './barang';
 import { skemaQtyPositif, skemaTanggal } from './persediaan';
 import { skemaKodePersetujuan } from './saluran';
-import { skemaHalaman, skemaNoHpWajib, skemaRupiah, teksOpsional } from './umum';
+import {
+  skemaHalaman,
+  skemaNoHpWajib,
+  skemaRupiah,
+  teksOpsional,
+  POLA_REFERENSI,
+  PESAN_REFERENSI,
+} from './umum';
 
 /*
  * Penjualan (Fase 5): order & antrean (docs/05 §3, §6), harga dan diskon baris (docs/06 §1–2).
@@ -380,9 +387,8 @@ export type BarisStokTertahan = {
  * U12: No. referensi pembayaran non-tunai wajib, 4–40 karakter huruf/angka (boleh spasi . / -). Panjang aslinya
  * berbeda per bank/penyedia (approval EDC 6, RRN QRIS 12, referensi transfer 8–20), jadi dibatasi longgar.
  */
-export const POLA_REFERENSI_BAYAR = /^[A-Za-z0-9][A-Za-z0-9 ./-]{3,39}$/;
-export const PESAN_REFERENSI_BAYAR =
-  'No. referensi wajib, 4–40 huruf/angka: lihat bukti transfer, struk EDC, atau notifikasi QRIS.';
+export const POLA_REFERENSI_BAYAR = POLA_REFERENSI;
+export const PESAN_REFERENSI_BAYAR = PESAN_REFERENSI;
 
 export const skemaPembayaran = z
   .object({

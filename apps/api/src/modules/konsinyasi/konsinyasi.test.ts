@@ -236,6 +236,7 @@ describe('penyelesaian konsinyasi (KS5–KS8)', () => {
       nominal: 50_000,
       metode: 'TRANSFER',
       rekening: 'BRI 001',
+      referensi: 'TRF0001',
     });
     expect(bayar).toMatchObject({ statusHutang: 'SEBAGIAN', sisa: 70_000 });
     const detail = await ambil<DetailPenyelesaianKonsinyasi>(admin, `/api/konsinyasi/${ksg.id}`);

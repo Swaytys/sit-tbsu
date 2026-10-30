@@ -468,7 +468,7 @@ function DialogUangMuka({ po, onTutup }: { po: DetailOrderPembelian; onTutup: ()
               />
             </label>
             <label className="grid gap-1 text-sm">
-              No. referensi transfer (boleh kosong)
+              No. referensi transfer (wajib)
               <Input
                 value={referensi}
                 onChange={(e) => setReferensi(e.target.value)}

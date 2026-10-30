@@ -126,6 +126,7 @@ describe('order pembelian', () => {
         nominal: 1_000_000,
         metode: 'TRANSFER',
         rekening: 'BCA 123',
+        referensi: 'TRF0001',
       }),
     );
 
@@ -177,6 +178,7 @@ describe('order pembelian', () => {
         idPemasok: m.pemasokA,
         jenis: 'PEMBELIAN',
         syaratBayar: 'TUNAI',
+        referensi: 'TRF0001',
         metodeBayar: 'TRANSFER',
         idOrderPembelian: po.id,
         baris: [
@@ -209,6 +211,7 @@ describe('order pembelian', () => {
           idPemasok: m.pemasokA,
           jenis: 'PEMBELIAN',
           syaratBayar: 'TUNAI',
+          referensi: 'TRF0001',
           metodeBayar: 'TRANSFER',
           idOrderPembelian: po.id,
           baris: [{ idBarang: m.semen, qtyMasuk: '1', hargaModalMasuk: 1 }],
@@ -224,6 +227,7 @@ describe('order pembelian', () => {
         nominal: 500_000,
         metode: 'TRANSFER',
         rekening: 'BCA 123',
+        referensi: 'TRF0001',
       }),
     );
     expect(
@@ -259,6 +263,7 @@ describe('order pembelian', () => {
         idPemasok: m.pemasokA,
         jenis: 'PEMBELIAN',
         syaratBayar: 'TUNAI',
+        referensi: 'TRF0001',
         metodeBayar: 'TRANSFER',
         idOrderPembelian: po2.id,
         baris: [
@@ -292,6 +297,7 @@ describe('order pembelian', () => {
           idPemasok: m.pemasokA,
           jenis: 'PEMBELIAN',
           syaratBayar: 'TUNAI',
+          referensi: 'TRF0001',
           metodeBayar: 'TRANSFER',
           idOrderPembelian: po.id,
           baris: [

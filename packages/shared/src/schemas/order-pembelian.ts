@@ -2,7 +2,13 @@ import { z } from 'zod';
 import { STATUS_ORDER_PEMBELIAN, type StatusOrderPembelian } from '../enums';
 import { METODE_BAYAR_HUTANG } from './hutang';
 import { skemaQtyPositif, skemaTanggal } from './persediaan';
-import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
+import {
+  PESAN_REFERENSI_KELUAR,
+  referensiSah,
+  skemaHalaman,
+  skemaRupiah,
+  teksOpsional,
+} from './umum';
 
 /*
  * K-125 order pembelian ke pemasok (docs/05 §21, keputusan 2026-10-24-rancangan-order-pembelian.md).
@@ -79,6 +85,9 @@ export const skemaUangMukaOrderPembelian = z
         path: ['rekening'],
         message: 'Rekening tujuan wajib diisi untuk transfer.',
       });
+    }
+    if (d.metode === 'TRANSFER' && !referensiSah(d.referensi)) {
+      ctx.addIssue({ code: 'custom', path: ['referensi'], message: PESAN_REFERENSI_KELUAR });
     }
   });
 export type InputUangMukaOrderPembelian = z.input<typeof skemaUangMukaOrderPembelian>;

@@ -304,6 +304,7 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
           idPemasok: m.pemasokA,
           jenis: 'PEMBELIAN',
           syaratBayar: 'TUNAI',
+          referensi: 'TRF0001',
           metodeBayar,
           baris: [{ idBarang: m.semen, qtyMasuk: '2', hargaModalMasuk: 8000 }],
         },

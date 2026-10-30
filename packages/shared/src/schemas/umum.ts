@@ -77,3 +77,18 @@ export type HasilCari = {
   /** Halaman tujuan; `null` = hanya informasi (mis. Staf melihat stok barang). */
   tautan: string | null;
 };
+
+/**
+ * U12 + K-196: No. referensi untuk SETIAP uang non-tunai, masuk maupun keluar (penjualan, pelunasan, bayar
+ * pemasok, uang muka PO, pengembalian uang), di semua peran: 4–40 karakter huruf/angka (boleh spasi . / -).
+ * Panjang aslinya berbeda per bank/penyedia (approval EDC 6, RRN QRIS 12, referensi transfer 8–20).
+ */
+export const POLA_REFERENSI = /^[A-Za-z0-9][A-Za-z0-9 ./-]{3,39}$/;
+export const PESAN_REFERENSI =
+  'No. referensi wajib, 4–40 huruf/angka: lihat bukti transfer, struk EDC, atau notifikasi QRIS.';
+export const PESAN_REFERENSI_KELUAR =
+  'No. referensi wajib, 4–40 huruf/angka: lihat bukti transfer dari bank (m-banking/struk).';
+
+/** Benar bila `nilai` memenuhi pola No. referensi (K-196). */
+export const referensiSah = (nilai: string | null | undefined) =>
+  POLA_REFERENSI.test((nilai ?? '').trim());

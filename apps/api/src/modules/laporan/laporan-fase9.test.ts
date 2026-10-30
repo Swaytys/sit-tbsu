@@ -157,7 +157,7 @@ describe('Laporan Riwayat Harga Beli (HT7)', () => {
       kirim<{ id: number; nomor: string }>(admin, '/api/penerimaan', {
         idPemasok,
         jenis,
-        ...(jenis === 'PEMBELIAN' ? { syaratBayar: 'TUNAI' } : {}),
+        ...(jenis === 'PEMBELIAN' ? { syaratBayar: 'TUNAI', referensi: 'TRF0001' } : {}),
         baris: [{ idBarang, qtyMasuk: '10', hargaModalMasuk: harga }],
       });
     const lama = await terima(m.pemasokA, m.semen, 10_000);
