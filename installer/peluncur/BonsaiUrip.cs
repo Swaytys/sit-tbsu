@@ -183,11 +183,7 @@ class LayarPembuka : Form
             SizeMode = PictureBoxSizeMode.Zoom,
             BackColor = Color.Transparent,
         };
-        try
-        {
-            string ico = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bonsaiurip.ico");
-            gambar.Image = File.Exists(ico) ? new Icon(ico, 256, 256).ToBitmap() : Icon.ToBitmap();
-        }
+        try { gambar.Image = GambarLogo(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bonsaiurip.ico")); }
         catch { }
         Controls.Add(gambar);
 
@@ -246,6 +242,25 @@ class LayarPembuka : Form
             if (!string.IsNullOrEmpty(teks)) langkah.Text = teks + (lama > 20 ? "\nPemakaian pertama bisa 1–2 menit." : "");
         };
         pewaktu.Start();
+    }
+
+    /// Gambar terbesar di berkas .ico. Bingkai PNG (ikon 256 px) dibaca langsung karena Icon.ToBitmap di .NET
+    /// Framework tidak menampilkannya.
+    static Image GambarLogo(string ico)
+    {
+        byte[] b = File.ReadAllBytes(ico);
+        int jumlah = BitConverter.ToUInt16(b, 4), terbaik = -1, lebar = 0;
+        for (int i = 0; i < jumlah; i++)
+        {
+            int w = b[6 + 16 * i] == 0 ? 256 : b[6 + 16 * i];
+            if (w > lebar) { lebar = w; terbaik = i; }
+        }
+        if (terbaik < 0) return null;
+        int ukuran = BitConverter.ToInt32(b, 6 + 16 * terbaik + 8);
+        int awal = BitConverter.ToInt32(b, 6 + 16 * terbaik + 12);
+        if (b[awal] == 0x89 && b[awal + 1] == (byte)'P')
+            return Image.FromStream(new MemoryStream(b, awal, ukuran));
+        return new Icon(ico, lebar, lebar).ToBitmap();
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
