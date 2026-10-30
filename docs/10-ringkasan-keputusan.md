@@ -705,6 +705,24 @@ keputusan lama masih tertulis di berkasnya.
 
 ---
 
+### 6.23 Hasil uji pemilik sebelum Setup v3 — `2026-10-30-uji-pemilik-sebelum-setup.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-192 | Penyelesaian barang kembali/rusak hasil kirim menurut status bayar: belum bayar → potong tagihan; DP → potong tagihan atau kembalikan uang; lunas → kembalikan uang. | Berlaku (rencana) |
+| K-193 | Halaman Pengembalian uang: menunggu transfer dan menunggu tunai; cara pengembalian bisa diganti sebelum dikonfirmasi. | Berlaku (rencana) |
+| K-194 | Beli N potong Rp X dengan batas kelipatan (sekali, maks. k kali, tanpa batas). | Berlaku (rencana) |
+| K-195 | FIFO sebagai dasar harga jual dengan HPP rata-rata dikonfirmasi sesuai PSAK 14. | Berlaku (selesai 30 Okt, tanpa perubahan) |
+| K-196 | Aturan bisnis berlaku sama di semua peran (No. referensi wajib juga untuk Owner); audit semua jalur. | Berlaku (rencana) |
+| K-197 | Dependensi alur; shift ditutup hanya bila yang menggantung selesai; transaksi di luar shift masuk shift berikutnya. | Berlaku (rencana) |
+| K-198 | Cadangan lokal diatur dari Pengaturan › Cadangan tanpa mengubah .env. | Berlaku (rencana) |
+| K-199 | Data master ganda persis tidak boleh disimpan; ubah salah satu atau hapus permanen yang belum pernah dipakai. | Berlaku (rencana) |
+| K-200 | Selisih stok karena salah input/salah serah: konsep mencegah–mengajari–menangani. | Berlaku (rencana) |
+| K-201 | Atribut ↔ data muatan selaras langsung di form. | Berlaku (rencana) |
+| K-202 | Pencarian dan saringan daftar diingat saat kembali dari halaman ubah/detail. | Berlaku (rencana) |
+| K-203 | Muat rit dengan centang; berangkat bila semua dimuat; ≤110% beralasan, >110% stop; rit bisa diubah. | Berlaku (rencana) |
+| K-204 | Setup .exe laptop, lalu versi HP dan tablet. | Berlaku (rencana) |
+
 ## 7. Yang dijadwalkan sesudah ini
 
 Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supaya tidak hilang. Rinciannya di
