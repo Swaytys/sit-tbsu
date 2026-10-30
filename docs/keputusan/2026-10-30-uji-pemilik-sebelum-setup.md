@@ -28,7 +28,9 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
   (Kasir juga bisa membuka; konfirmasi transfer hanya Admin/Owner); retur dari hasil kirim tidak mengeluarkan uang
   saat dicatat; tunai keluar dari kas shift saat **Sudah diserahkan**; **Jadikan tunai/transfer** dengan alasan.
 - **K-194 Batas kelipatan "Beli N potong Rp X".** Ada isian berapa kali potongan boleh berlaku per baris: sekali,
-  paling banyak k kali, atau tanpa batas. *Rencana.*
+  paling banyak k kali, atau tanpa batas. *Rencana.* **Selesai (30 Okt):** isian *Berlaku per baris* (Tanpa batas /
+  Sekali / paling banyak … kali) untuk *Beli N potong Rp X* dan juga *Beli X gratis Y* (konsepnya sama); migrasi
+  0040 `promo.maks_kelipatan`.
 - **K-195 FIFO hanya dasar harga jual — dikonfirmasi boleh.** PSAK 14 mengatur rumus biaya persediaan (HPP dan nilai
   persediaan): FIFO atau rata-rata tertimbang, dipakai **konsisten** untuk persediaan sejenis; LIFO tidak boleh. Harga
   jual adalah kebijakan manajemen dan tidak diatur PSAK, jadi harga jual boleh dihitung dari lapisan FIFO sementara

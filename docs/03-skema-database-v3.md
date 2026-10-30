@@ -555,6 +555,7 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-30 — v3.38: `promo.maks_kelipatan` integer + CHECK `chk_promo_kelipatan` (1–1000, hanya GRATIS/BELI_POTONG) (migrasi 0040, K-194).
 - 2026-10-30 — v3.37: konfigurasi `muatan_toleransi_persen` (110; tanpa migrasi) (K-203).
 - 2026-10-30 — v3.36: `retur_penjualan.pengembalian_ditunda`, `potong_dulu` (boolean); CHECK `chk_retur_transfer`
   kini menerima `metode_refund` TUNAI (status pengembalian uang tunai maupun transfer) (migrasi 0039, K-192, K-193).

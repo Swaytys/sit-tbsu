@@ -711,7 +711,7 @@ keputusan lama masih tertulis di berkasnya.
 |---|---|---|
 | K-192 | Penyelesaian barang kembali/rusak hasil kirim menurut status bayar: belum bayar → potong tagihan; DP → potong tagihan atau kembalikan uang; lunas → kembalikan uang. | Berlaku (selesai 30 Okt) |
 | K-193 | Halaman Pengembalian uang: menunggu transfer dan menunggu tunai; cara pengembalian bisa diganti sebelum dikonfirmasi. | Berlaku (selesai 30 Okt) |
-| K-194 | Beli N potong Rp X dengan batas kelipatan (sekali, maks. k kali, tanpa batas). | Berlaku (rencana) |
+| K-194 | Beli N potong Rp X dengan batas kelipatan (sekali, maks. k kali, tanpa batas). | Berlaku (selesai 30 Okt) |
 | K-195 | FIFO sebagai dasar harga jual dengan HPP rata-rata dikonfirmasi sesuai PSAK 14. | Berlaku (selesai 30 Okt, tanpa perubahan) |
 | K-196 | Aturan bisnis berlaku sama di semua peran (No. referensi wajib juga untuk Owner); audit semua jalur. | Berlaku (selesai 30 Okt) |
 | K-197 | Dependensi alur; shift ditutup hanya bila yang menggantung selesai; transaksi di luar shift masuk shift berikutnya. | Berlaku (selesai 30 Okt) |

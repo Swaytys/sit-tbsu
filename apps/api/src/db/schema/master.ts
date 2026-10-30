@@ -492,6 +492,11 @@ export const promo = pgTable(
     gratisQty: qty('gratis_qty'),
     /** Templat kampanye: tidak pernah berlaku, hanya disalin menjadi promo baru. */
     templat: boolean('templat').notNull().default(false),
+    /**
+     * K-194 (migrasi 0040): GRATIS/BELI_POTONG berlaku paling banyak sekian kelipatan per baris (1 = sekali);
+     * NULL = tanpa batas.
+     */
+    maksKelipatan: integer('maks_kelipatan'),
   },
   (t) => [
     foreignKey({
@@ -535,6 +540,10 @@ export const promo = pgTable(
           and potongan_persen is null and harga_khusus is null and gratis_qty is null)`,
     ),
     check('chk_promo_sasaran', dalamDaftar('sasaran', SASARAN_PROMO)),
+    check(
+      'chk_promo_kelipatan',
+      sql`maks_kelipatan is null or (maks_kelipatan between 1 and 1000 and jenis_potongan in ('GRATIS','BELI_POTONG'))`,
+    ),
     check('chk_promo_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
   ],
 );

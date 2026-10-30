@@ -457,7 +457,8 @@ Semua tugas kasir, ditambah:
      khusus (harga jadi)** (isi harga yang dibayar pembeli per satuan dasar, bukan besar potongannya: harga Rp
      50.000 diisi Rp 48.000 = hemat Rp 2.000; tidak berlaku bila harga biasanya sudah lebih murah), **Beli X gratis Y**
      (barang yang sama; mis. setiap beli 10 gratis 1), atau **Beli N potong Rp X** (setiap kelipatan N dipotong
-     Rp X: beli 2 potong Rp 2.000, qty 5 dipotong Rp 4.000). Untuk beli X gratis Y, kasir mengetik **semua** qty
+     Rp X: beli 2 potong Rp 2.000, qty 5 dipotong Rp 4.000). Untuk keduanya pilih **Berlaku per baris**:
+     **Tanpa batas**, **Sekali**, atau isi **paling banyak … kali** (mis. 2: qty 9 tetap dipotong dua kali saja). Untuk beli X gratis Y, kasir mengetik **semua** qty
      yang dibawa pembeli (mis. 11), yang gratis otomatis menjadi potongan.
   4. **Syarat** (opsional): minimal total belanja, pembeli tertentu, riwayat belanja pelanggan.
   5. **Batas uang** (opsional): anggaran dan batas per pembeli (lihat di bawah).

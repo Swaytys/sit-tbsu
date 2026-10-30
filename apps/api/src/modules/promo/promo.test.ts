@@ -868,6 +868,7 @@ describe('kampanye promo (K-163)', () => {
       hargaKhusus: null,
       beliQty: null,
       gratisQty: null,
+      maksKelipatan: null,
       sasaran: 'SEMUA',
       idSasaran: [],
       kelompok: [],
@@ -1092,6 +1093,23 @@ describe('promo kelompok sasaran dan beli N potong Rp X (K-185)', () => {
     expect(r.baris[0]).toMatchObject({ namaPromo: 'Semen beli 2 potong 1.000', diskonPromo: 2000 });
     r = await pratinjau(admin, [{ idBarang: m.semen, qty: '1' }]);
     expect(r.baris[0]?.namaPromo).toBeNull();
+    // K-194: paling banyak 2 kali per baris → qty 9 (4 kelipatan) tetap Rp 2.000.
+    await kirim(admin, `/api/promo/${p.id}/status`, { statusAktif: 'NONAKTIF' }, 'PATCH');
+    const pMaks = await buatPromo({
+      nama: 'Semen beli 2 potong 1.000 maks 2x',
+      jenisPotongan: 'BELI_POTONG',
+      potonganPersen: null,
+      beliQty: '2',
+      potonganNominal: 1000,
+      maksKelipatan: 2,
+      sasaran: 'BARANG',
+      idSasaran: [m.semen],
+    });
+    expect(pMaks.maksKelipatan).toBe(2);
+    r = await pratinjau(admin, [{ idBarang: m.semen, qty: '9' }]);
+    expect(r.baris[0]).toMatchObject({ diskonPromo: 2000 });
+    // Batas kelipatan hanya untuk beli-gratis dan beli-potong.
+    expect((await kirim(admin, '/api/promo', promoBaru({ maksKelipatan: 1 }))).status).toBe(400);
     // Potongan wajib diisi.
     expect(
       (

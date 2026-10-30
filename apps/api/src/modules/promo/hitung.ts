@@ -1,6 +1,8 @@
 import {
   bandingQty,
   kelipatanQty,
+  tambahQty,
+  kaliQty,
   potonganGratisRupiah,
   potonganPersenRupiah,
   qtyGratis,
@@ -36,6 +38,8 @@ export type KandidatPromo = {
   hargaKhusus: number | null;
   beliQty: string | null;
   gratisQty: string | null;
+  /** K-194: batas kelipatan per baris (GRATIS/BELI_POTONG); `null` = tanpa batas. */
+  maksKelipatan: number | null;
   sasaran: SasaranPromo;
   /** Id barang/kategori/merk sasaran sesuai `sasaran` (kosong bila SEMUA atau KELOMPOK). */
   idSasaran: number[];
@@ -85,6 +89,9 @@ export type BarisUntukPromo = {
   /** Potongan maksimum agar subtotal tidak negatif (bruto − diskon manual yang sudah ada). */
   batasPotongan?: number;
 };
+
+/** K-194: jumlah kelipatan dibatasi `maks` (null = tanpa batas). */
+const batasi = (n: number, maks: number | null) => (maks === null ? n : Math.min(n, maks));
 
 /** Bit hari ISO (1 = Senin … 7 = Minggu) dalam `hari_berlaku`. */
 export function bitHari(hari: number[]): number | null {
@@ -150,18 +157,27 @@ export function potonganPromo(p: KandidatPromo, b: BarisUntukPromo): number {
     case 'HARGA_KHUSUS':
       nilai = p.hargaKhusus === null ? 0 : b.bruto - subtotalRupiah(b.qty, p.hargaKhusus);
       break;
-    case 'GRATIS':
-      nilai =
-        p.beliQty === null || p.gratisQty === null
-          ? 0
-          : potonganGratisRupiah(b.bruto, qtyGratis(b.qty, p.beliQty, p.gratisQty), b.qty);
+    case 'GRATIS': {
+      if (p.beliQty === null || p.gratisQty === null) {
+        nilai = 0;
+        break;
+      }
+      // K-194: jumlah paket (beli + gratis) dibatasi maks kelipatan.
+      const paket = batasi(kelipatanQty(b.qty, tambahQty(p.beliQty, p.gratisQty)), p.maksKelipatan);
+      const gratis =
+        p.maksKelipatan === null
+          ? qtyGratis(b.qty, p.beliQty, p.gratisQty)
+          : kaliQty(String(paket), p.gratisQty);
+      nilai = potonganGratisRupiah(b.bruto, gratis, b.qty);
       break;
+    }
     case 'BELI_POTONG':
       // K-185 PR17: setiap kelipatan N (satuan dasar) dipotong Rp X; beli 2 potong Rp 2.000, qty 5 → Rp 4.000.
+      // K-194: paling banyak `maks_kelipatan` kali.
       nilai =
         p.beliQty === null || p.potonganNominal === null
           ? 0
-          : kelipatanQty(b.qty, p.beliQty) * p.potonganNominal;
+          : batasi(kelipatanQty(b.qty, p.beliQty), p.maksKelipatan) * p.potonganNominal;
       break;
   }
   return Math.max(0, Math.min(nilai, b.bruto, b.batasPotongan ?? b.bruto));

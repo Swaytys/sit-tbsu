@@ -70,6 +70,7 @@ function keRespons(
     hargaKhusus: b.hargaKhusus,
     beliQty: b.beliQty,
     gratisQty: b.gratisQty,
+    maksKelipatan: b.maksKelipatan,
     templat: b.templat,
     sasaran: b.sasaran,
     sasaranDaftar,
@@ -105,17 +106,24 @@ export function uraianPotongan(p: {
   hargaKhusus?: number | null;
   beliQty?: string | null;
   gratisQty?: string | null;
+  maksKelipatan?: number | null;
 }): string {
+  const maks =
+    p.maksKelipatan == null
+      ? ''
+      : p.maksKelipatan === 1
+        ? ' (sekali)'
+        : ` (maks. ${p.maksKelipatan}×)`;
   if (p.jenisPotongan === 'PERSEN') {
     const maks = p.maksPotongan === null ? '' : ` (maks. ${formatRupiah(p.maksPotongan)})`;
     return `${teksQty(p.potonganPersen ?? '0')}%${maks}`;
   }
   if (p.jenisPotongan === 'HARGA_KHUSUS') return `harga ${formatRupiah(p.hargaKhusus ?? 0)}/satuan`;
   if (p.jenisPotongan === 'GRATIS') {
-    return `beli ${teksQty(p.beliQty ?? '0')} gratis ${teksQty(p.gratisQty ?? '0')}`;
+    return `beli ${teksQty(p.beliQty ?? '0')} gratis ${teksQty(p.gratisQty ?? '0')}${maks}`;
   }
   if (p.jenisPotongan === 'BELI_POTONG') {
-    return `beli ${teksQty(p.beliQty ?? '0')} potong ${formatRupiah(p.potonganNominal ?? 0)}`;
+    return `beli ${teksQty(p.beliQty ?? '0')} potong ${formatRupiah(p.potonganNominal ?? 0)}${maks}`;
   }
   return `${formatRupiah(p.potonganNominal ?? 0)}/satuan`;
 }
@@ -212,6 +220,7 @@ function nilaiDari(input: DataPromo): repo.NilaiPromo {
         ? keQty(input.beliQty)
         : null,
     gratisQty: j === 'GRATIS' && input.gratisQty !== null ? keQty(input.gratisQty) : null,
+    maksKelipatan: j === 'GRATIS' || j === 'BELI_POTONG' ? input.maksKelipatan : null,
     sasaran: input.sasaran,
     minQty: input.minQty === null ? null : keQty(input.minQty),
     minBelanja: input.minBelanja,
@@ -322,6 +331,7 @@ function ringkasPromo(kode: string, n: repo.NilaiPromo): string {
     hargaKhusus: n.hargaKhusus ?? null,
     beliQty: n.beliQty ?? null,
     gratisQty: n.gratisQty ?? null,
+    maksKelipatan: n.maksKelipatan ?? null,
   })}, ${teksWaktu(n.mulaiPada)} s.d. ${teksWaktu(n.selesaiPada)}${n.templat ? ' (templat)' : ''}`;
 }
 
@@ -372,6 +382,7 @@ const KOLOM_ATURAN = [
   'hargaKhusus',
   'beliQty',
   'gratisQty',
+  'maksKelipatan',
   'sasaran',
   'idSasaran',
   'kelompok',
@@ -406,6 +417,7 @@ function bandingan(
     hargaKhusus: n.hargaKhusus ?? null,
     beliQty: n.beliQty ?? null,
     gratisQty: n.gratisQty ?? null,
+    maksKelipatan: n.maksKelipatan ?? null,
     sasaran: n.sasaran,
     idSasaran: idSasaran.join(','),
     kelompok: kelompok.map(kunciKelompok).join(','),

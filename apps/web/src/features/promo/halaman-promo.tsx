@@ -85,11 +85,17 @@ function uraianPotongan(p: Promo): string {
     return `${formatDesimal(p.potonganPersen ?? '0')}%${maks}`;
   }
   if (p.jenisPotongan === 'HARGA_KHUSUS') return `harga ${formatRupiah(p.hargaKhusus ?? 0)}/satuan`;
+  const maks =
+    p.maksKelipatan === null
+      ? ''
+      : p.maksKelipatan === 1
+        ? ' (sekali)'
+        : ` (maks. ${p.maksKelipatan}×)`;
   if (p.jenisPotongan === 'GRATIS') {
-    return `beli ${formatDesimal(p.beliQty ?? '0')} gratis ${formatDesimal(p.gratisQty ?? '0')}`;
+    return `beli ${formatDesimal(p.beliQty ?? '0')} gratis ${formatDesimal(p.gratisQty ?? '0')}${maks}`;
   }
   if (p.jenisPotongan === 'BELI_POTONG') {
-    return `beli ${formatDesimal(p.beliQty ?? '0')} potong ${formatRupiah(p.potonganNominal ?? 0)}`;
+    return `beli ${formatDesimal(p.beliQty ?? '0')} potong ${formatRupiah(p.potonganNominal ?? 0)}${maks}`;
   }
   return `${formatRupiah(p.potonganNominal ?? 0)} per satuan`;
 }
@@ -206,6 +212,7 @@ function DialogPromo({
       hargaKhusus: sumber?.hargaKhusus ?? null,
       beliQty: sumber?.beliQty ? formatDesimal(sumber.beliQty) : null,
       gratisQty: sumber?.gratisQty ? formatDesimal(sumber.gratisQty) : null,
+      maksKelipatan: sumber?.maksKelipatan ?? null,
       sasaran: sumber?.sasaran ?? 'SEMUA',
       idSasaran: (sumber?.sasaranDaftar ?? []).map((s) => s.id),
       kelompok: (sumber?.kelompok ?? []).map((k) => ({
@@ -254,6 +261,7 @@ function DialogPromo({
         'hargaKhusus',
         'beliQty',
         'gratisQty',
+        'maksKelipatan',
         'sasaran',
         'idSasaran',
         'kelompok',
@@ -301,6 +309,64 @@ function DialogPromo({
       onBlur={field.onBlur}
       value={typeof field.value === 'string' ? field.value : ''}
       onChange={(e) => field.onChange(e.target.value === '' ? null : e.target.value)}
+    />
+  );
+
+  /** K-194: berapa kali beli-gratis / beli-potong berlaku per baris. */
+  const isianKelipatan = (
+    <FormField
+      control={form.control}
+      name="maksKelipatan"
+      render={({ field }) => {
+        const nilai = typeof field.value === 'number' ? field.value : null;
+        return (
+          <FormItem>
+            <FormLabel>Berlaku per baris</FormLabel>
+            <div
+              className="flex flex-wrap items-center gap-1.5"
+              role="group"
+              aria-label="Berlaku per baris"
+            >
+              {(
+                [
+                  [null, 'Tanpa batas'],
+                  [1, 'Sekali'],
+                ] as const
+              ).map(([v, label]) => (
+                <Button
+                  key={label}
+                  type="button"
+                  size="sm"
+                  variant={nilai === v ? 'default' : 'outline'}
+                  disabled={terkunci}
+                  aria-pressed={nilai === v}
+                  onClick={() => field.onChange(v)}
+                >
+                  {label}
+                </Button>
+              ))}
+              <span className="text-sm text-slate-500">atau paling banyak</span>
+              <Input
+                className="h-8 w-20 text-right"
+                inputMode="numeric"
+                disabled={terkunci}
+                aria-label="Paling banyak berapa kali"
+                placeholder="mis. 3"
+                value={nilai !== null && nilai > 1 ? String(nilai) : ''}
+                onChange={(e) => {
+                  const t = e.target.value.replace(/\D/g, '');
+                  field.onChange(t === '' ? null : Number(t));
+                }}
+              />
+              <span className="text-sm text-slate-500">kali</span>
+            </div>
+            <FormDescription>
+              Mis. beli 2 potong Rp 2.000, paling banyak 2 kali: qty 9 tetap dipotong Rp 4.000.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
     />
   );
 
@@ -551,7 +617,15 @@ function DialogPromo({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Jenis manfaat</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={terkunci}>
+                    <Select
+                      value={field.value}
+                      onValueChange={(v) => {
+                        field.onChange(v);
+                        if (v !== 'GRATIS' && v !== 'BELI_POTONG')
+                          form.setValue('maksKelipatan', null);
+                      }}
+                      disabled={terkunci}
+                    >
                       <FormControl>
                         <SelectTrigger className="w-full" aria-label="Jenis manfaat">
                           <SelectValue />
@@ -679,6 +753,7 @@ function DialogPromo({
                     Barang yang sama, satuan dasar. Kasir mengetik qty yang dibawa pembeli (termasuk
                     yang gratis); mis. beli 10 gratis 1, qty 22 = 2 gratis.
                   </p>
+                  <div className="col-span-2">{isianKelipatan}</div>
                 </div>
               )}
               {jenis === 'BELI_POTONG' && (
@@ -715,6 +790,7 @@ function DialogPromo({
                     Satuan dasar, berlaku per kelipatan: beli 2 potong Rp 2.000 → qty 5 dipotong Rp
                     4.000 (dua kali 2), qty 1 tidak dipotong.
                   </p>
+                  <div className="col-span-2">{isianKelipatan}</div>
                 </div>
               )}
             </fieldset>
