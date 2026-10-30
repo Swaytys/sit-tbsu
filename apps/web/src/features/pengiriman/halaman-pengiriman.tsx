@@ -15,7 +15,7 @@ import {
 import type { BarisSuratJalan, Perjalanan, PerluDikirim } from '@sit/shared';
 import {
   CalendarPlus,
-  Check,
+  Pencil,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
@@ -35,7 +35,7 @@ import {
   useDaftarPerjalanan,
   useIsiRit,
   useKeluarRit,
-  useMuatRit,
+  useCentangMuat,
   usePerluDikirim,
 } from '@/api/armada';
 import { pesanGalat } from '@/api/client';
@@ -365,20 +365,41 @@ function KartuSj({
   onIsi: (idRit: number) => void;
   onKeluar: () => void;
 }) {
+  const centang = useCentangMuat();
+  const dimuat = sj.status === 'DIMUAT';
   return (
     <Seret id={`sj-${sj.id}`} label={sj.nomor} testId={`kartu-${sj.nomor}`}>
-      <div className="rounded-md border bg-white p-2 pl-7 text-sm">
+      <div
+        className={cn(
+          'rounded-md border bg-white p-2 pl-7 text-sm',
+          dimuat && 'border-emerald-300 bg-emerald-50/40',
+        )}
+      >
         <div className="flex flex-wrap items-center gap-1.5 pr-6">
+          {/* K-203: centang = barang surat jalan ini sudah naik ke kendaraan; beban rit dihitung dari yang dicentang. */}
+          <label
+            className="flex cursor-pointer items-center gap-1 text-xs font-medium text-slate-600"
+            title={dimuat ? 'Sudah dimuat (klik untuk lepas)' : 'Tandai sudah dimuat ke kendaraan'}
+          >
+            <input
+              type="checkbox"
+              className="size-4 accent-emerald-600"
+              checked={dimuat}
+              disabled={centang.isPending}
+              aria-label={`Dimuat ${sj.nomor}`}
+              onChange={(e) =>
+                void centang
+                  .mutateAsync({ id: sj.id, dimuat: e.target.checked })
+                  .catch((err: unknown) => toast.error(pesanGalat(err)))
+              }
+            />
+            Dimuat
+          </label>
           <Antrean n={sj.noAntrean} />
           <KodeInfo
             nomor={sj.nomor}
             className="font-mono text-xs font-semibold whitespace-nowrap"
           />
-          {sj.status === 'DIMUAT' && (
-            <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800">
-              Dimuat
-            </Badge>
-          )}
           <MenuKartu label={sj.nomor}>
             <DropdownMenuLabel>Pindah ke rit</DropdownMenuLabel>
             {rit
@@ -416,6 +437,7 @@ function GrupRit({
   onBerangkat,
   onBatal,
   onCetak,
+  onUbah,
 }: {
   rit: Perjalanan;
   isi: BarisSuratJalan[];
@@ -426,11 +448,12 @@ function GrupRit({
   onBerangkat: () => void;
   onBatal: () => void;
   onCetak: () => void;
+  onUbah: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `rit-${rit.id}` });
-  const muat = useMuatRit();
   const m = rit.muatan;
-  const semuaDimuat = isi.length > 0 && isi.every((s) => s.status === 'DIMUAT');
+  const jumlahDimuat = isi.filter((s) => s.status === 'DIMUAT').length;
+  const semuaDimuat = isi.length > 0 && jumlahDimuat === isi.length;
   return (
     <div
       ref={setNodeRef}
@@ -465,6 +488,12 @@ function GrupRit({
           </div>
           <div className="text-xs text-slate-500">
             {rit.namaSopir} · {isi.length} surat jalan
+            {isi.length > 0 && !semuaDimuat && (
+              <span className="text-amber-700">
+                {' '}
+                · dimuat {jumlahDimuat}/{isi.length}
+              </span>
+            )}
           </div>
           {rit.catatan && (
             <div className="truncate text-xs text-slate-600" title={rit.catatan}>
@@ -482,10 +511,15 @@ function GrupRit({
                 />
               </div>
               <div className="text-[11px] text-slate-500">
-                {Number(m.beratKg).toLocaleString('id-ID')} kg
+                Dimuat {Number(m.beratKg).toLocaleString('id-ID')} kg
                 {m.persenBerat !== null && ` (${m.persenBerat.toLocaleString('id-ID')}%)`}
                 {m.persenVolume !== null && ` · volume ${m.persenVolume.toLocaleString('id-ID')}%`}
-                {m.kesimpulan === 'DITOLAK' && <b className="text-red-700"> · melebihi</b>}
+                {m.kesimpulan === 'DITOLAK' && (
+                  <b className="text-red-700"> · melebihi batas, ganti kendaraan</b>
+                )}
+                {m.kesimpulan === 'KONFIRMASI' && (
+                  <b className="text-amber-700"> · lebih, butuh alasan</b>
+                )}
               </div>
               {m.barangTanpaData.length > 0 && (
                 <div className="text-[11px] text-amber-700">
@@ -507,21 +541,15 @@ function GrupRit({
             <KartuSj key={sj.id} sj={sj} rit={semuaRit} {...aksiKartu(sj)} />
           ))}
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {!semuaDimuat && isi.length > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={muat.isPending}
-                onClick={() =>
-                  void muat
-                    .mutateAsync(rit.id)
-                    .then(() => toast.success(`${rit.nomor}: barang dimuat.`))
-                    .catch((err: unknown) => toast.error(pesanGalat(err)))
-                }
-              >
-                <Check /> Dimuat
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onUbah}
+              aria-label={`Ubah rit ${rit.nomor}`}
+              title="Ganti kendaraan, sopir, atau jadwal"
+            >
+              <Pencil /> Ubah
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -531,7 +559,12 @@ function GrupRit({
             >
               <Printer /> Cetak
             </Button>
-            <Button size="sm" disabled={isi.length === 0} onClick={onBerangkat}>
+            <Button
+              size="sm"
+              disabled={!semuaDimuat}
+              onClick={onBerangkat}
+              title={semuaDimuat ? 'Berangkatkan rit' : 'Centang Dimuat semua surat jalan dulu'}
+            >
               <Truck /> Berangkat
             </Button>
             <Button size="sm" variant="ghost" className="ml-auto text-red-700" onClick={onBatal}>
@@ -658,6 +691,7 @@ function BuatDariPapan({
 
 type DialogPapan =
   | { jenis: 'rit-baru' }
+  | { jenis: 'ubah-rit'; rit: Perjalanan }
   | { jenis: 'berangkat'; rit: Perjalanan }
   | { jenis: 'batal-rit'; rit: Perjalanan }
   | { jenis: 'buat'; id: number; idRit?: number }
@@ -854,7 +888,7 @@ export function HalamanPengiriman() {
           <Kolom
             judul="Dijadwalkan"
             jumlah={ritRencana.length}
-            bantu="Grup = rit (kendaraan, sopir, jam). Dimuat → Berangkat (cetak surat jalan)."
+            bantu="Grup = rit (kendaraan, sopir, jam). Centang Dimuat tiap surat jalan → Berangkat (cetak surat jalan). Kendaraan terlalu kecil? Ubah."
             aksi={
               <Button
                 size="sm"
@@ -883,6 +917,7 @@ export function HalamanPengiriman() {
                 }
                 aksiKartu={aksiKartu}
                 onBerangkat={() => setDialog({ jenis: 'berangkat', rit: r })}
+                onUbah={() => setDialog({ jenis: 'ubah-rit', rit: r })}
                 onBatal={() => setDialog({ jenis: 'batal-rit', rit: r })}
               />
             ))}
@@ -966,6 +1001,9 @@ export function HalamanPengiriman() {
         ]}
       />
       {dialog?.jenis === 'rit-baru' && <DialogRitBaru onTutup={() => setDialog(null)} />}
+      {dialog?.jenis === 'ubah-rit' && (
+        <DialogRitBaru ubah={dialog.rit} onTutup={() => setDialog(null)} />
+      )}
       {dialog?.jenis === 'berangkat' && (
         <DialogBerangkatRit
           rit={dialog.rit}

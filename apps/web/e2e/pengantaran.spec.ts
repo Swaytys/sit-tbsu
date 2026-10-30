@@ -102,6 +102,13 @@ test(
       async function berangkatkan() {
         await kasir.goto('/pengiriman');
         const grup = kasir.locator('[data-testid^="rit-TRP-"]').filter({ hasText: truk.plat });
+        // K-203: semua surat jalan rit dicentang Dimuat dulu.
+        await expect(grup.getByRole('checkbox', { name: /^Dimuat SJ-/ }).first()).toBeVisible();
+        const belum = grup.getByRole('checkbox', { name: /^Dimuat SJ-/, checked: false });
+        while ((await belum.count()) > 0) {
+          await belum.first().click();
+          await kasir.waitForTimeout(300);
+        }
         await grup.getByRole('button', { name: 'Berangkat' }).click();
         await kasir.keyboard.press('3');
         await kasir.keyboard.press('Enter');

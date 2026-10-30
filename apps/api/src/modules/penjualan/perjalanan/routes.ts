@@ -5,6 +5,7 @@ import {
   skemaCariPerjalanan,
   skemaIsiRit,
   skemaRencanaRit,
+  skemaUbahRit,
 } from '@sit/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -19,6 +20,7 @@ import {
   keluarkanDariRit,
   muatRit,
   rencanakanRit,
+  ubahRit,
 } from './service';
 
 const kelola = requirePermission('penjualan.surat_jalan.kelola');
@@ -39,6 +41,16 @@ export const perjalananRoutes = new Hono<EnvApp>()
   })
   .post('/:id/isi', kelola, paramId, zValidator('json', skemaIsiRit, kaitValidasi), async (c) => {
     const data = await isiRit(
+      c.req.valid('param').id,
+      c.req.valid('json'),
+      penggunaWajib(c),
+      c.get('asal'),
+    );
+    return c.json({ data }, 200);
+  })
+  // K-203: ubah kendaraan, sopir, jadwal rit yang belum berangkat.
+  .patch('/:id', kelola, paramId, zValidator('json', skemaUbahRit, kaitValidasi), async (c) => {
+    const data = await ubahRit(
       c.req.valid('param').id,
       c.req.valid('json'),
       penggunaWajib(c),

@@ -290,6 +290,13 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     deskripsi: 'Bagian volume bak yang realistis terisi barang (K-161, docs/13 §3)',
   },
   {
+    kode: 'muatan_toleransi_persen',
+    nilai: '110',
+    tipe: 'ANGKA',
+    deskripsi:
+      'Muatan di atas 100% sampai batas ini boleh berangkat dengan alasan; di atasnya ditolak (K-203)',
+  },
+  {
     kode: 'muatan_julur_maks_cm',
     nilai: '100',
     tipe: 'ANGKA',

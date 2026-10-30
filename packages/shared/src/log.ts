@@ -116,6 +116,8 @@ export const AKSI_LOG = [
   'RETUR_TRANSFER',
   // K-193: uang retur diserahkan tunai; cara pengembalian diganti selama menunggu.
   'RETUR_KEMBALI_TUNAI',
+  // K-203: kendaraan/sopir/jadwal rit diubah sebelum berangkat.
+  'PERJALANAN_UBAH',
   'RETUR_GANTI_CARA',
   'VOID_AJUKAN',
   'VOID_SETUJUI',

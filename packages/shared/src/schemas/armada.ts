@@ -450,3 +450,11 @@ export type StatistikArmada = {
   kendaraan: StatistikKendaraan[];
   sopir: StatistikSopir[];
 };
+
+/** K-203: ubah kendaraan, sopir, atau jadwal rit yang belum berangkat. */
+export const skemaUbahRit = z.object({
+  idKendaraan: z.number('Pilih kendaraan.').int().positive('Pilih kendaraan.'),
+  idSopir: z.number('Pilih sopir.').int().positive('Pilih sopir.'),
+  jadwalBerangkat: z.iso.datetime({ offset: true, error: 'Jadwal berangkat tidak valid.' }),
+});
+export type InputUbahRit = z.input<typeof skemaUbahRit>;

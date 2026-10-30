@@ -152,9 +152,16 @@ test('Papan Pengiriman: rit rencana, seret kartu, dimuat, berangkat, catat hasil
     await kasir.keyboard.press('Enter');
     await expect(grup).toContainText('2 surat jalan');
 
-    // 3. Dimuat → Berangkat.
-    await grup.getByRole('button', { name: 'Dimuat' }).click();
-    await expect(grup.getByText('Dimuat').first()).toBeVisible();
+    // 3. K-203: Berangkat mati sampai semua surat jalan dicentang Dimuat.
+    await expect(grup.getByRole('button', { name: 'Berangkat' })).toBeDisabled();
+    await expect(grup).toContainText('dimuat 0/2');
+    const centang = grup.getByRole('checkbox', { name: /^Dimuat SJ-/ });
+    await centang.nth(0).click();
+    await expect(centang.nth(0)).toBeChecked();
+    await expect(grup).toContainText('dimuat 1/2');
+    await centang.nth(1).click();
+    await expect(centang.nth(1)).toBeChecked();
+    await expect(grup.getByRole('button', { name: 'Berangkat' })).toBeEnabled();
     await grup.getByRole('button', { name: 'Berangkat' }).click();
     const dBerangkat = kasir.getByRole('dialog');
     await dBerangkat.getByRole('radio', { name: /Cetak/ }).click();

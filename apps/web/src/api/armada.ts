@@ -7,6 +7,7 @@ import type {
   InputCatatServis,
   StatusAktif,
   StatusPerjalanan,
+  InputUbahRit,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, ambilIsi, api, paramId } from './client';
@@ -151,6 +152,25 @@ export function useIsiRit() {
 export function useKeluarRit() {
   return useMutasiArmada(async (idSuratJalan: number) =>
     ambilData(await api.perjalanan.keluar.$post({ json: { idSuratJalan } })),
+  );
+}
+
+/** K-203: centang muat satu surat jalan di rit (DIPROSES ↔ DIMUAT). */
+export function useCentangMuat() {
+  return useMutasiArmada(async ({ id, dimuat }: { id: number; dimuat: boolean }) =>
+    ambilData(
+      await api['surat-jalan'][':id'].status.$post({
+        param: paramId(id),
+        json: { status: dimuat ? 'DIMUAT' : 'DIPROSES' },
+      }),
+    ),
+  );
+}
+
+/** K-203: ubah kendaraan, sopir, jadwal rit yang belum berangkat. */
+export function useUbahRit() {
+  return useMutasiArmada(async ({ id, json }: { id: number; json: InputUbahRit }) =>
+    ambilData(await api.perjalanan[':id'].$patch({ param: paramId(id), json })),
   );
 }
 

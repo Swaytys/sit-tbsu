@@ -95,6 +95,12 @@ const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: strin
     ket: 'Bagian ruang bak yang realistis terisi barang (barang tidak pernah rapat 100%). Bawaan 85%.',
   },
   {
+    nama: 'muatanToleransiPersen',
+    label: 'Muatan: batas toleransi',
+    satuan: '%',
+    ket: 'Berat/ruang di atas 100% sampai angka ini boleh berangkat dengan alasan tertulis; di atasnya rit tidak bisa berangkat (ganti kendaraan). Bawaan 110%.',
+  },
+  {
     nama: 'muatanJulurMaksCm',
     label: 'Muatan: julur maksimum',
     satuan: 'cm',

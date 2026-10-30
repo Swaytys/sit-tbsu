@@ -318,24 +318,33 @@ export async function buatSuratJalanTx(
  */
 export async function ubahStatusSuratJalan(
   id: number,
-  input: { status: 'DIMUAT' },
+  input: { status: 'DIMUAT' | 'DIPROSES' },
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<BarisSuratJalan> {
   await dalamTransaksi(async (tx) => {
     const sj = await repo.kunci(tx, id);
     if (!sj) throw new AppError('TIDAK_DITEMUKAN', 'Surat jalan tidak ditemukan.', 404);
-    if (sj.status !== 'DIPROSES') {
+    // K-203: centang muat bolak-balik hanya sebelum rit berangkat.
+    const asalStatus = input.status === 'DIMUAT' ? 'DIPROSES' : 'DIMUAT';
+    if (sj.status !== asalStatus) {
       throw new AppError(
         'STATUS_TIDAK_VALID',
-        `Surat jalan ${sj.nomor} berstatus ${sj.status.toLowerCase()}; tidak bisa menjadi dimuat.`,
+        `Surat jalan ${sj.nomor} berstatus ${sj.status.toLowerCase()}; ` +
+          (input.status === 'DIMUAT'
+            ? 'tidak bisa ditandai dimuat.'
+            : 'centang muatnya tidak bisa dilepas.'),
         409,
       );
     }
     const waktu = sekarang();
     await tx
       .update(suratJalan)
-      .set({ status: input.status, waktuDimuat: waktu, diubahPada: waktu })
+      .set({
+        status: input.status,
+        waktuDimuat: input.status === 'DIMUAT' ? waktu : null,
+        diubahPada: waktu,
+      })
       .where(eq(suratJalan.id, id));
     await catatLog(tx, {
       aksi: 'SURAT_JALAN_STATUS',
@@ -343,7 +352,10 @@ export async function ubahStatusSuratJalan(
       entitas: 'surat_jalan',
       idEntitas: id,
       nomorDokumen: sj.nomor,
-      ringkasan: `Surat jalan ${sj.nomor}: diproses → dimuat`,
+      ringkasan:
+        input.status === 'DIMUAT'
+          ? `Surat jalan ${sj.nomor}: diproses → dimuat`
+          : `Surat jalan ${sj.nomor}: centang muat dilepas (dimuat → diproses)`,
       ip: asal.ip,
     });
   });

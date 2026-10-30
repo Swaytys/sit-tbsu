@@ -11,7 +11,13 @@ import type {
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
-import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import {
+  aturKonfigurasi,
+  json,
+  minta,
+  sesiUji,
+  siapkanDatabaseSistem,
+} from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import {
@@ -144,8 +150,12 @@ function buatSj(inv: DetailPenjualan, idPerjalanan: number, baris: unknown[]) {
   });
 }
 
-const berangkat = (idRit: number, body: unknown = {}) =>
-  kirim<Perjalanan>(kasir, `/api/perjalanan/${idRit}/berangkat`, body);
+/** K-203: rit berangkat setelah semua surat jalannya dicentang dimuat. */
+const muat = (idRit: number) => kirim(kasir, `/api/perjalanan/${idRit}/dimuat`, {});
+const berangkat = async (idRit: number, body: unknown = {}) => {
+  await muat(idRit);
+  return kirim<Perjalanan>(kasir, `/api/perjalanan/${idRit}/berangkat`, body);
+};
 
 /** Satu surat jalan berisi semua barang invoice dalam rit baru, langsung diberangkatkan. */
 async function sjBerangkat(inv: DetailPenjualan, k = truk, s = slamet) {
@@ -254,11 +264,13 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     // Kendaraan dan sopir sedang jalan: tidak bisa berangkat lagi, tidak bisa dinonaktifkan.
     const r2 = await rit(truk, budi);
     await buatSj(inv2, r2.id, [{ idPenjualanDetail: inv2.baris[0]!.id, qtyKirim: '1' }]);
+    await muat(r2.id);
     const trukJalan = await galat(kasir, `/api/perjalanan/${r2.id}/berangkat`, {});
     expect(trukJalan.status).toBe(409);
     expect(trukJalan.pesan).toContain(`Kendaraan S 1234 AB sedang jalan (${trip.nomor}`);
     const r3 = await rit(pikap, slamet);
     await buatSj(inv2, r3.id, [{ idPenjualanDetail: inv2.baris[1]!.id, qtyKirim: '1' }]);
+    await muat(r3.id);
     const sopirJalan = await galat(kasir, `/api/perjalanan/${r3.id}/berangkat`, {});
     expect(sopirJalan.pesan).toContain('Sopir Pak Slamet sedang jalan');
     expect(
@@ -330,6 +342,7 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     const daftarRit = [await rit(truk, slamet), await rit(truk, budi)];
     for (const [i, inv] of [a, b].entries()) {
       await buatSj(inv, daftarRit[i]!.id, [{ idPenjualanDetail: inv.baris[0]!.id, qtyKirim: '1' }]);
+      await muat(daftarRit[i]!.id);
     }
     const hasilBerangkat = await Promise.all(
       daftarRit.map((r) =>
@@ -808,16 +821,17 @@ describe('muatan kendaraan (K-161, docs/13 §3)', () => {
     const sj = await buatSj(inv, rKecil.id, [
       { idPenjualanDetail: inv.baris[0]!.id, qtyKirim: '5' },
     ]);
+    await muat(rKecil.id);
     const tolak = await galat(kasir, `/api/perjalanan/${rKecil.id}/berangkat`, {});
     expect(tolak.status).toBe(409);
     expect(tolak.pesan).toContain('melebihi daya angkut');
 
-    // Bak 80 × 60 × 42 cm × faktor isi 85% = 0,171 m³ → volume 110%: perlu alasan.
+    // Bak 84 × 60 × 42 cm × faktor isi 85% = 0,180 m³ → volume 105% (dalam toleransi 110%): perlu alasan.
     const pas = await kirim<Kendaraan>(admin, '/api/kendaraan', {
       plat: 'L 2 KC',
       jenis: 'Pikap kecil',
       kapasitasKg: 1000,
-      bakPanjangCm: 80,
+      bakPanjangCm: 84,
       bakLebarCm: 60,
       bakTinggiCm: 42,
     });
@@ -835,6 +849,7 @@ describe('muatan kendaraan (K-161, docs/13 §3)', () => {
       volume: 'KONFIRMASI',
       panjang: 'AMAN',
     });
+    await muat(rPas.id);
     const tanpaAlasan = await galat(kasir, `/api/perjalanan/${rPas.id}/berangkat`, {});
     expect(tanpaAlasan.status).toBe(400);
     const trip = await berangkat(rPas.id, {
@@ -844,6 +859,58 @@ describe('muatan kendaraan (K-161, docs/13 §3)', () => {
     expect((await ambil<BarisSuratJalan>(kasir, `/api/surat-jalan/${sj.id}`)).kendaraan).toBe(
       'L 2 KC (Pikap kecil)',
     );
+  });
+
+  it('K-203: centang muat per surat jalan; beban dari yang dicentang; berat dalam toleransi beralasan; ubah rit ganti kendaraan', async () => {
+    await siapkanMuatan();
+    const a = await invoice(); // semen 5 sak = 250 kg
+    const b = await invoice();
+    const kecil = await kirim<Kendaraan>(admin, '/api/kendaraan', {
+      plat: 'L 3 KC',
+      jenis: 'Pikap kecil',
+      kapasitasKg: 480,
+    });
+    const r = await rit(kecil, slamet);
+    const sjA = await buatSj(a, r.id, [{ idPenjualanDetail: a.baris[0]!.id, qtyKirim: '5' }]);
+    const sjB = await buatSj(b, r.id, [{ idPenjualanDetail: b.baris[0]!.id, qtyKirim: '5' }]);
+    const daftarRit = async () =>
+      (await ambil<Perjalanan[]>(kasir, '/api/perjalanan?status=DIRENCANAKAN')).find(
+        (x) => x.id === r.id,
+      )!;
+    // Belum ada yang dicentang: beban 0; berangkat ditolak.
+    expect((await daftarRit()).muatan?.beratKg).toBe('0');
+    expect((await galat(kasir, `/api/perjalanan/${r.id}/berangkat`, {})).pesan).toContain(
+      'Centang muat dulu',
+    );
+    await kirim(kasir, `/api/surat-jalan/${sjA.id}/status`, { status: 'DIMUAT' });
+    expect((await daftarRit()).muatan?.beratKg).toBe('250');
+    // Lepas centang lalu centang lagi.
+    await kirim(kasir, `/api/surat-jalan/${sjA.id}/status`, { status: 'DIPROSES' });
+    expect((await daftarRit()).muatan?.beratKg).toBe('0');
+    await kirim(kasir, `/api/surat-jalan/${sjA.id}/status`, { status: 'DIMUAT' });
+    await kirim(kasir, `/api/surat-jalan/${sjB.id}/status`, { status: 'DIMUAT' });
+    // 500 kg dari 480 kg = 104%: dalam toleransi 110% → wajib alasan.
+    const m2 = (await daftarRit()).muatan!;
+    expect(m2).toMatchObject({ beratKg: '500', kesimpulan: 'KONFIRMASI' });
+    expect((await galat(kasir, `/api/perjalanan/${r.id}/berangkat`, {})).status).toBe(400);
+
+    // Toleransi 100% (tanpa toleransi) → ditolak; ganti kendaraan lewat Ubah rit.
+    await aturKonfigurasi({ muatan_toleransi_persen: '100' });
+    expect((await daftarRit()).muatan?.kesimpulan).toBe('DITOLAK');
+    const ubah = await minta(`/api/perjalanan/${r.id}`, {
+      method: 'PATCH',
+      cookie: kasir.cookie,
+      body: { idKendaraan: truk.id, idSopir: budi.id, jadwalBerangkat: jadwal() },
+    });
+    expect(ubah.status).toBe(200);
+    const sj = await ambil<BarisSuratJalan>(kasir, `/api/surat-jalan/${sjA.id}`);
+    expect(sj.sopir).toBe(budi.nama);
+    const trip = await kirim<Perjalanan>(kasir, `/api/perjalanan/${r.id}/berangkat`, {});
+    expect(trip).toMatchObject({ status: 'JALAN', plat: truk.plat });
+    // Setelah berangkat: centang tidak bisa dilepas, rit tidak bisa diubah.
+    expect(
+      (await galat(kasir, `/api/surat-jalan/${sjA.id}/status`, { status: 'DIPROSES' })).status,
+    ).toBe(409);
   });
 });
 
@@ -894,6 +961,7 @@ describe('rit rencana papan Pengiriman (K-160, K-174, docs/05 S14)', () => {
       jadwalBerangkat: jadwal(),
     });
     await kirim(kasir, `/api/perjalanan/${rit2.id}/isi`, { idPenjualan: c.id });
+    await muat(rit2.id);
     const tolak = await galat(kasir, `/api/perjalanan/${rit2.id}/berangkat`, {});
     expect(tolak.pesan).toContain('sedang jalan');
     // Rit yang sudah berangkat tidak bisa diisi.

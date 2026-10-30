@@ -687,8 +687,9 @@ export type InputSuratJalan = z.input<typeof skemaSuratJalan>;
 export type DataSuratJalan = z.output<typeof skemaSuratJalan>;
 
 /** S3: hanya DIPROSES → DIMUAT; DIKIRIM lewat berangkat (S9), SELESAI lewat catat hasil (S10). */
+/** S3 + K-203: centang muat (DIPROSES → DIMUAT) dan lepas centang (DIMUAT → DIPROSES) selama rit belum berangkat. */
 export const skemaStatusSuratJalan = z.object({
-  status: z.literal('DIMUAT'),
+  status: z.enum(['DIMUAT', 'DIPROSES']),
 });
 
 export const skemaBatalSuratJalan = skemaBatalOrder;

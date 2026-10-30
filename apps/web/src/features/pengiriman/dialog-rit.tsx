@@ -2,7 +2,13 @@ import type { BarisSuratJalan, Perjalanan } from '@sit/shared';
 import { CalendarPlus, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useBerangkatRit, useDaftarKendaraan, useDaftarSopir, useRencanaRit } from '@/api/armada';
+import {
+  useBerangkatRit,
+  useDaftarKendaraan,
+  useDaftarSopir,
+  useRencanaRit,
+  useUbahRit,
+} from '@/api/armada';
 import { pesanGalat } from '@/api/client';
 import { useTampilanToko } from '@/api/pengaturan';
 import { Button } from '@/components/ui/button';
@@ -22,12 +28,15 @@ import { tandaSurat } from '../armada/tanda-surat';
 const kelasPilih =
   'h-10 w-full rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200';
 
+const dua = (n: number) => String(n).padStart(2, '0');
+const keIsian = (d: Date) =>
+  `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}T${dua(d.getHours())}:${dua(d.getMinutes())}`;
+
 /** Nilai awal isian jadwal: satu jam lagi, dibulatkan ke 30 menit (waktu lokal peramban = WIB di toko). */
 function jadwalAwal(): string {
   const d = new Date(Date.now() + 60 * 60_000);
   d.setMinutes(d.getMinutes() < 30 ? 30 : 60, 0, 0);
-  const dua = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}T${dua(d.getHours())}:${dua(d.getMinutes())}`;
+  return keIsian(d);
 }
 
 /**
@@ -37,23 +46,47 @@ function jadwalAwal(): string {
 export function DialogRitBaru({
   onTutup,
   onDibuat,
+  ubah,
 }: {
   onTutup: () => void;
   onDibuat?: (r: Perjalanan) => void;
+  /** K-203: rit yang belum berangkat diubah kendaraan, sopir, atau jadwalnya. */
+  ubah?: Perjalanan;
 }) {
   const kendaraan = useDaftarKendaraan('AKTIF');
   const sopir = useDaftarSopir('AKTIF');
   const rencana = useRencanaRit();
-  const [idKendaraan, setIdKendaraan] = useState('');
-  const [idSopir, setIdSopir] = useState('');
-  const [jadwal, setJadwal] = useState(jadwalAwal);
-  const [catatan, setCatatan] = useState('');
+  const simpanUbah = useUbahRit();
+  const [idKendaraan, setIdKendaraan] = useState(ubah ? String(ubah.idKendaraan) : '');
+  const [idSopir, setIdSopir] = useState(ubah ? String(ubah.idSopir) : '');
+  const [jadwal, setJadwal] = useState(() =>
+    ubah?.jadwalBerangkat ? keIsian(new Date(ubah.jadwalBerangkat)) : jadwalAwal(),
+  );
+  const [catatan, setCatatan] = useState(ubah?.catatan ?? '');
+  const menyimpan = rencana.isPending || simpanUbah.isPending;
 
   function kirim() {
     if (!idKendaraan || !idSopir || !jadwal) {
       toast.error(
         !idKendaraan ? 'Pilih kendaraan.' : !idSopir ? 'Pilih sopir.' : 'Isi jadwal berangkat.',
       );
+      return;
+    }
+    if (ubah) {
+      simpanUbah
+        .mutateAsync({
+          id: ubah.id,
+          json: {
+            idKendaraan: Number(idKendaraan),
+            idSopir: Number(idSopir),
+            jadwalBerangkat: new Date(jadwal).toISOString(),
+          },
+        })
+        .then((r) => {
+          toast.success(`Rit ${r.nomor} diubah: ${r.plat}, sopir ${r.namaSopir}.`);
+          onTutup();
+        })
+        .catch((err: unknown) => toast.error(pesanGalat(err)));
       return;
     }
     rencana
@@ -87,10 +120,11 @@ export function DialogRitBaru({
         }}
       >
         <DialogHeader>
-          <DialogTitle>Rit baru</DialogTitle>
+          <DialogTitle>{ubah ? `Ubah rit ${ubah.nomor}` : 'Rit baru'}</DialogTitle>
           <DialogDescription>
-            Satu rit = satu kendaraan + satu sopir berangkat sekali. Isi dengan order kirim setelah
-            dibuat.
+            {ubah
+              ? 'Ganti kendaraan (mis. ternyata terlalu kecil), sopir, atau jadwal. Surat jalannya ikut berganti. Bisa selama rit belum berangkat.'
+              : 'Satu rit = satu kendaraan + satu sopir berangkat sekali. Isi dengan order kirim setelah dibuat.'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 text-sm">
@@ -140,19 +174,22 @@ export function DialogRitBaru({
               aria-label="Jadwal berangkat"
             />
           </label>
-          <Input
-            value={catatan}
-            onChange={(e) => setCatatan(e.target.value)}
-            placeholder="Catatan (opsional), mis. rute Peterongan–Jombang kota"
-            aria-label="Catatan rit"
-          />
+          {!ubah && (
+            <Input
+              value={catatan}
+              onChange={(e) => setCatatan(e.target.value)}
+              placeholder="Catatan (opsional), mis. rute Peterongan–Jombang kota"
+              aria-label="Catatan rit"
+            />
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onTutup}>
             Batal
           </Button>
-          <Button disabled={rencana.isPending} onClick={kirim}>
-            <CalendarPlus /> {rencana.isPending ? 'Menyimpan…' : 'Buat rit (Enter)'}
+          <Button disabled={menyimpan} onClick={kirim}>
+            <CalendarPlus />{' '}
+            {menyimpan ? 'Menyimpan…' : ubah ? 'Simpan perubahan (Enter)' : 'Buat rit (Enter)'}
           </Button>
         </DialogFooter>
       </DialogContent>

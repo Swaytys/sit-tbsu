@@ -75,7 +75,11 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
   diganti centang per surat jalan di dalam rit. Rit hanya bisa berangkat bila semua surat jalannya dicentang. Beban
   berat dan ruang dihitung dari yang sudah dicentang; melewati kapasitas memunculkan peringatan; **sampai 110%** boleh
   berangkat dengan alasan, **di atas 110%** tidak bisa berangkat (ganti kendaraan). Angka 110% diatur Owner di
-  Pengaturan. Kendaraan dan sopir rit yang belum berangkat bisa diubah. *Rencana.*
+  Pengaturan. Kendaraan dan sopir rit yang belum berangkat bisa diubah. *Rencana.* **Selesai (30 Okt):** kotak centang
+  *Dimuat* di tiap kartu surat jalan (bisa dilepas selama belum berangkat), header *dimuat n/m*, Berangkat aktif
+  setelah semua dicentang; bar muatan dari yang dicentang; batas toleransi `muatan_toleransi_persen` (bawaan 110%) di
+  *Pengaturan › Operasional* berlaku untuk berat dan ruang (sebelumnya berat tanpa toleransi, ruang 115%); tombol
+  **Ubah** pada grup rit mengganti kendaraan, sopir, jadwal. Tombol *Selesai dimuat* di detail invoice tetap ada.
 - **K-204 Pemasangan.** Setelah perbaikan ini: berkas .exe untuk laptop Windows (Setup v3, K-191), lalu versi untuk
   HP dan tablet. *Rencana.*
 

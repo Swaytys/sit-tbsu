@@ -1312,6 +1312,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-30 — F23/F45: centang muat per surat jalan, ubah rit, satu batas toleransi muatan (K-203).
 - 2026-10-30 — F28: kotak Sebelum menutup shift dan matriks dependensi alur (K-197).
 - 2026-10-30 — F23: penyelesaian hasil kirim menurut status bayar; Pengembalian uang tunai/transfer (K-192, K-193).
 - 2026-10-28 — F15: dasar markup FIFO (K-184).

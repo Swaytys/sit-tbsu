@@ -797,6 +797,18 @@ dependensi ditulis di docs/05 §22.
 **Tes:** shift.test (void menunggu menghalangi; pembayaran di luar shift tampil; tanpa centang ditolak), e2e shift
 (centang sebelum kirim hitungan; sisa void uji ditolak dulu).
 
+### C31. Centang muat, ubah rit, toleransi muatan (30 Oktober 2026, K-203)
+
+**Solusi:** tanpa migrasi. Status surat jalan DIPROSES ↔ DIMUAT lewat endpoint status yang sudah ada (dua arah,
+`waktu_dimuat` dikosongkan saat dilepas). `berangkatkanRit` menolak bila ada surat jalan belum DIMUAT. Bar muatan rit
+rencana dihitung dari surat jalan DIMUAT saja. `hitungMuatan` memakai `muatan_toleransi_persen` untuk berat dan
+volume (KONFIRMASI di atas 100%, DITOLAK di atas toleransi). `PATCH /api/perjalanan/:id` mengganti kendaraan, sopir,
+jadwal rit rencana dan teks surat jalannya. Web: kotak centang di kartu, tombol Ubah memakai `DialogRitBaru` mode ubah.
+
+**Tes:** surat-jalan.test (centang/lepas mengubah beban; berangkat ditolak sebelum semua dimuat; 104% minta alasan;
+toleransi 100% → ditolak; ubah rit lalu berangkat; centang tidak bisa dilepas setelah berangkat), e2e pengiriman dan
+pengantaran (centang sebelum berangkat).
+
 ---
 
 ## Riwayat dokumen
@@ -830,5 +842,6 @@ dependensi ditulis di docs/05 §22.
 - 2026-10-28 — Bagian C26 pratinjau laporan per halaman A4 (K-182).
 - 2026-10-28 — Bagian C27 promo kombinasi dan beli N potong (K-185).
 - 2026-10-28 — Bagian C28 dasar markup FIFO (K-184).
+- 2026-10-30 — Bagian C31 centang muat, ubah rit, toleransi muatan (K-203).
 - 2026-10-30 — Bagian C30 dependensi alur dan tutup shift (K-197).
 - 2026-10-30 — Bagian C29 referensi tunggal, penyelesaian hasil kirim, pengembalian uang (K-196, K-192, K-193).

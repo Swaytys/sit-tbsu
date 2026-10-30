@@ -65,6 +65,7 @@ test('Hasil pengantaran: kelebihan pesanan → refund transfer menunggu → diko
       jadwalBerangkat: new Date(Date.now() + 3600_000).toISOString(),
     });
     await api(page, `/perjalanan/${rit.id}/isi`, 'POST', { idPenjualan: inv.id });
+    await api(page, `/perjalanan/${rit.id}/dimuat`, 'POST', {});
     await api(page, `/perjalanan/${rit.id}/berangkat`, 'POST', {});
 
     // Catat hasil di detail invoice: 1 dus kembali karena kelebihan, uang dikembalikan lewat transfer.

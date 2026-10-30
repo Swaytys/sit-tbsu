@@ -235,7 +235,12 @@ kendaraan + satu sopir berangkat sekali, membawa satu atau beberapa surat jalan.
      berangkat, mis. untuk dicek gudang).
    - Header grup menunjukkan nomor rit, plat, jam, sopir, jumlah surat jalan, dan **bar muatan** (hijau aman, kuning
      hampir penuh, oranye perlu alasan, merah melebihi). Klik panah di kiri header untuk menciutkan/membuka grup.
-   - **Dimuat**: klik setelah barang selesai dinaikkan ke kendaraan (grup bertanda *Dimuat*).
+   - **Dimuat** (centang di tiap kartu surat jalan): centang setelah barang surat jalan itu naik ke kendaraan; klik
+     lagi untuk melepas bila salah. Header grup menulis *dimuat 1/3* dst., dan **bar muatan** hanya menghitung yang
+     sudah dicentang. **Berangkat** baru aktif setelah semua dicentang.
+   - **Muatan berlebih**: di atas 100% sampai batas toleransi (bawaan 110%, diatur Owner di *Pengaturan ›
+     Operasional*) rit boleh berangkat dengan alasan tertulis; di atasnya tidak bisa berangkat. Ganti kendaraan
+     (atau sopir/jadwal) dengan tombol **Ubah** pada grup rit, atau keluarkan sebagian surat jalan.
    - **Berangkat**: klik pada grup → periksa panel muatan (tulis alasan bila oranye) → pilih surat jalan setelah
      berangkat: **1 Cetak** (ke printer), **2 Simpan PDF** (di jendela cetak pilih tujuan *Simpan sebagai PDF*), atau
      **3 Tidak sekarang** → **Berangkat** (atau **Enter**). Semua surat jalan rit keluar dalam satu jendela cetak,
