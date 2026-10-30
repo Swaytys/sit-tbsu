@@ -17,6 +17,8 @@ import {
   type PratinjauOrder,
   type RingkasBarisOrder,
   type TiketAntrean,
+  kaliQty,
+  bandingQty,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
 import { AppError, galatKolom } from '../../../lib/errors';
@@ -512,6 +514,18 @@ export async function pratinjauOrder(
       opsi.diskonTransaksiLama = h.diskonTransaksi;
     }
     const harga = await hitungBarisJual(tx, input.order, pelaku, opsi);
+    // K-200: qty tidak biasa (kemungkinan salah ketik) dibanding riwayat 90 hari.
+    const qtyPerBarang = new Map<number, string>();
+    for (const b of harga.baris) {
+      qtyPerBarang.set(b.idBarang, tambahQty(qtyPerBarang.get(b.idBarang) ?? '0', b.qtyDasar));
+    }
+    const terbanyak = await repo.qtyTerbanyak(tx, [...qtyPerBarang.keys()]);
+    const tidakBiasa = (idBarang: number) => {
+      const q = qtyPerBarang.get(idBarang);
+      const maks = terbanyak.get(idBarang);
+      if (!q || !maks || bandingQty(maks, 0) <= 0) return null;
+      return bandingQty(q, kaliQty(maks, '2')) > 0 ? { qty: q, biasanya: maks } : null;
+    };
     return {
       baris: harga.baris.map((b) => ({
         idBarang: b.idBarang,
@@ -529,6 +543,7 @@ export async function pratinjauOrder(
         promoDitolak: b.promoDitolak,
         diskonBaris: b.diskonBaris,
         subtotal: b.subtotal,
+        qtyTidakBiasa: tidakBiasa(b.idBarang),
       })),
       tierBelanja: harga.tierBelanja,
       totalBruto: harga.totalBruto,

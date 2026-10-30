@@ -72,7 +72,11 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
 - **K-200 Selisih stok karena salah input atau salah serah (human error).** Contoh: tercatat 2 tetapi diserahkan 1,
   tercatat 1 tetapi diserahkan 2, barang lain ikut terinput, atau barang yang diserahkan/dikirim keliru. Disusun
   konsep tiga lapis **mencegah – mengajari – menangani** beserta langkah konkret untuk pengguna; fitur yang dibutuhkan
-  dikerjakan bertahap. *Rencana.*
+  dikerjakan bertahap. *Rencana.* **Tahap 1 selesai (30 Okt):** konsep dan langkah konkret di
+  `docs/panduan/selisih-stok.md`; *mencegah*: qty lebih dari 2× kebiasaan barang itu (90 hari) ditandai di keranjang
+  dan dikonfirmasi sebelum bayar; *mengajari*: saran alasan koreksi stok; *menangani*: alur Kartu Stok → void/retur/
+  koreksi. Usulan berikutnya: laporan pola koreksi per barang/pengguna, hitung cepat satu barang, kolom nomor
+  transaksi di baris koreksi.
 - **K-201 Atribut ↔ data muatan langsung selaras di form.** Saat selesai mengisi salah satu (Enter/pindah kotak), yang
   lain langsung ikut, bukan hanya saat Simpan (lanjutan K-169). *Rencana.* **Selesai (30 Okt):** yang terakhir diubah
   menang; satuan dikonversi otomatis; atribut yang belum ada ditambahkan; pemeriksaan saat simpan (K-169) tetap.

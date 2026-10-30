@@ -717,7 +717,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-197 | Dependensi alur; shift ditutup hanya bila yang menggantung selesai; transaksi di luar shift masuk shift berikutnya. | Berlaku (selesai 30 Okt) |
 | K-198 | Cadangan lokal diatur dari Pengaturan › Cadangan tanpa mengubah .env. | Berlaku (selesai 30 Okt; program restic ikut Setup K-204) |
 | K-199 | Data master ganda persis tidak boleh disimpan; ubah salah satu atau hapus permanen yang belum pernah dipakai. | Berlaku (selesai 30 Okt) |
-| K-200 | Selisih stok karena salah input/salah serah: konsep mencegah–mengajari–menangani. | Berlaku (rencana) |
+| K-200 | Selisih stok karena salah input/salah serah: konsep mencegah–mengajari–menangani. | Berlaku (tahap 1 selesai 30 Okt; laporan pola koreksi menyusul) |
 | K-201 | Atribut ↔ data muatan selaras langsung di form. | Berlaku (selesai 30 Okt) |
 | K-202 | Pencarian dan saringan daftar diingat saat kembali dari halaman ubah/detail. | Berlaku (selesai 30 Okt) |
 | K-203 | Muat rit dengan centang; berangkat bila semua dimuat; ≤110% beralasan, >110% stop; rit bisa diubah. | Berlaku (selesai 30 Okt) |

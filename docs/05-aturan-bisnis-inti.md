@@ -392,5 +392,6 @@ berpindah tangan.
 - 2026-10-30 — P8: No. referensi wajib di semua jalur uang non-tunai (K-196).
 - 2026-10-30 — S10: penyelesaian menurut status bayar dan pengembalian uang menunggu tunai/transfer (K-192, K-193).
 - 2026-10-30 — §22 dependensi alur dan hal menggantung saat tutup shift (K-197).
+- 2026-10-30 — Pratinjau order: penanda qty tidak biasa (> 2× qty terbanyak satu baris 90 hari, K-200).
 - 2026-10-30 — DB5 data sama persis dan hapus permanen data yang belum dipakai (K-199).
 - 2026-10-30 — S9, S13, S14: centang muat per surat jalan, ubah rit, satu batas toleransi muatan (K-203).

@@ -170,6 +170,11 @@ export type BarisPratinjau = {
   promoDitolak: boolean;
   diskonBaris: number;
   subtotal: number;
+  /**
+   * K-200: qty (satuan dasar) jauh di atas kebiasaan barang ini (lebih dari 2× qty terbanyak satu transaksi dalam 90
+   * hari terakhir): kemungkinan salah ketik. `biasanya` = qty terbanyak itu. `null` = wajar/belum ada riwayat.
+   */
+  qtyTidakBiasa: { qty: string; biasanya: string } | null;
 };
 
 /** K-098: tier harga transaksi menurut total nilai belanja (berlaku untuk semua barang). */

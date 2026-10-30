@@ -1123,6 +1123,23 @@ describe('promo kelompok sasaran dan beli N potong Rp X (K-185)', () => {
   });
 });
 
+describe('qty tidak biasa di pratinjau (K-200)', () => {
+  it('qty lebih dari 2× qty terbanyak satu transaksi 90 hari terakhir ditandai; tanpa riwayat tidak', async () => {
+    await tanpaGrosir();
+    let p = await pratinjau(kasir, [{ idBarang: m.semen, qty: '9' }]);
+    expect(p.baris[0]?.qtyTidakBiasa).toBeNull(); // belum ada riwayat
+    await kirimData(kasir, '/api/shift/buka', { modalAwal: 0 });
+    await kirimData(kasir, '/api/penjualan/checkout', {
+      order: keranjang([{ idBarang: m.semen, qty: '2' }]),
+      pembayaran: [lunas],
+    });
+    p = await pratinjau(kasir, [{ idBarang: m.semen, qty: '4' }]);
+    expect(p.baris[0]?.qtyTidakBiasa).toBeNull();
+    p = await pratinjau(kasir, [{ idBarang: m.semen, qty: '5' }]);
+    expect(p.baris[0]?.qtyTidakBiasa).toEqual({ qty: '5.000', biasanya: '2.000' });
+  });
+});
+
 describe('label keterjualan barang (K-123)', () => {
   it('LARIS 20% teratas, TIDAK_LAKU, BARU; angka terjual 30 hari dan terakhir terjual', async () => {
     await tanpaGrosir();

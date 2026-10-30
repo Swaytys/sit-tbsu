@@ -1312,6 +1312,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-30 — F21: qty tidak biasa ditandai dan dikonfirmasi; panduan selisih stok mencegah–mengajari–menangani (K-200) `[DOK: docs/panduan/selisih-stok.md]`.
 - 2026-10-30 — Cadangan: folder dan sandi diatur Owner dari layar (K-198) `[KODE: api/modules/sistem/cadangan/aturan.ts]`.
 - 2026-10-30 — F48: data sama persis tidak boleh disimpan; hapus permanen data ganda yang belum dipakai (K-199) `[KODE: api/modules/master/hapus.ts]`.
 - 2026-10-30 — F9: atribut dimensi ↔ data muatan selaras langsung di form (K-201).

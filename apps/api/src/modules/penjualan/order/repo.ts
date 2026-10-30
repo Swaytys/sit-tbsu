@@ -1,4 +1,18 @@
-import { and, asc, count, desc, eq, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  lt,
+  ne,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import type { JenisPenjualan, StatusOrder } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import {
@@ -12,6 +26,8 @@ import {
   promo,
   satuan,
   tingkatHarga,
+  penjualan,
+  penjualanDetail,
 } from '../../../db/schema';
 import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
@@ -382,4 +398,26 @@ export async function jumlahDisimpanLewat(
       ),
     );
   return r?.n ?? 0;
+}
+
+/** K-200: qty dasar terbanyak per barang dalam satu baris penjualan (bukan void) 90 hari terakhir. */
+export async function qtyTerbanyak(ex: Executor, idBarang: number[]): Promise<Map<number, string>> {
+  if (idBarang.length === 0) return new Map();
+  const r = await ex
+    .select({
+      idBarang: penjualanDetail.idBarang,
+      maks: sql<string>`max(${penjualanDetail.qtyDasar})::text`,
+    })
+    .from(penjualanDetail)
+    .innerJoin(penjualan, eq(penjualan.id, penjualanDetail.idPenjualan))
+    .where(
+      and(
+        inArray(penjualanDetail.idBarang, idBarang),
+        ne(penjualanDetail.statusItem, 'VOID'),
+        ne(penjualan.statusTransaksi, 'VOID'),
+        gte(penjualan.tanggal, sql`now() - interval '90 days'`),
+      ),
+    )
+    .groupBy(penjualanDetail.idBarang);
+  return new Map(r.map((x) => [x.idBarang, x.maks]));
 }

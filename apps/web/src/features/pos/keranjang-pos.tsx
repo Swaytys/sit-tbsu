@@ -234,6 +234,16 @@ export function KeranjangPos({
                     >
                       {r.nama}
                     </div>
+                    {pr?.qtyTidakBiasa && (
+                      // K-200: kemungkinan salah ketik qty; periksa sebelum bayar.
+                      <div
+                        className="mt-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900"
+                        data-testid="qty-tidak-biasa"
+                      >
+                        Qty jauh di atas biasanya (paling banyak{' '}
+                        {formatDesimal(pr.qtyTidakBiasa.biasanya)} per transaksi). Benar?
+                      </div>
+                    )}
                     {r.atribut && (
                       <div
                         className={cn(
