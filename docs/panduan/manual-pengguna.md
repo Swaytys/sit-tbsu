@@ -708,6 +708,10 @@ Semua tugas admin, ditambah:
 - **Pindah dan gulir panel di layar kasir**: **Alt+←** pindah ke antrean (kiri), **Alt+→** pindah ke transaksi
   (kanan). **PgUp/PgDn** menggulir panel yang sedang aktif, mis. keranjang yang panjang. Dengan mouse cukup klik
   panelnya dan gulir dengan roda tetikus.
+- **Pencarian dan saringan daftar diingat** (Data Barang, Pelanggan, Pemasok, Penerimaan, Piutang, Hutang, Order
+  pembelian, Konsinyasi, Retur ke pemasok, Order, Riwayat penjualan): kembali dari halaman ubah/detail, daftar tetap
+  memakai kata cari, kategori, saringan, dan halaman terakhir. **Klik menu di sidebar** untuk mulai dari awal (semua
+  saringan kosong lagi). Ingatan hilang bila aplikasi dimuat ulang.
 - **Teks yang terpotong** (catatan, alamat): klik **lihat semua** untuk membacanya utuh, **ringkas** untuk menutup.
 
 - Jangan berbagi akun: setiap aksi tercatat atas nama pemilik akun.

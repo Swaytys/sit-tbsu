@@ -719,7 +719,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-199 | Data master ganda persis tidak boleh disimpan; ubah salah satu atau hapus permanen yang belum pernah dipakai. | Berlaku (rencana) |
 | K-200 | Selisih stok karena salah input/salah serah: konsep mencegah–mengajari–menangani. | Berlaku (rencana) |
 | K-201 | Atribut ↔ data muatan selaras langsung di form. | Berlaku (rencana) |
-| K-202 | Pencarian dan saringan daftar diingat saat kembali dari halaman ubah/detail. | Berlaku (rencana) |
+| K-202 | Pencarian dan saringan daftar diingat saat kembali dari halaman ubah/detail. | Berlaku (selesai 30 Okt) |
 | K-203 | Muat rit dengan centang; berangkat bila semua dimuat; ≤110% beralasan, >110% stop; rit bisa diubah. | Berlaku (selesai 30 Okt) |
 | K-204 | Setup .exe laptop, lalu versi HP dan tablet. | Berlaku (rencana) |
 

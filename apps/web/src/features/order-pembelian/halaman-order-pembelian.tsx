@@ -44,6 +44,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDesimal, formatTanggal, tanggalHariIni } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { useIngat } from '@/lib/ingat-saring';
 
 /*
  * K-125 Persediaan › Order Pembelian: daftar PO (kiri) dan rinciannya (kanan) dengan aksi sesuai status. Angka
@@ -783,7 +784,7 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
 /** K-125: halaman Persediaan › Order Pembelian. */
 export function HalamanOrderPembelian() {
   const [url, setUrl] = useSearchParams();
-  const [saring, setSaring] = useState<SaringPO>({
+  const [saring, setSaring] = useIngat<SaringPO>('po.saring', {
     cari: '',
     status: (url.get('status') as SaringPO['status'] | null) ?? 'BERJALAN',
     halaman: 1,

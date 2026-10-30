@@ -22,6 +22,7 @@ import { formatTanggal } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
 import { DialogGolongan } from './dialog-golongan';
 import { DialogPelanggan } from './dialog-pelanggan';
+import { useIngat } from '@/lib/ingat-saring';
 
 /** Jatuh tempo terdekat beserta jaraknya dari hari ini (K-107). Angka dari API; di sini hanya ditampilkan. */
 function SelJatuhTempo({ p }: { p: Pelanggan }) {
@@ -54,10 +55,10 @@ function SelJatuhTempo({ p }: { p: Pelanggan }) {
 }
 
 export function HalamanPelanggan() {
-  const [cari, setCari] = useCariUrl();
+  const [cari, setCari] = useCariUrl('pelanggan');
   const cariTertunda = useTunda(cari, 300);
-  const [status, setStatus] = useState<SaringStatus>('SEMUA');
-  const [halaman, setHalaman] = useState(1);
+  const [status, setStatus] = useIngat<SaringStatus>('pelanggan.status', 'SEMUA');
+  const [halaman, setHalaman] = useIngat('pelanggan.halaman', 1);
   const [dialog, setDialog] = useState<{ pelanggan: Pelanggan | null } | null>(null);
   const [dialogGolongan, setDialogGolongan] = useState(false);
   const bolehKredit = usePengguna().izin.includes('master.pelanggan.atur_kredit');

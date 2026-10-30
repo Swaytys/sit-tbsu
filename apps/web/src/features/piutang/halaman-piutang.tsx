@@ -15,6 +15,7 @@ import { formatTanggal } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
 import { DialogTerimaPembayaran } from '../kasir/halaman-detail-penjualan';
+import { useIngat } from '@/lib/ingat-saring';
 
 function KeteranganTempo({ p }: { p: BarisPiutang }) {
   if (p.hariTerlambat === null) return <span className="text-slate-400">—</span>;
@@ -39,9 +40,9 @@ export function HalamanPiutang() {
   const terlambat = url.get('terlambat') === 'true';
   const idPelanggan = Number(url.get('pelanggan')) || null;
   const bolehBayar = usePengguna().izin.includes('penjualan.pembayaran.catat');
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useIngat('piutang.cari', '');
   const cariTertunda = useTunda(cari, 300);
-  const [halaman, setHalaman] = useState(1);
+  const [halaman, setHalaman] = useIngat('piutang.halaman', 1);
   const barisPerHalaman = useBarisPerHalaman();
   const [bayar, setBayar] = useState<BarisPiutang | null>(null);
   const daftar = useDaftarPiutang({

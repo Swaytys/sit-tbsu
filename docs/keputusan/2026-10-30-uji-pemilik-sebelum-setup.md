@@ -72,7 +72,9 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
   lain langsung ikut, bukan hanya saat Simpan (lanjutan K-169). *Rencana.*
 - **K-202 Pencarian dan saringan daftar diingat.** Kembali dari halaman ubah/detail (mis. Data Barang dicari "semen",
   ubah barang, simpan) daftar tetap memakai pencarian, kategori, dan saringan sebelumnya. Pindah ke menu lain
-  melupakannya. Berlaku untuk semua daftar yang punya pencarian. *Rencana.*
+  melupakannya. Berlaku untuk semua daftar yang punya pencarian. *Rencana.* **Selesai (30 Okt):** 11 halaman daftar
+  memakai ingatan saringan (cari, status, kategori, merk, kepemilikan, tanggal, halaman); klik menu sidebar mengosongkan
+  semuanya, juga untuk halaman yang sedang terbuka.
 - **K-203 Muat rit dengan centang, rit bisa diubah, batas muatan bertingkat.** Tombol *Dimuat* di kolom Dijadwalkan
   diganti centang per surat jalan di dalam rit. Rit hanya bisa berangkat bila semua surat jalannya dicentang. Beban
   berat dan ruang dihitung dari yang sudah dicentang; melewati kapasitas memunculkan peringatan; **sampai 110%** boleh

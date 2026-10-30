@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { formatWaktu } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
+import { useIngat } from '@/lib/ingat-saring';
 
 const SEMUA = 'SEMUA';
 
@@ -37,10 +38,10 @@ export function BadgePenyelesaian({ p }: { p: PenyelesaianReturPemasok }) {
 
 /** Persediaan › Retur ke Pemasok (docs/06 RP1–RP7): riwayat dokumen RTP. */
 export function HalamanReturPemasok() {
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useIngat('retur-pemasok.cari', '');
   const cariTertunda = useTunda(cari, 300);
   const [penyelesaian, setPenyelesaian] = useState<PenyelesaianReturPemasok | null>(null);
-  const [halaman, setHalaman] = useState(1);
+  const [halaman, setHalaman] = useIngat('retur-pemasok.halaman', 1);
   const barisPerHalaman = useBarisPerHalaman();
   const daftar = useDaftarReturPemasok({
     cari: cariTertunda,

@@ -40,6 +40,7 @@ import { useTunda } from '@/lib/use-tunda';
 import { DialogBatal } from './dialog-batal-order';
 import { DialogSimpanOrder } from './dialog-simpan-order';
 import { InputOrderCepat } from './input-order-cepat';
+import { useIngat } from '@/lib/ingat-saring';
 
 type Saring = 'SEMUA' | 'AKTIF' | 'DISIMPAN' | 'DRAFT' | 'SELESAI' | 'BATAL';
 const SARING: Saring[] = ['SEMUA', 'AKTIF', 'DISIMPAN', 'DRAFT', 'SELESAI', 'BATAL'];
@@ -482,7 +483,7 @@ function DaftarOrder() {
   const saring: Saring =
     diminta === 'MENUNGGU' ? 'AKTIF' : (SARING.find((s) => s === diminta) ?? 'SEMUA');
   const idTerpilih = Number(url.get('id')) || null;
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useIngat('order.cari', '');
   const cariTertunda = useTunda(cari, 300);
   const daftar = useDaftarOrder(
     {

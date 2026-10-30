@@ -4,7 +4,6 @@ import {
   type RingkasanKonsinyasiPemasok,
 } from '@sit/shared';
 import { Download, HandCoins, PackagePlus, Search } from 'lucide-react';
-import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useDaftarPenyelesaianKonsinyasi, useRingkasanKonsinyasi } from '@/api/konsinyasi';
 import { useBarisPerHalaman } from '@/api/pengaturan';
@@ -26,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatTanggal, formatWaktu } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
 import { BadgeStatusHutang } from '../hutang/halaman-hutang';
+import { useIngat } from '@/lib/ingat-saring';
 
 const TAB = ['posisi', 'riwayat'] as const;
 type Tab = (typeof TAB)[number];
@@ -206,9 +206,9 @@ function TabPosisi() {
 }
 
 function TabRiwayat() {
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useIngat('konsinyasi.cari', '');
   const cariTertunda = useTunda(cari, 300);
-  const [halaman, setHalaman] = useState(1);
+  const [halaman, setHalaman] = useIngat('konsinyasi.halaman', 1);
   const barisPerHalaman = useBarisPerHalaman();
   const daftar = useDaftarPenyelesaianKonsinyasi({
     cari: cariTertunda,
