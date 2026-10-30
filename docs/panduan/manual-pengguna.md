@@ -384,8 +384,14 @@ tercatat masuk uang shift, bukan penjualan, jadi hitungan tetap cocok.
 
 **Tutup shift** (*Shift & Clerical Check*, kotak **Tutup shift**):
 1. **Order belum selesai** tampil di atas: pilih per order **Ke antrean**, **Simpan nanti**, **Ke draf**, atau
-   **Batalkan**. Yang tidak diubah tetap di antrean. **Retur/void menunggu persetujuan** tampil sebagai informasi:
-   uangnya belum keluar dari uang shift.
+   **Batalkan**. Yang tidak diubah tetap di antrean.
+   Kotak **Sebelum menutup** (bila ada) berisi:
+   - **merah** — wajib diselesaikan dulu: *Pengajuan void belum diputuskan* (void hanya bisa disetujui selama
+     shift transaksinya masih buka). Klik **Buka**, setujui/tolak/batalkan, lalu kembali ke sini;
+   - **kuning** — tidak menghalangi, tetapi wajib dibaca: pembayaran di luar shift (sebelum shift ini dibuka, masuk
+     catatan shift ini), non-tunai yang belum dicek masuk rekening, retur menunggu persetujuan, uang retur yang
+     menunggu diserahkan tunai, dan barang bayar-saat-terima yang uangnya masih dibawa sopir. Centang
+     **Sudah saya periksa**; tombol *Kirim hitungan* baru aktif setelah itu.
 2. **Hitung dan kirim** semua uang shift. Angka sistem belum tampil (hitungan jujur). Setelah dikirim, shift
    berhenti menerima uang.
 3. **Lihat hasil**: selisih (hijau cocok, abu-abu receh, merah kurang, kuning lebih), *Tinjauan shift*, dan

@@ -490,6 +490,15 @@ export function useStatusShiftToko() {
   });
 }
 
+/** K-197: hal menggantung sebelum shift ditutup (penghalang dan yang wajib diakui). */
+export function useHalMenggantung(id: number) {
+  return useQuery({
+    queryKey: ['shift', 'menggantung', id],
+    queryFn: async () =>
+      ambilData(await api.shift[':id'].menggantung.$get({ param: { id: String(id) } })),
+  });
+}
+
 /** K-142: pengajuan retur/void yang belum diputuskan. */
 export function usePengajuanMenunggu(aktif = true) {
   return useQuery({

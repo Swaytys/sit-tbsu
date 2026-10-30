@@ -1,14 +1,10 @@
 import { formatRupiah, type DetailShift } from '@sit/shared';
-import { Lock, RotateCcw, Send } from 'lucide-react';
+import { CircleAlert, Lock, OctagonX, RotateCcw, Send } from 'lucide-react';
+import { Link } from 'react-router';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
-import {
-  useHasilHitung,
-  useHitungTutup,
-  usePengajuanMenunggu,
-  useTutupShift,
-} from '@/api/penjualan';
+import { useHalMenggantung, useHasilHitung, useHitungTutup, useTutupShift } from '@/api/penjualan';
 import { InputRupiah } from '@/components/input-rupiah';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -35,10 +31,16 @@ function FormHitung({
   idShift,
   ulang,
   onTerkirim,
+  akui = false,
+  terhalang = false,
 }: {
   idShift: number;
   ulang: boolean;
   onTerkirim?: () => void;
+  /** K-197: daftar "Sebelum menutup" sudah dicentang. */
+  akui?: boolean;
+  /** K-197: ada penghalang (BLOK) atau daftar belum dicentang. */
+  terhalang?: boolean;
 }) {
   const kirim = useHitungTutup();
   const [n, setN] = useState<NilaiHitung>(HITUNG_KOSONG);
@@ -46,7 +48,7 @@ function FormHitung({
   const total = totalHitung(n);
   function lanjut() {
     kirim
-      .mutateAsync({ id: idShift, json: keJsonHitung(n) })
+      .mutateAsync({ id: idShift, json: keJsonHitung(n, akui) })
       .then(() => {
         setYakin(false);
         onTerkirim?.();
@@ -63,7 +65,7 @@ function FormHitung({
     >
       <InputHitungUang id={ulang ? 'tutup-ulang' : 'tutup'} nilai={n} onUbah={setN} />
       {!yakin ? (
-        <Button type="submit" className="w-full" disabled={total === null}>
+        <Button type="submit" className="w-full" disabled={total === null || terhalang}>
           <Send /> {ulang ? 'Kirim hitung ulang' : 'Kirim hitungan'}
         </Button>
       ) : (
@@ -102,45 +104,83 @@ export function AlurTutupShift({
   status: 'BUKA' | 'DIHITUNG';
   onSelesai: (d: DetailShift) => void;
 }) {
-  if (status === 'BUKA') {
-    return (
-      <div className="space-y-2">
-        <DaftarOrderBelumSelesai />
-        <PengajuanMenunggu />
-        <p className="text-sm text-slate-600">
-          Hitung <b>semua</b> uang shift. Angka sistem tampil setelah dikirim.
-        </p>
-        <FormHitung idShift={idShift} ulang={false} />
-      </div>
-    );
-  }
+  if (status === 'BUKA') return <TutupBuka idShift={idShift} />;
   return <HasilTutup idShift={idShift} onSelesai={onSelesai} />;
 }
 
-/** K-142: retur/void yang belum diputuskan; uangnya belum keluar dari laci (bukan selisih). */
-function PengajuanMenunggu() {
-  const data = usePengajuanMenunggu().data ?? [];
-  if (data.length === 0) return null;
+/** Langkah 1 tutup shift dengan daftar "Sebelum menutup" (K-197). */
+function TutupBuka({ idShift }: { idShift: number }) {
+  const menggantung = useHalMenggantung(idShift);
+  const [akui, setAkui] = useState(false);
+  const daftar = menggantung.data ?? [];
+  const blok = daftar.filter((h) => h.tingkat === 'BLOK');
+  const info = daftar.filter((h) => h.tingkat === 'INFO');
   return (
-    <div
-      className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm"
-      data-testid="pengajuan-menunggu"
-    >
-      <p className="font-semibold text-blue-900">{data.length} retur/void menunggu persetujuan</p>
-      <p className="text-xs text-blue-900">
-        Uangnya belum keluar dari laci; tercatat di shift saat disetujui.
+    <div className="space-y-2">
+      <DaftarOrderBelumSelesai />
+      {daftar.length > 0 && (
+        <div className="space-y-2 rounded-lg border p-3 text-sm" data-testid="sebelum-menutup">
+          <p className="font-semibold text-slate-800">Sebelum menutup</p>
+          {[...blok, ...info].map((h) => (
+            <div
+              key={h.kode}
+              className={cn(
+                'rounded-md border p-2',
+                h.tingkat === 'BLOK'
+                  ? 'border-red-300 bg-red-50 text-red-900'
+                  : 'border-amber-200 bg-amber-50 text-amber-900',
+              )}
+            >
+              <div className="flex items-start gap-1.5 font-semibold">
+                {h.tingkat === 'BLOK' ? (
+                  <OctagonX className="mt-0.5 size-4 shrink-0" />
+                ) : (
+                  <CircleAlert className="mt-0.5 size-4 shrink-0" />
+                )}
+                <span className="flex-1">
+                  {h.judul} ({h.jumlah})
+                </span>
+                {h.tautan && (
+                  <Link to={h.tautan} className="text-xs font-medium underline">
+                    Buka
+                  </Link>
+                )}
+              </div>
+              <p className="text-xs">{h.keterangan}</p>
+              <ul className="mt-1 space-y-0.5 text-xs opacity-90">
+                {h.rincian.slice(0, 5).map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+                {h.rincian.length > 5 && <li>… dan {h.rincian.length - 5} lagi</li>}
+              </ul>
+            </div>
+          ))}
+          {blok.length > 0 ? (
+            <p className="text-xs font-semibold text-red-800">
+              Selesaikan yang merah dulu; setelah itu shift bisa dihitung.
+            </p>
+          ) : (
+            <label className="flex items-center gap-2 font-medium">
+              <input
+                type="checkbox"
+                checked={akui}
+                onChange={(e) => setAkui(e.target.checked)}
+                aria-label="Sudah saya periksa"
+              />
+              Sudah saya periksa; yang kuning dilanjutkan di shift berikutnya.
+            </label>
+          )}
+        </div>
+      )}
+      <p className="text-sm text-slate-600">
+        Hitung <b>semua</b> uang shift. Angka sistem tampil setelah dikirim.
       </p>
-      <ul className="mt-1 space-y-0.5 text-xs">
-        {data.map((p) => (
-          <li key={`${p.jenis}-${p.id}`} className="flex justify-between gap-2">
-            <span>
-              {p.jenis === 'RETUR' ? 'Retur' : 'Void'} {p.nomor} · {p.nomorPenjualan} ·{' '}
-              {p.namaPengaju}
-            </span>
-            <span className="tabular-nums">{formatRupiah(p.nilai)}</span>
-          </li>
-        ))}
-      </ul>
+      <FormHitung
+        idShift={idShift}
+        ulang={false}
+        akui={akui}
+        terhalang={blok.length > 0 || (info.length > 0 && !akui)}
+      />
     </div>
   );
 }
@@ -167,7 +207,7 @@ function HasilTutup({
     tutup
       .mutateAsync({
         id: idShift,
-        json: { keterangan: ket.trim() || null, uangDitinggal: tinggal },
+        json: { keterangan: ket.trim() || null, uangDitinggal: tinggal, akuiMenggantung: false },
       })
       .then((d) => {
         toast.success(`Shift ${d.nomor} ditutup.`);

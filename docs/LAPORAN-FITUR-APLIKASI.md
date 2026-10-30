@@ -556,7 +556,8 @@ dialog Berangkat | Admin/Owner (data), Kasir+ (berangkat) | desktop
 ### 4.6 Kas
 
 **F28. Shift toko dan clerical check** | Shift & Clerical Check | Kasir+ | komputer kasir
-- Fungsi (diperbarui 18 Okt, K-121, K-132–K-142):
+- Fungsi (diperbarui 18 Okt, K-121, K-132–K-142; 30 Okt K-197 *Sebelum menutup*: penghalang void menunggu dan
+  daftar menggantung yang wajib diakui, termasuk pembayaran di luar shift yang masuk shift berikutnya):
   - **Satu shift untuk toko** (satu laci): dibuka/ditutup siapa pun yang berizin; semua uang tunai masuk shift itu
     dengan nama pencatatnya; status shift tampil di topbar untuk semua peran (termasuk Staf). Dua pembukaan
     bersamaan tetap menghasilkan satu shift (kunci transaksi).
@@ -1311,6 +1312,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-30 — F28: kotak Sebelum menutup shift dan matriks dependensi alur (K-197).
 - 2026-10-30 — F23: penyelesaian hasil kirim menurut status bayar; Pengembalian uang tunai/transfer (K-192, K-193).
 - 2026-10-28 — F15: dasar markup FIFO (K-184).
 - 2026-10-28 — F17: promo kombinasi kategori + merk + barang dan beli N potong Rp X (K-185).

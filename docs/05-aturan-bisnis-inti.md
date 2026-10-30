@@ -317,6 +317,38 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 | DB3 | Cegah data ganda: menambah, atau mengubah nama/No. HP, pelanggan/pemasok/barang ditolak 409 bila ada data lain (aktif atau nonaktif) dengan **kunci nama** sama (huruf kecil, tanpa awalan Toko/Tk/CV/PT/UD/Pak/Bapak/Bpk/Bu/Ibu/Sdr/Mas/Mbak untuk pelanggan/pemasok, hanya huruf dan angka) atau No. HP sama (pelanggan/pemasok); untuk barang hanya sesama kepemilikan dan pemasok penitip yang sama (versi titipan K-094 boleh bernama sama). Jawaban memuat daftar data mirip (maks. 5). Pengguna boleh menegaskan data berbeda (`abaikanMirip`). Import Excel barang tidak memakai aturan ini (kode yang sudah ada dilewati). |
 | DB4 | Pemeriksaan data (`sistem.pengaturan.kelola`): kelompok data lama yang mirip (nama/No. HP) dan format salah (No. HP bukan format internasional, nama berspasi berlebih). *Rapikan No. HP* mengubah semua No. HP pelanggan/pemasok/sopir/pengguna yang bisa dirapikan otomatis dalam satu transaksi, melaporkan yang harus diperbaiki manual; log `DATA_RAPIKAN`. Nomor HP pembeli di order lama (tabel transaksi) tidak diubah. |
 
+## 22. Dependensi alur dan penutupan shift (K-197)
+
+Hasil pemeriksaan: langkah yang harus selesai sebelum langkah lain boleh dilakukan. Semua ditegakkan di API (bukan
+hanya di layar) dan berlaku untuk semua peran; beda peran hanya hak akses (izin).
+
+| # | Langkah | Syarat yang harus selesai dulu | Ditegakkan |
+|---|---|---|---|
+| D1 | Terima uang tunai, refund tunai, kas manual, bayar pemasok tunai | Shift toko BUKA (bukan DIHITUNG, bukan terlewat) | K2, K9, K18, P12 |
+| D2 | Terima non-tunai | Rekening penerimaan terdaftar + No. referensi; tanpa shift hanya pemegang `kas.shift.lihat_semua` bila `checkout_wajib_shift` | P8, P12, K-196 |
+| D3 | Void | Shift asal transaksi masih BUKA; belum ada retur; belum ada surat jalan DIKIRIM/SELESAI | V1 |
+| D4 | Retur barang pengantaran | Barang tidak sedang di surat jalan yang belum selesai (catat hasil dulu) | K-149 |
+| D5 | Surat jalan | Masuk rit DIRENCANAKAN; kendaraan & sopir dari rit | K-174 |
+| D6 | Rit berangkat | Semua surat jalannya dimuat (K-203); muatan dalam batas | S9, K-203 |
+| D7 | Kendaraan dipakai rit lain / dinonaktifkan | Rit sebelumnya sudah dicatat hasilnya | S9 |
+| D8 | Pengembalian uang tunai dari retur hasil kirim | Retur disetujui; uang keluar saat diserahkan, di shift yang BUKA | K-193 |
+| D9 | Konfirmasi transfer pengembalian | Rekening tujuan + No. referensi; izin `retur.setujui` | K-193, K-196 |
+| D10 | Hitung tutup shift | Tidak ada pengajuan void MENUNGGU atas penjualan shift itu (**penghalang**); daftar menggantung lain sudah diakui (centang) | K-197 |
+| D11 | Tutup shift (langkah 2) | Hitungan tutup sudah dikirim; selisih di luar toleransi berketerangan | K4, K20 |
+| D12 | Buka shift | Tidak ada shift lain yang belum TUTUP | K1, K25 |
+
+**Penutupan shift (K-197).** `GET /api/shift/:id/menggantung` menghasilkan daftar:
+- **BLOK** (wajib diselesaikan sebelum hitung tutup): `VOID_MENUNGGU` — pengajuan void atas penjualan shift itu
+  (setelah shift tutup void tidak sah lagi, D3).
+- **INFO** (wajib diakui dengan `akuiMenggantung: true` pada hitungan tutup pertama, tercatat di log `SHIFT_HITUNG`):
+  `LUAR_SHIFT` pembayaran tanpa shift sejak shift sebelumnya ditutup sampai shift ini dibuka (masuk catatan shift
+  ini), `NONTUNAI_BELUM_DICEK` non-tunai shift ini yang belum dicek masuk rekening, `RETUR_MENUNGGU`,
+  `PENGEMBALIAN_TUNAI` uang retur menunggu diserahkan, `BAYAR_SAAT_TERIMA` invoice bayar-saat-terima yang barangnya
+  masih di jalan.
+Hal yang tidak bergantung pada shift (order, pesanan, cek non-tunai oleh pemegang rekening) tetap boleh berjalan
+setelah shift ditutup; uang tunai yang terkait selalu tercatat di shift yang buka saat uang itu benar-benar
+berpindah tangan.
+
 ## Riwayat
 
 - 2026-09-19 — v1.
@@ -358,3 +390,4 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 - 2026-10-28 — L12 harga FIFO sebagai cache ledger (K-184).
 - 2026-10-30 — P8: No. referensi wajib di semua jalur uang non-tunai (K-196).
 - 2026-10-30 — S10: penyelesaian menurut status bayar dan pengembalian uang menunggu tunai/transfer (K-192, K-193).
+- 2026-10-30 — §22 dependensi alur dan hal menggantung saat tutup shift (K-197).

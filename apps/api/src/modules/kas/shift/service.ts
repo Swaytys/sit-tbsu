@@ -27,6 +27,7 @@ import {
   type TinjauanShift,
   type UsulanBukaShift,
   type WaktuShift,
+  type HalMenggantungShift,
 } from '@sit/shared';
 import { db, type Executor, type Tx } from '../../../db/client';
 import { shiftKasir } from '../../../db/schema';
@@ -182,6 +183,96 @@ export async function pengajuanMenunggu(): Promise<PengajuanMenunggu[]> {
     ...r.retur.map((x) => ({ jenis: 'RETUR' as const, ...x, tanggal: x.tanggal.toISOString() })),
     ...r.void.map((x) => ({ jenis: 'VOID' as const, ...x, tanggal: x.tanggal.toISOString() })),
   ];
+}
+
+/**
+ * K-197: hal menggantung pada shift. BLOK: pengajuan void atas penjualan shift ini (setelah shift tutup tidak bisa
+ * di-void lagi, V1). INFO: retur menunggu, uang retur tunai menunggu diserahkan, non-tunai shift ini belum dicek,
+ * barang bayar-saat-terima di jalan, dan pembayaran di luar shift sebelum shift ini dibuka.
+ */
+export async function halMenggantung(
+  id: number,
+  ex: Executor | Tx = db,
+): Promise<HalMenggantungShift[]> {
+  const hasil: HalMenggantungShift[] = [];
+  const tambah = (h: Omit<HalMenggantungShift, 'jumlah'>) => {
+    if (h.rincian.length > 0) hasil.push({ ...h, jumlah: h.rincian.length });
+  };
+  tambah({
+    kode: 'VOID_MENUNGGU',
+    tingkat: 'BLOK',
+    judul: 'Pengajuan void belum diputuskan',
+    keterangan:
+      'Void hanya bisa disetujui selama shift asal transaksinya masih buka. Setujui, tolak, atau batalkan dulu.',
+    rincian: await repo.voidMenungguShift(ex, id),
+    tautan: '/void?tab=persetujuan',
+  });
+  tambah({
+    kode: 'LUAR_SHIFT',
+    tingkat: 'INFO',
+    judul: 'Pembayaran di luar shift (sebelum shift ini dibuka)',
+    keterangan: 'Dicatat saat shift toko belum dibuka; masuk catatan shift ini.',
+    rincian: (await repo.pembayaranLuarShift(ex, id)).map(
+      (b) => `${b.nomor} · ${b.metode} · ${formatRupiah(b.nominal)} · ${b.namaPengguna}`,
+    ),
+    tautan: null,
+  });
+  tambah({
+    kode: 'NONTUNAI_BELUM_DICEK',
+    tingkat: 'INFO',
+    judul: 'Non-tunai belum dicek masuk rekening',
+    keterangan: 'Bisa dicek belakangan oleh pemegang rekening; tidak memengaruhi uang di laci.',
+    rincian: await repo.nonTunaiBelumDicek(ex, id),
+    tautan: '/shift?tab=nontunai',
+  });
+  tambah({
+    kode: 'RETUR_MENUNGGU',
+    tingkat: 'INFO',
+    judul: 'Retur menunggu persetujuan',
+    keterangan: 'Uang refund (bila ada) keluar di shift yang terbuka saat disetujui.',
+    rincian: await repo.returMenunggu(ex),
+    tautan: '/retur?tab=persetujuan',
+  });
+  tambah({
+    kode: 'PENGEMBALIAN_TUNAI',
+    tingkat: 'INFO',
+    judul: 'Uang retur menunggu diserahkan tunai',
+    keterangan: 'Keluar dari kas shift saat diserahkan ke pembeli (Retur › Pengembalian uang).',
+    rincian: await repo.pengembalianTunaiMenunggu(ex),
+    tautan: '/retur?tab=pengembalian',
+  });
+  tambah({
+    kode: 'BAYAR_SAAT_TERIMA',
+    tingkat: 'INFO',
+    judul: 'Bayar saat terima: uang masih dibawa sopir',
+    keterangan: 'Masuk kas shift saat pembayarannya dicatat setelah sopir kembali.',
+    rincian: await repo.bayarSaatTerimaDiJalan(ex),
+    tautan: '/pengiriman',
+  });
+  return hasil;
+}
+
+/** K-197: penghalang tutup dan pengakuan daftar menggantung, dicek saat hitungan tutup pertama. */
+async function periksaMenggantung(tx: Tx, id: number, akui: boolean) {
+  const daftar = await halMenggantung(id, tx);
+  const blok = daftar.filter((h) => h.tingkat === 'BLOK');
+  if (blok.length > 0) {
+    throw new AppError(
+      'KONFLIK',
+      `Shift belum bisa ditutup: ${blok.map((h) => `${h.judul} (${h.jumlah})`).join('; ')}.`,
+      409,
+      { menggantung: blok },
+    );
+  }
+  if (daftar.length > 0 && !akui) {
+    throw new AppError(
+      'VALIDASI',
+      'Periksa daftar "Sebelum menutup" lalu centang "Sudah saya periksa".',
+      400,
+      { kolom: { akuiMenggantung: ['Centang dulu.'] }, menggantung: daftar },
+    );
+  }
+  return daftar;
 }
 
 async function toleransi(ex: Executor | Tx = db): Promise<number> {
@@ -901,6 +992,9 @@ async function kirimHitunganTutup(
     throw new AppError('STATUS_TIDAK_VALID', `Shift ${s.nomor} sudah ditutup.`, 409);
   }
   const uang = totalHitungan(input);
+  // K-197: hanya pada hitungan pertama (shift masih BUKA).
+  const menggantung =
+    s.status === 'BUKA' ? await periksaMenggantung(tx, id, input.akuiMenggantung ?? false) : [];
   const { ringkasan } = await rekonsiliasiDasar(tx, id, s.modalAwal);
   let jenis: 'TUTUP' | 'TUTUP_ULANG' = 'TUTUP';
   if (s.status === 'DIHITUNG') {
@@ -940,7 +1034,10 @@ async function kirimHitunganTutup(
     nomorDokumen: s.nomor,
     ringkasan:
       `${jenis === 'TUTUP' ? 'Hitungan tutup' : 'Hitung ulang'} shift ${s.nomor}: fisik ${formatRupiah(uang)}, ` +
-      `sistem ${formatRupiah(ringkasan.saldoSistem)}, selisih ${formatRupiah(uang - ringkasan.saldoSistem)}`,
+      `sistem ${formatRupiah(ringkasan.saldoSistem)}, selisih ${formatRupiah(uang - ringkasan.saldoSistem)}` +
+      (menggantung.length > 0
+        ? `; diakui: ${menggantung.map((h) => `${h.judul} (${h.jumlah})`).join(', ')}`
+        : ''),
     ip: asal.ip,
   });
 }

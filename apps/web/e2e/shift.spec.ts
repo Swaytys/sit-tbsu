@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { api, masukCepat, menuUtama } from './pembantu';
+import { api, masukCepat, menuUtama, tolakVoidMenunggu } from './pembantu';
 
 // Shift Demo Kasir yang masih terbuka dari uji lain ditutup dulu (uang fisik 0, keterangan "uji otomatis").
 // Menambah satu barang uji (dinonaktifkan di akhir) dan satu penjualan tunai di database pengembangan.
@@ -32,9 +32,11 @@ test(
       await masukCepat(kasir, 'KASIR');
       const lama = await api<{ id: number } | null>(kasir, '/shift/saya');
       if (lama) {
+        await tolakVoidMenunggu(admin);
         await api(kasir, `/shift/${lama.id}/tutup`, 'POST', {
           uangFisik: 0,
           keterangan: 'uji otomatis',
+          akuiMenggantung: true,
         });
       }
 
@@ -80,6 +82,9 @@ test(
       const hitung = kasir.getByTestId('hitung-tutup');
       await hitung.getByRole('radio', { name: 'Total saja' }).click();
       await hitung.getByLabel('Total uang shift').fill('104000');
+      // K-197: daftar "Sebelum menutup" (bila ada) wajib dicentang dulu.
+      const periksa = kasir.getByRole('checkbox', { name: 'Sudah saya periksa' });
+      if (await periksa.isVisible()) await periksa.check();
       await kasir.getByRole('button', { name: 'Kirim hitungan' }).click();
       await kasir.getByRole('button', { name: 'Ya, kirim' }).click();
 
@@ -149,9 +154,11 @@ test('Kasir: buka dulu hitung nanti, uang penjualan masuk, hitung susulan → ha
     await masukCepat(kasir, 'KASIR');
     const lama = await api<{ id: number } | null>(kasir, '/shift/saya');
     if (lama) {
+      await tolakVoidMenunggu(admin);
       await api(kasir, `/shift/${lama.id}/tutup`, 'POST', {
         uangFisik: 0,
         keterangan: 'uji otomatis',
+        akuiMenggantung: true,
       });
     }
     await menuUtama(kasir).getByRole('link', { name: 'Shift & Clerical Check' }).click();

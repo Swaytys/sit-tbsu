@@ -785,6 +785,18 @@ hanya mengganti `metode_refund` selama MENUNGGU. Tab web *Refund transfer* digan
 **Tes:** surat-jalan.test (lunas tunai menunggu → diserahkan → kas keluar; DP potong dulu vs kembalikan uang; belum
 bayar ditolak kembalikan uang; ganti cara + izin transfer), penerimaan.test (referensi wajib), e2e refund-transfer.
 
+### C30. Dependensi alur dan hal menggantung saat tutup shift (30 Oktober 2026, K-197)
+
+**Solusi:** tanpa migrasi. `halMenggantung()` di modul shift menyusun daftar BLOK/INFO dari kueri berparameter
+(void menunggu atas penjualan shift itu; pembayaran tanpa shift dalam jendela waktu tutup shift sebelumnya sampai
+buka shift ini; non-tunai belum dicek; retur menunggu; pengembalian tunai menunggu; bayar-saat-terima di jalan).
+Diperiksa pada hitungan tutup pertama: BLOK → 409; INFO tanpa `akuiMenggantung` → 400; yang diakui ditulis di log.
+"Masuk shift berikutnya" dihitung dari jendela waktu, jadi pembayaran lama tidak diubah (tetap append-only). Matriks
+dependensi ditulis di docs/05 §22.
+
+**Tes:** shift.test (void menunggu menghalangi; pembayaran di luar shift tampil; tanpa centang ditolak), e2e shift
+(centang sebelum kirim hitungan; sisa void uji ditolak dulu).
+
 ---
 
 ## Riwayat dokumen
@@ -818,4 +830,5 @@ bayar ditolak kembalikan uang; ganti cara + izin transfer), penerimaan.test (ref
 - 2026-10-28 — Bagian C26 pratinjau laporan per halaman A4 (K-182).
 - 2026-10-28 — Bagian C27 promo kombinasi dan beli N potong (K-185).
 - 2026-10-28 — Bagian C28 dasar markup FIFO (K-184).
+- 2026-10-30 — Bagian C30 dependensi alur dan tutup shift (K-197).
 - 2026-10-30 — Bagian C29 referensi tunggal, penyelesaian hasil kirim, pengembalian uang (K-196, K-192, K-193).

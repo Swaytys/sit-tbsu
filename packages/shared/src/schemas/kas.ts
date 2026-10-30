@@ -75,6 +75,8 @@ export const skemaHitungKas = z
   .object({
     uangFisik: skemaRupiah.optional(),
     rincian: skemaRincianPecahan.optional(),
+    /** K-197: daftar hal menggantung (info) sudah diperiksa; wajib bila daftarnya tidak kosong saat hitung tutup. */
+    akuiMenggantung: z.boolean().default(false),
   })
   .superRefine((d, ctx) => {
     if (d.uangFisik === undefined && d.rincian === undefined) {
@@ -186,6 +188,8 @@ export const skemaTutupShift = z.object({
   keterangan: teksOpsional(255, 'Keterangan maksimal 255 karakter.'),
   /** K-121: uang yang ditinggal di laci untuk shift berikutnya (sisanya disetor). */
   uangDitinggal: skemaRupiah.optional(),
+  /** K-197: lihat `skemaHitungKas.akuiMenggantung` (dipakai bila hitungan dikirim bersama penutupan). */
+  akuiMenggantung: z.boolean().default(false),
 });
 export type DataTutupShift = z.output<typeof skemaTutupShift>;
 
@@ -352,4 +356,25 @@ export type HasilHitungTutup = {
   hitungBukaTidakDilakukan: boolean;
   tinjauan: TinjauanShift;
   bantuan: BantuanSelisih;
+};
+
+/**
+ * K-197: hal yang masih menggantung pada shift saat akan ditutup. `BLOK` wajib diselesaikan dulu (setelah shift tutup
+ * tidak bisa lagi diselesaikan dengan benar); `INFO` tidak menghalangi tetapi wajib diakui (dicentang) saat hitung
+ * tutup, supaya catatan shift memuat apa yang terjadi.
+ */
+export type HalMenggantungShift = {
+  kode:
+    | 'VOID_MENUNGGU'
+    | 'RETUR_MENUNGGU'
+    | 'PENGEMBALIAN_TUNAI'
+    | 'NONTUNAI_BELUM_DICEK'
+    | 'BAYAR_SAAT_TERIMA'
+    | 'LUAR_SHIFT';
+  tingkat: 'BLOK' | 'INFO';
+  judul: string;
+  keterangan: string;
+  jumlah: number;
+  rincian: string[];
+  tautan: string | null;
 };

@@ -47,7 +47,12 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
   sudah diakui/diproses (mis. pengembalian tunai yang sudah disetujui, pembayaran yang belum diverifikasi); hal yang
   tidak bergantung pada shift boleh tetap berjalan. **Transaksi di luar shift** (non-tunai dan order saat shift belum
   dibuka) tetap boleh agar toko tidak macet, ditandai *di luar shift*, dan otomatis masuk shift berikutnya untuk diakui
-  saat shift itu dibuka. *Rencana.*
+  saat shift itu dibuka. *Rencana.* **Selesai (30 Okt):** matriks dependensi alur ditulis di docs/05 §22 (D1–D12).
+  Kotak **Sebelum menutup** di Tutup shift: merah (penghalang) = pengajuan void atas transaksi shift itu; kuning
+  (wajib dicentang *Sudah saya periksa*) = pembayaran di luar shift, non-tunai belum dicek, retur menunggu, uang retur
+  menunggu diserahkan, bayar-saat-terima di jalan. Transaksi di luar shift tidak diubah datanya; ia dihitung masuk
+  shift berikutnya menurut waktu (antara shift sebelumnya ditutup dan shift berikutnya dibuka) dan diakui saat shift
+  berikutnya ditutup. Penegakan ada di API (bukan hanya layar).
 - **K-198 Cadangan lokal diatur dari layar.** U70: tidak ada tombol untuk mengatur cadangan; layar meminta mengubah
   berkas `.env`. Folder cadangan (disk kedua/eksternal) dan sandinya diatur dari *Pengaturan › Cadangan* oleh Owner,
   dengan petunjuk langkah demi langkah. *Rencana.*
