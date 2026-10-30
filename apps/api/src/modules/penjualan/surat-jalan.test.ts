@@ -17,6 +17,7 @@ import { db } from '../../db/client';
 import {
   barang,
   hargaBarang,
+  kasShift,
   kendaraan,
   pelanggan,
   persediaan,
@@ -494,7 +495,7 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
     expect(d).toMatchObject({ statusPengiriman: 'SELESAI', sisaTagihan: 44000 });
   });
 
-  it('S10: invoice lunas tunai, barang ditolak → wajib pilih cara uang kembali; refund dari shift', async () => {
+  it('S10/K-193: invoice lunas, barang ditolak → wajib pilih cara uang kembali; tunai menunggu sampai diserahkan', async () => {
     await kirim(admin, '/api/shift/buka', { modalAwal: 100000 });
     const inv = await invoice([{ metode: 'TUNAI', nominal: 68000, uangDiterima: 68000 }]);
     const [semen] = inv.baris;
@@ -505,14 +506,132 @@ describe('surat jalan dan perjalanan (docs/05 §7)', () => {
       }),
     };
     const tanpa = await galat(admin, `/api/surat-jalan/${sj.id}/hasil`, isi);
-    expect(tanpa.pesan).toContain('melebihi sisa tagihan Rp 0');
+    expect(tanpa.pesan).toContain('Ada uang yang dikembalikan ke pembeli Rp 24.000');
+    // Lunas: potong tagihan tidak mungkin.
+    const potong = await galat(admin, `/api/surat-jalan/${sj.id}/hasil`, {
+      ...isi,
+      penyelesaianUang: 'POTONG_TAGIHAN',
+      metodeRefund: 'TUNAI',
+    });
+    expect(potong.pesan).toContain('Tagihan sudah lunas');
+    const kasKeluar = async (idRetur: number) =>
+      (await db.select().from(kasShift).where(eq(kasShift.idRetur, idRetur))).reduce(
+        (t, k) => t + k.nominal,
+        0,
+      );
     const s = await kirim<BarisSuratJalan>(admin, `/api/surat-jalan/${sj.id}/hasil`, {
       ...isi,
       metodeRefund: 'TUNAI',
     });
-    const r = await ambil<BarisRetur>(admin, `/api/retur/${s.hasil!.returUang!.id}`);
-    expect(r).toMatchObject({ penyelesaian: 'REFUND', metodeRefund: 'TUNAI', totalRetur: 24000 });
+    const idRetur = s.hasil!.returUang!.id;
+    const r = await ambil<BarisRetur>(admin, `/api/retur/${idRetur}`);
+    expect(r).toMatchObject({
+      penyelesaian: 'REFUND',
+      metodeRefund: 'TUNAI',
+      totalRetur: 24000,
+      statusTransfer: 'MENUNGGU',
+      nominalRefund: 24000,
+    });
+    // Belum keluar dari kas sampai pembeli datang mengambil.
+    expect(await kasKeluar(idRetur)).toBe(0);
+    const tugas = await ambil<{ id: number; metodeRefund: string }[]>(
+      kasir,
+      '/api/retur/pengembalian',
+    );
+    expect(tugas).toEqual([expect.objectContaining({ id: idRetur, metodeRefund: 'TUNAI' })]);
+    await kirim(kasir, `/api/retur/${idRetur}/pengembalian`, { metode: 'TUNAI' });
+    expect(await kasKeluar(idRetur)).toBe(24000);
+    expect(await ambil(kasir, '/api/retur/pengembalian')).toEqual([]);
     expect((await detail(inv.id)).statusPembayaran).toBe('LUNAS');
+  });
+
+  it('K-192: DP → potong tagihan dulu (kelebihan dikembalikan) atau kembalikan uang (maks. yang dibayar); belum bayar hanya potong', async () => {
+    await kirim(admin, '/api/shift/buka', { modalAwal: 100000 });
+    // Total 68.000, DP 20.000, sisa 48.000.
+    const dp = [{ metode: 'TUNAI', nominal: 20000, uangDiterima: 20000 }];
+    const a = await invoice(dp);
+    const sjA = await sjBerangkat(a);
+    // Kembalikan uang: semen 2 = 24.000 → uang kembali 20.000 (yang sudah dibayar), 4.000 memotong tagihan.
+    const sA = await kirim<BarisSuratJalan>(admin, `/api/surat-jalan/${sjA.id}/hasil`, {
+      baris: hasil(a, {
+        [a.baris[0]!.id]: { qtyDiterima: '3', qtyKembali: '2', alasanKembali: 'BATAL_BELI' },
+      }),
+      penyelesaianUang: 'KEMBALIKAN_UANG',
+      metodeRefund: 'TRANSFER',
+    });
+    expect(await ambil<BarisRetur>(admin, `/api/retur/${sA.hasil!.returUang!.id}`)).toMatchObject({
+      nominalRefund: 20000,
+      statusTransfer: 'MENUNGGU',
+    });
+    expect((await detail(a.id)).sisaTagihan).toBe(44000);
+
+    // Potong tagihan: semen 5 = 60.000 > sisa 48.000 → sisa jadi 0, kelebihan 12.000 dikembalikan.
+    const b = await invoice(dp);
+    const sjB = await sjBerangkat(b);
+    const sB = await kirim<BarisSuratJalan>(admin, `/api/surat-jalan/${sjB.id}/hasil`, {
+      baris: hasil(b, {
+        [b.baris[0]!.id]: { qtyDiterima: '0', qtyKembali: '5', alasanKembali: 'BATAL_BELI' },
+      }),
+      penyelesaianUang: 'POTONG_TAGIHAN',
+      metodeRefund: 'TUNAI',
+    });
+    expect(await ambil<BarisRetur>(admin, `/api/retur/${sB.hasil!.returUang!.id}`)).toMatchObject({
+      nominalRefund: 12000,
+      metodeRefund: 'TUNAI',
+      statusTransfer: 'MENUNGGU',
+    });
+    expect((await detail(b.id)).sisaTagihan).toBe(0);
+
+    // Belum bayar: kembalikan uang ditolak. (Stok pasir uji ditambah dulu.)
+    const adj = await kirim<{ id: number }>(admin, '/api/penyesuaian', {
+      jenis: 'KOREKSI',
+      alasan: 'tambah stok uji',
+      baris: [{ idBarang: m.pasir, qtySelisih: '5' }],
+    });
+    await kirim(admin, `/api/penyesuaian/${adj.id}/selesai`);
+    const c = await invoice();
+    const sjC = await sjBerangkat(c);
+    const salah = await galat(admin, `/api/surat-jalan/${sjC.id}/hasil`, {
+      baris: hasil(c, {
+        [c.baris[0]!.id]: { qtyDiterima: '4', qtyKembali: '1', alasanKembali: 'KELEBIHAN' },
+      }),
+      penyelesaianUang: 'KEMBALIKAN_UANG',
+      metodeRefund: 'TUNAI',
+    });
+    expect(salah.pesan).toContain('belum membayar');
+  });
+
+  it('K-193: cara pengembalian bisa diganti selama menunggu (alasan di log); transfer dikonfirmasi Admin/Owner saja', async () => {
+    await kirim(admin, '/api/shift/buka', { modalAwal: 100000 });
+    const inv = await invoice([{ metode: 'TUNAI', nominal: 68000, uangDiterima: 68000 }]);
+    const sj = await sjBerangkat(inv);
+    const s = await kirim<BarisSuratJalan>(admin, `/api/surat-jalan/${sj.id}/hasil`, {
+      baris: hasil(inv, {
+        [inv.baris[0]!.id]: { qtyDiterima: '4', qtyKembali: '1', alasanKembali: 'KELEBIHAN' },
+      }),
+      metodeRefund: 'TRANSFER',
+    });
+    const id = s.hasil!.returUang!.id;
+    const tolak = await galat(kasir, `/api/retur/${id}/pengembalian`, {
+      metode: 'TRANSFER',
+      rekeningRefund: 'BCA 123456 a.n. Proyek',
+      referensiRefund: 'TRF889900',
+    });
+    expect(tolak.status).toBe(403);
+    const tanpaAlasan = await galat(kasir, `/api/retur/${id}/ganti-cara`, { metode: 'TUNAI' });
+    expect(tanpaAlasan.status).toBe(400);
+    const daftar = await kirim<{ id: number; metodeRefund: string }[]>(
+      kasir,
+      `/api/retur/${id}/ganti-cara`,
+      { metode: 'TUNAI', alasan: 'Pembeli minta tunai saat datang' },
+    );
+    expect(daftar).toEqual([expect.objectContaining({ id, metodeRefund: 'TUNAI' })]);
+    await kirim(kasir, `/api/retur/${id}/pengembalian`, { metode: 'TUNAI' });
+    const ulang = await galat(kasir, `/api/retur/${id}/ganti-cara`, {
+      metode: 'TRANSFER',
+      alasan: 'coba lagi',
+    });
+    expect(ulang.status).toBe(409);
   });
 
   it('K-176: refund transfer tanpa rekening → tugas menunggu transfer; konfirmasi wajib rekening + bukti, sekali saja', async () => {

@@ -114,6 +114,9 @@ export const AKSI_LOG = [
   'RETUR_BATAL',
   // K-176: refund transfer dikonfirmasi sudah ditransfer.
   'RETUR_TRANSFER',
+  // K-193: uang retur diserahkan tunai; cara pengembalian diganti selama menunggu.
+  'RETUR_KEMBALI_TUNAI',
+  'RETUR_GANTI_CARA',
   'VOID_AJUKAN',
   'VOID_SETUJUI',
   'VOID_TOLAK',

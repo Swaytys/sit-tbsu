@@ -238,6 +238,13 @@ export const PENYELESAIAN_RETUR = ['REFUND', 'TUKAR_BARANG', 'POTONG_TAGIHAN'] a
 export type PenyelesaianRetur = (typeof PENYELESAIAN_RETUR)[number];
 
 export const METODE_REFUND = ['TUNAI', 'TRANSFER'] as const;
+
+/**
+ * K-192: penyelesaian nilai barang kembali/rusak dari hasil pengantaran, menurut status bayar pembeli: belum bayar →
+ * hanya POTONG_TAGIHAN; sudah bayar sebagian → keduanya; lunas → hanya KEMBALIKAN_UANG.
+ */
+export const PENYELESAIAN_UANG_HASIL = ['POTONG_TAGIHAN', 'KEMBALIKAN_UANG'] as const;
+export type PenyelesaianUangHasil = (typeof PENYELESAIAN_UANG_HASIL)[number];
 export type MetodeRefund = (typeof METODE_REFUND)[number];
 
 export const KONDISI_RETUR = ['BAIK', 'RUSAK', 'CACAT'] as const;
@@ -413,9 +420,9 @@ export const ALASAN_KEMBALI = ['KIRIM_ULANG', 'KELEBIHAN', 'SALAH_BARANG', 'BATA
 export type AlasanKembali = (typeof ALASAN_KEMBALI)[number];
 export const LABEL_ALASAN_KEMBALI: Record<AlasanKembali, string> = {
   KIRIM_ULANG: 'Kirim ulang nanti (penerima tidak ada/ditunda)',
-  KELEBIHAN: 'Kelebihan pesanan (tagihan dikurangi)',
-  SALAH_BARANG: 'Salah barang (tagihan dikurangi)',
-  BATAL_BELI: 'Pembeli batal (tagihan dikurangi)',
+  KELEBIHAN: 'Kelebihan pesanan (kembali ke stok)',
+  SALAH_BARANG: 'Salah barang (kembali ke stok)',
+  BATAL_BELI: 'Pembeli batal (kembali ke stok)',
 };
 
 /** K-176: alasan barang rusak; keduanya ditanggung toko (S11). */

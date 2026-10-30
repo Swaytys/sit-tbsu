@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   char,
   check,
   foreignKey,
@@ -76,6 +77,17 @@ export const returPenjualan = pgTable(
     statusTransfer: varchar('status_transfer', { length: 10, enum: STATUS_TRANSFER }),
     waktuTransfer: timestamptz('waktu_transfer'),
     idPenggunaTransfer: kolomRef('id_pengguna_transfer'),
+    /**
+     * K-193 (migrasi 0039): uang dikembalikan belakangan (retur dari hasil pengantaran: pembeli tidak di toko).
+     * Tunai maupun transfer menjadi tugas MENUNGGU di `status_transfer` (= status pengembalian uang) dan baru keluar
+     * dari kas/rekening saat dikonfirmasi; cara pengembalian boleh diganti selama MENUNGGU.
+     */
+    pengembalianDitunda: boolean('pengembalian_ditunda').notNull().default(false),
+    /**
+     * K-192: penyelesaian "potong tagihan" pada pembeli yang sudah membayar sebagian: sisa tagihan dipotong lebih dulu,
+     * hanya kelebihannya yang dikembalikan (kebalikan T6 yang mengembalikan uang lebih dulu).
+     */
+    potongDulu: boolean('potong_dulu').notNull().default(false),
   },
   (t) => [
     foreignKey({
@@ -85,7 +97,7 @@ export const returPenjualan = pgTable(
     }),
     check(
       'chk_retur_transfer',
-      sql`status_transfer is null or (status_transfer in ('MENUNGGU','SELESAI') and metode_refund = 'TRANSFER')`,
+      sql`status_transfer is null or (status_transfer in ('MENUNGGU','SELESAI') and metode_refund in ('TUNAI','TRANSFER'))`,
     ),
     foreignKey({
       name: 'retur_penjualan_id_penjualan_fkey',

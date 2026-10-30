@@ -22,6 +22,8 @@ import type {
   StatusPersetujuan,
   StatusShift,
   StatusSuratJalan,
+  InputGantiCaraPengembalian,
+  InputKonfirmasiPengembalian,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -675,23 +677,23 @@ export function useTolakRetur() {
   );
 }
 
-/** K-176: tugas refund transfer (menunggu/selesai). */
-export function useRefundTransfer(status: 'MENUNGGU' | 'SELESAI', aktifkan = true) {
+/** K-193: pengembalian uang menunggu/selesai (tunai dan transfer). */
+export function usePengembalian(status: 'MENUNGGU' | 'SELESAI', aktifkan = true) {
   return useQuery({
-    queryKey: ['koreksi', 'refund-transfer', status],
-    queryFn: async () => ambilData(await api.retur['refund-transfer'].$get({ query: { status } })),
+    queryKey: ['koreksi', 'pengembalian', status],
+    queryFn: async () => ambilData(await api.retur.pengembalian.$get({ query: { status } })),
     enabled: aktifkan,
   });
 }
 
-export function useKonfirmasiTransfer() {
-  return useMutasiKoreksi(
-    async ({
-      id,
-      json,
-    }: {
-      id: number;
-      json: { rekeningRefund: string; referensiRefund: string };
-    }) => ambilData(await api.retur[':id'].transfer.$post({ param: paramId(id), json })),
+export function useKonfirmasiPengembalian() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: InputKonfirmasiPengembalian }) =>
+    ambilData(await api.retur[':id'].pengembalian.$post({ param: paramId(id), json })),
+  );
+}
+
+export function useGantiCaraPengembalian() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: InputGantiCaraPengembalian }) =>
+    ambilData(await api.retur[':id']['ganti-cara'].$post({ param: paramId(id), json })),
   );
 }

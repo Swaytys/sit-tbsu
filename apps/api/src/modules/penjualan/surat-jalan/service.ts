@@ -472,13 +472,41 @@ export async function catatHasil(
             }))
         : [];
     const nilai = [...barisKembali, ...barisRusak].reduce((t, x) => t + nilaiBaris(x), 0);
-    const { sisa } = hitungTagihan(pj);
-    const potong = nilai <= sisa;
+    const { sisa, dibayarBersih } = hitungTagihan(pj);
+    // K-192: penyelesaian menurut status bayar. Belum bayar → hanya potong tagihan; lunas → hanya kembalikan
+    // uang; bayar sebagian → pilih. Kosong = otomatis (potong bila muat di sisa tagihan).
+    const sudahBayar = dibayarBersih > 0;
+    const adaSisa = sisa > 0;
+    const cara =
+      input.penyelesaianUang ??
+      (nilai <= sisa || !sudahBayar ? 'POTONG_TAGIHAN' : 'KEMBALIKAN_UANG');
+    if (nilai > 0 && cara === 'POTONG_TAGIHAN' && !adaSisa) {
+      throw new AppError(
+        'VALIDASI',
+        'Tagihan sudah lunas, jadi tidak ada yang bisa dipotong: pilih Kembalikan uang.',
+        400,
+        { kolom: { penyelesaianUang: ['Tagihan sudah lunas.'] } },
+      );
+    }
+    if (nilai > 0 && cara === 'KEMBALIKAN_UANG' && !sudahBayar) {
+      throw new AppError(
+        'VALIDASI',
+        'Pembeli belum membayar apa pun, jadi tidak ada uang yang dikembalikan: pilih Potong tagihan.',
+        400,
+        { kolom: { penyelesaianUang: ['Pembeli belum membayar.'] } },
+      );
+    }
+    // Uang yang benar-benar kembali: potong tagihan → hanya kelebihan di atas sisa tagihan; kembalikan uang →
+    // sampai sebesar yang sudah dibayar.
+    const uangKembali =
+      cara === 'POTONG_TAGIHAN'
+        ? Math.min(Math.max(0, nilai - Math.max(0, sisa)), Math.max(0, dibayarBersih))
+        : Math.min(nilai, Math.max(0, dibayarBersih));
+    const potong = uangKembali === 0;
     if (nilai > 0 && !potong && !input.metodeRefund) {
       throw new AppError(
         'VALIDASI',
-        `Nilai barang dikembalikan/rusak ${formatRupiah(nilai)} melebihi sisa tagihan ` +
-          `${formatRupiah(Math.max(0, sisa))}: pilih cara uang dikembalikan (tunai/transfer).`,
+        `Ada uang yang dikembalikan ke pembeli ${formatRupiah(uangKembali)}: pilih caranya (tunai/transfer).`,
         400,
         { kolom: { metodeRefund: ['Pilih cara uang dikembalikan.'] } },
       );
@@ -510,6 +538,8 @@ export async function catatHasil(
             },
             pelaku,
             asal,
+            // K-193: pembeli tidak di toko; uangnya diserahkan/ditransfer belakangan lewat Pengembalian uang.
+            { pengembalianDitunda: true, potongDulu: cara === 'POTONG_TAGIHAN' },
           );
     const returUang: ReturDibuat | null = await ajukanUang(
       barisKembali,

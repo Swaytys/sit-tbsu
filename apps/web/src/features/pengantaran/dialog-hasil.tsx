@@ -5,18 +5,22 @@ import {
   kurangQty,
   LABEL_ALASAN_KEMBALI,
   LABEL_ALASAN_RUSAK,
+  formatRupiah,
+  LABEL_PENYELESAIAN_UANG_HASIL,
   tambahQty,
   type AlasanKembali,
   type AlasanRusak,
   type BarisSuratJalan,
   type MetodeRefund,
   type PenangananRusak,
+  type PenyelesaianUangHasil,
 } from '@sit/shared';
 import { CheckCheck } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
 import { useCatatHasil } from '@/api/armada';
+import { useDetailPenjualan } from '@/api/penjualan';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -60,6 +64,8 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
   );
   const [penanganan, setPenanganan] = useState<PenangananRusak | null>(null);
   const [metode, setMetode] = useState<MetodeRefund | null>(null);
+  const [cara, setCara] = useState<PenyelesaianUangHasil | null>(null);
+  const pj = useDetailPenjualan(sj.idPenjualan).data;
   const [rekening, setRekening] = useState('');
   const [penerima, setPenerima] = useState(sj.namaPenerima ?? '');
   const [catatan, setCatatan] = useState('');
@@ -88,6 +94,37 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
   );
   const adaSalah = baris.some((r) => !r.valid || r.lebih);
 
+  // K-192: perkiraan tampilan (angka final dari API) untuk memilih penyelesaian menurut status bayar.
+  const hargaBaris = new Map(
+    (pj?.baris ?? []).map((b) => [b.id, Number(b.qty) > 0 ? b.subtotal / Number(b.qty) : 0]),
+  );
+  const nilaiUang = baris.reduce((t, r) => {
+    const h = hargaBaris.get(r.b.idPenjualanDetail) ?? 0;
+    const kembali =
+      ada(r.x.qtyKembali) && r.x.alasanKembali !== 'KIRIM_ULANG'
+        ? Number(angka(r.x.qtyKembali))
+        : 0;
+    const rusak =
+      penanganan === 'KURANGI_TAGIHAN' && ada(r.x.qtyRusak) ? Number(angka(r.x.qtyRusak)) : 0;
+    return t + Math.round(h * (kembali + rusak));
+  }, 0);
+  const dibayar = pj ? Math.max(0, pj.totalDibayar - pj.totalRefund) : 0;
+  const sisa = pj ? Math.max(0, pj.sisaTagihan) : 0;
+  const pilihanCara: PenyelesaianUangHasil[] =
+    dibayar <= 0
+      ? ['POTONG_TAGIHAN']
+      : sisa <= 0
+        ? ['KEMBALIKAN_UANG']
+        : ['POTONG_TAGIHAN', 'KEMBALIKAN_UANG'];
+  const caraDipakai: PenyelesaianUangHasil | null =
+    pilihanCara.length === 1 ? pilihanCara[0]! : cara;
+  const uangKembali =
+    caraDipakai === 'POTONG_TAGIHAN'
+      ? Math.min(Math.max(0, nilaiUang - sisa), dibayar)
+      : caraDipakai === 'KEMBALIKAN_UANG'
+        ? Math.min(nilaiUang, dibayar)
+        : 0;
+
   function ubah<K extends keyof Isian>(id: number, k: K, v: Isian[K]) {
     setIsi((s) => ({ ...s, [id]: { ...s[id]!, [k]: v } }));
   }
@@ -105,6 +142,14 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
       toast.error('Ada barang rusak: pilih kirim pengganti atau kurangi tagihan.');
       return;
     }
+    if (!semuaDiterima && adaUang && !caraDipakai) {
+      toast.error('Pilih penyelesaiannya: potong tagihan atau kembalikan uang.');
+      return;
+    }
+    if (!semuaDiterima && adaUang && uangKembali > 0 && !metode) {
+      toast.error('Pilih cara uang dikembalikan: tunai atau transfer.');
+      return;
+    }
     catat
       .mutateAsync({
         id: sj.id,
@@ -118,8 +163,9 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
             alasanRusak: semuaDiterima || !ada(r.x.qtyRusak) ? null : r.x.alasanRusak || null,
           })),
           penangananRusak: semuaDiterima || !adaRusak ? null : penanganan,
-          metodeRefund: semuaDiterima ? null : metode,
+          metodeRefund: semuaDiterima || uangKembali === 0 ? null : metode,
           rekeningRefund: metode === 'TRANSFER' ? rekening.trim() || null : null,
+          penyelesaianUang: semuaDiterima || !adaUang ? null : caraDipakai,
           namaPenerima: penerima.trim() || null,
           catatan: catatan.trim() || null,
         },
@@ -138,9 +184,9 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
               (penanganan === 'KIRIM_PENGGANTI' && ada(r.x.qtyRusak)),
           );
         if (ulang) pesan.push('Barang yang dikirim ulang muncul lagi di Backlog Pengiriman.');
-        if (!semuaDiterima && metode === 'TRANSFER' && adaUang)
+        if (!semuaDiterima && adaUang && uangKembali > 0)
           pesan.push(
-            'Pengembalian uang lewat transfer menunggu di Retur Penjualan › Refund transfer.',
+            `Uang ${formatRupiah(uangKembali)} menunggu dikembalikan (${metode === 'TUNAI' ? 'tunai' : 'transfer'}) di Retur Penjualan › Pengembalian uang.`,
           );
         toast.success(pesan.join(' '), { duration: 10_000 });
         onTutup();
@@ -272,8 +318,8 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
         </div>
         <p className="text-xs text-slate-500">
           <b>Kirim ulang nanti</b>: barang tetap milik pembeli dan muncul lagi di Backlog.{' '}
-          <b>Kelebihan / salah barang / pembeli batal</b>: barang kembali ke stok dan tagihan
-          dikurangi otomatis.
+          <b>Kelebihan / salah barang / pembeli batal</b>: barang kembali ke stok; nilainya
+          diselesaikan di bawah (potong tagihan atau kembalikan uang, menurut status bayar).
         </p>
         {adaRusak && (
           <fieldset className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
@@ -284,7 +330,7 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
               {(
                 [
                   ['KIRIM_PENGGANTI', 'Dikirim pengganti (tagihan tetap)'],
-                  ['KURANGI_TAGIHAN', 'Tagihan dikurangi'],
+                  ['KURANGI_TAGIHAN', 'Tidak diganti (potong tagihan/kembalikan uang)'],
                 ] as const
               ).map(([v, label]) => (
                 <label key={v} className="flex items-center gap-1.5">
@@ -301,43 +347,81 @@ export function DialogHasil({ sj, onTutup }: { sj: BarisSuratJalan; onTutup: () 
           </fieldset>
         )}
         {adaUang && (
-          <fieldset className="rounded-md border p-3 text-sm">
-            <legend className="px-1 font-semibold">Nilai barang dikembalikan/rusak</legend>
+          <fieldset className="rounded-md border p-3 text-sm" data-testid="penyelesaian-uang">
+            <legend className="px-1 font-semibold">
+              Nilai barang dikembalikan/rusak ±{formatRupiah(nilaiUang)}
+            </legend>
             <p className="text-slate-600">
-              Memotong sisa tagihan. Bila tagihan sudah lunas, uangnya dikembalikan lewat:
+              {pj
+                ? dibayar <= 0
+                  ? `Pembeli belum membayar (sisa tagihan ${formatRupiah(sisa)}): nilainya memotong tagihan.`
+                  : sisa <= 0
+                    ? `Tagihan sudah lunas (${formatRupiah(dibayar)} dibayar): uangnya dikembalikan ke pembeli.`
+                    : `Pembeli sudah membayar ${formatRupiah(dibayar)}, sisa tagihan ${formatRupiah(sisa)}. Pilih:`
+                : 'Memuat status pembayaran…'}
             </p>
-            <div className="mt-1 flex flex-wrap items-center gap-4">
-              {(
-                [
-                  ['TUNAI', 'Tunai (uang shift)'],
-                  ['TRANSFER', 'Transfer'],
-                ] as const
-              ).map(([v, label]) => (
-                <label key={v} className="flex items-center gap-1.5">
-                  <input
-                    type="radio"
-                    name="metode-refund"
-                    checked={metode === v}
-                    onChange={() => setMetode(v)}
-                  />
-                  {label}
-                </label>
-              ))}
-              {metode === 'TRANSFER' && (
-                <Input
-                  className="h-8 w-64"
-                  value={rekening}
-                  onChange={(e) => setRekening(e.target.value)}
-                  placeholder="Rekening pembeli (boleh diisi nanti)"
-                  aria-label="Rekening pembeli"
-                />
-              )}
-            </div>
-            {metode === 'TRANSFER' && (
-              <p className="mt-1 text-xs text-slate-500">
-                Transfer dikerjakan belakangan: tugasnya muncul di Retur Penjualan › Refund transfer
-                sampai dikonfirmasi dengan nomor referensi/bukti transfer.
-              </p>
+            {pilihanCara.length > 1 && (
+              <div className="mt-1 flex flex-wrap gap-4">
+                {pilihanCara.map((v) => (
+                  <label key={v} className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="penyelesaian-uang"
+                      checked={cara === v}
+                      onChange={() => setCara(v)}
+                    />
+                    {LABEL_PENYELESAIAN_UANG_HASIL[v]}
+                    <span className="text-xs text-slate-500">
+                      {v === 'POTONG_TAGIHAN'
+                        ? nilaiUang > sisa
+                          ? `(sisa tagihan jadi Rp 0, kelebihan ${formatRupiah(nilaiUang - sisa)} dikembalikan)`
+                          : `(sisa tagihan jadi ${formatRupiah(sisa - nilaiUang)})`
+                        : nilaiUang > dibayar
+                          ? `(${formatRupiah(dibayar)} kembali, ${formatRupiah(nilaiUang - dibayar)} memotong tagihan)`
+                          : `(${formatRupiah(nilaiUang)} kembali, tagihan tetap)`}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {uangKembali > 0 && (
+              <>
+                <p className="mt-2 font-medium">
+                  Uang {formatRupiah(uangKembali)} dikembalikan lewat:
+                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-4">
+                  {(
+                    [
+                      ['TUNAI', 'Tunai (diambil/diantar nanti)'],
+                      ['TRANSFER', 'Transfer'],
+                    ] as const
+                  ).map(([v, label]) => (
+                    <label key={v} className="flex items-center gap-1.5">
+                      <input
+                        type="radio"
+                        name="metode-refund"
+                        checked={metode === v}
+                        onChange={() => setMetode(v)}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                  {metode === 'TRANSFER' && (
+                    <Input
+                      className="h-8 w-64"
+                      value={rekening}
+                      onChange={(e) => setRekening(e.target.value)}
+                      placeholder="Rekening pembeli (boleh diisi nanti)"
+                      aria-label="Rekening pembeli"
+                    />
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Uangnya belum keluar sekarang: tugasnya menunggu di Retur Penjualan › Pengembalian
+                  uang sampai dikonfirmasi diserahkan/ditransfer. Caranya masih bisa diganti di
+                  sana.
+                </p>
+              </>
             )}
           </fieldset>
         )}

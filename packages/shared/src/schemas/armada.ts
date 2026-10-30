@@ -13,6 +13,7 @@ import {
   type StatusPerjalanan,
   type StatusSuratJalan,
   type TingkatPengingat,
+  PENYELESAIAN_UANG_HASIL,
 } from '../enums';
 import { skemaQtyTeks } from './barang';
 import { skemaTanggal } from './persediaan';
@@ -275,6 +276,11 @@ export const skemaHasilSuratJalan = z.object({
    */
   metodeRefund: z.enum(METODE_REFUND).nullable().default(null),
   rekeningRefund: teksOpsional(60, 'Rekening maksimal 60 karakter.'),
+  /**
+   * K-192: potong tagihan atau kembalikan uang (menurut status bayar). Kosong = otomatis: potong tagihan bila
+   * nilainya muat di sisa tagihan, selain itu kembalikan uang.
+   */
+  penyelesaianUang: z.enum(PENYELESAIAN_UANG_HASIL).nullable().default(null),
   namaPenerima: teksOpsional(100, 'Nama penerima maksimal 100 karakter.'),
   catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
 });

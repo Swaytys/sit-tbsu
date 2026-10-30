@@ -555,6 +555,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-24 — v3.24: `perjalanan.status` DIRENCANAKAN dan BATAL, `jadwal_berangkat`, `alasan_batal`,
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
+- 2026-10-30 — v3.36: `retur_penjualan.pengembalian_ditunda`, `potong_dulu` (boolean); CHECK `chk_retur_transfer`
+  kini menerima `metode_refund` TUNAI (status pengembalian uang tunai maupun transfer) (migrasi 0039, K-192, K-193).
 - 2026-10-28 — v3.35: `persediaan.harga_fifo` [CACHE] + CHECK `chk_persediaan_fifo`, diisi dari ledger saat migrasi;
   konfigurasi `dasar_markup` boleh `FIFO` (migrasi 0038, K-184).
 - 2026-10-28 — v3.34: `promo.sasaran` KELOMPOK dan `jenis_potongan` BELI_POTONG; `promo_sasaran` boleh berisi

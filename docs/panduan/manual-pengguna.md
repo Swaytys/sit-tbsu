@@ -253,16 +253,27 @@ kendaraan + satu sopir berangkat sekali, membawa satu atau beberapa surat jalan.
      - **Kembali utuh** (barang dibawa pulang dalam keadaan baik), alasan:
        - *Kirim ulang nanti* (rumah tutup, alamat salah, pembeli menunda): barang tetap milik pembeli, stok tidak
          berubah, dan muncul lagi di *Backlog* bertanda *Kirim ulang*.
-       - *Kelebihan pesanan*, *Salah barang*, atau *Pembeli batal*: barang kembali ke stok jual dan **tagihan
-         dikurangi otomatis**.
+       - *Kelebihan pesanan*, *Salah barang*, atau *Pembeli batal*: barang kembali ke stok jual; nilainya
+         diselesaikan di kotak di bawahnya.
      - **Rusak**, alasan *Rusak di jalan* atau *Rusak/cacat saat dicek pembeli*: ditanggung toko (masuk stok rusak).
        Tanyakan pembeli lalu pilih **Dikirim pengganti** (tagihan tetap; pengganti muncul di *Backlog*) atau
-       **Tagihan dikurangi**.
-     - Bila invoice sudah lunas dan ada nilai yang dikurangi, pilih cara uang dikembalikan: **Tunai** (dari uang
-       shift, langsung) atau **Transfer**. Rekening pembeli boleh dikosongkan dulu: transfer menjadi tugas di
-       *Retur Penjualan › Refund transfer* (lonceng: *Refund menunggu transfer*). Setelah uang dikirim dari rekening
-       toko, buka tab itu → **Sudah ditransfer** → isi rekening tujuan dan **nomor referensi/bukti** dari bank →
-       **Enter**.
+       **Tidak diganti** (nilainya diselesaikan di kotak di bawahnya).
+     - Kotak **Nilai barang dikembalikan/rusak** menyebut status bayar pembeli dan pilihannya:
+       - pembeli **belum membayar** apa pun → nilainya **memotong tagihan** (tanpa pilihan);
+       - pembeli **sudah membayar sebagian** (DP) → pilih **Potong tagihan** (sisa tagihan berkurang; bila nilainya
+         lebih besar dari sisa tagihan, kelebihannya dikembalikan) atau **Kembalikan uang** (paling banyak sebesar
+         yang sudah dibayar; sisanya memotong tagihan). Di samping tiap pilihan tertulis hasilnya;
+       - tagihan **sudah lunas** → uangnya **dikembalikan** (tanpa pilihan).
+     - Bila ada uang yang dikembalikan, pilih **Tunai** (diambil di toko atau diantar nanti) atau **Transfer**
+       (rekening pembeli boleh dikosongkan dulu). Uangnya **belum keluar** saat hasil disimpan: tugasnya menunggu di
+       *Retur Penjualan › Pengembalian uang* (lonceng: *Pengembalian uang menunggu*).
+   - **Pengembalian uang** (*Retur Penjualan › Pengembalian uang*): dua daftar.
+     - *Menunggu diserahkan tunai*: saat pembeli datang/uang diantar, klik **Sudah diserahkan** → **Enter**. Uang
+       dicatat keluar dari kas shift yang sedang buka (shift harus terbuka).
+     - *Menunggu ditransfer* (Admin/Owner): kirim uangnya dari rekening toko, klik **Sudah ditransfer** → isi
+       rekening tujuan dan **No. referensi** dari bank (4–40 huruf/angka) → **Enter**.
+     - Salah pilih cara, atau pembeli berubah pikiran? Klik **Jadikan tunai** / **Jadikan transfer**, isi alasannya
+       (ada saran yang bisa diklik) → **Ganti cara**. Bisa selama belum dikonfirmasi.
    - Isi **Nama yang menerima** bila berbeda dari pembeli → **Simpan hasil**.
    Kartu surat jalan di *Di jalan* dan *Selesai hari ini* diberi penanda: **Terkirim semua** (hijau), **Ada yang
    kembali** (kuning), **Ada yang rusak** (merah); klik nomornya untuk rincian.

@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 import { api, idRekening, masukCepat } from './pembantu';
 
 // K-176: hasil pengantaran dengan alasan; barang kembali karena kelebihan pada invoice lunas → refund transfer tanpa
-// rekening → tugas di Retur › Refund transfer → konfirmasi dengan rekening + bukti. Data uji dinonaktifkan.
+// rekening → tugas di Retur › Pengembalian uang (K-193; cara bisa diganti) → konfirmasi dengan rekening + bukti.
+// Data uji dinonaktifkan.
 
 test('Hasil pengantaran: kelebihan pesanan → refund transfer menunggu → dikonfirmasi dengan bukti', async ({
   page,
@@ -75,26 +76,42 @@ test('Hasil pengantaran: kelebihan pesanan → refund transfer menunggu → diko
     await page.getByLabel(`Alasan kembali ${nama}`).selectOption('KELEBIHAN');
     await page.getByRole('radio', { name: 'Transfer' }).check();
     await page.getByRole('button', { name: 'Simpan hasil' }).click();
-    await expect(page.getByText(/Refund transfer/)).toBeVisible();
+    await expect(page.getByText(/menunggu dikembalikan \(transfer\)/)).toBeVisible();
     await expect(page.getByTestId('ringkas-hasil')).toContainText(
       'dikembalikan 1 dus (kelebihan pesanan)',
     );
 
-    // Tugas transfer di Retur › Refund transfer.
-    await page.goto('/retur?tab=transfer');
-    const baris = page
-      .locator('[data-testid^="transfer-RTR-"]')
-      .filter({ hasText: `Toko Refund E2E ${kode}` });
-    await expect(baris).toContainText('Rp 50.000');
-    await expect(baris).toContainText('belum diisi');
-    await baris.getByRole('button', { name: 'Sudah ditransfer' }).click();
+    // K-193: tugas di Retur › Pengembalian uang; cara bisa diganti (dengan alasan) selama menunggu.
+    await page.goto('/retur?tab=pengembalian');
+    const pembeli = `Toko Refund E2E ${kode}`;
+    const diTransfer = page
+      .getByTestId('pengembalian-TRANSFER')
+      .locator('tr')
+      .filter({ hasText: pembeli });
+    const diTunai = page
+      .getByTestId('pengembalian-TUNAI')
+      .locator('tr')
+      .filter({ hasText: pembeli });
+    await expect(diTransfer).toContainText('Rp 50.000');
+    await expect(diTransfer).toContainText('belum diisi');
+    await diTransfer.getByRole('button', { name: 'Jadikan tunai' }).click();
+    await page.getByLabel('Alasan ganti cara').fill('Pembeli minta tunai saat datang');
+    await page.getByRole('button', { name: 'Ganti cara' }).click();
+    await expect(diTunai).toContainText('Rp 50.000');
+    await expect(diTransfer).toHaveCount(0);
+    await diTunai.getByRole('button', { name: 'Jadikan transfer' }).click();
+    await page.getByLabel('Alasan ganti cara').fill('Pembeli minta ditransfer');
+    await page.getByRole('button', { name: 'Ganti cara' }).click();
+    await expect(diTransfer).toContainText('Rp 50.000');
+
+    await diTransfer.getByRole('button', { name: 'Sudah ditransfer' }).click();
     await page.getByLabel('Rekening tujuan refund').fill('BCA 1234567890 a.n. Toko Refund');
     await page.getByRole('button', { name: /^Sudah ditransfer \(Enter\)/ }).click();
-    await expect(page.getByText('Isi nomor referensi/bukti transfer dari bank.')).toBeVisible();
+    await expect(page.getByText(/No\. referensi wajib, 4–40 huruf\/angka/)).toBeVisible();
     await page.getByLabel('Referensi transfer').fill('MB-77889900');
     await page.keyboard.press('Enter');
     await expect(page.getByText(/dicatat sudah ditransfer/)).toBeVisible();
-    await expect(baris).toHaveCount(0);
+    await expect(diTransfer).toHaveCount(0);
     await expect(page.getByText('ref. MB-77889900').first()).toBeVisible();
   } finally {
     await api(page, `/barang/${barang.id}/status`, 'PATCH', { statusAktif: 'NONAKTIF' });

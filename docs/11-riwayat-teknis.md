@@ -768,6 +768,23 @@ barang, sama dengan penerimaan). L9 `hitungUlangCache()` ikut memeriksa harga FI
 **Tes:** harga.test (dasar FIFO tetap harga lama selama stok lama ada; keluar 10 → dasar naik dan harga otomatis
 naik dengan log; stok 0 → harga beli terakhir; mode lain tidak mengubah harga tetapi cache tetap terjaga).
 
+### C29. Aturan referensi tunggal, penyelesaian menurut status bayar, pengembalian uang menunggu (30 Oktober 2026, K-196, K-192, K-193)
+
+**K-196:** pola No. referensi dipindah ke `packages/shared/schemas/umum.ts` (`POLA_REFERENSI`, `referensiSah`) dan
+dipakai semua skema uang non-tunai: pembayaran penjualan, bayar hutang, uang muka PO, penerimaan tunai lewat transfer
+(kolom `referensi` baru di isian penerimaan, disimpan ke `pembayaran_pemasok.referensi`), refund transfer pemasok,
+dan bukti refund transfer pembeli. Penyebab temuan U64: aturan ditulis sendiri-sendiri per jalur; jalur yang hanya
+dibuka Owner/Admin tidak mewajibkannya. Audit service API: percabangan per peran hanya untuk izin.
+
+**K-192/K-193:** migrasi 0039 (`pengembalian_ditunda`, `potong_dulu`, CHECK transfer menerima TUNAI). `catatHasil`
+menghitung pilihan dari `hitungTagihan` (sisa, dibayar bersih) dan mengirim opsi ke `ajukanReturTx`; `terapkan`
+menghitung uang kembali potong-dulu atau T6, dan untuk retur tertunda tidak memanggil `catatRefund` (tanpa kas_shift)
+melainkan menandai MENUNGGU. `konfirmasiPengembalian` mencatat kas keluar saat tunai diserahkan; `gantiCaraPengembalian`
+hanya mengganti `metode_refund` selama MENUNGGU. Tab web *Refund transfer* diganti *Pengembalian uang* (dua daftar).
+
+**Tes:** surat-jalan.test (lunas tunai menunggu → diserahkan → kas keluar; DP potong dulu vs kembalikan uang; belum
+bayar ditolak kembalikan uang; ganti cara + izin transfer), penerimaan.test (referensi wajib), e2e refund-transfer.
+
 ---
 
 ## Riwayat dokumen
@@ -801,3 +818,4 @@ naik dengan log; stok 0 → harga beli terakhir; mode lain tidak mengubah harga 
 - 2026-10-28 — Bagian C26 pratinjau laporan per halaman A4 (K-182).
 - 2026-10-28 — Bagian C27 promo kombinasi dan beli N potong (K-185).
 - 2026-10-28 — Bagian C28 dasar markup FIFO (K-184).
+- 2026-10-30 — Bagian C29 referensi tunggal, penyelesaian hasil kirim, pengembalian uang (K-196, K-192, K-193).

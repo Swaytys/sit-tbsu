@@ -18,6 +18,7 @@ import {
   type DataSetujui,
   type InfoKodePersetujuan,
   type KandidatRetur,
+  type MetodeRefund,
 } from '@sit/shared';
 import { db, type Tx } from '../../../db/client';
 import { AppError } from '../../../lib/errors';
@@ -193,6 +194,8 @@ export async function ajukanReturTx(
   input: DataRetur,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
+  /** K-192/K-193: dipakai hasil pengantaran. */
+  opsi: { pengembalianDitunda?: boolean; potongDulu?: boolean } = {},
 ): Promise<{ id: number; nomor: string; disetujui: boolean }> {
   const berwenang = pelaku.izin.has('retur.setujui');
   const pj = await pjRepo.kunciPenjualan(tx, input.idPenjualan);
@@ -293,6 +296,8 @@ export async function ajukanReturTx(
     rekeningRefund: input.penyelesaian === 'REFUND' ? (p.rekeningRefund ?? null) : null,
     referensiRefund: input.penyelesaian === 'REFUND' ? (p.referensiRefund ?? null) : null,
     catatan: input.catatan ?? null,
+    pengembalianDitunda: opsi.pengembalianDitunda ?? false,
+    potongDulu: opsi.potongDulu ?? false,
   });
   await repo.tambahDetail(
     tx,
@@ -408,21 +413,33 @@ async function terapkan(tx: Tx, idRetur: number, persetujuan: DataSetujui, oleh:
       );
     }
     if (r.penyelesaian === 'REFUND') {
-      // T6: refund dibatasi uang yang sudah dibayar; sisanya menjadi potong tagihan.
-      refund = Math.min(nilaiRetur, Math.max(0, dibayarBersih));
+      // T6: refund dibatasi uang yang sudah dibayar; sisanya menjadi potong tagihan. K-192 potong dulu: sisa
+      // tagihan dipotong lebih dulu, hanya kelebihannya yang dikembalikan.
+      const bisaKembali = Math.max(0, dibayarBersih);
+      refund = r.potongDulu
+        ? Math.min(Math.max(0, nilaiRetur - Math.max(0, sisa)), bisaKembali)
+        : Math.min(nilaiRetur, bisaKembali);
       if (refund < nilaiRetur) {
-        catatanTambahan = `Refund dibatasi ${formatRupiah(refund)}; ${formatRupiah(nilaiRetur - refund)} menjadi potong tagihan.`;
+        catatanTambahan = r.potongDulu
+          ? `Potong tagihan ${formatRupiah(nilaiRetur - refund)}; uang dikembalikan ${formatRupiah(refund)}.`
+          : `Refund dibatasi ${formatRupiah(refund)}; ${formatRupiah(nilaiRetur - refund)} menjadi potong tagihan.`;
       }
-      idShift = await catatRefund(tx, {
-        nominal: refund,
-        persetujuan: setuju,
-        pelaku: oleh.kasir,
-        jenis: 'REFUND_RETUR',
-        nomorDokumen: r.nomor,
-        nomorPenjualan: pj.nomor,
-        idRetur,
-        rekeningBolehNanti: true,
-      });
+      if (!r.pengembalianDitunda) {
+        idShift = await catatRefund(tx, {
+          nominal: refund,
+          persetujuan: setuju,
+          pelaku: oleh.kasir,
+          jenis: 'REFUND_RETUR',
+          nomorDokumen: r.nomor,
+          nomorPenjualan: pj.nomor,
+          idRetur,
+          rekeningBolehNanti: true,
+        });
+      } else if (refund > 0 && !metode) {
+        throw new AppError('VALIDASI', 'Pilih cara pengembalian uang (tunai/transfer).', 400, {
+          kolom: { metodeRefund: ['Pilih metode refund.'] },
+        });
+      }
     }
     await simpanTagihan(tx, pj.id, {
       ...pj,
@@ -443,8 +460,12 @@ async function terapkan(tx: Tx, idRetur: number, persetujuan: DataSetujui, oleh:
           rekeningRefund: setuju.rekeningRefund ?? null,
           referensiRefund: setuju.referensiRefund ?? null,
           nominalRefund: refund,
-          // K-176: transfer dikerjakan belakangan dan dikonfirmasi dengan bukti.
-          statusTransfer: metode === 'TRANSFER' && refund > 0 ? ('MENUNGGU' as const) : null,
+          // K-176: transfer dikerjakan belakangan dan dikonfirmasi dengan bukti. K-193: pengembalian yang ditunda
+          // (tunai maupun transfer) juga menunggu konfirmasi.
+          statusTransfer:
+            refund > 0 && (metode === 'TRANSFER' || r.pengembalianDitunda)
+              ? ('MENUNGGU' as const)
+              : null,
         }
       : {}),
     idShift,
@@ -635,14 +656,125 @@ export function jumlahReturMenunggu(): Promise<number> {
 
 export async function daftarRefundTransfer(
   status: 'MENUNGGU' | 'SELESAI',
+  metode?: MetodeRefund,
 ): Promise<TugasRefundTransfer[]> {
-  const baris = await repo.daftarRefundTransfer(db, status);
+  const baris = await repo.daftarRefundTransfer(db, status, metode);
   return baris.map((b) => ({
     ...b,
     tanggal: b.tanggal.toISOString(),
     waktuTransfer: b.waktuTransfer?.toISOString() ?? null,
     statusTransfer: b.statusTransfer ?? status,
+    metodeRefund: b.metodeRefund ?? 'TRANSFER',
   }));
+}
+
+/**
+ * K-193: uang retur sudah dikembalikan. TUNAI keluar dari kas shift yang sedang buka (izin retur.ajukan cukup:
+ * nilainya sudah disetujui); TRANSFER memakai rekening toko sehingga butuh izin retur.setujui. Cara yang dipakai
+ * boleh berbeda dari pilihan semula.
+ */
+export async function konfirmasiPengembalian(
+  id: number,
+  input: { metode: MetodeRefund; rekeningRefund?: string | null; referensiRefund?: string | null },
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<TugasRefundTransfer[]> {
+  if (input.metode === 'TRANSFER' && !pelaku.izin.has('retur.setujui')) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Pengembalian lewat transfer dikonfirmasi Admin/Owner yang memegang rekening toko.',
+      403,
+    );
+  }
+  await dalamTransaksi(async (tx) => {
+    const r = await repo.kunciRetur(tx, id);
+    if (!r) throw new AppError('TIDAK_DITEMUKAN', 'Retur tidak ditemukan.', 404);
+    if (r.statusTransfer !== 'MENUNGGU') {
+      throw new AppError(
+        'STATUS_TIDAK_VALID',
+        r.statusTransfer === 'SELESAI'
+          ? `Uang retur ${r.nomor} sudah dikembalikan.`
+          : `Retur ${r.nomor} tidak punya pengembalian uang yang menunggu.`,
+        409,
+      );
+    }
+    const pj = await pjRepo.kunciPenjualan(tx, r.idPenjualan);
+    const idShift =
+      input.metode === 'TUNAI'
+        ? await catatRefund(tx, {
+            nominal: r.nominalRefund,
+            persetujuan: { metodeRefund: 'TUNAI', rekeningRefund: null, referensiRefund: null },
+            pelaku,
+            jenis: 'REFUND_RETUR',
+            nomorDokumen: r.nomor,
+            nomorPenjualan: pj?.nomor ?? '',
+            idRetur: id,
+          })
+        : null;
+    const waktu = sekarang();
+    await repo.ubahHeader(tx, id, {
+      statusTransfer: 'SELESAI',
+      metodeRefund: input.metode,
+      rekeningRefund: input.metode === 'TRANSFER' ? (input.rekeningRefund ?? null) : null,
+      referensiRefund: input.metode === 'TRANSFER' ? (input.referensiRefund ?? null) : null,
+      ...(idShift ? { idShift } : {}),
+      waktuTransfer: waktu,
+      idPenggunaTransfer: pelaku.id,
+      diubahPada: waktu,
+    });
+    const ganti =
+      r.metodeRefund && r.metodeRefund !== input.metode
+        ? ` (semula ${r.metodeRefund.toLowerCase()})`
+        : '';
+    await catatLog(tx, {
+      aksi: input.metode === 'TUNAI' ? 'RETUR_KEMBALI_TUNAI' : 'RETUR_TRANSFER',
+      idPengguna: pelaku.id,
+      entitas: 'retur_penjualan',
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      ringkasan:
+        input.metode === 'TUNAI'
+          ? `Uang retur ${formatRupiah(r.nominalRefund)} diserahkan tunai dari kas shift${ganti}`
+          : `Refund ${formatRupiah(r.nominalRefund)} sudah ditransfer ke ${input.rekeningRefund ?? '-'} (ref. ${input.referensiRefund ?? '-'})${ganti}`,
+      ip: asal.ip,
+    });
+  });
+  return daftarRefundTransfer('MENUNGGU');
+}
+
+/** K-193: ganti cara pengembalian selama masih menunggu (salah pilih), dengan alasan di log. */
+export async function gantiCaraPengembalian(
+  id: number,
+  input: { metode: MetodeRefund; alasan: string },
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<TugasRefundTransfer[]> {
+  await dalamTransaksi(async (tx) => {
+    const r = await repo.kunciRetur(tx, id);
+    if (!r) throw new AppError('TIDAK_DITEMUKAN', 'Retur tidak ditemukan.', 404);
+    if (r.statusTransfer !== 'MENUNGGU') {
+      throw new AppError(
+        'STATUS_TIDAK_VALID',
+        `Cara pengembalian ${r.nomor} tidak bisa diganti: tidak sedang menunggu.`,
+        409,
+      );
+    }
+    if (r.metodeRefund === input.metode) return;
+    const waktu = sekarang();
+    await repo.ubahHeader(tx, id, { metodeRefund: input.metode, diubahPada: waktu });
+    await catatLog(tx, {
+      aksi: 'RETUR_GANTI_CARA',
+      idPengguna: pelaku.id,
+      entitas: 'retur_penjualan',
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      ringkasan: `Cara pengembalian ${formatRupiah(r.nominalRefund)} diganti ${String(r.metodeRefund).toLowerCase()} → ${input.metode.toLowerCase()}: ${input.alasan}`,
+      dataLama: { metodeRefund: r.metodeRefund },
+      dataBaru: { metodeRefund: input.metode },
+      ip: asal.ip,
+    });
+  });
+  return daftarRefundTransfer('MENUNGGU');
 }
 
 /**

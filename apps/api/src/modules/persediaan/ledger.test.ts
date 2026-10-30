@@ -110,7 +110,6 @@ async function sumberPenerimaan(idBarang: number, qty: string, harga: number) {
       idPengguna,
       jenis: 'PEMBELIAN',
       syaratBayar: 'TUNAI',
-      referensi: 'TRF0001',
     })
     .returning();
   const [d] = await db

@@ -8,6 +8,8 @@ import {
   skemaSetujui,
   skemaSetujuiKode,
   skemaTolak,
+  skemaGantiCaraPengembalian,
+  skemaKonfirmasiPengembalian,
 } from '@sit/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -22,6 +24,8 @@ import {
   detailRetur,
   kandidatRetur,
   konfirmasiTransfer,
+  gantiCaraPengembalian,
+  konfirmasiPengembalian,
   mintaKodeRetur,
   setujuiRetur,
   setujuiReturDenganKode,
@@ -56,6 +60,43 @@ export const returRoutes = new Hono<EnvApp>()
     zValidator('json', skemaKonfirmasiTransfer, kaitValidasi),
     async (c) => {
       const data = await konfirmasiTransfer(
+        c.req.valid('param').id,
+        c.req.valid('json'),
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data }, 200);
+    },
+  )
+  // K-193: pengembalian uang menunggu (tunai dan transfer).
+  .get(
+    '/pengembalian',
+    ajukan,
+    zValidator('query', skemaCariRefundTransfer, kaitValidasi),
+    async (c) => c.json({ data: await daftarRefundTransfer(c.req.valid('query').status) }, 200),
+  )
+  .post(
+    '/:id/pengembalian',
+    ajukan,
+    paramId,
+    zValidator('json', skemaKonfirmasiPengembalian, kaitValidasi),
+    async (c) => {
+      const data = await konfirmasiPengembalian(
+        c.req.valid('param').id,
+        c.req.valid('json'),
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data }, 200);
+    },
+  )
+  .post(
+    '/:id/ganti-cara',
+    ajukan,
+    paramId,
+    zValidator('json', skemaGantiCaraPengembalian, kaitValidasi),
+    async (c) => {
+      const data = await gantiCaraPengembalian(
         c.req.valid('param').id,
         c.req.valid('json'),
         penggunaWajib(c),

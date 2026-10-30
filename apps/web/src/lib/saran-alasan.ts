@@ -31,6 +31,12 @@ export const SARAN_ALASAN = {
     'Nominal/qty tidak sesuai',
     'Perlu dicek ulang di gudang',
   ],
+  gantiCaraPengembalian: [
+    'Pembeli minta tunai saat datang',
+    'Pembeli minta ditransfer',
+    'Salah pilih cara',
+    'Rekening pembeli tidak bisa dihubungi',
+  ],
   batalPengajuan: ['Salah qty', 'Salah barang', 'Salah pilih transaksi', 'Pembeli tidak jadi'],
   void: [
     'Salah input barang/qty',

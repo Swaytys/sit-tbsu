@@ -15,13 +15,18 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
   - **sudah bayar sebagian** (DP) → pilih **Potong tagihan** atau **Kembalikan uang** (tunai/transfer, paling banyak
     sebesar yang sudah dibayar);
   - **lunas** → hanya **Kembalikan uang**.
-  *Rencana.*
+  *Rencana.* **Selesai (30 Okt):** kotak penyelesaian di *Catat hasil* menyebut status bayar dan hasil tiap pilihan.
+  "Potong tagihan" pada pembeli DP memotong sisa tagihan lebih dulu; kelebihannya dikembalikan. Penyebab bug transfer
+  tanpa rekening: nilai yang muat di sisa tagihan otomatis menjadi potong tagihan (tidak ada uang kembali), padahal
+  layar tetap meminta cara transfer; kini cara pengembalian hanya diminta bila memang ada uang kembali.
 - **K-193 Pengembalian uang menunggu (tunai dan transfer).** Pengembalian tunai juga bisa tertunda (pembeli belum
   datang ke toko), padahal hasil kirim harus segera dicatat agar kartu pindah ke *Selesai*. Halaman *Refund
   transfer* diganti menjadi **Pengembalian uang** yang memuat dua daftar: menunggu transfer dan menunggu diambil
   tunai. Tunai dikonfirmasi saat uang diserahkan dan keluar dari kas shift yang sedang terbuka. Sebelum dikonfirmasi,
   cara pengembalian bisa diganti (transfer ↔ tunai) dengan alasan, untuk jaga-jaga salah pilih. Pengguna tidak perlu
-  mengingat mana yang belum dikembalikan. *Rencana.*
+  mengingat mana yang belum dikembalikan. *Rencana.* **Selesai (30 Okt):** tab *Retur Penjualan › Pengembalian uang*
+  (Kasir juga bisa membuka; konfirmasi transfer hanya Admin/Owner); retur dari hasil kirim tidak mengeluarkan uang
+  saat dicatat; tunai keluar dari kas shift saat **Sudah diserahkan**; **Jadikan tunai/transfer** dengan alasan.
 - **K-194 Batas kelipatan "Beli N potong Rp X".** Ada isian berapa kali potongan boleh berlaku per baris: sekali,
   paling banyak k kali, atau tanpa batas. *Rencana.*
 - **K-195 FIFO hanya dasar harga jual — dikonfirmasi boleh.** PSAK 14 mengatur rumus biaya persediaan (HPP dan nilai
@@ -32,7 +37,11 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
 - **K-196 Aturan berlaku sama di semua peran.** Temuan fatal: *No. referensi wajib* untuk pembayaran non-tunai hanya
   berlaku saat masuk sebagai Kasir, tidak saat Owner. Aturan bisnis tidak boleh bergantung pada peran kecuali memang
   aturan izin (mis. lihat HPP). Diperbaiki di sumbernya (API) dan seluruh jalur pembayaran/transaksi diperiksa untuk
-  kasus serupa. *Rencana.*
+  kasus serupa. *Rencana.* **Selesai (30 Okt):** di POS, Owner sudah ditolak sama seperti Kasir; perbedaannya ada di
+  jalur yang hanya dibuka Owner/Admin (bayar hutang pemasok, uang muka PO, pembelian tunai lewat transfer, refund
+  transfer pemasok, bukti refund transfer pembeli) yang selama ini tidak mewajibkan No. referensi. Kini satu aturan
+  `POLA_REFERENSI` untuk semua uang non-tunai di semua peran. Audit service API: perbedaan per peran hanya hak akses
+  (izin), bukan aturan bisnis.
 - **K-197 Dependensi alur dan shift.** Diperiksa semua alur, termasuk pengantaran baru: hal yang harus selesai
   sebelum langkah berikutnya boleh dilakukan. Shift hanya boleh ditutup bila semua yang menggantung pada shift itu
   sudah diakui/diproses (mis. pengembalian tunai yang sudah disetujui, pembayaran yang belum diverifikasi); hal yang
