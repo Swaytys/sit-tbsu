@@ -1,4 +1,4 @@
-import type { JenisContoh } from '@sit/shared';
+import type { InputUbahDataUsaha, JenisContoh, LangkahSetupLanjut } from '@sit/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ambilData, api } from './client';
 
@@ -37,5 +37,28 @@ export function useTandaiProfil() {
 export function useSembunyikanPanduan() {
   return useMutasiPenyiapan(async (sembunyikan: boolean) =>
     ambilData(await api.penyiapan.sembunyikan.$post({ json: { sembunyikan } })),
+  );
+}
+
+// --- K-205: setup awal ---
+
+export function useSetupAwalStatus(aktifkan = true) {
+  return useQuery({
+    queryKey: ['penyiapan', 'setup-awal'],
+    queryFn: async () => ambilData(await api.penyiapan['setup-awal'].$get()),
+    enabled: aktifkan,
+    staleTime: 60_000,
+  });
+}
+
+export function useUbahDataUsaha() {
+  return useMutasiPenyiapan(async (json: InputUbahDataUsaha) =>
+    ambilData(await api.penyiapan['setup-awal'].usaha.$put({ json })),
+  );
+}
+
+export function useSelesaiSetupAwal() {
+  return useMutasiPenyiapan(async (dilewati: LangkahSetupLanjut[]) =>
+    ambilData(await api.penyiapan['setup-awal'].selesai.$post({ json: { dilewati } })),
   );
 }

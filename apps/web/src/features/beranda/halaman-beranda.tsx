@@ -17,9 +17,10 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Link } from 'react-router';
+import { Link, Navigate } from 'react-router';
 import { usePengguna } from '@/api/auth';
 import { useAktivitasDashboard, useRingkasanDashboard } from '@/api/laporan';
+import { useSetupAwalStatus } from '@/api/penyiapan';
 import { useTampilanToko } from '@/api/pengaturan';
 import { useNotifikasi, usePeringatanStok } from '@/api/persediaan';
 import { BadgeStatusStok } from '@/components/status-badge';
@@ -29,7 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { labelAksi } from '@/lib/label';
 import { cn } from '@/lib/utils';
-import { PengingatPenyiapan } from '../penyiapan/pengingat-penyiapan';
+import { PengingatPenyiapan, PengingatSetupAwal } from '../penyiapan/pengingat-penyiapan';
 import { GrafikTujuhHari } from './grafik-tujuh-hari';
 import { KodeInfo } from '@/components/kode-info';
 
@@ -254,9 +255,13 @@ export function HalamanBeranda() {
     (Array.isArray(izin) ? izin : [izin]).some((i) => pengguna.izin.includes(i));
   const aksi = AKSI_CEPAT.filter((a) => punya(a.izin)).slice(0, 6);
   const peringatan = usePeringatanStok(true).data;
+  // K-205: Owner yang setup awalnya belum selesai diarahkan kembali ke setup (sekali masuk Dashboard).
+  const setup = useSetupAwalStatus(punya('sistem.pengaturan.kelola')).data;
+  if (setup && !setup.selesai) return <Navigate to="/mulai" replace />;
 
   return (
     <div className="space-y-6 p-6">
+      {punya('sistem.pengaturan.kelola') && <PengingatSetupAwal />}
       {punya('sistem.pengaturan.kelola') && <PengingatPenyiapan />}
       <div className="flex items-end justify-between gap-4">
         <div>

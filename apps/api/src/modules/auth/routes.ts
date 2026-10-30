@@ -1,11 +1,15 @@
 import { zValidator } from '@hono/zod-validator';
 import {
-  skemaAkunPertama,
   skemaBuatKodePemulihan,
+  skemaCatatTur,
   skemaGantiPassword,
   skemaLogin,
   skemaMasukCepat,
+  skemaMintaKodeEmail,
   skemaPulihkanPassword,
+  skemaResetLewatEmail,
+  skemaSetupAwal,
+  skemaUlangTur,
 } from '@sit/shared';
 import { Hono, type Context } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
@@ -15,13 +19,10 @@ import { kaitValidasi } from '../../lib/validasi';
 import { batasPercobaanLogin } from '../../middleware/batas-percobaan';
 import { penggunaWajib, requireLogin } from '../../middleware/require-permission';
 import { kotakKeluarUji } from '../sistem/saluran/service';
-import {
-  buatAkunPertama,
-  buatKodePemulihan,
-  infoKodePemulihan,
-  pulihkanPassword,
-  statusPenyiapan,
-} from './pemulihan';
+import { statusPenyiapan } from '../sistem/setup-awal/service';
+import { buatKodePemulihan, buatSetupAwal, infoKodePemulihan, pulihkanPassword } from './pemulihan';
+import { mintaKodeEmail, resetLewatEmail } from './reset-email';
+import { bacaTur, catatTur, ulangTur } from './tur';
 import { gantiPassword, keSaya, login, logout, masukCepat, type HasilLogin } from './service';
 import { NAMA_COOKIE_SESI } from './token';
 
@@ -46,15 +47,41 @@ export const authRoutes = new Hono<EnvApp>()
   // K-191 (publik, docs/04 §7): halaman "Buat akun pertama" hanya berlaku selama belum ada pengguna, dan
   // pemulihan password dengan kode sekali pakai. Keduanya memakai batas laju yang sama dengan login.
   .get('/penyiapan', async (c) => c.json({ data: await statusPenyiapan() }, 200))
+  // K-205: setup awal (data usaha + akun Owner pertama), hanya selama belum ada pengguna.
   .post(
-    '/akun-pertama',
+    '/setup-awal',
     batasPercobaanLogin,
-    zValidator('json', skemaAkunPertama, kaitValidasi),
+    zValidator('json', skemaSetupAwal, kaitValidasi),
     async (c) => {
-      const { kodePemulihan, ...hasil } = await buatAkunPertama(c.req.valid('json'), c.get('asal'));
+      const { kodePemulihan, ...hasil } = await buatSetupAwal(c.req.valid('json'), c.get('asal'));
       pasangCookieSesi(c, hasil);
       return c.json({ data: { pengguna: hasil.pengguna, kodePemulihan } }, 201);
     },
+  )
+  // K-209: lupa password dengan kode verifikasi email.
+  .post(
+    '/lupa-email',
+    batasPercobaanLogin,
+    zValidator('json', skemaMintaKodeEmail, kaitValidasi),
+    async (c) =>
+      c.json({ data: await mintaKodeEmail(c.req.valid('json').username, c.get('asal')) }, 200),
+  )
+  .post(
+    '/lupa-email/reset',
+    batasPercobaanLogin,
+    zValidator('json', skemaResetLewatEmail, kaitValidasi),
+    async (c) => c.json({ data: await resetLewatEmail(c.req.valid('json'), c.get('asal')) }, 200),
+  )
+  // K-206: status tur fitur milik pengguna sendiri.
+  .get('/tur', requireLogin(), async (c) =>
+    c.json({ data: await bacaTur(penggunaWajib(c).id) }, 200),
+  )
+  .post('/tur', requireLogin(), zValidator('json', skemaCatatTur, kaitValidasi), async (c) => {
+    const { kode, hasil } = c.req.valid('json');
+    return c.json({ data: await catatTur(penggunaWajib(c).id, kode, hasil) }, 200);
+  })
+  .post('/tur/ulang', requireLogin(), zValidator('json', skemaUlangTur, kaitValidasi), async (c) =>
+    c.json({ data: await ulangTur(penggunaWajib(c).id, c.req.valid('json').kode) }, 200),
   )
   .post(
     '/pulihkan',

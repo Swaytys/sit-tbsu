@@ -191,7 +191,7 @@ function DialogRekening({
                   <FormControl>
                     <Input
                       maxLength={40}
-                      placeholder="mis. UD Sumber Urip"
+                      placeholder="mis. UD Maju Jaya"
                       {...field}
                       value={field.value ?? ''}
                     />

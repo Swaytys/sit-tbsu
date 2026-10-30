@@ -211,12 +211,12 @@ function Isi({ p, k }: { p: PengaturanSaluran; k: KontakSaya }) {
               </li>
               <li>
                 BotFather menanyakan <b>nama</b> bot. Ketik nama bebas, mis.{' '}
-                <i>Persetujuan Sumber Urip</i>.
+                <i>Persetujuan Toko Maju</i>.
               </li>
               <li>
                 BotFather menanyakan <b>username</b> bot. Harus tanpa spasi dan diakhiri{' '}
-                <code>bot</code>, mis. <i>sumberurip_setuju_bot</i>. Bila ditolak karena sudah
-                dipakai orang lain, coba nama lain.
+                <code>bot</code>, mis. <i>tokomaju_setuju_bot</i>. Bila ditolak karena sudah dipakai
+                orang lain, coba nama lain.
               </li>
               <li>
                 BotFather membalas dengan <b>token</b>: deretan angka, titik dua, lalu huruf acak

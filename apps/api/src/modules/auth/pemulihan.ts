@@ -3,10 +3,9 @@ import {
   ALFABET_KODE_PEMULIHAN,
   PANJANG_KODE_PEMULIHAN,
   rapikanKodePemulihan,
-  type DataAkunPertama,
+  type DataSetupAwal,
   type HasilKodePemulihan,
   type InfoKodePemulihan,
-  type StatusPenyiapan,
 } from '@sit/shared';
 import { sql } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -15,8 +14,10 @@ import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { cocokPassword, hashPassword, verifikasiTiruan } from '../../lib/password';
 import { dalamTransaksi } from '../../lib/transaksi';
 import { sekarang } from '../../lib/waktu';
+import { invalidasiKonfigurasi } from '../sistem/konfigurasi/service';
 import { catatLog } from '../sistem/log-aktivitas';
 import { terbitkanKodeMaster } from '../sistem/penomoran';
+import { mulaiCatatanSetup, simpanDataUsaha } from '../sistem/setup-awal/service';
 import * as repo from './repo';
 import {
   buatSesiLogin,
@@ -42,53 +43,57 @@ function kodeAcak(): string {
   return k.match(/.{1,5}/g)?.join('-') ?? k;
 }
 
-async function kodeBaru(): Promise<{ kode: string; hash: string }> {
+export async function kodeBaru(): Promise<{ kode: string; hash: string }> {
   const kode = kodeAcak();
   return { kode, hash: await hashPassword(rapikanKodePemulihan(kode)) };
 }
 
-export async function statusPenyiapan(): Promise<StatusPenyiapan> {
-  return { perluAkunPertama: (await repo.jumlahPengguna(db)) === 0 };
-}
-
 /**
- * Membuat akun Owner pertama dan langsung masuk. Hanya bila belum ada pengguna sama sekali; dua permintaan
- * bersamaan diantrekan dengan kunci advisory sehingga hanya satu yang berhasil.
+ * K-205 (menggantikan "Buat akun pertama" K-191): setup awal membuat akun Owner pertama bersama data usaha dan
+ * operasional, lalu langsung masuk. Hanya bila belum ada pengguna sama sekali; dua permintaan bersamaan diantrekan
+ * dengan kunci advisory sehingga hanya satu yang berhasil.
  */
-export async function buatAkunPertama(
-  input: DataAkunPertama,
+export async function buatSetupAwal(
+  input: DataSetupAwal,
   asal: AsalRequest,
 ): Promise<HasilLogin & HasilKodePemulihan> {
-  await pastikanPanjangPassword(input.password, 'password');
-  const passwordHash = await hashPassword(input.password);
+  const owner = input.owner;
+  await pastikanPanjangPassword(owner.password, 'owner.password');
+  const passwordHash = await hashPassword(owner.password);
   const pemulihan = await kodeBaru();
   const waktu = sekarang();
   const id = await dalamTransaksi(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('akun_pertama'))`);
     if ((await repo.jumlahPengguna(tx)) > 0) {
-      throw new AppError('KONFLIK', 'Akun pertama sudah dibuat. Silakan masuk.', 409);
+      throw new AppError('KONFLIK', 'Setup awal sudah dikerjakan. Silakan masuk.', 409);
     }
     const kode = await terbitkanKodeMaster(tx, 'USR');
     const idBaru = await repo.tambahOwnerPertama(tx, {
       kode,
-      username: input.username,
-      namaPengguna: input.namaPengguna,
+      username: owner.username,
+      namaPengguna: owner.namaPengguna,
       passwordHash,
+      email: owner.email === '' ? null : owner.email,
+      noHp: owner.noHp ?? null,
     });
     await repo.simpanKodePemulihan(tx, idBaru, pemulihan.hash, waktu);
+    await simpanDataUsaha(tx, input.usaha, input.operasional);
+    await mulaiCatatanSetup(tx);
     await catatLog(tx, {
-      aksi: 'PENGGUNA_AKUN_PERTAMA',
+      aksi: 'SETUP_AWAL',
       idPengguna: idBaru,
       entitas: 'pengguna',
       idEntitas: idBaru,
-      ringkasan: `Akun pertama (Owner) dibuat: ${input.namaPengguna} (${input.username}); kode pemulihan dibuat`,
+      ringkasan: `Setup awal: usaha ${input.usaha.namaToko}; akun Owner ${owner.namaPengguna} (${owner.username}); kode pemulihan dibuat`,
+      dataBaru: { ...input.usaha, layanan: input.operasional.layanan },
       ip: asal.ip,
     });
     return idBaru;
   });
-  const calon = await repo.penggunaUntukLogin(db, input.username);
+  invalidasiKonfigurasi();
+  const calon = await repo.penggunaUntukLogin(db, owner.username);
   if (!calon || calon.id !== id) throw new Error('akun pertama tidak ditemukan setelah dibuat');
-  const sesi = await buatSesiLogin(calon, asal, 'Masuk pertama setelah membuat akun');
+  const sesi = await buatSesiLogin(calon, asal, 'Masuk pertama setelah setup awal');
   return { ...sesi, kodePemulihan: pemulihan.kode };
 }
 
@@ -181,4 +186,54 @@ export async function buatKodePemulihan(
     });
   });
   return { kodePemulihan: pemulihan.kode };
+}
+
+/**
+ * K-211: memulihkan akses Owner dari komputer tempat BonsaiUrip terpasang (menu Start › Pulihkan akses Owner).
+ * Tidak ada rute API untuk ini: hanya bisa dijalankan oleh akun Windows yang memegang folder data dan database.
+ * Owner aktif paling awal diberi password sementara (wajib diganti saat masuk), kunci dibuka, semua sesi dicabut,
+ * dan kode pemulihan baru dibuat.
+ */
+export async function pulihkanAksesOwnerLokal(): Promise<{
+  username: string;
+  namaPengguna: string;
+  passwordSementara: string;
+  kodePemulihan: string;
+}> {
+  const owner = await repo.ownerPertama(db);
+  if (!owner) {
+    throw new AppError(
+      'TIDAK_DITEMUKAN',
+      'Belum ada akun Owner aktif. Buka BonsaiUrip untuk mengerjakan setup awal.',
+      404,
+    );
+  }
+  let sementara = '';
+  for (let i = 0; i < 12; i++) {
+    sementara += ALFABET_KODE_PEMULIHAN[randomInt(ALFABET_KODE_PEMULIHAN.length)];
+  }
+  sementara = sementara.toLowerCase().replace(/^(.{4})(.{4})(.{4})$/, '$1-$2-$3');
+  const passwordHash = await hashPassword(sementara);
+  const pemulihan = await kodeBaru();
+  const waktu = sekarang();
+  await dalamTransaksi(async (tx) => {
+    await repo.ubahPassword(tx, owner.id, passwordHash, true, waktu);
+    await repo.bukaKunciAkun(tx, owner.id);
+    await repo.simpanKodePemulihan(tx, owner.id, pemulihan.hash, waktu);
+    const dicabut = await repo.cabutSesiPengguna(tx, owner.id, 'PEMULIHAN', waktu);
+    await catatLog(tx, {
+      aksi: 'PENGGUNA_PULIH_LOKAL',
+      idPengguna: owner.id,
+      entitas: 'pengguna',
+      idEntitas: owner.id,
+      ringkasan: `Akses Owner dipulihkan dari komputer server: password sementara dan kode pemulihan baru; ${dicabut} sesi dicabut`,
+      ip: null,
+    });
+  });
+  return {
+    username: owner.username,
+    namaPengguna: owner.namaPengguna,
+    passwordSementara: sementara,
+    kodePemulihan: pemulihan.kode,
+  };
 }

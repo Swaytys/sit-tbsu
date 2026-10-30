@@ -25,11 +25,32 @@ const akun = {
   konfirmasi: 'rahasia-toko-1',
 };
 
+export const usahaUji = {
+  jenisUsaha: 'BAHAN_BANGUNAN',
+  jenisUsahaLain: '',
+  namaToko: 'Toko Maju Jaya',
+  namaBadanUsaha: 'UD. Maju Jaya',
+  sloganToko: 'Lengkap, murah, cepat',
+  alamatToko: 'Jl. Merdeka 1',
+  kotaToko: 'Kediri',
+  telpToko: '(0354) 123456',
+  emailToko: '',
+};
+export const operasionalUji = {
+  layanan: ['LANGSUNG', 'ANTAR'],
+  shiftJamBuka: '07:00',
+  shiftJamTutup: '17:00',
+};
+
+/** K-205: setup awal menggantikan rute akun pertama K-191 (Owner + data usaha sekaligus). */
 async function buatAkunPertama(isi: Record<string, unknown> = akun) {
-  return minta('/api/auth/akun-pertama', { method: 'POST', body: isi });
+  return minta('/api/auth/setup-awal', {
+    method: 'POST',
+    body: { usaha: usahaUji, operasional: operasionalUji, owner: { email: '', noHp: '', ...isi } },
+  });
 }
 
-describe('akun pertama (K-191)', () => {
+describe('akun pertama lewat setup awal (K-191, K-205)', () => {
   it('hanya selama belum ada pengguna: membuat Owner, langsung masuk, memberi kode pemulihan sekali', async () => {
     const awal = await json<Data<{ perluAkunPertama: boolean }>>(
       await minta('/api/auth/penyiapan'),
@@ -52,10 +73,7 @@ describe('akun pertama (K-191)', () => {
     const [p] = await db.select().from(pengguna).where(eq(pengguna.username, 'harto'));
     expect(p?.wajibGantiPassword).toBe(false);
     expect(p?.kodePemulihanHash).not.toContain(hasil.data.kodePemulihan);
-    const log = await db
-      .select()
-      .from(logAktivitas)
-      .where(eq(logAktivitas.aksi, 'PENGGUNA_AKUN_PERTAMA'));
+    const log = await db.select().from(logAktivitas).where(eq(logAktivitas.aksi, 'SETUP_AWAL'));
     expect(log).toHaveLength(1);
 
     const lagi = await buatAkunPertama({ ...akun, username: 'penyusup' });

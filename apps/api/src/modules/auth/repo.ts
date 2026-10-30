@@ -1,6 +1,6 @@
 import { and, count, eq, isNull, ne, sql } from 'drizzle-orm';
 import type { Executor, Tx } from '../../db/client';
-import { pengguna, sesiLogin } from '../../db/schema';
+import { kodeResetPassword, pengguna, sesiLogin } from '../../db/schema';
 
 const kolomPengguna = {
   id: pengguna.id,
@@ -216,7 +216,14 @@ export async function bukaKunciAkun(tx: Tx, idPengguna: number): Promise<void> {
 /** K-191: akun Owner pertama; password dibuat sendiri, jadi tidak wajib diganti. */
 export async function tambahOwnerPertama(
   tx: Tx,
-  nilai: { kode: string; username: string; namaPengguna: string; passwordHash: string },
+  nilai: {
+    kode: string;
+    username: string;
+    namaPengguna: string;
+    passwordHash: string;
+    email: string | null;
+    noHp: string | null;
+  },
 ): Promise<number> {
   const [b] = await tx
     .insert(pengguna)
@@ -224,4 +231,115 @@ export async function tambahOwnerPertama(
     .returning({ id: pengguna.id });
   if (!b) throw new Error('Akun pertama gagal disimpan');
   return b.id;
+}
+
+// --- K-209: kode verifikasi lupa password lewat email ---
+
+export async function penggunaUntukResetEmail(ex: Executor, username: string) {
+  const [b] = await ex
+    .select({
+      id: pengguna.id,
+      namaPengguna: pengguna.namaPengguna,
+      email: pengguna.email,
+      statusAktif: pengguna.statusAktif,
+    })
+    .from(pengguna)
+    .where(eq(pengguna.username, username))
+    .limit(1);
+  return b;
+}
+
+/** Kode yang masih bisa dipakai (belum dipakai/digugurkan), terbaru dulu. */
+export async function kodeResetAktif(ex: Executor, idPengguna: number) {
+  const [b] = await ex
+    .select({
+      id: kodeResetPassword.id,
+      kodeHash: kodeResetPassword.kodeHash,
+      kedaluwarsa: kodeResetPassword.kedaluwarsa,
+      salah: kodeResetPassword.salah,
+      dibuatPada: kodeResetPassword.dibuatPada,
+    })
+    .from(kodeResetPassword)
+    .where(
+      and(
+        eq(kodeResetPassword.idPengguna, idPengguna),
+        isNull(kodeResetPassword.dipakaiPada),
+        isNull(kodeResetPassword.digugurkanPada),
+      ),
+    )
+    .orderBy(sql`${kodeResetPassword.id} desc`)
+    .limit(1);
+  return b;
+}
+
+export async function gugurkanKodeReset(tx: Tx, idPengguna: number, waktu: Date): Promise<void> {
+  await tx
+    .update(kodeResetPassword)
+    .set({ digugurkanPada: waktu })
+    .where(
+      and(
+        eq(kodeResetPassword.idPengguna, idPengguna),
+        isNull(kodeResetPassword.dipakaiPada),
+        isNull(kodeResetPassword.digugurkanPada),
+      ),
+    );
+}
+
+export async function simpanKodeReset(
+  tx: Tx,
+  nilai: { idPengguna: number; kodeHash: string; kedaluwarsa: Date },
+): Promise<void> {
+  await tx.insert(kodeResetPassword).values(nilai);
+}
+
+/** Menambah hitungan salah; mengembalikan jumlah salah sesudahnya. */
+export async function tambahSalahKodeReset(ex: Executor, id: number): Promise<number> {
+  const [b] = await ex
+    .update(kodeResetPassword)
+    .set({ salah: sql`${kodeResetPassword.salah} + 1` })
+    .where(eq(kodeResetPassword.id, id))
+    .returning({ salah: kodeResetPassword.salah });
+  return b?.salah ?? 0;
+}
+
+export async function tandaiKodeReset(
+  ex: Executor,
+  id: number,
+  kolom: 'dipakai' | 'gugur',
+  waktu: Date,
+): Promise<void> {
+  await ex
+    .update(kodeResetPassword)
+    .set(kolom === 'dipakai' ? { dipakaiPada: waktu } : { digugurkanPada: waktu })
+    .where(eq(kodeResetPassword.id, id));
+}
+
+// --- K-206: status tur fitur ---
+
+export async function turStatus(ex: Executor, idPengguna: number) {
+  const [b] = await ex
+    .select({ tur: pengguna.turStatus })
+    .from(pengguna)
+    .where(eq(pengguna.id, idPengguna))
+    .limit(1);
+  return b?.tur ?? { selesai: [], dilewati: [] };
+}
+
+export async function simpanTurStatus(
+  ex: Executor,
+  idPengguna: number,
+  tur: { selesai: string[]; dilewati: string[] },
+): Promise<void> {
+  await ex.update(pengguna).set({ turStatus: tur }).where(eq(pengguna.id, idPengguna));
+}
+
+/** K-211: Owner aktif paling awal (dipulihkan dari komputer server). */
+export async function ownerPertama(ex: Executor) {
+  const [b] = await ex
+    .select({ id: pengguna.id, username: pengguna.username, namaPengguna: pengguna.namaPengguna })
+    .from(pengguna)
+    .where(and(eq(pengguna.peran, 'OWNER'), eq(pengguna.statusAktif, 'AKTIF')))
+    .orderBy(pengguna.id)
+    .limit(1);
+  return b;
 }

@@ -83,6 +83,11 @@ export const pengguna = pgTable(
     /** K-191 (migrasi 0035): hash argon2id kode pemulihan sekali pakai (lupa password); kosong = belum dibuat. */
     kodePemulihanHash: varchar('kode_pemulihan_hash', { length: 255 }),
     kodePemulihanDibuatPada: timestamptz('kode_pemulihan_dibuat_pada'),
+    /** K-206 (migrasi 0041): tur fitur yang sudah selesai/dilewati pengguna ini. */
+    turStatus: jsonb('tur_status')
+      .$type<{ selesai: string[]; dilewati: string[] }>()
+      .notNull()
+      .default(sql`'{"selesai":[],"dilewati":[]}'::jsonb`),
   },
   () => [
     check('chk_pengguna_peran', dalamDaftar('peran', PERAN)),
@@ -112,6 +117,32 @@ export const sesiLogin = pgTable(
       foreignColumns: [pengguna.id],
     }),
     index('idx_sesi_pengguna').on(t.idPengguna),
+  ],
+);
+
+/**
+ * K-209 (migrasi 0041): kode verifikasi lupa password lewat email. 6 angka, disimpan sebagai hash SHA-256, berlaku
+ * 10 menit, sekali pakai, gugur setelah 5 kali salah. Permintaan baru menggugurkan kode lama (status kolom saja).
+ */
+export const kodeResetPassword = pgTable(
+  'kode_reset_password',
+  {
+    id: kolomId(),
+    idPengguna: kolomRef('id_pengguna').notNull(),
+    kodeHash: char('kode_hash', { length: 64 }).notNull(),
+    kedaluwarsa: timestamptz('kedaluwarsa').notNull(),
+    salah: integer('salah').notNull().default(0),
+    dipakaiPada: timestamptz('dipakai_pada'),
+    digugurkanPada: timestamptz('digugurkan_pada'),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'kode_reset_password_id_pengguna_fkey',
+      columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    index('idx_kode_reset_pengguna').on(t.idPengguna),
   ],
 );
 

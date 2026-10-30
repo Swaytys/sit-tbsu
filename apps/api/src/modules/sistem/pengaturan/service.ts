@@ -1,6 +1,9 @@
 import {
   DASAR_MARKUP,
+  JENIS_USAHA,
   KERTAS_DOKUMEN,
+  LAYANAN_TOKO,
+  type LayananToko,
   KODE_DOKUMEN,
   PILIHAN_BARIS_PER_HALAMAN,
   type KertasDokumen,
@@ -69,7 +72,11 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
   return {
     profil: {
       namaToko: teks(m, 'nama_toko', 'BonsaiUrip'),
-      namaBadanUsaha: teks(m, 'nama_badan_usaha', 'UD. Sumber Urip'),
+      namaBadanUsaha: teks(m, 'nama_badan_usaha', ''),
+      jenisUsaha: JENIS_USAHA.find((j) => j === m.get('jenis_usaha')) ?? 'BAHAN_BANGUNAN',
+      jenisUsahaLain: teks(m, 'jenis_usaha_lain', ''),
+      sloganToko: teks(m, 'slogan_toko', ''),
+      kotaToko: teks(m, 'kota_toko', ''),
       alamatToko: teks(m, 'alamat_toko', ''),
       telpToko: teks(m, 'telp_toko', ''),
       emailToko: teks(m, 'email_toko', ''),
@@ -139,6 +146,10 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
   if (p.profil) {
     t('nama_toko', p.profil.namaToko);
     t('nama_badan_usaha', p.profil.namaBadanUsaha);
+    t('jenis_usaha', p.profil.jenisUsaha);
+    t('jenis_usaha_lain', p.profil.jenisUsahaLain);
+    t('slogan_toko', p.profil.sloganToko);
+    t('kota_toko', p.profil.kotaToko);
     t('alamat_toko', p.profil.alamatToko);
     t('telp_toko', p.profil.telpToko);
     t('email_toko', p.profil.emailToko);
@@ -269,6 +280,12 @@ export async function tampilanToko(): Promise<TampilanToko> {
   return {
     namaToko: p.profil.namaToko,
     namaBadanUsaha: p.profil.namaBadanUsaha,
+    jenisUsaha: p.profil.jenisUsaha,
+    sloganToko: p.profil.sloganToko,
+    kotaToko: p.profil.kotaToko,
+    layananToko: (m.get('layanan_toko') ?? 'LANGSUNG,ORDER,ANTAR')
+      .split(',')
+      .filter((l): l is LayananToko => (LAYANAN_TOKO as readonly string[]).includes(l)),
     logo: urlLogo(m.get('logo_toko')),
     barisPerHalaman: p.operasional.barisPerHalaman,
     alamatToko: p.profil.alamatToko,

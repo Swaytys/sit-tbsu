@@ -1,7 +1,17 @@
 import { LABEL_PERAN } from '@sit/shared';
 import { ID_SLOT_LENCANA } from '@/components/banner-lipat';
 import { KotakCari } from './kotak-cari';
-import { Bell, ChevronDown, Info, KeyRound, LockKeyhole, LogOut, Menu, Store } from 'lucide-react';
+import {
+  Bell,
+  ChevronDown,
+  Compass,
+  Info,
+  KeyRound,
+  LockKeyhole,
+  LogOut,
+  Menu,
+  Store,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useLogout, usePengguna } from '@/api/auth';
@@ -197,6 +207,9 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => void navigate('/akun/password')}>
             <KeyRound /> Akun saya
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void navigate('/tur')}>
+            <Compass /> Tur & panduan
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setTentang(true)}>
             <Info /> Tentang aplikasi

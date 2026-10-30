@@ -52,6 +52,7 @@ Name: "{autodesktop}\BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"; Tasks: deskt
 Name: "{group}\BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"
 Name: "{group}\Matikan BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"; Parameters: "--berhenti"
 Name: "{group}\Panduan mulai pakai"; Filename: "{app}\panduan\mulai-pakai.html"
+Name: "{group}\Pulihkan akses Owner"; Filename: "{app}\BonsaiUrip.exe"; Parameters: "--pulihkan"
 Name: "{userstartup}\BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"; Parameters: "--latar"; Tasks: otomatis
 
 [Run]
@@ -66,6 +67,64 @@ Type: filesandordirs; Name: "{app}\scripts"
 Filename: "{app}\BonsaiUrip.exe"; Parameters: "--berhenti"; RunOnceId: "Matikan"; Flags: runhidden waituntilterminated
 
 [Code]
+// K-211: bila folder data lama ada, pemasang memilih memakai data itu atau mulai dari nol. Mulai dari nol tidak
+// menghapus apa pun: folder data lama dipindah ke BonsaiUrip-lama-<tanggal> (bisa dikembalikan), lalu setup awal
+// tampil seperti pemasangan baru.
+var
+  HalamanData: TInputOptionWizardPage;
+
+function FolderData(): String;
+begin
+  Result := ExpandConstant('{localappdata}\BonsaiUrip');
+end;
+
+procedure InitializeWizard();
+begin
+  if DirExists(FolderData() + '\pgdata') then
+  begin
+    HalamanData := CreateInputOptionPage(wpSelectDir, 'Data toko yang sudah ada',
+      'Komputer ini sudah berisi data BonsaiUrip.',
+      'Pilih apa yang dilakukan dengan data itu. Bila ragu, pilih yang pertama.', True, False);
+    HalamanData.Add('Pakai data yang sudah ada (memperbarui aplikasi; akun, barang, dan transaksi tetap)');
+    HalamanData.Add('Mulai dari nol: data lama DIPINDAH ke folder cadangan (tidak dihapus), lalu setup awal dari awal');
+    HalamanData.SelectedValueIndex := 0;
+  end;
+end;
+
+function MulaiDariNol(): Boolean;
+begin
+  Result := (HalamanData <> nil) and (HalamanData.SelectedValueIndex = 1);
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if (HalamanData <> nil) and (CurPageID = HalamanData.ID) and MulaiDariNol() then
+  begin
+    Result := MsgBox('Mulai dari nol?' + #13#10#13#10 +
+      'Aplikasi akan kosong seperti baru dipasang: akun, barang, pelanggan, dan transaksi lama TIDAK tampil lagi.' + #13#10 +
+      'Data lama dipindah (tidak dihapus) ke folder:' + #13#10 + FolderData() + '-lama-<tanggal>',
+      mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+    if Result then
+      Result := MsgBox('Yakin? Pilih Ya hanya bila data lama memang data uji atau tidak dipakai lagi.',
+        mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  Tujuan: String;
+begin
+  // Dijalankan sesudah PrepareToInstall mematikan server dan database lama.
+  if (CurStep = ssInstall) and MulaiDariNol() then
+  begin
+    Tujuan := FolderData() + '-lama-' + GetDateTimeString('yyyymmdd-hhnn', '-', '-');
+    if not RenameFile(FolderData(), Tujuan) then
+      MsgBox('Folder data lama tidak bisa dipindah (mungkin masih dipakai). Aplikasi tetap memakai data lama.' + #13#10 +
+        'Matikan BonsaiUrip lalu jalankan Setup lagi untuk mencoba ulang.', mbError, MB_OK);
+  end;
+end;
+
 // K-204: halaman "Siap memasang" menyebut folder program dan folder data.
 function UpdateReadyMemo(Space, NewLine, MemoUserInfoInfo, MemoDirInfo, MemoTypeInfo, MemoComponentsInfo,
   MemoGroupInfo, MemoTasksInfo: String): String;
@@ -74,6 +133,8 @@ begin
     'Folder data toko (database, gambar, catatan, pengaturan cadangan):' + NewLine + Space +
     ExpandConstant('{localappdata}\BonsaiUrip') + NewLine + Space +
     '(tidak ikut terhapus saat memperbarui/menghapus aplikasi)' + NewLine;
+  if MulaiDariNol() then
+    Result := Result + Space + 'MULAI DARI NOL: data lama dipindah ke ' + FolderData() + '-lama-<tanggal>' + NewLine;
   if MemoTasksInfo <> '' then Result := Result + NewLine + MemoTasksInfo + NewLine;
 end;
 

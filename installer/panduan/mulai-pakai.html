@@ -103,14 +103,14 @@
     <header>
       <h1>Mulai pakai BonsaiUrip</h1>
       <p>
-        Sistem penjualan dan persediaan UD. Sumber Urip. Ikuti langkah 1 sampai 8 berurutan;
-        masing-masing ± 2–10 menit.
+        Toko rapi, stok terkendali, untung terlihat. Panduan cepat ini merangkum pemakaian pertama;
+        di dalam aplikasi ada setup awal langkah demi langkah dan tur fitur.
       </p>
     </header>
     <main>
       <nav>
-        <b>Isi:</b> <a href="#l1">1 Membuka</a> · <a href="#l2">2 Akun pertama</a> ·
-        <a href="#l3">3 Kode pemulihan</a> · <a href="#l4">4 Panduan penyiapan</a> ·
+        <b>Isi:</b> <a href="#l1">1 Membuka</a> · <a href="#l2">2 Setup awal</a> ·
+        <a href="#l3">3 Kode pemulihan</a> · <a href="#l4">4 Setup lanjutan &amp; tur</a> ·
         <a href="#l5">5 Cadangan</a> · <a href="#l6">6 Transaksi pertama</a> ·
         <a href="#l7">7 Mematikan</a> · <a href="#l8">8 Memperbarui</a> ·
         <a href="#masalah">Bila ada masalah</a>
@@ -123,14 +123,14 @@
           <li>
             Muncul layar cokelat bergambar bonsai dengan tulisan langkah yang sedang dikerjakan (<i
               >Menyalakan database…</i
-            >, <i>Menyalakan BonsaiUrip…</i>). Pemakaian pertama ± 1–3 menit; berikutnya ± 10–20
-            detik.
+            >, <i>Memperbarui data…</i>). Pemakaian pertama ± 1–3 menit; berikutnya ± 10–20 detik.
           </li>
           <li>Peramban (Chrome/Edge) terbuka sendiri di alamat <b>http://localhost:7878</b>.</li>
           <li>
             Di pojok kanan bawah layar (dekat jam, klik panah <b>^</b> bila tersembunyi) muncul
             <b>ikon BonsaiUrip</b>. Ikon ini tanda aplikasi sedang menyala.
-            <b>Menutup peramban tidak mematikan aplikasi.</b>
+            <b>Menutup peramban tidak mematikan aplikasi</b>; klik dua kali ikon itu untuk membuka
+            lagi.
           </li>
         </ol>
         <p class="catatan">
@@ -141,18 +141,39 @@
       </section>
 
       <section id="l2">
-        <h2><span>2</span>Membuat akun pertama (Owner)</h2>
+        <h2><span>2</span>Setup awal (pemakaian pertama)</h2>
+        <p>
+          Pemakaian pertama langsung membuka <b>Setup awal</b>: form langkah demi langkah. Daftar
+          langkah di kiri layar menunjukkan posisi Anda. Tombol: <kbd>Enter</kbd> lanjut,
+          <kbd>Alt</kbd>+<kbd>←</kbd> kembali, <kbd>Alt</kbd>+<kbd>L</kbd> lewati (langkah yang
+          boleh dilewati).
+        </p>
         <ol>
           <li>
-            Pemakaian pertama langsung membuka halaman <b>Buat akun pertama</b>. Isi <b>nama</b>,
-            <b>nama pengguna</b> (untuk masuk, mis. <i>pemilik</i>), dan <b>password</b> dua kali
-            (minimal 8 karakter, campur huruf dan angka).
+            <b>Selamat datang</b>: ringkasan fitur dan yang perlu disiapkan ›
+            <b class="tombol">Mulai</b>.
           </li>
           <li>
-            Klik <b class="tombol">Buat akun dan masuk</b>. Akun ini adalah <b>Owner</b> (pemilik,
-            hak penuh).
+            <b>Data usaha</b> (wajib): jenis usaha, nama usaha, nama badan usaha (mis. UD/CV),
+            slogan, alamat, kota/kabupaten, telepon, email usaha. Nama dan slogan tampil di halaman
+            masuk; identitas usaha tercetak di struk, invoice, dan laporan.
+          </li>
+          <li>
+            <b>Cara berjualan</b> (wajib): centang cara melayani pembeli (jual langsung di kasir,
+            order lewat staf penjualan, antar ke pelanggan) dan jam buka–tutup toko (untuk pengingat
+            shift; boleh kosong).
+          </li>
+          <li>
+            <b>Akun Owner</b> (wajib): nama lengkap, username, email (disarankan, untuk kode lupa
+            password), No. HP, password dua kali (minimal 8 karakter, campur huruf dan angka) ›
+            <b class="tombol">Buat akun dan masuk</b>.
           </li>
         </ol>
+        <p class="catatan">
+          Owner bisa mengulang setup awal kapan saja: menu nama Anda (kanan atas) ›
+          <b>Tur &amp; panduan</b> › <b>Ulangi setup awal</b>. Isian lama tampil kembali; transaksi
+          tidak tersentuh.
+        </p>
       </section>
 
       <section id="l3">
@@ -160,45 +181,58 @@
         <ol>
           <li>
             Setelah akun dibuat, tampil <b>kode pemulihan</b> (XXXXX-XXXXX-XXXXX-XXXXX). Kode ini
-            satu-satunya cara masuk bila password Owner terlupa.
+            jalan masuk bila password Owner terlupa dan email tidak bisa dipakai.
           </li>
           <li>
             Klik <b class="tombol">Cetak</b> atau <b class="tombol">Unduh berkas</b>, simpan
             kertasnya di tempat aman (bukan di laci kasir).
           </li>
-          <li>Centang <i>sudah menyimpan</i> › <b class="tombol">Lanjut ke aplikasi</b>.</li>
+          <li>
+            Centang <i>sudah menyimpan</i> › <b class="tombol">Lanjut ke langkah berikutnya</b>.
+          </li>
         </ol>
         <p class="catatan">
-          Lupa password: halaman masuk › <b>Lupa password?</b> › nama pengguna + kode pemulihan +
-          password baru.
+          Lupa password: halaman masuk › <b>Lupa password?</b> › <b>Kode lewat email</b> (kode 6
+          angka ke email Anda; perlu internet dan email toko sudah diatur) atau
+          <b>Kode pemulihan</b> (username + kode kertas + password baru).
         </p>
       </section>
 
       <section id="l4">
-        <h2><span>4</span>Panduan penyiapan (data toko)</h2>
+        <h2><span>4</span>Setup lanjutan dan tur aplikasi</h2>
         <p>
-          Halaman <b>Panduan penyiapan</b> terbuka sendiri (bisa juga dari kotak biru di Dashboard
-          atau Pengaturan › <i>Panduan penyiapan</i>). Kerjakan dari atas; tiap langkah punya tombol
-          ke layar yang tepat:
+          Setelah kode pemulihan, setup berlanjut. Tiap langkah memakai layar Pengaturan yang sama:
+          isi lalu tekan <b>Simpan</b> di dalam kotaknya, kemudian
+          <b class="tombol">Sudah, lanjut</b>. Belum siap? <b class="tombol">Lewati, atur nanti</b>
+          (diingatkan di Dashboard).
         </p>
         <ol>
-          <li><b>Profil toko</b>: nama, alamat, telepon, logo (tercetak di struk dan laporan).</li>
+          <li><b>Logo dan struk</b>: unggah logo, lebar kertas struk, kalimat penutup struk.</li>
+          <li><b>Cara bayar dan rekening</b>: rekening bank, EDC, QRIS penerima uang.</li>
           <li>
-            <b>Rekening penerimaan</b>: rekening bank/EDC/QRIS toko untuk pembayaran non-tunai.
+            <b>Email toko</b>: email pengirim (mis. Gmail dengan sandi aplikasi) untuk kode lupa
+            password dan kode persetujuan atasan. Tekan <b>Kirim uji</b> untuk memastikan.
           </li>
-          <li><b>Akun karyawan</b>: kasir, staf penjualan, admin (Data Pengguna › Tambah).</li>
+          <li><b>Cadangan data</b>: lihat langkah 5 di bawah.</li>
           <li>
-            <b>Barang</b>: satu per satu atau impor Excel; lalu <b>stok awal</b> (Penyesuaian Stok ›
-            Saldo awal).
+            <b>Akun karyawan</b>: kasir, staf penjualan, admin; password awal wajib mereka ganti
+            saat pertama masuk.
           </li>
           <li>
-            <b>Pelanggan</b>, <b>pemasok</b>, <b>kendaraan &amp; sopir</b> (bila mengantar),
-            <b>printer struk</b>.
+            <b>Data barang awal</b>: barang (satu per satu atau impor Excel), stok awal, pelanggan,
+            pemasok, kendaraan &amp; sopir, printer struk. Mau mencoba dulu? <b>Isi contoh</b>, lalu
+            <b>Nonaktifkan semua contoh</b> setelah selesai mencoba.
+          </li>
+          <li>
+            <b>Selesai</b> › aplikasi terbuka dan <b>tur pengenalan</b> mulai: bagian layar disorot
+            satu per satu dengan penjelasan. <kbd>→</kbd>/<kbd>Enter</kbd> lanjut,
+            <kbd>←</kbd> kembali, <kbd>Esc</kbd> lewati.
           </li>
         </ol>
         <p class="catatan">
-          Mau mencoba dulu? Klik <b>Isi contoh</b>: 5 contoh tiap jenis data bertanda "Data contoh".
-          Setelah selesai mencoba, klik <b>Nonaktifkan semua contoh</b>.
+          Saat membuka sebuah menu pertama kali, muncul tawaran <b>Tur fitur</b> di pojok kanan
+          bawah (Mulai tur / Nanti / Jangan tawarkan lagi). Semua tur bisa diulang: menu nama Anda ›
+          <b>Tur &amp; panduan</b>. Karyawan mendapat tur sesuai perannya saat pertama masuk.
         </p>
       </section>
 
@@ -210,8 +244,8 @@
             (atau gunakan disk kedua, mis. D: bila ada). Jangan hanya di C:.
           </li>
           <li>
-            Buka <b>Pengaturan › Cadangan</b>. Di kotak <b>Atur cadangan</b> tulis folder, mis.
-            <b>E:\BonsaiUrip-cadangan</b>.
+            Di langkah setup <b>Cadangan data</b> (atau Pengaturan › Cadangan), kotak
+            <b>Atur cadangan</b>: tulis folder, mis. <b>E:\BonsaiUrip-cadangan</b>.
           </li>
           <li>
             Klik <b class="tombol">Buat sandi</b>. <b>Tulis sandi itu di kertas</b> dan simpan
@@ -242,8 +276,10 @@
             uang diterima › <kbd>Enter</kbd>. Struk tercetak.
           </li>
           <li>
-            Tombol keyboard lain tampil di bilah hitam di kanan atas layar kasir
-            (<kbd>Ctrl</kbd>+<kbd>/</kbd> menampilkan/ menyembunyikan).
+            Tombol keyboard lain tampil di bilah hitam dekat tab Kasir/Riwayat (<kbd>Ctrl</kbd>+<kbd
+              >/</kbd
+            >
+            menampilkan/menyembunyikan).
           </li>
           <li>
             Akhir hari: <b>Shift &amp; Clerical Check</b> › <b>Tutup shift</b>: baca kotak
@@ -265,7 +301,7 @@
         <p class="catatan">
           Bila memilih <i>Nyalakan otomatis saat Windows dimulai</i> saat memasang, aplikasi menyala
           sendiri (tanpa membuka peramban) setiap komputer dinyalakan. Buka lewat ikon di desktop
-          atau klik dua kali ikon tray.
+          atau klik dua kali ikon di pojok kanan bawah.
         </p>
       </section>
 
@@ -277,8 +313,9 @@
             otomatis).
           </li>
           <li>
-            Ikuti wizard. Lokasi pemasangan lama dipakai lagi. <b>Data tidak hilang</b> (disimpan
-            terpisah di <i>%LOCALAPPDATA%\BonsaiUrip</i>).
+            Ikuti wizard. Lokasi pemasangan lama dipakai lagi. Di halaman
+            <i>Data toko yang sudah ada</i>, pilih <b>Pakai data yang sudah ada</b>.
+            <b>Data tidak hilang</b> (disimpan terpisah di <i>%LOCALAPPDATA%\BonsaiUrip</i>).
           </li>
         </ol>
       </section>
@@ -294,8 +331,17 @@
             <b>Peramban "tidak dapat dijangkau"</b>: klik ikon BonsaiUrip di desktop sekali lagi.
           </li>
           <li>
-            <b>Lupa password Owner</b>: halaman masuk › <b>Lupa password?</b> dengan kode pemulihan;
-            atau Admin/Owner lain me-reset di <i>Data Pengguna</i>.
+            <b>Lupa password Owner</b>: halaman masuk › <b>Lupa password?</b> (kode email atau kode
+            pemulihan). Bila keduanya tidak ada: di komputer ini, menu Start › BonsaiUrip ›
+            <b>Pulihkan akses Owner</b>. Owner diberi password sementara (wajib diganti saat masuk)
+            dan kode pemulihan baru. Ini hanya bisa dari akun Windows komputer tempat BonsaiUrip
+            terpasang.
+          </li>
+          <li>
+            <b>Memasang ulang di atas data lama yang tidak dipakai</b> (mis. data uji): Setup
+            menampilkan halaman <i>Data toko yang sudah ada</i> › pilih <b>Mulai dari nol</b>. Data
+            lama dipindah (tidak dihapus) ke folder
+            <i>%LOCALAPPDATA%\BonsaiUrip-lama-&lt;tanggal&gt;</i>.
           </li>
           <li>
             <b>Cadangan gagal</b>: Pengaturan › Cadangan menulis sebabnya (mis. flashdisk tercabut).

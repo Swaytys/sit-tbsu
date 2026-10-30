@@ -64,6 +64,11 @@ async function muatSaluran(ex: Executor = db): Promise<Saluran> {
   };
 }
 
+/** K-209: email toko bisa dipakai (SMTP diatur, atau tiruan di luar produksi). */
+export async function emailTokoSiap(): Promise<boolean> {
+  return (await muatSaluran()).smtp !== null || env.NODE_ENV !== 'production';
+}
+
 // --- Kotak keluar uji (pengembangan dan tes) ---
 
 export type PesanUji = { kepada: string; saluran: SaluranPesan; judul: string; isi: string };
