@@ -17,9 +17,10 @@ export function totalHitung(n: NilaiHitung): number | null {
 }
 
 /** Bentuk yang dikirim ke API. */
-export function keJsonHitung(n: NilaiHitung): DataHitungKas {
-  if (n.mode === 'TOTAL') return { uangFisik: n.total ?? 0 };
+export function keJsonHitung(n: NilaiHitung, akuiMenggantung = false): DataHitungKas {
+  if (n.mode === 'TOTAL') return { uangFisik: n.total ?? 0, akuiMenggantung };
   return {
     rincian: Object.fromEntries(Object.entries(n.rincian).filter(([, x]) => x > 0)),
+    akuiMenggantung,
   };
 }

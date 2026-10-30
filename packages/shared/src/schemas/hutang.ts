@@ -10,7 +10,13 @@ import {
   type StatusHutang,
 } from '../enums';
 import { skemaQtyPositif } from './persediaan';
-import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
+import {
+  PESAN_REFERENSI_KELUAR,
+  referensiSah,
+  skemaHalaman,
+  skemaRupiah,
+  teksOpsional,
+} from './umum';
 
 /*
  * Hutang pemasok, pembayaran pemasok, dan retur ke pemasok (Fase 10; docs/06 §5–6, K-088). Dokumen sumber
@@ -117,6 +123,9 @@ export const skemaBayarHutang = z
         message: 'Rekening tujuan wajib diisi untuk transfer.',
       });
     }
+    if (d.metode === 'TRANSFER' && !referensiSah(d.referensi)) {
+      ctx.addIssue({ code: 'custom', path: ['referensi'], message: PESAN_REFERENSI_KELUAR });
+    }
   });
 export type InputBayarHutang = z.input<typeof skemaBayarHutang>;
 export type DataBayarHutang = z.output<typeof skemaBayarHutang>;
@@ -183,6 +192,18 @@ export const skemaReturPemasok = z
         code: 'custom',
         path: ['metodeRefund'],
         message: 'Pilih cara pengembalian uang.',
+      });
+    }
+    // K-196: uang masuk lewat transfer dari pemasok juga wajib bukti.
+    if (
+      d.penyelesaian === 'REFUND' &&
+      d.metodeRefund === 'TRANSFER' &&
+      !referensiSah(d.referensi)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['referensi'],
+        message: 'No. referensi wajib, 4–40 huruf/angka: lihat mutasi rekening toko.',
       });
     }
     const terlihat = new Set<string>();

@@ -185,11 +185,11 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
     if (transfer.jumlah > 0) {
       hasil.push({
         jenis: 'REFUND_TRANSFER',
-        judul: 'Refund menunggu transfer',
-        keterangan: `${transfer.jumlah} pengembalian uang lewat transfer belum dikonfirmasi.`,
+        judul: 'Pengembalian uang menunggu',
+        keterangan: `${transfer.jumlah} pengembalian uang retur (tunai/transfer) belum dikonfirmasi.`,
         rincian: transfer.rincian,
         jumlah: transfer.jumlah,
-        tautan: '/retur?tab=transfer',
+        tautan: '/retur?tab=pengembalian',
       });
     }
   }

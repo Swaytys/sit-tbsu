@@ -6,7 +6,6 @@ import {
   type StatusPengambilan,
 } from '@sit/shared';
 import { Search } from 'lucide-react';
-import { useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
@@ -28,6 +27,7 @@ import { formatTanggal, formatWaktu } from '@/lib/format';
 import { LABEL_STATUS_PENGAMBILAN, LABEL_STATUS_PENGIRIMAN } from '@/lib/label';
 import { useTunda } from '@/lib/use-tunda';
 import { KodeInfo } from '@/components/kode-info';
+import { useIngat } from '@/lib/ingat-saring';
 
 const SEMUA = 'SEMUA';
 
@@ -42,10 +42,16 @@ export function TabRiwayatPenjualan({
   jenis: JenisPenjualan;
   belumDiambil?: boolean;
 }) {
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useIngat(`riwayat-${jenis}${belumDiambil ? '-ambil' : ''}.cari`, '');
   const cariTertunda = useTunda(cari, 300);
-  const [status, setStatus] = useState<StatusPembayaran | null>(null);
-  const [halaman, setHalaman] = useState(1);
+  const [status, setStatus] = useIngat<StatusPembayaran | null>(
+    `riwayat-${jenis}${belumDiambil ? '-ambil' : ''}.status`,
+    null,
+  );
+  const [halaman, setHalaman] = useIngat(
+    `riwayat-${jenis}${belumDiambil ? '-ambil' : ''}.halaman`,
+    1,
+  );
   const barisPerHalaman = useBarisPerHalaman();
   const diambil = useTandaiDiambil();
   const daftar = useDaftarPenjualan({

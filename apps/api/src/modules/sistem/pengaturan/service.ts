@@ -112,6 +112,7 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       saranPesanJarakBelanja: angka(m, 'saran_pesan_jarak_belanja_default', 7),
       muatanFaktorIsiPersen: angka(m, 'muatan_faktor_isi_persen', 85),
       muatanJulurMaksCm: angka(m, 'muatan_julur_maks_cm', 100),
+      muatanToleransiPersen: angka(m, 'muatan_toleransi_persen', 110),
       batasReturTanpaSetuju: angka(m, 'batas_retur_tanpa_persetujuan', 0),
       batasVoidTanpaSetuju: angka(m, 'batas_void_tanpa_persetujuan', 0),
       barisPerHalaman: barisPerHalaman(m),
@@ -177,6 +178,7 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     a('saran_pesan_jarak_belanja_default', o.saranPesanJarakBelanja);
     a('muatan_faktor_isi_persen', o.muatanFaktorIsiPersen);
     a('muatan_julur_maks_cm', o.muatanJulurMaksCm);
+    a('muatan_toleransi_persen', o.muatanToleransiPersen);
     a('batas_retur_tanpa_persetujuan', o.batasReturTanpaSetuju);
     a('batas_void_tanpa_persetujuan', o.batasVoidTanpaSetuju);
     a('baris_per_halaman', o.barisPerHalaman);

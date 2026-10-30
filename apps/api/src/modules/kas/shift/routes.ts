@@ -27,6 +27,7 @@ import {
   jelaskanSelisih,
   koreksiModal,
   mintaKodeKoreksi,
+  halMenggantung,
   pengajuanMenunggu,
   shiftAktifToko,
   simpanHitungBuka,
@@ -46,6 +47,10 @@ export const shiftRoutes = new Hono<EnvApp>()
   .get('/status', requireLogin(), async (c) => c.json({ data: await statusShiftToko() }, 200))
   /** K-142: pengajuan retur/void yang belum diputuskan (informasi saat tutup shift). */
   .get('/menunggu', sendiri, async (c) => c.json({ data: await pengajuanMenunggu() }, 200))
+  // K-197: hal menggantung sebelum shift ditutup.
+  .get('/:id/menggantung', sendiri, paramId, async (c) =>
+    c.json({ data: await halMenggantung(c.req.valid('param').id) }, 200),
+  )
   .get('/usulan-buka', sendiri, async (c) => c.json({ data: await usulanBukaShift() }, 200))
   .post('/buka', sendiri, zValidator('json', skemaBukaShift, kaitValidasi), async (c) => {
     const data = await bukaShift(c.req.valid('json'), penggunaWajib(c), c.get('asal'));

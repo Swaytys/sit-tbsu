@@ -57,12 +57,15 @@ Untuk semua baris surat jalan di satu rit (qty kirim × data barang per satuan):
 
 | Ukuran | Aman | Hampir penuh | Wajib konfirmasi | Ditolak |
 |---|---|---|---|---|
-| Berat (÷ daya angkut) | ≤ 90% | 90–100%: cek saat dimuat | — | **> 100%** |
-| Volume (÷ bak × faktor isi) | ≤ 85% | 85–100% | 100–115%: alasan wajib | > 115% |
+| Berat (÷ daya angkut) | ≤ 90% | 90–100%: cek saat dimuat | 100% s.d. toleransi (bawaan 110%): alasan wajib | > toleransi |
+| Volume (÷ bak × faktor isi) | ≤ 85% | 85–100% | 100% s.d. toleransi: alasan wajib | > toleransi |
 | Panjang (÷ panjang bak) | ≤ 100% | — | sampai + julur yang diizinkan: alasan wajib | lebih dari itu |
 
-**Kenapa berat tanpa toleransi:** kelebihan berat adalah pelanggaran ODOL (*Over Dimension Over Load*, UU 22/2009 LLAJ)
-dan langsung membahayakan rem, ban, dan sumbu. Volume dan panjang diberi ruang konfirmasi karena barang kadang
+**K-203 (30 Okt):** pemilik memilih satu batas toleransi untuk berat dan ruang (`muatan_toleransi_persen`, bawaan
+110%, diatur Owner di Pengaturan): di atas 100% sampai batas itu rit boleh berangkat dengan **alasan tertulis**, di
+atasnya **tidak bisa berangkat** (ganti kendaraan lewat *Ubah rit*). Pesan untuk kelebihan berat tetap mengingatkan
+ODOL (*Over Dimension Over Load*, UU 22/2009 LLAJ) karena berat berlebih langsung membahayakan rem, ban, dan sumbu;
+toleransi 100% berarti tanpa toleransi. Beban di papan dihitung dari surat jalan yang sudah dicentang *Dimuat*. Volume dan panjang diberi ruang konfirmasi karena barang kadang
 ditumpuk lebih tinggi dari dinding bak (terpal, diikat) atau menjulur sedikit; keputusan itu diserahkan kepada orang yang
 memuat, dengan **alasan yang tercatat** (mis. "besi 12 m menjulur 80 cm, diberi bendera merah, rute dalam kota").
 Julur yang diizinkan diatur di Pengaturan (`muatan_julur_maks_cm`, bawaan 100 cm; sesuaikan dengan kebijakan toko).

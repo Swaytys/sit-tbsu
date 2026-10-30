@@ -123,3 +123,14 @@ export async function buangDrafSaya(page: Page): Promise<void> {
     await api(page, `/order/${d.id}/batal`, 'POST', { alasan: 'Bersih-bersih uji e2e' });
   }
 }
+
+/**
+ * K-197: pengajuan void yang menunggu menghalangi tutup shift. Sisa uji lain di database pengembangan ditolak dulu
+ * (butuh sesi Admin/Owner).
+ */
+export async function tolakVoidMenunggu(atasan: Page): Promise<void> {
+  const daftar = await api<{ id: number }[]>(atasan, '/void?status=MENUNGGU&perHalaman=100');
+  for (const v of daftar) {
+    await api(atasan, `/void/${v.id}/tolak`, 'POST', { alasan: 'Dibersihkan uji otomatis' });
+  }
+}

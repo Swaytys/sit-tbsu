@@ -47,6 +47,7 @@ test('Admin mengisi lama kirim pemasok; Saran Pesan menampilkan barangnya besert
     idPemasok: pm.id,
     jenis: 'PEMBELIAN',
     syaratBayar: 'TUNAI',
+    referensi: 'TRF0001',
     metodeBayar: 'TRANSFER',
     baris: [{ idBarang: b.id, qtyMasuk: '50', hargaModalMasuk: 1000 }],
   });

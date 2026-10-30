@@ -304,6 +304,7 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
           idPemasok: m.pemasokA,
           jenis: 'PEMBELIAN',
           syaratBayar: 'TUNAI',
+          referensi: 'TRF0001',
           metodeBayar,
           baris: [{ idBarang: m.semen, qtyMasuk: '2', hargaModalMasuk: 8000 }],
         },
@@ -652,5 +653,48 @@ describe('satu shift untuk toko (docs/05 K1, K2, K25–K27; K-132, K-141, K-142)
     );
     const d = await ambil<{ data: DetailShift }>(admin, `/api/shift/${s.id}`);
     expect(d.data.ringkasan?.kasKeluar).toBe(0);
+  });
+
+  it('K-197 void menunggu menghalangi tutup; pembayaran di luar shift masuk shift berikutnya dan wajib diakui', async () => {
+    // Admin menerima transfer saat shift toko belum dibuka (di luar shift).
+    const luar = await kirim<{ pembayaran: { nomor: string }[] }>(
+      admin,
+      '/api/penjualan/checkout',
+      {
+        order: { jenisPenjualan: 'LANGSUNG', baris: [{ idBarang: m.semen, qty: '1' }] },
+        pembayaran: [{ metode: 'TRANSFER', idRekening: await rekeningUji(), referensi: 'TRF5566' }],
+      },
+    );
+    const s = await kirim<ShiftAktif>(kasir, '/api/shift/buka', { modalAwal: 100000 });
+    const pj = await jualTunai(kasir, '2');
+    const v = await kirim<{ id: number }>(kasir, '/api/void', {
+      idPenjualan: pj.id,
+      lingkup: 'TRANSAKSI',
+      alasan: 'Salah input qty',
+    });
+    const daftar = (
+      await ambil<{ data: { kode: string; tingkat: string; rincian: string[] }[] }>(
+        kasir,
+        `/api/shift/${s.id}/menggantung`,
+      )
+    ).data;
+    expect(daftar).toContainEqual(
+      expect.objectContaining({ kode: 'VOID_MENUNGGU', tingkat: 'BLOK' }),
+    );
+    expect(daftar.find((h) => h.kode === 'LUAR_SHIFT')?.rincian[0]).toContain(
+      luar.pembayaran[0]!.nomor,
+    );
+    const blok = await galat(kasir, `/api/shift/${s.id}/hitung`, {
+      uangFisik: 120000,
+      akuiMenggantung: true,
+    });
+    expect(blok.status).toBe(409);
+    expect(blok.pesan).toContain('Pengajuan void belum diputuskan');
+
+    await kirim(admin, `/api/void/${v.id}/tolak`, { alasan: 'Qty sudah benar' });
+    const belumDiakui = await galat(kasir, `/api/shift/${s.id}/hitung`, { uangFisik: 120000 });
+    expect(belumDiakui.status).toBe(400);
+    expect(belumDiakui.pesan).toContain('Sudah saya periksa');
+    await kirim(kasir, `/api/shift/${s.id}/hitung`, { uangFisik: 120000, akuiMenggantung: true });
   });
 });

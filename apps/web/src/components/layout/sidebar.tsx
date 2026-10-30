@@ -2,6 +2,7 @@ import { LABEL_PERAN } from '@sit/shared';
 import { ChevronDown, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink } from 'react-router';
+import { lupakanSaring } from '@/lib/ingat-saring';
 import { useLogout, usePengguna } from '@/api/auth';
 import { useTampilanToko } from '@/api/pengaturan';
 import { menuUntuk, type ItemMenu } from '@/lib/menu';
@@ -22,6 +23,7 @@ function TautanIkon({ item }: { item: ItemMenu }) {
     <div className="px-2">
       <NavLink
         to={item.path}
+        onClick={lupakanSaring}
         title={item.label}
         aria-label={item.label}
         className={({ isActive }) => cn(kelasTautan(isActive, false), 'justify-center')}
@@ -72,7 +74,11 @@ export function Sidebar({ terbuka }: { terbuka: boolean }) {
             if (!terbuka) return <TautanIkon key={entri.path} item={entri} />;
             return (
               <div key={entri.path} className="px-2">
-                <NavLink to={entri.path} className={({ isActive }) => kelasTautan(isActive, false)}>
+                <NavLink
+                  to={entri.path}
+                  onClick={lupakanSaring}
+                  className={({ isActive }) => kelasTautan(isActive, false)}
+                >
                   <entri.ikon className="size-4 shrink-0" />
                   <span>{entri.label}</span>
                 </NavLink>
@@ -102,6 +108,7 @@ export function Sidebar({ terbuka }: { terbuka: boolean }) {
                     <NavLink
                       key={item.path}
                       to={item.path}
+                      onClick={lupakanSaring}
                       className={({ isActive }) => kelasTautan(isActive, true)}
                     >
                       <item.ikon className="size-3.5 shrink-0" />

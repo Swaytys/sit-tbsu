@@ -5,7 +5,13 @@ bukan bagian tugas Anda. Semua layar berbahasa Indonesia; angka uang dalam rupia
 
 **Masuk:** buka alamat aplikasi (di komputer kasir: ikon *Buka Kasir*), isi username dan password. Login pertama
 wajib mengganti password. Sesi berakhir sendiri setelah 60 menit tidak dipakai. Lupa password → minta Owner
-mereset di *Data Pengguna*.
+mereset di *Data Pengguna*, atau (bila punya kode pemulihan) klik **Lupa password?** di halaman masuk.
+
+**Menyalakan dan mematikan (komputer tempat BonsaiUrip terpasang):** klik ikon **BonsaiUrip** di desktop; layar
+pembuka cokelat tampil, lalu peramban terbuka. Selama menyala ada ikon BonsaiUrip di pojok kanan bawah layar (dekat
+jam; klik panah **^** bila tersembunyi). Menutup peramban tidak mematikan aplikasi; klik dua kali ikon itu untuk
+membuka lagi. Untuk mematikan: tutup shift, klik kanan ikon › **Matikan BonsaiUrip** › **Ya**. Panduan pemakaian
+pertama: menu Start › BonsaiUrip › *Panduan mulai pakai*.
 
 **Lonceng (kanan atas):** pengingat yang perlu ditindaklanjuti — order terlalu lama menunggu, stok habis/kritis,
 retur/void menunggu persetujuan, piutang jatuh tempo, shift yang perlu ditutup, uang non-tunai yang belum dicek
@@ -235,7 +241,12 @@ kendaraan + satu sopir berangkat sekali, membawa satu atau beberapa surat jalan.
      berangkat, mis. untuk dicek gudang).
    - Header grup menunjukkan nomor rit, plat, jam, sopir, jumlah surat jalan, dan **bar muatan** (hijau aman, kuning
      hampir penuh, oranye perlu alasan, merah melebihi). Klik panah di kiri header untuk menciutkan/membuka grup.
-   - **Dimuat**: klik setelah barang selesai dinaikkan ke kendaraan (grup bertanda *Dimuat*).
+   - **Dimuat** (centang di tiap kartu surat jalan): centang setelah barang surat jalan itu naik ke kendaraan; klik
+     lagi untuk melepas bila salah. Header grup menulis *dimuat 1/3* dst., dan **bar muatan** hanya menghitung yang
+     sudah dicentang. **Berangkat** baru aktif setelah semua dicentang.
+   - **Muatan berlebih**: di atas 100% sampai batas toleransi (bawaan 110%, diatur Owner di *Pengaturan ›
+     Operasional*) rit boleh berangkat dengan alasan tertulis; di atasnya tidak bisa berangkat. Ganti kendaraan
+     (atau sopir/jadwal) dengan tombol **Ubah** pada grup rit, atau keluarkan sebagian surat jalan.
    - **Berangkat**: klik pada grup → periksa panel muatan (tulis alasan bila oranye) → pilih surat jalan setelah
      berangkat: **1 Cetak** (ke printer), **2 Simpan PDF** (di jendela cetak pilih tujuan *Simpan sebagai PDF*), atau
      **3 Tidak sekarang** → **Berangkat** (atau **Enter**). Semua surat jalan rit keluar dalam satu jendela cetak,
@@ -253,16 +264,27 @@ kendaraan + satu sopir berangkat sekali, membawa satu atau beberapa surat jalan.
      - **Kembali utuh** (barang dibawa pulang dalam keadaan baik), alasan:
        - *Kirim ulang nanti* (rumah tutup, alamat salah, pembeli menunda): barang tetap milik pembeli, stok tidak
          berubah, dan muncul lagi di *Backlog* bertanda *Kirim ulang*.
-       - *Kelebihan pesanan*, *Salah barang*, atau *Pembeli batal*: barang kembali ke stok jual dan **tagihan
-         dikurangi otomatis**.
+       - *Kelebihan pesanan*, *Salah barang*, atau *Pembeli batal*: barang kembali ke stok jual; nilainya
+         diselesaikan di kotak di bawahnya.
      - **Rusak**, alasan *Rusak di jalan* atau *Rusak/cacat saat dicek pembeli*: ditanggung toko (masuk stok rusak).
        Tanyakan pembeli lalu pilih **Dikirim pengganti** (tagihan tetap; pengganti muncul di *Backlog*) atau
-       **Tagihan dikurangi**.
-     - Bila invoice sudah lunas dan ada nilai yang dikurangi, pilih cara uang dikembalikan: **Tunai** (dari uang
-       shift, langsung) atau **Transfer**. Rekening pembeli boleh dikosongkan dulu: transfer menjadi tugas di
-       *Retur Penjualan › Refund transfer* (lonceng: *Refund menunggu transfer*). Setelah uang dikirim dari rekening
-       toko, buka tab itu → **Sudah ditransfer** → isi rekening tujuan dan **nomor referensi/bukti** dari bank →
-       **Enter**.
+       **Tidak diganti** (nilainya diselesaikan di kotak di bawahnya).
+     - Kotak **Nilai barang dikembalikan/rusak** menyebut status bayar pembeli dan pilihannya:
+       - pembeli **belum membayar** apa pun → nilainya **memotong tagihan** (tanpa pilihan);
+       - pembeli **sudah membayar sebagian** (DP) → pilih **Potong tagihan** (sisa tagihan berkurang; bila nilainya
+         lebih besar dari sisa tagihan, kelebihannya dikembalikan) atau **Kembalikan uang** (paling banyak sebesar
+         yang sudah dibayar; sisanya memotong tagihan). Di samping tiap pilihan tertulis hasilnya;
+       - tagihan **sudah lunas** → uangnya **dikembalikan** (tanpa pilihan).
+     - Bila ada uang yang dikembalikan, pilih **Tunai** (diambil di toko atau diantar nanti) atau **Transfer**
+       (rekening pembeli boleh dikosongkan dulu). Uangnya **belum keluar** saat hasil disimpan: tugasnya menunggu di
+       *Retur Penjualan › Pengembalian uang* (lonceng: *Pengembalian uang menunggu*).
+   - **Pengembalian uang** (*Retur Penjualan › Pengembalian uang*): dua daftar.
+     - *Menunggu diserahkan tunai*: saat pembeli datang/uang diantar, klik **Sudah diserahkan** → **Enter**. Uang
+       dicatat keluar dari kas shift yang sedang buka (shift harus terbuka).
+     - *Menunggu ditransfer* (Admin/Owner): kirim uangnya dari rekening toko, klik **Sudah ditransfer** → isi
+       rekening tujuan dan **No. referensi** dari bank (4–40 huruf/angka) → **Enter**.
+     - Salah pilih cara, atau pembeli berubah pikiran? Klik **Jadikan tunai** / **Jadikan transfer**, isi alasannya
+       (ada saran yang bisa diklik) → **Ganti cara**. Bisa selama belum dikonfirmasi.
    - Isi **Nama yang menerima** bila berbeda dari pembeli → **Simpan hasil**.
    Kartu surat jalan di *Di jalan* dan *Selesai hari ini* diberi penanda: **Terkirim semua** (hijau), **Ada yang
    kembali** (kuning), **Ada yang rusak** (merah); klik nomornya untuk rincian.
@@ -373,8 +395,14 @@ tercatat masuk uang shift, bukan penjualan, jadi hitungan tetap cocok.
 
 **Tutup shift** (*Shift & Clerical Check*, kotak **Tutup shift**):
 1. **Order belum selesai** tampil di atas: pilih per order **Ke antrean**, **Simpan nanti**, **Ke draf**, atau
-   **Batalkan**. Yang tidak diubah tetap di antrean. **Retur/void menunggu persetujuan** tampil sebagai informasi:
-   uangnya belum keluar dari uang shift.
+   **Batalkan**. Yang tidak diubah tetap di antrean.
+   Kotak **Sebelum menutup** (bila ada) berisi:
+   - **merah** — wajib diselesaikan dulu: *Pengajuan void belum diputuskan* (void hanya bisa disetujui selama
+     shift transaksinya masih buka). Klik **Buka**, setujui/tolak/batalkan, lalu kembali ke sini;
+   - **kuning** — tidak menghalangi, tetapi wajib dibaca: pembayaran di luar shift (sebelum shift ini dibuka, masuk
+     catatan shift ini), non-tunai yang belum dicek masuk rekening, retur menunggu persetujuan, uang retur yang
+     menunggu diserahkan tunai, dan barang bayar-saat-terima yang uangnya masih dibawa sopir. Centang
+     **Sudah saya periksa**; tombol *Kirim hitungan* baru aktif setelah itu.
 2. **Hitung dan kirim** semua uang shift. Angka sistem belum tampil (hitungan jujur). Setelah dikirim, shift
    berhenti menerima uang.
 3. **Lihat hasil**: selisih (hijau cocok, abu-abu receh, merah kurang, kuning lebih), *Tinjauan shift*, dan
@@ -435,7 +463,8 @@ Semua tugas kasir, ditambah:
      khusus (harga jadi)** (isi harga yang dibayar pembeli per satuan dasar, bukan besar potongannya: harga Rp
      50.000 diisi Rp 48.000 = hemat Rp 2.000; tidak berlaku bila harga biasanya sudah lebih murah), **Beli X gratis Y**
      (barang yang sama; mis. setiap beli 10 gratis 1), atau **Beli N potong Rp X** (setiap kelipatan N dipotong
-     Rp X: beli 2 potong Rp 2.000, qty 5 dipotong Rp 4.000). Untuk beli X gratis Y, kasir mengetik **semua** qty
+     Rp X: beli 2 potong Rp 2.000, qty 5 dipotong Rp 4.000). Untuk keduanya pilih **Berlaku per baris**:
+     **Tanpa batas**, **Sekali**, atau isi **paling banyak … kali** (mis. 2: qty 9 tetap dipotong dua kali saja). Untuk beli X gratis Y, kasir mengetik **semua** qty
      yang dibawa pembeli (mis. 11), yang gratis otomatis menjadi potongan.
   4. **Syarat** (opsional): minimal total belanja, pembeli tertentu, riwayat belanja pelanggan.
   5. **Batas uang** (opsional): anggaran dan batas per pembeli (lihat di bawah).
@@ -465,6 +494,10 @@ Semua tugas kasir, ditambah:
   (huruf besar/kecil, spasi, tanda baca, dan awalan Toko/CV/PT/Pak/Bu diabaikan) atau No. HP-nya sama, muncul kotak
   kuning **"… yang mirip sudah ada"** berisi daftarnya. Pakai data yang sudah ada (tutup form), atau bila memang
   berbeda klik **Ini … berbeda, tetap simpan**.
+  **Sama persis** (kotak merah: nama dan No. HP sama; barang: nama sama) tidak bisa disimpan. Pilih salah satu:
+  ubah nama/No. HP di isian Anda; **Buka & ubah data itu**; atau **Hapus data itu** / **Hapus data yang sedang
+  diubah ini** → **Ya, hapus permanen** (Admin/Owner). Hapus hanya berhasil untuk data yang belum pernah dipakai
+  transaksi; bila sudah dipakai, ubah nama/No. HP-nya.
 - **Pemeriksaan data** (*Pengaturan › Pemeriksaan data*, Admin/Owner): daftar data lama yang kemungkinan dobel dan
   yang formatnya salah. Klik kodenya untuk membuka data itu. **Rapikan No. HP** memperbaiki sekaligus semua No. HP
   yang bisa dirapikan (0812… → +62812…); sisanya tertulis "perbaiki manual".
@@ -661,6 +694,12 @@ Semua tugas admin, ditambah:
   alami tercatat (isi ketikan, password, dan nominal tidak). Lihat di tabel di bawahnya (saring jenis, pengguna,
   halaman, tanggal), lalu **Ekspor Excel** atau **Ekspor CSV** untuk diolah. Kolom *Lama / hasil*: lama di halaman
   atau dialog (detik) dan jumlah hasil pencarian. Hilangkan centang lalu **Simpan** untuk berhenti mencatat.
+- **Mengatur cadangan pertama kali** (Owner, *Pengaturan › Cadangan* › kotak **Atur cadangan**): colokkan disk kedua
+  atau flashdisk/hardisk eksternal yang selalu terpasang → tulis folder lengkap, mis. `E:\BonsaiUrip-cadangan` →
+  isi sandi (atau **Buat sandi**) dua kali → **catat sandi di kertas** dan simpan di tempat aman → centang *sudah
+  dicatat* → **Simpan** → **Cadangkan sekarang**. Tanpa sandi itu cadangan tidak bisa dibuka. Mengganti folder:
+  **Ubah folder/sandi**. Kotak kuning di atas memberi tahu bila folder ada di disk yang sama dengan data atau bila
+  program cadangan belum terpasang.
 - **Cadangan** (*Pengaturan › Cadangan*): pastikan *cadangan terakhir* hari ini/kemarin dan *berhasil* (lokal &
   cloud). Lihat panduan server bagian 7 untuk mengatur, bagian 8 untuk memulihkan.
 - **Dashboard**: penjualan hari ini vs kemarin, grafik 7 hari, antrean, pengiriman aktif, peringatan stok.
@@ -685,6 +724,10 @@ Semua tugas admin, ditambah:
 - **Pindah dan gulir panel di layar kasir**: **Alt+←** pindah ke antrean (kiri), **Alt+→** pindah ke transaksi
   (kanan). **PgUp/PgDn** menggulir panel yang sedang aktif, mis. keranjang yang panjang. Dengan mouse cukup klik
   panelnya dan gulir dengan roda tetikus.
+- **Pencarian dan saringan daftar diingat** (Data Barang, Pelanggan, Pemasok, Penerimaan, Piutang, Hutang, Order
+  pembelian, Konsinyasi, Retur ke pemasok, Order, Riwayat penjualan): kembali dari halaman ubah/detail, daftar tetap
+  memakai kata cari, kategori, saringan, dan halaman terakhir. **Klik menu di sidebar** untuk mulai dari awal (semua
+  saringan kosong lagi). Ingatan hilang bila aplikasi dimuat ulang.
 - **Teks yang terpotong** (catatan, alamat): klik **lihat semua** untuk membacanya utuh, **ringkas** untuk menutup.
 
 - Jangan berbagi akun: setiap aksi tercatat atas nama pemilik akun.

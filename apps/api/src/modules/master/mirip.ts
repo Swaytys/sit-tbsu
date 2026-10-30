@@ -54,9 +54,10 @@ export async function cariMirip(
     no_hp: string | null;
     status_aktif: string;
     sama_nama: boolean;
+    sama_hp: boolean;
   }>(sql`
     select id, kode, ${kolomNama} as nama, ${kolomHp ?? sql`null`} as no_hp, status_aktif,
-      (${samaNama}) as sama_nama
+      (${samaNama}) as sama_nama, (${samaHp}) as sama_hp
       from ${sql.identifier(d.tabel)}
      where ((${samaNama}) or (${samaHp}))
        ${kecualiId === undefined ? sql`` : sql`and id <> ${kecualiId}`}
@@ -73,7 +74,10 @@ export async function cariMirip(
     nama: x.nama,
     noHp: x.no_hp,
     statusAktif: x.status_aktif,
-    alasan: x.sama_nama ? 'nama sama' : 'No. HP sama',
+    alasan:
+      x.sama_nama && x.sama_hp ? 'nama dan No. HP sama' : x.sama_nama ? 'nama sama' : 'No. HP sama',
+    // K-199: barang tanpa No. HP → nama sama = persis; pelanggan/pemasok → nama dan No. HP sama.
+    persis: x.sama_nama && (jenis === 'barang' || x.sama_hp),
   }));
 }
 
@@ -85,10 +89,21 @@ export async function pastikanTidakMirip(
   abaikan: boolean | undefined,
   kecualiId?: number,
 ): Promise<void> {
-  if (abaikan) return;
   const mirip = await cariMirip(ex, jenis, data, kecualiId);
   if (mirip.length === 0) return;
   const apa = jenis === 'barang' ? 'Barang' : jenis === 'pelanggan' ? 'Pelanggan' : 'Pemasok';
+  // K-199: sama persis tidak bisa ditegaskan "berbeda"; salah satunya harus diubah atau dihapus.
+  const persis = mirip.filter((m) => m.persis);
+  if (persis.length > 0) {
+    throw new AppError(
+      'KONFLIK',
+      `${apa} sama persis sudah ada: ${persis.map((m) => `${m.kode} ${m.nama}${m.statusAktif === 'AKTIF' ? '' : ' (nonaktif)'}`).join('; ')}. ` +
+        'Ubah nama/No. HP salah satunya, atau hapus salah satunya bila belum pernah dipakai.',
+      409,
+      { mirip: persis },
+    );
+  }
+  if (abaikan) return;
   throw new AppError(
     'KONFLIK',
     `${apa} mirip sudah ada: ${mirip.map((m) => `${m.kode} ${m.nama} (${m.alasan}${m.statusAktif === 'AKTIF' ? '' : ', nonaktif'})`).join('; ')}. ` +

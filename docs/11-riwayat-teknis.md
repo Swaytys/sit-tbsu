@@ -768,6 +768,47 @@ barang, sama dengan penerimaan). L9 `hitungUlangCache()` ikut memeriksa harga FI
 **Tes:** harga.test (dasar FIFO tetap harga lama selama stok lama ada; keluar 10 → dasar naik dan harga otomatis
 naik dengan log; stok 0 → harga beli terakhir; mode lain tidak mengubah harga tetapi cache tetap terjaga).
 
+### C29. Aturan referensi tunggal, penyelesaian menurut status bayar, pengembalian uang menunggu (30 Oktober 2026, K-196, K-192, K-193)
+
+**K-196:** pola No. referensi dipindah ke `packages/shared/schemas/umum.ts` (`POLA_REFERENSI`, `referensiSah`) dan
+dipakai semua skema uang non-tunai: pembayaran penjualan, bayar hutang, uang muka PO, penerimaan tunai lewat transfer
+(kolom `referensi` baru di isian penerimaan, disimpan ke `pembayaran_pemasok.referensi`), refund transfer pemasok,
+dan bukti refund transfer pembeli. Penyebab temuan U64: aturan ditulis sendiri-sendiri per jalur; jalur yang hanya
+dibuka Owner/Admin tidak mewajibkannya. Audit service API: percabangan per peran hanya untuk izin.
+
+**K-192/K-193:** migrasi 0039 (`pengembalian_ditunda`, `potong_dulu`, CHECK transfer menerima TUNAI). `catatHasil`
+menghitung pilihan dari `hitungTagihan` (sisa, dibayar bersih) dan mengirim opsi ke `ajukanReturTx`; `terapkan`
+menghitung uang kembali potong-dulu atau T6, dan untuk retur tertunda tidak memanggil `catatRefund` (tanpa kas_shift)
+melainkan menandai MENUNGGU. `konfirmasiPengembalian` mencatat kas keluar saat tunai diserahkan; `gantiCaraPengembalian`
+hanya mengganti `metode_refund` selama MENUNGGU. Tab web *Refund transfer* diganti *Pengembalian uang* (dua daftar).
+
+**Tes:** surat-jalan.test (lunas tunai menunggu → diserahkan → kas keluar; DP potong dulu vs kembalikan uang; belum
+bayar ditolak kembalikan uang; ganti cara + izin transfer), penerimaan.test (referensi wajib), e2e refund-transfer.
+
+### C30. Dependensi alur dan hal menggantung saat tutup shift (30 Oktober 2026, K-197)
+
+**Solusi:** tanpa migrasi. `halMenggantung()` di modul shift menyusun daftar BLOK/INFO dari kueri berparameter
+(void menunggu atas penjualan shift itu; pembayaran tanpa shift dalam jendela waktu tutup shift sebelumnya sampai
+buka shift ini; non-tunai belum dicek; retur menunggu; pengembalian tunai menunggu; bayar-saat-terima di jalan).
+Diperiksa pada hitungan tutup pertama: BLOK → 409; INFO tanpa `akuiMenggantung` → 400; yang diakui ditulis di log.
+"Masuk shift berikutnya" dihitung dari jendela waktu, jadi pembayaran lama tidak diubah (tetap append-only). Matriks
+dependensi ditulis di docs/05 §22.
+
+**Tes:** shift.test (void menunggu menghalangi; pembayaran di luar shift tampil; tanpa centang ditolak), e2e shift
+(centang sebelum kirim hitungan; sisa void uji ditolak dulu).
+
+### C31. Centang muat, ubah rit, toleransi muatan (30 Oktober 2026, K-203)
+
+**Solusi:** tanpa migrasi. Status surat jalan DIPROSES ↔ DIMUAT lewat endpoint status yang sudah ada (dua arah,
+`waktu_dimuat` dikosongkan saat dilepas). `berangkatkanRit` menolak bila ada surat jalan belum DIMUAT. Bar muatan rit
+rencana dihitung dari surat jalan DIMUAT saja. `hitungMuatan` memakai `muatan_toleransi_persen` untuk berat dan
+volume (KONFIRMASI di atas 100%, DITOLAK di atas toleransi). `PATCH /api/perjalanan/:id` mengganti kendaraan, sopir,
+jadwal rit rencana dan teks surat jalannya. Web: kotak centang di kartu, tombol Ubah memakai `DialogRitBaru` mode ubah.
+
+**Tes:** surat-jalan.test (centang/lepas mengubah beban; berangkat ditolak sebelum semua dimuat; 104% minta alasan;
+toleransi 100% → ditolak; ubah rit lalu berangkat; centang tidak bisa dilepas setelah berangkat), e2e pengiriman dan
+pengantaran (centang sebelum berangkat).
+
 ---
 
 ## Riwayat dokumen
@@ -801,3 +842,19 @@ naik dengan log; stok 0 → harga beli terakhir; mode lain tidak mengubah harga 
 - 2026-10-28 — Bagian C26 pratinjau laporan per halaman A4 (K-182).
 - 2026-10-28 — Bagian C27 promo kombinasi dan beli N potong (K-185).
 - 2026-10-28 — Bagian C28 dasar markup FIFO (K-184).
+- 2026-10-30 — K-200: `pratinjauOrder` menambah `qtyTidakBiasa` per baris dari `repo.qtyTerbanyak` (max qty_dasar baris penjualan bukan void 90 hari, query builder); POS menandai baris dan meminta konfirmasi sebelum checkout; saran alasan koreksi stok; panduan docs/panduan/selisih-stok.md; tes promo.test + e2e qty-tidak-biasa.
+- 2026-10-30 — K-198: `cadangan/aturan.ts` menyimpan folder + sandi di `STORAGE_DIR/sistem/cadangan.json` (bukan DB, tidak dilayani web; menang atas .env); validasi jalur lengkap, uji tulis, cocokkan sandi bila folder sudah berisi repositori; status menambah `sumberAturan`, `programAda` (restic version), `diskSama`. `PUT /api/cadangan/aturan` (Owner), log `CADANGAN_ATUR` tanpa sandi. Restic perlu dibawa installer (K-204).
+- 2026-10-30 — K-199: `cariMirip` menandai `persis`; `pastikanTidakMirip` menolaknya walau `abaikanMirip`. `master/hapus.ts` menghapus baris master + pelengkap milik barang dalam transaksi; galat kunci asing 23503 dipetakan ke 409 dengan nama tempat dipakai (tidak ada pengecekan manual yang bisa terlewat). Web: `PanelMirip` mode merah + `useHapusMaster`. Tes mitra/barang + e2e data-ganda.
+- 2026-10-30 — K-201: konversi atribut ↔ muatan (`atributKeMuatan`, `muatanKeAtribut`, decimal.js) di packages/shared/satuan-muatan.ts; form barang menyelaraskan saat blur (yang terakhir diubah menang), KartuMuatan menyesuaikan angka layar bila nilai diubah dari luar; e2e muatan-selaras.spec.
+- 2026-10-30 — K-202: `useIngat` (web/lib/ingat-saring.ts) menyimpan saringan daftar per kunci halaman di memori; `lupakanSaring` dipanggil NavLink sidebar dan memberi sinyal reset (useSyncExternalStore) ke halaman yang sedang terbuka; e2e ingat-saring.spec.
+- 2026-10-30 — Bagian C31 centang muat, ubah rit, toleransi muatan (K-203).
+- 2026-10-30 — Bagian C30 dependensi alur dan tutup shift (K-197).
+- 2026-10-30 — Bagian C29 referensi tunggal, penyelesaian hasil kirim, pengembalian uang (K-196, K-192, K-193).
+- 2026-10-30 — K-204 Setup v3 (versi 1.15.0): `peluncur.ts` menulis langkah ke `<data>/status-peluncur.txt` (dihapus
+  saat siap) dan memasang `CADANGAN_RESTIC` bila `alat/restic.exe` ada. `BonsaiUrip.cs` (C# 5, csc .NET 4) kini
+  WinForms: layar pembuka tanpa bingkai yang membaca berkas status tiap 300 ms, `NotifyIcon` dengan menu Buka/Matikan;
+  satu ikon per sesi lewat mutex `BonsaiUrip-Ikon`; `--berhenti` memberi sinyal event `BonsaiUrip-Berhenti` lalu
+  menunggu mutex dilepas (≤10 detik) supaya Setup pembaruan tidak menabrak berkas terkunci. `bonsaiurip.iss`:
+  halaman lokasi aktif, pesan Indonesia, `UpdateReadyMemo` menyebut folder data, pintasan panduan.
+  `buat-installer.ps1` mengunduh restic 0.17.3 windows_amd64 + SHA256SUMS ke `installer/alat-cache` (diabaikan git),
+  memeriksa hash, mengekstrak ke `paket/alat/restic.exe`, menyalin `installer/panduan`.

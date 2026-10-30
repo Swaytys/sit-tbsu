@@ -20,6 +20,7 @@ import type {
   StatusSaranPesan,
   StatusStok,
   StatusTransaksi,
+  PenyelesaianUangHasil,
 } from './enums';
 
 /*
@@ -172,4 +173,10 @@ export const LABEL_PENYELESAIAN_RETUR_PEMASOK: Record<PenyelesaianReturPemasok, 
   GANTI_BARANG: 'Ganti barang',
   REFUND: 'Uang kembali',
   PENGEMBALIAN_TITIPAN: 'Pengembalian titipan',
+};
+
+/** K-192 */
+export const LABEL_PENYELESAIAN_UANG_HASIL: Record<PenyelesaianUangHasil, string> = {
+  POTONG_TAGIHAN: 'Potong tagihan',
+  KEMBALIKAN_UANG: 'Kembalikan uang',
 };

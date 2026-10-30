@@ -48,7 +48,8 @@ async function keRespons(
   for (const r of rows) {
     const isi = sj.filter((s) => s.idPerjalanan === r.id).map(({ idPerjalanan: _, ...s }) => s);
     const { kapasitasKg, bakPanjangCm, bakLebarCm, bakTinggiCm, ...umum } = r;
-    // Rit rencana: muatan dihitung dari isinya sekarang (dipakai warna grup di papan).
+    // Rit rencana: muatan dihitung dari surat jalan yang sudah dicentang dimuat (K-203), dipakai bar dan warna grup.
+    const dimuat = isi.filter((s) => s.status === 'DIMUAT');
     const muatan =
       r.status === 'DIRENCANAKAN' && isi.length > 0
         ? await hitungMuatan(
@@ -60,7 +61,7 @@ async function keRespons(
               bakLebarCm,
               bakTinggiCm,
             },
-            isi.map((s) => s.id),
+            dimuat.map((s) => s.id),
           )
         : null;
     hasil.push({
@@ -362,6 +363,15 @@ export async function berangkatkanRit(
     const daftar = await kunciSuratJalanSiap(tx, await repo.idSuratJalanRit(tx, id));
     if (daftar.length === 0)
       throw new AppError('STATUS_TIDAK_VALID', `Rit ${r.nomor} masih kosong.`, 409);
+    // K-203: semua surat jalan harus dicentang dimuat sebelum berangkat.
+    const belum = daftar.filter((x) => x.status !== 'DIMUAT');
+    if (belum.length > 0) {
+      throw new AppError(
+        'STATUS_TIDAK_VALID',
+        `Centang muat dulu semua surat jalan rit ${r.nomor}: ${belum.map((x) => x.nomor).join(', ')} belum dimuat.`,
+        409,
+      );
+    }
     const daftarId = daftar.map((x) => x.id);
     const { muatan, alasan } = await periksaMuatan(tx, k, daftarId, input.alasanMuatan);
     const waktu = sekarang();
@@ -392,6 +402,53 @@ export async function berangkatkanRit(
       ringkasan:
         `Rit ${r.nomor} berangkat: ${k.plat}, sopir ${s.nama}, ${daftar.map((x) => x.nomor).join(', ')}; ` +
         `muatan ${muatan.beratKg} kg, ${muatan.volumeM3} m³${alasan ? ` (${alasan})` : ''}`,
+      ip: asal.ip,
+    });
+  });
+  return satuPerjalanan(id);
+}
+
+/**
+ * K-203: ubah kendaraan, sopir, dan jadwal rit yang belum berangkat (mis. kendaraan ternyata terlalu kecil). Teks
+ * sopir/kendaraan di surat jalannya ikut diganti.
+ */
+export async function ubahRit(
+  id: number,
+  input: { idKendaraan: number; idSopir: number; jadwalBerangkat: string },
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<Perjalanan> {
+  await dalamTransaksi(async (tx) => {
+    const r = await kunciRitRencana(tx, id);
+    const { k, s } = await kunciArmada(tx, input.idKendaraan, input.idSopir, false);
+    const waktu = sekarang();
+    await tx
+      .update(perjalanan)
+      .set({
+        idKendaraan: k.id,
+        idSopir: s.id,
+        jadwalBerangkat: new Date(input.jadwalBerangkat),
+        diubahPada: waktu,
+      })
+      .where(eq(perjalanan.id, id));
+    await tx
+      .update(suratJalan)
+      .set({ sopir: s.nama, kendaraan: `${k.plat} (${k.jenis})`, diubahPada: waktu })
+      .where(eq(suratJalan.idPerjalanan, id));
+    const beda = [
+      r.idKendaraan !== k.id ? `kendaraan → ${k.plat}` : null,
+      r.idSopir !== s.id ? `sopir → ${s.nama}` : null,
+      `jadwal ${input.jadwalBerangkat}`,
+    ].filter(Boolean);
+    await catatLog(tx, {
+      aksi: 'PERJALANAN_UBAH',
+      idPengguna: pelaku.id,
+      entitas: 'perjalanan',
+      idEntitas: id,
+      nomorDokumen: r.nomor,
+      ringkasan: `Rit ${r.nomor} diubah: ${beda.join(', ')}`,
+      dataLama: { idKendaraan: r.idKendaraan, idSopir: r.idSopir },
+      dataBaru: { idKendaraan: k.id, idSopir: s.id, jadwalBerangkat: input.jadwalBerangkat },
       ip: asal.ip,
     });
   });
@@ -462,6 +519,8 @@ export async function hitungMuatan(
 ): Promise<Muatan> {
   const faktorIsi = await ambilAngka('muatan_faktor_isi_persen', 85, ex);
   const julur = await ambilAngka('muatan_julur_maks_cm', 100, ex);
+  // K-203: di atas 100% sampai toleransi = boleh dengan alasan; di atasnya ditolak (ganti kendaraan).
+  const toleransi = await ambilAngka('muatan_toleransi_persen', 110, ex);
   const baris = await repo.barisMuatan(ex, idSuratJalan);
   let berat = 0;
   let volume = 0;
@@ -491,16 +550,23 @@ export async function hitungMuatan(
   const saran: string[] = [];
   const persen = (a: number, b: number) => Math.round((a / b) * 1000) / 10;
 
-  // Berat: tidak ada toleransi di atas daya angkut (ODOL).
+  // Berat (K-203): di atas daya angkut sampai toleransi butuh alasan; di atasnya ditolak (ODOL).
   let tBerat: TingkatMuatan = 'TIDAK_DIKETAHUI';
   const pBerat = k.kapasitasKg ? persen(berat, k.kapasitasKg) : null;
   if (pBerat === null) {
     pesan.push(`Daya angkut ${k.plat} belum diisi: berat muatan tidak bisa diperiksa.`);
-  } else if (pBerat > 100) {
+  } else if (pBerat > toleransi) {
     tBerat = 'DITOLAK';
     pesan.push(
-      `Berat ${teks(berat, 0)} kg melebihi daya angkut ${k.plat} (${k.kapasitasKg} kg). Kurangi barang ` +
-        'atau pakai kendaraan lain: kelebihan muatan membahayakan rem dan melanggar aturan ODOL.',
+      `Berat ${teks(berat, 0)} kg (${ps(pBerat)}) jauh melebihi daya angkut ${k.plat} (${k.kapasitasKg} kg), di atas ` +
+        `batas toleransi ${ps(toleransi)}. Kurangi barang atau ganti kendaraan (Ubah rit): kelebihan muatan ` +
+        'membahayakan rem dan melanggar aturan ODOL.',
+    );
+  } else if (pBerat > 100) {
+    tBerat = 'KONFIRMASI';
+    pesan.push(
+      `Berat ${ps(pBerat)} dari daya angkut ${k.plat}: masih dalam toleransi ${ps(toleransi)}, wajib tulis alasan ` +
+        '(mis. jarak dekat, jalan datar, kecepatan rendah) dan periksa ban/rem.',
     );
   } else if (pBerat > 90) {
     tBerat = 'HAMPIR_PENUH';
@@ -518,11 +584,11 @@ export async function hitungMuatan(
   const pVolume = bak ? persen(volume, bak) : null;
   if (pVolume === null) {
     pesan.push(`Ukuran bak ${k.plat} belum diisi: volume muatan tidak bisa diperiksa.`);
-  } else if (pVolume > 115) {
+  } else if (pVolume > toleransi) {
     tVolume = 'DITOLAK';
     pesan.push(
       `Volume barang ${teks(volume, 2).replace('.', ',')} m³ jauh melebihi ruang bak (${teks(bak ?? 0, 2).replace('.', ',')} m³ terpakai wajar). ` +
-        'Bagi menjadi dua rit atau pakai kendaraan lebih besar.',
+        `Di atas batas toleransi ${ps(toleransi)}: bagi menjadi dua rit atau ganti kendaraan lebih besar (Ubah rit).`,
     );
   } else if (pVolume > 100) {
     tVolume = 'KONFIRMASI';

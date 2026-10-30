@@ -53,6 +53,7 @@ import { tampilkanGalatForm } from '@/lib/form';
 import { LABEL_STATUS_HUTANG } from '@/lib/label';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
+import { useIngat } from '@/lib/ingat-saring';
 
 const SEMUA = 'SEMUA';
 
@@ -94,9 +95,9 @@ export function HalamanHutang() {
   const terlambat = url.get('terlambat') === 'true';
   const idPemasok = Number(url.get('pemasok')) || null;
   const bolehBayar = usePengguna().izin.includes('hutang.kelola');
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useIngat('hutang.cari', '');
   const cariTertunda = useTunda(cari, 300);
-  const [halaman, setHalaman] = useState(1);
+  const [halaman, setHalaman] = useIngat('hutang.halaman', 1);
   const barisPerHalaman = useBarisPerHalaman();
   const [bayar, setBayar] = useState<BarisHutang | null>(null);
   const [riwayat, setRiwayat] = useState<BarisHutang | null>(null);
@@ -465,7 +466,7 @@ export function DialogBayarHutang({ h, onTutup }: { h: DokumenBayar; onTutup: ()
                 name="referensi"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Referensi (opsional)</FormLabel>
+                    <FormLabel>No. referensi (wajib untuk transfer)</FormLabel>
                     <FormControl>
                       <Input placeholder="No. bukti" {...field} value={field.value ?? ''} />
                     </FormControl>

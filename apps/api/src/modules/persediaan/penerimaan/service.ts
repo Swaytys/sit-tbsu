@@ -246,6 +246,7 @@ export async function simpanPenerimaan(
         idShift: shift?.id ?? null,
         nominal: bayarTunai,
         metode: input.metodeBayar,
+        referensi: input.metodeBayar === 'TRANSFER' ? (input.referensi?.trim() ?? null) : null,
         catatan: `Pelunasan tunai penerimaan ${nomor}`,
       });
       if (shift) {

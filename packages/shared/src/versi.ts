@@ -4,11 +4,30 @@
  * pengguna (bukan istilah teknis); rincian teknis tetap di docs/11.
  */
 
-export const VERSI_APLIKASI = '1.14.0';
+export const VERSI_APLIKASI = '1.15.0';
 
 export type CatatanRilis = { versi: string; tanggal: string; isi: string[] };
 
 export const CATATAN_RILIS: CatatanRilis[] = [
+  {
+    versi: '1.15.0',
+    tanggal: '2026-10-30',
+    isi: [
+      'Setup baru: layar pembuka, ikon BonsaiUrip di pojok kanan bawah (Buka/Matikan), pilih lokasi pasang, panduan mulai pakai.',
+      'Pemakaian pertama: buat akun Owner sendiri, kode pemulihan untuk lupa password, panduan penyiapan dengan contoh data.',
+      'Cadangan diatur dari Pengaturan › Cadangan (folder dan sandi); program cadangan sudah termasuk.',
+      'Hasil pengantaran: barang kembali/rusak diselesaikan menurut status bayar (potong tagihan atau kembalikan uang).',
+      'Halaman Pengembalian uang: menunggu transfer dan menunggu tunai; cara pengembalian bisa diganti.',
+      'Pengiriman: centang Dimuat per surat jalan, berangkat bila semua dimuat, muatan lebih dari 100% wajib alasan, lebih dari batas ditolak; rit bisa diubah.',
+      'Tutup shift menampilkan hal yang belum selesai; transaksi di luar shift masuk shift berikutnya.',
+      'No. referensi transfer wajib di semua peran dan semua jalur pembayaran.',
+      'Data master yang sama persis ditolak; data ganda yang belum dipakai bisa dihapus.',
+      'Qty tidak biasa di kasir ditandai dan dikonfirmasi sebelum bayar; panduan selisih stok.',
+      'Promo: beli N potong dengan batas kelipatan; sasaran per kelompok; harga dasar FIFO.',
+      'Atribut dimensi/berat dan data muatan selaras langsung; pencarian dan saringan daftar diingat.',
+      'Laporan: pratinjau per halaman A4; layar kasir dan pengantaran: pindah panel dan gulir dengan tombol.',
+    ],
+  },
   {
     versi: '1.14.0',
     tanggal: '2026-10-24',

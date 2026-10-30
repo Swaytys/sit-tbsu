@@ -413,6 +413,9 @@ function FormPenyesuaian({
                     <FormControl>
                       <Input {...field} value={field.value ?? ''} />
                     </FormControl>
+                    {jenis === 'KOREKSI' && (
+                      <SaranAlasan saran={SARAN_ALASAN.koreksiStok} onPilih={field.onChange} />
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

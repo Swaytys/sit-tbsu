@@ -28,7 +28,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TabRefundTransfer } from './tab-refund-transfer';
+import { TabPengembalian } from './tab-pengembalian';
 import { formatDesimal, formatWaktu } from '@/lib/format';
 import { qtySah } from '@/lib/qty';
 import { useTunda } from '@/lib/use-tunda';
@@ -640,8 +640,8 @@ function Daftar({ menunggu }: { menunggu: boolean }) {
 /** Transaksi › Retur Penjualan (docs/05 §8, mockup Retur Penjualan). */
 export function HalamanRetur() {
   const [url, setUrl] = useSearchParams();
-  const tab = url.get('tab') ?? 'ajukan';
-  const bolehSetujui = usePengguna().izin.includes('retur.setujui');
+  // K-193: tautan lama ?tab=transfer menuju Pengembalian uang.
+  const tab = url.get('tab') === 'transfer' ? 'pengembalian' : (url.get('tab') ?? 'ajukan');
   return (
     <div className="space-y-4 p-6">
       <div>
@@ -655,7 +655,7 @@ export function HalamanRetur() {
           <TabsTrigger value="ajukan">Ajukan retur</TabsTrigger>
           <TabsTrigger value="persetujuan">Menunggu persetujuan</TabsTrigger>
           <TabsTrigger value="riwayat">Riwayat retur</TabsTrigger>
-          {bolehSetujui && <TabsTrigger value="transfer">Refund transfer</TabsTrigger>}
+          <TabsTrigger value="pengembalian">Pengembalian uang</TabsTrigger>
         </TabsList>
         <TabsContent value="ajukan">
           <FormAjukan />
@@ -666,11 +666,9 @@ export function HalamanRetur() {
         <TabsContent value="riwayat">
           <Daftar menunggu={false} />
         </TabsContent>
-        {bolehSetujui && (
-          <TabsContent value="transfer">
-            <TabRefundTransfer />
-          </TabsContent>
-        )}
+        <TabsContent value="pengembalian">
+          <TabPengembalian />
+        </TabsContent>
       </Tabs>
     </div>
   );

@@ -22,9 +22,17 @@ const kelasPilih = 'h-9 rounded-md border bg-white px-1.5 text-sm';
  * K-161: data muatan barang (per satuan dasar) untuk menghitung muatan kendaraan. Isian boleh dalam satuan apa
  * pun yang sejenis (g/kg/ton, mm/cm/dm/m, L/m³); yang dikirim ke API selalu kg, cm, dan m³.
  */
-export function KartuMuatan({ kodeSatuan }: { kodeSatuan: string }) {
+export function KartuMuatan({
+  kodeSatuan,
+  onSelesai,
+}: {
+  kodeSatuan: string;
+  /** K-201: isian selesai (pindah kotak/Enter) → atribut ikut diselaraskan. */
+  onSelesai?: (k: Kunci) => void;
+}) {
   const form = useFormContext<InputBarang, unknown, DataBarang>();
   const awal = form.getValues('muatan');
+  const dariForm = useWatch({ control: form.control, name: 'muatan' });
   const curah = useWatch({ control: form.control, name: 'muatan.curah' }) ?? false;
   const [satBerat, setSatBerat] = useState<keyof typeof SATUAN_BERAT>('kg');
   const [satUkuran, setSatUkuran] = useState<keyof typeof SATUAN_PANJANG>('cm');
@@ -41,6 +49,22 @@ export function KartuMuatan({ kodeSatuan }: { kodeSatuan: string }) {
     volumeM3: nilaiAwal('volumeM3'),
   });
   const galat = form.formState.errors.muatan;
+  // K-201: nilai muatan diubah dari luar (atribut) → angka di layar ikut, dalam satuan isian yang dipilih.
+  const [terakhir, setTerakhir] = useState(dariForm);
+  if (dariForm !== terakhir) {
+    setTerakhir(dariForm);
+    const baru = { ...teks };
+    let beda = false;
+    for (const k of ['beratKg', 'panjangCm', 'lebarCm', 'tinggiCm', 'volumeM3'] as Kunci[]) {
+      const v = dariForm?.[k];
+      const simpan = typeof v === 'string' || typeof v === 'number' ? String(v) : null;
+      if (simpan !== keSatuanSimpan(teks[k], faktor(k)) && simpan !== null) {
+        baru[k] = dariSatuanSimpan(simpan, faktor(k));
+        beda = true;
+      }
+    }
+    if (beda) setTeks(baru);
+  }
 
   function faktor(k: Kunci, sat?: string): string {
     if (k === 'beratKg') return SATUAN_BERAT[(sat ?? satBerat) as keyof typeof SATUAN_BERAT];
@@ -78,6 +102,7 @@ export function KartuMuatan({ kodeSatuan }: { kodeSatuan: string }) {
         inputMode="decimal"
         value={teks[k]}
         onChange={(e) => ubah(k, e.target.value)}
+        onBlur={() => onSelesai?.(k)}
         aria-label={label}
         className={cn('text-right', galat?.[k] && 'border-red-500')}
       />

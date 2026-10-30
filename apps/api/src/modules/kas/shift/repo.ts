@@ -425,3 +425,85 @@ export async function pengajuanMenunggu(ex: Executor) {
     .orderBy(asc(voidTransaksi.tanggal));
   return { retur, void: v };
 }
+
+// --- K-197: hal menggantung saat tutup shift ---
+
+type BarisRingkas = { teks: string };
+
+async function teks(ex: Executor, q: SQL): Promise<string[]> {
+  const r = (await ex.execute(q)).rows as BarisRingkas[];
+  return r.map((x) => x.teks);
+}
+
+/** Pengajuan void MENUNGGU atas penjualan shift ini (void hanya sah selama shift asal masih buka, V1). */
+export function voidMenungguShift(ex: Executor, idShift: number) {
+  return teks(
+    ex,
+    sql`select v.nomor || ' · ' || p.nomor || ' · Rp ' || v.nominal_void::text teks
+          from void_transaksi v join penjualan p on p.id = v.id_penjualan
+         where v.status = 'MENUNGGU' and p.id_shift = ${idShift} order by v.id`,
+  );
+}
+
+export function returMenunggu(ex: Executor) {
+  return teks(
+    ex,
+    sql`select r.nomor || ' · ' || p.nomor teks from retur_penjualan r
+          join penjualan p on p.id = r.id_penjualan where r.status = 'MENUNGGU' order by r.id limit 20`,
+  );
+}
+
+export function pengembalianTunaiMenunggu(ex: Executor) {
+  return teks(
+    ex,
+    sql`select r.nomor || ' · Rp ' || r.nominal_refund::text teks from retur_penjualan r
+         where r.status_transfer = 'MENUNGGU' and r.metode_refund = 'TUNAI' order by r.id limit 20`,
+  );
+}
+
+export function nonTunaiBelumDicek(ex: Executor, idShift: number) {
+  return teks(
+    ex,
+    sql`select b.nomor || ' · ' || b.metode || ' · Rp ' || b.nominal::text teks from pembayaran_penjualan b
+         where b.id_shift = ${idShift} and b.status_verifikasi = 'BELUM_DICEK' order by b.id limit 20`,
+  );
+}
+
+/** Invoice bayar-saat-terima yang barangnya sedang di jalan: uangnya dibawa sopir, belum di laci. */
+export function bayarSaatTerimaDiJalan(ex: Executor) {
+  return teks(
+    ex,
+    sql`select distinct p.nomor || ' · sisa Rp ' || p.sisa_tagihan::text teks
+          from penjualan p join surat_jalan s on s.id_penjualan = p.id
+         where p.bayar_saat_terima and s.status = 'DIKIRIM' and p.status_pembayaran <> 'LUNAS'
+         limit 20`,
+  );
+}
+
+/**
+ * Pembayaran tanpa shift (non-tunai saat shift toko belum dibuka) sejak shift sebelumnya ditutup sampai shift ini
+ * dibuka: masuk catatan shift ini (K-197).
+ */
+export async function pembayaranLuarShift(ex: Executor, idShift: number) {
+  const r = (
+    await ex.execute(sql`
+      with ini as (select waktu_buka from shift_kasir where id = ${idShift}),
+      sebelum as (
+        select max(waktu_tutup) w from shift_kasir
+         where waktu_tutup is not null and waktu_tutup <= (select waktu_buka from ini) and id <> ${idShift}
+      )
+      select b.nomor, b.metode, b.nominal, b.tanggal, u.nama_pengguna nama
+        from pembayaran_penjualan b join pengguna u on u.id = b.id_pengguna
+       where b.id_shift is null
+         and b.tanggal < (select waktu_buka from ini)
+         and b.tanggal > coalesce((select w from sebelum), (select waktu_buka from ini) - interval '1 day')
+       order by b.tanggal`)
+  ).rows as { nomor: string; metode: string; nominal: string; tanggal: string; nama: string }[];
+  return r.map((x) => ({
+    nomor: x.nomor,
+    metode: x.metode,
+    nominal: Number(x.nominal),
+    tanggal: new Date(x.tanggal).toISOString(),
+    namaPengguna: x.nama,
+  }));
+}

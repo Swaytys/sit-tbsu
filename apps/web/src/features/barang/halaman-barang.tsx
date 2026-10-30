@@ -47,6 +47,7 @@ import { jalankanDenganToast } from '@/lib/aksi';
 import { formatDesimal } from '@/lib/format';
 import { useTunda } from '@/lib/use-tunda';
 import { useKolomTampil } from './kolom-tampil';
+import { useIngat } from '@/lib/ingat-saring';
 
 const SEMUA_KATEGORI = 'SEMUA';
 
@@ -74,18 +75,18 @@ export function HalamanBarang() {
   const izin = usePengguna().izin;
   const bolehImport = izin.includes('master.import.jalankan');
   const bolehKelola = izin.includes('master.barang.kelola');
-  const [cari, setCari] = useCariUrl();
+  const [cari, setCari] = useCariUrl('barang');
   const cariTertunda = useTunda(cari, 300);
-  const [status, setStatus] = useState<SaringStatus>('SEMUA');
-  const [idKategori, setIdKategori] = useState<number | null>(null);
-  const [idMerk, setIdMerk] = useState<number | null>(null);
-  const [kepemilikan, setKepemilikan] = useState<Kepemilikan | null>(null);
-  const [perluTinjau, setPerluTinjau] = useState(false);
+  const [status, setStatus] = useIngat<SaringStatus>('barang.status', 'SEMUA');
+  const [idKategori, setIdKategori] = useIngat<number | null>('barang.idKategori', null);
+  const [idMerk, setIdMerk] = useIngat<number | null>('barang.idMerk', null);
+  const [kepemilikan, setKepemilikan] = useIngat<Kepemilikan | null>('barang.kepemilikan', null);
+  const [perluTinjau, setPerluTinjau] = useIngat('barang.perluTinjau', false);
   // K-170: tautan notifikasi "barang tanpa data muatan" membuka daftar yang sudah tersaring.
   const [muatanBelum, setMuatanBelum] = useState(
     () => new URLSearchParams(window.location.search).get('muatan') === 'belum',
   );
-  const [halaman, setHalaman] = useState(1);
+  const [halaman, setHalaman] = useIngat('barang.halaman', 1);
   const saring = useKolomTampil(
     'saring-barang',
     SARINGAN.map((x) => x.kunci),

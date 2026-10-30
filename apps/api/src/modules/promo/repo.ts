@@ -58,6 +58,7 @@ const kolomKandidat = {
   hargaKhusus: promo.hargaKhusus,
   beliQty: promo.beliQty,
   gratisQty: promo.gratisQty,
+  maksKelipatan: promo.maksKelipatan,
   sasaran: promo.sasaran,
   minQty: promo.minQty,
   minBelanja: promo.minBelanja,

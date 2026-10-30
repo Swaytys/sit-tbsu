@@ -47,6 +47,7 @@ const beli = (ubah: Record<string, unknown> = {}) => ({
   idPemasok: m.pemasokA,
   jenis: 'PEMBELIAN',
   syaratBayar: 'TUNAI',
+  referensi: 'TRF0001',
   noFakturPemasok: 'F-001',
   baris: [
     { idBarang: m.semen, qtyMasuk: '10', hargaModalMasuk: 10000 },
@@ -89,6 +90,17 @@ describe('penerimaan barang (docs/05 §11)', () => {
     });
     expect(p.baris.map((b) => b.subtotal)).toEqual([100000, 8333]);
     expect(p.pembayaran).toMatchObject([{ nominal: 108333, metode: 'TRANSFER' }]);
+
+    // K-196: transfer ke pemasok wajib No. referensi, sama dengan semua uang non-tunai.
+    for (const referensi of [null, 'ab']) {
+      const r = await minta('/api/penerimaan', {
+        method: 'POST',
+        cookie: admin.cookie,
+        body: beli({ referensi }),
+      });
+      expect(r.status).toBe(400);
+      expect(await r.text()).toContain('No. referensi wajib');
+    }
 
     expect(await stok(m.semen)).toMatchObject({
       stokFisik: '10.000',

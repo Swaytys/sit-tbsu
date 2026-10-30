@@ -117,6 +117,18 @@ export const skemaIsianPromo = z
     /** K-163 GRATIS: setiap beli `beliQty` gratis `gratisQty` (satuan dasar, barang yang sama). */
     beliQty: z.preprocess(kosongJadiNull, skemaQtyPositif('Qty beli').nullable()).default(null),
     gratisQty: z.preprocess(kosongJadiNull, skemaQtyPositif('Qty gratis').nullable()).default(null),
+    /** K-194: GRATIS/BELI_POTONG paling banyak sekian kali per baris (1 = sekali); kosong = tanpa batas. */
+    maksKelipatan: z
+      .preprocess(
+        kosongJadiNull,
+        z.coerce
+          .number('Batas berlaku harus angka.')
+          .int('Batas berlaku harus bilangan bulat.')
+          .min(1, 'Batas berlaku minimal 1 kali.')
+          .max(1000, 'Batas berlaku maksimal 1000 kali.')
+          .nullable(),
+      )
+      .default(null),
     sasaran: z.enum(SASARAN_PROMO, 'Sasaran promo tidak valid.'),
     /** K-163: id barang/kategori/merk sesuai `sasaran` (boleh beberapa). */
     idSasaran: z
@@ -194,6 +206,13 @@ export const skemaIsianPromo = z
       if (d.beliQty === null) masalah('beliQty', 'Isi qty yang harus dibeli.');
       if (d.gratisQty === null) masalah('gratisQty', 'Isi qty gratisnya.');
     }
+    if (
+      d.maksKelipatan !== null &&
+      d.jenisPotongan !== 'GRATIS' &&
+      d.jenisPotongan !== 'BELI_POTONG'
+    ) {
+      masalah('maksKelipatan', 'Batas berlaku hanya untuk beli X gratis Y dan beli N potong Rp X.');
+    }
     if (d.jenisPotongan === 'BELI_POTONG') {
       if (d.beliQty === null) masalah('beliQty', 'Isi qty yang harus dibeli.');
       if (d.potonganNominal === null) masalah('potonganNominal', 'Isi potongannya (rupiah).');
@@ -264,6 +283,8 @@ export type Promo = {
   hargaKhusus: number | null;
   beliQty: string | null;
   gratisQty: string | null;
+  /** K-194: batas kelipatan per baris; `null` = tanpa batas. */
+  maksKelipatan: number | null;
   templat: boolean;
   sasaran: SasaranPromo;
   /** K-163: barang/kategori/merk sasaran (`kode` hanya untuk barang). Kosong untuk sasaran KELOMPOK. */

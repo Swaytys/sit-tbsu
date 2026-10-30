@@ -420,7 +420,7 @@ function KartuHitungSusulan({ s }: { s: ShiftAktif }) {
 }
 
 function ShiftSaya() {
-  const saya = useShiftSaya();
+  const saya = useShiftSaya(true, true);
   const pengguna = usePengguna();
   const atasan = pengguna.izin.includes('kas.shift.lihat_semua');
   const detail = useDetailShift(saya.data?.id ?? null);

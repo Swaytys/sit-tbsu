@@ -274,6 +274,20 @@
       "when": 1793199059846,
       "tag": "0038_harga_fifo",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793363750925,
+      "tag": "0039_pengembalian_ditunda",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793366717851,
+      "tag": "0040_promo_maks_kelipatan",
+      "breakpoints": true
     }
   ]
 }

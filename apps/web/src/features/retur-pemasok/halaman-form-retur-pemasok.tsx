@@ -349,7 +349,7 @@ export function HalamanFormReturPemasok() {
                   name="referensi"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Referensi (opsional)</FormLabel>
+                      <FormLabel>No. referensi (wajib untuk transfer)</FormLabel>
                       <FormControl>
                         <Input placeholder="No. bukti" {...field} value={field.value ?? ''} />
                       </FormControl>

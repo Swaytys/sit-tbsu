@@ -50,6 +50,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { formatDesimal } from '@/lib/format';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useDaftarRekening } from '@/api/rekening';
 import { cetakMenurutSetelan } from '@/lib/cetak-otomatis';
 import { cetakLangsungAktif } from '@/lib/printer-thermal';
@@ -240,6 +249,11 @@ export function LayarPos({
   const pratinjau = usePratinjauOrder(
     tr.t.baris.length > 0 ? { idOrder: order?.id ?? null, order: tr.isianOrder(jenis) } : null,
   );
+  // K-200: konfirmasi qty tidak biasa sebelum bayar.
+  const [cekQty, setCekQty] = useState<{
+    pembayaran: DataPembayaran[];
+    baris: NonNullable<typeof pratinjau.data>['baris'];
+  } | null>(null);
   const pratinjauBaris = new Map(
     (pratinjau.data?.baris ?? []).map((b) => [kunciBaris(b.idBarang, b.idSatuanJual), b]),
   );
@@ -410,10 +424,16 @@ export function LayarPos({
     setIndeksBaris(tr.tambah(b, qty, idSatuanJual));
   }
 
-  function bayar(pembayaran: DataPembayaran[]) {
+  function bayar(pembayaran: DataPembayaran[], yakinQty = false) {
     if (butuhPelangganAntar()) return;
     if (tr.t.baris.length === 0) {
       toast.error('Belum ada barang.');
+      return;
+    }
+    // K-200: qty jauh di atas kebiasaan barang itu → konfirmasi dulu (salah ketik 2 jadi 20, dsb.).
+    const aneh = (pratinjau.data?.baris ?? []).filter((b) => b.qtyTidakBiasa !== null);
+    if (!yakinQty && aneh.length > 0) {
+      setCekQty({ pembayaran, baris: aneh });
       return;
     }
     const dasar: InputCheckout = {
@@ -884,6 +904,53 @@ export function LayarPos({
           <div ref={setSlotBayar} className="shrink-0" />
         </div>
       </div>
+      {cekQty && (
+        <Dialog open onOpenChange={(b) => !b && setCekQty(null)}>
+          <DialogContent className="sm:max-w-md" data-testid="dialog-cek-qty">
+            <DialogHeader>
+              <DialogTitle>Qty tidak biasa, benar?</DialogTitle>
+              <DialogDescription>
+                Jumlah berikut jauh di atas kebiasaan (salah ketik 2 menjadi 20 sering terjadi). Cek
+                lagi dengan barang yang diserahkan.
+              </DialogDescription>
+            </DialogHeader>
+            <ul className="space-y-1 text-sm">
+              {cekQty.baris.map((b) => {
+                const r = tr.t.baris.find(
+                  (x) => x.idBarang === b.idBarang && x.idSatuanJual === b.idSatuanJual,
+                );
+                return (
+                  <li key={kunciBaris(b.idBarang, b.idSatuanJual)}>
+                    <b>{r?.nama ?? 'Barang'}</b>: {formatDesimal(b.qtyTidakBiasa?.qty ?? '0')}{' '}
+                    (biasanya paling banyak {formatDesimal(b.qtyTidakBiasa?.biasanya ?? '0')})
+                  </li>
+                );
+              })}
+            </ul>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCekQty(null);
+                  setZona('keranjang');
+                }}
+              >
+                Periksa lagi (Esc)
+              </Button>
+              <Button
+                autoFocus
+                onClick={() => {
+                  const p = cekQty.pembayaran;
+                  setCekQty(null);
+                  bayar(p, true);
+                }}
+              >
+                Benar, lanjut bayar (Enter)
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
       {slotPintasan ? (
         createPortal(<BilahTombol daftar={tombol} />, slotPintasan)
       ) : (

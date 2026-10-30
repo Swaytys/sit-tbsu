@@ -1,0 +1,2 @@
+ALTER TABLE "promo" ADD COLUMN "maks_kelipatan" integer;--> statement-breakpoint
+ALTER TABLE "promo" ADD CONSTRAINT "chk_promo_kelipatan" CHECK (maks_kelipatan is null or (maks_kelipatan between 1 and 1000 and jenis_potongan in ('GRATIS','BELI_POTONG')));

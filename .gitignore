@@ -37,3 +37,4 @@ installer/paket/
 installer/keluaran/
 installer/peluncur/*.exe
 installer/deploy-sementara/
+installer/alat-cache/

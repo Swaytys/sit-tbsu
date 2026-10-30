@@ -15,6 +15,12 @@ import {
   type Pemasok,
   type Satuan,
   type TingkatHarga,
+  ATRIBUT_MUATAN,
+  atributKeMuatan,
+  muatanKeAtribut,
+  SATUAN_SIMPAN_MUATAN,
+  type KodeAtributMuatan,
+  type KolomMuatan,
 } from '@sit/shared';
 import { AlertTriangle, ArrowLeft, ImagePlus, Lock, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
@@ -334,6 +340,52 @@ function FormBarang({
   const kiraHarga = (i: number, t: TingkatHarga) =>
     kiraDari(metode[i] === 'MARKUP' ? tierDiisi?.[i]?.markupPersen : t.markupDefaultPersen);
   const barisAtribut = atributDiisi ?? [];
+
+  /*
+   * K-201: atribut dimensi ↔ data muatan langsung selaras saat isian selesai (pindah kotak/Enter): yang terakhir
+   * diubah menang. Konversi satuan dari packages/shared (sama dengan pemeriksaan API saat simpan, K-169).
+   */
+  const kodeJenis = (idJenis: number | undefined) => {
+    const k = referensi.jenisAtribut.find((j) => j.id === idJenis)?.kode;
+    return k && k in ATRIBUT_MUATAN ? (k as KodeAtributMuatan) : null;
+  };
+  const relevanMuatan = (kode: KodeAtributMuatan) => {
+    const curah = form.getValues('muatan.curah') ?? false;
+    return kode === 'VOLUME' ? curah : kode === 'BERAT' || !curah;
+  };
+  function selarasDariAtribut(i: number) {
+    const a = form.getValues(`atribut.${i}`);
+    const kode = kodeJenis(a?.idJenisAtribut);
+    if (!a || !kode || !relevanMuatan(kode) || a.idSatuan == null) return;
+    const sat = referensi.satuan.find((x) => x.id === a.idSatuan);
+    const v = sat ? atributKeMuatan(kode, String(a.nilai ?? ''), sat.faktorKeBasis) : null;
+    if (v !== null) {
+      form.setValue(`muatan.${ATRIBUT_MUATAN[kode]}`, v, { shouldDirty: true });
+    }
+  }
+  function selarasDariMuatan(kolom: KolomMuatan) {
+    const kode = (Object.keys(ATRIBUT_MUATAN) as KodeAtributMuatan[]).find(
+      (k) => ATRIBUT_MUATAN[k] === kolom,
+    );
+    const mentah: unknown = form.getValues(`muatan.${kolom}`);
+    const nilai = typeof mentah === 'string' || typeof mentah === 'number' ? String(mentah) : '';
+    if (!kode || !relevanMuatan(kode) || nilai === '') return;
+    const jenis = referensi.jenisAtribut.find((j) => j.kode === kode && j.statusAktif === 'AKTIF');
+    if (!jenis) return;
+    const daftar = form.getValues('atribut') ?? [];
+    const i = daftar.findIndex((a) => a.idJenisAtribut === jenis.id);
+    const satAda = i >= 0 ? referensi.satuan.find((x) => x.id === daftar[i]?.idSatuan) : undefined;
+    const sat = satAda ?? referensi.satuan.find((x) => x.kode === SATUAN_SIMPAN_MUATAN[kode]);
+    if (!sat) return;
+    const v = muatanKeAtribut(kode, nilai, sat.faktorKeBasis);
+    if (v === null) return;
+    if (i >= 0) {
+      form.setValue(`atribut.${i}.nilai`, v, { shouldDirty: true });
+      if (!satAda) form.setValue(`atribut.${i}.idSatuan`, sat.id, { shouldDirty: true });
+    } else {
+      atribut.append({ idJenisAtribut: jenis.id, nilai: v, idSatuan: sat.id });
+    }
+  }
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(
     form.formState.isDirty || berkasBaru !== null,
   );
@@ -768,7 +820,7 @@ function FormBarang({
               </CardContent>
             </Card>
 
-            <KartuMuatan kodeSatuan={kodeSatuanDasar} />
+            <KartuMuatan kodeSatuan={kodeSatuanDasar} onSelesai={selarasDariMuatan} />
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -846,6 +898,10 @@ function FormBarang({
                                 inputMode={jenis?.tipeNilai === 'ANGKA' ? 'decimal' : 'text'}
                                 placeholder={jenis?.tipeNilai === 'ANGKA' ? 'Angka' : 'Nilai'}
                                 {...field}
+                                onBlur={() => {
+                                  field.onBlur();
+                                  selarasDariAtribut(i);
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -859,7 +915,10 @@ function FormBarang({
                           <FormItem>
                             <Select
                               value={field.value ? String(field.value) : TANPA}
-                              onValueChange={(v) => field.onChange(v === TANPA ? null : Number(v))}
+                              onValueChange={(v) => {
+                                field.onChange(v === TANPA ? null : Number(v));
+                                selarasDariAtribut(i);
+                              }}
                               disabled={!pakaiSatuan}
                             >
                               <FormControl>
@@ -1132,6 +1191,9 @@ function FormBarang({
               <PanelMirip
                 mirip={mirip}
                 apa="Barang"
+                jenis="barang"
+                idIni={barang?.id ?? null}
+                onTerhapus={({ ini }) => (ini ? void navigasi('/barang') : setMirip(null))}
                 onTetapSimpan={() =>
                   void form.handleSubmit((d) => kirim({ ...d, abaikanMirip: true }))()
                 }

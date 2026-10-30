@@ -42,6 +42,8 @@ test(
     await page.getByLabel(`Qty ${namaBarang}`).fill('10');
     await page.getByLabel(`Harga ${namaBarang}`).fill('12000');
     await expect(page.getByText('Rp 120.000').first()).toBeVisible();
+    // K-196: bayar tunai lewat transfer wajib No. referensi.
+    await page.getByLabel('No. referensi transfer (wajib)').fill('TRF0001');
     await page.getByRole('button', { name: 'Simpan penerimaan' }).click();
 
     await expect(page.getByText(/Penerimaan RCV-\d{6}-\d{3,} disimpan/)).toBeVisible();

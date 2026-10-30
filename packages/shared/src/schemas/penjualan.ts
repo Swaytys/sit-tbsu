@@ -27,7 +27,14 @@ import type { HasilSuratJalan } from './armada';
 import type { RingkasAtribut } from './barang';
 import { skemaQtyPositif, skemaTanggal } from './persediaan';
 import { skemaKodePersetujuan } from './saluran';
-import { skemaHalaman, skemaNoHpWajib, skemaRupiah, teksOpsional } from './umum';
+import {
+  skemaHalaman,
+  skemaNoHpWajib,
+  skemaRupiah,
+  teksOpsional,
+  POLA_REFERENSI,
+  PESAN_REFERENSI,
+} from './umum';
 
 /*
  * Penjualan (Fase 5): order & antrean (docs/05 §3, §6), harga dan diskon baris (docs/06 §1–2).
@@ -163,6 +170,11 @@ export type BarisPratinjau = {
   promoDitolak: boolean;
   diskonBaris: number;
   subtotal: number;
+  /**
+   * K-200: qty (satuan dasar) jauh di atas kebiasaan barang ini (lebih dari 2× qty terbanyak satu transaksi dalam 90
+   * hari terakhir): kemungkinan salah ketik. `biasanya` = qty terbanyak itu. `null` = wajar/belum ada riwayat.
+   */
+  qtyTidakBiasa: { qty: string; biasanya: string } | null;
 };
 
 /** K-098: tier harga transaksi menurut total nilai belanja (berlaku untuk semua barang). */
@@ -380,9 +392,8 @@ export type BarisStokTertahan = {
  * U12: No. referensi pembayaran non-tunai wajib, 4–40 karakter huruf/angka (boleh spasi . / -). Panjang aslinya
  * berbeda per bank/penyedia (approval EDC 6, RRN QRIS 12, referensi transfer 8–20), jadi dibatasi longgar.
  */
-export const POLA_REFERENSI_BAYAR = /^[A-Za-z0-9][A-Za-z0-9 ./-]{3,39}$/;
-export const PESAN_REFERENSI_BAYAR =
-  'No. referensi wajib, 4–40 huruf/angka: lihat bukti transfer, struk EDC, atau notifikasi QRIS.';
+export const POLA_REFERENSI_BAYAR = POLA_REFERENSI;
+export const PESAN_REFERENSI_BAYAR = PESAN_REFERENSI;
 
 export const skemaPembayaran = z
   .object({
@@ -681,8 +692,9 @@ export type InputSuratJalan = z.input<typeof skemaSuratJalan>;
 export type DataSuratJalan = z.output<typeof skemaSuratJalan>;
 
 /** S3: hanya DIPROSES → DIMUAT; DIKIRIM lewat berangkat (S9), SELESAI lewat catat hasil (S10). */
+/** S3 + K-203: centang muat (DIPROSES → DIMUAT) dan lepas centang (DIMUAT → DIPROSES) selama rit belum berangkat. */
 export const skemaStatusSuratJalan = z.object({
-  status: z.literal('DIMUAT'),
+  status: z.enum(['DIMUAT', 'DIPROSES']),
 });
 
 export const skemaBatalSuratJalan = skemaBatalOrder;

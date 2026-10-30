@@ -22,6 +22,8 @@ import type {
   StatusPersetujuan,
   StatusShift,
   StatusSuratJalan,
+  InputGantiCaraPengembalian,
+  InputKonfirmasiPengembalian,
 } from '@sit/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -178,11 +180,13 @@ export function useStokTertahan() {
 // --- Checkout, pembayaran, riwayat penjualan, shift ---
 
 /** K-132: shift toko yang sedang terbuka (satu untuk seluruh toko). */
-export function useShiftSaya(aktif = true) {
+export function useShiftSaya(aktif = true, segarSaatDibuka = false) {
   return useQuery({
     queryKey: ['shift', 'saya'],
     queryFn: async () => ambilData(await api.shift.aktif.$get()),
     enabled: aktif,
+    // Halaman Shift selalu memuat ulang: shift bisa sudah ditutup/dibuka dari perangkat lain.
+    refetchOnMount: segarSaatDibuka ? 'always' : true,
     // K-109: status "terlewat" berubah saat ganti hari walau layar tidak disentuh.
     refetchInterval: 5 * 60_000,
   });
@@ -488,6 +492,15 @@ export function useStatusShiftToko() {
   });
 }
 
+/** K-197: hal menggantung sebelum shift ditutup (penghalang dan yang wajib diakui). */
+export function useHalMenggantung(id: number) {
+  return useQuery({
+    queryKey: ['shift', 'menggantung', id],
+    queryFn: async () =>
+      ambilData(await api.shift[':id'].menggantung.$get({ param: { id: String(id) } })),
+  });
+}
+
 /** K-142: pengajuan retur/void yang belum diputuskan. */
 export function usePengajuanMenunggu(aktif = true) {
   return useQuery({
@@ -675,23 +688,23 @@ export function useTolakRetur() {
   );
 }
 
-/** K-176: tugas refund transfer (menunggu/selesai). */
-export function useRefundTransfer(status: 'MENUNGGU' | 'SELESAI', aktifkan = true) {
+/** K-193: pengembalian uang menunggu/selesai (tunai dan transfer). */
+export function usePengembalian(status: 'MENUNGGU' | 'SELESAI', aktifkan = true) {
   return useQuery({
-    queryKey: ['koreksi', 'refund-transfer', status],
-    queryFn: async () => ambilData(await api.retur['refund-transfer'].$get({ query: { status } })),
+    queryKey: ['koreksi', 'pengembalian', status],
+    queryFn: async () => ambilData(await api.retur.pengembalian.$get({ query: { status } })),
     enabled: aktifkan,
   });
 }
 
-export function useKonfirmasiTransfer() {
-  return useMutasiKoreksi(
-    async ({
-      id,
-      json,
-    }: {
-      id: number;
-      json: { rekeningRefund: string; referensiRefund: string };
-    }) => ambilData(await api.retur[':id'].transfer.$post({ param: paramId(id), json })),
+export function useKonfirmasiPengembalian() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: InputKonfirmasiPengembalian }) =>
+    ambilData(await api.retur[':id'].pengembalian.$post({ param: paramId(id), json })),
+  );
+}
+
+export function useGantiCaraPengembalian() {
+  return useMutasiKoreksi(async ({ id, json }: { id: number; json: InputGantiCaraPengembalian }) =>
+    ambilData(await api.retur[':id']['ganti-cara'].$post({ param: paramId(id), json })),
   );
 }

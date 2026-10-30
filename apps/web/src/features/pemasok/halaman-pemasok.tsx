@@ -45,6 +45,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { jalankanDenganToast } from '@/lib/aksi';
 import { tampilkanGalatForm } from '@/lib/form';
 import { useTunda } from '@/lib/use-tunda';
+import { useIngat } from '@/lib/ingat-saring';
 
 function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup: () => void }) {
   const simpan = useSimpanPemasok();
@@ -212,6 +213,9 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
                 <PanelMirip
                   mirip={mirip}
                   apa="Pemasok"
+                  jenis="pemasok"
+                  idIni={pemasok?.id ?? null}
+                  onTerhapus={({ ini }) => (ini ? onTutup() : setMirip(null))}
                   onTetapSimpan={() =>
                     void form.handleSubmit((d) => kirim({ ...d, abaikanMirip: true }))()
                   }
@@ -234,10 +238,10 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
 }
 
 export function HalamanPemasok() {
-  const [cari, setCari] = useCariUrl();
+  const [cari, setCari] = useCariUrl('pemasok');
   const cariTertunda = useTunda(cari, 300);
-  const [status, setStatus] = useState<SaringStatus>('SEMUA');
-  const [halaman, setHalaman] = useState(1);
+  const [status, setStatus] = useIngat<SaringStatus>('pemasok.status', 'SEMUA');
+  const [halaman, setHalaman] = useIngat('pemasok.halaman', 1);
   const [dialog, setDialog] = useState<{ pemasok: Pemasok | null } | null>(null);
 
   const barisPerHalaman = useBarisPerHalaman();

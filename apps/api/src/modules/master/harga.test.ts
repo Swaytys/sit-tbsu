@@ -140,6 +140,7 @@ async function terima(baris: { idBarang: number; harga: number }[], ubah = {}) {
     idPemasok,
     jenis: 'PEMBELIAN',
     syaratBayar: 'TUNAI',
+    referensi: 'TRF0001',
     baris: baris.map((b) => ({ idBarang: b.idBarang, qtyMasuk: '10', hargaModalMasuk: b.harga })),
     ...ubah,
   });

@@ -31,6 +31,12 @@ export const SARAN_ALASAN = {
     'Nominal/qty tidak sesuai',
     'Perlu dicek ulang di gudang',
   ],
+  gantiCaraPengembalian: [
+    'Pembeli minta tunai saat datang',
+    'Pembeli minta ditransfer',
+    'Salah pilih cara',
+    'Rekening pembeli tidak bisa dihubungi',
+  ],
   batalPengajuan: ['Salah qty', 'Salah barang', 'Salah pilih transaksi', 'Pembeli tidak jadi'],
   void: [
     'Salah input barang/qty',
@@ -49,4 +55,11 @@ export const SARAN_ALASAN = {
     'Dihitung di opname terpisah',
   ],
   koreksiModal: ['Salah hitung uang awal', 'Uang kecil belum dimasukkan', 'Salah ketik nominal'],
+  /** K-200: selisih stok karena salah input/salah serah; tulis nomor transaksinya bila diketahui. */
+  koreksiStok: [
+    'Salah serah: barang diberikan lebih dari yang tercatat (transaksi …)',
+    'Salah serah: barang diberikan kurang dari yang tercatat (transaksi …)',
+    'Salah serah: barang yang diberikan keliru (transaksi …)',
+    'Hasil hitung fisik berbeda, penyebab belum diketahui',
+  ],
 } as const;

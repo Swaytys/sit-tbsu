@@ -98,6 +98,7 @@ export function HalamanFormPenerimaan() {
       syaratBayar: titipanAwal ? null : 'TUNAI',
       tanggalJatuhTempo: null,
       metodeBayar: 'TRANSFER',
+      referensi: '',
       noFakturPemasok: '',
       noSuratJalanPemasok: '',
       catatan: '',
@@ -124,9 +125,9 @@ export function HalamanFormPenerimaan() {
       })),
     });
   }, [po, form]);
-  const [jenis, syarat, idPemasok, isiBaris] = useWatch({
+  const [jenis, syarat, idPemasok, isiBaris, metodeBayar] = useWatch({
     control: form.control,
-    name: ['jenis', 'syaratBayar', 'idPemasok', 'baris'],
+    name: ['jenis', 'syaratBayar', 'idPemasok', 'baris', 'metodeBayar'],
   });
   const konsinyasi = jenis === 'KONSINYASI';
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
@@ -202,6 +203,7 @@ export function HalamanFormPenerimaan() {
         'idPemasok',
         'syaratBayar',
         'tanggalJatuhTempo',
+        'referensi',
         'baris',
         ...(isiBaris ?? []).flatMap((_, i) =>
           (['idBarang', 'qtyMasuk', 'hargaModalMasuk'] as const).map(
@@ -356,6 +358,25 @@ export function HalamanFormPenerimaan() {
                           <SelectItem value="TUNAI">Tunai (kas toko)</SelectItem>
                         </SelectContent>
                       </Select>
+                    </FormItem>
+                  )}
+                />
+              )}
+              {!konsinyasi && syarat === 'TUNAI' && metodeBayar !== 'TUNAI' && (
+                <FormField
+                  control={form.control}
+                  name="referensi"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>No. referensi transfer (wajib)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="dari bukti transfer m-banking"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />

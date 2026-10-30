@@ -51,6 +51,8 @@ export const AKSI_LOG = [
   'BARANG_UBAH',
   'BARANG_NONAKTIF',
   'BARANG_AKTIFKAN',
+  // K-199: hapus permanen data ganda yang belum pernah dipakai.
+  'BARANG_HAPUS',
   'HARGA_UBAH',
   // Tinjau Harga (Fase 9, K-086).
   'HARGA_TINJAU_TERAPKAN',
@@ -64,10 +66,12 @@ export const AKSI_LOG = [
   'PELANGGAN_UBAH',
   'PELANGGAN_NONAKTIF',
   'PELANGGAN_AKTIFKAN',
+  'PELANGGAN_HAPUS',
   'PEMASOK_BUAT',
   'PEMASOK_UBAH',
   'PEMASOK_NONAKTIF',
   'PEMASOK_AKTIFKAN',
+  'PEMASOK_HAPUS',
   'IMPORT_BARANG',
   'IMPORT_SALDO_AWAL',
   'IMPORT_MUATAN',
@@ -114,6 +118,11 @@ export const AKSI_LOG = [
   'RETUR_BATAL',
   // K-176: refund transfer dikonfirmasi sudah ditransfer.
   'RETUR_TRANSFER',
+  // K-193: uang retur diserahkan tunai; cara pengembalian diganti selama menunggu.
+  'RETUR_KEMBALI_TUNAI',
+  // K-203: kendaraan/sopir/jadwal rit diubah sebelum berangkat.
+  'PERJALANAN_UBAH',
+  'RETUR_GANTI_CARA',
   'VOID_AJUKAN',
   'VOID_SETUJUI',
   'VOID_TOLAK',
@@ -157,6 +166,8 @@ export const AKSI_LOG = [
   'KONSINYASI_SELESAIKAN',
   // Cadangan data (Fase 8, K-084).
   'CADANGAN_JALANKAN',
+  // K-198: folder/sandi cadangan diatur dari layar.
+  'CADANGAN_ATUR',
   'CADANGAN_UJI_PULIH',
   'TAHUN_TUTUP',
   'TAHUN_BUKA',

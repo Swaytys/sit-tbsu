@@ -167,6 +167,8 @@ export async function kunci(tx: Tx, id: number) {
       metodeRefund: returPenjualan.metodeRefund,
       rekeningRefund: returPenjualan.rekeningRefund,
       referensiRefund: returPenjualan.referensiRefund,
+      pengembalianDitunda: returPenjualan.pengembalianDitunda,
+      potongDulu: returPenjualan.potongDulu,
     })
     .from(returPenjualan)
     .where(eq(returPenjualan.id, id))
@@ -293,7 +295,11 @@ export async function stokTersedia(ex: Executor, idBarang: number): Promise<stri
 }
 
 /** K-176: tugas refund transfer (MENUNGGU terlama dulu; SELESAI terbaru dulu). */
-export function daftarRefundTransfer(ex: Executor, status: 'MENUNGGU' | 'SELESAI') {
+export function daftarRefundTransfer(
+  ex: Executor,
+  status: 'MENUNGGU' | 'SELESAI',
+  metode?: 'TUNAI' | 'TRANSFER',
+) {
   const petugas = aliasedTable(pengguna, 'petugas_transfer');
   return ex
     .select({
@@ -307,6 +313,7 @@ export function daftarRefundTransfer(ex: Executor, status: 'MENUNGGU' | 'SELESAI
       nominalRefund: returPenjualan.nominalRefund,
       rekeningRefund: returPenjualan.rekeningRefund,
       referensiRefund: returPenjualan.referensiRefund,
+      metodeRefund: returPenjualan.metodeRefund,
       statusTransfer: returPenjualan.statusTransfer,
       waktuTransfer: returPenjualan.waktuTransfer,
       namaPenggunaTransfer: petugas.namaPengguna,
@@ -316,7 +323,12 @@ export function daftarRefundTransfer(ex: Executor, status: 'MENUNGGU' | 'SELESAI
     .innerJoin(penjualan, eq(penjualan.id, returPenjualan.idPenjualan))
     .leftJoin(pelanggan, eq(pelanggan.id, penjualan.idPelanggan))
     .leftJoin(petugas, eq(petugas.id, returPenjualan.idPenggunaTransfer))
-    .where(eq(returPenjualan.statusTransfer, status))
+    .where(
+      and(
+        eq(returPenjualan.statusTransfer, status),
+        metode ? eq(returPenjualan.metodeRefund, metode) : undefined,
+      ),
+    )
     .orderBy(
       status === 'MENUNGGU'
         ? asc(returPenjualan.waktuPersetujuan)
@@ -332,6 +344,8 @@ export async function kunciRetur(tx: Tx, id: number) {
       nomor: returPenjualan.nomor,
       statusTransfer: returPenjualan.statusTransfer,
       nominalRefund: returPenjualan.nominalRefund,
+      metodeRefund: returPenjualan.metodeRefund,
+      idPenjualan: returPenjualan.idPenjualan,
     })
     .from(returPenjualan)
     .where(eq(returPenjualan.id, id))

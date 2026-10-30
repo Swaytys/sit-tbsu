@@ -136,6 +136,7 @@ beforeAll(async () => {
     idPemasok: m.pemasokB,
     jenis: 'PEMBELIAN',
     syaratBayar: 'TUNAI',
+    referensi: 'TRF0001',
     metodeBayar: 'TRANSFER',
     baris: [{ idBarang: m.semen, qtyMasuk: '10', hargaModalMasuk: 11000 }],
   });

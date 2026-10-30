@@ -56,6 +56,7 @@ async function terima(idBarang: number, qtyMasuk: string, hargaModalMasuk: numbe
     idPemasok: m.pemasokA,
     jenis: 'PEMBELIAN',
     syaratBayar: 'TUNAI',
+    referensi: 'TRF0001',
     baris: [{ idBarang, qtyMasuk, hargaModalMasuk }],
   });
 }

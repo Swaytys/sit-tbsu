@@ -701,9 +701,27 @@ keputusan lama masih tertulis di berkasnya.
 | K-188 | Pemasang tanpa terminal (klik dua kali, isian di jendela, akun DB sendiri, jalan keluar lupa password postgres); setup .exe lengkap menyusul. | Berlaku (v2 selesai 26 Okt: Setup mandiri dengan PostgreSQL bawaan, tanpa Administrator) |
 | K-189 | Logo BonsaiUrip (bonsai di papan kayu) untuk ikon tab, sidebar, halaman masuk. | Berlaku (selesai 25 Okt) |
 | K-190 | Log aktivitas: ekspor Excel sudah ada; tambahan log interaksi rinci (klik, halaman, durasi, pencarian, galat) untuk penelitian, terpisah dari log audit, tanpa isi ketikan, bisa dinyalakan Owner dan diekspor. | Berlaku (selesai 26 Okt; lama penyimpanan menunggu keputusan) |
-| K-191 | Setup v3: splash bermerek, buat akun pertama (tanpa password bawaan), lupa password/pemulihan, ikon tray untuk keluar, pilih lokasi pasang, tutorial, keamanan Windows. | Berlaku (akun pertama dan lupa password selesai 26 Okt; sisanya setelah backlog selesai) |
+| K-191 | Setup v3: splash bermerek, buat akun pertama (tanpa password bawaan), lupa password/pemulihan, ikon tray untuk keluar, pilih lokasi pasang, tutorial, keamanan Windows. | Berlaku (akun pertama dan lupa password selesai 26 Okt; splash, tray, lokasi, tutorial selesai 30 Okt lewat K-204; tanda tangan digital menunggu sertifikat) |
 
 ---
+
+### 6.23 Hasil uji pemilik sebelum Setup v3 — `2026-10-30-uji-pemilik-sebelum-setup.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-192 | Penyelesaian barang kembali/rusak hasil kirim menurut status bayar: belum bayar → potong tagihan; DP → potong tagihan atau kembalikan uang; lunas → kembalikan uang. | Berlaku (selesai 30 Okt) |
+| K-193 | Halaman Pengembalian uang: menunggu transfer dan menunggu tunai; cara pengembalian bisa diganti sebelum dikonfirmasi. | Berlaku (selesai 30 Okt) |
+| K-194 | Beli N potong Rp X dengan batas kelipatan (sekali, maks. k kali, tanpa batas). | Berlaku (selesai 30 Okt) |
+| K-195 | FIFO sebagai dasar harga jual dengan HPP rata-rata dikonfirmasi sesuai PSAK 14. | Berlaku (selesai 30 Okt, tanpa perubahan) |
+| K-196 | Aturan bisnis berlaku sama di semua peran (No. referensi wajib juga untuk Owner); audit semua jalur. | Berlaku (selesai 30 Okt) |
+| K-197 | Dependensi alur; shift ditutup hanya bila yang menggantung selesai; transaksi di luar shift masuk shift berikutnya. | Berlaku (selesai 30 Okt) |
+| K-198 | Cadangan lokal diatur dari Pengaturan › Cadangan tanpa mengubah .env. | Berlaku (selesai 30 Okt; program restic ikut Setup K-204) |
+| K-199 | Data master ganda persis tidak boleh disimpan; ubah salah satu atau hapus permanen yang belum pernah dipakai. | Berlaku (selesai 30 Okt) |
+| K-200 | Selisih stok karena salah input/salah serah: konsep mencegah–mengajari–menangani. | Berlaku (tahap 1 selesai 30 Okt; laporan pola koreksi menyusul) |
+| K-201 | Atribut ↔ data muatan selaras langsung di form. | Berlaku (selesai 30 Okt) |
+| K-202 | Pencarian dan saringan daftar diingat saat kembali dari halaman ubah/detail. | Berlaku (selesai 30 Okt) |
+| K-203 | Muat rit dengan centang; berangkat bila semua dimuat; ≤110% beralasan, >110% stop; rit bisa diubah. | Berlaku (selesai 30 Okt) |
+| K-204 | Setup .exe laptop, lalu versi HP dan tablet. | Berlaku (Setup v3 laptop selesai 30 Okt, versi 1.15.0; HP/tablet menyusul) |
 
 ## 7. Yang dijadwalkan sesudah ini
 

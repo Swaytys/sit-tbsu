@@ -117,6 +117,8 @@ export const skemaOperasional = z
     /** K-161: muatan kendaraan (docs/13 §3). */
     muatanFaktorIsiPersen: bulat('Faktor isi bak', 40, 100),
     muatanJulurMaksCm: bulat('Julur maksimum', 0, 300),
+    /** K-203: muatan (berat/ruang) di atas 100% sampai batas ini boleh berangkat dengan alasan; di atasnya ditolak. */
+    muatanToleransiPersen: bulat('Batas toleransi muatan', 100, 150),
     /**
      * K-099: nilai retur/void per transaksi yang boleh diproses Kasir tanpa persetujuan Admin/Owner
      * (rupiah; 0 = selalu butuh persetujuan).

@@ -297,6 +297,7 @@ describe('retur penjualan (docs/05 §8)', () => {
     // retur − 6.000 refund void = 150.000.
     const tutup = await kirim<DetailShift>(kasir, `/api/shift/${s.id}/tutup`, {
       uangFisik: 150000,
+      akuiMenggantung: true,
     });
     expect(tutup.clerical).toMatchObject({
       modalAwal: 100000,

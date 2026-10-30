@@ -250,6 +250,20 @@ desktop
 - Bukti: `[KODE: api/modules/sistem/penyiapan/]`, `[KODE: web/features/penyiapan/]`; `[DOK: K-168]`; tes
   `penyiapan.test.ts`, e2e `penyiapan.spec.ts`. Status: BERFUNGSI.
 
+**F55. Pemasang Windows (Setup v3)** | Setup-BonsaiUrip.exe; ikon desktop; area notifikasi | pemilik (memasang),
+semua (membuka) | komputer Windows toko
+- Fungsi: satu berkas Setup tanpa hak Administrator memasang aplikasi, Node.js, PostgreSQL bawaan, dan program
+  cadangan restic; lokasi program bisa dipilih, data selalu terpisah di `%LOCALAPPDATA%\BonsaiUrip` sehingga
+  memperbarui atau menghapus aplikasi tidak menghapus data. Peluncur menampilkan layar pembuka bermerek dengan
+  langkah yang sedang dikerjakan, lalu ikon di area notifikasi (Buka / Matikan dengan konfirmasi). Panduan *Mulai
+  pakai* 8 langkah ikut terpasang di menu Start. Setup pembaruan mematikan aplikasi dulu sebelum menimpa berkas.
+- Input → Proses → Output: klik Setup → wizard (lokasi, ikon, nyala otomatis) → berkas terpasang; klik ikon →
+  database dinyalakan, migrasi, server → peramban terbuka + ikon notifikasi.
+- Bukti: `[KODE: apps/api/src/peluncur.ts]`, `[KODE: installer/peluncur/BonsaiUrip.cs]`,
+  `[KODE: installer/bonsaiurip.iss]`, `[KODE: installer/buat-installer.ps1]`, `[KODE: installer/panduan/mulai-pakai.html]`;
+  `[DOK: docs/panduan/pasang-laptop.md, K-188, K-191, K-204]`; uji pemilik U160–U162. Status: BERFUNGSI (laptop);
+  tanda tangan digital belum (perlu sertifikat), akses dari HP/tablet menyusul.
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -273,7 +287,7 @@ Admin/Owner menerima | desktop + Telegram/email atasan
   bulanan/5 tahunan, uji pulih otomatis tiap tanggal 1, tombol cadangkan sekarang.
 - Tabel: `cadangan`.
 - Bukti: `[KODE: api/modules/sistem/cadangan/service.ts:323,458,528]` `[DOK: K-084]`.
-- Status: SEBAGIAN — berfungsi di tes; bergantung pada pemasangan restic/rclone di server; cadangan ke cloud akan diaktifkan saat deploy `[JAWAB 1]`.
+- Status: SEBAGIAN — cadangan lokal BERFUNGSI (folder dan sandi diatur Owner dari layar, K-198; restic ikut Setup, K-204); cadangan ke cloud (rclone) akan diaktifkan saat deploy `[JAWAB 1]`.
 
 **F45. FMS pendukung: BBM, servis, pengingat, statistik armada** | Logistik › Kendaraan & Sopir (tab BBM, Servis,
 Statistik) | Kasir (catat BBM), Admin/Owner (servis, batal, statistik) | desktop
@@ -478,7 +492,10 @@ Admin/Owner (pemeriksaan) | desktop
   potong tagihan atau uang kembali). Retur mengikuti aturan persetujuan yang sama dengan retur biasa.
 - K-176: hasil per barang wajib beralasan (kembali: kirim ulang / kelebihan / salah barang / pembeli batal; rusak: di
   jalan / saat dicek); kembali selain kirim ulang mengurangi tagihan otomatis; refund transfer menjadi tugas
-  *menunggu → sudah ditransfer* dengan bukti; penanda hasil di kartu Pengiriman.
+  *menunggu → sudah ditransfer* dengan bukti; penanda hasil di kartu Pengiriman. K-192: nilai barang kembali/rusak
+  diselesaikan menurut status bayar (belum bayar → potong tagihan; DP → potong tagihan atau kembalikan uang; lunas →
+  kembalikan uang). K-193: uangnya menjadi tugas *Pengembalian uang* (tunai atau transfer) yang dikonfirmasi saat
+  benar-benar diserahkan; caranya bisa diganti selama menunggu `[KODE: web/features/koreksi/tab-pengembalian.tsx]`.
 - Tabel: `surat_jalan`, `surat_jalan_detail`, `surat_jalan_hasil`, `surat_jalan_hasil_detail`.
 - Bukti: `[KODE: api/modules/penjualan/surat-jalan/service.ts]` (`catatHasil`, `sisaKirim`,
   `sinkronStatusPengiriman`, `buatSuratJalanTx`), `[KODE: web/features/pengantaran/panel-surat-jalan.tsx]`; tes
@@ -553,7 +570,8 @@ dialog Berangkat | Admin/Owner (data), Kasir+ (berangkat) | desktop
 ### 4.6 Kas
 
 **F28. Shift toko dan clerical check** | Shift & Clerical Check | Kasir+ | komputer kasir
-- Fungsi (diperbarui 18 Okt, K-121, K-132–K-142):
+- Fungsi (diperbarui 18 Okt, K-121, K-132–K-142; 30 Okt K-197 *Sebelum menutup*: penghalang void menunggu dan
+  daftar menggantung yang wajib diakui, termasuk pembayaran di luar shift yang masuk shift berikutnya):
   - **Satu shift untuk toko** (satu laci): dibuka/ditutup siapa pun yang berizin; semua uang tunai masuk shift itu
     dengan nama pencatatnya; status shift tampil di topbar untuk semua peran (termasuk Staf). Dua pembukaan
     bersamaan tetap menghasilkan satu shift (kunci transaksi).
@@ -1308,6 +1326,15 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
+- 2026-10-30 — F21: qty tidak biasa ditandai dan dikonfirmasi; panduan selisih stok mencegah–mengajari–menangani (K-200) `[DOK: docs/panduan/selisih-stok.md]`.
+- 2026-10-30 — Cadangan: folder dan sandi diatur Owner dari layar (K-198) `[KODE: api/modules/sistem/cadangan/aturan.ts]`.
+- 2026-10-30 — F48: data sama persis tidak boleh disimpan; hapus permanen data ganda yang belum dipakai (K-199) `[KODE: api/modules/master/hapus.ts]`.
+- 2026-10-30 — F9: atribut dimensi ↔ data muatan selaras langsung di form (K-201).
+- 2026-10-30 — Umum: pencarian dan saringan daftar diingat; klik menu mengulang (K-202) `[KODE: web/lib/ingat-saring.ts]`.
+- 2026-10-30 — F17: batas kelipatan promo per baris (K-194).
+- 2026-10-30 — F23/F45: centang muat per surat jalan, ubah rit, satu batas toleransi muatan (K-203).
+- 2026-10-30 — F28: kotak Sebelum menutup shift dan matriks dependensi alur (K-197).
+- 2026-10-30 — F23: penyelesaian hasil kirim menurut status bayar; Pengembalian uang tunai/transfer (K-192, K-193).
 - 2026-10-28 — F15: dasar markup FIFO (K-184).
 - 2026-10-28 — F17: promo kombinasi kategori + merk + barang dan beli N potong Rp X (K-185).
 - 2026-10-28 — F21: layar kasir pas layar, pindah/gulir panel dengan tombol (K-171).
@@ -1317,6 +1344,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — Info cepat nomor dokumen (K-181) di linimasa kas, dashboard, riwayat, retur, papan.
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
+- 2026-10-30 — F55 pemasang Windows Setup v3: layar pembuka, ikon area notifikasi, lokasi pasang, panduan mulai pakai, restic bawaan (K-204); F8 status cadangan lokal.
 - 2026-10-28 — F54 panduan penyiapan pertama dan contoh data (K-168).
 - 2026-10-26 — F53 akun pertama dan lupa password (K-191).
 - 2026-10-26 — F52 log interaksi penelitian (K-190).

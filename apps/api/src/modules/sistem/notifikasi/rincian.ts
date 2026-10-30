@@ -68,12 +68,15 @@ export async function rincianRefundTransfer(): Promise<{ jumlah: number; rincian
   const [n] = await baris<{ n: string }>(
     sql`select count(*)::text n from retur_penjualan where status_transfer = 'MENUNGGU'`,
   );
-  const r = await baris<{ nomor: string; nilai: string }>(sql`
-    select nomor, nominal_refund::text nilai from retur_penjualan
+  const r = await baris<{ nomor: string; nilai: string; metode: string }>(sql`
+    select nomor, nominal_refund::text nilai, metode_refund metode from retur_penjualan
      where status_transfer = 'MENUNGGU' order by waktu_persetujuan, id limit ${MAKS}`);
   return {
     jumlah: Number(n?.n ?? 0),
-    rincian: r.map((x) => `${x.nomor} · ${formatRupiah(Number(x.nilai))}`),
+    rincian: r.map(
+      (x) =>
+        `${x.nomor} · ${formatRupiah(Number(x.nilai))} · ${x.metode === 'TUNAI' ? 'tunai' : 'transfer'}`,
+    ),
   };
 }
 

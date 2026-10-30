@@ -11,6 +11,7 @@ import { db } from '../../db/client';
 import { cadangan, logAktivitas } from '../../db/schema';
 import { env } from '../../env';
 import { jalankan } from './cadangan/alat';
+import { berkasAturan } from './cadangan/aturan';
 import {
   cekJadwalCadangan,
   jalankanCadangan,
@@ -126,8 +127,50 @@ describe('API cadangan', () => {
       });
       expect(j.status).toBe(409);
       expect((await json<{ error: { pesan: string } }>(j)).error.pesan).toMatch(
-        /CADANGAN_REPO_LOKAL/,
+        /Pengaturan › Cadangan/,
       );
+    }
+  });
+});
+
+describe('atur cadangan dari layar (K-198)', () => {
+  it('Owner mengisi folder + sandi; isian salah ditolak; sandi tidak pernah dikembalikan/dilog', async () => {
+    const admin = await sesiUji('ADMIN');
+    const owner = await sesiUji('OWNER');
+    const folder = mkdtempSync(path.join(tmpdir(), 'cadangan-layar-'));
+    const isi = {
+      repoLokal: folder,
+      sandi: 'sandi-rahasia-123',
+      sandiUlang: 'sandi-rahasia-123',
+      sudahDicatat: true,
+    };
+    const put = (sesi: { cookie: string }, body: unknown) =>
+      minta('/api/cadangan/aturan', { method: 'PUT', cookie: sesi.cookie, body });
+    try {
+      expect((await put(admin, isi)).status).toBe(403);
+      for (const salah of [
+        { repoLokal: 'cadangan' },
+        { sandiUlang: 'beda-sandi-1234' },
+        { sudahDicatat: false },
+        { sandi: 'pendek', sandiUlang: 'pendek' },
+      ]) {
+        expect((await put(owner, { ...isi, ...salah })).status).toBe(400);
+      }
+      const r = await put(owner, isi);
+      expect(r.status).toBe(200);
+      const teks = await r.text();
+      expect(teks).not.toContain('sandi-rahasia-123');
+      const s = (JSON.parse(teks) as { data: StatusCadanganData }).data;
+      expect(s).toMatchObject({ aktif: true, sumberAturan: 'LAYAR', repoLokal: folder });
+      const [log] = await db
+        .select()
+        .from(logAktivitas)
+        .where(eq(logAktivitas.aksi, 'CADANGAN_ATUR'));
+      expect(log?.ringkasan).toContain(folder);
+      expect(JSON.stringify(log)).not.toContain('sandi-rahasia-123');
+    } finally {
+      rmSync(berkasAturan(), { force: true });
+      rmSync(folder, { recursive: true, force: true });
     }
   });
 });

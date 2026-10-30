@@ -230,13 +230,15 @@ test('K-185: kombinasi kategori + barang, beli N potong Rp X', async ({ page }) 
     await page.getByRole('option', { name: 'Beli N potong Rp X' }).click();
     await d.getByLabel('Qty beli').fill('2');
     await d.getByLabel('Potongan per kelipatan').fill('1000');
+    // K-194: paling banyak 2 kali per baris.
+    await d.getByLabel('Paling banyak berapa kali').fill('2');
     await d.getByRole('button', { name: 'Simpan' }).click();
     await expect(page.getByText(new RegExp(`Promo ${namaPromo} dibuat`))).toBeVisible();
     const p = (await api<{ id: number }[]>(page, `/promo?cari=${kode}`))[0]!;
     dibuat.push(p.id);
     await page.getByLabel('Cari promo').fill(namaPromo);
     await expect(page.getByRole('row').filter({ hasText: namaPromo })).toContainText(
-      'beli 2 potong Rp 1.000',
+      'beli 2 potong Rp 1.000 (maks. 2×)',
     );
 
     // A qty 5 = dua kelipatan 2 → Rp 2.000; B (kategori sama, barang lain) tidak kena.

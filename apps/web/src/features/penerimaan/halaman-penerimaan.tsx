@@ -1,6 +1,5 @@
 import { formatRupiah, type BarisDaftarPenerimaan, type JenisPenerimaan } from '@sit/shared';
 import { Plus, Search } from 'lucide-react';
-import { useState } from 'react';
 import { useDaftarPO } from '@/api/order-pembelian';
 import { BadgePO } from '@/features/order-pembelian/halaman-order-pembelian';
 import { Link } from 'react-router';
@@ -21,6 +20,7 @@ import {
 import { formatTanggal, formatWaktu } from '@/lib/format';
 import { LABEL_JENIS_PENERIMAAN, LABEL_STATUS_HUTANG } from '@/lib/label';
 import { useTunda } from '@/lib/use-tunda';
+import { useIngat } from '@/lib/ingat-saring';
 
 const SEMUA = 'SEMUA';
 
@@ -40,12 +40,12 @@ export function BadgeHutang({ p }: { p: Pick<BarisDaftarPenerimaan, 'statusHutan
 
 /** Riwayat penerimaan barang (docs/05 E6). */
 export function HalamanPenerimaan() {
-  const [cari, setCari] = useState('');
+  const [cari, setCari] = useIngat('penerimaan.cari', '');
   const cariTertunda = useTunda(cari, 300);
-  const [jenis, setJenis] = useState<JenisPenerimaan | null>(null);
-  const [dari, setDari] = useState('');
-  const [sampai, setSampai] = useState('');
-  const [halaman, setHalaman] = useState(1);
+  const [jenis, setJenis] = useIngat<JenisPenerimaan | null>('penerimaan.jenis', null);
+  const [dari, setDari] = useIngat('penerimaan.dari', '');
+  const [sampai, setSampai] = useIngat('penerimaan.sampai', '');
+  const [halaman, setHalaman] = useIngat('penerimaan.halaman', 1);
   const barisPerHalaman = useBarisPerHalaman();
   const daftar = useDaftarPenerimaan({
     cari: cariTertunda,

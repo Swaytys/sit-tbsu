@@ -71,6 +71,7 @@ async function tutupShiftTerlewat(api: APIRequestContext): Promise<void> {
       data: {
         uangFisik: d.data.ringkasan?.saldoSistem ?? 0,
         keterangan: 'Shift terlewat ditutup otomatis oleh penyiapan tes e2e',
+        akuiMenggantung: true,
       },
     });
     if (!tutup.ok()) {
