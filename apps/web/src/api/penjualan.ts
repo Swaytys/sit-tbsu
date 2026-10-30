@@ -180,11 +180,13 @@ export function useStokTertahan() {
 // --- Checkout, pembayaran, riwayat penjualan, shift ---
 
 /** K-132: shift toko yang sedang terbuka (satu untuk seluruh toko). */
-export function useShiftSaya(aktif = true) {
+export function useShiftSaya(aktif = true, segarSaatDibuka = false) {
   return useQuery({
     queryKey: ['shift', 'saya'],
     queryFn: async () => ambilData(await api.shift.aktif.$get()),
     enabled: aktif,
+    // Halaman Shift selalu memuat ulang: shift bisa sudah ditutup/dibuka dari perangkat lain.
+    refetchOnMount: segarSaatDibuka ? 'always' : true,
     // K-109: status "terlewat" berubah saat ganti hari walau layar tidak disentuh.
     refetchInterval: 5 * 60_000,
   });
