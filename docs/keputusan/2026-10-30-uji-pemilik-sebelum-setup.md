@@ -69,7 +69,8 @@ Empat pilihan konsep ditanyakan dan dijawab pemilik (rekomendasi dipilih semua):
   konsep tiga lapis **mencegah – mengajari – menangani** beserta langkah konkret untuk pengguna; fitur yang dibutuhkan
   dikerjakan bertahap. *Rencana.*
 - **K-201 Atribut ↔ data muatan langsung selaras di form.** Saat selesai mengisi salah satu (Enter/pindah kotak), yang
-  lain langsung ikut, bukan hanya saat Simpan (lanjutan K-169). *Rencana.*
+  lain langsung ikut, bukan hanya saat Simpan (lanjutan K-169). *Rencana.* **Selesai (30 Okt):** yang terakhir diubah
+  menang; satuan dikonversi otomatis; atribut yang belum ada ditambahkan; pemeriksaan saat simpan (K-169) tetap.
 - **K-202 Pencarian dan saringan daftar diingat.** Kembali dari halaman ubah/detail (mis. Data Barang dicari "semen",
   ubah barang, simpan) daftar tetap memakai pencarian, kategori, dan saringan sebelumnya. Pindah ke menu lain
   melupakannya. Berlaku untuk semua daftar yang punya pencarian. *Rencana.* **Selesai (30 Okt):** 11 halaman daftar

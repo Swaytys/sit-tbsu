@@ -68,3 +68,65 @@ export function bacaIsianMuatan(
     .toString();
   return { nilai, galat: null };
 }
+
+/**
+ * K-169/K-201: atribut dimensi (kode jenis atribut) ↔ kolom data muatan. Atribut memakai satuan basis m, kg, m³
+ * (dikali `faktor_ke_basis` satuannya); data muatan disimpan dalam cm, kg, m³.
+ */
+export const ATRIBUT_MUATAN = {
+  PANJANG: 'panjangCm',
+  LEBAR: 'lebarCm',
+  TINGGI: 'tinggiCm',
+  BERAT: 'beratKg',
+  VOLUME: 'volumeM3',
+} as const;
+export type KodeAtributMuatan = keyof typeof ATRIBUT_MUATAN;
+export type KolomMuatan = (typeof ATRIBUT_MUATAN)[KodeAtributMuatan];
+
+/** Satuan basis → satuan simpan muatan (m → cm = ×100; kg dan m³ tetap). */
+const BASIS_KE_MUATAN: Record<KodeAtributMuatan, string> = {
+  PANJANG: '100',
+  LEBAR: '100',
+  TINGGI: '100',
+  BERAT: '1',
+  VOLUME: '1',
+};
+/** Kode satuan referensi yang setara dengan satuan simpan muatan. */
+export const SATUAN_SIMPAN_MUATAN: Record<KodeAtributMuatan, string> = {
+  PANJANG: 'cm',
+  LEBAR: 'cm',
+  TINGGI: 'cm',
+  BERAT: 'kg',
+  VOLUME: 'm3',
+};
+
+/** Nilai atribut (teks, boleh koma) dalam satuan berfaktor `faktorKeBasis` → teks satuan simpan muatan. */
+export function atributKeMuatan(
+  kode: KodeAtributMuatan,
+  nilai: string,
+  faktorKeBasis: string,
+): string | null {
+  const t = nilai.trim().replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(t) || new Decimal(t).lessThanOrEqualTo(0)) return null;
+  return new Decimal(t)
+    .times(faktorKeBasis)
+    .times(BASIS_KE_MUATAN[kode])
+    .toDecimalPlaces(4)
+    .toString();
+}
+
+/** Kebalikan `atributKeMuatan`: nilai muatan → teks atribut (koma desimal) dalam satuan berfaktor `faktorKeBasis`. */
+export function muatanKeAtribut(
+  kode: KodeAtributMuatan,
+  nilaiMuatan: string,
+  faktorKeBasis: string,
+): string | null {
+  const t = nilaiMuatan.trim().replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(t) || new Decimal(faktorKeBasis).isZero()) return null;
+  return new Decimal(t)
+    .dividedBy(BASIS_KE_MUATAN[kode])
+    .dividedBy(faktorKeBasis)
+    .toDecimalPlaces(4)
+    .toString()
+    .replace('.', ',');
+}
