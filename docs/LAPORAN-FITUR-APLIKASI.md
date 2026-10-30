@@ -1312,7 +1312,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-24 — Data muatan barang/kendaraan dan pemeriksaan muatan saat berangkat (K-161, docs/13).
 - 2026-10-24 — Lampiran B: 57 tabel (armada, hasil pengantaran; `kunci_idempoten` di sistem.ts).
 - 2026-10-24 — F17 promo menjadi kampanye (K-163 bagian 1); promo_sasaran di master.ts.
-- 2026-10-30 — F10: atribut dimensi ↔ data muatan selaras langsung di form (K-201).
+- 2026-10-30 — F9: atribut dimensi ↔ data muatan selaras langsung di form (K-201).
 - 2026-10-30 — Umum: pencarian dan saringan daftar diingat; klik menu mengulang (K-202) `[KODE: web/lib/ingat-saring.ts]`.
 - 2026-10-30 — F17: batas kelipatan promo per baris (K-194).
 - 2026-10-30 — F23/F45: centang muat per surat jalan, ubah rit, satu batas toleransi muatan (K-203).
