@@ -19,6 +19,7 @@ export * from './schemas/arsip';
 export * from './schemas/auth';
 export * from './schemas/barang';
 export * from './schemas/cadangan';
+export * from './schemas/data';
 export * from './schemas/hutang';
 export * from './schemas/kas';
 export * from './schemas/konsinyasi';

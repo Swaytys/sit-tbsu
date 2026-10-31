@@ -17,6 +17,7 @@ blob-report/
 
 # Berkas unggahan aplikasi (Fase 3)
 storage/
+pustaka/
 
 # Log dan sistem
 *.log

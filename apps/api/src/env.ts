@@ -20,6 +20,10 @@ const skemaEnv = z.object({
     .string()
     .min(1)
     .default(fileURLToPath(new URL('../../../storage', import.meta.url))),
+  // K-213: Pustaka data (salinan data lain, pengaman otomatis). Bawaan: folder `pustaka` di samping STORAGE_DIR.
+  PUSTAKA_DIR: z.string().min(1).optional(),
+  // K-216: catatan mati mendadak dari peluncur desktop (kosong di luar desktop).
+  MATI_MENDADAK_FILE: z.string().min(1).optional(),
   // --- Produksi (Fase 8, K-082) ---
   // Hasil build web yang disajikan API di produksi (satu port untuk API + aplikasi).
   WEB_DIST: z

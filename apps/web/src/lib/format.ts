@@ -37,3 +37,10 @@ export function tanggalHariIni(): string {
 export function awalBulanIni(): string {
   return format(new TZDate(new Date(), ZONA_TOKO), 'yyyy-MM-01');
 }
+
+/** Ukuran berkas/data yang mudah dibaca (KB, MB, GB). */
+export function ukuranTeks(byte: number): string {
+  if (byte < 1024 * 1024) return `${Math.max(1, Math.round(byte / 1024))} KB`;
+  if (byte < 1024 * 1024 * 1024) return `${(byte / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
+  return `${(byte / 1024 / 1024 / 1024).toFixed(2).replace('.', ',')} GB`;
+}

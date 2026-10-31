@@ -1,4 +1,4 @@
-# Uji setup awal dan kelola data aplikasi (31 Oktober 2026, K-212–K-214)
+# Uji setup awal, kelola data, shift dan mati mendadak (31 Oktober 2026, K-212–K-216)
 
 Pemilik mencoba Setup 1.16.0 dan setup awal. Masukan dan keputusan dicatat di bawah.
 
@@ -35,5 +35,17 @@ Pemilik mencoba Setup 1.16.0 dan setup awal. Masukan dan keputusan dicatat di ba
   *Rencana.*
 - **K-214 Installer dwibahasa.** Wizard Setup Windows tersedia dalam Bahasa Indonesia dan English (dipilih di awal).
   *Rencana.*
+
+- **K-215 Aplikasi tidak bisa dimatikan selama shift terbuka.** Masukan susulan pemilik (31 Okt): *Matikan BonsaiUrip*
+  (ikon tray dan menu Start), Setup pembaruan, dan menghapus aplikasi ditolak selama ada shift yang belum ditutup,
+  dengan pesan langkah menutup shift. Saat Windows hendak dimatikan dengan shift terbuka, BonsaiUrip menahan dengan
+  alasan yang tampil di layar Windows (pengguna masih bisa memaksa; Windows tidak mengizinkan aplikasi menahan
+  mutlak). Menutup tab peramban tetap diperingatkan (K-186). *Rencana.*
+- **K-216 Mati mendadak.** Pilihan *Nyalakan otomatis saat Windows dimulai* dicentang bawaan sehingga aplikasi menyala
+  lagi setelah listrik/komputer mati. Bila sebelumnya mati mendadak saat shift terbuka, peramban dibuka dan bilah
+  pemulihan tampil di atas semua halaman: keadaan shift (nomor, dibuka oleh, modal; bagi atasan juga jumlah
+  transaksi, tunai, kas masuk/keluar, uang laci seharusnya) dan langkah pemeriksaan (transaksi terakhir, struk, hitung
+  uang, lanjut atau tutup shift, pakai cadangan harian bila data rusak), sampai pemegang shift menandai *Sudah saya
+  periksa*. Transaksi yang sudah tersimpan aman (database mencatat saat itu juga). *Rencana.*
 
 Sesudah ini: K-204 bagian 2 (HP/tablet).

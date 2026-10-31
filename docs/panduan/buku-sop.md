@@ -310,6 +310,8 @@ ditetapkan Owner.
    tulis keterangan yang jujur (bantuan selisih menampilkan linimasa tunai).
 4. Isi uang yang ditinggal untuk shift berikutnya; setorkan sisanya ke Owner dan catat sebagai kas keluar/setoran.
 5. Tutup shift. Owner meninjau selisih di riwayat shift.
+6. Aplikasi baru bisa dimatikan, diperbarui, atau dihapus setelah shift ditutup (aplikasi menolak selama shift
+   terbuka). Komputer dimatikan setelah shift ditutup.
 
 ---
 
@@ -360,6 +362,11 @@ ditetapkan Owner.
 3. Bila gagal (flashdisk tercabut/penuh): perbaiki penyebab, **Cadangkan sekarang**, pastikan berhasil.
 4. Pemulihan dari cadangan dilakukan bersama pengembang; siapkan sandi cadangan.
 5. Sebelum memperbarui aplikasi (SOP-20), cadangkan sekarang.
+6. **Kelola data (Pengaturan › Data):** sebelum perubahan besar, *Simpan salinan ke Pustaka*. Mengganti data aktif
+   (*Pakai data ini*) hanya oleh Owner, di luar jam transaksi, setelah semua shift ditutup. Data di Pustaka yang
+   tidak dipakai lagi dihapus agar disk tidak penuh; pengaman otomatis dibiarkan (dipangkas otomatis).
+7. **Pindah komputer:** ekspor berkas `.bonsai` bersandi, simpan sandinya bersama kode pemulihan, impor di komputer
+   baru lewat setup awal › *Lanjutkan data yang sudah ada*. Hapus berkas `.bonsai` dari flashdisk setelah selesai.
 
 ### SOP-18 Data master: barang, harga, pelanggan, pemasok
 
@@ -396,9 +403,13 @@ Laporan dicetak/disimpan PDF dan diarsipkan per periode; dokumen pembukuan disim
 1. Aplikasi tidak bisa dibuka: klik ikon BonsaiUrip lagi. Bila muncul jendela galat, foto jendelanya.
 2. Peramban "tidak dapat dijangkau": pastikan ikon BonsaiUrip ada di pojok kanan bawah; bila tidak, buka lagi.
 3. Selisih uang/stok: ikuti SOP-15 dan *Panduan selisih stok*; jangan menutupi selisih dengan transaksi fiktif.
-4. Kejadian penting (data salah besar, dugaan penyalahgunaan akun, kehilangan perangkat) dicatat di Formulir
+4. **Listrik/komputer mati mendadak saat shift terbuka:** nyalakan komputer (BonsaiUrip menyala sendiri bila
+   pilihan nyala otomatis dicentang). Ikuti bilah pemulihan: periksa transaksi terakhir di Riwayat, cocokkan struk
+   kertas, catat ulang transaksi yang sedang diketik saat mati, hitung uang laci, lanjutkan atau tutup shift, lalu
+   **Sudah saya periksa**. Catat kejadian di Formulir Kejadian.
+5. Kejadian penting (data salah besar, dugaan penyalahgunaan akun, kehilangan perangkat) dicatat di Formulir
    Kejadian (Lampiran L.5) dan dilaporkan ke Owner hari itu juga.
-5. Hubungi pengembang dengan menyertakan: foto layar, waktu kejadian, akun yang dipakai, dan catatan dari
+6. Hubungi pengembang dengan menyertakan: foto layar, waktu kejadian, akun yang dipakai, dan catatan dari
    `%LOCALAPPDATA%\BonsaiUrip\log` bila diminta.
 
 ---

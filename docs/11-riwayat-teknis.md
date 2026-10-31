@@ -870,3 +870,17 @@ pengantaran (centang sebelum berangkat).
   Inno: halaman *Data toko yang sudah ada* (`RenameFile` folder data ke `-lama-<tanggal>` di `ssInstall`).
   K-210 `pintasan/*.cmd`; `buat-installer.ps1` menjalankan pnpm lewat `cmd /c … 2>&1` karena PowerShell 5.1 menjadikan
   stderr pnpm galat saat keluaran dicatat. Logo SVG memakai merek BonsaiUrip (K-207).
+- 2026-10-31 — K-212–K-216 (versi 1.17.0, tanpa migrasi): wizard setup hanya membungkus langkah isian inti dengan
+  `<form>` (form Pengaturan yang disematkan sebelumnya bersarang sehingga kirimannya memindahkan langkah dan Simpan
+  struk melakukan kiriman GET bawaan); `ingat-langkah.ts` (sessionStorage) + `BilahKembaliSetup`. Kelola data:
+  `modules/sistem/data/pustaka.ts` (tanpa koneksi `db` aplikasi; dipakai peluncur): pg_dump format custom + salinan
+  storage tanpa `sistem/`; pulihkan = drop schema public & drizzle → pg_restore --no-owner → migrasi → cabut semua
+  sesi → ganti storage; `.bonsai` = tanda + kepala JSON + AES-256-GCM (scrypt N=2^15) + tag; arsip sederhana dengan
+  penolakan jalur keluar folder. Middleware `jagaGantiData` (503 selama mengganti). Rute publik `/api/auth/setup-data*`
+  hanya selama tanpa pengguna. Peluncur: `PUSTAKA_DIR`, tanda `mulai-dari-nol.flag` (ditulis Inno), konversi
+  `BonsaiUrip-lama-*` (postgres lama dinyalakan di port lain, disalin, folder dihapus). K-215: `peluncur --berhenti`
+  memeriksa `shift_kasir.status <> 'TUTUP'` → kode keluar 3 (+`--paksa`); `BonsaiUrip.exe --diam` untuk Inno
+  (`PrepareToInstall`, `InitializeUninstall`); `PenjagaShutdown` (WM_QUERYENDSESSION + ShutdownBlockReasonCreate,
+  status dari `/api/health.shiftTerbuka`). K-216: `sedang-berjalan.flag` + `mati-mendadak.json`, `GET/POST
+  /api/pemulihan`, `BilahPemulihan`. K-214: `installer/bahasa/Indonesian.isl` (terjemahan komunitas Inno Setup) +
+  `[CustomMessages]`.

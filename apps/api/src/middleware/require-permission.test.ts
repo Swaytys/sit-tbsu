@@ -30,6 +30,9 @@ describe('guard default (CLAUDE.md aturan 5)', () => {
       'POST /api/auth/pulihkan',
       'POST /api/auth/lupa-email',
       'POST /api/auth/lupa-email/reset',
+      'GET /api/auth/setup-data',
+      'POST /api/auth/setup-data/impor',
+      'POST /api/auth/setup-data/:id/pakai',
     ]);
   });
 });

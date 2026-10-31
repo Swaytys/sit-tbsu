@@ -44,6 +44,7 @@ import { cn } from '@/lib/utils';
 import { FormOperasional, FormOwner, FormUsaha } from './form-langkah';
 import { galatDari, type Galat } from './galat';
 import { ingatLangkahSetup } from './ingat-langkah';
+import { LanjutkanData } from './lanjutkan-data';
 
 /*
  * K-205: setup awal pemakaian pertama, seperti aplikasi umum: form langkah demi langkah. Empat langkah pertama
@@ -605,6 +606,7 @@ function SelamatDatang({ mode }: { mode: 'baru' | 'ulang' }) {
         <p className="text-2xl font-bold">BonsaiUrip</p>
         <p className="text-slate-300">{SLOGAN_APLIKASI}</p>
       </div>
+      {mode === 'baru' && <LanjutkanData />}
       {mode === 'ulang' ? (
         <p className="text-sm text-slate-700">
           Anda mengulang setup awal. Isian yang sudah tersimpan tampil kembali; ubah yang perlu,

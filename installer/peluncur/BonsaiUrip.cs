@@ -18,6 +18,7 @@ static class Program
     static string akar = AppDomain.CurrentDomain.BaseDirectory;
     static string data;
     static NotifyIcon ikon;
+    static PenjagaShutdown penjaga;
 
     [STAThread]
     static int Main(string[] args)
@@ -40,7 +41,15 @@ static class Program
 
         if (berhenti)
         {
-            int k = Jalankan(node, skrip, " --berhenti", null);
+            bool paksa = Array.IndexOf(args, "--paksa") >= 0;
+            bool diam = Array.IndexOf(args, "--diam") >= 0;
+            int k = Jalankan(node, skrip, paksa ? " --berhenti --paksa" : " --berhenti", null);
+            if (k == KODE_SHIFT_TERBUKA)
+            {
+                // K-215: shift masih terbuka; aplikasi tetap menyala. Setup/pelepas memakai --diam dan kode keluar ini.
+                if (!diam) TampilkanTolakMatikan();
+                return k;
+            }
             // Ikon tray (bila ada) ikut ditutup.
             EventWaitHandle sinyal;
             if (EventWaitHandle.TryOpenExisting("BonsaiUrip-Berhenti", out sinyal))
@@ -152,6 +161,17 @@ static class Program
         }
     }
 
+    /** K-215: kode keluar peluncur bila shift masih terbuka. */
+    const int KODE_SHIFT_TERBUKA = 3;
+
+    static void TampilkanTolakMatikan()
+    {
+        string berkas = Path.Combine(data, "galat-peluncur.txt");
+        string pesan = File.Exists(berkas) ? File.ReadAllText(berkas) : "Shift masih terbuka.";
+        MessageBox.Show(pesan + "\n\nBuka BonsaiUrip › Shift & Clerical Check › Tutup shift, selesaikan sampai shift tertutup, lalu matikan lagi.",
+            "BonsaiUrip belum bisa dimatikan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+    }
+
     static void TampilkanIkon(string node, string skrip, bool latar)
     {
         var menu = new ContextMenuStrip();
@@ -166,7 +186,11 @@ static class Program
                 "(ikon BonsaiUrip di desktop). Pastikan shift sudah ditutup.",
                 "Matikan BonsaiUrip", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
             if (jawab != DialogResult.Yes) return;
-            Jalankan(node, skrip, " --berhenti", null);
+            if (Jalankan(node, skrip, " --berhenti", null) == KODE_SHIFT_TERBUKA)
+            {
+                TampilkanTolakMatikan();
+                return;
+            }
             ikon.Visible = false;
             Application.Exit();
         };
@@ -180,6 +204,7 @@ static class Program
         ikon.ContextMenuStrip = menu;
         ikon.DoubleClick += (s, e) => Nyalakan(node, skrip, false, false);
         ikon.Visible = true;
+        penjaga = new PenjagaShutdown(node, skrip, data);
         if (!latar)
         {
             ikon.BalloonTipTitle = "BonsaiUrip berjalan";
@@ -304,5 +329,84 @@ class LayarPembuka : Form
     {
         pewaktu.Stop();
         base.OnFormClosed(e);
+    }
+}
+
+/**
+ * K-215: jendela tak terlihat yang menerima pemberitahuan Windows akan dimatikan. Selama shift terbuka (dibaca dari
+ * /api/health tiap 20 detik), Windows ditahan dengan alasan yang tampil di layar "aplikasi mencegah dimatikan".
+ * Pengguna tetap bisa memaksa ("Matikan saja"); bila itu terjadi, layar pemulihan tampil saat menyala lagi (K-216).
+ * Bila shift sudah ditutup, server dan database dimatikan rapi sebelum Windows mati.
+ */
+class PenjagaShutdown : Form
+{
+    const int WM_QUERYENDSESSION = 0x11;
+    const int WM_ENDSESSION = 0x16;
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    static extern bool ShutdownBlockReasonCreate(IntPtr hWnd, string alasan);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern bool ShutdownBlockReasonDestroy(IntPtr hWnd);
+
+    readonly string node, skrip, data;
+    volatile bool shiftTerbuka;
+    readonly System.Threading.Timer pemeriksa;
+
+    public PenjagaShutdown(string node, string skrip, string data)
+    {
+        this.node = node;
+        this.skrip = skrip;
+        this.data = data;
+        ShowInTaskbar = false;
+        FormBorderStyle = FormBorderStyle.None;
+        Opacity = 0;
+        Size = new Size(1, 1);
+        var h = Handle; // jendela dibuat tanpa ditampilkan
+        pemeriksa = new System.Threading.Timer(_ => Periksa(), null, 2000, 20000);
+    }
+
+    void Periksa()
+    {
+        try
+        {
+            string konfig = File.ReadAllText(Path.Combine(data, "peluncur.json"));
+            var m = System.Text.RegularExpressions.Regex.Match(konfig, "\"portAplikasi\"\\s*:\\s*(\\d+)");
+            if (!m.Success) return;
+            using (var web = new System.Net.WebClient())
+            {
+                string isi = web.DownloadString("http://localhost:" + m.Groups[1].Value + "/api/health");
+                shiftTerbuka = isi.Contains("\"shiftTerbuka\":true");
+            }
+        }
+        catch { }
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WM_QUERYENDSESSION)
+        {
+            Periksa();
+            if (shiftTerbuka)
+            {
+                ShutdownBlockReasonCreate(Handle, "Shift BonsaiUrip masih terbuka. Tutup shift dulu agar uang tercatat lengkap.");
+                m.Result = IntPtr.Zero;
+                return;
+            }
+            ShutdownBlockReasonDestroy(Handle);
+        }
+        else if (m.Msg == WM_ENDSESSION && m.WParam != IntPtr.Zero && !shiftTerbuka)
+        {
+            // Windows benar-benar dimatikan dan shift sudah ditutup: matikan server dan database dengan rapi.
+            try
+            {
+                var info = new ProcessStartInfo(node, "\"" + skrip + "\" --berhenti")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+                using (var p = Process.Start(info)) { p.WaitForExit(20000); }
+            }
+            catch { }
+        }
+        base.WndProc(ref m);
     }
 }

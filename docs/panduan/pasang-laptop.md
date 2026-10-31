@@ -27,6 +27,7 @@ Sesudah terpasang, panduan langkah demi langkah untuk pemakaian pertama ada di m
   lalu peramban terbuka ke `http://localhost:7878` dan **ikon BonsaiUrip** muncul di area notifikasi (pojok kanan
   bawah, dekat jam). Menutup peramban tidak mematikan server.
 - **Mematikan** = klik kanan ikon BonsaiUrip › *Matikan BonsaiUrip* (atau menu Start › *Matikan BonsaiUrip*).
+  Ditolak selama shift masih terbuka (K-215); Setup pembaruan dan menghapus aplikasi juga ditolak.
   Mematikan komputer juga aman.
 - **Memperbarui** = jalankan Setup versi baru; aplikasi yang sedang menyala dimatikan dulu secara otomatis, data
   tidak hilang. **Menghapus** aplikasi (Setelan › Aplikasi) juga tidak menghapus data.
@@ -69,7 +70,9 @@ Sesudah terpasang, panduan langkah demi langkah untuk pemakaian pertama ada di m
 | Ikon di pojok kanan bawah tidak terlihat | Klik panah **^** di dekat jam; seret ikon BonsaiUrip ke bilah tugas supaya selalu tampil. |
 | Lupa password Owner | Halaman masuk › **Lupa password?** dengan kode pemulihan. Tanpa kode: akun Admin/Owner lain me-reset di *Data Pengguna*. Bila tidak ada keduanya, hubungi pengembang. |
 | Cadangan gagal | Pengaturan › Cadangan menulis sebabnya (mis. flashdisk tercabut). Colokkan lagi lalu **Cadangkan sekarang**. |
-| Mulai dari nol (hapus semua data) | Matikan BonsaiUrip, hapus folder `%LOCALAPPDATA%\BonsaiUrip`, lalu buka BonsaiUrip lagi. **Semua data hilang.** |
+| Mulai dari nol | Jalankan Setup › *Data toko yang sudah ada* › **Mulai dari nol**. Data lama disimpan ke Pustaka data (Pengaturan › Data), tidak dihapus. |
+| Pindah komputer | Komputer lama: Pengaturan › Data › **Ekspor untuk pindah perangkat**. Komputer baru: setup awal › **Lanjutkan data yang sudah ada** › impor berkas `.bonsai`. |
+| Mati mendadak saat shift terbuka | BonsaiUrip menyala lagi (bila nyala otomatis dicentang) dan menampilkan bilah pemulihan; ikuti langkahnya lalu **Sudah saya periksa**. |
 
 ## Keamanan
 

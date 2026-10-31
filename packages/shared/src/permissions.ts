@@ -7,6 +7,8 @@ export const DAFTAR_IZIN = {
   'sistem.pengaturan.kelola': 'Ubah profil toko, prefix nomor, ambang, batas diskon, dsb.',
   'sistem.log.lihat': 'Lihat log aktivitas semua pengguna',
   'sistem.cadangan.kelola': 'Lihat status cadangan data, cadangkan sekarang, uji pulih (K-084)',
+  'sistem.data.kelola':
+    'Kelola data aplikasi: pustaka data, ganti data aktif, ekspor/impor (K-213)',
   'master.pengguna.kelola': 'Tambah/ubah/nonaktifkan pengguna, reset password, cabut sesi',
   'master.barang.lihat': 'Lihat daftar dan detail barang tanpa harga modal',
   'master.barang.lihat_hpp': 'Lihat harga modal, HPP, harga beli terakhir, harga titip',

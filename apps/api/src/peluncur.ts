@@ -14,12 +14,21 @@
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { randomBytes, randomInt } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { jalankanMigrasi } from './db/migrator';
+import { kosongkanData, ringkasDatabase, simpanKePustaka } from './modules/sistem/data/pustaka';
 
 type Konfigurasi = {
   portDb: number;
@@ -45,6 +54,16 @@ const BERKAS_PID = path.join(DATA, 'server.pid');
 const BERKAS_STATUS = path.join(DATA, 'status-peluncur.txt');
 /** K-211: hasil Pulihkan akses Owner, dibaca lalu dihapus BonsaiUrip.exe. */
 const BERKAS_PULIH = path.join(DATA, 'pulihkan-owner.txt');
+/** K-213: Pustaka data (salinan data lain) dan tanda "Mulai dari nol" yang ditulis Setup. */
+const PUSTAKA = path.join(DATA, 'pustaka');
+const BERKAS_NOL = path.join(DATA, 'mulai-dari-nol.flag');
+const STORAGE = path.join(DATA, 'storage');
+/** K-216: ada selama aplikasi menyala; masih ada saat menyala lagi = sebelumnya mati mendadak. */
+const BERKAS_JALAN = path.join(DATA, 'sedang-berjalan.flag');
+/** K-216: catatan mati mendadak, dibaca server (layar pemulihan) dan dihapus setelah diperiksa pengguna. */
+const BERKAS_MATI = path.join(DATA, 'mati-mendadak.json');
+/** K-215: kode keluar `--berhenti` bila shift masih terbuka. */
+const KODE_SHIFT_TERBUKA = 3;
 /** K-198/K-204: program cadangan restic bawaan paket (alat\restic.exe). */
 const RESTIC = path.join(AKAR, 'alat', 'restic.exe');
 const NAMA_DB = 'bonsaiurip';
@@ -179,7 +198,9 @@ function lingkungan(k: Konfigurasi): NodeJS.ProcessEnv {
     NODE_ENV: 'production',
     PORT: String(k.portAplikasi),
     DATABASE_URL: urlDb(k),
-    STORAGE_DIR: path.join(DATA, 'storage'),
+    STORAGE_DIR: STORAGE,
+    PUSTAKA_DIR: PUSTAKA,
+    MATI_MENDADAK_FILE: BERKAS_MATI,
     LOG_FILE: path.join(LOG, 'server.log'),
     LOG_LEVEL: 'info',
     SESSION_IDLE_MENIT: '60',
@@ -254,7 +275,43 @@ function bukaPeramban(k: Konfigurasi): void {
   }).unref();
 }
 
+/** K-215: shift yang belum ditutup (BUKA atau DIHITUNG); `null` bila database tidak bisa dibaca. */
+async function shiftTerbuka(k: Konfigurasi | null): Promise<string | null> {
+  if (!k || pgJalan('pg_ctl', ['status', '-D', PGDATA]).kode !== 0) return null;
+  const klien = new pg.Client({ connectionString: urlDb(k) });
+  try {
+    await klien.connect();
+    const r = await klien.query<{ nomor: string }>(
+      `select nomor from shift_kasir where status <> 'TUTUP' order by id desc limit 1`,
+    );
+    return r.rows[0]?.nomor ?? null;
+  } catch {
+    return null;
+  } finally {
+    await klien.end().catch(() => undefined);
+  }
+}
+
+/**
+ * K-215: aplikasi tidak boleh dimatikan selama shift terbuka (uang tunai belum dicocokkan). `--paksa` hanya untuk
+ * keadaan darurat (dipakai Setup bila pengguna sudah memilih memaksa).
+ */
+async function berhentiAman(paksa: boolean): Promise<void> {
+  const nomor = paksa ? null : await shiftTerbuka(bacaKonfig());
+  if (nomor) {
+    writeFileSync(
+      BERKAS_GALAT,
+      `Shift ${nomor} masih terbuka. Tutup shift dulu (Shift & Clerical Check › Tutup shift) sampai selesai, baru BonsaiUrip bisa dimatikan.`,
+    );
+    catat(`Matikan ditolak: shift ${nomor} masih terbuka.`);
+    process.exitCode = KODE_SHIFT_TERBUKA;
+    return;
+  }
+  berhenti();
+}
+
 function berhenti(): void {
+  rmSync(BERKAS_JALAN, { force: true });
   if (existsSync(BERKAS_PID)) {
     const pid = Number(readFileSync(BERKAS_PID, 'utf8'));
     if (pid > 0) spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true });
@@ -311,12 +368,86 @@ async function pulihkanOwner(): Promise<void> {
   catat(`Akses Owner dipulihkan (${hasil.username}).`);
 }
 
+/**
+ * K-213: Setup "Mulai dari nol" meninggalkan tanda. Data yang ada disimpan ke Pustaka (jenis LAMA) lalu database
+ * dikosongkan, sehingga setup awal tampil lagi; data lama bisa dipakai kembali dari Pengaturan › Data.
+ */
+async function mulaiDariNol(k: Konfigurasi): Promise<void> {
+  if (!existsSync(BERKAS_NOL)) return;
+  status('Menyimpan data lama ke Pustaka…');
+  const pgK = { url: urlDb(k), pgBin: PGBIN };
+  const isi = await ringkasDatabase(pgK.url);
+  if (isi.pengguna.length > 0 || isi.jumlah.barang > 0 || isi.jumlah.penjualan > 0) {
+    const m = await simpanKePustaka({
+      pg: pgK,
+      akar: PUSTAKA,
+      storageDir: STORAGE,
+      jenis: 'LAMA',
+      label: `Data sebelum "Mulai dari nol" (${new Date().toLocaleDateString('id-ID')})`,
+    });
+    catat(`Mulai dari nol: data lama disimpan ke Pustaka (${m.id}).`);
+  }
+  await kosongkanData({ pg: pgK, storageDir: STORAGE });
+  rmSync(BERKAS_NOL, { force: true });
+  catat('Mulai dari nol: database dikosongkan.');
+}
+
+/**
+ * K-213: folder `BonsaiUrip-lama-<tanggal>` dari Setup 1.16.0 (data lama dipindah utuh) dikonversi ke Pustaka:
+ * database lama dinyalakan sebentar di port lain, disalin, dimatikan, lalu foldernya dihapus agar disk tidak penuh.
+ */
+async function konversiFolderLama(k: Konfigurasi): Promise<void> {
+  const induk = path.dirname(DATA);
+  const awalan = `${path.basename(DATA)}-lama-`;
+  let daftar: string[];
+  try {
+    daftar = readdirSync(induk).filter((n) => n.startsWith(awalan));
+  } catch {
+    return;
+  }
+  for (const nama of daftar) {
+    const folder = path.join(induk, nama);
+    const pgdata = path.join(folder, 'pgdata');
+    const konfig = path.join(folder, 'peluncur.json');
+    if (!existsSync(path.join(pgdata, 'PG_VERSION')) || !existsSync(konfig)) continue;
+    status('Memindahkan data lama ke Pustaka…');
+    const lama = JSON.parse(readFileSync(konfig, 'utf8')) as Konfigurasi;
+    const port = await cariPort(k.portDb + 20);
+    const nyala = spawnSync(
+      path.join(PGBIN, 'pg_ctl.exe'),
+      ['start', '-D', pgdata, '-o', `-p ${port} -c listen_addresses=127.0.0.1`, '-w', '-t', '60'],
+      { stdio: 'ignore', windowsHide: true, timeout: 90_000 },
+    );
+    if (nyala.status !== 0) {
+      catat(`Konversi ${nama}: database lama tidak mau menyala; folder dibiarkan.`);
+      continue;
+    }
+    let berhasil = false;
+    try {
+      const m = await simpanKePustaka({
+        pg: { url: urlDb({ ...lama, portDb: port }), pgBin: PGBIN },
+        akar: PUSTAKA,
+        storageDir: path.join(folder, 'storage'),
+        jenis: 'LAMA',
+        label: `Data lama (${nama.slice(awalan.length)})`,
+      });
+      catat(`Konversi ${nama}: disimpan ke Pustaka (${m.id}).`);
+      berhasil = true;
+    } catch (err) {
+      catat(`Konversi ${nama} gagal: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      pgJalan('pg_ctl', ['stop', '-D', pgdata, '-m', 'fast', '-w']);
+    }
+    if (berhasil) rmSync(folder, { recursive: true, force: true });
+  }
+}
+
 async function utama(): Promise<void> {
   mkdirSync(DATA, { recursive: true });
   rmSync(BERKAS_GALAT, { force: true });
   const args = process.argv.slice(2);
   if (args.includes('--berhenti')) {
-    berhenti();
+    await berhentiAman(args.includes('--paksa'));
     return;
   }
   if (args.includes('--pulihkan-owner')) {
@@ -333,16 +464,41 @@ async function utama(): Promise<void> {
     };
     simpanKonfig(k);
   }
+  // K-216: tanda "sedang berjalan" masih ada = aplikasi sebelumnya mati mendadak (listrik/komputer mati).
+  const matiMendadak = existsSync(BERKAS_JALAN) && !(await serverHidup(k));
+  const logServer = path.join(LOG, 'server.log');
+  const terakhirHidup = existsSync(logServer) ? statSync(logServer).mtime.toISOString() : null;
+  writeFileSync(BERKAS_JALAN, new Date().toISOString());
   status('Menyalakan database…');
   await siapkanDatabase(k);
   status('Memperbarui data…');
   catat('Migrasi database.');
   await jalankanMigrasi(urlDb(k));
+  await mulaiDariNol(k);
+  // K-216: mati mendadak saat shift terbuka → layar pemulihan (ringkasan shift dan langkah pemeriksaan).
+  if (matiMendadak) {
+    const nomor = await shiftTerbuka(k);
+    catat(
+      `Terdeteksi: aplikasi sebelumnya mati mendadak${nomor ? ` saat shift ${nomor} terbuka` : ''}.`,
+    );
+    if (nomor && !existsSync(BERKAS_MATI)) {
+      writeFileSync(
+        BERKAS_MATI,
+        JSON.stringify({ terdeteksi: new Date().toISOString(), terakhirHidup, shift: nomor }),
+      );
+    }
+  }
   isiDataAwal(k);
+  try {
+    await konversiFolderLama(k);
+  } catch (err) {
+    catat(`Konversi data lama: ${err instanceof Error ? err.message : String(err)}`);
+  }
   status('Menyalakan BonsaiUrip…');
   await nyalakanServer(k);
   status('Membuka peramban…');
-  if (!args.includes('--latar')) bukaPeramban(k);
+  // Setelah mati mendadak, peramban dibuka walau dinyalakan otomatis: layar pemulihan perlu diperiksa.
+  if (!args.includes('--latar') || existsSync(BERKAS_MATI)) bukaPeramban(k);
   catat(`Siap di http://localhost:${k.portAplikasi}/`);
   rmSync(BERKAS_STATUS, { force: true });
 }

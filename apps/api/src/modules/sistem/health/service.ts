@@ -10,6 +10,8 @@ export type StatusKesehatan = {
   /** K-166: versi aplikasi dan migrasi (terpasang di database / dibawa aplikasi). */
   versi: string;
   migrasi: { terpasang: number | null; tersedia: number };
+  /** K-215: ada shift belum ditutup (tanpa rincian; aman untuk rute publik). */
+  shiftTerbuka: boolean;
 };
 
 /** Server sehat bila database bisa dihubungi. */
@@ -25,5 +27,6 @@ export async function cekKesehatan(): Promise<StatusKesehatan> {
     db: 'ok',
     versi: VERSI_APLIKASI,
     migrasi: { terpasang: await repo.jumlahMigrasiTerpasang(), tersedia: jurnal.entries.length },
+    shiftTerbuka: await repo.adaShiftTerbuka(),
   };
 }

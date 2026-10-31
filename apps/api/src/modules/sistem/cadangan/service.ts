@@ -63,7 +63,7 @@ export function konfigCadangan(): KonfigCadangan {
 }
 
 export const RETENSI = { harian: 7, mingguan: 4, bulanan: 12, tahunan: 5 } as const;
-const TAG = 'bonsaiurip';
+export const TAG = 'bonsaiurip';
 /** Proses BERJALAN lebih lama dari ini dianggap terhenti (server mati di tengah cadangan). */
 const BATAS_BERJALAN_JAM = 3;
 const BATAS_TERLEWAT_JAM = 26;
@@ -86,7 +86,7 @@ export function koneksiPg(url: string) {
   };
 }
 
-function opsiRestic(k: KonfigCadangan, repo: string) {
+export function opsiRestic(k: KonfigCadangan, repo: string) {
   return {
     argumen: ['-r', repo, ...(k.rclone ? ['-o', `rclone.program=${k.rclone}`] : [])],
     env: { RESTIC_PASSWORD: k.sandi ?? '' },

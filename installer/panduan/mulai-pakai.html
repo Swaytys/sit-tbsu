@@ -291,17 +291,28 @@
       <section id="l7">
         <h2><span>7</span>Mematikan aplikasi</h2>
         <ol>
-          <li>Pastikan shift sudah ditutup.</li>
+          <li>
+            <b>Tutup shift dulu</b> sampai selesai. Selama shift terbuka, BonsaiUrip tidak bisa
+            dimatikan, diperbarui, atau dihapus (muncul pesan "Shift … masih terbuka").
+          </li>
           <li>
             Klik kanan <b>ikon BonsaiUrip</b> di pojok kanan bawah › <b>Matikan BonsaiUrip</b> ›
             <b>Ya</b>. (Atau menu Start › BonsaiUrip › <i>Matikan BonsaiUrip</i>.)
           </li>
-          <li>Mematikan komputer seperti biasa juga aman.</li>
+          <li>
+            Mematikan komputer seperti biasa juga aman bila shift sudah ditutup. Bila shift masih
+            terbuka, Windows menampilkan layar "BonsaiUrip mencegah komputer dimatikan": pilih
+            <b>Batal</b>, tutup shift, lalu matikan lagi.
+          </li>
         </ol>
         <p class="catatan">
-          Bila memilih <i>Nyalakan otomatis saat Windows dimulai</i> saat memasang, aplikasi menyala
-          sendiri (tanpa membuka peramban) setiap komputer dinyalakan. Buka lewat ikon di desktop
-          atau klik dua kali ikon di pojok kanan bawah.
+          <b>Listrik atau komputer mati mendadak?</b> Dengan pilihan
+          <i>Nyalakan otomatis saat Windows dimulai</i> (bawaan Setup), BonsaiUrip menyala lagi
+          sendiri. Bila mati saat shift terbuka, peramban terbuka dan bilah kuning menampilkan
+          keadaan shift dan langkah pemeriksaan: periksa transaksi terakhir di Riwayat, cocokkan
+          struk, hitung uang laci, lalu lanjutkan atau tutup shift, dan klik
+          <b>Sudah saya periksa</b>. Transaksi yang sudah tersimpan tidak hilang; yang sedang
+          diketik saat mati perlu dicatat ulang.
         </p>
       </section>
 
@@ -309,8 +320,9 @@
         <h2><span>8</span>Memperbarui ke versi baru</h2>
         <ol>
           <li>
-            Tutup shift, lalu jalankan <b>Setup-BonsaiUrip.exe</b> versi baru (aplikasi dimatikan
-            otomatis).
+            Tutup shift, lalu jalankan <b>Setup-BonsaiUrip.exe</b> versi baru. Pilih bahasa wizard
+            (Bahasa Indonesia / English). Aplikasi dimatikan otomatis; Setup menolak bila shift
+            masih terbuka.
           </li>
           <li>
             Ikuti wizard. Lokasi pemasangan lama dipakai lagi. Di halaman
@@ -340,8 +352,23 @@
           <li>
             <b>Memasang ulang di atas data lama yang tidak dipakai</b> (mis. data uji): Setup
             menampilkan halaman <i>Data toko yang sudah ada</i> › pilih <b>Mulai dari nol</b>. Data
-            lama dipindah (tidak dihapus) ke folder
-            <i>%LOCALAPPDATA%\BonsaiUrip-lama-&lt;tanggal&gt;</i>.
+            lama disimpan (tidak dihapus) ke <b>Pustaka data</b>: bisa dilihat, dipakai lagi, atau
+            dihapus di Pengaturan › Data.
+          </li>
+          <li>
+            <b>Pindah ke komputer lain</b>: di komputer lama, Pengaturan › Data ›
+            <b>Ekspor untuk pindah perangkat</b> (beri sandi) → salin berkas <i>.bonsai</i> ke
+            komputer baru → pasang BonsaiUrip → setup awal langkah 1 ›
+            <b>Lanjutkan data yang sudah ada</b> › impor berkas + sandi.
+          </li>
+          <li>
+            <b>Aplikasi tidak sengaja dihapus</b>: data tetap ada di folder data pengguna. Pasang
+            lagi dengan Setup dan pilih <b>Pakai data yang sudah ada</b>; semua kembali seperti
+            sebelumnya.
+          </li>
+          <li>
+            <b>Kembali ke data sebelumnya (rollback)</b>: Pengaturan › Data › Pengaman otomatis atau
+            Pustaka › <b>Pakai data ini</b>.
           </li>
           <li>
             <b>Cadangan gagal</b>: Pengaturan › Cadangan menulis sebabnya (mis. flashdisk tercabut).
