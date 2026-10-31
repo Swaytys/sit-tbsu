@@ -757,6 +757,16 @@ keputusan lama masih tertulis di berkasnya.
 |---|---|---|
 | K-217 | HP/tablet (staf, Owner, kasir, admin/gudang) lewat Tailscale HTTPS (di toko dan dari luar), PWA, tampilan responsif. | Berlaku (selesai 31 Okt, versi 1.18.0; koneksi Tailscale diuji pemilik) |
 
+---
+
+### 6.27 Masukan untuk versi 1.19 — `2026-10-31-masukan-1-19.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-218 | Teks pengelolaan data dan installer tanpa istilah teknis. | Berlaku (rencana) |
+| K-219 | Buat data toko baru / ganti data toko dari dalam aplikasi dan halaman masuk, tanpa menghapus data. | Berlaku (rencana) |
+| K-220 | Ganti nama tab Data; Pemeriksaan data dipisah. | Berlaku (rencana) |
+
 ## 7. Yang dijadwalkan sesudah ini
 
 Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supaya tidak hilang. Rinciannya di
