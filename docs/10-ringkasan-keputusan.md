@@ -737,6 +737,16 @@ keputusan lama masih tertulis di berkasnya.
 | K-210 | Skrip buat Setup sekali klik dan skrip berulang lain untuk pemilik. | Berlaku (selesai 31 Okt) |
 | K-211 | Jalan keluar aman bila data lama berisi akun yang tidak bisa dimasuki. | Berlaku (selesai 31 Okt) |
 
+---
+
+### 6.25 Uji setup awal dan kelola data — `2026-10-31-kelola-data.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-212 | Perbaikan setup awal: tombol dalam langkah tidak memindahkan langkah; bilah kembali ke setup; switch logo struk. | Berlaku (rencana) |
+| K-213 | Kelola data: data aktif + Pustaka data (lihat, pakai/rollback, hapus, ekspor/impor .bonsai, dari cadangan harian, pengaman otomatis 3 terbaru); Mulai dari nol ke Pustaka; setup awal bisa lanjutkan data. | Berlaku (rencana) |
+| K-214 | Wizard Setup Windows dwibahasa Indonesia/English. | Berlaku (rencana) |
+
 ## 7. Yang dijadwalkan sesudah ini
 
 Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supaya tidak hilang. Rinciannya di
