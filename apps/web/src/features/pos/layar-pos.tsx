@@ -569,7 +569,7 @@ export function LayarPos({
   const tampilDialogShift = dialogShift;
 
   return (
-    <div className="flex h-full min-h-[400px] flex-col gap-2">
+    <div className="flex min-h-[400px] flex-col gap-2 lg:h-full">
       {tanpaShift && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-800">
           <span className="min-w-0 flex-1">
@@ -585,9 +585,9 @@ export function LayarPos({
           </button>
         </div>
       )}
-      <div className="flex min-h-0 flex-1 gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
         {/* Kiri: papan antrean; saat memilih barang, rinciannya menutupi area ini (K-114). */}
-        <section className="relative flex w-1/2 min-w-0 flex-col gap-1.5">
+        <section className="relative flex w-full min-w-0 flex-col gap-1.5 lg:w-1/2">
           {sorotBarang && (
             <PanelDetailBarang
               b={sorotBarang.b}
@@ -622,7 +622,7 @@ export function LayarPos({
         </section>
 
         {/* Kanan: transaksi aktif */}
-        <div className="flex min-h-0 w-1/2 min-w-0 flex-col gap-2">
+        <div className="flex min-h-0 w-full min-w-0 flex-col gap-2 lg:w-1/2">
           <section className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
             <div className="rounded-md border bg-white px-3 py-2 text-sm">
               <div className="flex items-baseline justify-between gap-2">

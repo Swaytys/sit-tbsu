@@ -534,8 +534,8 @@ function DaftarOrder() {
         </p>
       </div>
 
-      <div className="flex min-h-[560px] flex-1 gap-4 overflow-hidden">
-        <div className="flex w-1/3 min-w-80 flex-col overflow-hidden rounded-xl border bg-white">
+      <div className="flex min-h-[560px] flex-1 flex-col gap-4 lg:flex-row lg:overflow-hidden">
+        <div className="flex w-full flex-col overflow-hidden rounded-xl border bg-white lg:w-1/3 lg:min-w-80">
           <div className="space-y-2 border-b bg-slate-50 p-3">
             <Tabs value={saring} onValueChange={(v) => atur({ status: v, id: null })}>
               <TabsList className="w-full">
@@ -605,7 +605,7 @@ function DaftarOrder() {
             ))}
           </div>
         </div>
-        <div className="flex w-2/3 flex-col overflow-hidden rounded-xl border bg-white">
+        <div className="flex w-full flex-col overflow-hidden rounded-xl border bg-white lg:w-2/3">
           {terpilih === null ? (
             <p className="m-auto text-sm text-slate-500">
               Pilih order di kiri untuk melihat detail.

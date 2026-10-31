@@ -359,9 +359,23 @@ function FormBarang({
     if (!a || !kode || !relevanMuatan(kode) || a.idSatuan == null) return;
     const sat = referensi.satuan.find((x) => x.id === a.idSatuan);
     const v = sat ? atributKeMuatan(kode, String(a.nilai ?? ''), sat.faktorKeBasis) : null;
-    if (v !== null) {
-      form.setValue(`muatan.${ATRIBUT_MUATAN[kode]}`, v, { shouldDirty: true });
+    if (v === null) return;
+    const kolom = ATRIBUT_MUATAN[kode];
+    // Data muatan mewajibkan panjang, lebar, dan tinggi diisi bersamaan. Atribut ukuran (mis. pipa 6 m) hanya disalin
+    // bila dua ukuran lain sudah terisi atau kolom ini sudah berisi; selain itu salinan sebagian membuat barang
+    // gagal disimpan.
+    const dimensi = ['panjangCm', 'lebarCm', 'tinggiCm'] as const;
+    if ((dimensi as readonly string[]).includes(kolom)) {
+      const isi = (k: string) => {
+        const x: unknown = form.getValues(`muatan.${k as (typeof dimensi)[number]}`);
+        return (
+          (typeof x === 'number' && !Number.isNaN(x)) || (typeof x === 'string' && x.trim() !== '')
+        );
+      };
+      const lainTerisi = dimensi.filter((k) => k !== kolom).every(isi);
+      if (!lainTerisi && !isi(kolom)) return;
     }
+    form.setValue(`muatan.${kolom}`, v, { shouldDirty: true });
   }
   function selarasDariMuatan(kolom: KolomMuatan) {
     const kode = (Object.keys(ATRIBUT_MUATAN) as KodeAtributMuatan[]).find(
@@ -493,10 +507,10 @@ function FormBarang({
       <Form {...form}>
         <form
           onSubmit={(e) => void form.handleSubmit(kirim)(e)}
-          className="grid grid-cols-3 gap-4"
+          className="grid gap-4 lg:grid-cols-3"
           noValidate
         >
-          <div className="col-span-2 space-y-4">
+          <div className="space-y-4 lg:col-span-2">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Identitas barang</CardTitle>

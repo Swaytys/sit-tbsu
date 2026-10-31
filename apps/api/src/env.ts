@@ -22,6 +22,13 @@ const skemaEnv = z.object({
     .default(fileURLToPath(new URL('../../../storage', import.meta.url))),
   // K-213: Pustaka data (salinan data lain, pengaman otomatis). Bawaan: folder `pustaka` di samping STORAGE_DIR.
   PUSTAKA_DIR: z.string().min(1).optional(),
+  // K-217: pemasangan desktop menyalakan `tailscale serve` (akses HP/tablet) dan memercayai alamat asli perangkat
+  // dari header X-Forwarded-For yang dikirim proxy lokal itu.
+  AKSES_TAILSCALE: z
+    .enum(['0', '1'])
+    .default('0')
+    .transform((v) => v === '1'),
+  TAILSCALE_CLI: z.string().min(1).optional(),
   // K-216: catatan mati mendadak dari peluncur desktop (kosong di luar desktop).
   MATI_MENDADAK_FILE: z.string().min(1).optional(),
   // --- Produksi (Fase 8, K-082) ---

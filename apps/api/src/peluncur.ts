@@ -201,6 +201,7 @@ function lingkungan(k: Konfigurasi): NodeJS.ProcessEnv {
     STORAGE_DIR: STORAGE,
     PUSTAKA_DIR: PUSTAKA,
     MATI_MENDADAK_FILE: BERKAS_MATI,
+    AKSES_TAILSCALE: '1',
     LOG_FILE: path.join(LOG, 'server.log'),
     LOG_LEVEL: 'info',
     SESSION_IDLE_MENIT: '60',

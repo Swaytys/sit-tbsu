@@ -157,7 +157,8 @@ function Kolom({
     <section
       ref={setNodeRef}
       className={cn(
-        'flex min-h-0 min-w-56 flex-1 flex-col rounded-md border bg-slate-50',
+        // K-217: di HP satu kolom selebar layar, digeser kiri/kanan (berhenti tepat per kolom).
+        'flex min-h-0 min-w-56 flex-1 snap-start flex-col rounded-md border bg-slate-50 max-lg:min-w-[85vw]',
         isOver && 'border-red-400 bg-red-50',
       )}
       aria-label={judul}
@@ -833,7 +834,7 @@ export function HalamanPengiriman() {
           tujuanKeyboard.current = null;
         }}
       >
-        <div className="flex min-h-0 flex-1 gap-2 overflow-x-auto">
+        <div className="flex min-h-0 flex-1 snap-x gap-2 overflow-x-auto max-lg:snap-mandatory">
           <Kolom
             id="backlog"
             judul="Backlog"

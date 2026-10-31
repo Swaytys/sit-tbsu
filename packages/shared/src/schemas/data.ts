@@ -98,4 +98,16 @@ export type MatiMendadak = {
   shift: string | null;
 };
 
+/** K-217: akses HP/tablet lewat Tailscale HTTPS. */
+export type StatusAksesPerangkat = {
+  tailscaleTerpasang: boolean;
+  tersambung: boolean;
+  /** https://<nama>.ts.net, `null` bila belum tersambung. */
+  alamat: string | null;
+  serveAktif: boolean;
+  httpsAktif: boolean;
+  pesan: string;
+  diperiksa: string;
+};
+
 export const POLA_ID_DATA = /^[a-z0-9-]{8,60}$/;

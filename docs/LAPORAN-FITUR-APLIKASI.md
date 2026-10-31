@@ -314,6 +314,17 @@ belum ada pengguna) | desktop
   `[KODE: api/modules/sistem/pemulihan/]`, `[KODE: web/features/shift/bilah-pemulihan.tsx]`; `[DOK: K-215, K-216]`;
   tes `pemulihan.test.ts`. Status: BERFUNGSI.
 
+**F61. HP dan tablet (PWA lewat Tailscale)** | semua halaman; Pengaturan › Akses HP/tablet | semua peran sesuai izin |
+HP, tablet, laptop
+- Fungsi: perangkat membuka `https://<laptop>.ts.net` (Tailscale serve, sertifikat sah, terenkripsi, di toko dan dari
+  luar); dipasang di layar utama (manifest PWA). Tampilan responsif: menu laci < 1024 px, panel layar kerja menumpuk,
+  papan Pengiriman digeser per kolom, bilah tombol keyboard tertutup di layar sentuh. Halaman pengaturan menampilkan
+  status Tailscale, alamat, kode QR, dan langkah pemasangan; alamat asli perangkat dibaca dari proxy lokal agar batas
+  percobaan login per perangkat.
+- Bukti: `[KODE: api/modules/sistem/akses/]`, `[KODE: web/features/pengaturan/tab-akses.tsx]`,
+  `[KODE: web/components/layout/layout.tsx]`, `[KODE: web/public/manifest.webmanifest]`; `[DOK: K-217]`; tes
+  `akses.test.ts`. Status: BERFUNGSI (koneksi Tailscale diuji pemilik, U183–U186).
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1394,6 +1405,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — Info cepat nomor dokumen (K-181) di linimasa kas, dashboard, riwayat, retur, papan.
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
+- 2026-10-31 — F61 HP dan tablet (K-217).
 - 2026-10-31 — F59 kelola data, F60 pengaman shift dan mati mendadak; F56 perbaikan tombol langkah; Setup dua bahasa
   (K-212–K-216).
 - 2026-10-31 — F56 setup awal, F57 tur fitur, F58 lupa password lewat email; F55 Mulai dari nol dan Pulihkan akses

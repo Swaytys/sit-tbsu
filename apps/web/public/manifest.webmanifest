@@ -1,0 +1,17 @@
+{
+  "name": "BonsaiUrip",
+  "short_name": "BonsaiUrip",
+  "description": "Penjualan, persediaan, dan kas toko.",
+  "lang": "id",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "/ikon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/ikon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

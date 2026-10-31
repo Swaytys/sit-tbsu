@@ -41,7 +41,7 @@ export function PindahPenjualan() {
 
   if (layar.length < 2) return null;
   return (
-    <nav aria-label="Pindah layar penjualan" className="flex items-center gap-1">
+    <nav aria-label="Pindah layar penjualan" className="hidden items-center gap-1 md:flex">
       {layar.map((l) => (
         <NavLink
           key={l.path}

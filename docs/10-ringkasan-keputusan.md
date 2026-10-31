@@ -749,6 +749,14 @@ keputusan lama masih tertulis di berkasnya.
 | K-215 | Aplikasi tidak bisa dimatikan (tray, menu Start, Setup, uninstall) selama shift terbuka; Windows ditahan saat dimatikan. | Berlaku (selesai 31 Okt, versi 1.17.0) |
 | K-216 | Menyala otomatis setelah mati mendadak; bilah pemulihan dengan keadaan shift dan langkah pemeriksaan. | Berlaku (selesai 31 Okt, versi 1.17.0) |
 
+---
+
+### 6.26 Versi HP dan tablet — `2026-10-31-hp-tablet.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-217 | HP/tablet (staf, Owner, kasir, admin/gudang) lewat Tailscale HTTPS (di toko dan dari luar), PWA, tampilan responsif. | Berlaku (selesai 31 Okt, versi 1.18.0; koneksi Tailscale diuji pemilik) |
+
 ## 7. Yang dijadwalkan sesudah ini
 
 Hal-hal berikut sudah diputuskan **tidak dikerjakan sekarang** dan dicatat supaya tidak hilang. Rinciannya di

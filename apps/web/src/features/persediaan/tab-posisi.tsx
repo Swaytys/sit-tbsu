@@ -152,7 +152,12 @@ export function TabPosisi() {
 
   return (
     <div className="space-y-3">
-      <div className={cn('grid gap-3', lihatNilai ? 'grid-cols-5' : 'grid-cols-4')}>
+      <div
+        className={cn(
+          'grid grid-cols-2 gap-3 sm:grid-cols-4',
+          lihatNilai ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
+        )}
+      >
         {(['HABIS', 'KRITIS', 'PERLU_RESTOCK', 'AMAN'] as const).map((s) => (
           <button
             key={s}

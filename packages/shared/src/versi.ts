@@ -4,11 +4,21 @@
  * pengguna (bukan istilah teknis); rincian teknis tetap di docs/11.
  */
 
-export const VERSI_APLIKASI = '1.17.0';
+export const VERSI_APLIKASI = '1.18.0';
 
 export type CatatanRilis = { versi: string; tanggal: string; isi: string[] };
 
 export const CATATAN_RILIS: CatatanRilis[] = [
+  {
+    versi: '1.18.0',
+    tanggal: '2026-10-31',
+    isi: [
+      'HP dan tablet: buka lewat Tailscale (di toko dan dari luar), pasang di layar utama seperti aplikasi.',
+      'Pengaturan › Akses HP/tablet: status, alamat, kode QR, dan langkah pemasangan.',
+      'Tampilan menyesuaikan layar HP/tablet: menu laci, panel menumpuk, kolom Pengiriman digeser per layar, daftar tombol keyboard tertutup di layar sentuh.',
+      'Perbaikan: atribut ukuran barang (mis. panjang pipa) tidak lagi membuat data muatan setengah terisi yang menggagalkan simpan.',
+    ],
+  },
   {
     versi: '1.17.0',
     tanggal: '2026-10-31',

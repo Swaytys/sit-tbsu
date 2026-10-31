@@ -712,6 +712,13 @@ Semua tugas admin, ditambah:
 - **Dashboard**: penjualan hari ini vs kemarin, grafik 7 hari, antrean, pengiriman aktif, peringatan stok.
 - Dari luar toko: buka alamat Tailscale di HP (panduan server bagian 6).
 
+### Owner: Akses HP dan tablet
+
+*Pengaturan › Akses HP/tablet* menampilkan langkah lengkap. Ringkasnya: Tailscale dipasang sekali di laptop (akun
+toko, MagicDNS + HTTPS aktif) lalu **Aktifkan**; di tiap HP/tablet pasang Tailscale dengan akun yang sama, pindai
+kode QR, **Tambahkan ke layar utama**. Di HP, menu ada di tombol ☰; layar kerja menumpuk dan bisa digulir;
+daftar tombol keyboard dibuka dengan tombol **Pintasan**. Layar kasir paling nyaman di tablet mendatar.
+
 ### Owner: Pengaturan › Data (kelola data aplikasi)
 
 - **Data aktif**: data yang sedang dipakai (toko, rentang transaksi, pengguna, ukuran).

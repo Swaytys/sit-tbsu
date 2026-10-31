@@ -79,7 +79,7 @@ function FormAjukan() {
   }
 
   return (
-    <div className="grid grid-cols-[22rem_1fr] gap-4">
+    <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
       <Card className="gap-2 p-3">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400" />
