@@ -729,13 +729,13 @@ keputusan lama masih tertulis di berkasnya.
 
 | K | Keputusan | Status |
 |---|---|---|
-| K-205 | Setup awal di aplikasi: form langkah demi langkah (usaha, operasional, akun Owner, pemulihan, cadangan, data awal), bisa diulang. | Berlaku (rencana) |
-| K-206 | Tur fitur: sorotan bagian layar dan tur per fitur, bisa dilewati dan diulang dari Pengaturan. | Berlaku (rencana) |
-| K-207 | Aplikasi umum: nama/alamat toko tidak tertulis mati; layar pembuka memakai slogan. | Berlaku (rencana) |
-| K-208 | Buku SOP dan buku panduan setelah K-205–K-207. | Berlaku (rencana) |
-| K-209 | Lupa password dengan kode verifikasi email (selain kode pemulihan). | Berlaku (rencana; dipilih 31 Okt) |
-| K-210 | Skrip buat Setup sekali klik dan skrip berulang lain untuk pemilik. | Berlaku (rencana) |
-| K-211 | Jalan keluar aman bila data lama berisi akun yang tidak bisa dimasuki. | Berlaku (rencana) |
+| K-205 | Setup awal di aplikasi: form langkah demi langkah (usaha, operasional, akun Owner, pemulihan, cadangan, data awal), bisa diulang. | Berlaku (selesai 31 Okt) |
+| K-206 | Tur fitur: sorotan bagian layar dan tur per fitur, bisa dilewati dan diulang dari Pengaturan. | Berlaku (selesai 31 Okt) |
+| K-207 | Aplikasi umum: nama/alamat toko tidak tertulis mati; layar pembuka memakai slogan. | Berlaku (selesai 31 Okt) |
+| K-208 | Buku SOP dan buku panduan setelah K-205–K-207. | Berlaku (Buku SOP selesai 31 Okt; Buku Panduan = manual pengguna diperbarui) |
+| K-209 | Lupa password dengan kode verifikasi email (selain kode pemulihan). | Berlaku (selesai 31 Okt) |
+| K-210 | Skrip buat Setup sekali klik dan skrip berulang lain untuk pemilik. | Berlaku (selesai 31 Okt) |
+| K-211 | Jalan keluar aman bila data lama berisi akun yang tidak bisa dimasuki. | Berlaku (selesai 31 Okt) |
 
 ## 7. Yang dijadwalkan sesudah ini
 

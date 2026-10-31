@@ -10,7 +10,9 @@ import {
   type StatusSetupAwal,
   type TipeKonfigurasi,
 } from '@sit/shared';
+import { eq } from 'drizzle-orm';
 import { db, type Tx } from '../../../db/client';
+import { konfigurasi } from '../../../db/schema';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang } from '../../../lib/waktu';
@@ -81,6 +83,24 @@ export async function simpanDataUsaha(
 ): Promise<void> {
   const waktu = sekarang();
   for (const e of entri(usaha, operasional)) await pengaturanRepo.simpanKonfigurasi(tx, e, waktu);
+  // Langkah "Profil toko" panduan penyiapan (K-168) dianggap sudah diperiksa: datanya baru diisi pemilik.
+  const [baris] = await tx
+    .select({ nilai: konfigurasi.nilai })
+    .from(konfigurasi)
+    .where(eq(konfigurasi.kode, 'penyiapan_ditandai'));
+  let ditandai: string[];
+  try {
+    ditandai = JSON.parse(baris?.nilai ?? '[]') as string[];
+  } catch {
+    ditandai = [];
+  }
+  if (!ditandai.includes('PROFIL')) {
+    await pengaturanRepo.simpanKonfigurasi(
+      tx,
+      { kode: 'penyiapan_ditandai', nilai: JSON.stringify([...ditandai, 'PROFIL']), tipe: 'TEKS' },
+      waktu,
+    );
+  }
 }
 
 /** Menandai setup awal baru dimulai (dipanggil saat akun Owner pertama dibuat lewat setup awal). */

@@ -4,11 +4,23 @@
  * pengguna (bukan istilah teknis); rincian teknis tetap di docs/11.
  */
 
-export const VERSI_APLIKASI = '1.15.0';
+export const VERSI_APLIKASI = '1.16.0';
 
 export type CatatanRilis = { versi: string; tanggal: string; isi: string[] };
 
 export const CATATAN_RILIS: CatatanRilis[] = [
+  {
+    versi: '1.16.0',
+    tanggal: '2026-10-31',
+    isi: [
+      'Setup awal langkah demi langkah saat pertama dipakai: data usaha, cara berjualan, akun Owner, kode pemulihan, logo & struk, rekening, email, cadangan, karyawan, data awal.',
+      'Tur aplikasi: sorotan bagian layar dengan penjelasan; tur per fitur ditawarkan saat menu dibuka pertama kali; bisa diulang di menu nama Anda › Tur & panduan.',
+      'Owner bisa mengulang setup awal; langkah yang dilewati diingatkan di Dashboard.',
+      'Lupa password dengan kode 6 angka ke email, selain kode pemulihan.',
+      'Menu Start › Pulihkan akses Owner; Setup menawarkan Mulai dari nol (data lama dipindah, tidak dihapus).',
+      'Aplikasi umum: nama, slogan, dan kota usaha dari setup awal tampil di halaman masuk; tanpa nama toko bawaan.',
+    ],
+  },
   {
     versi: '1.15.0',
     tanggal: '2026-10-30',

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-label="Sumber Urip Bonsai">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-label="BonsaiUrip">
   <defs>
     <linearGradient id="kayu" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#6b4429"/>
@@ -16,6 +16,7 @@
       <path d="M17 47h30l-3.5 8.5c-.3.9-1.2 1.5-2.2 1.5H22.7c-1 0-1.9-.6-2.2-1.5z"/>
     </g>
   </g>
-  <text x="104" y="50" font-family="'Brush Script MT','Segoe Script',cursive" font-size="40" fill="#3a2618">Sumber Urip</text>
-  <text x="106" y="84" font-family="'Segoe UI',Arial,sans-serif" font-weight="800" font-size="24" letter-spacing="9" fill="#6b4429">BONSAI</text>
+  <!-- K-207: merek aplikasi umum (bukan nama toko tertentu). -->
+  <text x="104" y="54" font-family="'Segoe UI',Arial,sans-serif" font-weight="700" font-size="40" fill="#3a2618">BonsaiUrip</text>
+  <text x="106" y="82" font-family="'Segoe UI',Arial,sans-serif" font-weight="600" font-size="13" letter-spacing="2.4" fill="#6b4429">PENJUALAN · PERSEDIAAN · KAS</text>
 </svg>

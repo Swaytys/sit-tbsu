@@ -29,11 +29,16 @@ if (-not $PgDir) {
 }
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 
+# K-210: pnpm lewat cmd dengan stderr digabung ke stdout. Tanpa ini, PowerShell 5.1 menganggap tulisan pnpm di
+# stderr (mis. "$ pnpm -r run build") sebagai galat saat keluaran skrip dicatat ke berkas (pintasan Buat-Setup).
+function Pnpm([string]$argumen) {
+  cmd /c "pnpm $argumen 2>&1"
+  if ($LASTEXITCODE -ne 0) { throw "pnpm $argumen gagal (kode $LASTEXITCODE)." }
+}
+
 Write-Host '== 1. Build =='
-pnpm install
-if ($LASTEXITCODE -ne 0) { throw 'pnpm install gagal.' }
-pnpm build
-if ($LASTEXITCODE -ne 0) { throw 'Build gagal.' }
+Pnpm 'install'
+Pnpm 'build'
 
 Write-Host '== 2. Menyusun paket =='
 if (Test-Path $paket) { cmd /c rmdir /s /q "$paket" }
@@ -41,10 +46,9 @@ New-Item -ItemType Directory -Force -Path "$paket\apps" | Out-Null
 # Dependency produksi saja (tanpa alat pengembangan), lengkap dengan modul native (argon2).
 $sementara = Join-Path $PSScriptRoot 'deploy-sementara'
 if (Test-Path $sementara) { cmd /c rmdir /s /q "$sementara" }
-pnpm --filter '@sit/api' deploy --prod --legacy "$sementara"
-if ($LASTEXITCODE -ne 0) { throw 'pnpm deploy gagal.' }
+Pnpm "--filter @sit/api deploy --prod --legacy `"$sementara`""
 # pnpm deploy mengusik node_modules repo (hook commit); dipulihkan sekarang juga.
-pnpm install | Out-Null
+Pnpm 'install' | Out-Null
 # Inno Setup tidak menyalin tautan (junction) pnpm: seluruh paket nyata disalin ke satu folder node_modules datar.
 $nm = "$sementara\node_modules"
 $datar = "$paket\apps\api\node_modules"

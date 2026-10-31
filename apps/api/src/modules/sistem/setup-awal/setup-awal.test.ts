@@ -81,6 +81,12 @@ describe('setup awal (K-205, K-207)', () => {
     );
     expect(tampilan.data).toMatchObject({ namaToko: 'Toko Maju Jaya', kotaToko: 'Kediri' });
 
+    // Langkah Profil toko di panduan penyiapan sudah selesai karena datanya diisi di setup awal.
+    const panduan = await json<Data<{ langkah: { langkah: string; selesai: boolean }[] }>>(
+      await minta('/api/penyiapan', { cookie }),
+    );
+    expect(panduan.data.langkah.find((l) => l.langkah === 'PROFIL')?.selesai).toBe(true);
+
     const selesai = await minta('/api/penyiapan/setup-awal/selesai', {
       method: 'POST',
       cookie,

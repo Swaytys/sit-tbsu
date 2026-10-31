@@ -406,11 +406,20 @@ function WizardSetup({
               aktif={aktif}
               mode={mode}
               usaha={usaha}
-              setUsaha={(k, v) => setUsaha((s) => ({ ...s, [k]: v }))}
+              setUsaha={(k, v) => {
+                setUsaha((s) => ({ ...s, [k]: v }));
+                setGalat((g) => ({ ...g, [k]: undefined }));
+              }}
               operasional={operasional}
-              setOperasional={(k, v) => setOperasional((s) => ({ ...s, [k]: v }))}
+              setOperasional={(k, v) => {
+                setOperasional((s) => ({ ...s, [k]: v }));
+                setGalat((g) => ({ ...g, [k]: undefined }));
+              }}
               owner={owner}
-              setOwner={(k, v) => setOwner((s) => ({ ...s, [k]: v }))}
+              setOwner={(k, v) => {
+                setOwner((s) => ({ ...s, [k]: v }));
+                setGalat((g) => ({ ...g, [k]: undefined }));
+              }}
               galat={galat}
               kode={kode}
               onKodeDisimpan={() => pindah('TAMPILAN')}
