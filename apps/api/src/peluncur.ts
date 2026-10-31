@@ -23,7 +23,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { createServer } from 'node:net';
+import { connect, createServer } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
@@ -90,13 +90,78 @@ function sandiAcak(n: number): string {
   return Array.from({ length: n }, () => huruf[randomInt(huruf.length)]).join('');
 }
 
-function portBebas(port: number): Promise<boolean> {
+function bisaDipasang(port: number, alamat: string): Promise<boolean> {
   return new Promise((selesai) => {
     const s = createServer();
     s.once('error', () => selesai(false));
     s.once('listening', () => s.close(() => selesai(true)));
-    s.listen(port, '127.0.0.1');
+    s.listen(port, alamat);
   });
+}
+
+/** Ada program yang menerima sambungan di 127.0.0.1:port. */
+function adaYangMenjawab(port: number): Promise<boolean> {
+  return new Promise((selesai) => {
+    const s = connect({ port, host: '127.0.0.1' });
+    const akhiri = (hasil: boolean) => {
+      s.destroy();
+      selesai(hasil);
+    };
+    s.setTimeout(1500, () => akhiri(false));
+    s.once('connect', () => akhiri(true));
+    s.once('error', () => akhiri(false));
+  });
+}
+
+/**
+ * Port benar-benar kosong. Di Windows, port yang dipakai program lain di 0.0.0.0 masih bisa "dipasang" di
+ * 127.0.0.1, jadi diperiksa tiga cara: pasang di 127.0.0.1, pasang di 0.0.0.0, dan tidak ada yang menjawab.
+ */
+async function portBebas(port: number): Promise<boolean> {
+  if (await adaYangMenjawab(port)) return false;
+  return (await bisaDipasang(port, '127.0.0.1')) && (await bisaDipasang(port, '0.0.0.0'));
+}
+
+/** Proses dengan PID ini masih hidup. */
+function prosesHidup(pid: number): boolean {
+  if (!(pid > 0)) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** PID server BonsaiUrip yang dinyalakan peluncur ini sebelumnya (0 bila tidak ada). */
+function pidServerKita(): number {
+  if (!existsSync(BERKAS_PID)) return 0;
+  const pid = Number(readFileSync(BERKAS_PID, 'utf8'));
+  return Number.isFinite(pid) ? pid : 0;
+}
+
+const tunggu = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Sambungan ke database dengan percobaan ulang: sesaat setelah dinyalakan (terutama setelah mati mendadak,
+ * saat database memulihkan diri) PostgreSQL menjawab "the database system is starting up".
+ */
+async function sambungDb(url: string): Promise<pg.Client> {
+  let galat: unknown;
+  for (let i = 0; i < 60; i++) {
+    const klien = new pg.Client({ connectionString: url });
+    try {
+      await klien.connect();
+      return klien;
+    } catch (err) {
+      galat = err;
+      await klien.end().catch(() => undefined);
+      const pesan = err instanceof Error ? err.message : String(err);
+      if (!/starting up|shutting down|ECONNREFUSED|recovery/i.test(pesan)) throw err;
+      await tunggu(1000);
+    }
+  }
+  throw galat instanceof Error ? galat : new Error(String(galat));
 }
 
 async function cariPort(mulai: number): Promise<number> {
@@ -151,6 +216,13 @@ async function siapkanDatabase(k: Konfigurasi): Promise<void> {
     }
   }
   if (pgJalan('pg_ctl', ['status', '-D', PGDATA]).kode !== 0) {
+    // Port database dipakai program lain (mis. PostgreSQL lain): pakai port kosong berikutnya.
+    if (!(await portBebas(k.portDb))) {
+      const lama = k.portDb;
+      k.portDb = await cariPort(k.portDb + 1);
+      simpanKonfig(k);
+      catat(`Port database ${lama} dipakai program lain; pindah ke port ${k.portDb}.`);
+    }
     catat(`Menyalakan database di port ${k.portDb}.`);
     const logPg = path.join(LOG, 'postgres.log');
     // Tanpa pipa keluaran: proses postgres mewarisi pegangan keluaran pg_ctl dan tidak pernah menutupnya,
@@ -178,8 +250,7 @@ async function siapkanDatabase(k: Konfigurasi): Promise<void> {
       throw new Error(`Database tidak mau menyala.\n${ekor}`);
     }
   }
-  const klien = new pg.Client({ connectionString: urlDb(k, 'postgres') });
-  await klien.connect();
+  const klien = await sambungDb(urlDb(k, 'postgres'));
   try {
     const ada = await klien.query('select 1 from pg_database where datname = $1', [NAMA_DB]);
     if (ada.rowCount === 0) {
@@ -244,10 +315,20 @@ async function serverHidup(k: Konfigurasi): Promise<boolean> {
 
 /** 4: server di latar; menunggu sampai menjawab. */
 async function nyalakanServer(k: Konfigurasi): Promise<void> {
-  if (await serverHidup(k)) return;
+  // Server yang menjawab hanya dipakai bila itu server yang dinyalakan peluncur ini (PID tercatat masih hidup);
+  // server lain di port yang sama (mis. salinan BonsaiUrip lain) tidak boleh dianggap milik kita.
+  const pidLama = pidServerKita();
+  if (prosesHidup(pidLama) && (await serverHidup(k))) return;
+  if (prosesHidup(pidLama)) {
+    // Server lama masih hidup tetapi tidak menjawab (macet): matikan dulu.
+    spawnSync('taskkill', ['/PID', String(pidLama), '/T', '/F'], { windowsHide: true });
+    await tunggu(1000);
+  }
   if (!(await portBebas(k.portAplikasi))) {
+    const lama = k.portAplikasi;
     k.portAplikasi = await cariPort(k.portAplikasi + 1);
     simpanKonfig(k);
+    catat(`Port ${lama} dipakai program lain; server pindah ke port ${k.portAplikasi}.`);
   }
   catat(`Menyalakan server di port ${k.portAplikasi}.`);
   const anak = spawn(process.execPath, [path.join(DIST, 'index.js')], {
@@ -259,13 +340,14 @@ async function nyalakanServer(k: Konfigurasi): Promise<void> {
   });
   anak.unref();
   writeFileSync(BERKAS_PID, String(anak.pid ?? ''));
-  for (let i = 0; i < 60; i++) {
-    await new Promise((r) => setTimeout(r, 1000));
+  for (let i = 0; i < 90; i++) {
+    await tunggu(1000);
+    if (anak.pid && !prosesHidup(anak.pid)) break;
     if (await serverHidup(k)) return;
   }
   const log = path.join(LOG, 'server.log');
   const ekor = existsSync(log) ? readFileSync(log, 'utf8').split('\n').slice(-15).join('\n') : '';
-  throw new Error(`Server tidak menjawab dalam 60 detik.\n${ekor}`);
+  throw new Error(`Server tidak mau menyala.\n${ekor}`);
 }
 
 function bukaPeramban(k: Konfigurasi): void {
@@ -466,7 +548,8 @@ async function utama(): Promise<void> {
     simpanKonfig(k);
   }
   // K-216: tanda "sedang berjalan" masih ada = aplikasi sebelumnya mati mendadak (listrik/komputer mati).
-  const matiMendadak = existsSync(BERKAS_JALAN) && !(await serverHidup(k));
+  const matiMendadak =
+    existsSync(BERKAS_JALAN) && !(prosesHidup(pidServerKita()) && (await serverHidup(k)));
   const logServer = path.join(LOG, 'server.log');
   const terakhirHidup = existsSync(logServer) ? statSync(logServer).mtime.toISOString() : null;
   writeFileSync(BERKAS_JALAN, new Date().toISOString());

@@ -766,6 +766,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-218 | Teks pengelolaan data dan installer tanpa istilah teknis. | Berlaku (rencana) |
 | K-219 | Buat data toko baru / ganti data toko dari dalam aplikasi dan halaman masuk, tanpa menghapus data. | Berlaku (rencana) |
 | K-220 | Ganti nama tab Data; Pemeriksaan data dipisah. | Berlaku (rencana) |
+| K-221 | Peluncur tahan port terpakai: pindah ke port kosong, tidak memakai server asing, coba ulang saat database masih menyala. | Berlaku |
 
 ## 7. Yang dijadwalkan sesudah ini
 

@@ -893,3 +893,12 @@ pengantaran (centang sebelum berangkat).
   `lg:h-full`; bilah tombol tertutup bawaan di layar sempit/sentuh; grid halaman Void/Retur/Stok/Form barang/
   Penerimaan bertingkat `lg:`; kolom Pengiriman `max-lg:min-w-[85vw]` + scroll snap. Dependency web `qrcode`.
   Perbaikan K-201: atribut P/L/T disalin ke data muatan hanya bila dua dimensi lain terisi atau kolom sudah berisi.
+
+- **31 Okt 2026, K-221 (tetap 1.18.0).** `peluncur.ts`: `portBebas` = tidak ada yang menjawab di 127.0.0.1 dan bisa
+  dipasang di 127.0.0.1 serta 0.0.0.0 (Windows mengizinkan pasang 127.0.0.1 walau 0.0.0.0 dipakai proses lain);
+  port database diperiksa sebelum `pg_ctl start` dan pindah ke port kosong bila terpakai (disimpan di
+  `peluncur.json`); server yang menjawab dianggap milik sendiri hanya bila PID di `server.pid` masih hidup
+  (`process.kill(pid, 0)`), server macet di-`taskkill`; tunggu server sampai 90 dtk dan berhenti lebih awal bila
+  proses server keluar; `sambungDb` mencoba ulang 60x untuk "starting up"/ECONNREFUSED. Diuji pada paket: port
+  terhalang di nyala pertama, data lama ber-port 54329/7878 dengan server asing yang menjawab `/api/health`, tutup
+  lalu buka, buka saat masih menyala.
