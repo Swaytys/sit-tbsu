@@ -109,6 +109,13 @@ export const skemaBuatKodePemulihan = z.object({
   password: z.string().min(1, 'Password wajib diisi.').max(128),
 });
 
-export type StatusPenyiapan = { perluAkunPertama: boolean };
+/** Rute publik: dibaca halaman masuk dan setup awal sebelum login (K-191, K-207). */
+export type StatusPenyiapan = {
+  perluAkunPertama: boolean;
+  /** Identitas usaha untuk halaman masuk; kosong sebelum setup awal. */
+  namaToko: string;
+  sloganToko: string;
+  kotaToko: string;
+};
 export type InfoKodePemulihan = { ada: boolean; dibuatPada: string | null };
 export type HasilKodePemulihan = { kodePemulihan: string };

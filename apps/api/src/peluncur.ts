@@ -43,6 +43,8 @@ const BERKAS_GALAT = path.join(DATA, 'galat-peluncur.txt');
 const BERKAS_PID = path.join(DATA, 'server.pid');
 /** K-204: langkah yang sedang dikerjakan, dibaca layar pembuka BonsaiUrip.exe. */
 const BERKAS_STATUS = path.join(DATA, 'status-peluncur.txt');
+/** K-211: hasil Pulihkan akses Owner, dibaca lalu dihapus BonsaiUrip.exe. */
+const BERKAS_PULIH = path.join(DATA, 'pulihkan-owner.txt');
 /** K-198/K-204: program cadangan restic bawaan paket (alat\restic.exe). */
 const RESTIC = path.join(AKAR, 'alat', 'restic.exe');
 const NAMA_DB = 'bonsaiurip';
@@ -264,12 +266,61 @@ function berhenti(): void {
   catat('Server dan database dimatikan.');
 }
 
+/**
+ * K-211: menu Start › Pulihkan akses Owner. Database dinyalakan (bila mati) dan diperbarui, lalu skrip
+ * pulihkan-owner.js membuat password sementara + kode pemulihan baru. Hasil ditulis ke berkas sementara yang dibaca
+ * dan langsung dihapus BonsaiUrip.exe (hanya akun Windows pemilik folder data yang bisa membacanya).
+ */
+async function pulihkanOwner(): Promise<void> {
+  const k = bacaKonfig();
+  if (!k)
+    throw new Error('BonsaiUrip belum pernah dinyalakan di komputer ini. Buka BonsaiUrip dulu.');
+  await siapkanDatabase(k);
+  await jalankanMigrasi(urlDb(k));
+  const r = spawnSync(process.execPath, [path.join(DIST, 'pulihkan-owner.js')], {
+    cwd: DATA,
+    env: lingkungan(k),
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 120_000,
+  });
+  const baris = (r.stdout || '').trim().split('\n').pop() ?? '';
+  let hasil: {
+    galat?: string;
+    username?: string;
+    passwordSementara?: string;
+    kodePemulihan?: string;
+  };
+  try {
+    hasil = JSON.parse(baris) as typeof hasil;
+  } catch {
+    throw new Error(`Pemulihan gagal: ${(r.stderr || r.stdout || '').slice(-1500)}`);
+  }
+  if (hasil.galat || r.status !== 0) throw new Error(hasil.galat ?? 'Pemulihan gagal.');
+  writeFileSync(
+    BERKAS_PULIH,
+    [
+      `Username Owner      : ${hasil.username}`,
+      `Password sementara  : ${hasil.passwordSementara}`,
+      `Kode pemulihan baru : ${hasil.kodePemulihan}`,
+      '',
+      'Masuk dengan username dan password sementara di atas; Anda akan diminta membuat password baru.',
+      'Catat kode pemulihan baru di kertas (kode lama tidak berlaku lagi).',
+    ].join('\r\n'),
+  );
+  catat(`Akses Owner dipulihkan (${hasil.username}).`);
+}
+
 async function utama(): Promise<void> {
   mkdirSync(DATA, { recursive: true });
   rmSync(BERKAS_GALAT, { force: true });
   const args = process.argv.slice(2);
   if (args.includes('--berhenti')) {
     berhenti();
+    return;
+  }
+  if (args.includes('--pulihkan-owner')) {
+    await pulihkanOwner();
     return;
   }
   let k = bacaKonfig();

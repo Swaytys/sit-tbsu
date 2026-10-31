@@ -62,9 +62,13 @@ describe('pengaturan › baca dan ubah', () => {
   it('hanya nilai yang berubah disimpan dan dicatat PENGATURAN_UBAH (lama → baru)', async () => {
     await aturKonfigurasi({
       nama_toko: 'BonsaiUrip',
-      nama_badan_usaha: 'UD. Sumber Urip',
-      alamat_toko: 'Peterongan',
-      telp_toko: '(0321) 862620',
+      nama_badan_usaha: 'UD. Maju Jaya',
+      jenis_usaha: 'BAHAN_BANGUNAN',
+      jenis_usaha_lain: '',
+      slogan_toko: '',
+      kota_toko: 'Kediri',
+      alamat_toko: 'Jl. Merdeka 1',
+      telp_toko: '(0354) 123456',
       email_toko: '',
       footer_struk: 'Terima kasih.',
       lebar_struk_mm: '80',
@@ -200,7 +204,8 @@ describe('pengaturan › tampilan toko dan logo (K-065)', () => {
     expect(res.status).toBe(200);
     expect((await json<{ data: unknown }>(res)).data).toMatchObject({
       namaToko: 'Toko Uji',
-      namaBadanUsaha: 'UD. Sumber Urip',
+      // K-207: tanpa identitas toko bawaan.
+      namaBadanUsaha: '',
       logo: null,
       barisPerHalaman: 50,
       lebarStrukMm: 80,

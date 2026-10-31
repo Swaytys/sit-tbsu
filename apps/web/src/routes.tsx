@@ -7,7 +7,7 @@ import {
   HalamanGantiPasswordAkun,
   HalamanWajibGantiPassword,
 } from '@/features/auth/halaman-ganti-password';
-import { HalamanAkunPertama, HalamanLupaPassword } from '@/features/auth/halaman-akun-pertama';
+import { HalamanLupaPassword } from '@/features/auth/halaman-akun-pertama';
 import { HalamanLogin } from '@/features/auth/halaman-login';
 import { HalamanGalat } from '@/features/umum/halaman-galat';
 import { HalamanSegera } from '@/features/umum/halaman-segera';
@@ -117,8 +117,15 @@ export const router = createBrowserRouter([
     errorElement: <HalamanGalat />,
     children: [
       { path: '/login', element: <HalamanLogin /> },
-      // K-191: halaman publik akun pertama (hanya selama belum ada pengguna) dan lupa password.
-      { path: '/akun-pertama', element: <HalamanAkunPertama /> },
+      // K-205: setup awal (publik selama belum ada pengguna; Owner bisa mengulang setelah masuk).
+      {
+        path: '/mulai',
+        lazy: () =>
+          import('@/features/setup-awal/halaman-setup-awal').then((m) => ({
+            Component: m.HalamanSetupAwal,
+          })),
+      },
+      { path: '/akun-pertama', element: <Navigate to="/mulai" replace /> },
       { path: '/lupa-password', element: <HalamanLupaPassword /> },
       {
         path: '/ganti-password',
@@ -225,6 +232,13 @@ export const router = createBrowserRouter([
                 path: 'akun/password',
                 element: <HalamanGantiPasswordAkun />,
                 handle: { judul: 'Akun saya' },
+              },
+              {
+                // K-206: tur & panduan untuk semua peran.
+                path: 'tur',
+                lazy: () =>
+                  import('@/features/tur/halaman-tur').then((m) => ({ Component: m.HalamanTur })),
+                handle: { judul: 'Tur & panduan' },
               },
               {
                 path: '*',

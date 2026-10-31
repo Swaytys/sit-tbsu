@@ -240,6 +240,25 @@ async function idLookup() {
 }
 
 /** Membuat contoh satu jenis. Ditolak bila contoh jenis itu masih ada (aktif). */
+/**
+ * K-199 × K-168: contoh yang pernah dibuat lalu dinonaktifkan masih ada (data master tidak dihapus), dan data
+ * yang sama persis ditolak. Mengisi contoh lagi memakai baris contoh lama itu (diaktifkan kembali).
+ */
+async function contohLama(
+  tabel: PgTable,
+  kolomNama: PgColumn,
+  kolomTanda: PgColumn,
+  kolomId: PgColumn,
+  nama: string,
+): Promise<number | null> {
+  const [b] = await db
+    .select({ id: kolomId })
+    .from(tabel)
+    .where(and(eq(kolomNama, nama), eq(kolomTanda, TANDA_CONTOH)))
+    .limit(1);
+  return b ? Number(b.id) : null;
+}
+
 export async function isiContoh(
   jenis: JenisContoh,
   pelaku: PenggunaAktif,
@@ -261,6 +280,20 @@ export async function isiContoh(
     c[kunci] = [...c[kunci], id];
     dibuat++;
   };
+  /** Contoh lama diaktifkan kembali (bila ada); selain itu dibuat baru. */
+  async function pakaiAtauBuat(
+    kunci: keyof CatatanContoh,
+    lama: number | null,
+    aktifkan: (id: number) => Promise<unknown>,
+    buat: () => Promise<number>,
+  ) {
+    if (lama !== null) {
+      await aktifkan(lama);
+      catat(kunci, lama);
+    } else {
+      catat(kunci, await buat());
+    }
+  }
   if (jenis === 'BARANG') {
     const { kat, sat, idTier } = await idLookup();
     for (const b of CONTOH_BARANG) {
@@ -274,7 +307,12 @@ export async function isiContoh(
           keterangan: TANDA_CONTOH,
           abaikanMirip: true,
         });
-        catat('BARANG', (await tambahBarang(data, pelaku, asal)).id);
+        await pakaiAtauBuat(
+          'BARANG',
+          await contohLama(barang, barang.namaBarang, barang.keterangan, barang.id, b.namaBarang),
+          (id) => ubahStatusBarang(id, 'AKTIF', pelaku, asal),
+          async () => (await tambahBarang(data, pelaku, asal)).id,
+        );
       } catch (err) {
         gagal.push(`${b.namaBarang}: ${pesan(err)}`);
       }
@@ -283,7 +321,18 @@ export async function isiContoh(
     for (const p of CONTOH_PELANGGAN) {
       try {
         const data = skemaPelanggan.parse({ ...p, keterangan: TANDA_CONTOH, abaikanMirip: true });
-        catat('PELANGGAN', (await tambahPelanggan(data, pelaku, asal)).id);
+        await pakaiAtauBuat(
+          'PELANGGAN',
+          await contohLama(
+            pelanggan,
+            pelanggan.namaPelanggan,
+            pelanggan.keterangan,
+            pelanggan.id,
+            p.namaPelanggan,
+          ),
+          (id) => ubahStatusPelanggan(id, 'AKTIF', pelaku, asal),
+          async () => (await tambahPelanggan(data, pelaku, asal)).id,
+        );
       } catch (err) {
         gagal.push(`${p.namaPelanggan}: ${pesan(err)}`);
       }
@@ -292,7 +341,18 @@ export async function isiContoh(
     for (const p of CONTOH_PEMASOK) {
       try {
         const data = skemaPemasok.parse({ ...p, keterangan: TANDA_CONTOH, abaikanMirip: true });
-        catat('PEMASOK', (await tambahPemasok(data, pelaku, asal)).id);
+        await pakaiAtauBuat(
+          'PEMASOK',
+          await contohLama(
+            pemasok,
+            pemasok.namaPemasok,
+            pemasok.keterangan,
+            pemasok.id,
+            p.namaPemasok,
+          ),
+          (id) => ubahStatusPemasok(id, 'AKTIF', pelaku, asal),
+          async () => (await tambahPemasok(data, pelaku, asal)).id,
+        );
       } catch (err) {
         gagal.push(`${p.namaPemasok}: ${pesan(err)}`);
       }
@@ -301,7 +361,12 @@ export async function isiContoh(
     for (const k of CONTOH_KENDARAAN) {
       try {
         const data = skemaKendaraan.parse({ ...k, catatan: TANDA_CONTOH });
-        catat('KENDARAAN', (await tambahKendaraan(data, pelaku, asal)).id);
+        await pakaiAtauBuat(
+          'KENDARAAN',
+          await contohLama(kendaraan, kendaraan.plat, kendaraan.catatan, kendaraan.id, data.plat),
+          (id) => ubahStatusKendaraan(id, 'AKTIF', pelaku, asal),
+          async () => (await tambahKendaraan(data, pelaku, asal)).id,
+        );
       } catch (err) {
         gagal.push(`${k.plat}: ${pesan(err)}`);
       }
@@ -309,7 +374,12 @@ export async function isiContoh(
     for (const s of CONTOH_SOPIR) {
       try {
         const data = skemaSopir.parse({ ...s, catatan: TANDA_CONTOH });
-        catat('SOPIR', (await tambahSopir(data, pelaku, asal)).id);
+        await pakaiAtauBuat(
+          'SOPIR',
+          await contohLama(sopir, sopir.nama, sopir.catatan, sopir.id, s.nama),
+          (id) => ubahStatusSopir(id, 'AKTIF', pelaku, asal),
+          async () => (await tambahSopir(data, pelaku, asal)).id,
+        );
       } catch (err) {
         gagal.push(`${s.nama}: ${pesan(err)}`);
       }

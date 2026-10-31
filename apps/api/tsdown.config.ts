@@ -13,6 +13,8 @@ export default defineConfig({
     'src/db/seed.ts',
     // K-188 v2: peluncur aplikasi desktop (BonsaiUrip.exe).
     'src/peluncur.ts',
+    // K-211: pulihkan akses Owner dari komputer server (menu Start).
+    'src/pulihkan-owner.ts',
   ],
   format: 'esm',
   platform: 'node',

@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { KODE_TUR } from '@sit/shared';
 
 export const LABEL_TOMBOL_PERAN = {
   OWNER: 'Owner',
@@ -12,6 +13,27 @@ export async function masukCepat(page: Page, peran: keyof typeof LABEL_TOMBOL_PE
   await page.goto('/login');
   await page.getByRole('button', { name: new RegExp(`^${LABEL_TOMBOL_PERAN[peran]}`) }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
+  await lewatiSemuaTur(page);
+}
+
+/**
+ * K-206: tur pengenalan mulai sendiri dan tur fitur ditawarkan untuk pengguna yang belum pernah ikut tur. Uji lain
+ * tidak menguji tur, jadi semua tur ditandai selesai lalu halaman dimuat ulang (lapisan tur tidak menutupi layar).
+ */
+export async function lewatiSemuaTur(page: Page) {
+  const asal = new URL(page.url()).origin;
+  const status = await page.request.fetch('/api/auth/tur');
+  const { data } = (await status.json()) as { data: { selesai: string[]; dilewati: string[] } };
+  const sudah = new Set([...data.selesai, ...data.dilewati]);
+  const belum = KODE_TUR.filter((k) => !sudah.has(k));
+  for (const kode of belum) {
+    await page.request.fetch('/api/auth/tur', {
+      method: 'POST',
+      data: { kode, hasil: 'SELESAI' },
+      headers: { origin: asal },
+    });
+  }
+  if (belum.length > 0) await page.reload();
 }
 
 export function menuUtama(page: Page) {

@@ -96,6 +96,14 @@ describe('panduan penyiapan pertama (K-168)', () => {
     expect(r.data.panduan.contoh).toEqual({ BARANG: 0, PELANGGAN: 0, PEMASOK: 0, ARMADA: 0 });
     const aktif = await db.select().from(pelanggan).where(eq(pelanggan.statusAktif, 'AKTIF'));
     expect(aktif).toHaveLength(0);
+    // Mengisi lagi memakai contoh lama yang diaktifkan kembali (data sama persis ditolak K-199).
+    for (const jenis of ['PELANGGAN', 'ARMADA']) {
+      const ulang = await kirim<HasilContoh>('/api/penyiapan/contoh', { jenis });
+      expect(ulang.data.gagal).toEqual([]);
+      expect(ulang.data.dibuat).toBe(jenis === 'ARMADA' ? 4 : 5);
+    }
+    expect(await db.select().from(pelanggan)).toHaveLength(5);
+    await kirim('/api/penyiapan/contoh/nonaktifkan');
     // Data asli ikut dihitung setelah diisi.
     await db
       .insert(pelanggan)

@@ -1,9 +1,13 @@
 import type {
-  InputAkunPertama,
   InputGantiPassword,
   InputLogin,
   InputPulihkanPassword,
+  InputResetLewatEmail,
+  InputSetupAwal,
+  KodeTur,
   PenggunaSaya,
+  StatusPenyiapan,
+  StatusTur,
 } from '@sit/shared';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { ambilData, api, GalatApi } from './client';
@@ -86,15 +90,68 @@ export function useStatusPenyiapan() {
   });
 }
 
-export function useBuatAkunPertama() {
+/** K-205: setup awal (data usaha + akun Owner pertama); langsung masuk. */
+export function useSetupAwal() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (json: InputAkunPertama) =>
-      ambilData(await api.auth['akun-pertama'].$post({ json })),
-    onSuccess: (hasil) => {
+    mutationFn: async (json: InputSetupAwal) =>
+      ambilData(await api.auth['setup-awal'].$post({ json })),
+    onSuccess: (hasil, isi) => {
       gantiPengguna(qc, hasil.pengguna);
-      qc.setQueryData(['auth', 'penyiapan'], { perluAkunPertama: false });
+      const status: StatusPenyiapan = {
+        perluAkunPertama: false,
+        namaToko: isi.usaha.namaToko,
+        sloganToko: isi.usaha.sloganToko,
+        kotaToko: isi.usaha.kotaToko,
+      };
+      qc.setQueryData(['auth', 'penyiapan'], status);
     },
+  });
+}
+
+/** K-209: minta kode verifikasi lupa password ke email. */
+export function useMintaKodeEmail() {
+  return useMutation({
+    mutationFn: async (username: string) =>
+      ambilData(await api.auth['lupa-email'].$post({ json: { username } })),
+  });
+}
+
+export function useResetLewatEmail() {
+  return useMutation({
+    mutationFn: async (json: InputResetLewatEmail) =>
+      ambilData(await api.auth['lupa-email'].reset.$post({ json })),
+  });
+}
+
+// --- K-206: tur fitur ---
+
+const kunciTur = ['auth', 'tur'] as const;
+
+export function useStatusTur(aktif = true) {
+  return useQuery({
+    queryKey: kunciTur,
+    queryFn: async (): Promise<StatusTur> => ambilData(await api.auth.tur.$get()),
+    enabled: aktif,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCatatTur() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (json: { kode: KodeTur; hasil: 'SELESAI' | 'DILEWATI' }) =>
+      ambilData(await api.auth.tur.$post({ json })),
+    onSuccess: (data) => qc.setQueryData(kunciTur, data),
+  });
+}
+
+export function useUlangTur() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (kode: KodeTur | 'SEMUA') =>
+      ambilData(await api.auth.tur.ulang.$post({ json: { kode } })),
+    onSuccess: (data) => qc.setQueryData(kunciTur, data),
   });
 }
 

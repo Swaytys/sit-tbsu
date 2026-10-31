@@ -21,13 +21,15 @@ describe('guard default (CLAUDE.md aturan 5)', () => {
     expect(periksaDeklarasiIzin(uji.routes, [])).toEqual(['GET /lupa']);
   });
 
-  it('daftar rute publik: health, login, dan akun pertama/pemulihan K-191 (masuk cepat hanya di pengembangan)', () => {
+  it('daftar rute publik: health, login, setup awal K-205, pemulihan K-191, kode email K-209 (masuk cepat hanya di pengembangan)', () => {
     expect(RUTE_PUBLIK).toEqual([
       'GET /api/health',
       'POST /api/auth/login',
       'GET /api/auth/penyiapan',
-      'POST /api/auth/akun-pertama',
+      'POST /api/auth/setup-awal',
       'POST /api/auth/pulihkan',
+      'POST /api/auth/lupa-email',
+      'POST /api/auth/lupa-email/reset',
     ]);
   });
 });

@@ -35,6 +35,7 @@ export * from './schemas/promo';
 export * from './schemas/referensi';
 export * from './schemas/rekening';
 export * from './schemas/saluran';
+export * from './schemas/setup-awal';
 export * from './schemas/saran-pesan';
 export * from './schemas/hasil-penjualan';
 export * from './schemas/info-cepat';

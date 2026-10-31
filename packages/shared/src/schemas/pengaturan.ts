@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AKSI_LOG } from '../log';
 import { KERTAS_DOKUMEN, STRUK_CETAK, type KertasDokumen, type StrukCetak } from '../enums';
 import { KODE_DOKUMEN } from '../penomoran';
+import { JENIS_USAHA, type JenisUsaha, type LayananToko } from './setup-awal';
 import { skemaHalaman } from './umum';
 
 /*
@@ -24,6 +25,11 @@ const teks = (label: string, maks: number, wajib = false) => {
 export const skemaProfilToko = z.object({
   namaToko: teks('Nama toko', 100, true),
   namaBadanUsaha: teks('Nama badan usaha', 100),
+  /** K-205/K-207: jenis usaha, slogan, dan kota dari setup awal (tampil di halaman masuk dan kop). */
+  jenisUsaha: z.enum(JENIS_USAHA, 'Jenis usaha tidak valid.'),
+  jenisUsahaLain: teks('Jenis usaha', 60),
+  sloganToko: teks('Slogan', 120),
+  kotaToko: teks('Kota/kabupaten', 80),
   alamatToko: teks('Alamat', 255),
   telpToko: teks('Telepon', 50),
   emailToko: z.union([z.literal(''), z.email('Format email tidak valid.')]),
@@ -172,6 +178,11 @@ export type InputUbahPengaturan = z.input<typeof skemaUbahPengaturan>;
 export type TampilanToko = {
   namaToko: string;
   namaBadanUsaha: string;
+  jenisUsaha: JenisUsaha;
+  sloganToko: string;
+  kotaToko: string;
+  /** K-205: cara toko melayani pembeli (menyesuaikan tur). */
+  layananToko: LayananToko[];
   /** URL logo (dilayani API), `null` bila belum ada. */
   logo: string | null;
   barisPerHalaman: number;

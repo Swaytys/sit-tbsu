@@ -1,5 +1,11 @@
 import { zValidator } from '@hono/zod-validator';
-import { skemaIsiContoh, skemaSembunyikanPanduan, skemaTandaiPenyiapan } from '@sit/shared';
+import {
+  skemaIsiContoh,
+  skemaSelesaiSetupAwal,
+  skemaSembunyikanPanduan,
+  skemaTandaiPenyiapan,
+  skemaUbahDataUsaha,
+} from '@sit/shared';
 import { Hono } from 'hono';
 import type { EnvApp } from '../../../lib/konteks';
 import { kaitValidasi } from '../../../lib/validasi';
@@ -11,6 +17,7 @@ import {
   sembunyikanPanduan,
   tandaiLangkah,
 } from './service';
+import { bacaSetupAwal, selesaiSetupAwal, ubahDataUsaha } from '../setup-awal/service';
 
 const izin = requirePermission('sistem.pengaturan.kelola');
 
@@ -48,4 +55,28 @@ export const penyiapanRoutes = new Hono<EnvApp>()
   )
   .post('/contoh/nonaktifkan', izin, async (c) =>
     c.json({ data: await nonaktifkanContoh(penggunaWajib(c), c.get('asal')) }, 200),
+  )
+  // K-205: setup awal (lanjutan setelah masuk, dan mengulang dari Pengaturan).
+  .get('/setup-awal', izin, async (c) => c.json({ data: await bacaSetupAwal() }, 200))
+  .put('/setup-awal/usaha', izin, zValidator('json', skemaUbahDataUsaha, kaitValidasi), async (c) =>
+    c.json(
+      { data: await ubahDataUsaha(c.req.valid('json'), penggunaWajib(c), c.get('asal')) },
+      200,
+    ),
+  )
+  .post(
+    '/setup-awal/selesai',
+    izin,
+    zValidator('json', skemaSelesaiSetupAwal, kaitValidasi),
+    async (c) =>
+      c.json(
+        {
+          data: await selesaiSetupAwal(
+            c.req.valid('json').dilewati,
+            penggunaWajib(c),
+            c.get('asal'),
+          ),
+        },
+        200,
+      ),
   );

@@ -18,6 +18,14 @@ export const AKSI_LOG = [
   'PENGGUNA_PULIHKAN_PASSWORD',
   'PENGGUNA_PULIHKAN_GAGAL',
   'PENGGUNA_KODE_PEMULIHAN',
+  // K-205, K-209, K-211: setup awal, reset password lewat email, pulihkan akses Owner dari komputer server.
+  'SETUP_AWAL',
+  'SETUP_AWAL_USAHA',
+  'SETUP_AWAL_SELESAI',
+  'PENGGUNA_KODE_EMAIL',
+  'PENGGUNA_RESET_EMAIL',
+  'PENGGUNA_RESET_EMAIL_GAGAL',
+  'PENGGUNA_PULIH_LOKAL',
   'PENGATURAN_UBAH',
   // K-168: contoh data panduan penyiapan.
   'PENYIAPAN_CONTOH',

@@ -5,7 +5,7 @@
 //   - setelah siap, ikon BonsaiUrip di area notifikasi Windows (system tray) dengan menu Buka / Matikan;
 //   - satu ikon saja: membuka lagi hanya membuka peramban; "Matikan BonsaiUrip" dari menu Start ikut menutup ikon.
 // Argumen: (kosong) = nyalakan + buka peramban; --latar = nyalakan tanpa peramban (saat Windows mulai);
-// --berhenti = matikan server dan database.
+// --berhenti = matikan server dan database; --pulihkan = pulihkan akses Owner (K-211) lalu nyalakan.
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -57,6 +57,13 @@ static class Program
             return k;
         }
 
+        if (Array.IndexOf(args, "--pulihkan") >= 0)
+        {
+            // Berhasil: lanjut menyalakan seperti biasa (layar pembuka, peramban, ikon).
+            int h = PulihkanOwner(node, skrip);
+            if (h != 0) return h < 0 ? 0 : h;
+        }
+
         bool baru;
         var kunci = new Mutex(true, "BonsaiUrip-Ikon", out baru);
         if (!baru)
@@ -79,6 +86,36 @@ static class Program
         penunggu.Start();
         Application.Run();
         GC.KeepAlive(kunci);
+        return 0;
+    }
+
+    /**
+     * K-211: menu Start › Pulihkan akses Owner. Hanya akun Windows pemilik folder data yang bisa menjalankannya.
+     * Owner diberi password sementara (wajib diganti saat masuk) dan kode pemulihan baru; hasil tampil sekali
+     * (Ctrl+C menyalin isi jendela pesan), berkasnya langsung dihapus.
+     */
+    static int PulihkanOwner(string node, string skrip)
+    {
+        var yakin = MessageBox.Show(
+            "Pulihkan akses Owner?\n\nGunakan ini bila password Owner terlupa dan kode pemulihan juga hilang.\n\n" +
+            "Akun Owner akan diberi password sementara (wajib diganti saat masuk) dan kode pemulihan baru. " +
+            "Semua sesi Owner yang sedang masuk akan keluar. Data toko tidak berubah.",
+            "Pulihkan akses Owner", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+        if (yakin != DialogResult.Yes) return -1;
+        string berkas = Path.Combine(data, "pulihkan-owner.txt");
+        try { File.Delete(berkas); } catch { }
+        int kode = Jalankan(node, skrip, " --pulihkan-owner", null);
+        if (kode != 0 || !File.Exists(berkas))
+        {
+            string galat = Path.Combine(data, "galat-peluncur.txt");
+            MessageBox.Show("Pemulihan gagal:\n\n" + (File.Exists(galat) ? File.ReadAllText(galat) : "Sebab tidak diketahui."),
+                "Pulihkan akses Owner", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return 1;
+        }
+        string isi = File.ReadAllText(berkas);
+        try { File.Delete(berkas); } catch { }
+        MessageBox.Show(isi + "\n\n(Tekan Ctrl+C untuk menyalin isi jendela ini.)\nSetelah OK, BonsaiUrip dibuka.",
+            "Akses Owner dipulihkan", MessageBoxButtons.OK, MessageBoxIcon.Information);
         return 0;
     }
 
@@ -200,7 +237,7 @@ class LayarPembuka : Form
         });
         Controls.Add(new Label
         {
-            Text = "UD. Sumber Urip · Peterongan, Jombang",
+            Text = "Toko rapi, stok terkendali, untung terlihat.",
             ForeColor = Color.FromArgb(200, 185, 160),
             Font = new Font("Segoe UI", 9.5f),
             AutoSize = false,

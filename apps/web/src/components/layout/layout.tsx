@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useMatches } from 'react-router';
+import { PenyediaTur } from '@/features/tur/penyedia-tur';
 import { PencatatInteraksi } from './pencatat-interaksi';
 import { PeringatanShift } from './peringatan-shift';
 import { Sidebar } from './sidebar';
@@ -52,19 +53,21 @@ export function Layout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 print:block print:h-auto print:overflow-visible print:bg-white">
-      <Sidebar terbuka={sidebarTerbuka} />
-      <main className="flex min-w-0 flex-1 flex-col">
-        <div className="print:hidden">
-          <Topbar judul={judul} onToggleSidebar={toggleSidebar} />
-        </div>
-        <PeringatanShift />
-        <PencatatInteraksi />
-        {/* relative: elemen absolut (mis. input berkas sr-only) ikut wadah ini, tidak memanjangkan dokumen. */}
-        <div className="relative flex-1 overflow-auto print:overflow-visible">
-          <Outlet />
-        </div>
-      </main>
-    </div>
+    <PenyediaTur>
+      <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 print:block print:h-auto print:overflow-visible print:bg-white">
+        <Sidebar terbuka={sidebarTerbuka} />
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="print:hidden">
+            <Topbar judul={judul} onToggleSidebar={toggleSidebar} />
+          </div>
+          <PeringatanShift />
+          <PencatatInteraksi />
+          {/* relative: elemen absolut (mis. input berkas sr-only) ikut wadah ini, tidak memanjangkan dokumen. */}
+          <div className="relative flex-1 overflow-auto print:overflow-visible">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </PenyediaTur>
   );
 }

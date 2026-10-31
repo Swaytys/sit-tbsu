@@ -262,7 +262,38 @@ semua (membuka) | komputer Windows toko
 - Bukti: `[KODE: apps/api/src/peluncur.ts]`, `[KODE: installer/peluncur/BonsaiUrip.cs]`,
   `[KODE: installer/bonsaiurip.iss]`, `[KODE: installer/buat-installer.ps1]`, `[KODE: installer/panduan/mulai-pakai.html]`;
   `[DOK: docs/panduan/pasang-laptop.md, K-188, K-191, K-204]`; uji pemilik U160–U162. Status: BERFUNGSI (laptop);
-  tanda tangan digital belum (perlu sertifikat), akses dari HP/tablet menyusul.
+  tanda tangan digital belum (perlu sertifikat), akses dari HP/tablet menyusul. K-211: pilihan *Mulai dari nol* (data
+  lama dipindah, tidak dihapus) dan menu Start *Pulihkan akses Owner*.
+
+**F56. Setup awal (wizard pemakaian pertama)** | /mulai | publik selama belum ada pengguna; Owner (mengulang) | desktop
+- Fungsi: 12 langkah seperti aplikasi umum: sambutan, data usaha (jenis, nama, badan usaha, slogan, alamat, kota,
+  telepon, email), cara berjualan (langsung/order/antar, jam buka), akun Owner (nama, username, email, No. HP,
+  password), kode pemulihan, lalu langkah yang boleh dilewati: logo & struk, rekening, email toko, cadangan, akun
+  karyawan, data awal; ringkasan; lalu tur. Langkah inti dikirim sekali dalam satu transaksi; langkah lanjutan
+  memakai layar Pengaturan yang sama. Langkah yang dilewati diingatkan di Dashboard; Owner bisa mengulang setup.
+  Identitas usaha tampil di halaman masuk (aplikasi umum, tanpa nama toko bawaan, K-207).
+- Input → Proses → Output: isian usaha + akun → validasi Zod bersama → Owner + konfigurasi tersimpan, langsung
+  masuk → kode pemulihan → langkah lanjutan → `setup_awal.selesai`.
+- Tabel: `pengguna`, `konfigurasi` (`jenis_usaha`, `slogan_toko`, `kota_toko`, `layanan_toko`, `setup_awal`).
+- Bukti: `[KODE: api/modules/sistem/setup-awal/service.ts]`, `[KODE: api/modules/auth/pemulihan.ts buatSetupAwal]`,
+  `[KODE: web/features/setup-awal/]`; `[DOK: K-205, K-207, K-211]`; tes `setup-awal.test.ts`, e2e `akun.spec.ts`.
+  Status: BERFUNGSI.
+
+**F57. Tur fitur** | semua halaman; menu nama › Tur & panduan | semua peran (sesuai izin) | desktop
+- Fungsi: 14 tur (pengenalan, dashboard, kasir, order, pengantaran, pengiriman, shift, barang, pelanggan & pemasok,
+  penerimaan, stok, retur & void, laporan, pengaturan). Sorotan pada bagian layar + kartu penjelasan; keyboard
+  (→/Enter, ←, Esc). Tur pengenalan mulai sendiri saat pertama masuk; tur fitur ditawarkan saat halamannya dibuka
+  pertama kali (Mulai / Nanti / Jangan tawarkan lagi); status per pengguna di server; bisa diulang.
+- Tabel: kolom `pengguna.tur_status` (migrasi 0041).
+- Bukti: `[KODE: web/features/tur/]`, `[KODE: api/modules/auth/tur.ts]`; `[DOK: K-206]`; tes `setup-awal.test.ts`.
+  Status: BERFUNGSI.
+
+**F58. Lupa password lewat email** | Halaman masuk › Lupa password? | publik | semua
+- Fungsi: kode 6 angka ke email pengguna (berlaku 10 menit, sekali pakai, gugur setelah 5 kali salah, jeda kirim 1
+  menit); jawaban sama untuk username tak dikenal; password baru mencabut semua sesi. Kode pemulihan kertas tetap.
+- Tabel: `kode_reset_password` (migrasi 0041).
+- Bukti: `[KODE: api/modules/auth/reset-email.ts]`, `[KODE: web/features/auth/halaman-akun-pertama.tsx]`;
+  `[DOK: K-209]`; tes `setup-awal.test.ts`. Status: BERFUNGSI (butuh internet dan SMTP toko).
 
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
@@ -1344,6 +1375,8 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — Info cepat nomor dokumen (K-181) di linimasa kas, dashboard, riwayat, retur, papan.
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
+- 2026-10-31 — F56 setup awal, F57 tur fitur, F58 lupa password lewat email; F55 Mulai dari nol dan Pulihkan akses
+  Owner (K-205–K-211). Buku SOP di `docs/panduan/buku-sop.md` (K-208).
 - 2026-10-30 — F55 pemasang Windows Setup v3: layar pembuka, ikon area notifikasi, lokasi pasang, panduan mulai pakai, restic bawaan (K-204); F8 status cadangan lokal.
 - 2026-10-28 — F54 panduan penyiapan pertama dan contoh data (K-168).
 - 2026-10-26 — F53 akun pertama dan lupa password (K-191).

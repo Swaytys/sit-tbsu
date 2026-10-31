@@ -1,17 +1,24 @@
-# Manual Pengguna BonsaiUrip — UD. Sumber Urip
+# Buku Panduan BonsaiUrip (Manual Pengguna)
 
 Untuk: pemilik, admin, kasir, dan staf penjualan. Baca bagian peran Anda; menu yang tidak tampil berarti memang
 bukan bagian tugas Anda. Semua layar berbahasa Indonesia; angka uang dalam rupiah.
 
 **Masuk:** buka alamat aplikasi (di komputer kasir: ikon *Buka Kasir*), isi username dan password. Login pertama
-wajib mengganti password. Sesi berakhir sendiri setelah 60 menit tidak dipakai. Lupa password → minta Owner
-mereset di *Data Pengguna*, atau (bila punya kode pemulihan) klik **Lupa password?** di halaman masuk.
+wajib mengganti password. Sesi berakhir sendiri setelah 60 menit tidak dipakai. Lupa password → klik **Lupa password?** di
+halaman masuk (kode ke email, atau kode pemulihan), atau minta Owner/Admin mereset di *Data Pengguna*.
 
 **Menyalakan dan mematikan (komputer tempat BonsaiUrip terpasang):** klik ikon **BonsaiUrip** di desktop; layar
 pembuka cokelat tampil, lalu peramban terbuka. Selama menyala ada ikon BonsaiUrip di pojok kanan bawah layar (dekat
 jam; klik panah **^** bila tersembunyi). Menutup peramban tidak mematikan aplikasi; klik dua kali ikon itu untuk
 membuka lagi. Untuk mematikan: tutup shift, klik kanan ikon › **Matikan BonsaiUrip** › **Ya**. Panduan pemakaian
 pertama: menu Start › BonsaiUrip › *Panduan mulai pakai*.
+
+**Pemakaian pertama (setup awal dan tur):** saat BonsaiUrip pertama kali dibuka, Owner mengisi **Setup awal**
+langkah demi langkah: data usaha, cara berjualan, akun Owner, kode pemulihan, lalu (boleh dilewati) logo & struk,
+rekening, email toko, cadangan, akun karyawan, dan data awal. Setelah itu **tur pengenalan** menyorot bagian-bagian
+layar; saat sebuah menu dibuka pertama kali, tur fitur ditawarkan di pojok kanan bawah. Semua tur bisa diulang dari
+menu nama Anda › **Tur & panduan**; Owner juga bisa **Ulangi setup awal** dari sana. Prosedur baku penggunaan ada di
+**Buku SOP** (`buku-sop.md`).
 
 **Lonceng (kanan atas):** pengingat yang perlu ditindaklanjuti — order terlalu lama menunggu, stok habis/kritis,
 retur/void menunggu persetujuan, piutang jatuh tempo, shift yang perlu ditutup, uang non-tunai yang belum dicek

@@ -172,10 +172,13 @@ app.onError(errorHandler);
 export const RUTE_PUBLIK: readonly string[] = [
   'GET /api/health',
   'POST /api/auth/login',
-  // K-191: akun pertama (hanya selama belum ada pengguna) dan lupa password dengan kode pemulihan.
+  // K-191/K-205: setup awal (hanya selama belum ada pengguna) dan lupa password dengan kode pemulihan.
   'GET /api/auth/penyiapan',
-  'POST /api/auth/akun-pertama',
+  'POST /api/auth/setup-awal',
   'POST /api/auth/pulihkan',
+  // K-209: lupa password dengan kode verifikasi email.
+  'POST /api/auth/lupa-email',
+  'POST /api/auth/lupa-email/reset',
   ...(env.NODE_ENV === 'development' ? ['POST /api/auth/masuk-cepat'] : []),
 ];
 

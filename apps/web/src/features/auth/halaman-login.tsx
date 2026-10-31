@@ -30,6 +30,7 @@ export function HalamanLogin() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const tujuan = tujuanAman(params.get('kembali'));
+  const toko = penyiapan.data ?? { namaToko: '', sloganToko: '', kotaToko: '' };
 
   const form = useForm<InputLogin>({
     resolver: zodResolver(skemaLogin),
@@ -40,7 +41,7 @@ export function HalamanLogin() {
     return <Navigate to={saya.data.wajibGantiPassword ? '/ganti-password' : tujuan} replace />;
   }
   // K-191: belum ada pengguna sama sekali (pemakaian pertama) → buat akun Owner dulu.
-  if (penyiapan.data?.perluAkunPertama) return <Navigate to="/akun-pertama" replace />;
+  if (penyiapan.data?.perluAkunPertama) return <Navigate to="/mulai" replace />;
 
   async function kirim(nilai: InputLogin) {
     try {
@@ -59,16 +60,21 @@ export function HalamanLogin() {
             <div className="mb-6 flex size-14 items-center justify-center rounded-xl bg-white/20">
               <Store className="size-7 text-white" />
             </div>
-            <h1 className="mb-1 text-3xl leading-tight font-bold">BonsaiUrip</h1>
-            <p className="mb-6 text-sm font-semibold tracking-wider text-blue-200 uppercase">
-              UD. Sumber Urip
+            {/* K-207: identitas usaha dari setup awal; tanpa nama toko tertulis mati di kode. */}
+            <h1 className="mb-1 text-3xl leading-tight font-bold">
+              {toko.namaToko || 'BonsaiUrip'}
+            </h1>
+            <p className="mb-6 text-sm leading-relaxed text-blue-100 italic">
+              {toko.sloganToko || 'Toko rapi, stok terkendali, untung terlihat.'}
             </p>
             <p className="text-sm leading-relaxed text-blue-100">
-              Sistem informasi penjualan dan persediaan toko bahan bangunan — order, kasir,
-              pengantaran, stok, dan laporan dalam satu sistem.
+              Penjualan, persediaan, dan kas toko dalam satu aplikasi: kasir, order, pengantaran,
+              stok, dan laporan.
             </p>
           </div>
-          <p className="text-xs text-blue-300">Peterongan, Jombang</p>
+          <p className="text-xs text-blue-300">
+            {toko.kotaToko ? `${toko.kotaToko} · ` : ''}BonsaiUrip
+          </p>
         </div>
 
         <div className="flex flex-col justify-center bg-white p-8">
@@ -76,10 +82,10 @@ export function HalamanLogin() {
             <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-blue-600">
               <Store className="size-6 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900">BonsaiUrip</h1>
+            <h1 className="text-xl font-bold text-slate-900">{toko.namaToko || 'BonsaiUrip'}</h1>
           </div>
 
-          <img src="/logo-bonsaiurip.svg" alt="Sumber Urip Bonsai" className="mb-4 h-14" />
+          <img src="/logo-bonsaiurip.svg" alt="BonsaiUrip" className="mb-4 h-14" />
           <h2 className="mb-1 text-xl font-semibold text-slate-800">Masuk ke Sistem</h2>
           <p className="mb-6 text-sm text-slate-500">Masukkan username dan password Anda.</p>
 

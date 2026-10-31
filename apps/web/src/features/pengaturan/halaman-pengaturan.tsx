@@ -1,4 +1,4 @@
-import { ListChecks } from 'lucide-react';
+import { Compass, ListChecks } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { usePengguna } from '@/api/auth';
 import { pesanGalat } from '@/api/client';
@@ -49,11 +49,18 @@ export function HalamanPengaturan() {
             log.
           </p>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/penyiapan">
-            <ListChecks /> Panduan penyiapan
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/tur">
+              <Compass /> Tur & panduan
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/penyiapan">
+              <ListChecks /> Panduan penyiapan
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {pengaturan.isPending ? (

@@ -858,3 +858,15 @@ pengantaran (centang sebelum berangkat).
   halaman lokasi aktif, pesan Indonesia, `UpdateReadyMemo` menyebut folder data, pintasan panduan.
   `buat-installer.ps1` mengunduh restic 0.17.3 windows_amd64 + SHA256SUMS ke `installer/alat-cache` (diabaikan git),
   memeriksa hash, mengekstrak ke `paket/alat/restic.exe`, menyalin `installer/panduan`.
+- 2026-10-31 — K-205–K-211 (versi 1.16.0, migrasi 0041): rute publik `POST /api/auth/setup-awal` (menggantikan
+  `/akun-pertama`) membuat Owner + konfigurasi usaha dalam satu transaksi dan kunci advisory; `setup_awal` JSON di
+  konfigurasi (kunci tidak ada = instalasi lama, dianggap selesai); `GET/PUT/POST /api/penyiapan/setup-awal*`.
+  Web `/mulai` (wizard; mode "baru" dikunci setelah akun dibuat agar kode pemulihan tidak hilang saat `saya` terisi);
+  Dashboard mengarahkan Owner ke `/mulai` bila setup belum selesai. Tur: `features/tur` (lapisan sorotan dengan
+  box-shadow, sasaran CSS atau teks tombol, posisi kartu bawah/atas/kanan/kiri), status di `pengguna.tur_status`,
+  `GET/POST /api/auth/tur`, `/tur/ulang`; tur yang mulai sendiri diturunkan dari keadaan (bukan setState di effect).
+  K-209 `reset-email.ts` + tabel `kode_reset_password`, `emailTokoSiap()`. K-211 `pulihkan-owner.ts` (entri tsdown),
+  `peluncur.js --pulihkan-owner` menulis berkas sementara yang dibaca dan dihapus `BonsaiUrip.exe --pulihkan`;
+  Inno: halaman *Data toko yang sudah ada* (`RenameFile` folder data ke `-lama-<tanggal>` di `ssInstall`).
+  K-210 `pintasan/*.cmd`; `buat-installer.ps1` menjalankan pnpm lewat `cmd /c … 2>&1` karena PowerShell 5.1 menjadikan
+  stderr pnpm galat saat keluaran dicatat. Logo SVG memakai merek BonsaiUrip (K-207).
