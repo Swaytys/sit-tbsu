@@ -48,6 +48,8 @@ import { arsipRoutes } from './modules/sistem/arsip/routes';
 import { pemeriksaanDataRoutes } from './modules/sistem/pemeriksaan-data/routes';
 import { cadanganRoutes } from './modules/sistem/cadangan/routes';
 import { pemulihanRoutes } from './modules/sistem/pemulihan/routes';
+import { aksesRoutes } from './modules/sistem/akses/routes';
+import { originAksesPerangkat } from './modules/sistem/akses/tailscale';
 import { dataRoutes, dataSetupRoutes, jagaGantiDataRute } from './modules/sistem/data/routes';
 import { cariRoutes } from './modules/sistem/cari/routes';
 import { hasilPenjualanRoutes } from './modules/hasil-penjualan/routes';
@@ -113,6 +115,7 @@ const rute = new Hono<EnvApp>()
   .route('/cadangan', cadanganRoutes)
   .route('/data', dataRoutes)
   .route('/pemulihan', pemulihanRoutes)
+  .route('/akses-perangkat', aksesRoutes)
   .route('/arsip', arsipRoutes)
   .route('/pemeriksaan-data', pemeriksaanDataRoutes)
   .route('/cari', cariRoutes)
@@ -147,7 +150,9 @@ app.use(
   '/api/*',
   csrf({
     origin: (origin, c) =>
-      origin === new URL(c.req.url).origin || env.ORIGIN_TAMBAHAN.includes(origin),
+      origin === new URL(c.req.url).origin ||
+      env.ORIGIN_TAMBAHAN.includes(origin) ||
+      originAksesPerangkat().has(origin),
   }),
 );
 // Batas ukuran body JSON 1 MB (K-083); unggahan berkas punya batas sendiri di rutenya.

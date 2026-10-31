@@ -150,3 +150,25 @@ export function useSelesaiPemulihan() {
     onSuccess: () => qc.setQueryData(['pemulihan'], null),
   });
 }
+
+// --- K-217: akses HP/tablet lewat Tailscale ---
+
+export function useAksesPerangkat() {
+  return useQuery({
+    queryKey: ['akses-perangkat'],
+    queryFn: async () => ambilData(await api['akses-perangkat'].$get()),
+  });
+}
+
+export function usePeriksaAkses() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (nyalakan: boolean) =>
+      ambilData(
+        nyalakan
+          ? await api['akses-perangkat'].aktifkan.$post()
+          : await api['akses-perangkat'].periksa.$post(),
+      ),
+    onSuccess: (data) => qc.setQueryData(['akses-perangkat'], data),
+  });
+}

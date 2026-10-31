@@ -51,6 +51,9 @@ catalog:
   sonner: 2.0.8
   # Seret-lepas papan Pengiriman (K-160): mendukung keyboard dan pembaca layar.
   '@dnd-kit/core': 6.3.1
+  # Kode QR alamat akses HP/tablet (K-217).
+  qrcode: 1.5.4
+  '@types/qrcode': 1.5.6
   # Kualitas kode
   eslint: 10.11.0
   '@eslint/js': 10.0.1

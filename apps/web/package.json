@@ -21,6 +21,7 @@
     "date-fns": "catalog:",
     "hono": "catalog:",
     "lucide-react": "catalog:",
+    "qrcode": "catalog:",
     "radix-ui": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@playwright/test": "catalog:",
     "@sit/api": "workspace:*",
+    "@types/qrcode": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",

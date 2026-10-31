@@ -603,7 +603,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-116 | Hitung kas per pecahan, modal berlanjut, toleransi receh, hitungan pertama terkunci, tinjauan shift, bantuan mencari selisih. | Dirinci oleh K-121 (selesai 18 Okt) |
 | K-117 | Order ditunda dengan tanggal rencana (tahan stok bisa dipilih); tutup shift dengan order yang belum selesai. | Butir 1–2 diganti K-122 |
 | K-118 | Laporan fitur diperbarui tiap commit; riwayat teknis `docs/11`. | Berlaku |
-| K-119 | Tes layar memakai database sendiri. | Berlaku (rencana) |
+| K-119 | Tes layar memakai database sendiri. | Berlaku (tahap A selesai 31 Okt: Tailscale serve, PWA, Pengaturan › Akses HP/tablet, menu laci; layar prioritas HP menyusul) |
 
 ### 6.19 Tinjauan pemilik 18 Oktober — `2026-10-18-tinjauan-pemilik.md`
 
@@ -641,7 +641,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-142 | Retur/void menunggu tampil saat tutup shift; refund tercatat di shift saat disetujui. | Berlaku (selesai 18 Okt) |
 | K-143 | F9 kasir: pilihan A/S/D dipertahankan, label tombol diperjelas. | Berlaku (selesai 24 Okt) |
 | K-144 | Diskon manual dipertahankan, terbatas % per peran; di atas batas dengan kode atasan. | Diganti K-146 |
-| K-145 | Pengaturan hotkey per pengguna setelah v1.0.0 lain selesai. | Berlaku (rencana) |
+| K-145 | Pengaturan hotkey per pengguna setelah v1.0.0 lain selesai. | Berlaku (tahap A selesai 31 Okt: Tailscale serve, PWA, Pengaturan › Akses HP/tablet, menu laci; layar prioritas HP menyusul) |
 
 ---
 
@@ -748,6 +748,14 @@ keputusan lama masih tertulis di berkasnya.
 | K-214 | Wizard Setup Windows dwibahasa Indonesia/English. | Berlaku (selesai 31 Okt, versi 1.17.0) |
 | K-215 | Aplikasi tidak bisa dimatikan (tray, menu Start, Setup, uninstall) selama shift terbuka; Windows ditahan saat dimatikan. | Berlaku (selesai 31 Okt, versi 1.17.0) |
 | K-216 | Menyala otomatis setelah mati mendadak; bilah pemulihan dengan keadaan shift dan langkah pemeriksaan. | Berlaku (selesai 31 Okt, versi 1.17.0) |
+
+---
+
+### 6.26 Versi HP dan tablet — `2026-10-31-hp-tablet.md`
+
+| K | Keputusan | Status |
+|---|---|---|
+| K-217 | HP/tablet (staf, Owner, kasir, admin/gudang) lewat Tailscale HTTPS (di toko dan dari luar), PWA, tampilan responsif. | Berlaku (tahap A selesai 31 Okt: Tailscale serve, PWA, Pengaturan › Akses HP/tablet, menu laci; layar prioritas HP menyusul) |
 
 ## 7. Yang dijadwalkan sesudah ini
 

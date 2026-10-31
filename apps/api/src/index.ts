@@ -9,6 +9,7 @@ import { env } from './env';
 import { logger } from './lib/logger';
 import { ingatkanShiftPerluDitutup } from './modules/kas/shift/service';
 import { jalankanJobOrder } from './modules/penjualan/order/service';
+import { nyalakanAksesPerangkat } from './modules/sistem/akses/tailscale';
 import { cekJadwalCadangan } from './modules/sistem/cadangan/service';
 
 const pfx = env.HTTPS_PFX;
@@ -32,6 +33,9 @@ const server =
     : serve({ fetch: app.fetch, port: env.PORT }, (info) =>
         logger.info(`Server berjalan di ${skema}://localhost:${info.port}`),
       );
+
+// K-217: akses HP/tablet lewat Tailscale (pemasangan desktop).
+void nyalakanAksesPerangkat();
 
 if (env.NODE_ENV === 'production' && !https) {
   logger.warn(

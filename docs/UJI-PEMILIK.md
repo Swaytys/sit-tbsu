@@ -115,6 +115,9 @@ shift terbuka", tutup dulu shift-shift itu di halaman Shift, lalu ulangi.
 | U180 | Tidak bisa dimatikan saat shift terbuka | Buka shift. Klik kanan ikon BonsaiUrip › Matikan › Ya; menu Start › Matikan BonsaiUrip; jalankan Setup baru; Setelan Windows › Aplikasi › BonsaiUrip › Hapus | Semua ditolak dengan pesan "Shift … masih terbuka. Tutup shift dulu…"; aplikasi tetap menyala. Setelah shift ditutup, Matikan berhasil | Belum | K-215 |
 | U181 | Windows dimatikan saat shift terbuka | Shift terbuka → Start › Shut down | Windows menampilkan BonsaiUrip menahan dimatikan dengan alasan "Shift BonsaiUrip masih terbuka…"; pilih Batal, tutup shift, ulangi | Belum | K-215 |
 | U182 | Mati mendadak | Shift terbuka, jual 1 barang → paksa mati (tahan tombol power atau cabut listrik laptop tanpa baterai) → nyalakan lagi | BonsaiUrip menyala sendiri (bila pilihan nyala otomatis dicentang) dan membuka peramban; bilah kuning *BonsaiUrip sebelumnya mati mendadak* berisi keadaan shift dan langkah; penjualan tadi ada di riwayat; **Sudah saya periksa** menghilangkan bilah | Belum | K-216 |
+| U183 | Siapkan akses HP/tablet | Ikuti *Pengaturan › Akses HP/tablet* bagian A (pasang Tailscale di laptop, login, aktifkan MagicDNS + HTTPS) → **Periksa lagi** → **Aktifkan** | Empat tanda hijau; alamat https://…ts.net dan kode QR tampil | Belum | K-217 |
+| U184 | Pasang di HP | Bagian B: Tailscale di HP (akun sama) → pindai QR → masuk → *Tambahkan ke layar utama* | Ikon BonsaiUrip di layar utama; dibuka layar penuh; masuk dengan akun sendiri; berfungsi di WiFi toko dan memakai data seluler | Belum | K-217 |
+| U185 | Tampilan HP/tablet | Di HP: buka menu ☰ (laci), Dashboard, Data Barang, notifikasi; di tablet: Order Penjualan | Menu samping muncul sebagai laci dan tertutup sendiri setelah memilih; tidak ada bagian terpotong ke kanan; tabel bisa digeser | Belum | K-217 tahap A; layar prioritas HP menyusul |
 | U102 | No. HP format baru | Tambah pelanggan: ketik `0812 3456 7890` di kotak nomor | 0 dibuang dengan pemberitahuan, tersimpan `+6281234567890`; nomor 16 angka ditolak | Belum | Kode negara bisa diganti |
 | U103 | Cegah pelanggan dobel | Tambah pelanggan "Toko Sumber Jaya"; lalu tambah "sumber jaya" (No. HP lain); lalu "Pak Andi" dengan No. HP sama | Dua yang terakhir: kotak kuning "Pelanggan yang mirip sudah ada"; klik **tetap simpan** baru tersimpan | Belum | Sama untuk pemasok dan barang (nama) |
 | U104 | Pemeriksaan data | *Pengaturan › Pemeriksaan data* → **Rapikan No. HP** | Daftar kemungkinan dobel dan format salah; setelah dirapikan, No. HP lama jadi +62… | Belum | |
@@ -276,6 +279,7 @@ berubah langkahnya setelah satu shift untuk toko (K-132); tunggu versi baru sebe
 - 2026-10-24 — U108–U110 cari sebagian, label keterjualan, panel rincian (K-123).
 - 2026-10-24 — U111–U113 kepekatan, logo struk, kertas dan cetak otomatis invoice/surat jalan (K-124).
 - 2026-10-25 — U121 perbaikan kecil sebelum deploy, U122 surat jalan 2 rangkap.
+- 2026-10-31 — U183–U185 akses HP/tablet lewat Tailscale, PWA, tampilan responsif tahap A (K-217).
 - 2026-10-31 — U172–U182 perbaikan setup, Pengaturan › Data, pindah komputer, installer dua bahasa, shift menahan matikan, mati mendadak (K-212–K-216).
 - 2026-10-31 — U163–U171 setup awal, tur, lupa password email, pulihkan Owner, pintasan Buat-Setup (K-205–K-211).
 - 2026-10-30 — U160–U162 Setup v3: layar pembuka, ikon area notifikasi, panduan mulai pakai, cadangan bawaan (K-204).
