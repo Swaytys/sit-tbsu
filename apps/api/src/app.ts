@@ -47,6 +47,8 @@ import { stokRoutes } from './modules/persediaan/stok/routes';
 import { arsipRoutes } from './modules/sistem/arsip/routes';
 import { pemeriksaanDataRoutes } from './modules/sistem/pemeriksaan-data/routes';
 import { cadanganRoutes } from './modules/sistem/cadangan/routes';
+import { pemulihanRoutes } from './modules/sistem/pemulihan/routes';
+import { dataRoutes, dataSetupRoutes, jagaGantiDataRute } from './modules/sistem/data/routes';
 import { cariRoutes } from './modules/sistem/cari/routes';
 import { hasilPenjualanRoutes } from './modules/hasil-penjualan/routes';
 import { orderPembelianRoutes } from './modules/persediaan/order-pembelian/routes';
@@ -64,6 +66,7 @@ import { saluranRoutes } from './modules/sistem/saluran/routes';
 const rute = new Hono<EnvApp>()
   .route('/health', healthRoutes)
   .route('/auth', authRoutes)
+  .route('/auth', dataSetupRoutes)
   .route('/satuan', satuanRoutes)
   .route('/kategori', kategoriRoutes)
   .route('/merk', merkRoutes)
@@ -108,6 +111,8 @@ const rute = new Hono<EnvApp>()
   .route('/dashboard', dashboardRoutes)
   .route('/laporan', laporanRoutes)
   .route('/cadangan', cadanganRoutes)
+  .route('/data', dataRoutes)
+  .route('/pemulihan', pemulihanRoutes)
   .route('/arsip', arsipRoutes)
   .route('/pemeriksaan-data', pemeriksaanDataRoutes)
   .route('/cari', cariRoutes)
@@ -154,6 +159,8 @@ const batasJson = bodyLimit({
 const batasJsonSaja: MiddlewareHandler<EnvApp> = async (c, next) =>
   (c.req.header('content-type') ?? '').includes('json') ? batasJson(c, next) : next();
 app.use('/api/*', batasJsonSaja);
+// K-213: selama data aktif diganti, permintaan lain dijawab 503.
+app.use('/api/*', jagaGantiDataRute);
 app.use('/api/*', muatSesi);
 // K-164: kiriman ulang dengan kunci idempoten yang sama dijawab dari hasil pertama.
 app.use('/api/*', idempoten);
@@ -179,6 +186,10 @@ export const RUTE_PUBLIK: readonly string[] = [
   // K-209: lupa password dengan kode verifikasi email.
   'POST /api/auth/lupa-email',
   'POST /api/auth/lupa-email/reset',
+  // K-213: setup awal memakai data yang sudah ada (hanya selama belum ada pengguna).
+  'GET /api/auth/setup-data',
+  'POST /api/auth/setup-data/impor',
+  'POST /api/auth/setup-data/:id/pakai',
   ...(env.NODE_ENV === 'development' ? ['POST /api/auth/masuk-cepat'] : []),
 ];
 

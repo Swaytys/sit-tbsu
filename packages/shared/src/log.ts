@@ -26,6 +26,14 @@ export const AKSI_LOG = [
   'PENGGUNA_RESET_EMAIL',
   'PENGGUNA_RESET_EMAIL_GAGAL',
   'PENGGUNA_PULIH_LOKAL',
+  // K-213: kelola data aplikasi.
+  'DATA_SALINAN',
+  'DATA_GANTI',
+  'DATA_HAPUS',
+  'DATA_EKSPOR',
+  'DATA_IMPOR',
+  // K-216: pemeriksaan setelah aplikasi mati mendadak.
+  'SISTEM_PEMULIHAN',
   'PENGATURAN_UBAH',
   // K-168: contoh data panduan penyiapan.
   'PENYIAPAN_CONTOH',

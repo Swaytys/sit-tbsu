@@ -712,6 +712,17 @@ Semua tugas admin, ditambah:
 - **Dashboard**: penjualan hari ini vs kemarin, grafik 7 hari, antrean, pengiriman aktif, peringatan stok.
 - Dari luar toko: buka alamat Tailscale di HP (panduan server bagian 6).
 
+### Owner: Pengaturan › Data (kelola data aplikasi)
+
+- **Data aktif**: data yang sedang dipakai (toko, rentang transaksi, pengguna, ukuran).
+- **Simpan salinan ke Pustaka** sebelum mencoba hal besar; **Pakai data ini** mengganti data aktif (password
+  diminta; semua pengguna masuk lagi dengan akun dari data itu). Data aktif otomatis disimpan sebagai **pengaman**
+  sehingga bisa dikembalikan.
+- **Ekspor untuk pindah perangkat** membuat berkas `.bonsai` bersandi; **Impor berkas .bonsai** memasukkannya ke
+  Pustaka. Di komputer baru, setup awal › **Lanjutkan data yang sudah ada**.
+- **Ambil dari cadangan harian** menyalin cadangan tanggal tertentu ke Pustaka.
+- Data yang tidak dipakai: ikon tempat sampah (password). Pengaman otomatis tidak bisa dihapus; hanya 3 terbaru.
+
 ## Tips umum
 
 - **Cari apa saja**: tekan **Ctrl+K** (atau klik kotak *Cari* di atas). Ketik nama halaman, barang, pelanggan,

@@ -6,6 +6,18 @@ export async function ping(): Promise<void> {
   await db.execute(sql`select 1`);
 }
 
+/** K-215: ada shift yang belum ditutup (dipakai ikon BonsaiUrip untuk menahan Windows dimatikan). */
+export async function adaShiftTerbuka(): Promise<boolean> {
+  try {
+    const r = await db.execute<{ n: string }>(
+      sql`select count(*) n from shift_kasir where status <> 'TUTUP'`,
+    );
+    return Number(r.rows[0]?.n ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** K-166: jumlah migrasi yang sudah diterapkan ke database (tabel riwayat drizzle); `null` bila belum ada. */
 export async function jumlahMigrasiTerpasang(): Promise<number | null> {
   try {

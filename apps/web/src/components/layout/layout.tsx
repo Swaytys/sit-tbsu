@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useMatches } from 'react-router';
+import { BilahKembaliSetup } from '@/features/setup-awal/bilah-kembali-setup';
+import { BilahPemulihan } from '@/features/shift/bilah-pemulihan';
 import { PenyediaTur } from '@/features/tur/penyedia-tur';
 import { PencatatInteraksi } from './pencatat-interaksi';
 import { PeringatanShift } from './peringatan-shift';
@@ -60,6 +62,8 @@ export function Layout() {
           <div className="print:hidden">
             <Topbar judul={judul} onToggleSidebar={toggleSidebar} />
           </div>
+          <BilahPemulihan />
+          <BilahKembaliSetup />
           <PeringatanShift />
           <PencatatInteraksi />
           {/* relative: elemen absolut (mis. input berkas sr-only) ikut wadah ini, tidak memanjangkan dokumen. */}

@@ -4,11 +4,24 @@
  * pengguna (bukan istilah teknis); rincian teknis tetap di docs/11.
  */
 
-export const VERSI_APLIKASI = '1.16.0';
+export const VERSI_APLIKASI = '1.17.0';
 
 export type CatatanRilis = { versi: string; tanggal: string; isi: string[] };
 
 export const CATATAN_RILIS: CatatanRilis[] = [
+  {
+    versi: '1.17.0',
+    tanggal: '2026-10-31',
+    isi: [
+      'Pengaturan › Data: Pustaka data (data lama, salinan, impor, dari cadangan harian), pakai data lain dengan pengaman otomatis, hapus, ekspor/impor berkas .bonsai untuk pindah komputer.',
+      'Setup awal: pilihan Lanjutkan data yang sudah ada (dari komputer lain atau Pustaka).',
+      'Setup Windows Mulai dari nol kini menyimpan data lama ke Pustaka; folder data lama versi sebelumnya dipindah otomatis.',
+      'BonsaiUrip tidak bisa dimatikan, diperbarui, atau dihapus selama shift masih terbuka; Windows ditahan saat dimatikan.',
+      'Setelah listrik/komputer mati mendadak: aplikasi menyala sendiri dan menampilkan keadaan shift serta langkah pemeriksaan.',
+      'Perbaikan setup awal: tombol di dalam langkah tidak lagi memindahkan langkah; bilah Kembali ke setup awal.',
+      'Wizard Setup Windows dalam Bahasa Indonesia atau English.',
+    ],
+  },
   {
     versi: '1.16.0',
     tanggal: '2026-10-31',

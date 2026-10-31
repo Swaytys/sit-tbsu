@@ -43,6 +43,8 @@ import { bolehAkses } from '@/lib/menu';
 import { cn } from '@/lib/utils';
 import { FormOperasional, FormOwner, FormUsaha } from './form-langkah';
 import { galatDari, type Galat } from './galat';
+import { ingatLangkahSetup } from './ingat-langkah';
+import { LanjutkanData } from './lanjutkan-data';
 
 /*
  * K-205: setup awal pemakaian pertama, seperti aplikasi umum: form langkah demi langkah. Empat langkah pertama
@@ -85,6 +87,9 @@ const JUDUL: Record<IdLangkah, { judul: string; ket: string }> = {
   },
   SELESAI: { judul: 'Selesai', ket: 'Ringkasan dan mulai tur aplikasi.' },
 };
+
+/** Langkah berisi isian inti: Enter di kolom isian = Lanjut. */
+const LANGKAH_ISIAN: IdLangkah[] = ['USAHA', 'OPERASIONAL', 'OWNER'];
 
 const LANJUT: LangkahSetupLanjut[] = [
   'TAMPILAN',
@@ -221,6 +226,11 @@ function WizardSetup({
   const bisaLewati = (LANJUT as IdLangkah[]).includes(aktif);
   const sibuk = setup.isPending || ubahUsaha.isPending || selesai.isPending;
 
+  // K-212: langkah lanjutan diingat agar bisa kembali dari halaman lain (Data Pengguna, Data Barang, …).
+  useEffect(() => {
+    ingatLangkahSetup((LANJUT as IdLangkah[]).includes(aktif) ? aktif : null);
+  }, [aktif]);
+
   function pindah(ke: IdLangkah) {
     setGalat({});
     setAktif(ke);
@@ -278,6 +288,7 @@ function WizardSetup({
     if (aktif === 'SELESAI') {
       try {
         await selesai.mutateAsync(dilewati);
+        ingatLangkahSetup(null);
         void navigate('/dashboard?tur=PENGENALAN', { replace: true });
       } catch (err) {
         toast.error(pesanGalat(err));
@@ -324,6 +335,34 @@ function WizardSetup({
   const sudahMasuk = mode === 'ulang' || kode !== null;
   const bisaKembali =
     indeks > 0 && aktif !== 'PEMULIHAN' && !(mode === 'baru' && urutan[indeks - 1] === 'PEMULIHAN');
+
+  const isiLangkah = (
+    <IsiLangkah
+      aktif={aktif}
+      mode={mode}
+      usaha={usaha}
+      setUsaha={(k, v) => {
+        setUsaha((s) => ({ ...s, [k]: v }));
+        setGalat((g) => ({ ...g, [k]: undefined }));
+      }}
+      operasional={operasional}
+      setOperasional={(k, v) => {
+        setOperasional((s) => ({ ...s, [k]: v }));
+        setGalat((g) => ({ ...g, [k]: undefined }));
+      }}
+      owner={owner}
+      setOwner={(k, v) => {
+        setOwner((s) => ({ ...s, [k]: v }));
+        setGalat((g) => ({ ...g, [k]: undefined }));
+      }}
+      galat={galat}
+      kode={kode}
+      onKodeDisimpan={() => pindah('TAMPILAN')}
+      dilewati={dilewati}
+      urutan={urutan}
+      namaSaya={saya?.namaPengguna ?? owner.namaPengguna}
+    />
+  );
 
   return (
     <div className="flex min-h-screen bg-slate-100">
@@ -387,47 +426,33 @@ function WizardSetup({
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <form
-          noValidate
-          className="mx-auto flex w-full max-w-4xl flex-1 flex-col p-6 lg:p-10"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (aktif !== 'PEMULIHAN') void lanjut();
-          }}
-        >
+        {/* K-212: form hanya membungkus langkah isian inti. Langkah lanjutan memuat layar Pengaturan yang punya form
+            dan tombolnya sendiri (Simpan, Tambah, Isi contoh); bila ikut di dalam form wizard, kirimannya ikut
+            memindahkan langkah. */}
+        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col p-6 lg:p-10">
           <p className="text-xs font-semibold tracking-wider text-blue-700 uppercase">
             Langkah {indeks + 1} dari {urutan.length}
           </p>
           <h1 className="text-2xl font-semibold text-slate-900">{JUDUL[aktif].judul}</h1>
           <p className="mb-6 text-sm text-slate-500">{JUDUL[aktif].ket}</p>
 
-          <div className="flex-1">
-            <IsiLangkah
-              aktif={aktif}
-              mode={mode}
-              usaha={usaha}
-              setUsaha={(k, v) => {
-                setUsaha((s) => ({ ...s, [k]: v }));
-                setGalat((g) => ({ ...g, [k]: undefined }));
+          {LANGKAH_ISIAN.includes(aktif) ? (
+            <form
+              noValidate
+              className="flex-1"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void lanjut();
               }}
-              operasional={operasional}
-              setOperasional={(k, v) => {
-                setOperasional((s) => ({ ...s, [k]: v }));
-                setGalat((g) => ({ ...g, [k]: undefined }));
-              }}
-              owner={owner}
-              setOwner={(k, v) => {
-                setOwner((s) => ({ ...s, [k]: v }));
-                setGalat((g) => ({ ...g, [k]: undefined }));
-              }}
-              galat={galat}
-              kode={kode}
-              onKodeDisimpan={() => pindah('TAMPILAN')}
-              dilewati={dilewati}
-              urutan={urutan}
-              namaSaya={saya?.namaPengguna ?? owner.namaPengguna}
-            />
-          </div>
+            >
+              {isiLangkah}
+              {/* Enter di kolom isian = Lanjut (tombol kirim tersembunyi). */}
+              <button type="submit" hidden aria-hidden tabIndex={-1} />
+            </form>
+          ) : (
+            // Langkah lain memuat form Pengaturan sendiri; tidak boleh berada di dalam form wizard.
+            <div className="flex-1">{isiLangkah}</div>
+          )}
 
           {aktif !== 'PEMULIHAN' && (
             <div className="sticky bottom-0 mt-8 flex flex-wrap items-center gap-2 border-t bg-slate-100/95 py-4 backdrop-blur">
@@ -445,10 +470,11 @@ function WizardSetup({
               )}
               <Button
                 key={aktif}
-                type="submit"
+                type="button"
+                onClick={() => void lanjut()}
                 disabled={sibuk}
                 // Langkah tanpa isian (sambutan, ringkasan, layar pengaturan): fokus di tombol agar Enter = lanjut.
-                autoFocus={!['USAHA', 'OPERASIONAL', 'OWNER'].includes(aktif)}
+                autoFocus={!LANGKAH_ISIAN.includes(aktif)}
               >
                 {sibuk ? (
                   <Loader2 className="animate-spin" />
@@ -476,7 +502,7 @@ function WizardSetup({
               Semua bisa diubah lagi kapan saja di menu Pengaturan.
             </p>
           )}
-        </form>
+        </div>
       </main>
     </div>
   );
@@ -580,6 +606,7 @@ function SelamatDatang({ mode }: { mode: 'baru' | 'ulang' }) {
         <p className="text-2xl font-bold">BonsaiUrip</p>
         <p className="text-slate-300">{SLOGAN_APLIKASI}</p>
       </div>
+      {mode === 'baru' && <LanjutkanData />}
       {mode === 'ulang' ? (
         <p className="text-sm text-slate-700">
           Anda mengulang setup awal. Isian yang sudah tersimpan tampil kembali; ubah yang perlu,

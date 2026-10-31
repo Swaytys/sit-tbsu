@@ -73,6 +73,7 @@ const IZIN_OWNER: readonly Izin[] = [
   'sistem.log.lihat',
   'master.pengguna.kelola',
   'sistem.cadangan.kelola',
+  'sistem.data.kelola',
 ];
 
 export const IZIN_PER_PERAN: Readonly<Record<Peran, ReadonlySet<Izin>>> = {

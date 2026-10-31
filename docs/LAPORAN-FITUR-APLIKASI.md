@@ -295,6 +295,25 @@ semua (membuka) | komputer Windows toko
 - Bukti: `[KODE: api/modules/auth/reset-email.ts]`, `[KODE: web/features/auth/halaman-akun-pertama.tsx]`;
   `[DOK: K-209]`; tes `setup-awal.test.ts`. Status: BERFUNGSI (butuh internet dan SMTP toko).
 
+**F59. Kelola data (Pustaka data)** | Pengaturan › Data; setup awal › Lanjutkan data | Owner (publik di setup awal selama
+belum ada pengguna) | desktop
+- Fungsi: data aktif + Pustaka data di folder data aplikasi (pg_dump + berkas unggahan + manifest): lihat rincian
+  (toko, rentang transaksi, pengguna, jumlah data, ukuran), simpan salinan, pakai data lain (pengaman otomatis dibuat
+  dulu; gagal = kembali otomatis; 3 pengaman terbaru disimpan), hapus (password), ekspor/impor berkas `.bonsai`
+  terenkripsi AES-256-GCM (kunci scrypt dari sandi) untuk pindah komputer, ambil dari cadangan harian. *Mulai dari nol*
+  di Setup menyimpan data lama ke Pustaka.
+- Bukti: `[KODE: api/modules/sistem/data/]`, `[KODE: web/features/pengaturan/tab-data.tsx]`,
+  `[KODE: web/features/setup-awal/lanjutkan-data.tsx]`, `[KODE: apps/api/src/peluncur.ts]`; `[DOK: K-213]`; tes
+  `data.test.ts`. Status: BERFUNGSI.
+
+**F60. Pengaman shift dan mati mendadak** | ikon BonsaiUrip; Setup; semua halaman | semua | desktop
+- Fungsi: aplikasi tidak bisa dimatikan/diperbarui/dihapus selama shift terbuka; Windows ditahan saat dimatikan
+  (ShutdownBlockReason); setelah mati mendadak saat shift terbuka, aplikasi menyala lagi dan menampilkan bilah
+  pemulihan (keadaan shift, langkah pemeriksaan) sampai ditandai sudah diperiksa.
+- Bukti: `[KODE: apps/api/src/peluncur.ts]`, `[KODE: installer/peluncur/BonsaiUrip.cs PenjagaShutdown]`,
+  `[KODE: api/modules/sistem/pemulihan/]`, `[KODE: web/features/shift/bilah-pemulihan.tsx]`; `[DOK: K-215, K-216]`;
+  tes `pemulihan.test.ts`. Status: BERFUNGSI.
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1375,6 +1394,8 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — Info cepat nomor dokumen (K-181) di linimasa kas, dashboard, riwayat, retur, papan.
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
+- 2026-10-31 — F59 kelola data, F60 pengaman shift dan mati mendadak; F56 perbaikan tombol langkah; Setup dua bahasa
+  (K-212–K-216).
 - 2026-10-31 — F56 setup awal, F57 tur fitur, F58 lupa password lewat email; F55 Mulai dari nol dan Pulihkan akses
   Owner (K-205–K-211). Buku SOP di `docs/panduan/buku-sop.md` (K-208).
 - 2026-10-30 — F55 pemasang Windows Setup v3: layar pembuka, ikon area notifikasi, lokasi pasang, panduan mulai pakai, restic bawaan (K-204); F8 status cadangan lokal.

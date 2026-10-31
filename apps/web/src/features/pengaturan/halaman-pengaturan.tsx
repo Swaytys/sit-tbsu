@@ -20,6 +20,7 @@ import { KartuPrinterStruk } from './kartu-printer-struk';
 import { TabArsip } from './tab-arsip';
 import { TabPemeriksaanData } from './tab-pemeriksaan-data';
 import { TabCadangan } from './tab-cadangan';
+import { TabData } from './tab-data';
 import { TabInteraksi } from './tab-interaksi';
 import { TabLog } from './tab-log';
 import { TabPembayaran } from './tab-pembayaran';
@@ -35,6 +36,7 @@ export function HalamanPengaturan() {
   const pengaturan = usePengaturan();
   const bolehLihatLog = bolehAkses(pengguna, 'sistem.log.lihat');
   const bolehCadangan = bolehAkses(pengguna, 'sistem.cadangan.kelola');
+  const bolehData = bolehAkses(pengguna, 'sistem.data.kelola');
   const bolehPromo = bolehAkses(pengguna, 'promo.kelola');
   const [url, setUrl] = useSearchParams();
   const tab = url.get('tab') ?? 'profil';
@@ -89,6 +91,7 @@ export function HalamanPengaturan() {
             <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>
             <TabsTrigger value="data">Pemeriksaan data</TabsTrigger>
             {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
+            {bolehData && <TabsTrigger value="data">Data</TabsTrigger>}
             {bolehCadangan && <TabsTrigger value="arsip">Arsip tahunan</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="interaksi">Log interaksi</TabsTrigger>}
@@ -132,6 +135,11 @@ export function HalamanPengaturan() {
           <TabsContent value="data">
             <TabPemeriksaanData />
           </TabsContent>
+          {bolehData && (
+            <TabsContent value="data">
+              <TabData />
+            </TabsContent>
+          )}
           {bolehCadangan && (
             <TabsContent value="cadangan">
               <TabCadangan />
