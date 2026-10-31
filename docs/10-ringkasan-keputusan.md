@@ -743,11 +743,11 @@ keputusan lama masih tertulis di berkasnya.
 
 | K | Keputusan | Status |
 |---|---|---|
-| K-212 | Perbaikan setup awal: tombol dalam langkah tidak memindahkan langkah; bilah kembali ke setup; switch logo struk. | Berlaku (rencana) |
-| K-213 | Kelola data: data aktif + Pustaka data (lihat, pakai/rollback, hapus, ekspor/impor .bonsai, dari cadangan harian, pengaman otomatis 3 terbaru); Mulai dari nol ke Pustaka; setup awal bisa lanjutkan data. | Berlaku (rencana) |
-| K-214 | Wizard Setup Windows dwibahasa Indonesia/English. | Berlaku (rencana) |
-| K-215 | Aplikasi tidak bisa dimatikan (tray, menu Start, Setup, uninstall) selama shift terbuka; Windows ditahan saat dimatikan. | Berlaku (rencana) |
-| K-216 | Menyala otomatis setelah mati mendadak; bilah pemulihan dengan keadaan shift dan langkah pemeriksaan. | Berlaku (rencana) |
+| K-212 | Perbaikan setup awal: tombol dalam langkah tidak memindahkan langkah; bilah kembali ke setup; switch logo struk. | Berlaku (selesai 31 Okt, versi 1.17.0) |
+| K-213 | Kelola data: data aktif + Pustaka data (lihat, pakai/rollback, hapus, ekspor/impor .bonsai, dari cadangan harian, pengaman otomatis 3 terbaru); Mulai dari nol ke Pustaka; setup awal bisa lanjutkan data. | Berlaku (selesai 31 Okt, versi 1.17.0) |
+| K-214 | Wizard Setup Windows dwibahasa Indonesia/English. | Berlaku (selesai 31 Okt, versi 1.17.0) |
+| K-215 | Aplikasi tidak bisa dimatikan (tray, menu Start, Setup, uninstall) selama shift terbuka; Windows ditahan saat dimatikan. | Berlaku (selesai 31 Okt, versi 1.17.0) |
+| K-216 | Menyala otomatis setelah mati mendadak; bilah pemulihan dengan keadaan shift dan langkah pemeriksaan. | Berlaku (selesai 31 Okt, versi 1.17.0) |
 
 ## 7. Yang dijadwalkan sesudah ini
 
