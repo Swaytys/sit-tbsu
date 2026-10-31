@@ -130,7 +130,8 @@ Sebelum menyatakan tugas selesai, wajib lulus: `pnpm typecheck && pnpm lint && p
   aksen `blue-600`, kartu putih berbatas tipis, tabel padat. Tampilan boleh disempurnakan, tetapi
   **struktur dan logika mengikuti laporan KP**, bukan mockup, bila keduanya berbeda.
 - Komponen dasar dari shadcn/ui di `apps/web/src/components/ui`. Jangan menulis ulang komponen yang sudah ada.
-- Desktop-first (lebar minimum 1280 px), tetap bisa dipakai di tablet 1024 px. Tidak ada mobile-first.
+- Desktop-first (lebar minimum 1280 px), tetap bisa dipakai di tablet 1024 px. Sejak K-217 (31 Okt 2026) tampilan
+  juga responsif untuk HP/tablet (PWA lewat Tailscale): panel menumpuk di bawah 1024 px, tanpa merusak tata letak laptop.
 - Semua label, tombol, status, pesan: Bahasa Indonesia. Uang `Rp 1.234.567`; tanggal `19/09/2026`; waktu `14:30`.
 - Setiap form: validasi Zod sisi klien dengan pesan yang sama dengan API; tombol simpan nonaktif saat mengirim;
   toast sukses/gagal.

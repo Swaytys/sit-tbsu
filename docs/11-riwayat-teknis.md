@@ -884,3 +884,12 @@ pengantaran (centang sebelum berangkat).
   status dari `/api/health.shiftTerbuka`). K-216: `sedang-berjalan.flag` + `mati-mendadak.json`, `GET/POST
   /api/pemulihan`, `BilahPemulihan`. K-214: `installer/bahasa/Indonesian.isl` (terjemahan komunitas Inno Setup) +
   `[CustomMessages]`.
+- 2026-10-31 — K-217 (versi 1.18.0): `modules/sistem/akses/tailscale.ts` (CLI di Program Files atau TAILSCALE_CLI;
+  `status --json` → DNSName/CertDomains; `serve --bg --https=443 http://127.0.0.1:PORT`; origin https://<nama>
+  didaftarkan dinamis untuk CSRF), dipanggil saat server menyala bila AKSES_TAILSCALE=1 (peluncur). `ambilIp`
+  memakai X-Forwarded-For hanya dari loopback. PWA: manifest + ikon dirender dari favicon.svg, meta apple. Layout:
+  `useLayarSempit` (max-width 1023px) → Sidebar sebagai laci yang tertutup per perubahan path (state = path saat
+  dibuka, tanpa efek). Layar kerja (`input-order-cepat`, `layar-pos`, daftar order) `flex-col lg:flex-row`,
+  `lg:h-full`; bilah tombol tertutup bawaan di layar sempit/sentuh; grid halaman Void/Retur/Stok/Form barang/
+  Penerimaan bertingkat `lg:`; kolom Pengiriman `max-lg:min-w-[85vw]` + scroll snap. Dependency web `qrcode`.
+  Perbaikan K-201: atribut P/L/T disalin ke data muatan hanya bila dua dimensi lain terisi atau kolom sudah berisi.

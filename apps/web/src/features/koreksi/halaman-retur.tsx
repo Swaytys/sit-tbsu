@@ -139,7 +139,7 @@ function FormAjukan() {
   }
 
   return (
-    <div className="grid grid-cols-[22rem_1fr] gap-4">
+    <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
       <Card className="gap-2 p-3">
         <Label htmlFor="cari-retur">Pilih transaksi yang diretur</Label>
         <div className="relative">

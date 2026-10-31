@@ -13,7 +13,12 @@ function bacaCiut(): boolean {
   } catch {
     // Penyimpanan diblokir: pakai aturan tinggi layar.
   }
-  return window.innerHeight < 760;
+  // K-217: di HP/tablet (layar sempit atau layar sentuh tanpa keyboard) daftar tombol keyboard mulai tertutup.
+  return (
+    window.innerHeight < 760 ||
+    window.matchMedia('(max-width: 1023px)').matches ||
+    window.matchMedia('(pointer: coarse)').matches
+  );
 }
 
 /**

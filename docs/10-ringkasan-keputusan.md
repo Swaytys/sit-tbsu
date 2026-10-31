@@ -755,7 +755,7 @@ keputusan lama masih tertulis di berkasnya.
 
 | K | Keputusan | Status |
 |---|---|---|
-| K-217 | HP/tablet (staf, Owner, kasir, admin/gudang) lewat Tailscale HTTPS (di toko dan dari luar), PWA, tampilan responsif. | Berlaku (tahap A selesai 31 Okt: Tailscale serve, PWA, Pengaturan › Akses HP/tablet, menu laci; layar prioritas HP menyusul) |
+| K-217 | HP/tablet (staf, Owner, kasir, admin/gudang) lewat Tailscale HTTPS (di toko dan dari luar), PWA, tampilan responsif. | Berlaku (selesai 31 Okt, versi 1.18.0; koneksi Tailscale diuji pemilik) |
 
 ## 7. Yang dijadwalkan sesudah ini
 
