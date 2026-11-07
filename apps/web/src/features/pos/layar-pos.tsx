@@ -559,10 +559,22 @@ export function LayarPos({
 
   const kembalianTerakhir = hasil?.pembayaran.reduce((t, b) => t + b.kembalian, 0) ?? 0;
   // K-143: saat order antrean terbuka, F9 = tunda (kembalikan ke antrean) atau batalkan (pilihan A/S/D).
-  const tombol = [
-    ...TOMBOL_UMUM.map((t) =>
-      t.kunci === 'F9' && order ? { ...t, label: 'Tunda / kembalikan order' } : t,
-    ),
+  // K-228: pintasan fungsi juga bisa diklik/disentuh (HP/tablet tanpa tombol F).
+  const aksiKlik: Record<string, () => void> = {
+    F2: () => setZona('cari'),
+    F3: () => setZona('antrean'),
+    F4: () => setZona('pelanggan'),
+    F8: () => setZona('bayar'),
+    F9: () => mintaMulaiDariAwal(),
+    'Alt+← →': () =>
+      setZona(zona === 'antrean' ? (tr.t.baris.length > 0 ? 'keranjang' : 'cari') : 'antrean'),
+  };
+  const tombol: Tombol[] = [
+    ...TOMBOL_UMUM.map((t) => ({
+      ...t,
+      ...(t.kunci === 'F9' && order ? { label: 'Tunda / kembalikan order' } : {}),
+      aksi: aksiKlik[t.kunci],
+    })),
     ...TOMBOL_ZONA[zona],
   ];
   // K-130: dialog buka shift tidak muncul sendiri; pita kuning di atas memberi tahu dan menyediakan tombolnya.

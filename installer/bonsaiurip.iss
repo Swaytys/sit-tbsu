@@ -58,8 +58,6 @@ id.MenuMatikan=Matikan BonsaiUrip
 en.MenuMatikan=Matikan BonsaiUrip (Stop BonsaiUrip)
 id.MenuPanduan=Panduan mulai pakai
 en.MenuPanduan=Panduan mulai pakai (Quick start guide)
-id.MenuPulihkan=Pulihkan akses Owner
-en.MenuPulihkan=Pulihkan akses Owner (Recover Owner access)
 id.JalankanBuka=Buka BonsaiUrip sekarang
 en.JalankanBuka=Open BonsaiUrip now
 id.JalankanPanduan=Buka panduan mulai pakai
@@ -101,7 +99,6 @@ Name: "{autodesktop}\BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"; Tasks: deskt
 Name: "{group}\BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"
 Name: "{group}\{cm:MenuMatikan}"; Filename: "{app}\BonsaiUrip.exe"; Parameters: "--berhenti"
 Name: "{group}\{cm:MenuPanduan}"; Filename: "{app}\panduan\mulai-pakai.html"
-Name: "{group}\{cm:MenuPulihkan}"; Filename: "{app}\BonsaiUrip.exe"; Parameters: "--pulihkan"
 Name: "{userstartup}\BonsaiUrip"; Filename: "{app}\BonsaiUrip.exe"; Parameters: "--latar"; Tasks: otomatis
 
 [Run]

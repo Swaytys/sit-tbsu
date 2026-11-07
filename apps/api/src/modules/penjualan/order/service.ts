@@ -458,7 +458,10 @@ export async function ubahOrderTx(
   await validasiPelanggan(tx, input);
   const lama = await repo.barisReservasi(tx, id);
   const hargaLama: HargaLama = new Map(
-    lama.map((b) => [kunciBaris(b.idBarang, b.idSatuanJual), b]),
+    lama.map((b) => [
+      kunciBaris(b.idBarang, b.idSatuanJual),
+      { ...b, tanpaJanji: h.status === 'DRAFT' },
+    ]),
   );
   const harga = await hitungBarisJual(tx, input, pelaku, {
     lama: hargaLama,
@@ -508,7 +511,7 @@ export async function pratinjauOrder(
       opsi.lama = new Map(
         (await repo.barisReservasi(tx, input.idOrder)).map((b) => [
           kunciBaris(b.idBarang, b.idSatuanJual),
-          b,
+          { ...b, tanpaJanji: h.status === 'DRAFT' },
         ]),
       );
       opsi.diskonTransaksiLama = h.diskonTransaksi;

@@ -408,7 +408,7 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 | penyelesaian_retur_pemasok | POTONG_HUTANG, GANTI_BARANG, REFUND, PENGEMBALIAN_TITIPAN |
 | metode_pembayaran_pemasok | TUNAI, TRANSFER, KOMPENSASI |
 | status_shift | BUKA, DIHITUNG, TUTUP |
-| jenis_kas_shift | KASBON, SETOR_OWNER, TARIK_OWNER, REFUND_RETUR, REFUND_VOID, BAYAR_PEMASOK, MASUK_LAIN, KELUAR_LAIN, KOREKSI_MODAL_TAMBAH, KOREKSI_MODAL_KURANG, KEMBALIAN_DITINGGAL |
+| jenis_kas_shift | KASBON, SETOR_OWNER, TARIK_OWNER, REFUND_RETUR, REFUND_VOID, BAYAR_PEMASOK, MASUK_LAIN, KELUAR_LAIN, KOREKSI_MODAL_TAMBAH, KOREKSI_MODAL_KURANG, KEMBALIAN_DITINGGAL, BIAYA_ENTERTAIN |
 | cara_buka_shift | SAMA_KEMARIN, HITUNG, HITUNG_NANTI |
 | jenis_hitung_kas | BUKA, BUKA_SUSULAN, TUTUP, TUTUP_ULANG |
 | arah_kas | MASUK, KELUAR |
@@ -553,6 +553,7 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
 - 2026-10-18 — v3.17: tabel `hitung_kas`; `shift_kasir.cara_buka`, `modal_usulan`, `rincian_buka`, `batas_hitung_buka`, `hitung_buka_pada`, status DIHITUNG, index satu shift belum tutup per kasir; `clerical_check.uang_ditinggal`, `koreksi_modal`, `toleransi`, `jumlah_hitung`, `penjelasan_atasan`, `dijelaskan_oleh`, `dijelaskan_pada`; jenis kas KOREKSI_MODAL_TAMBAH/KURANG; jenis kode `KOREKSI_KAS` (migrasi 0020; K-121). Kunci konfigurasi baru: `toleransi_selisih_kas`, `batas_hitung_buka_menit`.
 - 2026-10-18 — v3.18: `order_penjualan.no_hp_pembeli`, `order_penjualan.tanggal_ambil`, status DISIMPAN, CHECK `chk_order_disimpan` (status DISIMPAN wajib tanggal ambil dan No. HP) (migrasi 0021; K-122).
 - 2026-10-18 — v3.19: jenis kas `KEMBALIAN_DITINGGAL` (kembalian tidak diambil pembeli; migrasi 0022; K-141). Satu shift toko (K-132) dijaga service dengan kunci transaksi, tanpa constraint baru, agar shift ganda lama tidak menggagalkan migrasi; `shift_kasir.id_kasir` kini berarti pembuka.
+- 2026-11-07 — v3.20: jenis kas `BIAYA_ENTERTAIN` (uang keluar untuk pihak lain atas kesepakatan; keterangan wajib; migrasi 0042; K-223).
 - 2026-10-23 — v3.20: `kendaraan`, `sopir`, `perjalanan`, `surat_jalan_hasil`, `surat_jalan_hasil_detail`, `surat_jalan.id_perjalanan` (migrasi 0023; K-149–K-151). Prefix nomor `TRP`.
 - 2026-10-24 — v3.21: indeks unik `uq_shift_toko_terbuka` pada `shift_kasir` (`where status <> 'TUTUP'`), migrasi 0024 dengan pemeriksaan shift ganda (K-155).
 - 2026-10-24 — v3.22: tabel teknis `kunci_idempoten` (PK kunci + id_pengguna, status PROSES/SELESAI, jawaban tersimpan; dibersihkan setelah 24 jam; migrasi 0025, K-164).

@@ -44,6 +44,7 @@ const LABEL_KAS: Record<JenisKasShift, string> = {
   KOREKSI_MODAL_TAMBAH: 'Koreksi modal (+)',
   KOREKSI_MODAL_KURANG: 'Koreksi modal (−)',
   KEMBALIAN_DITINGGAL: 'Kembalian tidak diambil',
+  BIAYA_ENTERTAIN: 'Biaya entertain',
 };
 
 export function labelKas(k: Pick<KasShiftRingkas, 'jenis' | 'keterangan'>): string {

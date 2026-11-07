@@ -89,6 +89,11 @@ export type BarisLama = {
   hargaManual: boolean;
   diskonBaris: number;
   promoNonaktif: boolean;
+  /**
+   * K-224: baris draf tidak menjanjikan harga. Draf belum dikirim ke kasir, jadi harganya selalu mengikuti harga
+   * master terbaru (P2 hanya untuk order yang sudah dikirim/disimpan).
+   */
+  tanpaJanji?: boolean;
 };
 /** Kunci: `kunciBaris(idBarang, idSatuanJual)` (K-095). */
 export type HargaLama = Map<string, BarisLama>;
@@ -244,6 +249,7 @@ export async function hitungBarisJual(
   ): number | null => {
     const janji =
       lama !== undefined &&
+      !lama.tanpaJanji &&
       !lama.hargaManual &&
       lama.idTingkatHarga === idTier &&
       lama.idSatuanJual === b.idSatuanJual;

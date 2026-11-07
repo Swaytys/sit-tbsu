@@ -1,7 +1,11 @@
 import { ChevronDown, ChevronUp, Keyboard } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-export type Tombol = { kunci: string; label: string };
+/**
+ * Satu pintasan. `aksi` (K-228): pintasan yang bisa dijalankan dari mana saja ditampilkan sebagai tombol yang
+ * bisa diklik/disentuh, karena HP/tablet tidak punya tombol F1–F12.
+ */
+export type Tombol = { kunci: string; label: string; aksi?: () => void };
 
 const KUNCI_SIMPAN = 'bilah-tombol-ciut';
 
@@ -79,14 +83,32 @@ export function BilahTombol({ daftar }: { daftar: Tombol[] }) {
       aria-label="Tombol keyboard"
     >
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
-        {daftar.map((t) => (
-          <span key={t.kunci + t.label} className="whitespace-nowrap">
-            <kbd className="mr-1 rounded bg-slate-700 px-1.5 py-0.5 font-mono font-semibold text-white">
-              {t.kunci}
-            </kbd>
-            {t.label}
-          </span>
-        ))}
+        {daftar.map((t) =>
+          t.aksi ? (
+            <button
+              key={t.kunci + t.label}
+              type="button"
+              tabIndex={-1}
+              // Fokus tetap di kotak isian yang sedang dipakai (sama seperti menekan tombolnya).
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={t.aksi}
+              title={`${t.label} (${t.kunci})`}
+              className="-mx-1 rounded px-1 py-0.5 whitespace-nowrap hover:bg-slate-700 hover:text-white"
+            >
+              <kbd className="mr-1 rounded bg-slate-700 px-1.5 py-0.5 font-mono font-semibold text-white">
+                {t.kunci}
+              </kbd>
+              {t.label}
+            </button>
+          ) : (
+            <span key={t.kunci + t.label} className="whitespace-nowrap">
+              <kbd className="mr-1 rounded bg-slate-700 px-1.5 py-0.5 font-mono font-semibold text-white">
+                {t.kunci}
+              </kbd>
+              {t.label}
+            </span>
+          ),
+        )}
       </div>
       <button
         type="button"

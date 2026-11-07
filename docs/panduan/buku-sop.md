@@ -343,7 +343,9 @@ ditetapkan Owner.
    dan **wajib diganti** karyawan saat pertama masuk.
 2. Karyawan keluar: **nonaktifkan akunnya hari itu juga** dan cabut sesinya.
 3. Lupa password: karyawan memakai *Lupa password?* (kode email atau kode pemulihan) atau Owner/Admin me-reset.
-   Owner yang kehilangan semua jalan masuk: menu Start › **Pulihkan akses Owner** di komputer server.
+   Owner yang kehilangan semua jalan masuk (password, email, kode pemulihan): **hubungi pengembang**. Pemulihan
+   dikerjakan di komputer server dengan kode tantangan dan kode jawaban pengembang (K-232); tercatat di log.
+   Saran: daftarkan email Owner yang aktif dan simpan kode pemulihan di dua tempat agar langkah ini tidak perlu.
 4. Tinjau *Pengaturan › Log Aktivitas* minimal sebulan sekali: aksi koreksi, persetujuan, perubahan pengaturan,
    login gagal berulang.
 5. Komputer server: akun Windows berpassword; layar terkunci saat ditinggal.

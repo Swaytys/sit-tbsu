@@ -111,8 +111,10 @@ export function HalamanLupaPassword() {
       {cara === 'EMAIL' ? <LewatEmail /> : <LewatKode onSelesai={setKodeBaru} />}
       <div className="mt-4 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
         <b>Tidak punya email terdaftar maupun kode pemulihan?</b> Minta Owner atau Admin membuka{' '}
-        <i>Data Pengguna</i> › akun Anda › <b>Reset password</b>. Owner yang terkunci: di komputer
-        tempat BonsaiUrip terpasang, buka menu Start › BonsaiUrip › <b>Pulihkan akses Owner</b>.
+        <i>Data Pengguna</i> › akun Anda › <b>Reset password</b>. Owner yang kehilangan password,
+        email, dan kode pemulihan sekaligus: hubungi pengembang BonsaiUrip. Pemulihan dikerjakan di
+        komputer tempat BonsaiUrip terpasang dengan kode khusus dari pengembang, dan tercatat di log
+        aktivitas.
       </div>
       <Link
         to="/login"

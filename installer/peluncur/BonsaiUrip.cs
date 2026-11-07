@@ -5,7 +5,7 @@
 //   - setelah siap, ikon BonsaiUrip di area notifikasi Windows (system tray) dengan menu Buka / Matikan;
 //   - satu ikon saja: membuka lagi hanya membuka peramban; "Matikan BonsaiUrip" dari menu Start ikut menutup ikon.
 // Argumen: (kosong) = nyalakan + buka peramban; --latar = nyalakan tanpa peramban (saat Windows mulai);
-// --berhenti = matikan server dan database; --pulihkan = pulihkan akses Owner (K-211) lalu nyalakan.
+// --berhenti = matikan server dan database; --pulihkan = pulihkan akses Owner bersama pengembang (K-211, K-232).
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -99,21 +99,36 @@ static class Program
     }
 
     /**
-     * K-211: menu Start › Pulihkan akses Owner. Hanya akun Windows pemilik folder data yang bisa menjalankannya.
-     * Owner diberi password sementara (wajib diganti saat masuk) dan kode pemulihan baru; hasil tampil sekali
-     * (Ctrl+C menyalin isi jendela pesan), berkasnya langsung dihapus.
+     * K-211/K-232: `BonsaiUrip.exe --pulihkan` (tidak ada di menu Start). Akses Owner hanya dipulihkan dengan kode
+     * jawaban pengembang untuk kode tantangan komputer ini. Owner diberi password sementara (wajib diganti saat
+     * masuk) dan kode pemulihan baru; hasil tampil sekali (Ctrl+C menyalin isi jendela pesan), berkasnya dihapus.
      */
     static int PulihkanOwner(string node, string skrip)
     {
         var yakin = MessageBox.Show(
-            "Pulihkan akses Owner?\n\nGunakan ini bila password Owner terlupa dan kode pemulihan juga hilang.\n\n" +
-            "Akun Owner akan diberi password sementara (wajib diganti saat masuk) dan kode pemulihan baru. " +
-            "Semua sesi Owner yang sedang masuk akan keluar. Data toko tidak berubah.",
+            "Pulihkan akses Owner bersama pengembang?\n\nGunakan ini hanya bila password Owner terlupa, email tidak bisa " +
+            "dipakai, dan kode pemulihan juga hilang.\n\nLangkahnya: (1) komputer ini menampilkan kode tantangan, " +
+            "(2) kirim kode itu ke pengembang, (3) ketik kode jawaban dari pengembang. Tanpa kode jawaban yang benar, " +
+            "akses Owner tidak bisa dipulihkan.",
             "Pulihkan akses Owner", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
         if (yakin != DialogResult.Yes) return -1;
+        // K-232 langkah 1: kode tantangan sekali pakai.
+        string berkasTantangan = Path.Combine(data, "pulihkan-tantangan.json");
+        string galatPeluncur = Path.Combine(data, "galat-peluncur.txt");
+        if (Jalankan(node, skrip, " --pulihkan-owner --tantangan", null) != 0 || !File.Exists(berkasTantangan))
+        {
+            MessageBox.Show("Kode tantangan gagal dibuat:\n\n" +
+                (File.Exists(galatPeluncur) ? File.ReadAllText(galatPeluncur) : "Sebab tidak diketahui."),
+                "Pulihkan akses Owner", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return 1;
+        }
+        var cocok = System.Text.RegularExpressions.Regex.Match(
+            File.ReadAllText(berkasTantangan), "\"kode\"\\s*:\\s*\"([^\"]+)\"");
+        string jawaban = MintaJawaban(cocok.Groups[1].Value);
+        if (jawaban == null) return -1;
         string berkas = Path.Combine(data, "pulihkan-owner.txt");
         try { File.Delete(berkas); } catch { }
-        int kode = Jalankan(node, skrip, " --pulihkan-owner", null);
+        int kode = Jalankan(node, skrip, " --pulihkan-owner --jawaban=" + jawaban, null);
         if (kode != 0 || !File.Exists(berkas))
         {
             string galat = Path.Combine(data, "galat-peluncur.txt");
@@ -126,6 +141,48 @@ static class Program
         MessageBox.Show(isi + "\n\n(Tekan Ctrl+C untuk menyalin isi jendela ini.)\nSetelah OK, BonsaiUrip dibuka.",
             "Akses Owner dipulihkan", MessageBoxButtons.OK, MessageBoxIcon.Information);
         return 0;
+    }
+
+    /**
+     * K-232: jendela kode tantangan (bisa disalin) dan isian kode jawaban pengembang. `null` = dibatalkan.
+     * Kode jawaban hanya berisi huruf, angka, '-' dan '_' (base64url), jadi aman diteruskan sebagai argumen.
+     */
+    static string MintaJawaban(string tantangan)
+    {
+        var f = new Form
+        {
+            Text = "Pulihkan akses Owner",
+            Width = 620, Height = 360,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterScreen,
+            MaximizeBox = false, MinimizeBox = false, TopMost = true,
+            Font = new Font("Segoe UI", 10),
+        };
+        var l1 = new Label { Left = 16, Top = 14, Width = 570, Height = 40,
+            Text = "1. Kirim kode tantangan ini ke pengembang (berlaku 60 menit, sekali pakai):" };
+        var tTantangan = new TextBox { Left = 16, Top = 56, Width = 460, ReadOnly = true, Text = tantangan,
+            Font = new Font("Consolas", 12, FontStyle.Bold) };
+        var salin = new Button { Left = 486, Top = 54, Width = 100, Height = 30, Text = "Salin" };
+        salin.Click += (s, e) => { Clipboard.SetText(tantangan); salin.Text = "Tersalin"; };
+        var l2 = new Label { Left = 16, Top = 104, Width = 570, Height = 40,
+            Text = "2. Tempel kode jawaban dari pengembang (± 86 huruf/angka):" };
+        var tJawaban = new TextBox { Left = 16, Top = 146, Width = 570, Height = 60, Multiline = true,
+            Font = new Font("Consolas", 10) };
+        var ok = new Button { Left = 380, Top = 260, Width = 100, Height = 34, Text = "Pulihkan",
+            DialogResult = DialogResult.OK };
+        var batal = new Button { Left = 486, Top = 260, Width = 100, Height = 34, Text = "Batal",
+            DialogResult = DialogResult.Cancel };
+        f.Controls.AddRange(new Control[] { l1, tTantangan, salin, l2, tJawaban, ok, batal });
+        f.AcceptButton = ok;
+        f.CancelButton = batal;
+        while (true)
+        {
+            if (f.ShowDialog() != DialogResult.OK) return null;
+            string j = System.Text.RegularExpressions.Regex.Replace(tJawaban.Text, "\\s", "");
+            if (System.Text.RegularExpressions.Regex.IsMatch(j, "^[A-Za-z0-9_-]{80,100}$")) return j;
+            MessageBox.Show("Kode jawaban belum lengkap atau berisi tanda yang tidak dikenal. Salin ulang seluruh kode dari pengembang.",
+                "Pulihkan akses Owner", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     /** Menjalankan peluncur Node; layar pembuka ditampilkan bila diminta. Mengembalikan kode keluar. */

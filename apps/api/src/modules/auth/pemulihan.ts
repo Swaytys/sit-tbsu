@@ -226,7 +226,7 @@ export async function pulihkanAksesOwnerLokal(): Promise<{
       idPengguna: owner.id,
       entitas: 'pengguna',
       idEntitas: owner.id,
-      ringkasan: `Akses Owner dipulihkan dari komputer server: password sementara dan kode pemulihan baru; ${dicabut} sesi dicabut`,
+      ringkasan: `Akses Owner dipulihkan dengan kode pengembang di komputer server (K-232): password sementara dan kode pemulihan baru; ${dicabut} sesi dicabut`,
       ip: null,
     });
   });

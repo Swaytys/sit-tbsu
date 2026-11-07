@@ -272,6 +272,8 @@ export const JENIS_KAS_SHIFT = [
   'KOREKSI_MODAL_KURANG',
   /** K-141: pembeli tidak mengambil kembaliannya (bukan penjualan; laci tetap cocok). */
   'KEMBALIAN_DITINGGAL',
+  /** K-223: uang keluar untuk pihak lain atas kesepakatan tertentu (jamuan, komisi, tanda terima kasih). */
+  'BIAYA_ENTERTAIN',
 ] as const;
 export type JenisKasShift = (typeof JENIS_KAS_SHIFT)[number];
 
