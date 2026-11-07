@@ -273,3 +273,13 @@ bisa tidak sesuai isian.
    minimarket (kedaluwarsa & batch, barang timbang), toko pakaian (varian ukuran/warna), apotek (V3).
 3. Istilah dan menu mengikuti modul yang menyala; fitur bahan bangunan tetap dikembangkan.
 4. Data contoh dan templat kategori per jenis usaha.
+
+---
+
+## Sisa backlog V1 lama yang diselesaikan (7 November)
+
+- **K-119 Tes layar memakai database sendiri.** Akun database pengembangan tidak berhak membuat database, jadi tes
+  layar memakai **klaster PostgreSQL sekali pakai** (program PostgreSQL bawaan paket) di `.uji-e2e/`, port 54399,
+  database `tbsu_e2e` yang dibuat ulang setiap putaran, dengan server API/web uji sendiri (3100/5174).
+  `pnpm test:e2e` dan `pnpm test:e2e:kritis` kini memakai cara ini; `pnpm test:e2e:dev` untuk server pengembangan.
+  Diuji: 5 alur kritis lulus. *Selesai.*

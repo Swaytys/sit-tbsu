@@ -603,7 +603,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-116 | Hitung kas per pecahan, modal berlanjut, toleransi receh, hitungan pertama terkunci, tinjauan shift, bantuan mencari selisih. | Dirinci oleh K-121 (selesai 18 Okt) |
 | K-117 | Order ditunda dengan tanggal rencana (tahan stok bisa dipilih); tutup shift dengan order yang belum selesai. | Butir 1–2 diganti K-122 |
 | K-118 | Laporan fitur diperbarui tiap commit; riwayat teknis `docs/11`. | Berlaku |
-| K-119 | Tes layar memakai database sendiri. | Berlaku (rencana) |
+| K-119 | Tes layar memakai database sendiri. | Berlaku (PostgreSQL sekali pakai, 7 Nov) |
 
 ### 6.19 Tinjauan pemilik 18 Oktober — `2026-10-18-tinjauan-pemilik.md`
 

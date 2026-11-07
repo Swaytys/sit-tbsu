@@ -357,7 +357,11 @@ menembus puluhan juta baris.
 - **Route test**: `app.request()` Hono untuk memastikan izin ditegakkan (403 untuk peran tanpa izin) dan format respons.
 - **E2E**: Playwright untuk alur kritis: login → order → checkout langsung → struk; pengantaran → surat jalan →
   pelunasan; retur disetujui; void disetujui; tutup shift. Dijalankan di Fase 8 dan sebelum rilis.
-- **Penyiapan E2E** (K-106, K-107): tes layar berjalan di database pengembangan. `e2e/penyiapan-global.ts`
+- **Database E2E terpisah** (K-119): `pnpm test:e2e` / `test:e2e:kritis` menjalankan `scripts/uji/e2e-terpisah.mjs`:
+  klaster PostgreSQL sekali pakai di `.uji-e2e/` (port 54399, database `tbsu_e2e`, dibuat ulang tiap putaran),
+  migrasi + seed (akun demo), server API 3100 dan web 5174 khusus tes, lalu semuanya dimatikan. Database
+  pengembangan tidak tersentuh. `pnpm test:e2e:dev` tetap tersedia untuk menguji `pnpm dev` yang sedang berjalan.
+- **Penyiapan E2E** (K-106, K-107): `e2e/penyiapan-global.ts`
   (`globalSetup` Playwright) menonaktifkan tier harga selain tier dasar selama tes dan mengaktifkannya kembali
   di akhir, menutup shift demo yang terlewat, dan menandai pembayaran non-tunai buatan tes sebagai sudah
   dicek. Server untuk tes dijalankan dengan `SALURAN_TIRUAN=1` (kode persetujuan tidak pernah dikirim ke
