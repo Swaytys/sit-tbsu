@@ -90,9 +90,9 @@ export function HalamanPengaturan() {
             {bolehPromo && <TabsTrigger value="promo">Promo</TabsTrigger>}
             <TabsTrigger value="keamanan">Keamanan</TabsTrigger>
             <TabsTrigger value="persetujuan">Persetujuan</TabsTrigger>
-            <TabsTrigger value="data">Pemeriksaan data</TabsTrigger>
+            <TabsTrigger value="pemeriksaan">Pemeriksaan data</TabsTrigger>
             {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
-            {bolehData && <TabsTrigger value="data">Data</TabsTrigger>}
+            {bolehData && <TabsTrigger value="data">Data toko &amp; pindah komputer</TabsTrigger>}
             {bolehData && <TabsTrigger value="akses">Akses HP/tablet</TabsTrigger>}
             {bolehCadangan && <TabsTrigger value="arsip">Arsip tahunan</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
@@ -134,7 +134,8 @@ export function HalamanPengaturan() {
           <TabsContent value="persetujuan">
             <TabPersetujuan />
           </TabsContent>
-          <TabsContent value="data">
+          {/* K-220: tab sendiri (dulu memakai nilai "data" yang sama dengan tab Data, sehingga tergabung). */}
+          <TabsContent value="pemeriksaan">
             <TabPemeriksaanData />
           </TabsContent>
           {bolehData && (

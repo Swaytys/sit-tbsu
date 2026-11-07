@@ -763,9 +763,9 @@ keputusan lama masih tertulis di berkasnya.
 
 | K | Keputusan | Status |
 |---|---|---|
-| K-218 | Teks pengelolaan data dan installer tanpa istilah teknis. | Berlaku (rencana) |
-| K-219 | Buat data toko baru / ganti data toko dari dalam aplikasi dan halaman masuk, tanpa menghapus data. | Berlaku (rencana) |
-| K-220 | Ganti nama tab Data; Pemeriksaan data dipisah. | Berlaku (rencana) |
+| K-218 | Teks pengelolaan data dan installer tanpa istilah teknis. | Berlaku |
+| K-219 | Buat data toko baru / ganti data toko dari dalam aplikasi dan halaman masuk, tanpa menghapus data. | Berlaku |
+| K-220 | Ganti nama tab Data; Pemeriksaan data dipisah. | Berlaku |
 | K-221 | Peluncur tahan port terpakai: pindah ke port kosong, tidak memakai server asing, coba ulang saat database masih menyala. | Berlaku |
 | K-222 | Nama barang disusun otomatis dari kategori, merek, atribut kunci (templat per kategori); tidak diketik bebas; kembar ditolak. | Berlaku (rencana V2) |
 | K-223 | Jenis kas keluar Biaya entertain (keterangan wajib). | Berlaku |

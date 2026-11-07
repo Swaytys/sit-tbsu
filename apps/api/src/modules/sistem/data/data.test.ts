@@ -160,6 +160,62 @@ describe('kelola data (K-213)', { timeout: 180_000 }, () => {
     expect(cookieSesi(masuk)).toBeTruthy();
   });
 
+  it('K-219 buat data toko baru: hanya Owner, ditolak saat shift terbuka, data lama tersimpan dan bisa dipakai lagi', async () => {
+    const o = await owner();
+    await tambahPelanggan('Pelanggan Toko Lama', '+6281200000005');
+    const admin = await sesiUji('ADMIN');
+    const lewatMasuk = (path: string, username: string, password: string) =>
+      minta(`/api/auth/data-toko${path}`, { method: 'POST', body: { username, password } });
+
+    expect((await lewatMasuk('/daftar', admin.pengguna.username, PASSWORD_UJI)).status).toBe(403);
+    expect((await lewatMasuk('/daftar', o.username, 'bukan-password')).status).toBe(401);
+    expect((await lewatMasuk('/daftar', o.username, PASSWORD_UJI)).status).toBe(200);
+    expect(
+      (
+        await minta('/api/data/baru', {
+          method: 'POST',
+          cookie: admin.cookie,
+          body: { password: PASSWORD_UJI },
+        })
+      ).status,
+    ).toBe(403);
+
+    // Shift terbuka: uang laci belum dicocokkan, data tidak boleh diganti.
+    const buka = await minta('/api/shift/buka', {
+      method: 'POST',
+      cookie: o.cookie,
+      body: { modalAwal: 0 },
+    });
+    expect(buka.status).toBe(201);
+    const idShift = (await json<Data<{ id: number }>>(buka)).data.id;
+    const ditolak = await lewatMasuk('/baru', o.username, PASSWORD_UJI);
+    expect(ditolak.status).toBe(409);
+    const tutup = await minta(`/api/shift/${idShift}/tutup`, {
+      method: 'POST',
+      cookie: o.cookie,
+      body: { uangFisik: 0 },
+    });
+    expect(tutup.status).toBe(200);
+
+    const r = await lewatMasuk('/baru', o.username, PASSWORD_UJI);
+    expect(r.status).toBe(201);
+    const lama = (await json<Data<ManifestData>>(r)).data;
+    expect(lama).toMatchObject({ jenis: 'SALINAN' });
+    expect(lama.jumlah.pelanggan).toBe(1);
+    // Data baru kosong (setup awal tampil lagi), data awal terisi.
+    expect(await db.select().from(pengguna)).toHaveLength(0);
+    expect(await db.select().from(pelanggan)).toHaveLength(0);
+    const tersimpan = await json<Data<ManifestData[]>>(await minta('/api/auth/setup-data'));
+    expect(tersimpan.data.map((d) => d.id)).toContain(lama.id);
+    // Data lama bisa dipakai kembali.
+    expect((await minta(`/api/auth/setup-data/${lama.id}/pakai`, { method: 'POST' })).status).toBe(
+      200,
+    );
+    expect((await db.select().from(pelanggan)).map((p) => p.namaPelanggan)).toEqual([
+      'Pelanggan Toko Lama',
+    ]);
+  });
+
   it('pengaman otomatis hanya 3 terbaru yang disimpan', async () => {
     const akar = akarPustaka();
     for (let i = 1; i <= 5; i++) {

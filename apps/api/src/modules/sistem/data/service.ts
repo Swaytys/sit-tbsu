@@ -14,6 +14,8 @@ import { cocokPassword } from '../../../lib/password';
 import * as authRepo from '../../auth/repo';
 import { wajib } from '../cadangan/alat';
 import { konfigCadangan, opsiRestic, TAG } from '../cadangan/service';
+import { isiDataAwal } from '../../../db/data-awal';
+import * as shiftRepo from '../../kas/shift/repo';
 import { invalidasiKonfigurasi } from '../konfigurasi/service';
 import { catatLog } from '../log-aktivitas';
 import {
@@ -22,6 +24,7 @@ import {
   daftarPustaka,
   hapusEntri,
   imporBerkas,
+  kosongkanData,
   pulihkanDari,
   ringkasDatabase,
   simpanKePustaka,
@@ -98,10 +101,22 @@ export async function simpanSalinan(
     aksi: 'DATA_SALINAN',
     idPengguna: pelaku.id,
     entitas: 'pustaka_data',
-    ringkasan: `Salinan data aktif disimpan ke Pustaka: ${label}`,
+    ringkasan: `Salinan data toko disimpan: ${label}`,
     ip: asal.ip,
   });
   return m;
+}
+
+/** Data tidak boleh diganti selama uang laci shift belum dicocokkan (K-215, K-219). */
+async function pastikanTanpaShift(tindakan: string): Promise<void> {
+  const [shift] = await shiftRepo.shiftTerbuka(db);
+  if (shift) {
+    throw new AppError(
+      'STATUS_TIDAK_VALID',
+      `Shift ${shift.nomor} masih terbuka. Tutup shift dulu, baru ${tindakan}.`,
+      409,
+    );
+  }
 }
 
 /** Inti mengganti data aktif; dipakai juga oleh setup awal (tanpa pengguna) dan tes. */
@@ -111,6 +126,7 @@ export async function gantiDataAktif(
   asal: AsalRequest,
 ): Promise<ManifestData> {
   if (sedangGanti) throw new AppError('KONFLIK', 'Penggantian data lain sedang berjalan.', 409);
+  await pastikanTanpaShift('ganti data toko');
   const akar = akarPustaka();
   const target = await cariEntri(akar, id);
   sedangGanti = true;
@@ -162,6 +178,52 @@ export async function pakaiData(
   );
 }
 
+/**
+ * K-219: data toko baru yang kosong (setup awal dari awal) tanpa menghapus data yang sedang dipakai: data sekarang
+ * disimpan dulu sebagai salinan (tidak ikut dipangkas), lalu database dikosongkan dan diisi data awal. Ditolak
+ * selama shift masih terbuka (uang laci belum dicocokkan).
+ */
+export async function buatDataBaru(
+  pelaku: { id: number | null; nama: string },
+  asal: AsalRequest,
+): Promise<ManifestData> {
+  if (sedangGanti) throw new AppError('KONFLIK', 'Penggantian data lain sedang berjalan.', 409);
+  await pastikanTanpaShift('buat data toko baru');
+  sedangGanti = true;
+  try {
+    const nama = (await ringkasDatabase(env.DATABASE_URL)).namaToko || 'tanpa nama toko';
+    const simpan = await simpanKePustaka({
+      pg: pgAktif(),
+      akar: akarPustaka(),
+      storageDir: env.STORAGE_DIR,
+      jenis: 'SALINAN',
+      label: `Data ${nama} sebelum membuat data toko baru`,
+    });
+    await kosongkanData({ pg: pgAktif(), storageDir: env.STORAGE_DIR });
+    await isiDataAwal(db, { passwordOwner: null, akunDemo: false });
+    invalidasiKonfigurasi();
+    await catatLog(db, {
+      aksi: 'DATA_GANTI',
+      idPengguna: null,
+      entitas: 'pustaka_data',
+      ringkasan: `Data toko baru (kosong) dibuat oleh ${pelaku.nama}; data "${nama}" disimpan dan bisa dipakai kembali`,
+      ip: asal.ip,
+    });
+    return simpan;
+  } finally {
+    sedangGanti = false;
+  }
+}
+
+export async function buatDataBaruDenganPassword(
+  password: string,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<ManifestData> {
+  await pastikanPassword(pelaku, password);
+  return buatDataBaru({ id: pelaku.id, nama: `${pelaku.namaPengguna} (${pelaku.username})` }, asal);
+}
+
 export async function hapusData(
   id: string,
   password: string,
@@ -174,7 +236,7 @@ export async function hapusData(
     aksi: 'DATA_HAPUS',
     idPengguna: pelaku.id,
     entitas: 'pustaka_data',
-    ringkasan: `Data dihapus dari Pustaka: ${m.label} (${m.namaToko || 'tanpa nama toko'})`,
+    ringkasan: `Data toko dihapus dari komputer: ${m.label} (${m.namaToko || 'tanpa nama toko'})`,
     ip: asal.ip,
   });
 }
@@ -218,7 +280,7 @@ export async function eksporData(
       aksi: 'DATA_EKSPOR',
       idPengguna: pelaku.id,
       entitas: 'pustaka_data',
-      ringkasan: `Data diekspor ke berkas .bonsai (${input.id ? `Pustaka ${input.id}` : 'data aktif'})`,
+      ringkasan: `Berkas pindah komputer (.bonsai) dibuat dari ${input.id ? `data tersimpan ${input.id}` : 'data yang sedang dipakai'}`,
       ip: asal.ip,
     });
     return { isi, nama: `BonsaiUrip-${aman}-${tanggal}.bonsai` };
@@ -239,7 +301,7 @@ export async function imporData(
       aksi: 'DATA_IMPOR',
       idPengguna: pelaku.id,
       entitas: 'pustaka_data',
-      ringkasan: `Berkas data diimpor ke Pustaka: ${m.namaToko || m.label}`,
+      ringkasan: `Berkas pindah komputer dimasukkan: ${m.namaToko || m.label}`,
       ip: asal.ip,
     });
   }
@@ -330,7 +392,7 @@ export async function ambilDariHarian(
       aksi: 'DATA_IMPOR',
       idPengguna: pelaku.id,
       entitas: 'pustaka_data',
-      ringkasan: `Snapshot cadangan harian ${snapshot} disimpan ke Pustaka`,
+      ringkasan: `Cadangan harian ${snapshot} disalin ke daftar data toko`,
       ip: asal.ip,
     });
     return m;
@@ -415,7 +477,7 @@ export async function pastikanBelumAdaPengguna(): Promise<void> {
   if ((await authRepo.jumlahPengguna(db)) > 0) {
     throw new AppError(
       'KONFLIK',
-      'Setup awal sudah dikerjakan. Kelola data dari Pengaturan › Data.',
+      'Setup awal sudah dikerjakan. Kelola data dari Pengaturan › Data toko.',
       409,
     );
   }

@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { skemaLogin, type InputLogin } from '@sit/shared';
 import { ChevronRight, Lock, Store, User } from 'lucide-react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useLogin, useSaya, useStatusPenyiapan } from '@/api/auth';
@@ -15,6 +16,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { DialogDataToko } from './dialog-data-toko';
 import { MasukCepat } from './masuk-cepat';
 
 /** Hanya izinkan kembali ke path internal (mencegah open redirect lewat ?kembali=). */
@@ -30,6 +32,7 @@ export function HalamanLogin() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const tujuan = tujuanAman(params.get('kembali'));
+  const [dataToko, setDataToko] = useState(false);
   const toko = penyiapan.data ?? { namaToko: '', sloganToko: '', kotaToko: '' };
 
   const form = useForm<InputLogin>({
@@ -148,14 +151,22 @@ export function HalamanLogin() {
                   </>
                 )}
               </Button>
-              <div className="text-center">
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-center">
                 <Link to="/lupa-password" className="text-sm text-blue-700 hover:underline">
                   Lupa password?
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setDataToko(true)}
+                  className="text-sm text-slate-600 hover:text-blue-700 hover:underline"
+                >
+                  Ganti / buat data toko
+                </button>
               </div>
             </form>
           </Form>
 
+          {dataToko && <DialogDataToko onTutup={() => setDataToko(false)} />}
           {import.meta.env.DEV && (
             <MasukCepat onBerhasil={() => void navigate(tujuan, { replace: true })} />
           )}

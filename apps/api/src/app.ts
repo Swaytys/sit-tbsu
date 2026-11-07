@@ -50,7 +50,12 @@ import { cadanganRoutes } from './modules/sistem/cadangan/routes';
 import { pemulihanRoutes } from './modules/sistem/pemulihan/routes';
 import { aksesRoutes } from './modules/sistem/akses/routes';
 import { originAksesPerangkat } from './modules/sistem/akses/tailscale';
-import { dataRoutes, dataSetupRoutes, jagaGantiDataRute } from './modules/sistem/data/routes';
+import {
+  dataMasukRoutes,
+  dataRoutes,
+  dataSetupRoutes,
+  jagaGantiDataRute,
+} from './modules/sistem/data/routes';
 import { cariRoutes } from './modules/sistem/cari/routes';
 import { hasilPenjualanRoutes } from './modules/hasil-penjualan/routes';
 import { orderPembelianRoutes } from './modules/persediaan/order-pembelian/routes';
@@ -69,6 +74,7 @@ const rute = new Hono<EnvApp>()
   .route('/health', healthRoutes)
   .route('/auth', authRoutes)
   .route('/auth', dataSetupRoutes)
+  .route('/auth', dataMasukRoutes)
   .route('/satuan', satuanRoutes)
   .route('/kategori', kategoriRoutes)
   .route('/merk', merkRoutes)
@@ -195,6 +201,10 @@ export const RUTE_PUBLIK: readonly string[] = [
   'GET /api/auth/setup-data',
   'POST /api/auth/setup-data/impor',
   'POST /api/auth/setup-data/:id/pakai',
+  // K-219: halaman masuk › ganti/buat data toko (wajib username + password Owner di setiap permintaan).
+  'POST /api/auth/data-toko/daftar',
+  'POST /api/auth/data-toko/:id/pakai',
+  'POST /api/auth/data-toko/baru',
   ...(env.NODE_ENV === 'development' ? ['POST /api/auth/masuk-cepat'] : []),
 ];
 

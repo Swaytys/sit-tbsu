@@ -38,6 +38,43 @@ export function usePakaiData() {
   });
 }
 
+/** K-219: data toko baru (kosong); data sekarang disimpan dan bisa dipakai lagi. */
+export function useBuatDataBaru() {
+  return useMutation({
+    mutationFn: async (password: string) =>
+      ambilData(await api.data.baru.$post({ json: { password } })),
+  });
+}
+
+/** K-219: dari halaman masuk, dengan username + password Owner data yang sedang dipakai. */
+export type KredensialOwner = { username: string; password: string };
+
+export function useDataTokoMasuk() {
+  return useMutation({
+    mutationFn: async (k: KredensialOwner) =>
+      ambilData(await api.auth['data-toko'].daftar.$post({ json: k })),
+  });
+}
+
+export function usePakaiDataMasuk() {
+  return useMutation({
+    mutationFn: async (p: KredensialOwner & { id: string }) =>
+      ambilData(
+        await api.auth['data-toko'][':id'].pakai.$post({
+          param: { id: p.id },
+          json: { username: p.username, password: p.password },
+        }),
+      ),
+  });
+}
+
+export function useBuatDataBaruMasuk() {
+  return useMutation({
+    mutationFn: async (k: KredensialOwner) =>
+      ambilData(await api.auth['data-toko'].baru.$post({ json: k })),
+  });
+}
+
 export function useHapusData() {
   const qc = useQueryClient();
   return useMutation({

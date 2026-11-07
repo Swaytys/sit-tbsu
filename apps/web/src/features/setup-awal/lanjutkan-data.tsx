@@ -53,8 +53,8 @@ function DialogLanjutkan({ onTutup }: { onTutup: () => void }) {
           <DialogTitle>Lanjutkan data yang sudah ada</DialogTitle>
           <DialogDescription>
             Pilih data di komputer ini, atau impor berkas .bonsai dari komputer lain (dibuat di
-            Pengaturan › Data › Ekspor). Setelah itu Anda masuk dengan username dan password dari
-            data tersebut.
+            Pengaturan › Data toko › Buat berkas pindah komputer). Setelah itu Anda masuk dengan
+            username dan password dari data tersebut.
           </DialogDescription>
         </DialogHeader>
         <section className="space-y-2">
