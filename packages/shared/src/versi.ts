@@ -4,11 +4,25 @@
  * pengguna (bukan istilah teknis); rincian teknis tetap di docs/11.
  */
 
-export const VERSI_APLIKASI = '1.18.0';
+export const VERSI_APLIKASI = '1.19.0';
 
 export type CatatanRilis = { versi: string; tanggal: string; isi: string[] };
 
 export const CATATAN_RILIS: CatatanRilis[] = [
+  {
+    versi: '1.19.0',
+    tanggal: '2026-11-07',
+    isi: [
+      'Mode LAN toko: HP/tablet di WiFi toko membuka BonsaiUrip lewat HTTPS dengan sertifikat toko, gratis tanpa Tailscale; setiap perangkat baru disetujui Owner/Admin dengan kode 6 angka.',
+      'Data latihan: toko contoh berisi barang berstok, pelanggan, pemasok, dan kendaraan untuk melatih karyawan, dengan pita MODE LATIHAN; data asli tetap tersimpan.',
+      'Buat data toko baru atau ganti data toko dari Pengaturan › Data toko dan dari halaman masuk, tanpa memasang ulang.',
+      'Pintasan keyboard bisa diganti per pengguna (menu nama › Pintasan keyboard); semua pintasan juga bisa disentuh di HP/tablet.',
+      'Jenis kas keluar baru: Biaya entertain (keterangan wajib).',
+      'Pemulihan akses Owner terakhir hanya bersama pengembang dengan kode khusus; menu Start lama dihapus.',
+      'Perbaikan: draf order langsung memakai harga jual terbaru; tab Pemeriksaan data tidak lagi tergabung dengan tab Data; istilah teknis di halaman data dan Setup diganti bahasa sehari-hari.',
+      'Perbaikan 1.18.0: aplikasi tetap menyala walau port database/server dipakai program lain.',
+    ],
+  },
   {
     versi: '1.18.0',
     tanggal: '2026-10-31',

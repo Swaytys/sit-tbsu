@@ -902,3 +902,24 @@ pengantaran (centang sebelum berangkat).
   proses server keluar; `sambungDb` mencoba ulang 60x untuk "starting up"/ECONNREFUSED. Diuji pada paket: port
   terhalang di nyala pertama, data lama ber-port 54329/7878 dengan server asing yang menjawab `/api/health`, tutup
   lalu buka, buka saat masih menyala.
+
+- **7 Nov 2026, 1.19.0 (V1 stabil, K-218–K-232).**
+  - K-224: `BarisLama.tanpaJanji` untuk baris draf (pratinjau dan `ubahOrderTx`), P2 hanya setelah dikirim/disimpan.
+  - K-223: jenis kas `BIAYA_ENTERTAIN` (migrasi 0042). K-145: `pengguna.pintasan` jsonb (migrasi 0043), skema
+    `packages/shared/src/pintasan.ts` (`partialRecord` karena `record` berkunci enum di Zod 4 mewajibkan semua kunci),
+    rute `GET/PUT /api/auth/pintasan`, hook `usePintasan`.
+  - K-228: `Tombol.aksi` di bilah pintasan (tombol dengan `aria-label` "label (kunci)").
+  - K-232: `lib/pemulihan-pengembang.ts` (Ed25519 tantangan–jawaban), kunci publik `kunci-pemulihan-publik.ts`, alat
+    `alat-pengembang/kunci-pemulihan.mjs`, kunci rahasia `.pengembang/` (gitignore); peluncur `--pulihkan-owner
+    --tantangan | --jawaban=`; BonsaiUrip.exe `MintaJawaban`; menu Start dihapus.
+  - K-218–K-220: `buatDataBaru` (salinan + `kosongkanData` + `isiDataAwal`), rute publik `/api/auth/data-toko/*`
+    dengan `periksaOwner` (hitungan gagal login berlaku), `pastikanTanpaShift` untuk ganti/buat data, tab
+    `?tab=pemeriksaan`. K-168: `sistem/data/latihan.ts`, konfigurasi `mode_latihan`, `StatusPenyiapan.modeLatihan`,
+    pita `PitaLatihan`.
+  - K-119: `scripts/uji/e2e-terpisah.mjs` (initdb sekali pakai di `.uji-e2e/`, port 54399, API 3100, web 5174);
+    `pnpm test:e2e` memakainya, `test:e2e:dev` untuk server pengembangan.
+  - K-229: `sistem/akses/sertifikat-lan.ts` (node-forge 1.3.1; CA 10 tahun, server 397 hari, SAN IP + hostname),
+    `sistem/akses/lan.ts` (serve HTTPS 0.0.0.0:`LAN_PORT` dengan `fetch` yang menambah binding `jalurLan`, server
+    http `LAN_PORT_SIAP` untuk sertifikat, `jagaPerangkatLan` setelah `muatSesi`, cookie `bu_perangkat` maks 400 hari
+    diperpanjang saat terlihat), tabel `perangkat_lan` (migrasi 0044), env `HOST` (peluncur 127.0.0.1).
+    `EnvApp.Bindings.jalurLan`. Galat dengar (EADDRINUSE) dicatat, aplikasi utama tetap jalan.

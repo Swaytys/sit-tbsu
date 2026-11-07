@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router/dom';
 import { kunciAuth } from '@/api/auth';
 import { GalatApi } from '@/api/client';
 import { Toaster } from '@/components/ui/sonner';
+import { PenjagaPerangkat } from '@/features/auth/penjaga-perangkat';
 import { router } from './routes';
 
 /**
@@ -28,7 +29,9 @@ const queryClient: QueryClient = new QueryClient({
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <PenjagaPerangkat>
+        <RouterProvider router={router} />
+      </PenjagaPerangkat>
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );

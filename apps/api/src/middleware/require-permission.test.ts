@@ -37,6 +37,8 @@ describe('guard default (CLAUDE.md aturan 5)', () => {
       'POST /api/auth/data-toko/daftar',
       'POST /api/auth/data-toko/:id/pakai',
       'POST /api/auth/data-toko/baru',
+      'POST /api/perangkat/daftar',
+      'GET /api/perangkat/status',
     ]);
   });
 });

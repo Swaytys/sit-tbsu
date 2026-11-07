@@ -32,6 +32,7 @@
     "drizzle-orm": "catalog:",
     "exceljs": "catalog:",
     "hono": "catalog:",
+    "node-forge": "1.3.1",
     "nodemailer": "catalog:",
     "pg": "catalog:",
     "pino": "catalog:",
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/node-forge": "1.3.11",
     "@types/pg": "catalog:",
     "drizzle-kit": "catalog:",
     "pino-pretty": "catalog:",

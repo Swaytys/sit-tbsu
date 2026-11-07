@@ -283,6 +283,8 @@ function lingkungan(k: Konfigurasi): NodeJS.ProcessEnv {
     PUSTAKA_DIR: PUSTAKA,
     MATI_MENDADAK_FILE: BERKAS_MATI,
     AKSES_TAILSCALE: '1',
+    // K-229: server utama hanya untuk komputer ini; HP/tablet lewat mode LAN (HTTPS) atau Tailscale.
+    HOST: '127.0.0.1',
     LOG_FILE: path.join(LOG, 'server.log'),
     LOG_LEVEL: 'info',
     SESSION_IDLE_MENIT: '60',

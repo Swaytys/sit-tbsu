@@ -48,7 +48,8 @@ import { arsipRoutes } from './modules/sistem/arsip/routes';
 import { pemeriksaanDataRoutes } from './modules/sistem/pemeriksaan-data/routes';
 import { cadanganRoutes } from './modules/sistem/cadangan/routes';
 import { pemulihanRoutes } from './modules/sistem/pemulihan/routes';
-import { aksesRoutes } from './modules/sistem/akses/routes';
+import { jagaPerangkatLan } from './modules/sistem/akses/lan';
+import { aksesRoutes, perangkatRoutes } from './modules/sistem/akses/routes';
 import { originAksesPerangkat } from './modules/sistem/akses/tailscale';
 import {
   dataMasukRoutes,
@@ -122,6 +123,7 @@ const rute = new Hono<EnvApp>()
   .route('/data', dataRoutes)
   .route('/pemulihan', pemulihanRoutes)
   .route('/akses-perangkat', aksesRoutes)
+  .route('/perangkat', perangkatRoutes)
   .route('/arsip', arsipRoutes)
   .route('/pemeriksaan-data', pemeriksaanDataRoutes)
   .route('/cari', cariRoutes)
@@ -173,6 +175,8 @@ app.use('/api/*', batasJsonSaja);
 // K-213: selama data aktif diganti, permintaan lain dijawab 503.
 app.use('/api/*', jagaGantiDataRute);
 app.use('/api/*', muatSesi);
+// K-229: lewat HTTPS LAN, API hanya untuk perangkat yang sudah disetujui.
+app.use('/api/*', jagaPerangkatLan);
 // K-164: kiriman ulang dengan kunci idempoten yang sama dijawab dari hasil pertama.
 app.use('/api/*', idempoten);
 app.route('/api', rute);
@@ -205,6 +209,9 @@ export const RUTE_PUBLIK: readonly string[] = [
   'POST /api/auth/data-toko/daftar',
   'POST /api/auth/data-toko/:id/pakai',
   'POST /api/auth/data-toko/baru',
+  // K-229: HP/tablet mode LAN mendaftarkan diri dan membaca status persetujuannya.
+  'POST /api/perangkat/daftar',
+  'GET /api/perangkat/status',
   ...(env.NODE_ENV === 'development' ? ['POST /api/auth/masuk-cepat'] : []),
 ];
 

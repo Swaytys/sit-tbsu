@@ -17,6 +17,8 @@ export type AsalRequest = { ip: string | null; userAgent: string | null };
 
 /** Tipe lingkungan Hono untuk seluruh aplikasi: `c.var.pengguna`, `c.var.asal`. */
 export type EnvApp = {
+  /** K-229: `jalurLan` diisi server HTTPS LAN (lihat modules/sistem/akses/lan.ts). */
+  Bindings: { jalurLan?: boolean };
   Variables: {
     pengguna: PenggunaAktif | null;
     asal: AsalRequest;

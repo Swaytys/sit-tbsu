@@ -9,6 +9,7 @@ import { env } from './env';
 import { logger } from './lib/logger';
 import { ingatkanShiftPerluDitutup } from './modules/kas/shift/service';
 import { jalankanJobOrder } from './modules/penjualan/order/service';
+import { nyalakanLanBilaAktif } from './modules/sistem/akses/lan';
 import { nyalakanAksesPerangkat } from './modules/sistem/akses/tailscale';
 import { cekJadwalCadangan } from './modules/sistem/cadangan/service';
 
@@ -30,12 +31,15 @@ const server =
         },
         (info) => logger.info(`Server berjalan di ${skema}://localhost:${info.port}`),
       )
-    : serve({ fetch: app.fetch, port: env.PORT }, (info) =>
-        logger.info(`Server berjalan di ${skema}://localhost:${info.port}`),
+    : serve(
+        { fetch: app.fetch, port: env.PORT, ...(env.HOST ? { hostname: env.HOST } : {}) },
+        (info) => logger.info(`Server berjalan di ${skema}://localhost:${info.port}`),
       );
 
 // K-217: akses HP/tablet lewat Tailscale (pemasangan desktop).
 void nyalakanAksesPerangkat();
+// K-229: mode LAN toko bila pernah dinyalakan Owner.
+void nyalakanLanBilaAktif(app);
 
 if (env.NODE_ENV === 'production' && !https) {
   logger.warn(

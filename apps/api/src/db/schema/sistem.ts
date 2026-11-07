@@ -19,6 +19,7 @@ import {
   PERAN,
   STATUS_AKTIF,
   STATUS_CADANGAN,
+  STATUS_PERANGKAT,
   STATUS_TUJUAN_CADANGAN,
   STATUS_TUTUP_TAHUN,
   TIPE_KONFIGURASI,
@@ -148,6 +149,36 @@ export const kodeResetPassword = pgTable(
       foreignColumns: [pengguna.id],
     }),
     index('idx_kode_reset_pengguna').on(t.idPengguna),
+  ],
+);
+
+/**
+ * K-229: perangkat yang membuka aplikasi lewat mode LAN toko. Perangkat baru mendapat token acak (disimpan sebagai
+ * hash) dan kode 6 angka; aplikasi hanya bisa dipakai setelah Owner/Admin menyetujui kode itu.
+ */
+export const perangkatLan = pgTable(
+  'perangkat_lan',
+  {
+    id: kolomId(),
+    tokenHash: char('token_hash', { length: 64 }).notNull(),
+    kode: char('kode', { length: 6 }).notNull(),
+    nama: varchar('nama', { length: 80 }).notNull(),
+    status: varchar('status', { length: 12, enum: STATUS_PERANGKAT }).notNull().default('MENUNGGU'),
+    userAgent: varchar('user_agent', { length: 300 }),
+    ipTerakhir: varchar('ip_terakhir', { length: 45 }),
+    diputuskanOleh: kolomRef('diputuskan_oleh'),
+    diputuskanPada: timestamptz('diputuskan_pada'),
+    terakhirDilihat: timestamptz('terakhir_dilihat'),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'perangkat_lan_diputuskan_oleh_fkey',
+      columns: [t.diputuskanOleh],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_perangkat_lan_status', dalamDaftar('status', STATUS_PERANGKAT)),
+    index('idx_perangkat_lan_token').on(t.tokenHash),
   ],
 );
 
