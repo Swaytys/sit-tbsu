@@ -770,9 +770,10 @@ keputusan lama masih tertulis di berkasnya.
 | K-222 | Nama barang disusun otomatis dari kategori, merek, atribut kunci (templat per kategori); tidak diketik bebas; kembar ditolak. | Berlaku (rencana V2) |
 | K-223 | Jenis kas keluar Biaya entertain (keterangan wajib). | Berlaku |
 | K-224 | Draf order tidak menjanjikan harga; selalu harga master terbaru. | Berlaku |
-| K-225 | Peran V2: Owner, Kepala Toko, Administrator Sistem, Admin Persediaan, Petugas Gudang, Kasir, Staf; PO disetujui berjenjang; penerima ≠ pemesan; pencocokan tiga dokumen; pembayaran hutang oleh Owner/Kepala Toko sampai batas. | Berlaku (rencana V2) |
+| K-225 | Peran V2: Owner, Kepala Toko, Administrator Sistem, Admin Persediaan, Petugas Gudang, Kasir, Staf; PO disetujui berjenjang; penerima ≠ pemesan; pencocokan tiga dokumen; pembayaran hutang oleh Owner/Kepala Toko sampai batas. | Berlaku (V2: tahap 1 peran dan tahap 2 persetujuan PO selesai; tahap 3 menyusul) |
 | K-226 | Inti ritel umum + modul per jenis usaha; fitur bahan bangunan tetap. | Berlaku (rencana V2) |
 | K-227 | Kemasan simpan tersegel + ecer, buka kemasan, hitung timbang, opname bertahap ABC dengan daftar harian acak, hitung buta, persetujuan selisih, akurasi stok. | Berlaku (rencana V2) |
+| K-233 | Perbaikan dari uji layar lengkap: baris atribut otomatis tidak merebut fokus isian muatan; tahun berjalan selalu tampil di arsip; tes layar disesuaikan dengan K-178, K-196, K-203, K-225. | Berlaku |
 | K-228 | Setiap pintasan keyboard juga berupa tombol yang bisa diklik/disentuh. | Berlaku (audit selesai 7 Nov) |
 | K-229 | Mode LAN toko (HTTPS dengan sertifikat toko + perangkat terdaftar) di samping Tailscale. | Berlaku (7 Nov, 1.19.0) |
 | K-230 | Panduan label & barcode (pemindai = keyboard, Code 128); label rak dan lembar barcode kasir untuk barang curah. | Berlaku (panduan V1, label rak V2) |

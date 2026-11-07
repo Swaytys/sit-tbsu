@@ -303,6 +303,25 @@ const KONFIGURASI: BarisKonfigurasi[] = [
       'Muatan di atas 100% sampai batas ini boleh berangkat dengan alasan; di atasnya ditolak (K-203)',
   },
   {
+    kode: 'po_batas_tanpa_persetujuan',
+    nilai: '1000000',
+    tipe: 'ANGKA',
+    deskripsi: 'Order pembelian sampai nilai ini boleh dikirim tanpa persetujuan (K-225)',
+  },
+  {
+    kode: 'po_batas_kepala_toko',
+    nilai: '10000000',
+    tipe: 'ANGKA',
+    deskripsi: 'Kepala Toko menyetujui order pembelian sampai nilai ini; di atasnya Owner (K-225)',
+  },
+  {
+    kode: 'po_ambang_naik_persen',
+    nilai: '10',
+    tipe: 'ANGKA',
+    deskripsi:
+      'Harga beli naik lebih dari persen ini dari harga beli terakhir wajib disetujui (K-225)',
+  },
+  {
     kode: 'muatan_julur_maks_cm',
     nilai: '100',
     tipe: 'ANGKA',

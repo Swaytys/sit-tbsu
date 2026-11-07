@@ -74,7 +74,7 @@ describe('seed data awal (docs/03 §6)', () => {
     expect(await db.select().from(pengguna)).toHaveLength(1);
 
     const hasil = await isiDataAwal(db, { passwordOwner: PASSWORD, akunDemo: true });
-    expect(hasil.pengguna).toBe(4);
+    expect(hasil.pengguna).toBe(7);
     const demo = await db
       .select({
         username: pengguna.username,
@@ -89,6 +89,9 @@ describe('seed data awal (docs/03 §6)', () => {
       'demo.admin',
       'demo.kasir',
       'demo.staf',
+      'demo.sistem',
+      'demo.persediaan',
+      'demo.gudang',
     ]);
     expect(demo.slice(1).every((d) => !d.wajib)).toBe(true);
   });

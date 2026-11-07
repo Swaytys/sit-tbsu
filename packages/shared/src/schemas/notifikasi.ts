@@ -21,6 +21,8 @@ export const JENIS_NOTIFIKASI = [
   'PERLU_DIPESAN',
   /** K-125: order pembelian lewat tanggal janji kirim, barang belum lengkap. */
   'PO_TERLAMBAT',
+  /** K-225: order pembelian menunggu persetujuan yang boleh disetujui pengguna ini. */
+  'PO_MENUNGGU_PERSETUJUAN',
   'SHIFT_HITUNG_BUKA',
   'ORDER_DISIMPAN_LEWAT',
   'ARMADA_SURAT',

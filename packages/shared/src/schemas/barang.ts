@@ -359,6 +359,8 @@ export type DetailBarang = BarisBarang & {
   atribut: AtributBarang[];
   /** Sudah ada mutasi stok: satuan dasar dan harga modal awal dikunci (K-060). */
   sudahAdaMutasi: boolean;
+  /** K-225: pembelian barang ini selalu wajib disetujui Owner. */
+  perluPersetujuanBeli: boolean;
   /** K-161: data muatan per satuan dasar. */
   muatan: MuatanBarang;
   /** K-164: waktu ubah terakhir (ISO), dikirim balik saat menyimpan perubahan. */

@@ -29,6 +29,7 @@ import { catatKas, shiftUntukCatat } from '../../kas/shift/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import { tambahPembayaran } from '../penerimaan/repo';
+import { hitungPersetujuan, infoPersetujuan } from './persetujuan';
 import * as repo from './repo';
 
 /*
@@ -75,13 +76,17 @@ export async function detailPO(id: number, izin: ReadonlySet<Izin>): Promise<Det
   const b = await repo.satu(db, id);
   if (!b) throw new AppError('TIDAK_DITEMUKAN', 'Order pembelian tidak ditemukan.', 404);
   const nilai = bolehHarga(izin);
-  const [baris, um, terima] = await Promise.all([
+  const [baris, um, terima, mentah] = await Promise.all([
     repo.detail(db, id),
     repo.uangMuka(db, id),
     repo.penerimaan(db, id),
+    db.select().from(orderPembelian).where(eq(orderPembelian.id, id)),
   ]);
+  const po = mentah[0];
+  if (!po) throw new AppError('TIDAK_DITEMUKAN', 'Order pembelian tidak ditemukan.', 404);
   return {
     ...keBaris(b, nilai, tanggalOperasional()),
+    persetujuan: await infoPersetujuan(db, po),
     catatan: b.catatan,
     alasanTutup: b.alasanTutup,
     baris: baris.map((d): BarisOrderPembelianDetail => {
@@ -251,11 +256,24 @@ export async function ubahPO(
   return detailPO(id, pelaku.izin);
 }
 
-/** PO2: kirim ke pemasok: nomor terbit, isi terkunci, tanggal pesan dicatat. */
+/**
+ * PO2: kirim ke pemasok: nomor terbit, isi terkunci, tanggal pesan dicatat. K-225: draf yang wajib disetujui harus
+ * diajukan dan disetujui dulu (Owner boleh langsung mengirim).
+ */
 export async function kirimPO(id: number, pelaku: PenggunaAktif, asal: AsalRequest) {
   await dalamTransaksi(async (tx) => {
     const po = await kunciPO(tx, id);
-    wajibStatus(po, ['DRAF'], 'dikirim');
+    wajibStatus(po, ['DRAF', 'DISETUJUI'], 'dikirim');
+    if (po.status === 'DRAF' && pelaku.peran !== 'OWNER') {
+      const h = await hitungPersetujuan(tx, id);
+      if (h.alasan.length > 0) {
+        throw new AppError(
+          'STATUS_TIDAK_VALID',
+          `Order ini wajib disetujui dulu (tekan Ajukan persetujuan). ${h.alasan.join(' ')}`,
+          409,
+        );
+      }
+    }
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, 'PO', tanggal);
     await tx
@@ -466,7 +484,7 @@ export async function akhiriPO(
   await dalamTransaksi(async (tx) => {
     const po = await kunciPO(tx, id);
     if (jenis === 'BATAL') {
-      wajibStatus(po, ['DRAF', 'DIPESAN', 'DIKONFIRMASI'], 'dibatalkan');
+      wajibStatus(po, ['DRAF', 'DIAJUKAN', 'DISETUJUI', 'DIPESAN', 'DIKONFIRMASI'], 'dibatalkan');
       if ((await repo.penerimaan(tx, id)).length > 0) {
         throw new AppError(
           'STATUS_TIDAK_VALID',

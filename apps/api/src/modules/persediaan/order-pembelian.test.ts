@@ -2,7 +2,13 @@ import type { DetailOrderPembelian, DetailPenerimaan, HasilSaranPesan } from '@s
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
-import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import {
+  aturKonfigurasi,
+  json,
+  minta,
+  sesiUji,
+  siapkanDatabaseSistem,
+} from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import { alokasiUangMuka, orderPembelian, persediaan, shiftKasir } from '../../db/schema';
@@ -30,6 +36,11 @@ beforeEach(async () => {
   m = await siapkanMasterPersediaan();
   await kosongkanTabel(shiftKasir);
   admin = await sesiUji('ADMIN');
+  // Aturan persetujuan K-225 diuji di persetujuan-po.test.ts; di sini order langsung boleh dikirim.
+  await aturKonfigurasi({
+    po_batas_tanpa_persetujuan: '1000000000',
+    po_ambang_naik_persen: '100000',
+  });
 });
 
 async function poDipesan() {

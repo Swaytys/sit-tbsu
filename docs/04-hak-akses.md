@@ -2,7 +2,14 @@
 
 ## 1. Model
 
-- Ada 4 **peran** bertingkat: `STAF_PENJUALAN` ⊂ `KASIR` ⊂ `ADMIN` ⊂ `OWNER` (sesuai Use Case Diagram, K-019).
+- Sejak V2 (K-225) ada 7 **peran** dengan **pemisahan tugas**, tidak lagi bertingkat penuh: Staf Penjualan, Kasir,
+  Admin Persediaan (`ADMIN_PERSEDIAAN`), Petugas Gudang (`PETUGAS_GUDANG`), Administrator Sistem (`ADMIN_SISTEM`),
+  Kepala Toko (`ADMIN`, kode lama dipertahankan agar data akun tetap utuh), dan Owner. Peran atas tidak otomatis
+  memegang izin peran bawah: Kepala Toko memegang izin kasir dan administrasi persediaan plus persetujuan, tetapi
+  tidak memegang akun pengguna, cadangan, dan akses perangkat (itu Administrator Sistem). Owner memegang semua izin.
+  Sampai V1 (1.19.0) peran bertingkat `STAF_PENJUALAN` ⊂ `KASIR` ⊂ `ADMIN` ⊂ `OWNER` (K-019).
+- Administrator Sistem hanya boleh membuat/mengubah akun Staf, Kasir, Admin Persediaan, dan Petugas Gudang; akun
+  Kepala Toko, Administrator Sistem, dan Owner hanya diatur Owner (`PERAN_DIATUR_ADMIN_SISTEM`).
 - Implementasi berbasis **izin**: setiap route API dan setiap menu memeriksa satu kode izin, bukan nama peran.
   Peran adalah kumpulan izin yang didefinisikan di `packages/shared/src/roles.ts`. Menambah atau memindahkan
   kemampuan cukup mengubah satu berkas itu, tanpa menyentuh route.
@@ -22,6 +29,8 @@ memakai kode di luar daftar gagal typecheck.
 | `sistem.pengaturan.kelola` | Ubah profil toko, prefix nomor, ambang, dsb. |
 | `sistem.log.lihat` | Lihat log aktivitas semua pengguna; menyalakan, melihat, dan mengekspor log interaksi penelitian (K-190). Mengirim kejadian interaksi milik sendiri cukup login (`requireLogin`), hanya saat Owner menyalakannya |
 | `sistem.cadangan.kelola` | Lihat status cadangan data, cadangkan sekarang, uji pulih (K-084) |
+| `sistem.data.kelola` | Pustaka data, ganti data aktif, ekspor/impor data, arsip tahunan (K-213, K-225) |
+| `sistem.akses.kelola` | Akses HP/tablet: mode LAN toko, setujui/cabut perangkat, Tailscale (K-229, K-225) |
 | `master.pengguna.kelola` | Tambah/ubah/nonaktifkan pengguna, reset password, cabut sesi |
 | `master.barang.lihat` | Lihat daftar dan detail barang tanpa harga modal |
 | `master.barang.lihat_hpp` | Lihat harga modal, HPP, harga beli terakhir, harga titip |
@@ -73,6 +82,8 @@ memakai kode di luar daftar gagal typecheck.
 | `persediaan.penyesuaian.kelola` | Buat penyesuaian: saldo awal, opname, koreksi, rusak |
 | `persediaan.retur_pemasok.kelola` | (M2) Retur ke pemasok |
 | `hutang.lihat` / `hutang.kelola` | (M2) Lihat / bayar hutang pemasok |
+| `pembelian.setujui` | Menyetujui/menolak order pembelian sampai batas Kepala Toko, bukan buatan sendiri (K-225) |
+| `pembelian.setujui_semua` | Menyetujui order pembelian di atas batas Kepala Toko dan yang memuat barang wajib disetujui Owner; menandai barang tersebut (K-225) |
 | `konsinyasi.kelola` | (M2) Penyelesaian konsinyasi |
 
 ### Kas
@@ -105,64 +116,69 @@ memakai kode di luar daftar gagal typecheck.
 
 ## 3. Matriks peran
 
-`✓` = izin dimiliki. Peran di kanan mewarisi semua izin peran di kirinya; kolom tetap ditulis lengkap agar
-`roles.ts` bisa disalin langsung.
+`✓` = izin dimiliki. Tabel ini disalin dari `packages/shared/src/roles.ts` (V2, K-225); bila berbeda, `roles.ts` yang
+berlaku dan tabel ini diperbarui.
 
-| Izin | Staf | Kasir | Admin | Owner |
-|---|:-:|:-:|:-:|:-:|
-| sistem.pengaturan.kelola | | | ✓ | ✓ |
-| sistem.log.lihat | | | | ✓ |
-| sistem.cadangan.kelola | | | | ✓ |
-| master.pengguna.kelola | | | | ✓ |
-| master.barang.lihat | ✓ | ✓ | ✓ | ✓ |
-| master.barang.lihat_hpp | | | ✓ | ✓ |
-| master.barang.kelola | | | ✓ | ✓ |
-| master.kategori.kelola | | | ✓ | ✓ |
-| master.satuan.kelola | | | ✓ | ✓ |
-| master.harga.kelola | | | ✓ | ✓ |
-| master.harga.tinjau | | | ✓ | ✓ |
-| master.pelanggan.lihat | ✓ | ✓ | ✓ | ✓ |
-| master.pelanggan.kelola | ✓ | ✓ | ✓ | ✓ |
-| master.pelanggan.atur_kredit | | | ✓ | ✓ |
-| master.pemasok.lihat | | | ✓ | ✓ |
-| master.pemasok.kelola | | | ✓ | ✓ |
-| master.armada.kelola | | | ✓ | ✓ |
-| master.import.jalankan | | | ✓ | ✓ |
-| penjualan.order.buat | ✓ | ✓ | ✓ | ✓ |
-| penjualan.order.batal_sendiri | ✓ | ✓ | ✓ | ✓ |
-| penjualan.order.batal | | ✓ | ✓ | ✓ |
-| penjualan.order.lihat_semua | | ✓ | ✓ | ✓ |
-| penjualan.order.lepas_paksa | | | ✓ | ✓ |
-| penjualan.checkout | | ✓ | ✓ | ✓ |
-| penjualan.harga_manual | | | ✓ | ✓ |
-| penjualan.pembayaran.catat | | ✓ | ✓ | ✓ |
-| penjualan.surat_jalan.kelola | | ✓ | ✓ | ✓ |
-| penjualan.riwayat.lihat | | ✓ | ✓ | ✓ |
-| penjualan.piutang.lihat | | ✓ | ✓ | ✓ |
-| retur.ajukan | | ✓ | ✓ | ✓ |
-| retur.setujui | | | ✓ | ✓ |
-| void.ajukan | | ✓ | ✓ | ✓ |
-| void.setujui | | | ✓ | ✓ |
-| persediaan.stok.lihat_tersedia | ✓ | ✓ | ✓ | ✓ |
-| persediaan.stok.lihat | | | ✓ | ✓ |
-| persediaan.penerimaan.kelola | | | ✓ | ✓ |
-| persediaan.penyesuaian.kelola | | | ✓ | ✓ |
-| persediaan.retur_pemasok.kelola | | | ✓ | ✓ |
-| hutang.lihat / hutang.kelola | | | ✓ | ✓ |
-| konsinyasi.kelola | | | ✓ | ✓ |
-| kas.shift.kelola_sendiri | | ✓ | ✓ | ✓ |
-| kas.shift.lihat_semua | | | ✓ | ✓ |
-| kas.rekening.lihat | | ✓ | ✓ | ✓ |
-| kas.nontunai.verifikasi | | | ✓ | ✓ |
-| dashboard.dasar | ✓ | ✓ | ✓ | ✓ |
-| dashboard.omzet | | ✓ | ✓ | ✓ |
-| laporan.penjualan | | ✓ | ✓ | ✓ |
-| laporan.persediaan | | | ✓ | ✓ |
-| laporan.laba | | | ✓ | ✓ |
-| laporan.piutang | | ✓ | ✓ | ✓ |
-| laporan.hutang | | | ✓ | ✓ |
-| laporan.ekspor | | ✓ | ✓ | ✓ |
-| promo.kelola | | | ✓ | ✓ |
+| Izin | Staf | Kasir | Adm. Persediaan | Gudang | Adm. Sistem | Kepala Toko | Owner |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| sistem.pengaturan.kelola | | | | | | ✓ | ✓ |
+| sistem.log.lihat | | | | | | | ✓ |
+| sistem.cadangan.kelola | | | | | ✓ | | ✓ |
+| sistem.data.kelola | | | | | | | ✓ |
+| master.pengguna.kelola | | | | | ✓ | | ✓ |
+| master.barang.lihat | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| master.barang.lihat_hpp | | | ✓ | | | ✓ | ✓ |
+| master.barang.kelola | | | ✓ | | | ✓ | ✓ |
+| master.kategori.kelola | | | ✓ | | | ✓ | ✓ |
+| master.satuan.kelola | | | ✓ | | | ✓ | ✓ |
+| master.harga.kelola | | | ✓ | | | ✓ | ✓ |
+| master.harga.tinjau | | | ✓ | | | ✓ | ✓ |
+| master.pelanggan.lihat | ✓ | ✓ | ✓ | | | ✓ | ✓ |
+| master.pelanggan.kelola | ✓ | ✓ | | | | ✓ | ✓ |
+| master.pelanggan.atur_kredit | | | | | | ✓ | ✓ |
+| master.pemasok.lihat | | | ✓ | | | ✓ | ✓ |
+| master.pemasok.kelola | | | ✓ | | | ✓ | ✓ |
+| master.armada.kelola | | | ✓ | | | ✓ | ✓ |
+| master.import.jalankan | | | ✓ | | | ✓ | ✓ |
+| sistem.akses.kelola | | | | | ✓ | | ✓ |
+| pembelian.setujui | | | | | | ✓ | ✓ |
+| pembelian.setujui_semua | | | | | | | ✓ |
+| penjualan.order.buat | ✓ | ✓ | | | | ✓ | ✓ |
+| penjualan.order.batal_sendiri | ✓ | ✓ | | | | ✓ | ✓ |
+| penjualan.order.batal | | ✓ | | | | ✓ | ✓ |
+| penjualan.order.lihat_semua | | ✓ | | | | ✓ | ✓ |
+| penjualan.order.lepas_paksa | | | | | | ✓ | ✓ |
+| penjualan.checkout | | ✓ | | | | ✓ | ✓ |
+| penjualan.harga_manual | | | | | | ✓ | ✓ |
+| penjualan.pembayaran.catat | | ✓ | | | | ✓ | ✓ |
+| penjualan.surat_jalan.kelola | | ✓ | ✓ | ✓ | | ✓ | ✓ |
+| penjualan.riwayat.lihat | | ✓ | ✓ | | | ✓ | ✓ |
+| penjualan.piutang.lihat | | ✓ | | | | ✓ | ✓ |
+| retur.ajukan | | ✓ | | | | ✓ | ✓ |
+| retur.setujui | | | | | | ✓ | ✓ |
+| void.ajukan | | ✓ | | | | ✓ | ✓ |
+| void.setujui | | | | | | ✓ | ✓ |
+| persediaan.stok.lihat_tersedia | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| persediaan.stok.lihat | | | ✓ | ✓ | | ✓ | ✓ |
+| persediaan.penerimaan.kelola | | | ✓ | | | ✓ | ✓ |
+| persediaan.penyesuaian.kelola | | | ✓ | | | ✓ | ✓ |
+| persediaan.retur_pemasok.kelola | | | ✓ | | | ✓ | ✓ |
+| hutang.lihat | | | ✓ | | | ✓ | ✓ |
+| hutang.kelola | | | | | | ✓ | ✓ |
+| konsinyasi.kelola | | | ✓ | | | ✓ | ✓ |
+| kas.shift.kelola_sendiri | | ✓ | | | | ✓ | ✓ |
+| kas.shift.lihat_semua | | | | | | ✓ | ✓ |
+| kas.rekening.lihat | | ✓ | | | | ✓ | ✓ |
+| kas.nontunai.verifikasi | | | | | | ✓ | ✓ |
+| dashboard.dasar | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| dashboard.omzet | | ✓ | | | | ✓ | ✓ |
+| laporan.penjualan | | ✓ | | | | ✓ | ✓ |
+| laporan.persediaan | | | ✓ | | | ✓ | ✓ |
+| laporan.laba | | | | | | ✓ | ✓ |
+| laporan.piutang | | ✓ | | | | ✓ | ✓ |
+| laporan.hutang | | | ✓ | | | ✓ | ✓ |
+| laporan.ekspor | | ✓ | ✓ | | | ✓ | ✓ |
+| promo.kelola | | | | | | ✓ | ✓ |
 
 Staf Penjualan tidak melihat omzet, harga modal, laporan, maupun halaman persediaan penuh. Ia melihat stok
 tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembeli.
@@ -265,6 +281,20 @@ Aturan lain:
 - Void tambahan: hanya untuk penjualan pada shift yang masih terbuka; penjualan yang sudah punya surat jalan
   berstatus DIKIRIM/SELESAI atau sudah punya retur tidak bisa di-void (`STATUS_TIDAK_VALID`).
 
+### 6a. Persetujuan order pembelian (K-225)
+
+Aturannya di docs/05 §21 PO10–PO14. Ringkasan wewenang:
+
+| Siapa | Boleh |
+|---|---|
+| Pembuat order (`persediaan.penerimaan.kelola`) | Menyusun draf, **Ajukan persetujuan**, mengirim order yang tidak wajib disetujui atau sudah DISETUJUI, membatalkan |
+| Kepala Toko (`pembelian.setujui`) | Setujui/Tolak order yang diajukan sampai batas Kepala Toko, **bukan buatannya sendiri**, tanpa barang khusus |
+| Owner (`pembelian.setujui_semua`) | Semua order (termasuk buatannya sendiri dan di atas batas); boleh langsung mengirim draf tanpa diajukan; menandai barang "pembelian wajib disetujui Owner" |
+
+Penyetuju memakai **akunnya sendiri** (notifikasi lonceng `PO_MENUNGGU_PERSETUJUAN`); kode sekali pakai lewat
+Telegram/email seperti retur/void belum dipakai untuk order pembelian. Semua aturan dicek di API: peran lain
+ditolak 403, mengirim order yang wajib disetujui ditolak 409.
+
 ## 7. Sesi, login, password
 
 | Aturan | Nilai default | Sumber |
@@ -299,6 +329,8 @@ maks. 50.000 baris, dicatat LAPORAN_EKSPOR, K-113). Retensi: tidak dihapus pada 
 
 ## Riwayat
 
+- 2026-11-07 — V2 K-225: 7 peran dengan pemisahan tugas (§1, matriks §3 baru); izin `sistem.data.kelola`,
+  `sistem.akses.kelola`, `pembelian.setujui`, `pembelian.setujui_semua`; persetujuan order pembelian (§6a).
 - 2026-09-19 — v1. Konflik hak akses antar-sumber diselesaikan (K-019): Laporan untuk Kasir = penjualan tanpa HPP;
   Data Pemasok = Admin/Owner; Kelola pengguna = Owner.
 - 2026-09-30 — Membaca satuan (`GET /api/satuan`) memakai `master.barang.lihat`; rute milik sendiri (logout, profil,

@@ -9,7 +9,17 @@ import {
   type DetailOrderPembelian,
   type StatusOrderPembelian,
 } from '@sit/shared';
-import { ClipboardCopy, PackagePlus, Plus, Printer, Send, Trash2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  ClipboardCopy,
+  PackagePlus,
+  Plus,
+  Printer,
+  Send,
+  ShieldCheck,
+  Trash2,
+  Undo2,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -22,6 +32,7 @@ import {
   useSimpanPO,
   type SaringPO,
 } from '@/api/order-pembelian';
+import { usePengguna } from '@/api/auth';
 import { useTampilanToko } from '@/api/pengaturan';
 import { AreaCetak } from '@/components/area-cetak';
 import { OrderPembelianA4 } from '@/components/dokumen-a4';
@@ -42,7 +53,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDesimal, formatTanggal, tanggalHariIni } from '@/lib/format';
+import { formatDesimal, formatTanggal, formatWaktu, tanggalHariIni } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useIngat } from '@/lib/ingat-saring';
 
@@ -53,6 +64,8 @@ import { useIngat } from '@/lib/ingat-saring';
 
 const WARNA: Record<StatusOrderPembelian, string> = {
   DRAF: 'border-slate-300 bg-slate-50 text-slate-700',
+  DIAJUKAN: 'border-orange-300 bg-orange-50 text-orange-800',
+  DISETUJUI: 'border-teal-300 bg-teal-50 text-teal-800',
   DIPESAN: 'border-blue-300 bg-blue-50 text-blue-800',
   DIKONFIRMASI: 'border-indigo-300 bg-indigo-50 text-indigo-800',
   SEBAGIAN: 'border-amber-300 bg-amber-50 text-amber-900',
@@ -64,6 +77,8 @@ const WARNA: Record<StatusOrderPembelian, string> = {
 const SARINGAN: { nilai: SaringPO['status']; label: string }[] = [
   { nilai: 'BERJALAN', label: 'Menunggu barang' },
   { nilai: 'DRAF', label: 'Draf' },
+  { nilai: 'DIAJUKAN', label: 'Menunggu persetujuan' },
+  { nilai: 'DISETUJUI', label: 'Disetujui' },
   { nilai: 'SELESAI', label: 'Selesai' },
   { nilai: '', label: 'Semua' },
 ];
@@ -577,12 +592,133 @@ function DialogAkhiri({
   );
 }
 
-type Dialogan = 'draf' | 'konfirmasi' | 'uang-muka' | 'tutup' | 'batal' | null;
+/** K-225: Setujui (catatan opsional) atau Tolak (alasan wajib, order kembali ke draf). */
+function DialogPutusan({
+  po,
+  jenis,
+  onTutup,
+}: {
+  po: DetailOrderPembelian;
+  jenis: 'setujui' | 'tolak';
+  onTutup: () => void;
+}) {
+  const { setujui, tolak } = useAksiPO();
+  const [teks, setTeks] = useState('');
+  const jalan = jenis === 'setujui' ? setujui : tolak;
+  const kurang = jenis === 'tolak' && teks.trim().length < 3;
+  function kirim() {
+    const p =
+      jenis === 'setujui'
+        ? setujui.mutateAsync({ id: po.id, catatan: teks })
+        : tolak.mutateAsync({ id: po.id, alasan: teks.trim() });
+    p.then(() => {
+      toast.success(
+        jenis === 'setujui'
+          ? 'Order disetujui. Pembuat order kini bisa mengirimnya ke pemasok.'
+          : 'Order dikembalikan ke draf dengan alasan penolakan.',
+      );
+      onTutup();
+    }).catch((err: unknown) => toast.error(pesanGalat(err)));
+  }
+  return (
+    <Dialog open onOpenChange={(b) => !b && onTutup()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {jenis === 'setujui' ? 'Setujui' : 'Tolak'} draf #{po.id} · {po.namaPemasok}
+          </DialogTitle>
+          <DialogDescription>
+            {jenis === 'setujui'
+              ? 'Setelah disetujui, isi order terkunci dan siap dikirim ke pemasok.'
+              : 'Order kembali menjadi draf. Pembuat memperbaiki lalu mengajukan lagi.'}
+          </DialogDescription>
+        </DialogHeader>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+          {po.persetujuan.alasan.map((a) => (
+            <li key={a}>{a}</li>
+          ))}
+        </ul>
+        <label className="grid gap-1 text-sm">
+          {jenis === 'setujui' ? 'Catatan (boleh kosong)' : 'Alasan penolakan'}
+          <Input
+            aria-label={jenis === 'setujui' ? 'Catatan persetujuan' : 'Alasan penolakan'}
+            value={teks}
+            onChange={(e) => setTeks(e.target.value)}
+            maxLength={255}
+            autoFocus
+          />
+        </label>
+        <DialogFooter>
+          <Button variant="outline" onClick={onTutup}>
+            Kembali
+          </Button>
+          <Button
+            variant={jenis === 'setujui' ? 'default' : 'destructive'}
+            onClick={kirim}
+            disabled={jalan.isPending || kurang}
+          >
+            {jenis === 'setujui' ? 'Setujui order' : 'Tolak order'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** K-225: kotak keadaan persetujuan di rincian order. */
+function KotakPersetujuan({ po }: { po: DetailOrderPembelian }) {
+  const p = po.persetujuan;
+  const ditolak = po.status === 'DRAF' && !!p.catatan?.startsWith('Ditolak:');
+  if (p.namaPenyetuju && !['DRAF', 'DIAJUKAN'].includes(po.status)) {
+    return (
+      <div className="rounded-md border border-teal-300 bg-teal-50 p-3 text-sm text-teal-900">
+        Disetujui <b>{p.namaPenyetuju}</b> · {formatWaktu(p.disetujuiPada)}
+        {p.catatan && ` · ${p.catatan}`}
+      </div>
+    );
+  }
+  if (!['DRAF', 'DIAJUKAN'].includes(po.status)) return null;
+  if (p.alasan.length === 0 && !ditolak) return null;
+  return (
+    <div
+      className={cn(
+        'space-y-1 rounded-md border p-3 text-sm',
+        po.status === 'DIAJUKAN'
+          ? 'border-orange-300 bg-orange-50 text-orange-900'
+          : 'border-amber-300 bg-amber-50 text-amber-900',
+      )}
+      data-testid="kotak-persetujuan"
+    >
+      {ditolak && (
+        <p className="font-semibold text-red-700">
+          {p.catatan} {p.namaPenyetuju && `(${p.namaPenyetuju})`}
+        </p>
+      )}
+      {p.alasan.length > 0 && (
+        <>
+          <p className="font-medium">
+            {po.status === 'DIAJUKAN' ? 'Menunggu persetujuan ' : 'Wajib disetujui '}
+            {p.perluOwner ? 'Owner' : 'Kepala Toko atau Owner'} karena:
+          </p>
+          <ul className="list-disc pl-5">
+            {p.alasan.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+type Dialogan =
+  'draf' | 'konfirmasi' | 'uang-muka' | 'tutup' | 'batal' | 'setujui' | 'tolak' | null;
 
 function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian) => void }) {
   const q = useDetailPO(id);
   const toko = useTampilanToko().data;
-  const { kirim } = useAksiPO();
+  const { kirim, ajukan } = useAksiPO();
+  const saya = usePengguna();
   const [dialog, setDialog] = useState<Dialogan>(null);
   const [cetak, setCetak] = useState(false);
   useEffect(() => {
@@ -597,6 +733,13 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
   const po = q.data;
   if (!po) return <Skeleton className="h-64 w-full" />;
   const berjalan = ['DIPESAN', 'DIKONFIRMASI', 'SEBAGIAN'].includes(po.status);
+  const owner = saya.izin.includes('pembelian.setujui_semua');
+  // Tampilan saja; aturan tetap di server (pembuat ≠ penyetuju, batas Owner).
+  const perluSetuju = po.status === 'DRAF' && po.persetujuan.alasan.length > 0 && !owner;
+  const bolehPutus =
+    po.status === 'DIAJUKAN' &&
+    saya.izin.includes('pembelian.setujui') &&
+    (owner || (po.persetujuan.idPembuat !== saya.id && !po.persetujuan.perluOwner));
   const adaHarga = po.baris.some((b) => b.hargaBerlaku !== undefined);
 
   return (
@@ -621,6 +764,41 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
               <Button variant="outline" size="sm" onClick={() => onUbah(po)}>
                 Ubah
               </Button>
+              {perluSetuju && (
+                <Button
+                  size="sm"
+                  disabled={ajukan.isPending}
+                  onClick={() =>
+                    void ajukan
+                      .mutateAsync(po.id)
+                      .then(() =>
+                        toast.success('Order diajukan. Penyetuju mendapat notifikasi di lonceng.'),
+                      )
+                      .catch((err: unknown) => toast.error(pesanGalat(err)))
+                  }
+                >
+                  <ShieldCheck /> Ajukan persetujuan
+                </Button>
+              )}
+            </>
+          )}
+          {bolehPutus && (
+            <>
+              <Button size="sm" onClick={() => setDialog('setujui')}>
+                <CheckCircle2 /> Setujui
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-700"
+                onClick={() => setDialog('tolak')}
+              >
+                <Undo2 /> Tolak
+              </Button>
+            </>
+          )}
+          {((po.status === 'DRAF' && !perluSetuju) || po.status === 'DISETUJUI') && (
+            <>
               <Button
                 size="sm"
                 disabled={kirim.isPending}
@@ -656,7 +834,7 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
               Uang muka
             </Button>
           )}
-          {po.status !== 'DRAF' && (
+          {!['DRAF', 'DIAJUKAN', 'DISETUJUI'].includes(po.status) && (
             <>
               <Button variant="outline" size="sm" onClick={() => setCetak(true)}>
                 <Printer /> Cetak
@@ -680,7 +858,7 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
               Tutup sisa
             </Button>
           )}
-          {['DRAF', 'DIPESAN', 'DIKONFIRMASI'].includes(po.status) &&
+          {['DRAF', 'DIAJUKAN', 'DISETUJUI', 'DIPESAN', 'DIKONFIRMASI'].includes(po.status) &&
             po.penerimaan.length === 0 && (
               <Button
                 variant="outline"
@@ -747,6 +925,7 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
           )}
         </p>
       )}
+      <KotakPersetujuan po={po} />
       {po.catatan && <p className="text-sm text-slate-600">Catatan: {po.catatan}</p>}
       {po.alasanTutup && (
         <p className="text-sm text-slate-600">Alasan tutup/batal: {po.alasanTutup}</p>
@@ -769,6 +948,9 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
 
       {dialog === 'konfirmasi' && <DialogKonfirmasi po={po} onTutup={() => setDialog(null)} />}
       {dialog === 'uang-muka' && <DialogUangMuka po={po} onTutup={() => setDialog(null)} />}
+      {(dialog === 'setujui' || dialog === 'tolak') && (
+        <DialogPutusan po={po} jenis={dialog} onTutup={() => setDialog(null)} />
+      )}
       {(dialog === 'tutup' || dialog === 'batal') && (
         <DialogAkhiri po={po} jenis={dialog} onTutup={() => setDialog(null)} />
       )}

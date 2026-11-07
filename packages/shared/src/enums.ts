@@ -337,6 +337,10 @@ export function ukuranKertasCss(k: KertasDokumen): string {
 /** K-125: status order pembelian ke pemasok (docs/05 §21). */
 export const STATUS_ORDER_PEMBELIAN = [
   'DRAF',
+  /** K-225: menunggu persetujuan Kepala Toko/Owner. */
+  'DIAJUKAN',
+  /** K-225: disetujui, siap dikirim ke pemasok. */
+  'DISETUJUI',
   'DIPESAN',
   'DIKONFIRMASI',
   'SEBAGIAN',
@@ -348,6 +352,8 @@ export type StatusOrderPembelian = (typeof STATUS_ORDER_PEMBELIAN)[number];
 
 export const LABEL_STATUS_ORDER_PEMBELIAN: Record<StatusOrderPembelian, string> = {
   DRAF: 'Draf',
+  DIAJUKAN: 'Menunggu persetujuan',
+  DISETUJUI: 'Disetujui',
   DIPESAN: 'Dipesan',
   DIKONFIRMASI: 'Dikonfirmasi',
   SEBAGIAN: 'Diterima sebagian',

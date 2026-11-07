@@ -103,10 +103,20 @@ export const orderPembelian = pgTable(
     tanggalJanjiKirim: tanggal('tanggal_janji_kirim'),
     catatan: varchar('catatan', { length: 255 }),
     alasanTutup: varchar('alasan_tutup', { length: 255 }),
+    /** K-225: alasan PO wajib disetujui (dihitung saat diajukan), penyetuju, dan catatannya/alasan penolakan. */
+    alasanPersetujuan: varchar('alasan_persetujuan', { length: 500 }),
+    idPenyetuju: kolomRef('id_penyetuju'),
+    disetujuiPada: timestamptz('disetujui_pada'),
+    catatanPersetujuan: varchar('catatan_persetujuan', { length: 255 }),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
   },
   (t) => [
+    foreignKey({
+      name: 'order_pembelian_id_penyetuju_fkey',
+      columns: [t.idPenyetuju],
+      foreignColumns: [pengguna.id],
+    }),
     foreignKey({
       name: 'order_pembelian_id_pemasok_fkey',
       columns: [t.idPemasok],
@@ -120,10 +130,13 @@ export const orderPembelian = pgTable(
     check('chk_po_status', dalamDaftar('status', STATUS_ORDER_PEMBELIAN)),
     check(
       'chk_po_nomor',
-      sql`(status = 'DRAF' and nomor is null) or status = 'BATAL'
-        or (status not in ('DRAF', 'BATAL') and nomor is not null)`,
+      sql`(status in ('DRAF', 'DIAJUKAN', 'DISETUJUI') and nomor is null) or status = 'BATAL'
+        or (status not in ('DRAF', 'DIAJUKAN', 'DISETUJUI', 'BATAL') and nomor is not null)`,
     ),
-    check('chk_po_dipesan', sql`status in ('DRAF', 'BATAL') or tanggal_dipesan is not null`),
+    check(
+      'chk_po_dipesan',
+      sql`status in ('DRAF', 'DIAJUKAN', 'DISETUJUI', 'BATAL') or tanggal_dipesan is not null`,
+    ),
     index('idx_po_pemasok').on(t.idPemasok),
     index('idx_po_status').on(t.status),
   ],

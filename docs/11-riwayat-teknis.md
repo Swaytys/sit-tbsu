@@ -809,10 +809,32 @@ jadwal rit rencana dan teks surat jalannya. Web: kotak centang di kartu, tombol 
 toleransi 100% → ditolak; ubah rit lalu berangkat; centang tidak bisa dilepas setelah berangkat), e2e pengiriman dan
 pengantaran (centang sebelum berangkat).
 
+### C32. Peran V2 dan persetujuan order pembelian (7 November 2026, K-225 tahap 1–2, K-233)
+
+**Masalah:** peran Admin merangkap administrator sistem, administrasi persediaan, dan pengganti Owner; satu orang
+bisa memesan, menerima, dan membayar barang yang sama.
+
+**Solusi:** tujuh peran di `packages/shared/src/roles.ts` (izin per peran, tidak lagi bertingkat penuh); izin baru
+`sistem.data.kelola`, `sistem.akses.kelola`, `pembelian.setujui`, `pembelian.setujui_semua`; migrasi 0045 (CHECK
+peran). Persetujuan PO di `apps/api/src/modules/persediaan/order-pembelian/persetujuan.ts`: `hitungPersetujuan`
+menghitung alasan dari isi draf dan konfigurasi `po_batas_tanpa_persetujuan`, `po_batas_kepala_toko`,
+`po_ambang_naik_persen`; `ajukanPO`, `setujuiPO`, `tolakPO`, `aturBarangKhusus` (semua dalam transaksi dengan
+`SELECT … FOR UPDATE` pada PO, log aktivitas). `kirimPO` menolak draf yang wajib disetujui (409) kecuali Owner. Migrasi
+0046: kolom persetujuan di `order_pembelian`, `barang.perlu_persetujuan_beli`, CHECK status/nomor/tanggal pesan
+diperluas. Notifikasi `PO_MENUNGGU_PERSETUJUAN` menghitung hanya order yang boleh disetujui pengguna itu. Web: tombol
+Ajukan persetujuan, Setujui, Tolak, kotak alasan persetujuan, saringan status, batas di Pengaturan › Operasional,
+kartu "Pembelian wajib disetujui Owner" di Data Barang.
+
+**Tes:** `persetujuan-po.test.ts` (PO10–PO14: batas, 403 Admin Persediaan, pembuat ≠ penyetuju, Owner di atas batas,
+barang khusus, harga naik, harga kosong, tolak ke draf, batal saat diajukan, notifikasi, log), `peran-v2.test.ts`;
+e2e `order-pembelian.spec.ts` (ajukan → Owner setujui → kirim). Seluruh e2e dijalankan di database uji sendiri:
+perbaikan K-233.
+
 ---
 
 ## Riwayat dokumen
 
+- 2026-11-07 — Bagian C32 peran V2 dan persetujuan order pembelian (K-225 tahap 1–2, K-233).
 - 2026-10-17 — v1: dibuat atas permintaan pemilik (K-118); Bagian A–B dari catatan keputusan dan riwayat git
   (146 commit non-merge, 29 September–17 Oktober 2026); Bagian C1 rekomendasi pemesanan ulang.
 - 2026-10-18 — Bagian C2 shift & clerical check anti-anomali (K-120, K-121).

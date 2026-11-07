@@ -226,6 +226,7 @@ export async function detailBarang(id: number, izin: ReadonlySet<Izin>): Promise
     keterangan: b.keterangan,
     atribut,
     sudahAdaMutasi: b.terakhirMutasi !== null,
+    perluPersetujuanBeli: b.perluPersetujuanBeli,
     muatan: rapikanMuatan(await repo.muatanBarang(db, id)),
     versi: (await ambilVersi(db, barang, id)) ?? '',
   };

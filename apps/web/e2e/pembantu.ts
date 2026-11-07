@@ -1,17 +1,10 @@
 import { expect, type Page } from '@playwright/test';
-import { KODE_TUR } from '@sit/shared';
+import { KODE_TUR, LABEL_PERAN, type Peran } from '@sit/shared';
 
-export const LABEL_TOMBOL_PERAN = {
-  OWNER: 'Owner',
-  ADMIN: 'Administrator',
-  KASIR: 'Kasir',
-  STAF_PENJUALAN: 'Staf Penjualan',
-} as const;
-
-/** Masuk dengan tombol "masuk cepat" (hanya ada di mode pengembangan). */
-export async function masukCepat(page: Page, peran: keyof typeof LABEL_TOMBOL_PERAN) {
+/** Masuk dengan tombol "masuk cepat" (hanya ada di mode pengembangan). Label tombol = nama peran (K-225). */
+export async function masukCepat(page: Page, peran: Peran) {
   await page.goto('/login');
-  await page.getByRole('button', { name: new RegExp(`^${LABEL_TOMBOL_PERAN[peran]}`) }).click();
+  await page.getByRole('button', { name: new RegExp(`^${LABEL_PERAN[peran]}`) }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await lewatiSemuaTur(page);
 }

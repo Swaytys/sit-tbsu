@@ -151,6 +151,10 @@ export const AKSI_LOG = [
   'PO_BUAT',
   'PO_UBAH',
   'PO_KIRIM',
+  // K-225: persetujuan order pembelian.
+  'PO_AJUKAN',
+  'PO_SETUJUI',
+  'PO_TOLAK',
   'PO_KONFIRMASI',
   'PO_UANG_MUKA',
   'PO_TUTUP',

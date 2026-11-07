@@ -122,6 +122,9 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       muatanToleransiPersen: angka(m, 'muatan_toleransi_persen', 110),
       batasReturTanpaSetuju: angka(m, 'batas_retur_tanpa_persetujuan', 0),
       batasVoidTanpaSetuju: angka(m, 'batas_void_tanpa_persetujuan', 0),
+      poBatasTanpaPersetujuan: angka(m, 'po_batas_tanpa_persetujuan', 1_000_000),
+      poBatasKepalaToko: angka(m, 'po_batas_kepala_toko', 10_000_000),
+      poAmbangNaikPersen: angka(m, 'po_ambang_naik_persen', 10),
       barisPerHalaman: barisPerHalaman(m),
     },
     harga: {
@@ -192,6 +195,9 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     a('muatan_toleransi_persen', o.muatanToleransiPersen);
     a('batas_retur_tanpa_persetujuan', o.batasReturTanpaSetuju);
     a('batas_void_tanpa_persetujuan', o.batasVoidTanpaSetuju);
+    a('po_batas_tanpa_persetujuan', o.poBatasTanpaPersetujuan);
+    a('po_batas_kepala_toko', o.poBatasKepalaToko);
+    a('po_ambang_naik_persen', o.poAmbangNaikPersen);
     a('baris_per_halaman', o.barisPerHalaman);
   }
   if (p.harga) {

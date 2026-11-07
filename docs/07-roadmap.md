@@ -430,6 +430,20 @@ Syarat yang **sudah tercatat** dari keputusan sebelumnya dan wajib masuk rencana
 - **13.4 Tutorial awal** disusun bersama tombol "?" tiap halaman (docs/08 F7) dan mengikuti aturan menulis
   petunjuk K-105 butir 1.
 
+## V2 (sesudah V1 1.19.0 dinyatakan rilis)
+
+**Status: aktif di branch, belum digabung ke main** (main menunggu uji pemilik U188–U200 atas 1.19.0). Urutan dari
+`docs/keputusan/2026-11-07-masukan-presentasi-owner.md`:
+
+1. **K-225 peran dan persetujuan pembelian** — branch `feat/20-peran-pembelian`. Tahap 1 tujuh peran: **selesai
+   2026-11-07**. Tahap 2 persetujuan order pembelian (docs/05 PO10–PO14, migrasi 0046): **selesai 2026-11-07**.
+   Tahap 3 penerimaan, tiga dokumen, wewenang bayar hutang, rekening pemasok: berikutnya.
+2. K-231 lokasi barang di gudang.
+3. K-227 kemasan tersegel dan opname bertahap.
+4. K-222 nama barang otomatis.
+5. K-230 label rak.
+6. K-226 generalisasi ritel.
+
 ---
 
 ## Cara memperbarui dokumen ini
@@ -439,6 +453,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-11-07 — V2 dimulai: K-225 tahap 1 (peran) dan tahap 2 (persetujuan order pembelian) selesai di branch.
 - 2026-10-24 — Fase 14 butir 3c(perbaikan) selesai: K-152–K-159 (migrasi 0024).
 - 2026-10-23 — Fase 14 butir 3b selesai: diskon manual dihapus, istilah uang shift (K-146–K-148); hasil pengantaran per barang, kendaraan & sopir, perjalanan (K-149–K-151, migrasi 0023).
 - 2026-10-18 — Fase 14 butir 3a(i) selesai: satu shift toko, hitung susulan dua langkah, kembalian tidak diambil, kode atasan dilanjutkan (K-132–K-142, migrasi 0022).

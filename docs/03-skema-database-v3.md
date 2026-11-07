@@ -106,7 +106,7 @@ dipakai barang diverifikasi dimensinya (aturan service).
 (dasar HPP dan markup sebelum ada penerimaan; saat barang dibuat, service membuat baris `persediaan` dengan
 `hpp_rata2 = harga_beli_terakhir = harga_modal_awal`), `kepemilikan` MILIK_SENDIRI/KONSINYASI dengan
 `id_pemasok_konsinyasi` + `harga_titip` wajib untuk konsinyasi (CHECK), `harga_otomatis` (bawaan true sejak v3.8,
-K-094) dan `perlu_tinjau_harga` (M2), `barcode` unik opsional. Aturan service: kepemilikan tidak boleh diubah selama `stok_fisik + stok_rusak > 0`.
+K-094) dan `perlu_tinjau_harga` (M2), `barcode` unik opsional, `perlu_persetujuan_beli` (K-225: pembelian wajib disetujui Owner; diatur hanya Owner). Aturan service: kepemilikan tidak boleh diubah selama `stok_fisik + stok_rusak > 0`.
 
 **`barang_atribut`** — satu baris per (barang, jenis atribut); tepat satu dari `nilai_angka`/`nilai_teks` terisi
 (CHECK `num_nonnulls = 1`). `id_satuan` wajib bila jenis atribut berdimensi (service).
@@ -184,8 +184,11 @@ Jenis mutasi dan arah:
 | MUSNAH | keluar | RUSAK | penyesuaian_stok_detail (jenis MUSNAH) |
 
 **`order_pembelian`** [APPEND; DRAF boleh diubah] + **`order_pembelian_detail`** — K-125: PO ke pemasok. `nomor`
-kosong selama DRAF (CHECK `chk_po_nomor`), `status` DRAF/DIPESAN/DIKONFIRMASI/SEBAGIAN/SELESAI/DITUTUP/BATAL,
-`tanggal_dipesan` (wajib setelah dikirim), `tanggal_janji_kirim`, `alasan_tutup`. Detail: `qty_pesan`,
+kosong selama DRAF/DIAJUKAN/DISETUJUI (CHECK `chk_po_nomor`), `status`
+DRAF/DIAJUKAN/DISETUJUI/DIPESAN/DIKONFIRMASI/SEBAGIAN/SELESAI/DITUTUP/BATAL, `tanggal_dipesan` (wajib setelah dikirim),
+`tanggal_janji_kirim`, `alasan_tutup`; K-225 (migrasi 0046): `alasan_persetujuan`, `id_penyetuju` (FK pengguna),
+`disetujui_pada`, `catatan_persetujuan` (catatan penyetuju atau "Ditolak: …"); kolom status persetujuan ini boleh
+berubah selama order belum dikirim. Detail: `qty_pesan`,
 `harga_perkiraan`, `qty_konfirmasi`/`harga_konfirmasi` (jawaban pemasok), `qty_diterima` (cache Σ penerimaan,
 disinkronkan di transaksi penerimaan), UNIQUE (PO, barang). **`alokasi_uang_muka`** [APPEND]: pemakaian uang muka PO
 (DIPAKAI → `id_penerimaan`; DIKEMBALIKAN → `metode_kembali`). `penerimaan_barang.id_order_pembelian`,
@@ -368,7 +371,7 @@ sumber dan dibandingkan dengan cache setelah setiap skenario.
 
 | Enum | Nilai |
 |---|---|
-| peran | STAF_PENJUALAN, KASIR, ADMIN, OWNER |
+| peran | STAF_PENJUALAN, KASIR, ADMIN (Kepala Toko), ADMIN_SISTEM, ADMIN_PERSEDIAAN, PETUGAS_GUDANG, OWNER (K-225, migrasi 0045) |
 | status_aktif | AKTIF, NONAKTIF |
 | jenis_cadangan | CADANGAN, UJI_PULIH |
 | status_cadangan | BERJALAN, BERHASIL, GAGAL |

@@ -131,6 +131,10 @@ export const skemaOperasional = z
      */
     batasReturTanpaSetuju: bulat('Batas retur tanpa persetujuan', 0, 1_000_000_000),
     batasVoidTanpaSetuju: bulat('Batas void tanpa persetujuan', 0, 1_000_000_000),
+    /** K-225: persetujuan order pembelian. */
+    poBatasTanpaPersetujuan: bulat('Batas order pembelian tanpa persetujuan', 0, 100_000_000_000),
+    poBatasKepalaToko: bulat('Batas persetujuan Kepala Toko', 0, 100_000_000_000),
+    poAmbangNaikPersen: bulat('Ambang kenaikan harga beli', 0, 100),
     barisPerHalaman: z.coerce
       .number('Jumlah baris harus berupa angka.')
       .refine(
@@ -141,7 +145,11 @@ export const skemaOperasional = z
   .refine(
     (d) => d.shiftJamBuka === '' || d.shiftJamTutup === '' || d.shiftJamBuka < d.shiftJamTutup,
     { path: ['shiftJamTutup'], message: 'Jam tutup shift harus setelah jam buka.' },
-  );
+  )
+  .refine((d) => d.poBatasKepalaToko >= d.poBatasTanpaPersetujuan, {
+    path: ['poBatasKepalaToko'],
+    message: 'Batas Kepala Toko tidak boleh di bawah batas tanpa persetujuan.',
+  });
 
 /** Dasar markup harga jual otomatis (docs/06 H3). K-184: FIFO = harga beli lapisan stok tertua yang masih ada. */
 export const DASAR_MARKUP = ['HARGA_BELI_TERAKHIR', 'HPP_RATA2', 'FIFO'] as const;

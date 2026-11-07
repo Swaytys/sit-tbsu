@@ -37,6 +37,8 @@ type KolomAngka = Exclude<
   | 'barisPerHalaman'
   | 'batasReturTanpaSetuju'
   | 'batasVoidTanpaSetuju'
+  | 'poBatasTanpaPersetujuan'
+  | 'poBatasKepalaToko'
 >;
 
 const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: string }[] = [
@@ -105,6 +107,12 @@ const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: strin
     label: 'Muatan: julur maksimum',
     satuan: 'cm',
     ket: 'Barang boleh lebih panjang dari bak sampai sekian cm, dengan alasan tertulis. Sesuaikan aturan/kebijakan toko.',
+  },
+  {
+    nama: 'poAmbangNaikPersen',
+    label: 'Order pembelian: ambang naik harga',
+    satuan: '%',
+    ket: 'Harga beli di order yang naik lebih dari persen ini dari harga beli terakhir wajib disetujui (K-225).',
   },
   {
     nama: 'batasUmurOrderJam',
@@ -263,6 +271,39 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
                           onChange={(v) => field.onChange(v ?? 0)}
                           placeholder="0 = selalu butuh atasan"
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+          {/* K-225: persetujuan order pembelian (pemisahan tugas siklus pembelian). */}
+          <div className="rounded-lg border p-3">
+            <p className="text-sm font-medium">Persetujuan order pembelian</p>
+            <p className="text-muted-foreground text-sm">
+              Order pembelian di atas batas pertama, berisi barang yang ditandai wajib disetujui
+              Owner, harga belinya naik melewati ambang, atau harganya belum diisi, harus diajukan
+              dan disetujui dulu sebelum dikirim ke pemasok. Pembuat order tidak bisa menyetujui
+              ordernya sendiri. Kepala Toko menyetujui sampai batas kedua; di atasnya hanya Owner.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-4">
+              {(
+                [
+                  { nama: 'poBatasTanpaPersetujuan', label: 'Boleh tanpa persetujuan sampai' },
+                  { nama: 'poBatasKepalaToko', label: 'Kepala Toko menyetujui sampai' },
+                ] as const
+              ).map((k) => (
+                <FormField
+                  key={k.nama}
+                  control={form.control}
+                  name={k.nama}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{k.label}</FormLabel>
+                      <FormControl>
+                        <InputRupiah {...field} onChange={(v) => field.onChange(v ?? 0)} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

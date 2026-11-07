@@ -146,7 +146,32 @@ export type BarisOrderPembelianDetail = {
   hargaBerlaku?: number;
 };
 
+/** K-225: kebutuhan dan keadaan persetujuan order pembelian. */
+export type PersetujuanOrderPembelian = {
+  /** Alasan order ini wajib disetujui (kosong = boleh langsung dikirim). */
+  alasan: string[];
+  /** Hanya Owner yang boleh menyetujui (barang khusus atau di atas batas Kepala Toko). */
+  perluOwner: boolean;
+  idPembuat: number;
+  namaPenyetuju: string | null;
+  disetujuiPada: string | null;
+  /** Catatan penyetuju, atau alasan penolakan bila dikembalikan ke draf. */
+  catatan: string | null;
+};
+
+export const skemaPutusanPO = z.object({
+  catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+});
+export const skemaTolakPO = z.object({
+  alasan: z
+    .string('Alasan penolakan wajib diisi.')
+    .trim()
+    .min(3, 'Alasan penolakan wajib diisi.')
+    .max(255, 'Alasan maksimal 255 karakter.'),
+});
+
 export type DetailOrderPembelian = BarisDaftarOrderPembelian & {
+  persetujuan: PersetujuanOrderPembelian;
   catatan: string | null;
   alasanTutup: string | null;
   baris: BarisOrderPembelianDetail[];

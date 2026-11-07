@@ -364,6 +364,22 @@ Owner | desktop
   `[KODE: web/features/pengaturan/kartu-lan.tsx]`, `[KODE: web/features/auth/penjaga-perangkat.tsx]`; `[DOK: K-229]`;
   tes `lan.test.ts`; uji paket hasil build (7 Nov). Status: BERFUNGSI (pemasangan di HP sungguhan: U198–U200).
 
+**F67. Tujuh peran dengan pemisahan tugas (V2)** | Data Pengguna; semua menu | Owner, Administrator Sistem | desktop
+- Fungsi: Owner, Kepala Toko, Administrator Sistem, Admin Persediaan, Petugas Gudang, Kasir, Staf Penjualan; izin per
+  peran (tidak bertingkat penuh) sehingga fungsi teknis, persediaan, dan persetujuan dipegang orang berbeda;
+  Administrator Sistem hanya mengatur akun karyawan bawah.
+- Bukti: `[KODE: shared/roles.ts]`, `[KODE: api/modules/master/pengguna/service.ts]`; `[DOK: K-225, docs/04 §1, §3]`;
+  tes `peran-v2.test.ts`, `require-permission.test.ts`. Status: BERFUNGSI (branch V2, uji U201–U202).
+
+**F68. Persetujuan order pembelian berjenjang (V2)** | Persediaan › Order Pembelian; Pengaturan › Operasional; Data
+Barang | Admin Persediaan (ajukan), Kepala Toko/Owner (setujui) | desktop
+- Fungsi: order di atas batas, berisi barang khusus, harga naik melewati ambang, atau tanpa harga wajib diajukan dan
+  disetujui sebelum dikirim ke pemasok; Kepala Toko sampai batasnya, di atasnya Owner; pembuat tidak menyetujui
+  ordernya sendiri; tolak kembali ke draf dengan alasan; notifikasi lonceng; jejak penyetuju di rincian dan log.
+- Bukti: `[KODE: api/modules/persediaan/order-pembelian/persetujuan.ts]`,
+  `[KODE: web/features/order-pembelian/halaman-order-pembelian.tsx]`; `[DOK: K-225, docs/05 §21 PO10–PO14]`; tes
+  `persetujuan-po.test.ts`, e2e `order-pembelian.spec.ts`. Status: BERFUNGSI (branch V2, uji U203–U207).
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1445,6 +1461,8 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
 - 2026-10-31 — F61 HP dan tablet (K-217).
+- 2026-11-07 — F67 tujuh peran, F68 persetujuan order pembelian (K-225 tahap 1–2, branch V2); perbaikan uji layar
+  lengkap (K-233).
 - 2026-11-07 — F64 data latihan (K-168), F65 pintasan per pengguna (K-145), F66 mode LAN toko (K-229);
   tes layar memakai database sendiri (K-119). Versi 1.19.0.
 - 2026-11-07 — F62 ganti/buat data toko (K-218–K-220), F63 pemulihan Owner bersama pengembang (K-232); kas

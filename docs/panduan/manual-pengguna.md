@@ -21,7 +21,7 @@ menu nama Anda › **Tur & panduan**; Owner juga bisa **Ulangi setup awal** dari
 **Buku SOP** (`buku-sop.md`).
 
 **Lonceng (kanan atas):** pengingat yang perlu ditindaklanjuti — order terlalu lama menunggu, stok habis/kritis,
-retur/void menunggu persetujuan, piutang jatuh tempo, shift yang perlu ditutup, uang non-tunai yang belum dicek
+retur/void dan order pembelian menunggu persetujuan, piutang jatuh tempo, shift yang perlu ditutup, uang non-tunai yang belum dicek
 atau tidak masuk, cadangan bermasalah.
 
 **Ganti akun di komputer yang sama:** keluar dulu (tombol **Keluar** di bagian bawah menu samping), lalu masuk
@@ -575,6 +575,18 @@ Semua tugas kasir, ditambah:
      terisi barang dan jumlah sarannya.
   2. Periksa draf (boleh **Ubah**), lalu **Kirim ke pemasok**: nomor PO terbit dan isinya terkunci. Kirim ke
      pemasok dengan **Cetak** atau **Salin teks** (tempel di WhatsApp).
+     **Bila muncul kotak kuning "Wajib disetujui …" (V2):** order ini harus disetujui dulu karena nilainya di atas
+     batas, berisi barang khusus, harga belinya naik lebih dari ambang dari harga beli terakhir, atau harganya
+     belum diisi. Kotak itu menyebut alasannya dan siapa yang boleh menyetujui.
+     1. Tekan **Ajukan persetujuan**. Status menjadi *Menunggu persetujuan*, isi terkunci, belum bernomor.
+     2. Kepala Toko (atau Owner bila kotak menyebut "Owner") melihat lonceng *Order pembelian menunggu
+        persetujuan* → klik → buka order → **Setujui** (catatan boleh kosong) → **Setujui order**. Atau **Tolak**
+        → tulis alasan → **Tolak order**.
+     3. Disetujui: status *Disetujui*, nama penyetuju tampil; pembuat order menekan **Kirim ke pemasok**.
+        Ditolak: order kembali menjadi *Draf* dengan tulisan merah "Ditolak: …"; perbaiki (**Ubah**), lalu ajukan
+        lagi atau langsung kirim bila kotak kuning sudah hilang.
+     Pembuat order tidak bisa menyetujui ordernya sendiri; Owner boleh. Batas diatur Owner/Kepala Toko di
+     *Pengaturan › Operasional › Persetujuan order pembelian*.
   3. Saat pemasok menjawab: **Konfirmasi pemasok** → isi tanggal janji kirim; ubah qty/harga hanya bila pemasok
      mengubahnya.
   4. Bila pemasok minta dibayar dulu: **Uang muka** (transfer atau tunai dari laci shift). Uang muka otomatis
@@ -677,9 +689,28 @@ Semua tugas kasir, ditambah:
   nyalakan cetak struk langsung (lihat *Kasir › Struk tanpa jendela cetak*): setelah itu jendela cetak hanya
   dipakai dokumen A4.
 
+## Peran V2: Kepala Toko, Administrator Sistem, Admin Persediaan, Petugas Gudang
+
+Mulai V2 tugas *Admin* dipecah agar satu orang tidak memesan, menyetujui, dan membayar barang yang sama (K-225):
+
+- **Kepala Toko** (dulu *Admin*): semua tugas kasir dan persediaan di bagian *Admin* di atas, ditambah menyetujui
+  retur/void, limit kredit, dan **order pembelian** sampai batas Kepala Toko (bukan order buatannya sendiri). Tidak
+  lagi mengatur akun pengguna, cadangan, dan akses HP/tablet.
+- **Administrator Sistem**: urusan teknis. Menu: Dashboard, Data Barang (lihat saja), **Data Pengguna** (hanya akun
+  Staf, Kasir, Admin Persediaan, Petugas Gudang), **Pengaturan › Cadangan** dan **Akses HP/tablet**. Tidak memegang
+  uang dan tidak melihat harga modal.
+- **Admin Persediaan**: data barang dan harga, pemasok, kendaraan & sopir, **order pembelian** (menyusun dan
+  mengajukan, tidak menyetujui), penerimaan barang, stok, penyesuaian, pengiriman. Tidak membuka kasir.
+- **Petugas Gudang**: melihat stok dan barang (tanpa harga modal) dan mengurus pengiriman (centang dimuat, hasil
+  antar).
+
 ## Owner (pemilik)
 
 Semua tugas admin, ditambah:
+
+- **Pembelian wajib disetujui Owner (V2):** *Data Barang* › buka barang › kartu **Pembelian wajib disetujui Owner**
+  › nyalakan. Setiap order pembelian berisi barang itu harus Anda setujui, berapa pun nilainya. Order di atas
+  batas Kepala Toko juga hanya bisa Anda setujui; Anda boleh langsung mengirim order tanpa mengajukan.
 
 - **Data Pengguna**: tambah akun karyawan (password awal wajib diganti saat login pertama), reset password,
   nonaktifkan akun karyawan yang keluar (sesinya langsung berakhir).

@@ -44,6 +44,21 @@ export function useDetailPO(id: number | null) {
   });
 }
 
+/** K-225 (Owner): tandai barang yang pembeliannya selalu wajib disetujui Owner. */
+export function useBarangKhusus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, perlu }: { id: number; perlu: boolean }) =>
+      ambilData(
+        await api['order-pembelian'].barang[':id'].khusus.$post({
+          param: { id: String(id) },
+          json: { perlu },
+        }),
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['barang'] }),
+  });
+}
+
 function useSegarkan() {
   const qc = useQueryClient();
   return () =>
@@ -84,6 +99,26 @@ export function useAksiPO() {
     uangMuka: useMutation({
       mutationFn: async ({ id, json }: { id: number; json: DataUangMukaOrderPembelian }) =>
         ambilData(await r['uang-muka'].$post({ param: { id: String(id) }, json })),
+      onSuccess: segarkan,
+    }),
+    ajukan: useMutation({
+      mutationFn: async (id: number) =>
+        ambilData(await r.ajukan.$post({ param: { id: String(id) } })),
+      onSuccess: segarkan,
+    }),
+    setujui: useMutation({
+      mutationFn: async ({ id, catatan }: { id: number; catatan: string }) =>
+        ambilData(
+          await r.setujui.$post({
+            param: { id: String(id) },
+            json: { catatan: catatan.trim() || undefined },
+          }),
+        ),
+      onSuccess: segarkan,
+    }),
+    tolak: useMutation({
+      mutationFn: async ({ id, alasan }: { id: number; alasan: string }) =>
+        ambilData(await r.tolak.$post({ param: { id: String(id) }, json: { alasan } })),
       onSuccess: segarkan,
     }),
     akhiri: useMutation({

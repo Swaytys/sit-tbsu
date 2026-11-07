@@ -11,13 +11,14 @@ ahli sistem informasi manajemen. Sebelas masukan dicatat di bawah. Pemilik proye
 | K-222 | Nama barang tersusun otomatis dari kategori, merek, atribut (tidak diketik bebas) | V2 | Rencana (rancangan di bawah) |
 | K-223 | Jenis kas keluar baru: Biaya entertain | V1 | Selesai |
 | K-224 | Bug: draf order tidak ikut harga jual terbaru | V1 | Selesai |
-| K-225 | Peran dipisah (Administrator, Admin Persediaan, Kepala Toko) + persetujuan PO + wewenang bayar hutang | V2 | Rencana (rancangan di bawah) |
+| K-225 | Peran dipisah (Administrator, Admin Persediaan, Kepala Toko) + persetujuan PO + wewenang bayar hutang | V2 | Sebagian: tahap 1 (peran) dan 2 (persetujuan PO) selesai di branch V2; tahap 3 menyusul |
 | K-226 | Sistem berlaku umum untuk toko ritel lain, fitur bahan bangunan tetap | V2 | Rencana (rancangan di bawah) |
 | K-227 | Satuan ecer/grosir, kemasan tersegel, dan opname bertahap acak | V2 | Rencana (rancangan di bawah) |
 | K-228 | Semua pintasan keyboard juga bisa diklik/disentuh | V1 | Selesai (audit 7 Nov) |
 | K-229 | Jaringan HP/tablet lebih mudah: mode LAN toko + Tailscale | V1 | Selesai (1.19.0) |
 | K-230 | Alur cetak label & barcode yang jelas, termasuk barang curah tanpa barcode | V1 panduan, V2 label rak | Rencana |
 | K-231 | Lokasi barang di gudang (gudang, zona, rak, bin; lebih dari satu gudang) | V2 | Rencana (rancangan di bawah) |
+| K-233 | Perbaikan dari uji layar lengkap di database uji sendiri: fokus isian muatan, tahun berjalan di arsip, tes layar usang | V1/V2 | Selesai (branch V2) |
 | K-232 | Pemulihan akses Owner hanya bersama pengembang (bukan menu Start) | V1 | Selesai |
 
 Sisa V1 sebelumnya tetap: K-218 (bahasa layar Data), K-219 (buat/ganti data toko dari aplikasi), K-220 (nama tab Data,
@@ -178,6 +179,23 @@ menyetujui atau membayar dokumen yang ia buat sendiri.
 9. **Laporan pengawasan:** PO per penyetuju, penerimaan tanpa PO, pembelian di atas harga terakhir, pemasok baru,
    selisih tiga dokumen, umur hutang.
 
+**Pelaksanaan (branch `feat/20-peran-pembelian`):**
+
+- **Tahap 1 — peran (selesai).** Tujuh peran di `roles.ts`; kode `ADMIN` tetap dipakai untuk Kepala Toko agar akun
+  lama tidak perlu diubah (migrasi 0045 hanya memperluas CHECK peran). Administrator Sistem hanya mengatur akun Staf,
+  Kasir, Admin Persediaan, Petugas Gudang; Kepala Toko kehilangan akun pengguna, cadangan, akses perangkat; arsip dan
+  data toko hanya Owner. Akun demo per peran bertambah (`demo.sistem`, `demo.persediaan`, `demo.gudang`).
+- **Tahap 2 — persetujuan PO (selesai).** Aturan PO10–PO14 (docs/05 §21): status baru DIAJUKAN dan DISETUJUI di antara
+  DRAF dan DIPESAN; alasan wajib disetujui dihitung otomatis (nilai di atas batas, barang khusus, harga naik melewati
+  ambang, harga kosong); Kepala Toko menyetujui sampai batasnya, di atasnya dan barang khusus hanya Owner; pembuat
+  tidak boleh menyetujui ordernya sendiri (kecuali Owner); tolak mengembalikan ke draf dengan alasan; notifikasi
+  lonceng untuk penyetuju; batas di Pengaturan › Operasional; tanda barang khusus di Data Barang (hanya Owner).
+  Migrasi 0046. **Penyesuaian rancangan:** penyetuju memakai akunnya sendiri (notifikasi lonceng), belum lewat kode
+  sekali pakai seperti K-102; kode bisa ditambahkan bila Owner sering menyetujui dari jauh.
+- **Tahap 3 — menyusul:** penerima ≠ pemesan dan hitung buta (butir 4), penerimaan tanpa PO hanya di bawah batas
+  (butir 5), pencocokan tiga dokumen (butir 6), wewenang bayar hutang (butir 7), persetujuan rekening pemasok
+  (butir 8), laporan pengawasan (butir 9).
+
 ---
 
 ## K-227 Satuan ecer/grosir, kemasan tersegel, dan opname bertahap acak (V2, rancangan)
@@ -311,6 +329,21 @@ bisa tidak sesuai isian.
   Enter lanjut) dan judul Antrean (F3) di kasir menjadi tombol; Ctrl+Z (urungkan) bisa diklik dari bilah pintasan.
   Petunjuk tombol lain (panah/Del di daftar, pecahan uang) sudah punya padanan klik (menu baris ⋮, tombol
   Kosongkan, ×). Tes layar `pintasan-sentuh.spec.ts`. *Selesai.*
+
+## K-233 Perbaikan dari uji layar lengkap (7 November, selesai di branch V2)
+
+Seluruh uji layar (e2e) dijalankan ulang di database uji sekali pakai (K-119). Hasil: dua kesalahan aplikasi dan
+beberapa tes yang tertinggal dari perubahan sebelumnya.
+
+- **Fokus isian muatan (bug).** Di form barang, setelah Berat diisi lalu pindah ke Panjang, baris atribut yang
+  ditambahkan otomatis (penyelarasan muatan ↔ atribut) merebut fokus, sehingga angka Panjang masuk ke nilai atribut.
+  Diperbaiki: baris atribut otomatis ditambahkan tanpa memindah fokus.
+- **Arsip tahunan.** Tahun berjalan kini selalu tampil (walau belum ada penjualan/penerimaan/shift), agar jelas tahun
+  mana yang belum bisa ditutup.
+- **Tes layar usang (bukan bug aplikasi):** nomor referensi transfer wajib (K-196) di penerimaan, hutang, konsinyasi;
+  daftar laporan berupa menu kelompok; isian Alasan bertabrakan dengan saran alasan; centang Dimuat sebelum Berangkat
+  dan toleransi muatan 110% (K-203); tab BBM/servis disembunyikan (K-178, tes dilewati sampai tab kembali); label
+  tombol masuk cepat Kepala Toko (K-225).
 
 ## Status V1 (7 November)
 

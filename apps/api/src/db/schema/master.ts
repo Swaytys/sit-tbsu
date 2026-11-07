@@ -275,6 +275,8 @@ export const barang = pgTable(
     volumeM3: numeric('volume_m3', { precision: 12, scale: 4 }),
     /** K-127: batas atas metode saran pesan min–maks; kosong = metode itu tidak dipakai untuk barang ini. */
     stokMaksimum: qty('stok_maksimum'),
+    /** K-225: pembelian barang ini selalu wajib disetujui Owner (mahal/langka); diatur hanya oleh Owner. */
+    perluPersetujuanBeli: boolean('perlu_persetujuan_beli').notNull().default(false),
   },
   (t) => [
     foreignKey({

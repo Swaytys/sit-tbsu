@@ -7,6 +7,7 @@ import { jumlahReturMenunggu } from '../../koreksi/retur/service';
 import { jumlahVoidMenunggu } from '../../koreksi/void/service';
 import { jumlahDisimpanLewat, jumlahOrderBasi } from '../../penjualan/order/service';
 import { piutangJatuhTempo } from '../../penjualan/piutang/service';
+import { jumlahPOMenunggu } from '../../persediaan/order-pembelian/persetujuan';
 import { jumlahPOTerlambat } from '../../persediaan/order-pembelian/service';
 import { jumlahPerluDipesan } from '../../persediaan/saran-pesan/service';
 import { peringatanStok } from '../../persediaan/stok/service';
@@ -276,6 +277,19 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         keterangan: `${pesan} barang sudah di titik pesan ulang; lihat saran jumlah pesannya.`,
         jumlah: pesan,
         tautan: '/persediaan?tab=saran-pesan',
+      });
+    }
+  }
+  // K-225: order pembelian menunggu persetujuan.
+  if (izin.has('pembelian.setujui')) {
+    const tunggu = await jumlahPOMenunggu(pelaku);
+    if (tunggu > 0) {
+      hasil.push({
+        jenis: 'PO_MENUNGGU_PERSETUJUAN',
+        judul: 'Order pembelian menunggu persetujuan',
+        keterangan: `${tunggu} order pembelian menunggu Anda setujui atau tolak.`,
+        jumlah: tunggu,
+        tautan: '/order-pembelian?status=DIAJUKAN',
       });
     }
   }
