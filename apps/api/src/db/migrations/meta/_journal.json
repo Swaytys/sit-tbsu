@@ -309,6 +309,13 @@
       "when": 1794031133469,
       "tag": "0043_pintasan_pengguna",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1794031991158,
+      "tag": "0044_perangkat_lan",
+      "breakpoints": true
     }
   ]
 }

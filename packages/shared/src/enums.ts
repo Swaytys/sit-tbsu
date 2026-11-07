@@ -253,6 +253,11 @@ export type KondisiRetur = (typeof KONDISI_RETUR)[number];
 export const LINGKUP_VOID = ['TRANSAKSI', 'ITEM'] as const;
 export type LingkupVoid = (typeof LINGKUP_VOID)[number];
 
+// --- Akses perangkat (K-229) ---
+/** Perangkat (HP/tablet) yang membuka aplikasi lewat mode LAN toko. */
+export const STATUS_PERANGKAT = ['MENUNGGU', 'DISETUJUI', 'DITOLAK', 'DICABUT'] as const;
+export type StatusPerangkat = (typeof STATUS_PERANGKAT)[number];
+
 // --- Kas ---
 /** K-121: DIHITUNG = hitungan tutup sudah dikirim, menunggu keterangan/uang ditinggal; uang baru ditolak. */
 export const STATUS_SHIFT = ['BUKA', 'DIHITUNG', 'TUTUP'] as const;

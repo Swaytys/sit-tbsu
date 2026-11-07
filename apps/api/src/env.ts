@@ -29,6 +29,11 @@ const skemaEnv = z.object({
     .default('0')
     .transform((v) => v === '1'),
   TAILSCALE_CLI: z.string().min(1).optional(),
+  // K-229: mode LAN toko (HTTPS di WiFi toko + halaman pemasangan sertifikat).
+  LAN_PORT: z.coerce.number().int().positive().default(7443),
+  LAN_PORT_SIAP: z.coerce.number().int().positive().default(7880),
+  // K-229: alamat dengar server utama. Pemasangan desktop: 127.0.0.1 (HP/tablet lewat mode LAN atau Tailscale).
+  HOST: z.string().min(1).optional(),
   // K-216: catatan mati mendadak dari peluncur desktop (kosong di luar desktop).
   MATI_MENDADAK_FILE: z.string().min(1).optional(),
   // --- Produksi (Fase 8, K-082) ---

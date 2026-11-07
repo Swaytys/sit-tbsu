@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { StatusPerangkat } from '../enums';
 
 /*
  * K-213: kelola data aplikasi. Satu data aktif (database yang sedang dipakai) dan Pustaka data: salinan data lain
@@ -111,3 +112,32 @@ export type StatusAksesPerangkat = {
 };
 
 export const POLA_ID_DATA = /^[a-z0-9-]{8,60}$/;
+
+// --- K-229: mode LAN toko ---
+
+export type PerangkatLan = {
+  id: number;
+  kode: string;
+  nama: string;
+  status: StatusPerangkat;
+  ipTerakhir: string | null;
+  dibuatPada: string;
+  terakhirDilihat: string | null;
+};
+
+export type StatusLan = {
+  /** Owner memilih mode LAN menyala (diingat saat server menyala lagi). */
+  aktif: boolean;
+  /** Server HTTPS LAN sedang berjalan. */
+  menyala: boolean;
+  /** Alamat aplikasi di WiFi toko, mis. https://192.168.1.10:7443. */
+  alamat: string[];
+  /** Halaman pemasangan sertifikat (http), mis. http://192.168.1.10:7880. */
+  alamatSiap: string[];
+  sidikJari: string | null;
+  berlakuSampai: string | null;
+  galat: string | null;
+  perangkat: PerangkatLan[];
+};
+
+export const skemaAturLan = z.object({ aktif: z.boolean() });

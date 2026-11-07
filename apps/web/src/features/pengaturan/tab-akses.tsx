@@ -7,6 +7,7 @@ import { useAksesPerangkat, usePeriksaAkses } from '@/api/data';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { KartuLan } from './kartu-lan';
 
 /*
  * K-217: Pengaturan › Akses HP/tablet. HP dan tablet membuka BonsaiUrip lewat alamat Tailscale HTTPS laptop ini
@@ -27,7 +28,7 @@ function Status({ ok, children }: { ok: boolean; children: ReactNode }) {
   );
 }
 
-function KodeQr({ alamat }: { alamat: string }) {
+export function KodeQr({ alamat }: { alamat: string }) {
   const [gambar, setGambar] = useState<string | null>(null);
   useEffect(() => {
     let aktif = true;
@@ -57,10 +58,13 @@ export function TabAkses() {
 
   return (
     <div className="space-y-4">
+      <KartuLan />
       <Card className="gap-3 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Smartphone className="size-5 text-blue-600" />
-          <h2 className="flex-1 font-semibold text-slate-800">Akses dari HP dan tablet</h2>
+          <h2 className="flex-1 font-semibold text-slate-800">
+            Cara 2 · Tailscale (di toko dan dari luar toko; berbayar untuk usaha)
+          </h2>
           <Button
             size="sm"
             variant="outline"
@@ -119,6 +123,10 @@ export function TabAkses() {
       </Card>
 
       <Card className="gap-3 p-5 text-sm text-slate-700">
+        <p className="text-xs text-slate-500">
+          Langkah Tailscale (cara 2). Paket gratis Tailscale hanya untuk pemakaian non-usaha; untuk
+          toko pakai paket Standard. Di dalam toko cukup memakai cara 1.
+        </p>
         <h3 className="font-semibold text-slate-800">
           A. Sekali saja di laptop toko (Owner, ± 10 menit)
         </h3>

@@ -217,3 +217,35 @@ export function usePeriksaAkses() {
     onSuccess: (data) => qc.setQueryData(['akses-perangkat'], data),
   });
 }
+
+// --- K-229: mode LAN toko ---
+
+export function useStatusLan() {
+  return useQuery({
+    queryKey: ['akses-lan'],
+    queryFn: async () => ambilData(await api['akses-perangkat'].lan.$get()),
+    refetchInterval: 5000,
+  });
+}
+
+export function useAturLan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (aktif: boolean) =>
+      ambilData(await api['akses-perangkat'].lan.$post({ json: { aktif } })),
+    onSuccess: (data) => qc.setQueryData(['akses-lan'], data),
+  });
+}
+
+export function usePutuskanPerangkat() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { id: number; keputusan: 'setujui' | 'tolak' | 'cabut' }) =>
+      ambilData(
+        await api['akses-perangkat'].lan.perangkat[':id'][':keputusan{setujui|tolak|cabut}'].$post({
+          param: { id: String(p.id), keputusan: p.keputusan },
+        }),
+      ),
+    onSuccess: (data) => qc.setQueryData(['akses-lan'], data),
+  });
+}
