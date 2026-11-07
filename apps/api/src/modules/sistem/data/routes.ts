@@ -16,6 +16,7 @@ import { kaitValidasi } from '../../../lib/validasi';
 import { batasPercobaanLogin } from '../../../middleware/batas-percobaan';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { periksaOwner } from '../../auth/service';
+import { buatDataLatihan } from './latihan';
 import {
   akarPustaka,
   ambilDariHarian,
@@ -103,6 +104,14 @@ export const dataRoutes = new Hono<EnvApp>()
           penggunaWajib(c),
           c.get('asal'),
         ),
+      },
+      201,
+    ),
+  )
+  .post('/latihan', izin, zValidator('json', skemaKonfirmasiData, kaitValidasi), async (c) =>
+    c.json(
+      {
+        data: await buatDataLatihan(c.req.valid('json').password, penggunaWajib(c), c.get('asal')),
       },
       201,
     ),

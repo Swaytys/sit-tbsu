@@ -12,6 +12,7 @@ import {
   Database,
   Download,
   Eye,
+  GraduationCap,
   HardDriveDownload,
   History,
   Loader2,
@@ -27,6 +28,7 @@ import { toast } from 'sonner';
 import {
   useAmbilHarian,
   useBuatDataBaru,
+  useBuatDataLatihan,
   useEksporData,
   useHapusData,
   useImporData,
@@ -105,7 +107,7 @@ function Isi({ label, isi }: { label: string; isi: ReactNode }) {
 type Aksi =
   | { jenis: 'pakai' | 'hapus' | 'rincian'; data: ManifestData }
   | { jenis: 'ekspor'; data: ManifestData | null }
-  | { jenis: 'impor' | 'salinan' | 'harian' | 'baru' };
+  | { jenis: 'impor' | 'salinan' | 'harian' | 'baru' | 'latihan' };
 
 export function TabData() {
   const status = useStatusData();
@@ -136,6 +138,9 @@ export function TabData() {
           </Button>
           <Button size="sm" variant="outline" onClick={() => setAksi({ jenis: 'baru' })}>
             <Plus /> Buat data toko baru
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setAksi({ jenis: 'latihan' })}>
+            <GraduationCap /> Buat data latihan
           </Button>
         </div>
       </Card>
@@ -254,6 +259,7 @@ function DialogAksi({ aksi, onTutup }: { aksi: Aksi; onTutup: () => void }) {
         {aksi.jenis === 'salinan' && <Salinan onTutup={onTutup} />}
         {aksi.jenis === 'harian' && <Harian onTutup={onTutup} />}
         {aksi.jenis === 'baru' && <BuatBaru onTutup={onTutup} />}
+        {aksi.jenis === 'latihan' && <BuatLatihan onTutup={onTutup} />}
       </DialogContent>
     </Dialog>
   );
@@ -642,6 +648,62 @@ function BuatBaru({ onTutup }: { onTutup: () => void }) {
         </Button>
         <Button type="submit" disabled={!password || baru.isPending}>
           {baru.isPending ? <Loader2 className="animate-spin" /> : <Plus />} Buat data toko baru
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+/** K-168: data latihan untuk melatih karyawan; data sekarang disimpan dan bisa dipakai lagi. */
+function BuatLatihan({ onTutup }: { onTutup: () => void }) {
+  const latihan = useBuatDataLatihan();
+  const [password, setPassword] = useState('');
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        latihan
+          .mutateAsync(password)
+          .then(() => {
+            toast.success('Data latihan siap. Masuk lagi dengan username dan password Anda.');
+            setTimeout(() => window.location.assign('/login'), 1500);
+          })
+          .catch((err: unknown) => toast.error(pesanGalat(err)));
+      }}
+      className="space-y-4"
+    >
+      <DialogHeader>
+        <DialogTitle>Buat data latihan?</DialogTitle>
+        <DialogDescription>
+          Untuk melatih karyawan (Bab pelatihan di Buku SOP) tanpa mengganggu data toko sungguhan.
+        </DialogDescription>
+      </DialogHeader>
+      <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+        <li>
+          Data toko yang sedang dipakai <b>tidak dihapus</b>: disimpan di daftar{' '}
+          <i>Data toko lain di komputer ini</i>.
+        </li>
+        <li>
+          Data latihan berisi toko bernama <b>LATIHAN – …</b>, akun Owner Anda (username dan
+          password sama), contoh barang dengan stok 100, pelanggan, pemasok, kendaraan, dan sopir.
+        </li>
+        <li>
+          Buat akun latihan untuk karyawan di <i>Data Pengguna</i>. Semua layar menampilkan pita{' '}
+          <b>MODE LATIHAN</b>.
+        </li>
+        <li>
+          Selesai berlatih: Pengaturan › Data toko › data asli › <b>Pakai data ini</b>. Tutup shift
+          latihan lebih dulu.
+        </li>
+      </ul>
+      <KolomPassword nilai={password} ubah={setPassword} />
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onTutup} disabled={latihan.isPending}>
+          Batal
+        </Button>
+        <Button type="submit" disabled={!password || latihan.isPending}>
+          {latihan.isPending ? <Loader2 className="animate-spin" /> : <GraduationCap />} Buat data
+          latihan
         </Button>
       </DialogFooter>
     </form>

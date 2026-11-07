@@ -46,6 +46,14 @@ export function useBuatDataBaru() {
   });
 }
 
+/** K-168: data latihan (contoh barang + stok, akun Owner yang sama); data sekarang disimpan. */
+export function useBuatDataLatihan() {
+  return useMutation({
+    mutationFn: async (password: string) =>
+      ambilData(await api.data.latihan.$post({ json: { password } })),
+  });
+}
+
 /** K-219: dari halaman masuk, dengan username + password Owner data yang sedang dipakai. */
 export type KredensialOwner = { username: string; password: string };
 

@@ -67,6 +67,7 @@ import { cn } from '@/lib/utils';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { DialogBuat } from '../pengantaran/panel-surat-jalan';
 import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
+import { usePintasan } from '@/api/pintasan';
 import { BilahTombol, type Tombol } from './bilah-tombol';
 import { DialogBukaShift } from '../shift/dialog-buka-shift';
 import { CariBarangPos, type PilihanBarang } from './cari-barang-pos';
@@ -92,13 +93,9 @@ const ID: Record<Zona, string> = {
 
 type Cetakan = { jenis: 'struk' | 'invoice'; p: DetailPenjualan } | null;
 
-const TOMBOL_UMUM: Tombol[] = [
-  { kunci: 'F2', label: 'Cari barang' },
+/** Pintasan tetap (tidak bisa diganti); tombol F lain diatur per pengguna (K-145). */
+const TOMBOL_TETAP: Tombol[] = [
   { kunci: 'F1', label: 'Qty (*)' },
-  { kunci: 'F3', label: 'Antrean' },
-  { kunci: 'F4', label: 'Pelanggan' },
-  { kunci: 'F8', label: 'Bayar' },
-  { kunci: 'F9', label: 'Mulai dari awal' },
   { kunci: 'Alt+← →', label: 'Pindah panel' },
   { kunci: 'PgUp/PgDn', label: 'Gulir panel' },
 ];
@@ -170,6 +167,7 @@ export function LayarPos({
 }) {
   const navigasi = useNavigate();
   const saya = usePengguna();
+  const pintasan = usePintasan();
   const pengantaran = jenis === 'PENGANTARAN';
   const bolehShift = saya.izin.includes('kas.shift.kelola_sendiri');
   useSiaranAntrean();
@@ -295,7 +293,9 @@ export function LayarPos({
       return;
     }
     if (!order && tr.t.baris.length > 0) {
-      toast.error('Selesaikan atau batalkan (F9) transaksi yang sedang berjalan dulu.');
+      toast.error(
+        `Selesaikan atau batalkan (${pintasan.KASIR_MULAI}) transaksi yang sedang berjalan dulu.`,
+      );
       return;
     }
     setSedangProses(true);
@@ -303,7 +303,9 @@ export function LayarPos({
       // Order lain yang sedang dibuka (belum diubah) dikembalikan ke antrean.
       if (order) {
         if (tr.t.diubah) {
-          toast.error('Order aktif sudah diubah. Bayar atau batalkan (F9) dulu.');
+          toast.error(
+            `Order aktif sudah diubah. Bayar atau batalkan (${pintasan.KASIR_MULAI}) dulu.`,
+          );
           return;
         }
         await lepas.mutateAsync(order.id);
@@ -398,7 +400,9 @@ export function LayarPos({
   /** K-104: pengantaran tanpa order boleh, asal pelanggannya sudah dipilih (barang diantar ke siapa). */
   function butuhPelangganAntar(): boolean {
     if (!pengantaran || tr.t.pelanggan) return false;
-    toast.error('Pilih pelanggan dulu (F4), atau pilih order dari antrean (F3).');
+    toast.error(
+      `Pilih pelanggan dulu (${pintasan.KASIR_PELANGGAN}), atau pilih order dari antrean (${pintasan.KASIR_ANTREAN}).`,
+    );
     setZona('pelanggan');
     return true;
   }
@@ -512,16 +516,22 @@ export function LayarPos({
       });
   }
 
+  // K-145: tombol fungsi menurut pengaturan pengguna; juga bisa diklik (K-228).
+  const aksiFungsi: Tombol[] = [
+    { kunci: pintasan.KASIR_CARI, label: 'Cari barang', aksi: () => setZona('cari') },
+    { kunci: pintasan.KASIR_ANTREAN, label: 'Antrean', aksi: () => setZona('antrean') },
+    { kunci: pintasan.KASIR_PELANGGAN, label: 'Pelanggan', aksi: () => setZona('pelanggan') },
+    { kunci: pintasan.KASIR_BAYAR, label: 'Bayar', aksi: () => setZona('bayar') },
+    {
+      kunci: pintasan.KASIR_MULAI,
+      label: order ? 'Tunda / kembalikan order' : 'Mulai dari awal',
+      aksi: () => mintaMulaiDariAwal(),
+    },
+  ];
+
   // Tombol fungsi berlaku di mana pun fokus berada.
   const tombolGlobal = useEffectEvent((e: globalThis.KeyboardEvent) => {
-    const aksi: Record<string, () => void> = {
-      F2: () => setZona('cari'),
-      F3: () => setZona('antrean'),
-      F4: () => setZona('pelanggan'),
-      F8: () => setZona('bayar'),
-      F9: () => mintaMulaiDariAwal(),
-    };
-    const f = aksi[e.key];
+    const f = aksiFungsi.find((a) => a.kunci === e.key)?.aksi;
     // K-171: Alt+←/→ pindah antara panel kiri (antrean) dan kanan (transaksi); juga mencegah Alt+← browser
     // (kembali ke halaman sebelumnya) yang membuang layar kasir.
     if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
@@ -560,22 +570,22 @@ export function LayarPos({
   const kembalianTerakhir = hasil?.pembayaran.reduce((t, b) => t + b.kembalian, 0) ?? 0;
   // K-143: saat order antrean terbuka, F9 = tunda (kembalikan ke antrean) atau batalkan (pilihan A/S/D).
   // K-228: pintasan fungsi juga bisa diklik/disentuh (HP/tablet tanpa tombol F).
-  const aksiKlik: Record<string, () => void> = {
-    F2: () => setZona('cari'),
-    F3: () => setZona('antrean'),
-    F4: () => setZona('pelanggan'),
-    F8: () => setZona('bayar'),
-    F9: () => mintaMulaiDariAwal(),
-    'Alt+← →': () =>
-      setZona(zona === 'antrean' ? (tr.t.baris.length > 0 ? 'keranjang' : 'cari') : 'antrean'),
-  };
   const tombol: Tombol[] = [
-    ...TOMBOL_UMUM.map((t) => ({
-      ...t,
-      ...(t.kunci === 'F9' && order ? { label: 'Tunda / kembalikan order' } : {}),
-      aksi: aksiKlik[t.kunci],
-    })),
-    ...TOMBOL_ZONA[zona],
+    ...aksiFungsi,
+    ...TOMBOL_TETAP.map((t) =>
+      t.kunci === 'Alt+← →'
+        ? {
+            ...t,
+            aksi: () =>
+              setZona(
+                zona === 'antrean' ? (tr.t.baris.length > 0 ? 'keranjang' : 'cari') : 'antrean',
+              ),
+          }
+        : t,
+    ),
+    ...TOMBOL_ZONA[zona].map((t) =>
+      t.kunci === 'Ctrl+Z' && tr.adaCadangan ? { ...t, aksi: () => tr.urungkan() } : t,
+    ),
   ];
   // K-130: dialog buka shift tidak muncul sendiri; pita kuning di atas memberi tahu dan menyediakan tombolnya.
   const tampilDialogShift = dialogShift;
@@ -609,10 +619,15 @@ export function LayarPos({
             />
           )}
           <div className="flex items-baseline justify-between text-sm">
-            <span className="font-semibold text-slate-700">
+            <button
+              type="button"
+              onClick={() => setZona('antrean')}
+              title={`Pilih order dari antrean (${pintasan.KASIR_ANTREAN})`}
+              className="rounded font-semibold text-slate-700 hover:text-blue-700"
+            >
               Antrean {pengantaran ? 'pengantaran' : 'langsung'}{' '}
-              <kbd className="font-mono text-xs text-slate-400">F3</kbd>
-            </span>
+              <kbd className="font-mono text-xs text-slate-400">{pintasan.KASIR_ANTREAN}</kbd>
+            </button>
             <span className="text-xs text-slate-500">
               {tiket.length} order · urut yang paling lama menunggu <TautanOrderDisimpan />
             </span>
@@ -662,14 +677,14 @@ export function LayarPos({
                       onClick={mintaMulaiDariAwal}
                       title={
                         order
-                          ? 'Order antrean: kembalikan ke antrean, simpan, atau batalkan (F9). Akan ditanya dulu.'
-                          : 'Kosongkan layar ini dan mulai dari awal (F9). Akan ditanya dulu.'
+                          ? `Order antrean: kembalikan ke antrean, simpan, atau batalkan (${pintasan.KASIR_MULAI}). Akan ditanya dulu.`
+                          : `Kosongkan layar ini dan mulai dari awal (${pintasan.KASIR_MULAI}). Akan ditanya dulu.`
                       }
                       className="flex items-center gap-1 rounded border border-slate-300 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700"
                     >
                       <RotateCcw className="size-3" />{' '}
                       {order ? 'Tunda / kembalikan order' : 'Mulai dari awal'}
-                      <kbd className="font-mono opacity-60">F9</kbd>
+                      <kbd className="font-mono opacity-60">{pintasan.KASIR_MULAI}</kbd>
                     </button>
                   )}
                 </span>
@@ -689,7 +704,7 @@ export function LayarPos({
                   <button
                     type="button"
                     onClick={() => setZona('pelanggan')}
-                    title="Pilih atau ganti pelanggan (F4)"
+                    title={`Pilih atau ganti pelanggan (${pintasan.KASIR_PELANGGAN})`}
                     className={cn(
                       'rounded border border-dashed px-2 py-0.5 text-left hover:border-blue-500 hover:bg-blue-50',
                       pengantaran && !tr.t.pelanggan
@@ -698,7 +713,7 @@ export function LayarPos({
                     )}
                   >
                     <span className="text-slate-500">
-                      Pelanggan <kbd className="font-mono text-xs">F4</kbd>:
+                      Pelanggan <kbd className="font-mono text-xs">{pintasan.KASIR_PELANGGAN}</kbd>:
                     </span>{' '}
                     <span className="font-medium">
                       {tr.t.pelanggan?.nama ??
@@ -850,13 +865,34 @@ export function LayarPos({
                     : `sisa ${formatRupiah(hasil.sisaTagihan)}`}
                   ).
                 </div>
-                <div className="mt-1 text-slate-700">
-                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">P</kbd> cetak
-                  invoice ·{' '}
-                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">S</kbd> kirim
-                  dengan rit (pilih kendaraan & sopir) ·{' '}
-                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">Enter</kbd>{' '}
-                  lanjut
+                {/* K-228: setiap tombol keyboard juga berupa tombol yang bisa disentuh. */}
+                <div className="mt-2 flex flex-wrap gap-2 text-slate-700">
+                  {(
+                    [
+                      ['P', 'Cetak invoice', () => setCetak({ jenis: 'invoice', p: hasil })],
+                      ['S', 'Kirim dengan rit (kendaraan & sopir)', () => setKirimRit(hasil)],
+                      [
+                        'Enter',
+                        'Lanjut',
+                        () => {
+                          setHasil(null);
+                          setZona('antrean');
+                        },
+                      ],
+                    ] as const
+                  ).map(([kunci, label, aksi]) => (
+                    <button
+                      key={kunci}
+                      type="button"
+                      onClick={aksi}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-emerald-300 bg-white px-2 py-1 hover:bg-emerald-100"
+                    >
+                      <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">
+                        {kunci}
+                      </kbd>
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

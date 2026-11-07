@@ -302,6 +302,13 @@
       "when": 1794025222472,
       "tag": "0042_kas_biaya_entertain",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1794031133469,
+      "tag": "0043_pintasan_pengguna",
+      "breakpoints": true
     }
   ]
 }

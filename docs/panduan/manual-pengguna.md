@@ -732,11 +732,19 @@ daftar tombol keyboard dibuka dengan tombol **Pintasan**. Layar kasir paling nya
   menyimpannya ke daftar data toko. Di komputer baru: setup awal › **Lanjutkan data yang sudah ada**.
 - **Ambil dari cadangan harian** menyalin cadangan tanggal tertentu ke daftar data toko.
 - Data yang tidak dipakai: ikon tempat sampah (password). Simpanan otomatis tidak bisa dihapus; hanya 3 terbaru.
+- **Buat data latihan** (untuk melatih karyawan): data yang sedang dipakai disimpan, lalu dibuka data *LATIHAN –
+  nama toko* berisi akun Owner Anda (username dan password sama), contoh barang berstok 100, pelanggan, pemasok,
+  kendaraan, dan sopir. Buat akun latihan karyawan di *Data Pengguna*. Semua layar menampilkan pita **MODE LATIHAN**.
+  Selesai berlatih: tutup shift latihan → Data toko › data asli › **Pakai data ini**.
 - **Dari halaman masuk** (mis. tidak bisa masuk karena data toko lain sedang dipakai): **Ganti / buat data toko** →
   username + password **Owner** data yang sedang dipakai → pilih data lain › **Pakai**, atau **Buat data toko baru**.
 - **Pemeriksaan data** (data dobel, format salah) ada di tab tersendiri.
 
 ## Tips umum
+
+- **Mengganti tombol pintasan** (semua peran): menu nama Anda › **Pintasan keyboard** → pilih tombol F untuk tiap aksi
+  layar kasir dan Order Penjualan → **Simpan**. Tombol yang sama di satu layar ditolak; **Kembalikan semua ke bawaan**
+  untuk mengulang. Pilihan tersimpan di akun Anda, jadi berlaku di semua komputer/tablet.
 
 - **Cari apa saja**: tekan **Ctrl+K** (atau klik kotak *Cari* di atas). Ketik nama halaman, barang, pelanggan,
   pemasok, atau nomor dokumen (boleh sebagian, mis. `261024-0`). Panah atas/bawah memilih, **Enter** membuka,

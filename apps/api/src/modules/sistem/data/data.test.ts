@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ManifestData, StatusData } from '@sit/shared';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   cookieSesi,
@@ -214,6 +214,48 @@ describe('kelola data (K-213)', { timeout: 180_000 }, () => {
     expect((await db.select().from(pelanggan)).map((p) => p.namaPelanggan)).toEqual([
       'Pelanggan Toko Lama',
     ]);
+  });
+
+  it('K-168 data latihan: akun Owner sama, contoh barang berstok, pita latihan; data asli bisa dipakai lagi', async () => {
+    const o = await owner();
+    await tambahPelanggan('Pelanggan Asli', '+6281200000006');
+    const r = await minta('/api/data/latihan', {
+      method: 'POST',
+      cookie: o.cookie,
+      body: { password: PASSWORD_UJI },
+    });
+    expect(r.status).toBe(201);
+    const asli = (await json<Data<ManifestData>>(r)).data;
+    expect(asli.jumlah.pelanggan).toBe(1);
+
+    const status = await json<Data<{ modeLatihan: boolean; namaToko: string }>>(
+      await minta('/api/auth/penyiapan'),
+    );
+    expect(status.data.modeLatihan).toBe(true);
+    expect(status.data.namaToko).toMatch(/^LATIHAN – /);
+    // Owner masuk dengan username + password yang sama.
+    const cookie = await loginUji(o.username);
+    const s = await json<Data<StatusData>>(await minta('/api/data', { cookie }));
+    expect(s.data.aktif.jumlah.barang).toBeGreaterThan(0);
+    expect(s.data.aktif.jumlah.pelanggan).toBeGreaterThan(0);
+    const [stok] = await db
+      .execute<{ total: string }>(
+        sql`select coalesce(sum(stok_fisik), 0)::text as total from persediaan`,
+      )
+      .then((x) => x.rows);
+    expect(Number(stok!.total)).toBeGreaterThan(0);
+
+    const kembali = await minta(`/api/data/${asli.id}/pakai`, {
+      method: 'POST',
+      cookie,
+      body: { password: PASSWORD_UJI },
+    });
+    expect(kembali.status).toBe(200);
+    expect((await db.select().from(pelanggan)).map((p) => p.namaPelanggan)).toEqual([
+      'Pelanggan Asli',
+    ]);
+    const lagi = await json<Data<{ modeLatihan: boolean }>>(await minta('/api/auth/penyiapan'));
+    expect(lagi.data.modeLatihan).toBe(false);
   });
 
   it('pengaman otomatis hanya 3 terbaru yang disimpan', async () => {

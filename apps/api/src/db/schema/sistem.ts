@@ -88,6 +88,11 @@ export const pengguna = pgTable(
       .$type<{ selesai: string[]; dilewati: string[] }>()
       .notNull()
       .default(sql`'{"selesai":[],"dilewati":[]}'::jsonb`),
+    /** K-145 (migrasi 0043): tombol pintasan yang diganti pengguna ini; kosong = bawaan. */
+    pintasan: jsonb('pintasan')
+      .$type<Record<string, string>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
   },
   () => [
     check('chk_pengguna_peran', dalamDaftar('peran', PERAN)),

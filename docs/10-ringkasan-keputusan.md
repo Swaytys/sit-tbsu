@@ -603,7 +603,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-116 | Hitung kas per pecahan, modal berlanjut, toleransi receh, hitungan pertama terkunci, tinjauan shift, bantuan mencari selisih. | Dirinci oleh K-121 (selesai 18 Okt) |
 | K-117 | Order ditunda dengan tanggal rencana (tahan stok bisa dipilih); tutup shift dengan order yang belum selesai. | Butir 1–2 diganti K-122 |
 | K-118 | Laporan fitur diperbarui tiap commit; riwayat teknis `docs/11`. | Berlaku |
-| K-119 | Tes layar memakai database sendiri. | Berlaku (rencana) |
+| K-119 | Tes layar memakai database sendiri. | Berlaku (PostgreSQL sekali pakai, 7 Nov) |
 
 ### 6.19 Tinjauan pemilik 18 Oktober — `2026-10-18-tinjauan-pemilik.md`
 
@@ -641,7 +641,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-142 | Retur/void menunggu tampil saat tutup shift; refund tercatat di shift saat disetujui. | Berlaku (selesai 18 Okt) |
 | K-143 | F9 kasir: pilihan A/S/D dipertahankan, label tombol diperjelas. | Berlaku (selesai 24 Okt) |
 | K-144 | Diskon manual dipertahankan, terbatas % per peran; di atas batas dengan kode atasan. | Diganti K-146 |
-| K-145 | Pengaturan hotkey per pengguna setelah v1.0.0 lain selesai. | Berlaku (rencana) |
+| K-145 | Pengaturan hotkey per pengguna setelah v1.0.0 lain selesai. | Berlaku (7 Nov: menu akun › Pintasan keyboard) |
 
 ---
 
@@ -678,7 +678,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-165 | Arsip/tutup buku tahunan; dokumen pembukuan disimpan 10 tahun. | Berlaku (selesai 24 Okt; data tetap di satu database, tahun dikunci + berkas arsip) |
 | K-166 | Alur pembaruan aplikasi yang aman bagi data lama. | Berlaku (selesai 24 Okt) |
 | K-167 | Pencarian universal di topbar (Ctrl+K). | Berlaku (selesai 24 Okt) |
-| K-168 | Mode demo terpisah; panduan penyiapan pertama dengan 5 contoh data asli per jenis. | Berlaku (panduan + contoh selesai 28 Okt; mode demo terpisah masih rencana) |
+| K-168 | Mode demo terpisah; panduan penyiapan pertama dengan 5 contoh data asli per jenis. | Berlaku (mode demo = data latihan, 7 Nov) |
 | K-169 | Atribut dimensi/berat dan data muatan satu sumber, dengan aturan dimensi vs volume. | Berlaku (selesai 28 Okt) |
 | K-170 | Notifikasi dan lencana barang di order pengantaran yang belum punya data muatan. | Berlaku (selesai 28 Okt) |
 | K-171 | Hot page langsung/pengantaran: gulir panel dan pindah fokus dengan tombol, elemen lebih ringkas. | Berlaku (selesai 28 Okt) |

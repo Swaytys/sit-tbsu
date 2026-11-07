@@ -234,6 +234,15 @@ export const router = createBrowserRouter([
                 handle: { judul: 'Akun saya' },
               },
               {
+                // K-145: pintasan keyboard per pengguna (semua peran).
+                path: 'akun/pintasan',
+                lazy: () =>
+                  import('@/features/auth/halaman-pintasan').then((m) => ({
+                    Component: m.HalamanPintasan,
+                  })),
+                handle: { judul: 'Pintasan keyboard' },
+              },
+              {
                 // K-206: tur & panduan untuk semua peran.
                 path: 'tur',
                 lazy: () =>

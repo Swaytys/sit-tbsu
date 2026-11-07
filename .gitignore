@@ -43,3 +43,6 @@ pintasan/log/
 
 # K-232: kunci rahasia pengembang (pemulihan akses Owner). Jangan pernah di-commit.
 .pengembang/
+
+# K-119: PostgreSQL dan server sekali pakai untuk tes layar
+.uji-e2e/

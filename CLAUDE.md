@@ -54,8 +54,9 @@ pnpm build            # build produksi semua paket
 pnpm typecheck        # tsc --noEmit semua paket
 pnpm lint             # eslint semua paket
 pnpm test             # vitest (unit + service dengan DB uji)
-pnpm test:e2e         # playwright (butuh pnpm dev berjalan)
+pnpm test:e2e         # playwright di PostgreSQL + server uji sekali pakai (K-119; database pengembangan tidak tersentuh)
 pnpm test:e2e:kritis  # 5 alur kritis (@kritis), wajib lulus sebelum memperbarui server toko (K-085)
+pnpm test:e2e:dev     # playwright terhadap pnpm dev yang sedang berjalan (database pengembangan)
 pnpm db:migrate       # jalankan migrasi ke DATABASE_URL
 pnpm db:seed          # data awal (konfigurasi, satuan, tier harga, akun owner)
 pnpm db:reset         # HANYA dev: drop + migrate + seed. Minta konfirmasi eksplisit sebelum menjalankan.

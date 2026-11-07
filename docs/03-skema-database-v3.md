@@ -56,6 +56,7 @@ dokumennya. Tidak ada nomor ganda; nomor bisa berlubang bila transaksi dibatalka
 boleh kosong) = tujuan kode persetujuan sekali pakai; diisi pemilik akun sendiri (K-102). v3.32: `kode_pemulihan_hash`
 (argon2id, boleh kosong) dan `kode_pemulihan_dibuat_pada` = kode pemulihan sekali pakai untuk lupa password (K-191).
 v3.39: `tur_status` jsonb `{selesai: [], dilewati: []}` = tur fitur yang sudah selesai/dilewati pengguna (K-206).
+v3.41: `pintasan` jsonb `{}` = tombol pintasan layar kerja yang diganti pengguna, mis. `{"KASIR_CARI":"F6"}` (K-145).
 
 **`kode_reset_password`** (v3.39, K-209) — kode verifikasi lupa password lewat email: `id_pengguna`, `kode_hash`
 (SHA-256), `kedaluwarsa` (10 menit), `salah` (gugur pada 5), `dipakai_pada`, `digugurkan_pada`, `dibuat_pada`.
@@ -562,6 +563,7 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
   `waktu_berangkat` boleh kosong (rit rencana), CHECK `chk_perjalanan_status` dan `chk_perjalanan_kembali` diganti;
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
 - 2026-10-31 — v3.39: `pengguna.tur_status` jsonb; tabel `kode_reset_password` (migrasi 0041, K-206, K-209).
+- 2026-11-07 — v3.41: `pengguna.pintasan` jsonb (migrasi 0043, K-145).
   Konfigurasi baru tanpa migrasi: `jenis_usaha`, `jenis_usaha_lain`, `slogan_toko`, `kota_toko`, `layanan_toko`,
   `setup_awal` (K-205); data awal tidak lagi memuat nama/alamat/telepon toko tertentu (K-207).
 - 2026-10-30 — v3.38: `promo.maks_kelipatan` integer + CHECK `chk_promo_kelipatan` (1–1000, hanya GRATIS/BELI_POTONG) (migrasi 0040, K-194).

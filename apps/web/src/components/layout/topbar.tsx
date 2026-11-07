@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   Store,
+  Keyboard,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -207,6 +208,9 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => void navigate('/akun/password')}>
             <KeyRound /> Akun saya
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void navigate('/akun/pintasan')}>
+            <Keyboard /> Pintasan keyboard
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void navigate('/tur')}>
             <Compass /> Tur & panduan

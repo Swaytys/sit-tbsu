@@ -273,3 +273,25 @@ bisa tidak sesuai isian.
    minimarket (kedaluwarsa & batch, barang timbang), toko pakaian (varian ukuran/warna), apotek (V3).
 3. Istilah dan menu mengikuti modul yang menyala; fitur bahan bangunan tetap dikembangkan.
 4. Data contoh dan templat kategori per jenis usaha.
+
+---
+
+## Sisa backlog V1 lama yang diselesaikan (7 November)
+
+- **K-119 Tes layar memakai database sendiri.** Akun database pengembangan tidak berhak membuat database, jadi tes
+  layar memakai **klaster PostgreSQL sekali pakai** (program PostgreSQL bawaan paket) di `.uji-e2e/`, port 54399,
+  database `tbsu_e2e` yang dibuat ulang setiap putaran, dengan server API/web uji sendiri (3100/5174).
+  `pnpm test:e2e` dan `pnpm test:e2e:kritis` kini memakai cara ini; `pnpm test:e2e:dev` untuk server pengembangan.
+  Diuji: 5 alur kritis lulus. *Selesai.*
+- **K-168 Mode demo terpisah → data latihan.** Dengan K-219 (ganti data toko tanpa memasang ulang), mode demo dibuat
+  sebagai **data latihan**: Pengaturan › Data toko › **Buat data latihan** (password Owner). Data yang sedang dipakai
+  disimpan dulu; data baru bernama *LATIHAN – <nama toko>* berisi akun Owner yang sama (username dan password), contoh
+  barang dengan stok 100, pelanggan, pemasok, kendaraan & sopir, setup awal dianggap selesai. Konfigurasi
+  `mode_latihan` menampilkan pita ungu **MODE LATIHAN** di semua layar (Owner mendapat tautan kembali ke data asli).
+  Kembali: Data toko › data asli › Pakai data ini. Dipakai untuk pelatihan karyawan (proposal Bab 9). *Selesai.*
+- **K-145 Pintasan keyboard per pengguna.** Menu akun › **Pintasan keyboard**: tombol F untuk aksi layar kasir (cari,
+  antrean, pelanggan, bayar, mulai dari awal) dan Order Penjualan (cari, jenis, pelanggan, simpan nanti, kirim, mulai
+  dari awal, daftar order) bisa diganti. Pilihan F2–F4, F6–F10; F1 tetap untuk tanda kali jumlah; F5/F11/F12 dipakai
+  peramban. Tombol yang sama dalam satu layar ditolak (aturan di `packages/shared/src/pintasan.ts`, dipakai API dan
+  layar). Disimpan di akun (`pengguna.pintasan`, migrasi 0043), bukan peramban, sehingga ikut ke perangkat lain.
+  Bilah pintasan, petunjuk tombol, dan pesan memakai tombol pilihan pengguna. *Selesai.*

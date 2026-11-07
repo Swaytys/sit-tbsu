@@ -5,6 +5,7 @@ import { BilahPemulihan } from '@/features/shift/bilah-pemulihan';
 import { PenyediaTur } from '@/features/tur/penyedia-tur';
 import { PencatatInteraksi } from './pencatat-interaksi';
 import { PeringatanShift } from './peringatan-shift';
+import { PitaLatihan } from './pita-latihan';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
 
@@ -95,6 +96,7 @@ export function Layout() {
           <div className="print:hidden">
             <Topbar judul={judul} onToggleSidebar={toggleSidebar} />
           </div>
+          <PitaLatihan />
           <BilahPemulihan />
           <BilahKembaliSetup />
           <PeringatanShift />

@@ -2,6 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import {
   skemaBuatKodePemulihan,
   skemaCatatTur,
+  skemaPintasan,
   skemaGantiPassword,
   skemaLogin,
   skemaMasukCepat,
@@ -22,6 +23,7 @@ import { kotakKeluarUji } from '../sistem/saluran/service';
 import { statusPenyiapan } from '../sistem/setup-awal/service';
 import { buatKodePemulihan, buatSetupAwal, infoKodePemulihan, pulihkanPassword } from './pemulihan';
 import { mintaKodeEmail, resetLewatEmail } from './reset-email';
+import { bacaPintasan, simpanPintasan } from './pintasan';
 import { bacaTur, catatTur, ulangTur } from './tur';
 import { gantiPassword, keSaya, login, logout, masukCepat, type HasilLogin } from './service';
 import { NAMA_COOKIE_SESI } from './token';
@@ -71,6 +73,13 @@ export const authRoutes = new Hono<EnvApp>()
     batasPercobaanLogin,
     zValidator('json', skemaResetLewatEmail, kaitValidasi),
     async (c) => c.json({ data: await resetLewatEmail(c.req.valid('json'), c.get('asal')) }, 200),
+  )
+  // K-145: tombol pintasan milik pengguna sendiri.
+  .get('/pintasan', requireLogin(), async (c) =>
+    c.json({ data: await bacaPintasan(penggunaWajib(c).id) }, 200),
+  )
+  .put('/pintasan', requireLogin(), zValidator('json', skemaPintasan, kaitValidasi), async (c) =>
+    c.json({ data: await simpanPintasan(penggunaWajib(c).id, c.req.valid('json')) }, 200),
   )
   // K-206: status tur fitur milik pengguna sendiri.
   .get('/tur', requireLogin(), async (c) =>

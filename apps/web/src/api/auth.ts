@@ -103,6 +103,7 @@ export function useSetupAwal() {
         namaToko: isi.usaha.namaToko,
         sloganToko: isi.usaha.sloganToko,
         kotaToko: isi.usaha.kotaToko,
+        modeLatihan: false,
       };
       qc.setQueryData(['auth', 'penyiapan'], status);
     },
