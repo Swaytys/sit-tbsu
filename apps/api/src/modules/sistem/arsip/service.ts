@@ -216,7 +216,7 @@ async function isiArsip(ex: Executor, tahun: number) {
 }
 
 /**
- * Tutup tahun: hanya Owner (`sistem.cadangan.kelola`), tahun yang sudah lewat, tanpa dokumen setengah jalan.
+ * Tutup tahun: hanya Owner (`sistem.data.kelola`, K-225), tahun yang sudah lewat, tanpa dokumen setengah jalan.
  * Berkas arsip ditulis dulu, baru tahun dikunci (satu transaksi; baris `tutup_tahun` dikunci).
  */
 export async function tutupTahunIni(

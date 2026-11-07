@@ -80,13 +80,26 @@ describe('requirePermission', () => {
 describe('matriks peran (docs/04 §3)', () => {
   const izin = (peran: (typeof PERAN)[number]) => IZIN_PER_PERAN[peran];
 
-  it('peran bertingkat: Staf ⊂ Kasir ⊂ Admin ⊂ Owner', () => {
-    for (let i = 1; i < PERAN.length; i++) {
-      const bawah = PERAN[i - 1];
-      const atas = PERAN[i];
-      if (!bawah || !atas) continue;
-      for (const kode of izin(bawah)) expect(izin(atas).has(kode)).toBe(true);
+  it('peran bertingkat: Staf ⊂ Kasir ⊂ Kepala Toko (ADMIN) ⊂ Owner; peran K-225 di bawah Owner', () => {
+    const rantai = ['STAF_PENJUALAN', 'KASIR', 'ADMIN', 'OWNER'] as const;
+    for (let i = 1; i < rantai.length; i++) {
+      for (const kode of izin(rantai[i - 1]!)) expect(izin(rantai[i]!).has(kode)).toBe(true);
     }
+    for (const p of PERAN) for (const kode of izin(p)) expect(izin('OWNER').has(kode)).toBe(true);
+    // Pemisahan tugas (K-225): Admin Persediaan dan Petugas Gudang tidak menyetujui dan tidak memegang uang;
+    // Administrator Sistem tidak melihat harga modal.
+    for (const p of ['ADMIN_PERSEDIAAN', 'PETUGAS_GUDANG', 'ADMIN_SISTEM'] as const) {
+      for (const kode of [
+        'retur.setujui',
+        'void.setujui',
+        'pembelian.setujui',
+        'hutang.kelola',
+        'kas.shift.kelola_sendiri',
+      ] as const)
+        expect(izin(p).has(kode)).toBe(false);
+    }
+    expect(izin('ADMIN_SISTEM').has('master.barang.lihat_hpp')).toBe(false);
+    expect(izin('ADMIN').has('pembelian.setujui_semua')).toBe(false);
   });
 
   it('Owner memiliki semua izin; kelola pengguna dan log hanya Owner', () => {

@@ -18,7 +18,8 @@ import {
 } from './lan';
 import { periksaAksesPerangkat, statusAksesPerangkat } from './tailscale';
 
-const izin = requirePermission('sistem.pengaturan.kelola');
+// K-225: akses perangkat diatur Owner/Administrator Sistem.
+const izin = requirePermission('sistem.akses.kelola');
 const paramId = z.object({ id: z.coerce.number().int().positive() });
 
 /** K-217 + K-229: Pengaturan › Akses HP/tablet (Tailscale dan mode LAN toko). */

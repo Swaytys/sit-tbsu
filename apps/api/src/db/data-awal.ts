@@ -317,6 +317,9 @@ const NAMA_DEMO: Record<Peran, string> = {
   ADMIN: 'Demo Admin',
   KASIR: 'Demo Kasir',
   STAF_PENJUALAN: 'Demo Staf',
+  ADMIN_SISTEM: 'Demo Administrator Sistem',
+  ADMIN_PERSEDIAAN: 'Demo Admin Persediaan',
+  PETUGAS_GUDANG: 'Demo Petugas Gudang',
 };
 
 type BarisSatuan = {

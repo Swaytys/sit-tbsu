@@ -7,10 +7,11 @@ export const kunciPengaturan = {
   log: (p: ParamDaftarLog) => ['log-aktivitas', p] as const,
 };
 
-export function usePengaturan() {
+export function usePengaturan(aktif = true) {
   return useQuery({
     queryKey: kunciPengaturan.semua,
     queryFn: async () => ambilData(await api.pengaturan.$get()),
+    enabled: aktif,
   });
 }
 

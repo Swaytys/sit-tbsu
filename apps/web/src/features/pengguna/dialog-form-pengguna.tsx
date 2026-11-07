@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  KET_PERAN,
   LABEL_PERAN,
-  PERAN,
+  PERAN_DIATUR_ADMIN_SISTEM,
   skemaTambahPengguna,
   skemaUbahPengguna,
   type DataTambahPengguna,
@@ -15,6 +16,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useState, type ComponentProps } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { usePengguna } from '@/api/auth';
 import { useTambahPengguna, useUbahPengguna } from '@/api/pengguna';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,23 +47,40 @@ import {
 } from '@/components/ui/select';
 import { tampilkanGalatForm } from '@/lib/form';
 
-// Urutan pilihan peran dari yang paling tinggi (sama seperti mockup).
-const URUTAN_PERAN = [...PERAN].reverse();
+// Urutan pilihan peran dari yang paling tinggi (K-225).
+const URUTAN_PERAN: Peran[] = [
+  'OWNER',
+  'ADMIN',
+  'ADMIN_SISTEM',
+  'ADMIN_PERSEDIAAN',
+  'KASIR',
+  'STAF_PENJUALAN',
+  'PETUGAS_GUDANG',
+];
 
+/** K-225: selain Owner, pengelola akun hanya bisa memberi peran yang boleh diatur Administrator Sistem. */
 function PilihPeran({ value, onChange }: { value: Peran; onChange: (p: Peran) => void }) {
+  const saya = usePengguna();
+  const pilihan =
+    saya.peran === 'OWNER'
+      ? URUTAN_PERAN
+      : URUTAN_PERAN.filter((p) => PERAN_DIATUR_ADMIN_SISTEM.includes(p) || p === value);
   return (
-    <Select value={value} onValueChange={(v) => onChange(v as Peran)}>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Pilih peran" />
-      </SelectTrigger>
-      <SelectContent>
-        {URUTAN_PERAN.map((p) => (
-          <SelectItem key={p} value={p}>
-            {LABEL_PERAN[p]}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="space-y-1">
+      <Select value={value} onValueChange={(v) => onChange(v as Peran)}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Pilih peran" />
+        </SelectTrigger>
+        <SelectContent>
+          {pilihan.map((p) => (
+            <SelectItem key={p} value={p}>
+              {LABEL_PERAN[p]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="text-xs text-slate-500">{KET_PERAN[value]}</p>
+    </div>
   );
 }
 

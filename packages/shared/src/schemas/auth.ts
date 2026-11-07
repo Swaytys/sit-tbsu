@@ -42,6 +42,9 @@ export const USERNAME_DEMO: Record<(typeof PERAN)[number], string> = {
   ADMIN: 'demo.admin',
   KASIR: 'demo.kasir',
   STAF_PENJUALAN: 'demo.staf',
+  ADMIN_SISTEM: 'demo.sistem',
+  ADMIN_PERSEDIAAN: 'demo.persediaan',
+  PETUGAS_GUDANG: 'demo.gudang',
 };
 
 /** Pengguna yang sedang login, beserta izinnya (untuk menyaring menu di web). */

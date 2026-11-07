@@ -213,7 +213,8 @@ export const MENU: EntriMenu[] = [
     path: '/pengaturan',
     label: 'Pengaturan',
     ikon: Settings,
-    izin: 'sistem.pengaturan.kelola',
+    // K-225: Administrator Sistem membuka Pengaturan untuk Cadangan dan Akses HP/tablet.
+    izin: ['sistem.pengaturan.kelola', 'sistem.cadangan.kelola', 'sistem.akses.kelola'],
   },
 ];
 

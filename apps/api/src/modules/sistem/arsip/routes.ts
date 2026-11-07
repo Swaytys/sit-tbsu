@@ -7,7 +7,8 @@ import { kaitValidasi } from '../../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
 import { berkasArsip, bukaTahun, daftarTahun, periksaArsip, tutupTahunIni } from './service';
 
-const kelola = requirePermission('sistem.cadangan.kelola');
+// K-225: tutup tahun hanya Owner (Administrator Sistem memegang cadangan, bukan tutup buku).
+const kelola = requirePermission('sistem.data.kelola');
 const param = zValidator('param', skemaTahunParam, kaitValidasi);
 
 /** Pengaturan › Arsip tahunan (Owner, K-165): daftar tahun, tutup, buka kembali, periksa, unduh berkas. */

@@ -26,6 +26,12 @@ export const DAFTAR_IZIN = {
   'master.pemasok.kelola': 'Tambah/ubah/nonaktifkan pemasok',
   'master.armada.kelola': 'Tambah/ubah/nonaktifkan kendaraan dan sopir (K-150)',
   'master.import.jalankan': 'Import Excel barang / saldo awal',
+  'sistem.akses.kelola':
+    'Akses HP/tablet: mode LAN toko, setujui/cabut perangkat, Tailscale (K-229)',
+  // Pembelian (K-225)
+  'pembelian.setujui': 'Menyetujui order pembelian sampai batas Kepala Toko (bukan buatan sendiri)',
+  'pembelian.setujui_semua':
+    'Menyetujui order pembelian di atas batas Kepala Toko dan barang yang wajib disetujui Owner',
   // Penjualan
   'penjualan.order.buat': 'Buat order, kirim ke antrean, ubah order DRAFT miliknya',
   'penjualan.order.batal_sendiri': 'Batalkan order buatannya sendiri yang masih MENUNGGU',

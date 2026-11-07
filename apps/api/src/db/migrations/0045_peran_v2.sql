@@ -1,0 +1,2 @@
+ALTER TABLE "pengguna" DROP CONSTRAINT "chk_pengguna_peran";--> statement-breakpoint
+ALTER TABLE "pengguna" ADD CONSTRAINT "chk_pengguna_peran" CHECK (peran in ('STAF_PENJUALAN','KASIR','ADMIN','ADMIN_SISTEM','ADMIN_PERSEDIAAN','PETUGAS_GUDANG','OWNER'));

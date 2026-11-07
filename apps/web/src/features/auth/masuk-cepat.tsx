@@ -14,9 +14,24 @@ import { cn } from '@/lib/utils';
 
 const PERAN_DEMO: { peran: Peran; warna: string; ket: string }[] = [
   { peran: 'OWNER', warna: 'bg-purple-600 hover:bg-purple-700', ket: 'Akses penuh semua fitur' },
-  { peran: 'ADMIN', warna: 'bg-blue-600 hover:bg-blue-700', ket: 'Kelola data & laporan' },
+  {
+    peran: 'ADMIN',
+    warna: 'bg-blue-600 hover:bg-blue-700',
+    ket: 'Kepala Toko: persetujuan & laporan',
+  },
   { peran: 'KASIR', warna: 'bg-teal-600 hover:bg-teal-700', ket: 'Transaksi & pembayaran' },
   { peran: 'STAF_PENJUALAN', warna: 'bg-slate-600 hover:bg-slate-700', ket: 'Order & pelanggan' },
+  {
+    peran: 'ADMIN_SISTEM',
+    warna: 'bg-indigo-600 hover:bg-indigo-700',
+    ket: 'Akun, cadangan, akses',
+  },
+  {
+    peran: 'ADMIN_PERSEDIAAN',
+    warna: 'bg-amber-600 hover:bg-amber-700',
+    ket: 'Barang, pembelian, gudang',
+  },
+  { peran: 'PETUGAS_GUDANG', warna: 'bg-stone-600 hover:bg-stone-700', ket: 'Stok & pengiriman' },
 ];
 
 async function masukCepat(peran: Peran): Promise<PenggunaSaya> {

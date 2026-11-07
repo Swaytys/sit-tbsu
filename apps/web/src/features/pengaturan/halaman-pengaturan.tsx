@@ -34,13 +34,40 @@ import { TabPersetujuan } from './tab-persetujuan';
  */
 export function HalamanPengaturan() {
   const pengguna = usePengguna();
-  const pengaturan = usePengaturan();
+  // K-225: Administrator Sistem (tanpa pengaturan umum) hanya melihat tab Cadangan dan Akses HP/tablet.
+  const bolehUmum = bolehAkses(pengguna, 'sistem.pengaturan.kelola');
+  const bolehAksesHp = bolehAkses(pengguna, 'sistem.akses.kelola');
+  const pengaturan = usePengaturan(bolehUmum);
   const bolehLihatLog = bolehAkses(pengguna, 'sistem.log.lihat');
   const bolehCadangan = bolehAkses(pengguna, 'sistem.cadangan.kelola');
   const bolehData = bolehAkses(pengguna, 'sistem.data.kelola');
   const bolehPromo = bolehAkses(pengguna, 'promo.kelola');
   const [url, setUrl] = useSearchParams();
-  const tab = url.get('tab') ?? 'profil';
+  const tab = url.get('tab') ?? (bolehUmum ? 'profil' : bolehCadangan ? 'cadangan' : 'akses');
+
+  if (!bolehUmum) {
+    return (
+      <div className="max-w-5xl space-y-4 p-6">
+        <h1 className="text-xl font-semibold text-slate-900">Pengaturan sistem</h1>
+        <Tabs value={tab} onValueChange={(v) => setUrl({ tab: v }, { replace: true })}>
+          <TabsList className="h-auto flex-wrap justify-start [&>*]:flex-none">
+            {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
+            {bolehAksesHp && <TabsTrigger value="akses">Akses HP/tablet</TabsTrigger>}
+          </TabsList>
+          {bolehCadangan && (
+            <TabsContent value="cadangan">
+              <TabCadangan />
+            </TabsContent>
+          )}
+          {bolehAksesHp && (
+            <TabsContent value="akses">
+              <TabAkses />
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
+    );
+  }
 
   return (
     <div className={cn('space-y-4 p-6', tab !== 'promo' && 'max-w-5xl')}>
@@ -93,8 +120,8 @@ export function HalamanPengaturan() {
             <TabsTrigger value="pemeriksaan">Pemeriksaan data</TabsTrigger>
             {bolehCadangan && <TabsTrigger value="cadangan">Cadangan</TabsTrigger>}
             {bolehData && <TabsTrigger value="data">Data toko &amp; pindah komputer</TabsTrigger>}
-            {bolehData && <TabsTrigger value="akses">Akses HP/tablet</TabsTrigger>}
-            {bolehCadangan && <TabsTrigger value="arsip">Arsip tahunan</TabsTrigger>}
+            {bolehAksesHp && <TabsTrigger value="akses">Akses HP/tablet</TabsTrigger>}
+            {bolehData && <TabsTrigger value="arsip">Arsip tahunan</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="log">Log aktivitas</TabsTrigger>}
             {bolehLihatLog && <TabsTrigger value="interaksi">Log interaksi</TabsTrigger>}
           </TabsList>
@@ -138,7 +165,7 @@ export function HalamanPengaturan() {
           <TabsContent value="pemeriksaan">
             <TabPemeriksaanData />
           </TabsContent>
-          {bolehData && (
+          {bolehAksesHp && (
             <TabsContent value="akses">
               <TabAkses />
             </TabsContent>
@@ -153,7 +180,7 @@ export function HalamanPengaturan() {
               <TabCadangan />
             </TabsContent>
           )}
-          {bolehCadangan && (
+          {bolehData && (
             <TabsContent value="arsip">
               <TabArsip />
             </TabsContent>

@@ -5,7 +5,16 @@
  */
 
 // --- Sistem & pengguna ---
-export const PERAN = ['STAF_PENJUALAN', 'KASIR', 'ADMIN', 'OWNER'] as const;
+/** K-225: ADMIN = Kepala Toko (nilai lama dipertahankan); tiga peran baru untuk pemisahan tugas. */
+export const PERAN = [
+  'STAF_PENJUALAN',
+  'KASIR',
+  'ADMIN',
+  'ADMIN_SISTEM',
+  'ADMIN_PERSEDIAAN',
+  'PETUGAS_GUDANG',
+  'OWNER',
+] as const;
 export type Peran = (typeof PERAN)[number];
 
 export const STATUS_AKTIF = ['AKTIF', 'NONAKTIF'] as const;

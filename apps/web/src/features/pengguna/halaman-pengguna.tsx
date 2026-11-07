@@ -54,6 +54,9 @@ const WARNA_PERAN: Record<Peran, string> = {
   ADMIN: 'border-blue-200 bg-blue-50 text-blue-700',
   KASIR: 'border-teal-200 bg-teal-50 text-teal-700',
   STAF_PENJUALAN: 'border-slate-200 bg-slate-100 text-slate-600',
+  ADMIN_SISTEM: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+  ADMIN_PERSEDIAAN: 'border-amber-200 bg-amber-50 text-amber-800',
+  PETUGAS_GUDANG: 'border-stone-200 bg-stone-100 text-stone-700',
 };
 
 type Dialog =

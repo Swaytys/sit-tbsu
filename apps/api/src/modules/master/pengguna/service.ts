@@ -1,4 +1,5 @@
 import {
+  PERAN_DIATUR_ADMIN_SISTEM,
   LABEL_PERAN,
   type InputResetPassword,
   type MetaHalaman,
@@ -72,6 +73,22 @@ async function pastikanBukanOwnerTerakhir(
   }
 }
 
+/**
+ * K-225: selain Owner, pengelola akun (Administrator Sistem) hanya boleh mengatur akun Staf, Kasir, Admin Persediaan,
+ * dan Petugas Gudang, termasuk memberi peran; akun Owner, Kepala Toko, dan Administrator Sistem hanya diatur Owner.
+ */
+function pastikanBolehAtur(pelaku: PenggunaAktif, ...peran: Peran[]): void {
+  if (pelaku.peran === 'OWNER') return;
+  const terlarang = peran.find((p) => !PERAN_DIATUR_ADMIN_SISTEM.includes(p));
+  if (terlarang) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      `Akun ${LABEL_PERAN[terlarang]} hanya bisa diatur Owner.`,
+      403,
+    );
+  }
+}
+
 export async function daftarPengguna(p: {
   cari?: string | undefined;
   status: StatusAktif | 'SEMUA';
@@ -87,6 +104,7 @@ export async function tambahPengguna(
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<PenggunaDaftar> {
+  pastikanBolehAtur(pelaku, input.peran);
   await pastikanPanjangPassword(input.password, 'password');
   const passwordHash = await hashPassword(input.password);
 
@@ -125,6 +143,7 @@ export async function ubahPengguna(
   await dalamTransaksi(async (tx) => {
     const target = await repo.kunciPengguna(tx, id);
     if (!target) throw tidakDitemukan();
+    pastikanBolehAtur(pelaku, target.peran, input.peran);
     if (input.username !== target.username) await pastikanUsernameBebas(tx, input.username, id);
     if (input.peran !== target.peran)
       await pastikanBukanOwnerTerakhir(tx, target, 'diturunkan perannya');
@@ -168,6 +187,7 @@ export async function nonaktifkanPengguna(
   await dalamTransaksi(async (tx) => {
     const target = await repo.kunciPengguna(tx, id);
     if (!target) throw tidakDitemukan();
+    pastikanBolehAtur(pelaku, target.peran);
     if (target.statusAktif === 'NONAKTIF') {
       throw new AppError('STATUS_TIDAK_VALID', `${target.namaPengguna} sudah nonaktif.`, 409);
     }
@@ -198,6 +218,7 @@ export async function aktifkanPengguna(
   await dalamTransaksi(async (tx) => {
     const target = await repo.kunciPengguna(tx, id);
     if (!target) throw tidakDitemukan();
+    pastikanBolehAtur(pelaku, target.peran);
     if (target.statusAktif === 'AKTIF') {
       throw new AppError('STATUS_TIDAK_VALID', `${target.namaPengguna} sudah aktif.`, 409);
     }
@@ -236,6 +257,7 @@ export async function resetPassword(
   await dalamTransaksi(async (tx) => {
     const target = await repo.kunciPengguna(tx, id);
     if (!target) throw tidakDitemukan();
+    pastikanBolehAtur(pelaku, target.peran);
     const waktu = sekarang();
     await repoAuth.ubahPassword(tx, id, passwordHash, true, waktu);
     const dicabut = await repoAuth.cabutSesiPengguna(tx, id, 'RESET_PASSWORD', waktu);
@@ -260,6 +282,7 @@ export async function cabutSesiPengguna(
   await dalamTransaksi(async (tx) => {
     const target = await repo.kunciPengguna(tx, id);
     if (!target) throw tidakDitemukan();
+    pastikanBolehAtur(pelaku, target.peran);
     const kecuali = id === pelaku.id ? pelaku.idSesi : undefined;
     const dicabut = await repoAuth.cabutSesiPengguna(tx, id, 'DICABUT_OWNER', sekarang(), kecuali);
     await catatLog(tx, {
