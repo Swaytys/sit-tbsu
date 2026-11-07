@@ -575,7 +575,9 @@ export function LayarPos({
       ...(t.kunci === 'F9' && order ? { label: 'Tunda / kembalikan order' } : {}),
       aksi: aksiKlik[t.kunci],
     })),
-    ...TOMBOL_ZONA[zona],
+    ...TOMBOL_ZONA[zona].map((t) =>
+      t.kunci === 'Ctrl+Z' && tr.adaCadangan ? { ...t, aksi: () => tr.urungkan() } : t,
+    ),
   ];
   // K-130: dialog buka shift tidak muncul sendiri; pita kuning di atas memberi tahu dan menyediakan tombolnya.
   const tampilDialogShift = dialogShift;
@@ -609,10 +611,15 @@ export function LayarPos({
             />
           )}
           <div className="flex items-baseline justify-between text-sm">
-            <span className="font-semibold text-slate-700">
+            <button
+              type="button"
+              onClick={() => setZona('antrean')}
+              title="Pilih order dari antrean (F3)"
+              className="rounded font-semibold text-slate-700 hover:text-blue-700"
+            >
               Antrean {pengantaran ? 'pengantaran' : 'langsung'}{' '}
               <kbd className="font-mono text-xs text-slate-400">F3</kbd>
-            </span>
+            </button>
             <span className="text-xs text-slate-500">
               {tiket.length} order · urut yang paling lama menunggu <TautanOrderDisimpan />
             </span>
@@ -850,13 +857,34 @@ export function LayarPos({
                     : `sisa ${formatRupiah(hasil.sisaTagihan)}`}
                   ).
                 </div>
-                <div className="mt-1 text-slate-700">
-                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">P</kbd> cetak
-                  invoice ·{' '}
-                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">S</kbd> kirim
-                  dengan rit (pilih kendaraan & sopir) ·{' '}
-                  <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">Enter</kbd>{' '}
-                  lanjut
+                {/* K-228: setiap tombol keyboard juga berupa tombol yang bisa disentuh. */}
+                <div className="mt-2 flex flex-wrap gap-2 text-slate-700">
+                  {(
+                    [
+                      ['P', 'Cetak invoice', () => setCetak({ jenis: 'invoice', p: hasil })],
+                      ['S', 'Kirim dengan rit (kendaraan & sopir)', () => setKirimRit(hasil)],
+                      [
+                        'Enter',
+                        'Lanjut',
+                        () => {
+                          setHasil(null);
+                          setZona('antrean');
+                        },
+                      ],
+                    ] as const
+                  ).map(([kunci, label, aksi]) => (
+                    <button
+                      key={kunci}
+                      type="button"
+                      onClick={aksi}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-emerald-300 bg-white px-2 py-1 hover:bg-emerald-100"
+                    >
+                      <kbd className="rounded bg-slate-800 px-1.5 font-mono text-white">
+                        {kunci}
+                      </kbd>
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

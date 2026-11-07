@@ -657,7 +657,9 @@ export function InputOrderCepat() {
       aksi: () => mintaMulaiDariAwal(),
     },
     { kunci: 'F10', label: 'Daftar order' },
-    ...TOMBOL[zona],
+    ...TOMBOL[zona].map((t) =>
+      t.kunci === 'Ctrl+Z' && tr.adaCadangan ? { ...t, aksi: () => tr.urungkan() } : t,
+    ),
   ];
 
   return (
