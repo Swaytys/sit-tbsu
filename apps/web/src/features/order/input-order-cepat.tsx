@@ -34,6 +34,7 @@ import { formatDesimal, formatTanggal } from '@/lib/format';
 import { InfoTierBelanja } from '@/components/info-tier-belanja';
 import { cn } from '@/lib/utils';
 import { DialogPelanggan } from '../pelanggan/dialog-pelanggan';
+import { usePintasan } from '@/api/pintasan';
 import { BilahTombol, type Tombol } from '../pos/bilah-tombol';
 import { CariBarangPos, type PilihanBarang } from '../pos/cari-barang-pos';
 import { CariPelangganPos } from '../pos/cari-pelanggan-pos';
@@ -203,6 +204,7 @@ function OrderSaya({
  */
 export function InputOrderCepat() {
   const saya = usePengguna();
+  const pintasan = usePintasan();
   useSiaranAntrean();
   const tierAktif = (useDaftarTingkatHarga().data ?? []).filter((t) => t.statusAktif === 'AKTIF');
   const tierDefault = tierAktif.find((t) => t.isDefault)?.id ?? null;
@@ -310,7 +312,10 @@ export function InputOrderCepat() {
   async function lanjutDraf(id: number, diam = false) {
     if (id === idDraf) return;
     if (tr.t.baris.length > 0) {
-      if (!diam) toast.info('Kirim order yang sedang diisi, atau mulai dari awal (F9), dulu.');
+      if (!diam)
+        toast.info(
+          `Kirim order yang sedang diisi, atau mulai dari awal (${pintasan.ORDER_MULAI}), dulu.`,
+        );
       return;
     }
     const d = await ambilData(await api.order[':id'].$get({ param: { id: String(id) } }));
@@ -605,22 +610,22 @@ export function InputOrderCepat() {
   }
 
   const tombolGlobal = useEffectEvent((e: globalThis.KeyboardEvent) => {
-    if (e.key === 'F2') {
+    if (e.key === pintasan.ORDER_CARI) {
       e.preventDefault();
       setZona('cari');
-    } else if (e.key === 'F4') {
+    } else if (e.key === pintasan.ORDER_PELANGGAN) {
       e.preventDefault();
       setZona('pelanggan');
-    } else if (e.key === 'F3') {
+    } else if (e.key === pintasan.ORDER_JENIS) {
       e.preventDefault();
       gantiJenis();
-    } else if (e.key === 'F8' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) {
+    } else if (e.key === pintasan.ORDER_KIRIM || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) {
       e.preventDefault();
       kirim();
-    } else if (e.key === 'F9') {
+    } else if (e.key === pintasan.ORDER_MULAI) {
       e.preventDefault();
       mintaMulaiDariAwal();
-    } else if (e.key === 'F7') {
+    } else if (e.key === pintasan.ORDER_SIMPAN_NANTI) {
       e.preventDefault();
       mintaSimpanNanti();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && tr.adaCadangan) {
@@ -637,26 +642,30 @@ export function InputOrderCepat() {
   }, []);
 
   const tombol: Tombol[] = [
-    { kunci: 'F2', label: 'Cari barang', aksi: () => setZona('cari') },
+    { kunci: pintasan.ORDER_CARI, label: 'Cari barang', aksi: () => setZona('cari') },
     { kunci: 'F1', label: 'Qty (*)' },
-    { kunci: 'F4', label: 'Pelanggan', aksi: () => setZona('pelanggan') },
+    { kunci: pintasan.ORDER_PELANGGAN, label: 'Pelanggan', aksi: () => setZona('pelanggan') },
     {
-      kunci: 'F3',
+      kunci: pintasan.ORDER_JENIS,
       label: antar ? 'Ubah ke langsung' : 'Ubah ke pengantaran',
       aksi: gantiJenis,
     },
     {
-      kunci: 'F8',
+      kunci: pintasan.ORDER_KIRIM,
       label: ubahOrder ? 'Simpan perubahan' : 'Kirim ke antrean',
       aksi: () => kirim(),
     },
-    { kunci: 'F7', label: 'Simpan untuk nanti', aksi: () => mintaSimpanNanti() },
     {
-      kunci: 'F9',
+      kunci: pintasan.ORDER_SIMPAN_NANTI,
+      label: 'Simpan untuk nanti',
+      aksi: () => mintaSimpanNanti(),
+    },
+    {
+      kunci: pintasan.ORDER_MULAI,
       label: ubahOrder ? 'Buang perubahan' : 'Mulai dari awal',
       aksi: () => mintaMulaiDariAwal(),
     },
-    { kunci: 'F10', label: 'Daftar order' },
+    { kunci: pintasan.ORDER_DAFTAR, label: 'Daftar order' },
     ...TOMBOL[zona].map((t) =>
       t.kunci === 'Ctrl+Z' && tr.adaCadangan ? { ...t, aksi: () => tr.urungkan() } : t,
     ),
@@ -672,15 +681,17 @@ export function InputOrderCepat() {
               data-testid="mode-ubah"
             >
               <span className="font-semibold whitespace-nowrap">Mengubah {ubahOrder.nomor}</span>
-              <span className="truncate text-amber-800">F8 simpan · F9 buang perubahan</span>
+              <span className="truncate text-amber-800">
+                {pintasan.ORDER_KIRIM} simpan · {pintasan.ORDER_MULAI} buang perubahan
+              </span>
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
             <button
               type="button"
               onClick={gantiJenis}
-              title={antar ? 'Ubah ke penjualan langsung (F3)' : 'Ubah ke pengantaran (F3)'}
-              aria-label={`Jenis order: ${antar ? 'pengantaran' : 'langsung'}. Klik untuk mengganti (F3)`}
+              title={`${antar ? 'Ubah ke penjualan langsung' : 'Ubah ke pengantaran'} (${pintasan.ORDER_JENIS})`}
+              aria-label={`Jenis order: ${antar ? 'pengantaran' : 'langsung'}. Klik untuk mengganti (${pintasan.ORDER_JENIS})`}
               className={cn(
                 'rounded border px-2 py-0.5 text-xs font-bold hover:ring-2 hover:ring-blue-300',
                 antar
@@ -689,7 +700,7 @@ export function InputOrderCepat() {
               )}
               data-testid="jenis-order"
             >
-              <kbd className="mr-1 font-mono opacity-60">F3</kbd>
+              <kbd className="mr-1 font-mono opacity-60">{pintasan.ORDER_JENIS}</kbd>
               {antar ? 'PENGANTARAN' : 'LANGSUNG'} ⇄
             </button>
             {zona === 'pelanggan' ? (
@@ -707,11 +718,11 @@ export function InputOrderCepat() {
                 <button
                   type="button"
                   onClick={() => setZona('pelanggan')}
-                  title="Pilih atau ganti pelanggan (F4)"
+                  title={`Pilih atau ganti pelanggan (${pintasan.ORDER_PELANGGAN})`}
                   className="rounded border border-dashed border-slate-300 px-2 py-0.5 text-left hover:border-blue-500 hover:bg-blue-50"
                 >
                   <span className="text-slate-500">
-                    <kbd className="font-mono text-xs">F4</kbd> Pelanggan:
+                    <kbd className="font-mono text-xs">{pintasan.ORDER_PELANGGAN}</kbd> Pelanggan:
                   </span>{' '}
                   <span className="font-medium">
                     {tr.t.pelanggan?.nama ?? (antar ? 'pilih pelanggan' : 'Pembeli umum')}
@@ -836,24 +847,24 @@ export function InputOrderCepat() {
                 onClick={mintaMulaiDariAwal}
                 title={
                   ubahOrder
-                    ? 'Buang perubahan; order tetap seperti semula (F9). Akan ditanya dulu.'
-                    : 'Kosongkan seluruh isian order ini dan mulai dari awal (F9). Akan ditanya dulu.'
+                    ? `Buang perubahan; order tetap seperti semula (${pintasan.ORDER_MULAI}). Akan ditanya dulu.`
+                    : `Kosongkan seluruh isian order ini dan mulai dari awal (${pintasan.ORDER_MULAI}). Akan ditanya dulu.`
                 }
                 className="flex h-12 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700"
               >
                 <RotateCcw className="size-4" /> {ubahOrder ? 'Buang perubahan' : 'Mulai dari awal'}
-                <kbd className="font-mono text-xs opacity-60">F9</kbd>
+                <kbd className="font-mono text-xs opacity-60">{pintasan.ORDER_MULAI}</kbd>
               </button>
             )}
             {tr.t.baris.length > 0 && (
               <button
                 type="button"
                 onClick={mintaSimpanNanti}
-                title="Pembeli pesan sekarang, diambil/dibayar nanti: stok ditahan, wajib nama, No. HP, dan tanggal ambil (F7)"
+                title={`Pembeli pesan sekarang, diambil/dibayar nanti: stok ditahan, wajib nama, No. HP, dan tanggal ambil (${pintasan.ORDER_SIMPAN_NANTI})`}
                 className="flex h-12 items-center gap-1.5 rounded-md border border-violet-300 bg-white px-3 text-sm font-semibold text-violet-800 hover:bg-violet-50"
               >
                 <CalendarClock className="size-4" /> Simpan untuk nanti
-                <kbd className="font-mono text-xs opacity-60">F7</kbd>
+                <kbd className="font-mono text-xs opacity-60">{pintasan.ORDER_SIMPAN_NANTI}</kbd>
               </button>
             )}
             {tr.t.baris.length > 0 && !ubahOrder && (
@@ -887,10 +898,10 @@ export function InputOrderCepat() {
               {simpan.isPending
                 ? 'Menyimpan…'
                 : ubahOrder
-                  ? 'Simpan perubahan (F8)'
+                  ? `Simpan perubahan (${pintasan.ORDER_KIRIM})`
                   : zona === 'kirim'
                     ? 'Enter: kirim ke antrean'
-                    : 'Kirim ke antrean (F8)'}
+                    : `Kirim ke antrean (${pintasan.ORDER_KIRIM})`}
             </button>
           </div>
           {terakhir && (

@@ -641,7 +641,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-142 | Retur/void menunggu tampil saat tutup shift; refund tercatat di shift saat disetujui. | Berlaku (selesai 18 Okt) |
 | K-143 | F9 kasir: pilihan A/S/D dipertahankan, label tombol diperjelas. | Berlaku (selesai 24 Okt) |
 | K-144 | Diskon manual dipertahankan, terbatas % per peran; di atas batas dengan kode atasan. | Diganti K-146 |
-| K-145 | Pengaturan hotkey per pengguna setelah v1.0.0 lain selesai. | Berlaku (rencana) |
+| K-145 | Pengaturan hotkey per pengguna setelah v1.0.0 lain selesai. | Berlaku (7 Nov: menu akun › Pintasan keyboard) |
 
 ---
 

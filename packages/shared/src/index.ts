@@ -44,5 +44,6 @@ export * from './schemas/interaksi';
 export * from './schemas/order-pembelian';
 export * from './schemas/satuan';
 export * from './schemas/umum';
+export * from './pintasan';
 export * from './tanggal';
 export * from './versi';

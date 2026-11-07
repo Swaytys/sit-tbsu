@@ -289,3 +289,9 @@ bisa tidak sesuai isian.
   barang dengan stok 100, pelanggan, pemasok, kendaraan & sopir, setup awal dianggap selesai. Konfigurasi
   `mode_latihan` menampilkan pita ungu **MODE LATIHAN** di semua layar (Owner mendapat tautan kembali ke data asli).
   Kembali: Data toko › data asli › Pakai data ini. Dipakai untuk pelatihan karyawan (proposal Bab 9). *Selesai.*
+- **K-145 Pintasan keyboard per pengguna.** Menu akun › **Pintasan keyboard**: tombol F untuk aksi layar kasir (cari,
+  antrean, pelanggan, bayar, mulai dari awal) dan Order Penjualan (cari, jenis, pelanggan, simpan nanti, kirim, mulai
+  dari awal, daftar order) bisa diganti. Pilihan F2–F4, F6–F10; F1 tetap untuk tanda kali jumlah; F5/F11/F12 dipakai
+  peramban. Tombol yang sama dalam satu layar ditolak (aturan di `packages/shared/src/pintasan.ts`, dipakai API dan
+  layar). Disimpan di akun (`pengguna.pintasan`, migrasi 0043), bukan peramban, sehingga ikut ke perangkat lain.
+  Bilah pintasan, petunjuk tombol, dan pesan memakai tombol pilihan pengguna. *Selesai.*

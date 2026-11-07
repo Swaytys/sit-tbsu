@@ -1,4 +1,5 @@
 import { formatRupiah, type BarisDaftarOrder, type StatusOrder } from '@sit/shared';
+import { usePintasan } from '@/api/pintasan';
 import {
   AlertCircle,
   CalendarClock,
@@ -628,9 +629,10 @@ export function HalamanOrder() {
   const daftar = url.get('tampil') === 'daftar' || url.has('id') || url.has('status');
   const keDaftar = () => setUrl({ tampil: 'daftar' }, { replace: true });
   const keInput = () => setUrl({}, { replace: true });
+  const tombolDaftar = usePintasan().ORDER_DAFTAR;
   useEffect(() => {
     function tombol(e: KeyboardEvent) {
-      if (!daftar && e.key === 'F10') {
+      if (!daftar && e.key === tombolDaftar) {
         e.preventDefault();
         setUrl({ tampil: 'daftar' }, { replace: true });
       } else if (daftar && e.key === 'Escape' && !document.querySelector('[role="dialog"]')) {
@@ -648,7 +650,7 @@ export function HalamanOrder() {
     }
     window.addEventListener('keydown', tombol);
     return () => window.removeEventListener('keydown', tombol);
-  }, [daftar, setUrl]);
+  }, [daftar, setUrl, tombolDaftar]);
   return (
     <div className="flex h-full flex-col gap-2 p-3">
       <div className="flex items-center justify-end">
@@ -658,7 +660,7 @@ export function HalamanOrder() {
           </Button>
         ) : (
           <Button size="sm" variant="outline" onClick={keDaftar}>
-            <List /> Daftar order <kbd className="ml-1 text-xs text-slate-500">F10</kbd>
+            <List /> Daftar order <kbd className="ml-1 text-xs text-slate-500">{tombolDaftar}</kbd>
           </Button>
         )}
       </div>

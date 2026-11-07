@@ -742,6 +742,10 @@ daftar tombol keyboard dibuka dengan tombol **Pintasan**. Layar kasir paling nya
 
 ## Tips umum
 
+- **Mengganti tombol pintasan** (semua peran): menu nama Anda › **Pintasan keyboard** → pilih tombol F untuk tiap aksi
+  layar kasir dan Order Penjualan → **Simpan**. Tombol yang sama di satu layar ditolak; **Kembalikan semua ke bawaan**
+  untuk mengulang. Pilihan tersimpan di akun Anda, jadi berlaku di semua komputer/tablet.
+
 - **Cari apa saja**: tekan **Ctrl+K** (atau klik kotak *Cari* di atas). Ketik nama halaman, barang, pelanggan,
   pemasok, atau nomor dokumen (boleh sebagian, mis. `261024-0`). Panah atas/bawah memilih, **Enter** membuka,
   **Esc** menutup. Hasil hanya yang boleh Anda lihat.

@@ -1,0 +1,1 @@
+ALTER TABLE "pengguna" ADD COLUMN "pintasan" jsonb DEFAULT '{}'::jsonb NOT NULL;

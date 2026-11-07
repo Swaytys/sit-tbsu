@@ -343,3 +343,21 @@ export async function ownerPertama(ex: Executor) {
     .limit(1);
   return b;
 }
+
+// --- K-145: pintasan keyboard per pengguna ---
+
+export async function pintasanPengguna(ex: Executor, idPengguna: number) {
+  const [b] = await ex
+    .select({ pintasan: pengguna.pintasan })
+    .from(pengguna)
+    .where(eq(pengguna.id, idPengguna));
+  return b?.pintasan ?? {};
+}
+
+export async function simpanPintasan(
+  ex: Executor,
+  idPengguna: number,
+  pintasan: Record<string, string>,
+): Promise<void> {
+  await ex.update(pengguna).set({ pintasan }).where(eq(pengguna.id, idPengguna));
+}
