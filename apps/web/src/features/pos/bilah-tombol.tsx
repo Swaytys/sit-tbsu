@@ -93,7 +93,6 @@ export function BilahTombol({ daftar }: { daftar: Tombol[] }) {
               onMouseDown={(e) => e.preventDefault()}
               onClick={t.aksi}
               title={`${t.label} (${t.kunci})`}
-              aria-label={`${t.label} (${t.kunci})`}
               className="-mx-1 rounded px-1 py-0.5 whitespace-nowrap hover:bg-slate-700 hover:text-white"
             >
               <kbd className="mr-1 rounded bg-slate-700 px-1.5 py-0.5 font-mono font-semibold text-white">

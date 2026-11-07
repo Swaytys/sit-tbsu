@@ -17,11 +17,11 @@ test('Order Penjualan: jenis order dan bilah pintasan bisa diklik tanpa keyboard
   // Bilah pintasan: buka bila tertutup, lalu klik F3 untuk kembali ke langsung.
   const buka = page.getByRole('button', { name: /Pintasan/ });
   if (await buka.isVisible()) await buka.click();
-  await page.getByRole('button', { name: /Ubah ke langsung \(F3\)/ }).click();
+  await page.getByTitle('Ubah ke langsung (F3)', { exact: true }).click();
   await expect(jenis).toContainText('LANGSUNG');
 
   // F4 lewat klik membuka kotak cari pelanggan.
-  await page.getByRole('button', { name: 'Pelanggan (F4)' }).click();
+  await page.getByTitle('Pelanggan (F4)', { exact: true }).click();
   await expect(page.locator('#order-cari-pelanggan')).toBeVisible();
 });
 
@@ -30,7 +30,7 @@ test('Penjualan Langsung: bilah pintasan F2/F8 bisa diklik', async ({ page }) =>
   await page.goto('/penjualan-langsung');
   const buka = page.getByRole('button', { name: /Pintasan/ });
   if (await buka.isVisible()) await buka.click();
-  await page.getByRole('button', { name: 'Cari barang (F2)' }).click();
+  await page.getByTitle('Cari barang (F2)', { exact: true }).click();
   await expect(page.locator('input:focus')).toHaveCount(1);
   await page.getByRole('button', { name: /Antrean langsung/ }).click();
 });
@@ -41,13 +41,13 @@ test('K-145: kasir mengganti tombol cari barang ke F6; layar kasir mengikutinya'
   await masukCepat(page, 'KASIR');
   try {
     await page.goto('/akun/pintasan');
-    await page.getByLabel('Cari barang').first().selectOption('F6');
+    await page.locator('#pintasan-KASIR_CARI').selectOption('F6');
     await page.getByRole('button', { name: 'Simpan' }).click();
     await expect(page.getByText('Pintasan keyboard disimpan.')).toBeVisible();
     await page.goto('/penjualan-langsung');
     const buka = page.getByRole('button', { name: /Pintasan/ });
     if (await buka.isVisible()) await buka.click();
-    await expect(page.getByRole('button', { name: 'Cari barang (F6)' })).toBeVisible();
+    await expect(page.getByTitle('Cari barang (F6)', { exact: true })).toBeVisible();
     await page.locator('body').click();
     await page.keyboard.press('F6');
     await expect(page.locator('input:focus')).toHaveCount(1);
