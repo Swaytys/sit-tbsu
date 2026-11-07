@@ -441,7 +441,8 @@ Semua tugas kasir, ditambah:
   dasar.
 - **Label barang** (*Data Barang › Cetak label*): pilih barang dan jumlah label, jenis kertas (printer thermal
   58/57/80 mm atau kertas label A4), harga tier, lalu **Cetak**. Barcode di label bisa dipindai di layar kasir. Kertas yang sudah terpakai sebagian: isi
-  "Mulai dari label ke-". Cetak dengan skala 100%.
+  "Mulai dari label ke-". Cetak dengan skala 100%. Pemindai, barang curah (label wadah dan lembar barcode kasir),
+  dan masalah label tidak terbaca: `docs/panduan/label-barcode.md` (K-230).
 - **Harga jual** (*Harga Jual*): harga dasar (Normal) tiap barang bisa **Tier** (harga modal + markup tier;
   bawaan barang baru), **%** (markup sendiri), atau **Rp** (harga tetap yang Anda ketik). Harga tier lain (Grosir,
   Distributor) selalu harga modal + markup tier untuk semua barang dan hanya ditampilkan. Kolom margin = (harga −

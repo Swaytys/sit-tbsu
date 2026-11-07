@@ -325,6 +325,24 @@ HP, tablet, laptop
   `[KODE: web/components/layout/layout.tsx]`, `[KODE: web/public/manifest.webmanifest]`; `[DOK: K-217]`; tes
   `akses.test.ts`. Status: BERFUNGSI (koneksi Tailscale diuji pemilik, U183–U186).
 
+**F62. Ganti dan buat data toko tanpa memasang ulang** | Pengaturan › Data toko & pindah komputer; halaman masuk |
+Owner | desktop
+- Fungsi: *Buat data toko baru* menyimpan data yang sedang dipakai sebagai salinan lalu mengosongkan database dan
+  mengisi data awal (setup awal tampil lagi); dari halaman masuk, Owner data yang sedang dipakai (username + password)
+  bisa memakai data toko lain atau membuat data baru. Ditolak selama shift terbuka. Istilah layar memakai bahasa
+  pemakai toko; tab Pemeriksaan data terpisah.
+- Bukti: `[KODE: api/modules/sistem/data/service.ts buatDataBaru]`, `[KODE: api/modules/sistem/data/routes.ts
+  dataMasukRoutes]`, `[KODE: web/features/auth/dialog-data-toko.tsx]`; `[DOK: K-218, K-219, K-220]`; tes
+  `data.test.ts`. Status: BERFUNGSI.
+
+**F63. Pemulihan akses Owner bersama pengembang** | `BonsaiUrip.exe --pulihkan` | Owner + pengembang | komputer server
+- Fungsi: kode tantangan sekali pakai (ID pemasangan, angka acak, 60 menit) dijawab pengembang dengan tanda tangan
+  Ed25519; aplikasi memeriksa dengan kunci publik tertanam; 5 kali salah membatalkan; berhasil = password sementara
+  dan kode pemulihan baru, tercatat di log. Menu Start lama dihapus.
+- Bukti: `[KODE: api/lib/pemulihan-pengembang.ts]`, `[KODE: alat-pengembang/kunci-pemulihan.mjs]`,
+  `[KODE: installer/peluncur/BonsaiUrip.cs MintaJawaban]`; `[DOK: K-232]`; tes `pemulihan-pengembang.test.ts`.
+  Status: BERFUNGSI.
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1406,6 +1424,8 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
 - 2026-10-31 — F61 HP dan tablet (K-217).
+- 2026-11-07 — F62 ganti/buat data toko (K-218–K-220), F63 pemulihan Owner bersama pengembang (K-232); kas
+  Biaya entertain (K-223), draf order ikut harga terbaru (K-224), pintasan bisa disentuh (K-228).
 - 2026-10-31 — F59 kelola data, F60 pengaman shift dan mati mendadak; F56 perbaikan tombol langkah; Setup dua bahasa
   (K-212–K-216).
 - 2026-10-31 — F56 setup awal, F57 tur fitur, F58 lupa password lewat email; F55 Mulai dari nol dan Pulihkan akses
