@@ -441,7 +441,8 @@ Semua tugas kasir, ditambah:
   dasar.
 - **Label barang** (*Data Barang › Cetak label*): pilih barang dan jumlah label, jenis kertas (printer thermal
   58/57/80 mm atau kertas label A4), harga tier, lalu **Cetak**. Barcode di label bisa dipindai di layar kasir. Kertas yang sudah terpakai sebagian: isi
-  "Mulai dari label ke-". Cetak dengan skala 100%.
+  "Mulai dari label ke-". Cetak dengan skala 100%. Pemindai, barang curah (label wadah dan lembar barcode kasir),
+  dan masalah label tidak terbaca: `docs/panduan/label-barcode.md` (K-230).
 - **Harga jual** (*Harga Jual*): harga dasar (Normal) tiap barang bisa **Tier** (harga modal + markup tier;
   bawaan barang baru), **%** (markup sendiri), atau **Rp** (harga tetap yang Anda ketik). Harga tier lain (Grosir,
   Distributor) selalu harga modal + markup tier untuk semua barang dan hanya ditampilkan. Kolom margin = (harga −
@@ -719,16 +720,21 @@ toko, MagicDNS + HTTPS aktif) lalu **Aktifkan**; di tiap HP/tablet pasang Tailsc
 kode QR, **Tambahkan ke layar utama**. Di HP, menu ada di tombol ☰; layar kerja menumpuk dan bisa digulir;
 daftar tombol keyboard dibuka dengan tombol **Pintasan**. Layar kasir paling nyaman di tablet mendatar.
 
-### Owner: Pengaturan › Data (kelola data aplikasi)
+### Owner: Pengaturan › Data toko & pindah komputer
 
-- **Data aktif**: data yang sedang dipakai (toko, rentang transaksi, pengguna, ukuran).
-- **Simpan salinan ke Pustaka** sebelum mencoba hal besar; **Pakai data ini** mengganti data aktif (password
-  diminta; semua pengguna masuk lagi dengan akun dari data itu). Data aktif otomatis disimpan sebagai **pengaman**
-  sehingga bisa dikembalikan.
-- **Ekspor untuk pindah perangkat** membuat berkas `.bonsai` bersandi; **Impor berkas .bonsai** memasukkannya ke
-  Pustaka. Di komputer baru, setup awal › **Lanjutkan data yang sudah ada**.
-- **Ambil dari cadangan harian** menyalin cadangan tanggal tertentu ke Pustaka.
-- Data yang tidak dipakai: ikon tempat sampah (password). Pengaman otomatis tidak bisa dihapus; hanya 3 terbaru.
+- **Data toko yang sedang dipakai**: nama toko, rentang transaksi, pengguna, ukuran.
+- **Simpan salinan** sebelum mencoba hal besar. **Pakai data ini** (di daftar *Data toko lain di komputer ini*)
+  mengganti data yang sedang dipakai; password diminta, semua pengguna masuk lagi dengan akun dari data itu. Data
+  yang sedang dipakai otomatis disimpan di *Simpanan otomatis sebelum ganti data* sehingga bisa dipakai kembali.
+- **Buat data toko baru**: aplikasi kembali ke setup awal seperti baru dipasang; data yang sedang dipakai tetap
+  tersimpan di daftar dan bisa dipakai lagi. Tutup shift lebih dulu (aplikasi menolak selama shift terbuka).
+- **Buat berkas pindah komputer** menghasilkan berkas `.bonsai` bersandi; **Masukkan berkas pindah komputer**
+  menyimpannya ke daftar data toko. Di komputer baru: setup awal › **Lanjutkan data yang sudah ada**.
+- **Ambil dari cadangan harian** menyalin cadangan tanggal tertentu ke daftar data toko.
+- Data yang tidak dipakai: ikon tempat sampah (password). Simpanan otomatis tidak bisa dihapus; hanya 3 terbaru.
+- **Dari halaman masuk** (mis. tidak bisa masuk karena data toko lain sedang dipakai): **Ganti / buat data toko** →
+  username + password **Owner** data yang sedang dipakai → pilih data lain › **Pakai**, atau **Buat data toko baru**.
+- **Pemeriksaan data** (data dobel, format salah) ada di tab tersendiri.
 
 ## Tips umum
 

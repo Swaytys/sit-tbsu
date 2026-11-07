@@ -28,6 +28,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { jalankanMigrasi } from './db/migrator';
+import {
+  buatTantangan,
+  idPemasanganBaru,
+  PESAN_PERIKSA,
+  periksaJawaban,
+} from './lib/pemulihan-pengembang';
 import { kosongkanData, ringkasDatabase, simpanKePustaka } from './modules/sistem/data/pustaka';
 
 type Konfigurasi = {
@@ -36,6 +42,8 @@ type Konfigurasi = {
   sandiDb: string;
   /** Data awal pertama kali sudah diisi (password awal owner sudah dibuat). */
   sudahAwal: boolean;
+  /** K-232: pengenal pemasangan ini (dipakai kode tantangan pemulihan Owner). */
+  idPemasangan?: string;
 };
 
 const DIST = path.dirname(fileURLToPath(import.meta.url));
@@ -54,6 +62,8 @@ const BERKAS_PID = path.join(DATA, 'server.pid');
 const BERKAS_STATUS = path.join(DATA, 'status-peluncur.txt');
 /** K-211: hasil Pulihkan akses Owner, dibaca lalu dihapus BonsaiUrip.exe. */
 const BERKAS_PULIH = path.join(DATA, 'pulihkan-owner.txt');
+/** K-232: kode tantangan pemulihan Owner yang sedang berlaku (sekali pakai). */
+const BERKAS_TANTANGAN = path.join(DATA, 'pulihkan-tantangan.json');
 /** K-213: Pustaka data (salinan data lain) dan tanda "Mulai dari nol" yang ditulis Setup. */
 const PUSTAKA = path.join(DATA, 'pustaka');
 const BERKAS_NOL = path.join(DATA, 'mulai-dari-nol.flag');
@@ -411,10 +421,49 @@ function berhenti(): void {
  * pulihkan-owner.js membuat password sementara + kode pemulihan baru. Hasil ditulis ke berkas sementara yang dibaca
  * dan langsung dihapus BonsaiUrip.exe (hanya akun Windows pemilik folder data yang bisa membacanya).
  */
-async function pulihkanOwner(): Promise<void> {
+/**
+ * K-232 langkah 1: kode tantangan sekali pakai (berlaku 60 menit) ditulis ke `BERKAS_TANTANGAN` untuk ditampilkan
+ * BonsaiUrip.exe; pemilik mengirimkannya ke pengembang.
+ */
+function tantanganPulih(): void {
   const k = bacaKonfig();
   if (!k)
     throw new Error('BonsaiUrip belum pernah dinyalakan di komputer ini. Buka BonsaiUrip dulu.');
+  if (!k.idPemasangan) {
+    k.idPemasangan = idPemasanganBaru();
+    simpanKonfig(k);
+  }
+  const t = buatTantangan(k.idPemasangan, new Date());
+  writeFileSync(BERKAS_TANTANGAN, JSON.stringify({ ...t, salah: 0 }));
+  catat('Kode tantangan pemulihan Owner dibuat.');
+}
+
+/**
+ * K-211 + K-232 langkah 2: akses Owner dipulihkan hanya dengan kode jawaban pengembang yang cocok dengan kode
+ * tantangan yang sedang berlaku. 5 kali salah membatalkan tantangan.
+ */
+async function pulihkanOwner(jawaban: string | undefined): Promise<void> {
+  const k = bacaKonfig();
+  if (!k)
+    throw new Error('BonsaiUrip belum pernah dinyalakan di komputer ini. Buka BonsaiUrip dulu.');
+  if (!jawaban || !existsSync(BERKAS_TANTANGAN) || !k.idPemasangan) {
+    throw new Error(
+      'Pemulihan akses Owner membutuhkan kode jawaban dari pengembang. Mulai dari langkah kode tantangan.',
+    );
+  }
+  const t = JSON.parse(readFileSync(BERKAS_TANTANGAN, 'utf8')) as { kode: string; salah: number };
+  const hasilPeriksa = periksaJawaban(t.kode, jawaban, k.idPemasangan, new Date());
+  if (hasilPeriksa !== 'COCOK') {
+    t.salah += 1;
+    if (t.salah >= 5 || hasilPeriksa === 'KEDALUWARSA') rmSync(BERKAS_TANTANGAN, { force: true });
+    else writeFileSync(BERKAS_TANTANGAN, JSON.stringify(t));
+    catat(`Pemulihan Owner ditolak: ${hasilPeriksa}.`);
+    throw new Error(
+      PESAN_PERIKSA[hasilPeriksa] +
+        (t.salah >= 5 ? ' Sudah 5 kali salah: kode tantangan dibatalkan, mulai lagi.' : ''),
+    );
+  }
+  rmSync(BERKAS_TANTANGAN, { force: true });
   await siapkanDatabase(k);
   await jalankanMigrasi(urlDb(k));
   const r = spawnSync(process.execPath, [path.join(DIST, 'pulihkan-owner.js')], {
@@ -534,7 +583,8 @@ async function utama(): Promise<void> {
     return;
   }
   if (args.includes('--pulihkan-owner')) {
-    await pulihkanOwner();
+    if (args.includes('--tantangan')) tantanganPulih();
+    else await pulihkanOwner(args.find((a) => a.startsWith('--jawaban='))?.slice(10));
     return;
   }
   let k = bacaKonfig();

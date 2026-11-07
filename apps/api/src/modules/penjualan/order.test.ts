@@ -254,6 +254,38 @@ describe('order penjualan (docs/05 §3, §6)', () => {
     expect(adaHp.status).toBe(201);
   });
 
+  it('K-224 draf tidak menjanjikan harga: pratinjau dan simpan draf memakai harga master terbaru', async () => {
+    const d = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '1' }]));
+    expect(d.status).toBe('DRAFT');
+    const hargaAwal = d.baris[0]!.hargaSatuan;
+    const baru = hargaAwal - 700;
+    await db.update(hargaBarang).set({ hargaJual: baru }).where(eq(hargaBarang.idBarang, m.semen));
+    // Kembali ke layar order: pratinjau draf langsung memakai harga baru.
+    const p = await kirim<{ baris: { hargaSatuan: number }[] }>(staf, '/api/order/pratinjau', {
+      idOrder: d.id,
+      order: order([{ idBarang: m.semen, qty: '1' }]),
+    });
+    expect(p.baris[0]!.hargaSatuan).toBe(baru);
+    const u = await kirim(
+      staf,
+      `/api/order/${d.id}`,
+      order([{ idBarang: m.semen, qty: '1' }]),
+      'PUT',
+    );
+    expect(u.baris[0]!.hargaSatuan).toBe(baru);
+    // Setelah dikirim, harga dijanjikan (P2): perubahan master berikutnya tidak mengubah order.
+    await kirim(staf, `/api/order/${d.id}/kirim`);
+    await db
+      .update(hargaBarang)
+      .set({ hargaJual: baru + 300 })
+      .where(eq(hargaBarang.idBarang, m.semen));
+    const p2 = await kirim<{ baris: { hargaSatuan: number }[] }>(staf, '/api/order/pratinjau', {
+      idOrder: d.id,
+      order: order([{ idBarang: m.semen, qty: '1' }]),
+    });
+    expect(p2.baris[0]!.hargaSatuan).toBe(baru);
+  });
+
   it('P3/K-146/H9 tier selalu otomatis, diskon manual ditolak semua peran, harga manual di bawah modal', async () => {
     // K-099: tier tidak bisa dipilih; belanja di bawah syarat selalu harga tier dasar.
     const biasa = await kirim(staf, '/api/order', order([{ idBarang: m.semen, qty: '1' }]));

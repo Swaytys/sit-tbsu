@@ -99,4 +99,5 @@ export const LABEL_JENIS_KAS: Record<JenisKasShift, string> = {
   KOREKSI_MODAL_TAMBAH: 'Koreksi modal (+)',
   KOREKSI_MODAL_KURANG: 'Koreksi modal (−)',
   KEMBALIAN_DITINGGAL: 'Kembalian tidak diambil',
+  BIAYA_ENTERTAIN: 'Biaya entertain',
 };

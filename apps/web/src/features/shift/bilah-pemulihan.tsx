@@ -113,7 +113,7 @@ export function BilahPemulihan() {
               </li>
               <li>
                 Bila data tampak rusak (jarang): Owner memakai data dari cadangan harian di
-                Pengaturan › Data.
+                Pengaturan › Data toko.
               </li>
             </ol>
             {bolehSelesai && (

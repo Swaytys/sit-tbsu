@@ -204,7 +204,15 @@ function FormKas() {
             value={ket}
             maxLength={255}
             onChange={(e) => setKet(e.target.value)}
-            placeholder={jenis === 'KASBON' ? 'Siapa & untuk apa' : 'Opsional'}
+            placeholder={
+              jenis === 'KASBON'
+                ? 'Siapa & untuk apa'
+                : jenis === 'BIAYA_ENTERTAIN'
+                  ? 'Untuk siapa & kesepakatan apa'
+                  : jenis === 'SETOR_OWNER' || jenis === 'TARIK_OWNER'
+                    ? 'Opsional'
+                    : 'Wajib: untuk apa'
+            }
           />
         </div>
         <Button type="submit" className="shrink-0" disabled={!nominal || catat.isPending}>

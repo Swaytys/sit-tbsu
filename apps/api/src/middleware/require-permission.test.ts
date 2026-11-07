@@ -33,6 +33,10 @@ describe('guard default (CLAUDE.md aturan 5)', () => {
       'GET /api/auth/setup-data',
       'POST /api/auth/setup-data/impor',
       'POST /api/auth/setup-data/:id/pakai',
+      // K-219: wajib username + password Owner di setiap permintaan.
+      'POST /api/auth/data-toko/daftar',
+      'POST /api/auth/data-toko/:id/pakai',
+      'POST /api/auth/data-toko/baru',
     ]);
   });
 });

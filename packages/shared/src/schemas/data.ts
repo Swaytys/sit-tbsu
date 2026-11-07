@@ -8,11 +8,11 @@ import { z } from 'zod';
 export const JENIS_DATA = ['SALINAN', 'LAMA', 'IMPOR', 'CADANGAN_HARIAN', 'PENGAMAN'] as const;
 export type JenisData = (typeof JENIS_DATA)[number];
 export const LABEL_JENIS_DATA: Record<JenisData, string> = {
-  SALINAN: 'Salinan manual',
-  LAMA: 'Data lama',
-  IMPOR: 'Impor dari berkas',
+  SALINAN: 'Salinan',
+  LAMA: 'Data sebelumnya',
+  IMPOR: 'Dari komputer lain',
   CADANGAN_HARIAN: 'Dari cadangan harian',
-  PENGAMAN: 'Pengaman otomatis',
+  PENGAMAN: 'Simpanan otomatis',
 };
 
 /** Pengaman otomatis yang disimpan (yang lebih lama dibuang) agar disk tidak membengkak. */

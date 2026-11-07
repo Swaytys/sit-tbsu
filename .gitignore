@@ -40,3 +40,6 @@ installer/peluncur/*.exe
 installer/deploy-sementara/
 installer/alat-cache/
 pintasan/log/
+
+# K-232: kunci rahasia pengembang (pemulihan akses Owner). Jangan pernah di-commit.
+.pengembang/

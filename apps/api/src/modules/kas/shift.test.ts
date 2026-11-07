@@ -111,6 +111,17 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
       keterangan: 'Pak Budi',
     });
     await kirim(kasir, '/api/shift/kas', { jenis: 'TARIK_OWNER', nominal: 50000 });
+    // K-223: biaya entertain = uang keluar; untuk siapa dan kesepakatan apa wajib ditulis.
+    const entertainTanpaKet = await galat(kasir, '/api/shift/kas', {
+      jenis: 'BIAYA_ENTERTAIN',
+      nominal: 5000,
+    });
+    expect(entertainTanpaKet.status).toBe(400);
+    await kirim(kasir, '/api/shift/kas', {
+      jenis: 'BIAYA_ENTERTAIN',
+      nominal: 5000,
+      keterangan: 'Mandor proyek Pak Harun, kesepakatan langganan semen',
+    });
     const tanpaKet = await galat(kasir, '/api/shift/kas', { jenis: 'KELUAR_LAIN', nominal: 1000 });
     expect(tanpaKet.status).toBe(400);
     const staf = await sesiUji('STAF_PENJUALAN');
@@ -124,6 +135,7 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
     expect(dKasir.kas.map((k) => [k.jenis, k.arah, k.nominal])).toEqual([
       ['KASBON', 'KELUAR', 15000],
       ['TARIK_OWNER', 'MASUK', 50000],
+      ['BIAYA_ENTERTAIN', 'KELUAR', 5000],
     ]);
     const dAdmin = (await ambil<{ data: DetailShift }>(admin, `/api/shift/${s.id}`)).data;
     expect(dAdmin.ringkasan).toEqual({
@@ -131,8 +143,8 @@ describe('shift kasir & clerical check (docs/05 §10)', () => {
       koreksiModal: 0,
       tunaiPenjualan: 40000,
       kasMasukLain: 50000,
-      kasKeluar: 15000,
-      saldoSistem: 275000,
+      kasKeluar: 20000,
+      saldoSistem: 270000,
       jumlahTransaksi: 2,
     });
   });

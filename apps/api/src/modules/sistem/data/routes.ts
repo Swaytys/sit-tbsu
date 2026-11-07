@@ -15,9 +15,12 @@ import type { EnvApp } from '../../../lib/konteks';
 import { kaitValidasi } from '../../../lib/validasi';
 import { batasPercobaanLogin } from '../../../middleware/batas-percobaan';
 import { penggunaWajib, requirePermission } from '../../../middleware/require-permission';
+import { periksaOwner } from '../../auth/service';
 import {
   akarPustaka,
   ambilDariHarian,
+  buatDataBaru,
+  buatDataBaruDenganPassword,
   eksporData,
   gantiDataAktif,
   hapusData,
@@ -92,6 +95,18 @@ export const dataRoutes = new Hono<EnvApp>()
       return c.json({ data: { dihapus: true } }, 200);
     },
   )
+  .post('/baru', izin, zValidator('json', skemaKonfirmasiData, kaitValidasi), async (c) =>
+    c.json(
+      {
+        data: await buatDataBaruDenganPassword(
+          c.req.valid('json').password,
+          penggunaWajib(c),
+          c.get('asal'),
+        ),
+      },
+      201,
+    ),
+  )
   .post('/ekspor', izin, zValidator('json', skemaEksporData, kaitValidasi), async (c) => {
     const { isi, nama } = await eksporData(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
     return c.body(new Uint8Array(isi), 200, {
@@ -151,6 +166,49 @@ export const dataSetupRoutes = new Hono<EnvApp>()
         },
         200,
       );
+    },
+  );
+
+/**
+ * K-219: halaman masuk › Ganti / buat data toko. Rute publik yang mensyaratkan username + password Owner aktif dari
+ * data yang sedang dipakai di setiap permintaan (dibatasi seperti login; salah password dihitung untuk kunci akun).
+ */
+const skemaKredensialOwner = z.object({
+  username: z.string().trim().min(1, 'Username wajib diisi.').max(50),
+  password: z.string().min(1, 'Password wajib diisi.').max(200),
+});
+
+export const dataMasukRoutes = new Hono<EnvApp>()
+  .post(
+    '/data-toko/daftar',
+    batasPercobaanLogin,
+    zValidator('json', skemaKredensialOwner, kaitValidasi),
+    async (c) => {
+      await periksaOwner(c.req.valid('json'), c.get('asal'));
+      const { pustaka } = await daftarPustaka(akarPustaka());
+      return c.json({ data: pustaka }, 200);
+    },
+  )
+  .post(
+    '/data-toko/:id/pakai',
+    batasPercobaanLogin,
+    zValidator('param', paramId, kaitValidasi),
+    zValidator('json', skemaKredensialOwner, kaitValidasi),
+    async (c) => {
+      const owner = await periksaOwner(c.req.valid('json'), c.get('asal'));
+      return c.json(
+        { data: await gantiDataAktif(c.req.valid('param').id, owner, c.get('asal')) },
+        200,
+      );
+    },
+  )
+  .post(
+    '/data-toko/baru',
+    batasPercobaanLogin,
+    zValidator('json', skemaKredensialOwner, kaitValidasi),
+    async (c) => {
+      const owner = await periksaOwner(c.req.valid('json'), c.get('asal'));
+      return c.json({ data: await buatDataBaru(owner, c.get('asal')) }, 201);
     },
   );
 

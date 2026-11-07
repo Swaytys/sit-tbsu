@@ -600,6 +600,10 @@ export function InputOrderCepat() {
       .catch((err: unknown) => toast.error(pesanGalat(err)));
   }
 
+  function gantiJenis() {
+    setJenis((j) => (j === 'LANGSUNG' ? 'PENGANTARAN' : 'LANGSUNG'));
+  }
+
   const tombolGlobal = useEffectEvent((e: globalThis.KeyboardEvent) => {
     if (e.key === 'F2') {
       e.preventDefault();
@@ -609,7 +613,7 @@ export function InputOrderCepat() {
       setZona('pelanggan');
     } else if (e.key === 'F3') {
       e.preventDefault();
-      setJenis((j) => (j === 'LANGSUNG' ? 'PENGANTARAN' : 'LANGSUNG'));
+      gantiJenis();
     } else if (e.key === 'F8' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) {
       e.preventDefault();
       kirim();
@@ -633,13 +637,25 @@ export function InputOrderCepat() {
   }, []);
 
   const tombol: Tombol[] = [
-    { kunci: 'F2', label: 'Cari barang' },
+    { kunci: 'F2', label: 'Cari barang', aksi: () => setZona('cari') },
     { kunci: 'F1', label: 'Qty (*)' },
-    { kunci: 'F4', label: 'Pelanggan' },
-    { kunci: 'F3', label: antar ? 'Ubah ke langsung' : 'Ubah ke pengantaran' },
-    { kunci: 'F8', label: ubahOrder ? 'Simpan perubahan' : 'Kirim ke antrean' },
-    { kunci: 'F7', label: 'Simpan untuk nanti' },
-    { kunci: 'F9', label: ubahOrder ? 'Buang perubahan' : 'Mulai dari awal' },
+    { kunci: 'F4', label: 'Pelanggan', aksi: () => setZona('pelanggan') },
+    {
+      kunci: 'F3',
+      label: antar ? 'Ubah ke langsung' : 'Ubah ke pengantaran',
+      aksi: gantiJenis,
+    },
+    {
+      kunci: 'F8',
+      label: ubahOrder ? 'Simpan perubahan' : 'Kirim ke antrean',
+      aksi: () => kirim(),
+    },
+    { kunci: 'F7', label: 'Simpan untuk nanti', aksi: () => mintaSimpanNanti() },
+    {
+      kunci: 'F9',
+      label: ubahOrder ? 'Buang perubahan' : 'Mulai dari awal',
+      aksi: () => mintaMulaiDariAwal(),
+    },
     { kunci: 'F10', label: 'Daftar order' },
     ...TOMBOL[zona],
   ];
@@ -658,16 +674,22 @@ export function InputOrderCepat() {
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
-            <span
+            <button
+              type="button"
+              onClick={gantiJenis}
+              title={antar ? 'Ubah ke penjualan langsung (F3)' : 'Ubah ke pengantaran (F3)'}
+              aria-label={`Jenis order: ${antar ? 'pengantaran' : 'langsung'}. Klik untuk mengganti (F3)`}
               className={cn(
-                'rounded px-2 py-0.5 text-xs font-bold',
-                antar ? 'bg-indigo-100 text-indigo-700' : 'bg-orange-100 text-orange-700',
+                'rounded border px-2 py-0.5 text-xs font-bold hover:ring-2 hover:ring-blue-300',
+                antar
+                  ? 'border-indigo-300 bg-indigo-100 text-indigo-700'
+                  : 'border-orange-300 bg-orange-100 text-orange-700',
               )}
               data-testid="jenis-order"
             >
               <kbd className="mr-1 font-mono opacity-60">F3</kbd>
-              {antar ? 'PENGANTARAN' : 'LANGSUNG'}
-            </span>
+              {antar ? 'PENGANTARAN' : 'LANGSUNG'} ⇄
+            </button>
             {zona === 'pelanggan' ? (
               <div className="min-w-64 flex-1" id={ID.pelanggan}>
                 <CariPelangganPos

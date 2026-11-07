@@ -15,6 +15,7 @@ import {
   HardDriveDownload,
   History,
   Loader2,
+  Plus,
   RotateCcw,
   Save,
   ShieldCheck,
@@ -25,6 +26,7 @@ import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import {
   useAmbilHarian,
+  useBuatDataBaru,
   useEksporData,
   useHapusData,
   useImporData,
@@ -50,8 +52,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatTanggal, formatWaktu, ukuranTeks } from '@/lib/format';
 
 /*
- * K-213: Pengaturan › Data (Owner). Data aktif + Pustaka data: lihat rincian, pakai (data aktif disimpan dulu sebagai
- * pengaman otomatis), hapus, ekspor berkas .bonsai untuk pindah perangkat, impor, ambil dari cadangan harian.
+ * K-213/K-218/K-219: Pengaturan › Data toko & pindah komputer (Owner). Data yang sedang dipakai + data toko lain
+ * yang tersimpan di komputer ini: lihat rincian, pakai (data sekarang disimpan dulu otomatis), hapus, berkas pindah
+ * komputer (.bonsai), masukkan berkas, ambil dari cadangan harian, buat data toko baru yang kosong.
  */
 
 function rentang(r: RingkasData): string {
@@ -102,7 +105,7 @@ function Isi({ label, isi }: { label: string; isi: ReactNode }) {
 type Aksi =
   | { jenis: 'pakai' | 'hapus' | 'rincian'; data: ManifestData }
   | { jenis: 'ekspor'; data: ManifestData | null }
-  | { jenis: 'impor' | 'salinan' | 'harian' };
+  | { jenis: 'impor' | 'salinan' | 'harian' | 'baru' };
 
 export function TabData() {
   const status = useStatusData();
@@ -116,20 +119,23 @@ export function TabData() {
       <Card className="gap-3 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Database className="size-5 text-blue-600" />
-          <h2 className="flex-1 font-semibold text-slate-800">Data aktif (sedang dipakai)</h2>
+          <h2 className="flex-1 font-semibold text-slate-800">Data toko yang sedang dipakai</h2>
           <span className="text-xs text-slate-500">{ukuranTeks(s.aktif.ukuranByte)}</span>
         </div>
         <RingkasIsi r={s.aktif} />
         <div className="flex flex-wrap gap-2 pt-1">
           <Button size="sm" variant="outline" onClick={() => setAksi({ jenis: 'salinan' })}>
-            <Save /> Simpan salinan ke Pustaka
+            <Save /> Simpan salinan
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => setAksi({ jenis: 'ekspor', data: null })}
           >
-            <Download /> Ekspor untuk pindah perangkat
+            <Download /> Buat berkas pindah komputer
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setAksi({ jenis: 'baru' })}>
+            <Plus /> Buat data toko baru
           </Button>
         </div>
       </Card>
@@ -137,20 +143,20 @@ export function TabData() {
       <Card className="gap-3 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Archive className="size-5 text-blue-600" />
-          <h2 className="flex-1 font-semibold text-slate-800">Pustaka data</h2>
+          <h2 className="flex-1 font-semibold text-slate-800">Data toko lain di komputer ini</h2>
           <span className="text-xs text-slate-500">
             Total di disk: {ukuranTeks(s.totalUkuranByte)}
           </span>
         </div>
         <p className="text-sm text-slate-600">
-          Data lain yang tersimpan di komputer ini: data lama (dari <i>Mulai dari nol</i>), salinan
-          manual, impor dari perangkat lain, atau dari cadangan harian. <b>Pakai data ini</b>{' '}
-          mengganti data aktif; data aktif disimpan dulu sebagai pengaman otomatis sehingga bisa
-          dikembalikan.
+          Data toko yang pernah dipakai atau disimpan di komputer ini: salinan yang Anda simpan,
+          data sebelum membuat data toko baru, berkas dari komputer lain, atau dari cadangan harian.{' '}
+          <b>Pakai data ini</b> mengganti data yang sedang dipakai; data yang sedang dipakai
+          disimpan dulu secara otomatis sehingga bisa dipakai kembali.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={() => setAksi({ jenis: 'impor' })}>
-            <Upload /> Impor berkas .bonsai
+            <Upload /> Masukkan berkas pindah komputer
           </Button>
           {s.cadanganHarianSiap && (
             <Button size="sm" variant="outline" onClick={() => setAksi({ jenis: 'harian' })}>
@@ -158,26 +164,25 @@ export function TabData() {
             </Button>
           )}
         </div>
-        <DaftarData daftar={s.pustaka} kosong="Pustaka masih kosong." onAksi={setAksi} bolehHapus />
+        <DaftarData
+          daftar={s.pustaka}
+          kosong="Belum ada data toko lain."
+          onAksi={setAksi}
+          bolehHapus
+        />
       </Card>
 
       <Card className="gap-3 p-5">
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-5 text-emerald-600" />
-          <h2 className="font-semibold text-slate-800">Pengaman otomatis</h2>
+          <h2 className="font-semibold text-slate-800">Simpanan otomatis sebelum ganti data</h2>
         </div>
         <p className="text-sm text-slate-600">
-          Dibuat sendiri setiap kali data aktif diganti, untuk kembali bila salah pilih (rollback).
-          Tidak bisa dihapus dari layar; hanya {SIMPAN_PENGAMAN} terbaru yang disimpan agar disk
-          tidak penuh. Cadangan harian tetap tersimpan terpisah di folder cadangan (Pengaturan ›
-          Cadangan).
+          Setiap kali data toko diganti, data sebelumnya disimpan sendiri di sini agar bisa dipakai
+          kembali bila salah pilih. Hanya {SIMPAN_PENGAMAN} terbaru yang disimpan agar komputer
+          tidak penuh. Cadangan harian tetap tersimpan terpisah (Pengaturan › Cadangan).
         </p>
-        <DaftarData
-          daftar={s.pengaman}
-          kosong="Belum ada pengaman."
-          onAksi={setAksi}
-          bolehHapus={false}
-        />
+        <DaftarData daftar={s.pengaman} kosong="Belum ada." onAksi={setAksi} bolehHapus={false} />
       </Card>
 
       {aksi && <DialogAksi aksi={aksi} onTutup={() => setAksi(null)} />}
@@ -225,7 +230,7 @@ function DaftarData({
               size="icon-sm"
               variant="ghost"
               aria-label={`Hapus ${d.label}`}
-              title="Hapus dari Pustaka"
+              title="Hapus data ini dari komputer"
               onClick={() => onAksi({ jenis: 'hapus', data: d })}
             >
               <Trash2 className="text-red-600" />
@@ -248,6 +253,7 @@ function DialogAksi({ aksi, onTutup }: { aksi: Aksi; onTutup: () => void }) {
         {aksi.jenis === 'impor' && <Impor onTutup={onTutup} />}
         {aksi.jenis === 'salinan' && <Salinan onTutup={onTutup} />}
         {aksi.jenis === 'harian' && <Harian onTutup={onTutup} />}
+        {aksi.jenis === 'baru' && <BuatBaru onTutup={onTutup} />}
       </DialogContent>
     </Dialog>
   );
@@ -307,12 +313,12 @@ function Pakai({ data, onTutup }: { data: ManifestData; onTutup: () => void }) {
     >
       <DialogHeader>
         <DialogTitle>Pakai data “{data.namaToko || data.label}”?</DialogTitle>
-        <DialogDescription>Data aktif sekarang akan diganti dengan data ini.</DialogDescription>
+        <DialogDescription>
+          Data toko yang sedang dipakai akan diganti dengan data ini.
+        </DialogDescription>
       </DialogHeader>
       <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-        <li>
-          Data aktif disimpan dulu sebagai <b>pengaman otomatis</b> (bisa dipakai kembali).
-        </li>
+        <li>Data yang sedang dipakai disimpan dulu secara otomatis (bisa dipakai kembali).</li>
         <li>
           Semua pengguna keluar; masuk lagi dengan akun yang ada di data ini (
           {data.pengguna.map((p) => p.username).join(', ') || 'tidak ada akun'}).
@@ -346,7 +352,7 @@ function Hapus({ data, onTutup }: { data: ManifestData; onTutup: () => void }) {
         hapus
           .mutateAsync({ id: data.id, password })
           .then(() => {
-            toast.success('Data dihapus dari Pustaka.');
+            toast.success('Data dihapus.');
             onTutup();
           })
           .catch((err: unknown) => toast.error(pesanGalat(err)));
@@ -354,10 +360,11 @@ function Hapus({ data, onTutup }: { data: ManifestData; onTutup: () => void }) {
       className="space-y-4"
     >
       <DialogHeader>
-        <DialogTitle>Hapus “{data.label}” dari Pustaka?</DialogTitle>
+        <DialogTitle>Hapus “{data.label}”?</DialogTitle>
         <DialogDescription>
           Data ini ({data.namaToko || 'tanpa nama toko'}, {ukuranTeks(data.ukuranByte)}) dihapus
-          permanen dari komputer ini. Data aktif dan cadangan harian tidak terpengaruh.
+          permanen dari komputer ini. Data yang sedang dipakai dan cadangan harian tidak
+          terpengaruh.
         </DialogDescription>
       </DialogHeader>
       <KolomPassword nilai={password} ubah={setPassword} />
@@ -396,11 +403,13 @@ function Ekspor({ data, onTutup }: { data: ManifestData | null; onTutup: () => v
       className="space-y-4"
     >
       <DialogHeader>
-        <DialogTitle>Ekspor {data ? `“${data.label}”` : 'data aktif'}</DialogTitle>
+        <DialogTitle>
+          Berkas pindah komputer: {data ? `“${data.label}”` : 'data yang sedang dipakai'}
+        </DialogTitle>
         <DialogDescription>
           Satu berkas <b>.bonsai</b> berisi seluruh data (database, gambar) terenkripsi dengan
           sandi. Dipakai untuk pindah ke komputer lain: di komputer baru, pada setup awal pilih{' '}
-          <i>Lanjutkan data yang sudah ada</i>, atau Pengaturan › Data › Impor.
+          <i>Lanjutkan data yang sudah ada</i>, atau Pengaturan › Data toko › Masukkan berkas.
         </DialogDescription>
       </DialogHeader>
       <label className="grid gap-1 text-sm">
@@ -485,20 +494,20 @@ function Impor({ onTutup }: { onTutup: () => void }) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Impor berkas data</DialogTitle>
+        <DialogTitle>Masukkan berkas pindah komputer</DialogTitle>
         <DialogDescription>
-          Berkas .bonsai dari komputer lain masuk ke Pustaka. Data aktif tidak berubah sampai Anda
-          memilih <b>Pakai data ini</b>.
+          Berkas .bonsai dari komputer lain disimpan ke daftar data toko di komputer ini. Data yang
+          sedang dipakai tidak berubah sampai Anda memilih <b>Pakai data ini</b>.
         </DialogDescription>
       </DialogHeader>
       <FormImpor
         sibuk={impor.isPending}
-        labelTombol="Impor ke Pustaka"
+        labelTombol="Masukkan berkas"
         onKirim={(berkas, sandi) =>
           void impor
             .mutateAsync({ berkas, sandi })
             .then((m) => {
-              toast.success(`Data ${m.namaToko || m.label} masuk Pustaka.`);
+              toast.success(`Data ${m.namaToko || m.label} tersimpan di komputer ini.`);
               onTutup();
             })
             .catch((err: unknown) => toast.error(pesanGalat(err)))
@@ -519,14 +528,14 @@ function Salinan({ onTutup }: { onTutup: () => void }) {
         salinan
           .mutateAsync(label)
           .then(() => {
-            toast.success('Salinan data aktif disimpan ke Pustaka.');
+            toast.success('Salinan data toko disimpan.');
             onTutup();
           })
           .catch((err: unknown) => toast.error(pesanGalat(err)));
       }}
     >
       <DialogHeader>
-        <DialogTitle>Simpan salinan data aktif</DialogTitle>
+        <DialogTitle>Simpan salinan data toko</DialogTitle>
         <DialogDescription>
           Mis. sebelum mencoba sesuatu yang besar (impor barang massal, uji coba). Salinan bisa
           dipakai kembali kapan saja.
@@ -556,8 +565,8 @@ function Harian({ onTutup }: { onTutup: () => void }) {
       <DialogHeader>
         <DialogTitle>Ambil dari cadangan harian</DialogTitle>
         <DialogDescription>
-          Pilih tanggal cadangan. Isinya disalin ke Pustaka untuk dilihat; data aktif tidak berubah
-          sampai Anda memilih <b>Pakai data ini</b>.
+          Pilih tanggal cadangan. Isinya disalin ke daftar data toko di komputer ini; data yang
+          sedang dipakai tidak berubah sampai Anda memilih <b>Pakai data ini</b>.
         </DialogDescription>
       </DialogHeader>
       {daftar.isPending ? (
@@ -578,18 +587,63 @@ function Harian({ onTutup }: { onTutup: () => void }) {
                   void ambil
                     .mutateAsync(s.id)
                     .then(() => {
-                      toast.success('Cadangan disalin ke Pustaka.');
+                      toast.success('Cadangan disalin ke daftar data toko.');
                       onTutup();
                     })
                     .catch((err: unknown) => toast.error(pesanGalat(err)))
                 }
               >
-                {ambil.isPending ? <Loader2 className="animate-spin" /> : null} Salin ke Pustaka
+                {ambil.isPending ? <Loader2 className="animate-spin" /> : null} Salin ke daftar
               </Button>
             </li>
           ))}
         </ul>
       )}
     </>
+  );
+}
+
+/** K-219: data toko baru yang kosong; data sekarang disimpan dan bisa dipakai lagi. */
+function BuatBaru({ onTutup }: { onTutup: () => void }) {
+  const baru = useBuatDataBaru();
+  const [password, setPassword] = useState('');
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        baru
+          .mutateAsync(password)
+          .then(() => {
+            toast.success('Data toko baru dibuat. Kerjakan setup awal.');
+            setTimeout(() => window.location.assign('/'), 1200);
+          })
+          .catch((err: unknown) => toast.error(pesanGalat(err)));
+      }}
+      className="space-y-4"
+    >
+      <DialogHeader>
+        <DialogTitle>Buat data toko baru?</DialogTitle>
+        <DialogDescription>
+          Untuk mencoba dari awal atau memakai aplikasi ini untuk toko lain.
+        </DialogDescription>
+      </DialogHeader>
+      <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+        <li>
+          Data toko yang sedang dipakai <b>tidak dihapus</b>: disimpan di daftar{' '}
+          <i>Data toko lain di komputer ini</i> dan bisa dipakai kembali.
+        </li>
+        <li>Aplikasi kembali ke setup awal seperti baru dipasang (akun Owner dibuat ulang).</li>
+        <li>Semua pengguna keluar. Tutup shift lebih dulu; perangkat lain jangan bertransaksi.</li>
+      </ul>
+      <KolomPassword nilai={password} ubah={setPassword} />
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onTutup} disabled={baru.isPending}>
+          Batal
+        </Button>
+        <Button type="submit" disabled={!password || baru.isPending}>
+          {baru.isPending ? <Loader2 className="animate-spin" /> : <Plus />} Buat data toko baru
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

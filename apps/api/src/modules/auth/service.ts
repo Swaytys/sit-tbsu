@@ -160,6 +160,29 @@ async function periksaKredensial(
   return { calon };
 }
 
+/**
+ * K-219: memastikan username + password milik Owner aktif di data yang sedang dipakai (dipakai halaman masuk
+ * untuk ganti/buat data toko tanpa sesi). Gagal dihitung seperti login gagal (kunci akun berlaku).
+ */
+export async function periksaOwner(
+  kredensial: { username: string; password: string },
+  asal: AsalRequest,
+): Promise<{ id: number; nama: string }> {
+  const hasil = await periksaKredensial(kredensial, asal);
+  if ('galat' in hasil) throw new AppError('BELUM_LOGIN', hasil.galat, 401);
+  if (hasil.calon.peran !== 'OWNER') {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Hanya akun Owner yang bisa mengganti atau membuat data toko.',
+      403,
+    );
+  }
+  return {
+    id: hasil.calon.id,
+    nama: `${hasil.calon.namaPengguna} (${hasil.calon.username})`,
+  };
+}
+
 /** Login dengan username + password (docs/02 §8, docs/04 §7). */
 export async function login(input: InputLogin, asal: AsalRequest): Promise<HasilLogin> {
   const hasil = await periksaKredensial(input, asal);

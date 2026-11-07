@@ -992,7 +992,7 @@ export function HalamanPengiriman() {
       </DndContext>
       <BilahTombol
         daftar={[
-          { kunci: 'R', label: 'Rit baru' },
+          { kunci: 'R', label: 'Rit baru', aksi: () => setDialog({ jenis: 'rit-baru' }) },
           {
             kunci: 'Spasi',
             label:

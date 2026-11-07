@@ -23,6 +23,7 @@ import { skemaHalaman, skemaRupiah, teksOpsional } from './umum';
 /** Jenis kas shift yang dicatat manual oleh kasir (K3); refund & bayar pemasok tercatat otomatis. */
 export const JENIS_KAS_MANUAL = [
   'KASBON',
+  'BIAYA_ENTERTAIN',
   'SETOR_OWNER',
   'TARIK_OWNER',
   'MASUK_LAIN',
@@ -43,6 +44,7 @@ export const ARAH_JENIS_KAS: Record<JenisKasShift, ArahKas> = {
   KOREKSI_MODAL_TAMBAH: 'MASUK',
   KOREKSI_MODAL_KURANG: 'KELUAR',
   KEMBALIAN_DITINGGAL: 'MASUK',
+  BIAYA_ENTERTAIN: 'KELUAR',
 };
 
 /** Jenis kas yang merupakan koreksi modal awal (K-121): dihitung ke modal efektif, bukan kas masuk/keluar lain. */
@@ -173,7 +175,9 @@ export const skemaKasShift = z
         message:
           d.jenis === 'KASBON'
             ? 'Tulis siapa yang kasbon dan untuk apa.'
-            : 'Keterangan wajib diisi.',
+            : d.jenis === 'BIAYA_ENTERTAIN'
+              ? 'Tulis untuk siapa dan kesepakatan apa.'
+              : 'Keterangan wajib diisi.',
       });
     }
   });
