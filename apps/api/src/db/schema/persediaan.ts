@@ -103,13 +103,14 @@ export const orderPembelian = pgTable(
     tanggalJanjiKirim: tanggal('tanggal_janji_kirim'),
     catatan: varchar('catatan', { length: 255 }),
     alasanTutup: varchar('alasan_tutup', { length: 255 }),
-    /** K-225: alasan PO wajib disetujui (dihitung saat diajukan), penyetuju, dan catatannya/alasan penolakan. */
+    dibuatPada: dibuatPada(),
+    diubahPada: diubahPada(),
+    /** K-225: alasan PO wajib disetujui (dihitung saat diajukan), penyetuju, dan catatannya/alasan penolakan. Di akhir
+     * tabel agar urutan kolom sama dengan hasil migrasi 0046. */
     alasanPersetujuan: varchar('alasan_persetujuan', { length: 500 }),
     idPenyetuju: kolomRef('id_penyetuju'),
     disetujuiPada: timestamptz('disetujui_pada'),
     catatanPersetujuan: varchar('catatan_persetujuan', { length: 255 }),
-    dibuatPada: dibuatPada(),
-    diubahPada: diubahPada(),
   },
   (t) => [
     foreignKey({
