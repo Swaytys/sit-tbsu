@@ -14,8 +14,8 @@ ahli sistem informasi manajemen. Sebelas masukan dicatat di bawah. Pemilik proye
 | K-225 | Peran dipisah (Administrator, Admin Persediaan, Kepala Toko) + persetujuan PO + wewenang bayar hutang | V2 | Rencana (rancangan di bawah) |
 | K-226 | Sistem berlaku umum untuk toko ritel lain, fitur bahan bangunan tetap | V2 | Rencana (rancangan di bawah) |
 | K-227 | Satuan ecer/grosir, kemasan tersegel, dan opname bertahap acak | V2 | Rencana (rancangan di bawah) |
-| K-228 | Semua pintasan keyboard juga bisa diklik/disentuh | V1 | Selesai (bilah pintasan + F3 Order); audit menyeluruh di U-uji |
-| K-229 | Jaringan HP/tablet lebih mudah: mode LAN toko + Tailscale | V1 | Rencana V1 (rancangan di bawah) |
+| K-228 | Semua pintasan keyboard juga bisa diklik/disentuh | V1 | Selesai (audit 7 Nov) |
+| K-229 | Jaringan HP/tablet lebih mudah: mode LAN toko + Tailscale | V1 | Selesai (1.19.0) |
 | K-230 | Alur cetak label & barcode yang jelas, termasuk barang curah tanpa barcode | V1 panduan, V2 label rak | Rencana |
 | K-231 | Lokasi barang di gudang (gudang, zona, rak, bin; lebih dari satu gudang) | V2 | Rencana (rancangan di bawah) |
 | K-232 | Pemulihan akses Owner hanya bersama pengembang (bukan menu Start) | V1 | Selesai |
@@ -295,3 +295,25 @@ bisa tidak sesuai isian.
   peramban. Tombol yang sama dalam satu layar ditolak (aturan di `packages/shared/src/pintasan.ts`, dipakai API dan
   layar). Disimpan di akun (`pengguna.pintasan`, migrasi 0043), bukan peramban, sehingga ikut ke perangkat lain.
   Bilah pintasan, petunjuk tombol, dan pesan memakai tombol pilihan pengguna. *Selesai.*
+- **K-229 Mode LAN toko — dikerjakan (1.19.0).** Pengaturan › Akses HP/tablet › *Cara 1 · Mode LAN toko*:
+  **Nyalakan mode LAN** membuat CA toko (10 tahun) dan sertifikat server untuk IP komputer (397 hari, diperbarui
+  otomatis 30 hari sebelum habis atau saat IP berubah; library `node-forge`), lalu melayani HTTPS di semua alamat LAN
+  (port 7443) dan halaman pemasangan http (port 7880: unduh `sertifikat-toko.crt`, sidik jari SHA-256 untuk
+  dicocokkan, petunjuk Android/iPhone). Setiap perangkat di HTTPS LAN mendapat cookie perangkat dan kode 6 angka;
+  API ditolak (403 `PERANGKAT_BELUM_DISETUJUI`) sampai Owner/Admin **Setujui** kodenya; perangkat bisa ditolak atau
+  dicabut (tabel `perangkat_lan`, migrasi 0044, tercatat di log). Server utama desktop kini hanya mendengar
+  127.0.0.1 (`HOST`), sehingga jalan masuk dari jaringan hanya mode LAN (HTTPS + perangkat disetujui) atau Tailscale.
+  Diuji pada paket hasil build: sertifikat sah terhadap CA toko, sidik jari cocok, perangkat ditolak lalu lolos
+  setelah disetujui, aplikasi web tampil lewat LAN, server utama tertutup dari LAN. Belum diuji di HP sungguhan
+  (pemasangan sertifikat di Android/iPhone: uji pemilik U198). Windows dapat menanyakan izin jaringan untuk
+  Node.js saat mode LAN pertama dinyalakan: pilih Izinkan (jaringan pribadi). *Selesai.*
+- **K-228 audit — selesai.** Selain bilah pintasan dan F3 Order: hasil invoice pengantaran (P cetak, S kirim rit,
+  Enter lanjut) dan judul Antrean (F3) di kasir menjadi tombol; Ctrl+Z (urungkan) bisa diklik dari bilah pintasan.
+  Petunjuk tombol lain (panah/Del di daftar, pecahan uang) sudah punya padanan klik (menu baris ⋮, tombol
+  Kosongkan, ×). Tes layar `pintasan-sentuh.spec.ts`. *Selesai.*
+
+## Status V1 (7 November)
+
+Semua backlog V1 selesai: K-119, K-145, K-168, K-218–K-221, K-223, K-224, K-228, K-229, K-230 (panduan), K-232.
+Versi **1.19.0** = kandidat V1 stabil; menunggu uji pemilik U188–U200 sebelum dinyatakan V1 rilis. Sesudah itu
+pengembangan V2 (K-222, K-225, K-226, K-227, K-230 label rak, K-231).

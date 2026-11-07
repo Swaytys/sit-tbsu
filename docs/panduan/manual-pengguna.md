@@ -715,10 +715,21 @@ Semua tugas admin, ditambah:
 
 ### Owner: Akses HP dan tablet
 
-*Pengaturan › Akses HP/tablet* menampilkan langkah lengkap. Ringkasnya: Tailscale dipasang sekali di laptop (akun
-toko, MagicDNS + HTTPS aktif) lalu **Aktifkan**; di tiap HP/tablet pasang Tailscale dengan akun yang sama, pindai
-kode QR, **Tambahkan ke layar utama**. Di HP, menu ada di tombol ☰; layar kerja menumpuk dan bisa digulir;
-daftar tombol keyboard dibuka dengan tombol **Pintasan**. Layar kasir paling nyaman di tablet mendatar.
+*Pengaturan › Akses HP/tablet* menyediakan dua cara:
+
+1. **Mode LAN toko (gratis, di dalam toko).** **Nyalakan mode LAN** (Windows bisa bertanya izin jaringan untuk
+   Node.js: pilih **Izinkan** untuk jaringan pribadi). Di setiap HP/tablet yang tersambung ke WiFi toko: pindai kode
+   QR → **Unduh sertifikat toko** → **cocokkan sidik jari** di HP dengan yang tampil di laptop (harus sama persis;
+   bila beda, jangan dipasang) → pasang sertifikat (Android: Setelan › Keamanan › Pasang sertifikat › *Sertifikat
+   CA*; iPhone/iPad: Instal profil lalu Umum › Mengenai › Pengaturan Kepercayaan Sertifikat) → buka alamat
+   `https://…:7443` → *Tambahkan ke layar utama*. HP menampilkan **kode 6 angka**; di laptop, *Menunggu persetujuan*
+   → cocokkan kode → **Setujui**. HP hilang atau karyawan keluar: **Cabut akses** perangkatnya.
+2. **Tailscale (di toko dan dari luar toko).** Tailscale dipasang sekali di laptop (akun toko, MagicDNS + HTTPS
+   aktif) lalu **Aktifkan**; di tiap HP/tablet pasang Tailscale dengan akun yang sama, pindai kode QR, **Tambahkan ke
+   layar utama**. Paket gratis Tailscale hanya untuk pemakaian non-usaha.
+
+Di HP, menu ada di tombol ☰; layar kerja menumpuk dan bisa digulir; daftar tombol keyboard dibuka dengan tombol
+**Pintasan** (semua pintasan bisa disentuh). Layar kasir paling nyaman di tablet mendatar.
 
 ### Owner: Pengaturan › Data toko & pindah komputer
 

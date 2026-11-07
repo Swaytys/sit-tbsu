@@ -343,6 +343,27 @@ Owner | desktop
   `[KODE: installer/peluncur/BonsaiUrip.cs MintaJawaban]`; `[DOK: K-232]`; tes `pemulihan-pengembang.test.ts`.
   Status: BERFUNGSI.
 
+**F64. Data latihan (mode demo)** | Pengaturan › Data toko | Owner | desktop
+- Fungsi: membuat data toko latihan (nama "LATIHAN – …", akun Owner sama, contoh barang berstok 100, pelanggan,
+  pemasok, kendaraan & sopir); data asli disimpan dan bisa dipakai kembali; pita MODE LATIHAN di semua layar.
+- Bukti: `[KODE: api/modules/sistem/data/latihan.ts]`, `[KODE: web/components/layout/pita-latihan.tsx]`;
+  `[DOK: K-168]`; tes `data.test.ts`. Status: BERFUNGSI.
+
+**F65. Pintasan keyboard per pengguna** | menu nama › Pintasan keyboard | semua | desktop/tablet
+- Fungsi: tombol F aksi layar kasir dan Order Penjualan diganti per pengguna (F2–F4, F6–F10), dobel per layar
+  ditolak, tersimpan di akun; bilah pintasan dan petunjuk mengikuti pilihan; semua pintasan juga bisa disentuh.
+- Bukti: `[KODE: shared/pintasan.ts]`, `[KODE: api/modules/auth/pintasan.ts]`,
+  `[KODE: web/features/auth/halaman-pintasan.tsx]`; `[DOK: K-145, K-228]`; tes `pintasan.test.ts` (shared dan API),
+  e2e `pintasan-sentuh.spec.ts`. Status: BERFUNGSI.
+
+**F66. Mode LAN toko** | Pengaturan › Akses HP/tablet | Owner/Admin (atur), semua (pakai) | HP, tablet
+- Fungsi: HTTPS di WiFi toko dengan sertifikat CA toko buatan aplikasi; halaman pemasangan sertifikat dengan sidik
+  jari; perangkat baru wajib disetujui (kode 6 angka), bisa ditolak/dicabut; server utama hanya untuk komputer
+  server. Gratis, tanpa Tailscale; Tailscale tetap tersedia untuk dari luar toko.
+- Bukti: `[KODE: api/modules/sistem/akses/lan.ts]`, `[KODE: api/modules/sistem/akses/sertifikat-lan.ts]`,
+  `[KODE: web/features/pengaturan/kartu-lan.tsx]`, `[KODE: web/features/auth/penjaga-perangkat.tsx]`; `[DOK: K-229]`;
+  tes `lan.test.ts`; uji paket hasil build (7 Nov). Status: BERFUNGSI (pemasangan di HP sungguhan: U198–U200).
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1424,6 +1445,8 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
 - 2026-10-31 — F61 HP dan tablet (K-217).
+- 2026-11-07 — F64 data latihan (K-168), F65 pintasan per pengguna (K-145), F66 mode LAN toko (K-229);
+  tes layar memakai database sendiri (K-119). Versi 1.19.0.
 - 2026-11-07 — F62 ganti/buat data toko (K-218–K-220), F63 pemulihan Owner bersama pengembang (K-232); kas
   Biaya entertain (K-223), draf order ikut harga terbaru (K-224), pintasan bisa disentuh (K-228).
 - 2026-10-31 — F59 kelola data, F60 pengaman shift dan mati mendadak; F56 perbaikan tombol langkah; Setup dua bahasa
