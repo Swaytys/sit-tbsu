@@ -121,6 +121,7 @@ export async function statusPenyiapan(): Promise<StatusPenyiapan> {
     namaToko: ada ? (m.get('nama_toko') ?? '') : '',
     sloganToko: ada ? (m.get('slogan_toko') ?? '') : '',
     kotaToko: ada ? (m.get('kota_toko') ?? '') : '',
+    modeLatihan: m.get('mode_latihan') === '1',
   };
 }
 

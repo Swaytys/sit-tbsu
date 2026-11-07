@@ -116,6 +116,8 @@ export type StatusPenyiapan = {
   namaToko: string;
   sloganToko: string;
   kotaToko: string;
+  /** K-168: data yang sedang dipakai adalah data latihan (pita MODE LATIHAN). */
+  modeLatihan: boolean;
 };
 export type InfoKodePemulihan = { ada: boolean; dibuatPada: string | null };
 export type HasilKodePemulihan = { kodePemulihan: string };

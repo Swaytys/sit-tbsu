@@ -65,6 +65,13 @@ export const jagaGantiData: MiddlewareHandler<EnvApp> = async (c, next) => {
 };
 
 async function pastikanPassword(pelaku: PenggunaAktif, password: string): Promise<void> {
+  return pastikanPasswordPelaku(pelaku, password);
+}
+
+export async function pastikanPasswordPelaku(
+  pelaku: PenggunaAktif,
+  password: string,
+): Promise<void> {
   const hash = await authRepo.passwordHashPengguna(db, pelaku.id);
   if (!hash || !(await cocokPassword(hash, password)))
     throw galatKolom('password', 'Password salah.');
@@ -186,6 +193,7 @@ export async function pakaiData(
 export async function buatDataBaru(
   pelaku: { id: number | null; nama: string },
   asal: AsalRequest,
+  keterangan = 'sebelum membuat data toko baru',
 ): Promise<ManifestData> {
   if (sedangGanti) throw new AppError('KONFLIK', 'Penggantian data lain sedang berjalan.', 409);
   await pastikanTanpaShift('buat data toko baru');
@@ -197,7 +205,7 @@ export async function buatDataBaru(
       akar: akarPustaka(),
       storageDir: env.STORAGE_DIR,
       jenis: 'SALINAN',
-      label: `Data ${nama} sebelum membuat data toko baru`,
+      label: `Data ${nama} ${keterangan}`,
     });
     await kosongkanData({ pg: pgAktif(), storageDir: env.STORAGE_DIR });
     await isiDataAwal(db, { passwordOwner: null, akunDemo: false });

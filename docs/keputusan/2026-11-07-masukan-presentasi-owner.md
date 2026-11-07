@@ -283,3 +283,9 @@ bisa tidak sesuai isian.
   database `tbsu_e2e` yang dibuat ulang setiap putaran, dengan server API/web uji sendiri (3100/5174).
   `pnpm test:e2e` dan `pnpm test:e2e:kritis` kini memakai cara ini; `pnpm test:e2e:dev` untuk server pengembangan.
   Diuji: 5 alur kritis lulus. *Selesai.*
+- **K-168 Mode demo terpisah → data latihan.** Dengan K-219 (ganti data toko tanpa memasang ulang), mode demo dibuat
+  sebagai **data latihan**: Pengaturan › Data toko › **Buat data latihan** (password Owner). Data yang sedang dipakai
+  disimpan dulu; data baru bernama *LATIHAN – <nama toko>* berisi akun Owner yang sama (username dan password), contoh
+  barang dengan stok 100, pelanggan, pemasok, kendaraan & sopir, setup awal dianggap selesai. Konfigurasi
+  `mode_latihan` menampilkan pita ungu **MODE LATIHAN** di semua layar (Owner mendapat tautan kembali ke data asli).
+  Kembali: Data toko › data asli › Pakai data ini. Dipakai untuk pelatihan karyawan (proposal Bab 9). *Selesai.*

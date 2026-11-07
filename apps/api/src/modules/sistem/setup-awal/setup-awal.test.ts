@@ -68,6 +68,7 @@ describe('setup awal (K-205, K-207)', () => {
       namaToko: 'Toko Maju Jaya',
       sloganToko: 'Lengkap, murah, cepat',
       kotaToko: 'Kediri',
+      modeLatihan: false,
     });
 
     const setup = await json<
