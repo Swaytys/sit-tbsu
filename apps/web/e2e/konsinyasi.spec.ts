@@ -58,6 +58,8 @@ test('Admin membuat setoran konsinyasi dari penjualan titipan lalu melunasinya',
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByLabel('Nominal')).toHaveValue('60.000');
   await dialog.getByLabel('Rekening tujuan').fill('BRI 123 a.n. Penitip');
+  // K-196: transfer wajib nomor referensi bukti transfer.
+  await dialog.getByLabel('No. referensi (wajib untuk transfer)').fill('TRF445566');
   await dialog.getByRole('button', { name: 'Simpan pembayaran' }).click();
   await expect(page.getByText(/hutang KSG-\d{6}-\d{3,} lunas/)).toBeVisible();
   await expect(page.getByRole('heading', { name: /KSG-/ })).toContainText('Lunas');

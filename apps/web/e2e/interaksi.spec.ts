@@ -25,6 +25,9 @@ test('Log interaksi: dinyalakan Owner, pemakaian Kasir tercatat tanpa isi ketika
     await masukCepat(kasir, 'KASIR');
     const saya = await api<{ id: number }>(kasir, '/auth/saya');
     const mulai = new Date().toISOString();
+    // Pemberitahuan muncul sekali per sesi tab; masukCepat memuat ulang halaman (K-206), jadi tampilkan lagi.
+    await kasir.evaluate(() => sessionStorage.clear());
+    await kasir.reload();
     await expect(kasir.getByText(/dicatat untuk penelitian/)).toBeVisible();
 
     // Klik menu, pintasan R (dialog Rit baru), Esc.

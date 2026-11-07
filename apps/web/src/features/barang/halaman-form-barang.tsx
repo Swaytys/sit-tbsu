@@ -68,6 +68,7 @@ import { formatDesimal } from '@/lib/format';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { rapikanPersen, teksMargin } from '../harga-jual/isian-harga';
 import { KartuMuatan } from './kartu-muatan';
+import { KartuPembelianKhusus } from './kartu-pembelian-khusus';
 import { KartuSatuanJual, KELIPATAN_PERKIRAAN } from './kartu-satuan-jual';
 
 type Referensi = {
@@ -397,7 +398,11 @@ function FormBarang({
       form.setValue(`atribut.${i}.nilai`, v, { shouldDirty: true });
       if (!satAda) form.setValue(`atribut.${i}.idSatuan`, sat.id, { shouldDirty: true });
     } else {
-      atribut.append({ idJenisAtribut: jenis.id, nilai: v, idSatuan: sat.id });
+      // Fokus tetap di isian muatan berikutnya (bawaan append memindah fokus ke baris baru, ketikan nyasar).
+      atribut.append(
+        { idJenisAtribut: jenis.id, nilai: v, idSatuan: sat.id },
+        { shouldFocus: false },
+      );
     }
   }
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(
@@ -1233,6 +1238,7 @@ function FormBarang({
       {barang && (
         <KartuSatuanJual barang={barang} satuan={referensi.satuan} tier={referensi.tier} />
       )}
+      {barang && <KartuPembelianKhusus barang={barang} />}
       {dialogKeluar}
     </div>
   );

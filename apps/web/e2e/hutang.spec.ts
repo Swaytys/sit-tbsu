@@ -47,6 +47,8 @@ test('Admin membayar hutang, meretur barang rusak ke pemasok, dan memusnahkan si
   await dialog.getByRole('button', { name: 'Simpan pembayaran' }).click();
   await expect(dialog.getByText('Rekening tujuan wajib diisi untuk transfer.')).toBeVisible();
   await dialog.getByLabel('Rekening tujuan').fill('BCA 123 a.n. Pemasok');
+  // K-196: transfer wajib nomor referensi bukti transfer.
+  await dialog.getByLabel('No. referensi (wajib untuk transfer)').fill('TRF778899');
   await dialog.getByRole('button', { name: 'Simpan pembayaran' }).click();
   await expect(page.getByText(/PBP-\d{6}-\d{3,} dicatat; sisa hutang Rp 60\.000/)).toBeVisible();
   await expect(baris).toContainText('Sebagian');
@@ -102,7 +104,7 @@ test('Admin membayar hutang, meretur barang rusak ke pemasok, dan memusnahkan si
   await page.getByRole('button', { name: 'Simpan & selesaikan' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Selesaikan' }).click();
   await expect(page.getByText('Alasan pemusnahan wajib diisi.')).toBeVisible();
-  await page.getByLabel('Alasan').fill('Pecah, dibuang');
+  await page.getByLabel('Alasan', { exact: true }).fill('Pecah, dibuang');
   await page.getByRole('button', { name: 'Simpan & selesaikan' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Selesaikan' }).click();
   await expect(page.getByText(/ADJ-\d{6}-\d{3,} selesai; stok diperbarui/)).toBeVisible();

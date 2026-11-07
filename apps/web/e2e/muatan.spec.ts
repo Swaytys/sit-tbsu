@@ -38,7 +38,7 @@ test('Data muatan barang → muatan rit di Berangkat: perlu alasan, berat lebih 
     kapasitasKg: 1000,
     bakPanjangCm: 80,
     bakLebarCm: 60,
-    bakTinggiCm: 42,
+    bakTinggiCm: 43, // 5 sak = 0,189 m³ dari 0,175 m³ (107,7%): di atas 100%, masih di bawah toleransi 110% (K-203)
   });
   const motor = await api<{ id: number; plat: string }>(admin, '/kendaraan', 'POST', {
     plat: `N ${(kode % 9000) + 1} MV`,
@@ -99,6 +99,9 @@ test('Data muatan barang → muatan rit di Berangkat: perlu alasan, berat lebih 
     // 3. Berangkat dari papan Pengiriman: motor (200 kg) ditolak; pindah ke rit pikap → perlu alasan.
     await admin.goto('/pengiriman');
     const grupMotor = admin.getByTestId(`rit-${ritMotor.nomor}`);
+    // K-203: surat jalan dicentang Dimuat dulu sebelum Berangkat.
+    await grupMotor.getByRole('checkbox', { name: /^Dimuat SJ-/ }).click();
+    await expect(grupMotor.getByRole('checkbox', { name: /^Dimuat SJ-/ })).toBeChecked();
     await grupMotor.getByRole('button', { name: 'Berangkat' }).click();
     await expect(admin.getByTestId('panel-muatan')).toContainText('melebihi daya angkut');
     await expect(admin.getByRole('button', { name: /^Berangkat/ })).toBeDisabled();
@@ -118,10 +121,13 @@ test('Data muatan barang → muatan rit di Berangkat: perlu alasan, berat lebih 
       alasan: 'Muatan terlalu berat',
     });
     await admin.reload();
-    await admin
-      .getByTestId(`rit-${ritPikap.nomor}`)
-      .getByRole('button', { name: 'Berangkat' })
-      .click();
+    const grupPikap = admin.getByTestId(`rit-${ritPikap.nomor}`);
+    const dimuat = grupPikap.getByRole('checkbox', { name: /^Dimuat SJ-/ });
+    if (!(await dimuat.isChecked())) {
+      await dimuat.click();
+      await expect(dimuat).toBeChecked();
+    }
+    await grupPikap.getByRole('button', { name: 'Berangkat' }).click();
     await expect(admin.getByTestId('muatan-volume')).toContainText('perlu alasan');
     await admin.getByRole('radio', { name: /Tidak sekarang/ }).click();
     await admin.getByRole('button', { name: /^Berangkat/ }).click();

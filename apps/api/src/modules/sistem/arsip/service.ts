@@ -181,7 +181,10 @@ async function tahunBerdata(ex: Executor): Promise<number[]> {
 
 export async function daftarTahun(): Promise<TahunArsip[]> {
   const tutup = new Map((await barisTutup(db)).map((b) => [b.tahun, b]));
-  const semua = [...new Set([...(await tahunBerdata(db)), ...tutup.keys()])].sort((a, b) => b - a);
+  // Tahun berjalan selalu tampil (walau belum ada transaksi) agar jelas tahun mana yang belum bisa ditutup.
+  const semua = [...new Set([tahunIni(), ...(await tahunBerdata(db)), ...tutup.keys()])].sort(
+    (a, b) => b - a,
+  );
   const hasil: TahunArsip[] = [];
   for (const tahun of semua) {
     const b = tutup.get(tahun);

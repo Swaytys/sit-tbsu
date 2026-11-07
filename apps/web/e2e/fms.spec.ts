@@ -9,7 +9,9 @@ function tanggal(selisihHari: number): string {
   return `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}`;
 }
 
-test('Admin mencatat servis dan BBM; pengingat servis/KIR tampil; odometer mundur ditolak; statistik', async ({
+// K-178: tab BBM, servis, dan statistik armada disembunyikan sampai versi dengan pembukuan; tes aktif lagi saat
+// tab itu dikembalikan.
+test.skip('Admin mencatat servis dan BBM; pengingat servis/KIR tampil; odometer mundur ditolak; statistik', async ({
   page,
 }) => {
   test.slow();

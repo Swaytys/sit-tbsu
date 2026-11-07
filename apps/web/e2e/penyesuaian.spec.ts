@@ -58,7 +58,7 @@ test('Admin: saldo awal, koreksi, lalu stok opname mengubah stok sesuai dokumen'
   await page.getByRole('button', { name: 'Simpan & selesaikan' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Selesaikan' }).click();
   await expect(page.getByText('Alasan koreksi wajib diisi.')).toBeVisible();
-  await page.getByLabel('Alasan').fill('Sak sobek saat bongkar');
+  await page.getByLabel('Alasan', { exact: true }).fill('Sak sobek saat bongkar');
   await selesaikan(page);
   expect(await stokBarang(page, barang.id)).toBe('18.000');
 
@@ -148,7 +148,7 @@ test('Admin: barang di lembar opname dikecualikan dengan alasan, tetap tercatat 
     await page.getByRole('button', { name: `Kecualikan Opname B ${kode}` }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('button', { name: 'Kecualikan' })).toBeDisabled();
-    await dialog.getByLabel('Alasan').fill('Rak atas belum bisa dijangkau');
+    await dialog.getByLabel('Alasan', { exact: true }).fill('Rak atas belum bisa dijangkau');
     await dialog.getByRole('button', { name: 'Kecualikan' }).click();
     await expect(page.getByTestId('ringkasan-opname')).toContainText('1 dikecualikan');
 
