@@ -44,6 +44,8 @@ test('Admin membuat order pembelian, mengirim, mengonfirmasi, lalu menerima bara
 
     const rincian = page.getByTestId('rincian-po');
     await expect(rincian).toContainText('Draf');
+    // K-236: kesepakatan terisi bawaan dari pemasok (tanpa tempo = tunai saat barang datang).
+    await expect(page.getByTestId('kotak-kesepakatan')).toContainText('Tunai saat barang datang');
     await rincian.getByRole('button', { name: 'Kirim ke pemasok' }).click();
     await expect(rincian).toContainText(/PO-\d{6}-\d{3}/);
     await expect(rincian).toContainText('Dipesan');
@@ -104,6 +106,9 @@ test('Order pembelian besar diajukan, disetujui Owner, lalu dikirim ke pemasok',
   });
   const po = await api<{ id: number }>(page, '/order-pembelian', 'POST', {
     idPemasok: pm.id,
+    tanggalKirimDiminta: '2099-12-31',
+    caraKirim: 'DIANTAR',
+    syaratBayar: 'SAAT_TERIMA',
     baris: [{ idBarang: b.id, qty: '100', harga: 40000 }],
   });
   const owner = await browser.newPage();

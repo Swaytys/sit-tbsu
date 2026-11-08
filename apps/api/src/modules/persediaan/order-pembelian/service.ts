@@ -2,6 +2,7 @@ import {
   bandingQty,
   formatRupiah,
   keQty,
+  kekuranganKesepakatan,
   kurangQty,
   tambahQty,
   type BarisDaftarOrderPembelian,
@@ -29,7 +30,7 @@ import { catatKas, shiftUntukCatat } from '../../kas/shift/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import { tambahPembayaran } from '../penerimaan/repo';
-import { hitungPersetujuan, infoPersetujuan } from './persetujuan';
+import { hitungPersetujuan, infoPersetujuan, pastikanKesepakatan } from './persetujuan';
 import * as repo from './repo';
 
 /*
@@ -87,6 +88,19 @@ export async function detailPO(id: number, izin: ReadonlySet<Izin>): Promise<Det
   return {
     ...keBaris(b, nilai, tanggalOperasional()),
     persetujuan: await infoPersetujuan(db, po),
+    kesepakatan: {
+      syaratBayar: po.syaratBayar,
+      tempoHari: po.tempoHari,
+      uangMukaRencana: nilai ? po.uangMukaRencana : 0,
+      tanggalKirimDiminta: po.tanggalKirimDiminta,
+      caraKirim: po.caraKirim,
+      metodeBayarRencana: po.metodeBayarRencana,
+      tanggalJanjiAwal: po.tanggalJanjiAwal,
+      jumlahUbahJanji: po.jumlahUbahJanji,
+      kurang: ['DRAF', 'DIAJUKAN', 'DISETUJUI'].includes(po.status)
+        ? kekuranganKesepakatan(po, (await hitungPersetujuan(db, id)).total, tanggalOperasional())
+        : [],
+    },
     catatan: b.catatan,
     alasanTutup: b.alasanTutup,
     baris: baris.map((d): BarisOrderPembelianDetail => {
@@ -161,6 +175,18 @@ async function pastikanPemasokDanBarang(tx: Tx, input: DataOrderPembelian) {
   return pm;
 }
 
+/** K-236: kolom kesepakatan dari isian draf (DI_MUKA: uang muka rencana = seluruh nilai, tidak dipakai). */
+function isianKesepakatan(input: DataOrderPembelian) {
+  return {
+    syaratBayar: input.syaratBayar,
+    tempoHari: input.syaratBayar === 'TEMPO' ? input.tempoHari : null,
+    uangMukaRencana: input.syaratBayar === 'DI_MUKA' ? 0 : input.uangMukaRencana,
+    tanggalKirimDiminta: input.tanggalKirimDiminta,
+    caraKirim: input.caraKirim,
+    metodeBayarRencana: input.metodeBayarRencana,
+  };
+}
+
 async function tulisBaris(tx: Tx, idPO: number, input: DataOrderPembelian) {
   await tx.insert(orderPembelianDetail).values(
     input.baris.map((b) => ({
@@ -189,7 +215,12 @@ export async function buatPO(
     const pm = await pastikanPemasokDanBarang(tx, input);
     const [po] = await tx
       .insert(orderPembelian)
-      .values({ idPemasok: pm.id, idPembuat: pelaku.id, catatan: input.catatan ?? null })
+      .values({
+        idPemasok: pm.id,
+        idPembuat: pelaku.id,
+        catatan: input.catatan ?? null,
+        ...isianKesepakatan(input),
+      })
       .returning({ id: orderPembelian.id });
     if (!po) throw new Error('insert order pembelian tidak mengembalikan id');
     await tulisBaris(tx, po.id, input);
@@ -242,7 +273,12 @@ export async function ubahPO(
     await tulisBaris(tx, id, input);
     await tx
       .update(orderPembelian)
-      .set({ idPemasok: pm.id, catatan: input.catatan ?? null, diubahPada: sekarang() })
+      .set({
+        idPemasok: pm.id,
+        catatan: input.catatan ?? null,
+        ...isianKesepakatan(input),
+        diubahPada: sekarang(),
+      })
       .where(eq(orderPembelian.id, id));
     await catatLog(tx, {
       aksi: 'PO_UBAH',
@@ -264,8 +300,9 @@ export async function kirimPO(id: number, pelaku: PenggunaAktif, asal: AsalReque
   await dalamTransaksi(async (tx) => {
     const po = await kunciPO(tx, id);
     wajibStatus(po, ['DRAF', 'DISETUJUI'], 'dikirim');
+    const h = await hitungPersetujuan(tx, id);
+    pastikanKesepakatan(po, h.total, 'dikirim');
     if (po.status === 'DRAF' && pelaku.peran !== 'OWNER') {
-      const h = await hitungPersetujuan(tx, id);
       if (h.alasan.length > 0) {
         throw new AppError(
           'STATUS_TIDAK_VALID',
@@ -333,6 +370,12 @@ export async function konfirmasiPO(
       .set({
         status: po.status === 'DIPESAN' ? 'DIKONFIRMASI' : po.status,
         tanggalJanjiKirim: input.tanggalJanjiKirim,
+        // K-238: janji pertama disimpan; setiap perubahan janji dihitung (ketepatan pemasok).
+        tanggalJanjiAwal: po.tanggalJanjiAwal ?? input.tanggalJanjiKirim,
+        jumlahUbahJanji:
+          po.tanggalJanjiKirim !== null && po.tanggalJanjiKirim !== input.tanggalJanjiKirim
+            ? po.jumlahUbahJanji + 1
+            : po.jumlahUbahJanji,
         diubahPada: sekarang(),
       })
       .where(eq(orderPembelian.id, id));

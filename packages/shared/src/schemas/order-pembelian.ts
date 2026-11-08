@@ -1,7 +1,16 @@
 import { z } from 'zod';
-import { STATUS_ORDER_PEMBELIAN, type StatusOrderPembelian } from '../enums';
+import {
+  CARA_KIRIM_PO,
+  LABEL_SYARAT_BAYAR_PO,
+  STATUS_ORDER_PEMBELIAN,
+  SYARAT_BAYAR_PO,
+  type CaraKirimPO,
+  type StatusOrderPembelian,
+  type SyaratBayarPO,
+} from '../enums';
+import { formatRupiah } from '../money';
 import { METODE_BAYAR_HUTANG } from './hutang';
-import { skemaQtyPositif, skemaTanggal } from './persediaan';
+import { METODE_BAYAR_PENERIMAAN, skemaQtyPositif, skemaTanggal } from './persediaan';
 import {
   PESAN_REFERENSI_KELUAR,
   referensiSah,
@@ -16,6 +25,7 @@ import {
  */
 
 const idWajib = (pesan: string) => z.number(pesan).int().positive(pesan);
+const kosongNull = (v: unknown) => (v === '' || v === undefined ? null : v);
 
 export const skemaBarisOrderPembelian = z.object({
   idBarang: idWajib('Barang wajib dipilih.'),
@@ -27,6 +37,37 @@ export const skemaOrderPembelian = z
   .object({
     idPemasok: idWajib('Pemasok wajib dipilih.'),
     catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+    /**
+     * K-236 kesepakatan. Boleh kosong selama draf; wajib lengkap sebelum diajukan atau dikirim (dicek API dengan
+     * `kekuranganKesepakatan`).
+     */
+    tanggalKirimDiminta: z.preprocess(
+      kosongNull,
+      skemaTanggal('Tanggal kirim diminta').nullable().default(null),
+    ),
+    caraKirim: z.preprocess(
+      kosongNull,
+      z.enum(CARA_KIRIM_PO, 'Cara kirim tidak valid.').nullable().default(null),
+    ),
+    syaratBayar: z.preprocess(
+      kosongNull,
+      z.enum(SYARAT_BAYAR_PO, 'Syarat bayar tidak valid.').nullable().default(null),
+    ),
+    tempoHari: z.preprocess(
+      kosongNull,
+      z.coerce
+        .number('Lama tempo harus angka.')
+        .int('Lama tempo harus bilangan bulat.')
+        .min(1, 'Lama tempo 1–365 hari.')
+        .max(365, 'Lama tempo 1–365 hari.')
+        .nullable()
+        .default(null),
+    ),
+    uangMukaRencana: z.preprocess((v) => (v === null || v === '' ? 0 : v), skemaRupiah).default(0),
+    metodeBayarRencana: z.preprocess(
+      kosongNull,
+      z.enum(METODE_BAYAR_PENERIMAAN, 'Cara bayar tidak valid.').nullable().default(null),
+    ),
     baris: z
       .array(skemaBarisOrderPembelian)
       .min(1, 'Tambahkan minimal satu barang.')
@@ -46,6 +87,30 @@ export const skemaOrderPembelian = z
     });
   });
 export type InputOrderPembelian = z.input<typeof skemaOrderPembelian>;
+
+/** K-236: kesepakatan order yang belum lengkap (kosong = boleh diajukan/dikirim). Dipakai API dan layar. */
+export function kekuranganKesepakatan(
+  k: {
+    syaratBayar: SyaratBayarPO | null;
+    tempoHari: number | null;
+    tanggalKirimDiminta: string | null;
+    caraKirim: CaraKirimPO | null;
+    uangMukaRencana: number;
+  },
+  total: number,
+  hariIni: string,
+): string[] {
+  const kurang: string[] = [];
+  if (!k.tanggalKirimDiminta) kurang.push('Tanggal kirim diminta belum diisi.');
+  else if (k.tanggalKirimDiminta < hariIni) kurang.push('Tanggal kirim diminta sudah lewat.');
+  if (!k.caraKirim) kurang.push('Cara kirim belum dipilih.');
+  if (!k.syaratBayar) kurang.push('Syarat bayar belum dipilih.');
+  if (k.syaratBayar === 'TEMPO' && !k.tempoHari) kurang.push('Lama tempo belum diisi.');
+  if (k.syaratBayar !== 'DI_MUKA' && k.uangMukaRencana > total) {
+    kurang.push('Uang muka rencana melebihi nilai order.');
+  }
+  return kurang;
+}
 export type DataOrderPembelian = z.output<typeof skemaOrderPembelian>;
 
 /** Jawaban pemasok: tanggal janji kirim; qty/harga per baris hanya bila berubah. */
@@ -170,7 +235,37 @@ export const skemaTolakPO = z.object({
     .max(255, 'Alasan maksimal 255 karakter.'),
 });
 
+/** K-236: kesepakatan order pembelian dengan pemasok. */
+export type KesepakatanOrderPembelian = {
+  syaratBayar: SyaratBayarPO | null;
+  tempoHari: number | null;
+  uangMukaRencana: number;
+  tanggalKirimDiminta: string | null;
+  caraKirim: CaraKirimPO | null;
+  metodeBayarRencana: (typeof METODE_BAYAR_PENERIMAAN)[number] | null;
+  tanggalJanjiAwal: string | null;
+  jumlahUbahJanji: number;
+  /** Isian yang belum lengkap (kosong = lengkap). */
+  kurang: string[];
+};
+
+/** K-236: syarat bayar dalam satu kalimat (rincian, cetak, teks WhatsApp). */
+export function teksSyaratBayarPO(
+  k: Pick<KesepakatanOrderPembelian, 'syaratBayar' | 'tempoHari' | 'uangMukaRencana'>,
+): string {
+  if (!k.syaratBayar) return 'belum ditentukan';
+  const dasar =
+    k.syaratBayar === 'TEMPO'
+      ? `tempo ${k.tempoHari ?? '?'} hari setelah barang diterima`
+      : LABEL_SYARAT_BAYAR_PO[k.syaratBayar].toLowerCase();
+  if (k.syaratBayar !== 'DI_MUKA' && k.uangMukaRencana > 0) {
+    return `Uang muka ${formatRupiah(k.uangMukaRencana)}, sisanya ${dasar}`;
+  }
+  return dasar.charAt(0).toUpperCase() + dasar.slice(1);
+}
+
 export type DetailOrderPembelian = BarisDaftarOrderPembelian & {
+  kesepakatan: KesepakatanOrderPembelian;
   persetujuan: PersetujuanOrderPembelian;
   catatan: string | null;
   alasanTutup: string | null;

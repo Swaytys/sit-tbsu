@@ -4,12 +4,14 @@ import {
   check,
   foreignKey,
   index,
+  integer,
   numeric,
   pgTable,
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
 import {
+  CARA_KIRIM_PO,
   JENIS_MUTASI,
   JENIS_PENERIMAAN,
   JENIS_PENYESUAIAN,
@@ -18,6 +20,8 @@ import {
   STATUS_ORDER_PEMBELIAN,
   STATUS_PENYESUAIAN,
   SYARAT_BAYAR,
+  SYARAT_BAYAR_PO,
+  METODE_BAYAR_PENERIMAAN,
 } from '@sit/shared';
 import {
   dalamDaftar,
@@ -111,6 +115,22 @@ export const orderPembelian = pgTable(
     idPenyetuju: kolomRef('id_penyetuju'),
     disetujuiPada: timestamptz('disetujui_pada'),
     catatanPersetujuan: varchar('catatan_persetujuan', { length: 255 }),
+    /**
+     * K-236 (migrasi 0047): kesepakatan dengan pemasok. Boleh kosong selama draf; wajib lengkap saat diajukan atau
+     * dikirim (dicek service). Penerimaan dari order ini mewarisi syarat bayar dan lama tempo.
+     */
+    syaratBayar: varchar('syarat_bayar', { length: 12, enum: SYARAT_BAYAR_PO }),
+    tempoHari: integer('tempo_hari'),
+    uangMukaRencana: uang('uang_muka_rencana').notNull().default(0),
+    tanggalKirimDiminta: tanggal('tanggal_kirim_diminta'),
+    caraKirim: varchar('cara_kirim', { length: 8, enum: CARA_KIRIM_PO }),
+    metodeBayarRencana: varchar('metode_bayar_rencana', {
+      length: 10,
+      enum: METODE_BAYAR_PENERIMAAN,
+    }),
+    /** K-238: janji kirim pertama dari pemasok dan berapa kali janji itu diubah (ketepatan pemasok). */
+    tanggalJanjiAwal: tanggal('tanggal_janji_awal'),
+    jumlahUbahJanji: integer('jumlah_ubah_janji').notNull().default(0),
   },
   (t) => [
     foreignKey({
@@ -138,6 +158,13 @@ export const orderPembelian = pgTable(
       'chk_po_dipesan',
       sql`status in ('DRAF', 'DIAJUKAN', 'DISETUJUI', 'BATAL') or tanggal_dipesan is not null`,
     ),
+    check(
+      'chk_po_syarat',
+      sql`syarat_bayar is null or syarat_bayar in ('DI_MUKA', 'SAAT_TERIMA', 'TEMPO')`,
+    ),
+    check('chk_po_tempo', sql`tempo_hari is null or tempo_hari between 1 and 365`),
+    check('chk_po_uang_muka_rencana', sql`uang_muka_rencana >= 0`),
+    check('chk_po_cara_kirim', sql`cara_kirim is null or cara_kirim in ('DIANTAR', 'DIAMBIL')`),
     index('idx_po_pemasok').on(t.idPemasok),
     index('idx_po_status').on(t.status),
   ],

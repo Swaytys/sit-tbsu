@@ -536,6 +536,13 @@ function BuatPO({ baris }: { baris: BarisSaranPesan[] }) {
             json: {
               idPemasok: isi[0]!.idPemasok!,
               catatan: null,
+              // K-236: kesepakatan dilengkapi di draf (Ubah) sebelum dikirim.
+              tanggalKirimDiminta: null,
+              caraKirim: null,
+              syaratBayar: null,
+              tempoHari: null,
+              uangMukaRencana: 0,
+              metodeBayarRencana: null,
               baris: isi.map((b) => ({
                 idBarang: b.idBarang,
                 qty: b.saranPesan,
@@ -544,7 +551,9 @@ function BuatPO({ baris }: { baris: BarisSaranPesan[] }) {
             },
           })
           .then((po) => {
-            toast.success('Draf order pembelian dibuat dari saran. Periksa lalu kirim ke pemasok.');
+            toast.success(
+              'Draf order pembelian dibuat. Lengkapi kesepakatan (Ubah), lalu kirim ke pemasok.',
+            );
             void navigasi(`/order-pembelian?status=DRAF&id=${po.id}`);
           })
           .catch((err: unknown) => toast.error(galat(err)))

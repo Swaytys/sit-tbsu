@@ -10,7 +10,16 @@ import {
   siapkanDatabaseSistem,
 } from '../../../test/pembantu';
 import { db } from '../../db/client';
+import { tambahHari, tanggalOperasional } from '../../lib/waktu';
 import { logAktivitas, persediaan } from '../../db/schema';
+
+/** K-236: kesepakatan lengkap agar order bisa diajukan/dikirim. */
+const SEPAKAT = {
+  tanggalKirimDiminta: tambahHari(tanggalOperasional(), 3),
+  caraKirim: 'DIANTAR',
+  syaratBayar: 'TEMPO',
+  tempoHari: 30,
+};
 
 /* K-225 persetujuan order pembelian (pemisahan tugas siklus pembelian, docs/05 §21 PO10–PO14). */
 
@@ -51,6 +60,7 @@ function draf(sesi: Sesi, qty: string, harga = 50_000, idBarang = m.semen) {
   return data<DetailOrderPembelian>(
     kirim(sesi, '/api/order-pembelian', {
       idPemasok: m.pemasokA,
+      ...SEPAKAT,
       baris: [{ idBarang, qty, harga }],
     }),
   );
@@ -101,7 +111,11 @@ describe('persetujuan order pembelian (K-225)', () => {
         await kirim(
           persediaanSesi,
           `/api/order-pembelian/${po.id}`,
-          { idPemasok: m.pemasokA, baris: [{ idBarang: m.semen, qty: '1', harga: 50_000 }] },
+          {
+            idPemasok: m.pemasokA,
+            ...SEPAKAT,
+            baris: [{ idBarang: m.semen, qty: '1', harga: 50_000 }],
+          },
           'PATCH',
         )
       ).status,
@@ -226,7 +240,11 @@ describe('persetujuan order pembelian (K-225)', () => {
       kirim(
         persediaanSesi,
         `/api/order-pembelian/${naik.id}`,
-        { idPemasok: m.pemasokA, baris: [{ idBarang: m.semen, qty: '1', harga: 52_000 }] },
+        {
+          idPemasok: m.pemasokA,
+          ...SEPAKAT,
+          baris: [{ idBarang: m.semen, qty: '1', harga: 52_000 }],
+        },
         'PATCH',
       ),
     );

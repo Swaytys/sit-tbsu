@@ -136,6 +136,8 @@ export const pemasok = pgTable(
      */
     lamaKirimHari: integer('lama_kirim_hari'),
     jarakBelanjaHari: integer('jarak_belanja_hari'),
+    /** K-237: lama tempo pembayaran yang biasa diberikan pemasok (hari); bawaan order bertempo. */
+    tempoHari: integer('tempo_hari'),
   },
   () => [
     check('chk_pemasok_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
@@ -147,6 +149,7 @@ export const pemasok = pgTable(
       'chk_pemasok_jarak_belanja',
       sql`jarak_belanja_hari is null or jarak_belanja_hari between 1 and 365`,
     ),
+    check('chk_pemasok_tempo', sql`tempo_hari is null or tempo_hari between 1 and 365`),
   ],
 );
 

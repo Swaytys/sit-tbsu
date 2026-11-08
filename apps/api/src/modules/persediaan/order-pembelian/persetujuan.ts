@@ -1,4 +1,10 @@
-import { bulatkanRupiah, formatRupiah, kaliQty, type PersetujuanOrderPembelian } from '@sit/shared';
+import {
+  bulatkanRupiah,
+  formatRupiah,
+  kaliQty,
+  kekuranganKesepakatan,
+  type PersetujuanOrderPembelian,
+} from '@sit/shared';
 import { eq } from 'drizzle-orm';
 import { db, type Executor, type Tx } from '../../../db/client';
 import {
@@ -11,7 +17,7 @@ import {
 import { AppError } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { dalamTransaksi } from '../../../lib/transaksi';
-import { sekarang } from '../../../lib/waktu';
+import { sekarang, tanggalOperasional } from '../../../lib/waktu';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import * as repo from './repo';
@@ -22,6 +28,23 @@ import * as repo from './repo';
  * harga beli terakhir, atau harga belum diisi. Kepala Toko menyetujui sampai batasnya; di atas itu dan barang khusus
  * hanya Owner. Penyetuju tidak boleh pembuat order (kecuali Owner, pemilik usaha).
  */
+
+/** K-236: tolak bila kesepakatan belum lengkap sebelum diajukan/dikirim. */
+export function pastikanKesepakatan(
+  po: Parameters<typeof kekuranganKesepakatan>[0],
+  total: number,
+  aksi: string,
+) {
+  const kurang = kekuranganKesepakatan(po, total, tanggalOperasional());
+  if (kurang.length > 0) {
+    throw new AppError(
+      'VALIDASI',
+      `Lengkapi kesepakatan sebelum ${aksi} (tekan Ubah): ${kurang.join(' ')}`,
+      400,
+      { kurang },
+    );
+  }
+}
 
 export type HasilPersetujuan = { alasan: string[]; perluOwner: boolean; total: number };
 
@@ -121,6 +144,7 @@ export async function ajukanPO(
   await dalamTransaksi(async (tx) => {
     const po = await kunciDanCek(tx, id, ['DRAF'], 'diajukan');
     const h = await hitungPersetujuan(tx, id);
+    pastikanKesepakatan(po, h.total, 'diajukan');
     if (h.alasan.length === 0) {
       throw new AppError(
         'STATUS_TIDAK_VALID',

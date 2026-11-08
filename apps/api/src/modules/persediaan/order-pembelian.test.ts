@@ -16,6 +16,14 @@ import { tambahHari, tanggalOperasional } from '../../lib/waktu';
 import { lamaKirimAktual } from './order-pembelian/repo';
 import { lupakanSimpananSaran } from './saran-pesan/service';
 
+/** K-236: kesepakatan lengkap agar order bisa diajukan/dikirim. */
+const SEPAKAT = {
+  tanggalKirimDiminta: tambahHari(tanggalOperasional(), 3),
+  caraKirim: 'DIANTAR',
+  syaratBayar: 'TEMPO',
+  tempoHari: 30,
+};
+
 /* K-125 order pembelian (docs/05 §21 PO1–PO9). */
 
 type Sesi = Awaited<ReturnType<typeof sesiUji>>;
@@ -47,6 +55,7 @@ async function poDipesan() {
   const draf = await data<DetailOrderPembelian>(
     kirim('/api/order-pembelian', {
       idPemasok: m.pemasokA,
+      ...SEPAKAT,
       baris: [
         { idBarang: m.semen, qty: '100', harga: 50000 },
         { idBarang: m.pasir, qty: '10', harga: 200000 },
@@ -57,6 +66,72 @@ async function poDipesan() {
 }
 
 describe('order pembelian', () => {
+  it('K-236 kesepakatan wajib lengkap sebelum dikirim; janji pemasok dicatat berapa kali berubah', async () => {
+    const draf = await data<DetailOrderPembelian>(
+      kirim('/api/order-pembelian', {
+        idPemasok: m.pemasokA,
+        baris: [{ idBarang: m.semen, qty: '10', harga: 50000 }],
+      }),
+    );
+    expect(draf.kesepakatan.kurang).toEqual([
+      'Tanggal kirim diminta belum diisi.',
+      'Cara kirim belum dipilih.',
+      'Syarat bayar belum dipilih.',
+    ]);
+    const tolak = await kirim(`/api/order-pembelian/${draf.id}/kirim`);
+    expect(tolak.status).toBe(400);
+    expect(await tolak.text()).toContain('Lengkapi kesepakatan');
+
+    const ubah = (isi: Record<string, unknown>) =>
+      kirim(
+        `/api/order-pembelian/${draf.id}`,
+        { idPemasok: m.pemasokA, baris: [{ idBarang: m.semen, qty: '10', harga: 50000 }], ...isi },
+        'PATCH',
+      );
+    // Tempo tanpa lama tempo, uang muka melebihi nilai order, tanggal lewat: masih kurang.
+    const kurang = await data<DetailOrderPembelian>(
+      ubah({
+        tanggalKirimDiminta: tambahHari(tanggalOperasional(), -1),
+        caraKirim: 'DIAMBIL',
+        syaratBayar: 'TEMPO',
+        uangMukaRencana: 600000,
+      }),
+    );
+    expect(kurang.kesepakatan.kurang).toEqual([
+      'Tanggal kirim diminta sudah lewat.',
+      'Lama tempo belum diisi.',
+      'Uang muka rencana melebihi nilai order.',
+    ]);
+    const lengkap = await data<DetailOrderPembelian>(
+      ubah({
+        tanggalKirimDiminta: tambahHari(tanggalOperasional(), 2),
+        caraKirim: 'DIAMBIL',
+        syaratBayar: 'TEMPO',
+        tempoHari: 14,
+        uangMukaRencana: 100000,
+      }),
+    );
+    expect(lengkap.kesepakatan).toMatchObject({
+      kurang: [],
+      syaratBayar: 'TEMPO',
+      tempoHari: 14,
+      uangMukaRencana: 100000,
+      caraKirim: 'DIAMBIL',
+    });
+    const po = await data<DetailOrderPembelian>(kirim(`/api/order-pembelian/${draf.id}/kirim`));
+    expect(po.status).toBe('DIPESAN');
+
+    const janji1 = tambahHari(tanggalOperasional(), 3);
+    const janji2 = tambahHari(tanggalOperasional(), 6);
+    await data(kirim(`/api/order-pembelian/${draf.id}/konfirmasi`, { tanggalJanjiKirim: janji1 }));
+    await data(kirim(`/api/order-pembelian/${draf.id}/konfirmasi`, { tanggalJanjiKirim: janji1 }));
+    const k = await data<DetailOrderPembelian>(
+      kirim(`/api/order-pembelian/${draf.id}/konfirmasi`, { tanggalJanjiKirim: janji2 }),
+    );
+    expect(k.kesepakatan).toMatchObject({ tanggalJanjiAwal: janji1, jumlahUbahJanji: 1 });
+    expect(k.tanggalJanjiKirim).toBe(janji2);
+  });
+
   it('PO1–PO3: draf diubah, dikirim (nomor terbit, terkunci), dikonfirmasi; Kasir ditolak', async () => {
     const kasir = await sesiUji('KASIR');
     expect((await kirim('/api/order-pembelian', {}, 'POST', kasir)).status).toBe(403);
@@ -64,6 +139,7 @@ describe('order pembelian', () => {
     const draf = await data<DetailOrderPembelian>(
       kirim('/api/order-pembelian', {
         idPemasok: m.pemasokA,
+        ...SEPAKAT,
         baris: [{ idBarang: m.semen, qty: '50', harga: 50000 }],
       }),
     );
@@ -73,6 +149,7 @@ describe('order pembelian', () => {
       (
         await kirim('/api/order-pembelian', {
           idPemasok: m.pemasokA,
+          ...SEPAKAT,
           baris: [
             { idBarang: m.semen, qty: '1', harga: 0 },
             { idBarang: m.semen, qty: '2', harga: 0 },
@@ -84,6 +161,7 @@ describe('order pembelian', () => {
       (
         await kirim('/api/order-pembelian', {
           idPemasok: m.pemasokA,
+          ...SEPAKAT,
           baris: [{ idBarang: m.titip, qty: '1', harga: 0 }],
         })
       ).status,
@@ -92,7 +170,11 @@ describe('order pembelian', () => {
     const ubah = await data<DetailOrderPembelian>(
       kirim(
         `/api/order-pembelian/${draf.id}`,
-        { idPemasok: m.pemasokA, baris: [{ idBarang: m.semen, qty: '80', harga: 50000 }] },
+        {
+          idPemasok: m.pemasokA,
+          ...SEPAKAT,
+          baris: [{ idBarang: m.semen, qty: '80', harga: 50000 }],
+        },
         'PATCH',
       ),
     );
@@ -108,7 +190,7 @@ describe('order pembelian', () => {
       (
         await kirim(
           `/api/order-pembelian/${draf.id}`,
-          { idPemasok: m.pemasokA, baris: [{ idBarang: m.semen, qty: '1', harga: 0 }] },
+          { idPemasok: m.pemasokA, ...SEPAKAT, baris: [{ idBarang: m.semen, qty: '1', harga: 0 }] },
           'PATCH',
         )
       ).status,
@@ -151,6 +233,7 @@ describe('order pembelian', () => {
     const terima1 = await data<DetailPenerimaan>(
       kirim('/api/penerimaan', {
         idPemasok: m.pemasokA,
+        ...SEPAKAT,
         jenis: 'PEMBELIAN',
         syaratBayar: 'TEMPO',
         tanggalJatuhTempo: tambahHari(tanggalOperasional(), 14),
@@ -187,6 +270,7 @@ describe('order pembelian', () => {
     await data(
       kirim('/api/penerimaan', {
         idPemasok: m.pemasokA,
+        ...SEPAKAT,
         jenis: 'PEMBELIAN',
         syaratBayar: 'TUNAI',
         referensi: 'TRF0001',
@@ -220,6 +304,7 @@ describe('order pembelian', () => {
       (
         await kirim('/api/penerimaan', {
           idPemasok: m.pemasokA,
+          ...SEPAKAT,
           jenis: 'PEMBELIAN',
           syaratBayar: 'TUNAI',
           referensi: 'TRF0001',
@@ -272,6 +357,7 @@ describe('order pembelian', () => {
     await data(
       kirim('/api/penerimaan', {
         idPemasok: m.pemasokA,
+        ...SEPAKAT,
         jenis: 'PEMBELIAN',
         syaratBayar: 'TUNAI',
         referensi: 'TRF0001',
@@ -306,6 +392,7 @@ describe('order pembelian', () => {
       await data(
         kirim('/api/penerimaan', {
           idPemasok: m.pemasokA,
+          ...SEPAKAT,
           jenis: 'PEMBELIAN',
           syaratBayar: 'TUNAI',
           referensi: 'TRF0001',

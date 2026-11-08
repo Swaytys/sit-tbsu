@@ -181,6 +181,8 @@ export const skemaPemasok = z.object({
   lamaKirimHari: z.preprocess(kosongJadiNull, hariOpsional('Lama kirim', 0, 365)),
   /** K-113: jarak hari antara dua kali belanja ke pemasok ini; kosong = bawaan toko. */
   jarakBelanjaHari: z.preprocess(kosongJadiNull, hariOpsional('Jarak belanja', 1, 365)),
+  /** K-237: lama tempo bayar yang biasa diberikan pemasok; bawaan order bertempo; kosong = tidak memberi tempo. */
+  tempoHari: z.preprocess(kosongJadiNull, hariOpsional('Lama tempo', 1, 365)),
   /** K-164: versi data yang dimuat form; beda dengan versi sekarang = ditolak. */
   versi: z.string().max(40).nullable().optional(),
   /** K-137: pengguna menegaskan ini pemasok berbeda walau ada yang mirip. */
@@ -199,6 +201,7 @@ export type Pemasok = {
   keterangan: string | null;
   lamaKirimHari: number | null;
   jarakBelanjaHari: number | null;
+  tempoHari: number | null;
   statusAktif: StatusAktif;
   dibuatPada: string;
   /** K-164: waktu ubah terakhir (ISO). */

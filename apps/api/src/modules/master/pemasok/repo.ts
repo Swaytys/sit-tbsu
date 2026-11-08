@@ -14,6 +14,7 @@ const kolom = {
   keterangan: pemasok.keterangan,
   lamaKirimHari: pemasok.lamaKirimHari,
   jarakBelanjaHari: pemasok.jarakBelanjaHari,
+  tempoHari: pemasok.tempoHari,
   statusAktif: pemasok.statusAktif,
   dibuatPada: pemasok.dibuatPada,
   diubahPada: pemasok.diubahPada,
@@ -65,6 +66,7 @@ export async function kunciPemasok(tx: Tx, id: number) {
       keterangan: pemasok.keterangan,
       lamaKirimHari: pemasok.lamaKirimHari,
       jarakBelanjaHari: pemasok.jarakBelanjaHari,
+      tempoHari: pemasok.tempoHari,
       statusAktif: pemasok.statusAktif,
     })
     .from(pemasok)
@@ -82,6 +84,7 @@ export type NilaiPemasok = {
   keterangan: string | null;
   lamaKirimHari: number | null;
   jarakBelanjaHari: number | null;
+  tempoHari: number | null;
 };
 
 export async function tambahPemasok(

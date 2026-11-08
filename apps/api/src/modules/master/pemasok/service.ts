@@ -45,6 +45,7 @@ function nilaiDari(input: DataPemasok): repo.NilaiPemasok {
     keterangan: input.keterangan ?? null,
     lamaKirimHari: input.lamaKirimHari ?? null,
     jarakBelanjaHari: input.jarakBelanjaHari ?? null,
+    tempoHari: input.tempoHari ?? null,
   };
 }
 

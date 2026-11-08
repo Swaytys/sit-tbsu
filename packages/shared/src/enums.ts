@@ -350,6 +350,30 @@ export const STATUS_ORDER_PEMBELIAN = [
 ] as const;
 export type StatusOrderPembelian = (typeof STATUS_ORDER_PEMBELIAN)[number];
 
+/** K-236: syarat bayar yang disepakati di order pembelian (mengikat penerimaan). */
+export const SYARAT_BAYAR_PO = ['DI_MUKA', 'SAAT_TERIMA', 'TEMPO'] as const;
+export type SyaratBayarPO = (typeof SYARAT_BAYAR_PO)[number];
+export const LABEL_SYARAT_BAYAR_PO: Record<SyaratBayarPO, string> = {
+  DI_MUKA: 'Bayar di muka',
+  SAAT_TERIMA: 'Tunai saat barang datang',
+  TEMPO: 'Tempo',
+};
+export const KET_SYARAT_BAYAR_PO: Record<SyaratBayarPO, string> = {
+  DI_MUKA:
+    'Dilunasi sebelum barang dikirim (lewat uang muka). Saat barang datang tidak ada pembayaran lagi.',
+  SAAT_TERIMA: 'Uang muka (bila ada) dibayar dulu; sisanya wajib dibayar saat barang datang.',
+  TEMPO:
+    'Uang muka (bila ada) dibayar dulu; sisanya menjadi hutang, jatuh tempo = tanggal terima + lama tempo.',
+};
+
+/** K-236: cara barang sampai ke toko. */
+export const CARA_KIRIM_PO = ['DIANTAR', 'DIAMBIL'] as const;
+export type CaraKirimPO = (typeof CARA_KIRIM_PO)[number];
+export const LABEL_CARA_KIRIM_PO: Record<CaraKirimPO, string> = {
+  DIANTAR: 'Diantar pemasok',
+  DIAMBIL: 'Diambil sendiri',
+};
+
 export const LABEL_STATUS_ORDER_PEMBELIAN: Record<StatusOrderPembelian, string> = {
   DRAF: 'Draf',
   DIAJUKAN: 'Menunggu persetujuan',

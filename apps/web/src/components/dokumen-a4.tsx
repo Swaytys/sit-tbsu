@@ -1,6 +1,8 @@
 import {
   formatRupiah,
+  LABEL_CARA_KIRIM_PO,
   LABEL_PENYELESAIAN_RETUR_PEMASOK,
+  teksSyaratBayarPO,
   subtotalRupiah,
   type BarisSuratJalan,
   type DetailPenjualan,
@@ -356,6 +358,22 @@ export function OrderPembelianA4({ po, toko }: { po: DetailOrderPembelian; toko:
             <Pasangan kiri="Janji kirim" kanan={formatTanggal(po.tanggalJanjiKirim)} />
           )}
           <Pasangan kiri="Dibuat oleh" kanan={po.namaPembuat} />
+        </div>
+      </div>
+      <div className="mb-4 grid grid-cols-2 gap-4">
+        <div>
+          <Pasangan kiri="Syarat bayar" kanan={teksSyaratBayarPO(po.kesepakatan)} />
+        </div>
+        <div>
+          {po.kesepakatan.tanggalKirimDiminta && (
+            <Pasangan
+              kiri="Dikirim paling lambat"
+              kanan={formatTanggal(po.kesepakatan.tanggalKirimDiminta)}
+            />
+          )}
+          {po.kesepakatan.caraKirim && (
+            <Pasangan kiri="Cara kirim" kanan={LABEL_CARA_KIRIM_PO[po.kesepakatan.caraKirim]} />
+          )}
         </div>
       </div>
       <table className="w-full border-collapse">

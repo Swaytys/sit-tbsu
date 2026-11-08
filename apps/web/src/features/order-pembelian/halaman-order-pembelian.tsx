@@ -1,6 +1,14 @@
 import {
+  CARA_KIRIM_PO,
   formatRupiah,
+  KET_SYARAT_BAYAR_PO,
+  LABEL_CARA_KIRIM_PO,
   LABEL_STATUS_ORDER_PEMBELIAN,
+  LABEL_SYARAT_BAYAR_PO,
+  SYARAT_BAYAR_PO,
+  teksSyaratBayarPO,
+  type CaraKirimPO,
+  type SyaratBayarPO,
   POLA_QTY,
   skemaOrderPembelian,
   subtotalRupiah,
@@ -54,7 +62,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDesimal, formatTanggal, formatWaktu, tanggalHariIni } from '@/lib/format';
+import {
+  formatDesimal,
+  formatTanggal,
+  formatWaktu,
+  tambahHariTanggal,
+  tanggalHariIni,
+} from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useIngat } from '@/lib/ingat-saring';
 
@@ -102,6 +116,11 @@ function teksPesan(po: DetailOrderPembelian, namaToko: string): string {
       (b, i) => `${i + 1}. ${b.namaBarang}: ${formatDesimal(b.qtyBerlaku)} ${b.kodeSatuan}`,
     ),
     '',
+    `Syarat bayar: ${teksSyaratBayarPO(po.kesepakatan)}`,
+    po.kesepakatan.tanggalKirimDiminta
+      ? `Mohon dikirim paling lambat ${formatTanggal(po.kesepakatan.tanggalKirimDiminta)}` +
+        (po.kesepakatan.caraKirim === 'DIAMBIL' ? ' (kami ambil sendiri).' : '.')
+      : '',
     po.catatan ? `Catatan: ${po.catatan}` : '',
     'Mohon konfirmasi ketersediaan dan tanggal kirim. Terima kasih.',
   ]
@@ -133,6 +152,25 @@ function DialogDraf({
     useDaftarPemasok({ cari: '', status: 'AKTIF', halaman: 1, perHalaman: 100 }).data?.data ?? [];
   const [idPemasok, setIdPemasok] = useState<number>(awal?.idPemasok ?? 0);
   const [catatan, setCatatan] = useState(awal?.catatan ?? '');
+  // K-236: kesepakatan dengan pemasok (wajib lengkap sebelum diajukan/dikirim).
+  const k0 = awal?.kesepakatan;
+  const [tanggalKirim, setTanggalKirim] = useState(k0?.tanggalKirimDiminta ?? '');
+  const [caraKirim, setCaraKirim] = useState<CaraKirimPO | ''>(k0?.caraKirim ?? 'DIANTAR');
+  const [syarat, setSyarat] = useState<SyaratBayarPO | ''>(k0?.syaratBayar ?? '');
+  const [tempoHari, setTempoHari] = useState(k0?.tempoHari ? String(k0.tempoHari) : '');
+  const [uangMuka, setUangMuka] = useState(k0?.uangMukaRencana ?? 0);
+  const [metodeRencana, setMetodeRencana] = useState<'TUNAI' | 'TRANSFER'>(
+    k0?.metodeBayarRencana ?? 'TRANSFER',
+  );
+  function pilihPemasok(id: number) {
+    setIdPemasok(id);
+    const pm = pemasok.find((p) => p.id === id);
+    if (!pm) return;
+    // Bawaan dari Data Pemasok, tetap tampil dan bisa diubah.
+    if (!tanggalKirim) setTanggalKirim(tambahHariTanggal(tanggalHariIni(), pm.lamaKirimHari ?? 3));
+    if (!syarat) setSyarat(pm.tempoHari ? 'TEMPO' : 'SAAT_TERIMA');
+    if (!tempoHari && pm.tempoHari) setTempoHari(String(pm.tempoHari));
+  }
   const [baris, setBaris] = useState<BarisIsian[]>(
     awal?.baris.map((b) => ({
       idBarang: b.idBarang,
@@ -175,6 +213,12 @@ function DialogDraf({
     const data = skemaOrderPembelian.safeParse({
       idPemasok,
       catatan,
+      tanggalKirimDiminta: tanggalKirim,
+      caraKirim,
+      syaratBayar: syarat,
+      tempoHari: syarat === 'TEMPO' ? tempoHari : '',
+      uangMukaRencana: syarat === 'DI_MUKA' ? 0 : uangMuka,
+      metodeBayarRencana: metodeRencana,
       baris: baris.map((b) => ({
         idBarang: b.idBarang,
         qty: b.qty.replace(',', '.'),
@@ -210,7 +254,7 @@ function DialogDraf({
             className="h-9 rounded-md border bg-white px-2"
             aria-label="Pemasok"
             value={idPemasok || ''}
-            onChange={(e) => setIdPemasok(Number(e.target.value))}
+            onChange={(e) => pilihPemasok(Number(e.target.value))}
           >
             <option value="">Pilih pemasok…</option>
             {pemasok.map((p) => (
@@ -303,6 +347,91 @@ function DialogDraf({
             </tr>
           </tfoot>
         </table>
+        <fieldset
+          className="grid gap-3 rounded-md border p-3 sm:grid-cols-2"
+          data-testid="kesepakatan"
+        >
+          <legend className="px-1 text-sm font-medium">
+            Kesepakatan dengan pemasok (wajib sebelum dikirim)
+          </legend>
+          <label className="grid gap-1 text-sm">
+            Dikirim paling lambat
+            <Input
+              type="date"
+              aria-label="Tanggal kirim diminta"
+              value={tanggalKirim}
+              min={tanggalHariIni()}
+              onChange={(e) => setTanggalKirim(e.target.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            Cara kirim
+            <select
+              className="h-9 rounded-md border bg-white px-2"
+              aria-label="Cara kirim"
+              value={caraKirim}
+              onChange={(e) => setCaraKirim(e.target.value as CaraKirimPO)}
+            >
+              {CARA_KIRIM_PO.map((c) => (
+                <option key={c} value={c}>
+                  {LABEL_CARA_KIRIM_PO[c]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="grid gap-1 text-sm sm:col-span-2">
+            Syarat bayar
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Syarat bayar">
+              {SYARAT_BAYAR_PO.map((s) => (
+                <Button
+                  key={s}
+                  type="button"
+                  size="sm"
+                  role="radio"
+                  aria-checked={syarat === s}
+                  variant={syarat === s ? 'default' : 'outline'}
+                  onClick={() => setSyarat(s)}
+                >
+                  {LABEL_SYARAT_BAYAR_PO[s]}
+                </Button>
+              ))}
+            </div>
+            {syarat && <p className="text-xs text-slate-500">{KET_SYARAT_BAYAR_PO[syarat]}</p>}
+          </div>
+          {syarat === 'TEMPO' && (
+            <label className="grid gap-1 text-sm">
+              Lama tempo (hari sejak barang diterima)
+              <Input
+                inputMode="numeric"
+                aria-label="Lama tempo"
+                value={tempoHari}
+                onChange={(e) => setTempoHari(e.target.value.replace(/\D/g, ''))}
+              />
+            </label>
+          )}
+          {syarat && syarat !== 'DI_MUKA' && (
+            <label className="grid gap-1 text-sm">
+              Uang muka yang direncanakan (boleh 0)
+              <InputRupiah
+                aria-label="Uang muka rencana"
+                value={uangMuka}
+                onChange={(v) => setUangMuka(v ?? 0)}
+              />
+            </label>
+          )}
+          <label className="grid gap-1 text-sm">
+            Rencana cara bayar
+            <select
+              className="h-9 rounded-md border bg-white px-2"
+              aria-label="Rencana cara bayar"
+              value={metodeRencana}
+              onChange={(e) => setMetodeRencana(e.target.value as 'TUNAI' | 'TRANSFER')}
+            >
+              <option value="TRANSFER">Transfer</option>
+              <option value="TUNAI">Tunai</option>
+            </select>
+          </label>
+        </fieldset>
         <label className="grid gap-1 text-sm">
           Catatan untuk pemasok (boleh kosong)
           <Input value={catatan} onChange={(e) => setCatatan(e.target.value)} maxLength={255} />
@@ -666,6 +795,54 @@ function DialogPutusan({
   );
 }
 
+/** K-236/K-238: kesepakatan dengan pemasok di rincian order. */
+function KotakKesepakatan({ po }: { po: DetailOrderPembelian }) {
+  const k = po.kesepakatan;
+  return (
+    <div className="space-y-2" data-testid="kotak-kesepakatan">
+      <dl className="grid gap-x-4 gap-y-1 rounded-md border bg-slate-50 p-3 text-sm sm:grid-cols-2">
+        <div className="flex gap-2">
+          <dt className="text-slate-500">Syarat bayar</dt>
+          <dd className="font-medium">{teksSyaratBayarPO(k)}</dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="text-slate-500">Dikirim paling lambat</dt>
+          <dd className="font-medium">{formatTanggal(k.tanggalKirimDiminta)}</dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="text-slate-500">Cara kirim</dt>
+          <dd className="font-medium">{k.caraKirim ? LABEL_CARA_KIRIM_PO[k.caraKirim] : '—'}</dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="text-slate-500">Janji pemasok</dt>
+          <dd className="font-medium">
+            {po.tanggalJanjiKirim ? formatTanggal(po.tanggalJanjiKirim) : 'belum dikonfirmasi'}
+            {k.jumlahUbahJanji > 0 && (
+              <span className="text-amber-700">
+                {' '}
+                (diubah {k.jumlahUbahJanji}× dari {formatTanggal(k.tanggalJanjiAwal)})
+              </span>
+            )}
+          </dd>
+        </div>
+      </dl>
+      {k.kurang.length > 0 && (
+        <div
+          className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+          data-testid="kesepakatan-kurang"
+        >
+          <p className="font-medium">Lengkapi kesepakatan dulu (tekan Ubah):</p>
+          <ul className="list-disc pl-5">
+            {k.kurang.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** K-225: kotak keadaan persetujuan di rincian order. */
 function KotakPersetujuan({ po }: { po: DetailOrderPembelian }) {
   const p = po.persetujuan;
@@ -779,7 +956,7 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
               {perluSetuju && (
                 <Button
                   size="sm"
-                  disabled={ajukan.isPending}
+                  disabled={ajukan.isPending || po.kesepakatan.kurang.length > 0}
                   onClick={() =>
                     void ajukan
                       .mutateAsync(po.id)
@@ -813,7 +990,7 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
             <>
               <Button
                 size="sm"
-                disabled={kirim.isPending}
+                disabled={kirim.isPending || po.kesepakatan.kurang.length > 0}
                 onClick={() =>
                   void kirim
                     .mutateAsync(po.id)
@@ -937,6 +1114,7 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
           )}
         </p>
       )}
+      <KotakKesepakatan po={po} />
       <KotakPersetujuan po={po} />
       {po.catatan && <p className="text-sm text-slate-600">Catatan: {po.catatan}</p>}
       {po.alasanTutup && (

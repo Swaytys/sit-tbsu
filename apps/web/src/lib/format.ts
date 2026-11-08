@@ -33,6 +33,12 @@ export function tanggalHariIni(): string {
   return format(new TZDate(new Date(), ZONA_TOKO), 'yyyy-MM-dd');
 }
 
+/** `YYYY-MM-DD` + n hari (isian bawaan form; aturan tanggal bisnis tetap di API). */
+export function tambahHariTanggal(tanggal: string, n: number): string {
+  const [t, b, h] = tanggal.split('-').map(Number);
+  return format(new Date(t ?? 1970, (b ?? 1) - 1, (h ?? 1) + n), 'yyyy-MM-dd');
+}
+
 /** Tanggal 1 bulan berjalan di zona toko, `YYYY-MM-DD`. */
 export function awalBulanIni(): string {
   return format(new TZDate(new Date(), ZONA_TOKO), 'yyyy-MM-01');

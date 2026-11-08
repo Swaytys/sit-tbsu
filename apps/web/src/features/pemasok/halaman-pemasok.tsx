@@ -58,6 +58,7 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
       alamat: pemasok?.alamat ?? '',
       keterangan: pemasok?.keterangan ?? '',
       lamaKirimHari: pemasok?.lamaKirimHari ?? '',
+      tempoHari: pemasok?.tempoHari ?? '',
       jarakBelanjaHari: pemasok?.jarakBelanjaHari ?? '',
       versi: pemasok?.versi ?? null,
     },
@@ -157,7 +158,7 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
                 </FormItem>
               )}
             />
-            {(['lamaKirimHari', 'jarakBelanjaHari'] as const).map((nama) => (
+            {(['lamaKirimHari', 'jarakBelanjaHari', 'tempoHari'] as const).map((nama) => (
               <FormField
                 key={nama}
                 control={form.control}
@@ -165,7 +166,11 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {nama === 'lamaKirimHari' ? 'Lama kirim (hari)' : 'Belanja tiap (hari)'}
+                      {nama === 'lamaKirimHari'
+                        ? 'Lama kirim (hari)'
+                        : nama === 'tempoHari'
+                          ? 'Tempo bayar (hari)'
+                          : 'Belanja tiap (hari)'}
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -181,8 +186,10 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
                     </FormControl>
                     <FormDescription className="text-xs">
                       {nama === 'lamaKirimHari'
-                        ? 'Dari memesan sampai barang tiba. Dipakai saran pesan ulang.'
-                        : 'Jarak antara dua kali belanja ke pemasok ini.'}
+                        ? 'Dari memesan sampai barang tiba. Dipakai Perencanaan Pengadaan.'
+                        : nama === 'tempoHari'
+                          ? 'Lama tempo yang biasa diberikan; bawaan order pembelian bertempo.'
+                          : 'Jarak antara dua kali belanja ke pemasok ini.'}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
