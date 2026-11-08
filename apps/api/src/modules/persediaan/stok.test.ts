@@ -74,7 +74,9 @@ describe('stok persediaan (docs/05 ST1–ST3)', () => {
     ]);
     const r1 = await terima(m.semen, '5', 12000);
     const r2 = await terima(m.semen, '10', 11000);
-    const op = await penyesuaian('OPNAME', [{ idBarang: m.semen, qtyFisik: '22' }]);
+    const op = await penyesuaian('OPNAME', [
+      { idBarang: m.semen, qtyFisik: '22', keterangan: 'Selisih hitung' },
+    ]);
 
     const t = hariIni();
     const { data: k } = await ambil<{ data: KartuStok }>(
