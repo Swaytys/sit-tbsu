@@ -1,5 +1,11 @@
+import { createHash } from 'node:crypto';
 import {
   bulatkanRupiah,
+  IZIN_PER_PERAN,
+  type DataSetujuiKodePO,
+  type InfoKodePersetujuan,
+  type Izin,
+  type Peran,
   formatRupiah,
   kaliQty,
   kekuranganKesepakatan,
@@ -11,6 +17,7 @@ import {
   barang,
   orderPembelian,
   orderPembelianDetail,
+  pemasok,
   pengguna,
   persediaan,
 } from '../../../db/schema';
@@ -19,6 +26,7 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tanggalOperasional } from '../../../lib/waktu';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
+import { mintaKode, pakaiKode, periksaKode } from '../../sistem/kode-persetujuan/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import * as repo from './repo';
 
@@ -174,48 +182,171 @@ export async function ajukanPO(
   });
 }
 
-/** DIAJUKAN → DISETUJUI oleh Kepala Toko (sampai batasnya) atau Owner; bukan pembuat order. */
+type Penyetuju = { id: number; peran: Peran; izin: ReadonlySet<Izin> };
+
+/**
+ * DIAJUKAN → DISETUJUI di dalam transaksi pemanggil. Penyetuju bukan pembuat order (kecuali Owner); di atas batas
+ * Kepala Toko atau barang khusus hanya `pembelian.setujui_semua`.
+ */
+async function terapkanSetuju(
+  tx: Tx,
+  id: number,
+  catatan: string | null,
+  penyetuju: Penyetuju,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+  lewatKode: string | null,
+): Promise<void> {
+  const po = await kunciDanCek(tx, id, ['DIAJUKAN'], 'disetujui');
+  if (po.idPembuat === penyetuju.id && penyetuju.peran !== 'OWNER') {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Order pembelian buatan sendiri harus disetujui orang lain (Kepala Toko lain atau Owner).',
+      403,
+    );
+  }
+  const h = await hitungPersetujuan(tx, id);
+  if (h.perluOwner && !penyetuju.izin.has('pembelian.setujui_semua')) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Order ini hanya bisa disetujui Owner (di atas batas Kepala Toko atau memuat barang khusus).',
+      403,
+    );
+  }
+  await tx
+    .update(orderPembelian)
+    .set({
+      status: 'DISETUJUI',
+      idPenyetuju: penyetuju.id,
+      disetujuiPada: sekarang(),
+      catatanPersetujuan: catatan,
+      diubahPada: sekarang(),
+    })
+    .where(eq(orderPembelian.id, id));
+  await catatLog(tx, {
+    aksi: 'PO_SETUJUI',
+    idPengguna: pelaku.id,
+    entitas: 'order_pembelian',
+    idEntitas: id,
+    ringkasan:
+      `Order pembelian disetujui (${formatRupiah(h.total)})` +
+      (lewatKode ? ` lewat kode oleh ${lewatKode}` : '') +
+      (catatan ? `: ${catatan}` : ''),
+    ip: asal.ip,
+  });
+}
+
+/** DIAJUKAN → DISETUJUI oleh Kepala Toko (sampai batasnya) atau Owner yang masuk dengan akunnya. */
 export async function setujuiPO(
   id: number,
   catatan: string | null,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
 ): Promise<void> {
-  await dalamTransaksi(async (tx) => {
-    const po = await kunciDanCek(tx, id, ['DIAJUKAN'], 'disetujui');
-    if (po.idPembuat === pelaku.id && pelaku.peran !== 'OWNER') {
-      throw new AppError(
-        'TIDAK_BERIZIN',
-        'Order pembelian buatan sendiri harus disetujui orang lain (Kepala Toko lain atau Owner).',
-        403,
-      );
-    }
-    const h = await hitungPersetujuan(tx, id);
-    if (h.perluOwner && !pelaku.izin.has('pembelian.setujui_semua')) {
-      throw new AppError(
-        'TIDAK_BERIZIN',
-        'Order ini hanya bisa disetujui Owner (di atas batas Kepala Toko atau memuat barang khusus).',
-        403,
-      );
-    }
-    await tx
-      .update(orderPembelian)
-      .set({
-        status: 'DISETUJUI',
-        idPenyetuju: pelaku.id,
-        disetujuiPada: sekarang(),
-        catatanPersetujuan: catatan,
-        diubahPada: sekarang(),
-      })
-      .where(eq(orderPembelian.id, id));
-    await catatLog(tx, {
-      aksi: 'PO_SETUJUI',
-      idPengguna: pelaku.id,
-      entitas: 'order_pembelian',
+  await dalamTransaksi((tx) => terapkanSetuju(tx, id, catatan, pelaku, pelaku, asal, null));
+}
+
+/** K-245: sidik isi order yang dimintakan kode (order diubah = kode tidak berlaku). */
+async function sidikPO(ex: Executor, id: number): Promise<string> {
+  const [po] = await ex.select().from(orderPembelian).where(eq(orderPembelian.id, id));
+  const baris = await ex
+    .select({
+      idBarang: orderPembelianDetail.idBarang,
+      qty: orderPembelianDetail.qtyPesan,
+      harga: orderPembelianDetail.hargaPerkiraan,
+    })
+    .from(orderPembelianDetail)
+    .where(eq(orderPembelianDetail.idOrderPembelian, id))
+    .orderBy(orderPembelianDetail.idBarang);
+  return createHash('sha256')
+    .update(
+      JSON.stringify([
+        po?.status,
+        po?.idPemasok,
+        po?.syaratBayar,
+        po?.tempoHari,
+        po?.uangMukaRencana,
+        baris,
+      ]),
+    )
+    .digest('hex');
+}
+
+/**
+ * K-245: penyetuju tidak di toko. Pembuat order meminta kode; kode dikirim ke Telegram/email penyetuju yang
+ * berwenang atas order ini (Owner bila perlu Owner) beserta ringkasan order.
+ */
+export async function mintaKodePO(
+  id: number,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<InfoKodePersetujuan> {
+  const [po] = await db
+    .select({
+      status: orderPembelian.status,
+      idPemasok: orderPembelian.idPemasok,
+      alasan: orderPembelian.alasanPersetujuan,
+    })
+    .from(orderPembelian)
+    .where(eq(orderPembelian.id, id));
+  if (!po) throw new AppError('TIDAK_DITEMUKAN', 'Order pembelian tidak ditemukan.', 404);
+  if (po.status !== 'DIAJUKAN') {
+    throw new AppError('STATUS_TIDAK_VALID', 'Ajukan persetujuan dulu sebelum meminta kode.', 409);
+  }
+  const h = await hitungPersetujuan(db, id);
+  const [pm] = await db
+    .select({ nama: pemasok.namaPemasok })
+    .from(pemasok)
+    .where(eq(pemasok.id, po.idPemasok));
+  return mintaKode(
+    {
+      jenis: 'ORDER_PEMBELIAN',
+      izin: h.perluOwner ? 'pembelian.setujui_semua' : 'pembelian.setujui',
+      pengaju: pelaku,
+      rujukan: { idOrderPembelian: id },
       idEntitas: id,
-      ringkasan: `Order pembelian disetujui (${formatRupiah(h.total)})${catatan ? `: ${catatan}` : ''}`,
-      ip: asal.ip,
-    });
+      nomorDokumen: null,
+      nilai: h.total,
+      ringkasan:
+        `Order pembelian draf #${id} ke ${pm?.nama ?? '-'}, nilai ${formatRupiah(h.total)}.\n` +
+        `Alasan perlu persetujuan: ${(po.alasan ?? h.alasan.join(' ')).replace(/\n/g, ' ')}`,
+      sidik: await sidikPO(db, id),
+    },
+    asal,
+  );
+}
+
+/** K-245: setujui dengan kode dari penyetuju; tercatat atas nama pemilik kode. */
+export async function setujuiPOdenganKode(
+  id: number,
+  input: DataSetujuiKodePO,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<void> {
+  const sidik = await sidikPO(db, id);
+  const h = await hitungPersetujuan(db, id);
+  const sah = await periksaKode(
+    {
+      idPermintaan: input.idPermintaan,
+      kode: input.kode,
+      jenis: 'ORDER_PEMBELIAN',
+      izin: h.perluOwner ? 'pembelian.setujui_semua' : 'pembelian.setujui',
+      pengaju: pelaku,
+      cocok: (m) => m.idOrderPembelian === id && m.sidik === sidik,
+    },
+    asal,
+  );
+  await dalamTransaksi(async (tx) => {
+    await pakaiKode(tx, sah);
+    await terapkanSetuju(
+      tx,
+      id,
+      input.catatan ?? null,
+      { id: sah.atasan.id, peran: sah.atasan.peran, izin: IZIN_PER_PERAN[sah.atasan.peran] },
+      pelaku,
+      asal,
+      sah.atasan.namaPengguna,
+    );
   });
 }
 

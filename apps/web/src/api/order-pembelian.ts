@@ -2,6 +2,7 @@ import type {
   DataAkhiriOrderPembelian,
   DataKonfirmasiOrderPembelian,
   DataOrderPembelian,
+  DataSetujuiKodePO,
   DataUangMukaOrderPembelian,
   StatusOrderPembelian,
 } from '@sit/shared';
@@ -57,6 +58,13 @@ export function useBarangKhusus() {
       ),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['barang'] }),
   });
+}
+
+/** K-245: minta kode persetujuan order ke penyetuju yang tidak di toko. */
+export async function mintaKodePO(id: number) {
+  return ambilData(
+    await api['order-pembelian'][':id']['minta-kode'].$post({ param: { id: String(id) } }),
+  );
 }
 
 function useSegarkan() {
@@ -119,6 +127,11 @@ export function useAksiPO() {
     tolak: useMutation({
       mutationFn: async ({ id, alasan }: { id: number; alasan: string }) =>
         ambilData(await r.tolak.$post({ param: { id: String(id) }, json: { alasan } })),
+      onSuccess: segarkan,
+    }),
+    setujuiKode: useMutation({
+      mutationFn: async ({ id, json }: { id: number; json: DataSetujuiKodePO }) =>
+        ambilData(await r['setujui-kode'].$post({ param: { id: String(id) }, json })),
       onSuccess: segarkan,
     }),
     akhiri: useMutation({

@@ -36,6 +36,7 @@ import { toast } from 'sonner';
 import { pesanGalat } from '@/api/client';
 import { useDaftarPemasok } from '@/api/mitra';
 import {
+  mintaKodePO,
   useAksiPO,
   useDaftarPO,
   useDetailPO,
@@ -43,6 +44,7 @@ import {
   type SaringPO,
 } from '@/api/order-pembelian';
 import { usePengguna } from '@/api/auth';
+import { DialogKodeAtasan } from '@/components/dialog-kode-atasan';
 import { DialogBayarHutang, type DokumenBayar } from '@/features/hutang/halaman-hutang';
 import { useTampilanToko } from '@/api/pengaturan';
 import { AreaCetak } from '@/components/area-cetak';
@@ -957,12 +959,12 @@ function KotakPersetujuan({ po }: { po: DetailOrderPembelian }) {
 }
 
 type Dialogan =
-  'draf' | 'konfirmasi' | 'uang-muka' | 'tutup' | 'batal' | 'setujui' | 'tolak' | null;
+  'draf' | 'konfirmasi' | 'uang-muka' | 'tutup' | 'batal' | 'setujui' | 'tolak' | 'kode' | null;
 
 function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian) => void }) {
   const q = useDetailPO(id);
   const toko = useTampilanToko().data;
-  const { kirim, ajukan } = useAksiPO();
+  const { kirim, ajukan, setujuiKode } = useAksiPO();
   const saya = usePengguna();
   const [dialog, setDialog] = useState<Dialogan>(null);
   const [tagihan, setTagihan] = useState<DokumenBayar | null>(null);
@@ -1040,6 +1042,11 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
                 </Button>
               )}
             </>
+          )}
+          {po.status === 'DIAJUKAN' && !bolehPutus && (
+            <Button size="sm" variant="outline" onClick={() => setDialog('kode')}>
+              <ShieldCheck /> Minta kode ke {po.persetujuan.perluOwner ? 'Owner' : 'penyetuju'}
+            </Button>
           )}
           {bolehPutus && (
             <>
@@ -1285,6 +1292,32 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
       {dialog === 'konfirmasi' && <DialogKonfirmasi po={po} onTutup={() => setDialog(null)} />}
       {dialog === 'uang-muka' && <DialogUangMuka po={po} onTutup={() => setDialog(null)} />}
       {tagihan && <DialogBayarHutang h={tagihan} onTutup={() => setTagihan(null)} />}
+      {dialog === 'kode' && (
+        <DialogKodeAtasan
+          judul={`Persetujuan jarak jauh draf #${po.id}`}
+          kunci={`po-${po.id}`}
+          ringkasan={
+            <>
+              Kode dikirim ke Telegram/email{' '}
+              {po.persetujuan.perluOwner ? 'Owner' : 'Kepala Toko dan Owner'} beserta ringkasan
+              order. Bila setuju, penyetuju menyebutkan kodenya kepada Anda (telepon/WA); order
+              tercatat disetujui atas namanya.
+            </>
+          }
+          mintaKode={() => mintaKodePO(po.id)}
+          memproses={setujuiKode.isPending}
+          onSetujui={(k) =>
+            void setujuiKode
+              .mutateAsync({ id: po.id, json: k })
+              .then(() => {
+                toast.success('Order disetujui lewat kode. Sekarang bisa dikirim ke pemasok.');
+                setDialog(null);
+              })
+              .catch((err: unknown) => toast.error(pesanGalat(err)))
+          }
+          onTutup={() => setDialog(null)}
+        />
+      )}
       {(dialog === 'setujui' || dialog === 'tolak') && (
         <DialogPutusan po={po} jenis={dialog} onTutup={() => setDialog(null)} />
       )}

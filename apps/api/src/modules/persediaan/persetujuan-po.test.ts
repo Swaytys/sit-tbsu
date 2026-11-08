@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
 import {
   aturKonfigurasi,
+  beriEmail,
+  kodeTerkirim,
+  pesanTerkirim,
   json,
   minta,
   sesiUji,
@@ -268,5 +271,47 @@ describe('persetujuan order pembelian (K-225)', () => {
       ).status,
     ).toBe('BATAL');
     expect((await detail(persediaanSesi, kosong.id)).status).toBe('BATAL');
+  });
+
+  it('K-245: setujui jarak jauh dengan kode; kode hanya untuk order yang sama dan isinya tidak berubah', async () => {
+    await beriEmail(owner.pengguna.id);
+    const po = await draf(persediaanSesi, '300'); // perlu Owner
+    // Belum diajukan: tidak bisa minta kode.
+    expect((await kirim(persediaanSesi, `/api/order-pembelian/${po.id}/minta-kode`)).status).toBe(
+      409,
+    );
+    await data(kirim(persediaanSesi, `/api/order-pembelian/${po.id}/ajukan`));
+    const info = await data<{ idPermintaan: number; penerima: { nama: string }[] }>(
+      kirim(persediaanSesi, `/api/order-pembelian/${po.id}/minta-kode`),
+    );
+    expect(info.penerima.map((p) => p.nama)).toEqual([owner.pengguna.namaPengguna]);
+    expect(pesanTerkirim(owner.pengguna.namaPengguna)).toContain(`draf #${po.id}`);
+    const kode = kodeTerkirim(owner.pengguna.namaPengguna);
+
+    const salah = await galat(
+      kirim(persediaanSesi, `/api/order-pembelian/${po.id}/setujui-kode`, {
+        idPermintaan: info.idPermintaan,
+        kode: kode === '000000' ? '111111' : '000000',
+      }),
+    );
+    expect(salah.status).toBe(400);
+    const ok = await data<DetailOrderPembelian>(
+      kirim(persediaanSesi, `/api/order-pembelian/${po.id}/setujui-kode`, {
+        idPermintaan: info.idPermintaan,
+        kode,
+        catatan: 'Disetujui lewat telepon',
+      }),
+    );
+    expect(ok.status).toBe('DISETUJUI');
+    expect(ok.persetujuan.namaPenyetuju).toBe(owner.pengguna.namaPengguna);
+    // Sekali pakai.
+    expect(
+      (
+        await kirim(persediaanSesi, `/api/order-pembelian/${po.id}/setujui-kode`, {
+          idPermintaan: info.idPermintaan,
+          kode,
+        })
+      ).status,
+    ).toBe(400);
   });
 });

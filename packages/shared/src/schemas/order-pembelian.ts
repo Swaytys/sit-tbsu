@@ -11,6 +11,7 @@ import {
 } from '../enums';
 import { formatRupiah } from '../money';
 import { METODE_BAYAR_HUTANG } from './hutang';
+import { skemaKodePersetujuan } from './saluran';
 import { METODE_BAYAR_PENERIMAAN, skemaQtyPositif, skemaTanggal } from './persediaan';
 import {
   PESAN_REFERENSI_KELUAR,
@@ -231,6 +232,12 @@ export type PersetujuanOrderPembelian = {
 export const skemaPutusanPO = z.object({
   catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
 });
+/** K-245: setujui order dengan kode sekali pakai dari penyetuju yang tidak di toko. */
+export const skemaSetujuiKodePO = skemaKodePersetujuan.extend({
+  catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
+});
+export type DataSetujuiKodePO = z.output<typeof skemaSetujuiKodePO>;
+
 export const skemaTolakPO = z.object({
   alasan: z
     .string('Alasan penolakan wajib diisi.')

@@ -1,0 +1,4 @@
+ALTER TABLE "permintaan_persetujuan" DROP CONSTRAINT "chk_permintaan_persetujuan_jenis";--> statement-breakpoint
+ALTER TABLE "permintaan_persetujuan" ADD COLUMN "id_order_pembelian" bigint;--> statement-breakpoint
+ALTER TABLE "permintaan_persetujuan" ADD CONSTRAINT "permintaan_persetujuan_id_order_pembelian_fkey" FOREIGN KEY ("id_order_pembelian") REFERENCES "public"."order_pembelian"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "permintaan_persetujuan" ADD CONSTRAINT "chk_permintaan_persetujuan_jenis" CHECK (jenis in ('RETUR','VOID','LIMIT_KREDIT','UBAH_PELANGGAN','KOREKSI_KAS','ORDER_PEMBELIAN'));

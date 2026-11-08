@@ -17,7 +17,7 @@ aman bila sudah terjadi), **Cegah** (alur/kunci sebelum terjadi), **Ajari** (pen
 | K-242 | "Saran pesan" → **Perencanaan Pengadaan**: penjelasan dengan contoh, terpadu dengan order dan lama kirim, analisis kekosongan stok | V1 | Rencana (rancangan di bawah) |
 | K-243 | Izin tambahan per pengguna (mis. kasir boleh urus pengantaran) dan peran buatan sendiri | V2 | Rencana |
 | K-244 | Checkout sebelum shift dibuka di jam operasional ditolak; di luar jam operasional hanya non-tunai/order dengan pemberitahuan | V1 | Selesai |
-| K-245 | Persetujuan order pembelian jarak jauh dengan kode sekali pakai (seperti retur/void) | V1 | Rencana |
+| K-245 | Persetujuan order pembelian jarak jauh dengan kode sekali pakai (seperti retur/void) | V1 | Selesai |
 
 Penamaan dipilih pemilik 8 Nov: **Perencanaan Pengadaan** (pengganti *Saran pesan*) dan **Persediaan Awal**
 (pengganti *Saldo awal*; bagian hutangnya *Hutang Awal Pemasok*).

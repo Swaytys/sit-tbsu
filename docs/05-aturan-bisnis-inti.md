@@ -311,6 +311,7 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 | PO20 | **Uang muka** hanya sebelum barang pertama datang (DIPESAN/DIKONFIRMASI); sesudahnya pembayaran lewat tagihan per penerimaan (Bayar tagihan / Hutang Pemasok) (K-238). |
 | PO21 | **Perpanjang jatuh tempo** (K-237): hanya `pembelian.setujui_semua` (Owner), hutang TEMPO belum lunas, tanggal baru > jatuh tempo berlaku dan ≥ hari ini, alasan ≥ 5 huruf. Riwayat append-only `perpanjangan_jatuh_tempo`; `penerimaan_barang.tanggal_jatuh_tempo` diperbarui di transaksi yang sama; jumlah perpanjangan tampil di Hutang Pemasok. Log HUTANG_PERPANJANG. Jatuh tempo tidak bisa diubah lewat form lain. |
 | PO22 | **Kartu order** (K-238): ringkasan uang (nilai order; uang muka dibayar/terpakai/belum terpakai; nilai diterima; dibayar saat/sesudah datang; sisa tagihan; jatuh tempo terdekat dan keterlambatan) hanya untuk `master.barang.lihat_hpp`; tagihan per penerimaan; riwayat dari log aktivitas order dan penerimaannya. |
+| PO23 | **Persetujuan jarak jauh** (K-245): order DIAJUKAN; `POST /:id/minta-kode` mengirim kode ke pemegang `pembelian.setujui` (atau `pembelian.setujui_semua` bila perlu Owner) selain pengaju; `POST /:id/setujui-kode` memeriksa kode (sekali pakai, berbatas waktu, 5 kali salah = batal), cocok bila order sama dan sidik isinya (status, pemasok, syarat, baris) tidak berubah; aturan PO12 berlaku untuk pemilik kode. Migrasi 0050–0051. |
 
 ## 20. Hasil Penjualan (K-126)
 

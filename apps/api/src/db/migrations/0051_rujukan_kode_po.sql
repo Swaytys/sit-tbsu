@@ -1,0 +1,2 @@
+ALTER TABLE "permintaan_persetujuan" DROP CONSTRAINT "chk_permintaan_persetujuan_rujukan";--> statement-breakpoint
+ALTER TABLE "permintaan_persetujuan" ADD CONSTRAINT "chk_permintaan_persetujuan_rujukan" CHECK ((jenis = 'RETUR' and id_retur is not null) or (jenis = 'VOID' and id_void is not null) or (jenis in ('LIMIT_KREDIT', 'UBAH_PELANGGAN') and id_pelanggan is not null) or (jenis = 'KOREKSI_KAS' and sidik is not null) or (jenis = 'ORDER_PEMBELIAN' and id_order_pembelian is not null and sidik is not null));

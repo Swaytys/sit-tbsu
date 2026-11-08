@@ -5,6 +5,7 @@ import {
   skemaKonfirmasiOrderPembelian,
   skemaOrderPembelian,
   skemaPutusanPO,
+  skemaSetujuiKodePO,
   skemaTolakPO,
   skemaUangMukaOrderPembelian,
 } from '@sit/shared';
@@ -23,7 +24,14 @@ import {
   ubahPO,
   uangMukaPO,
 } from './service';
-import { aturBarangKhusus, ajukanPO, setujuiPO, tolakPO } from './persetujuan';
+import {
+  aturBarangKhusus,
+  ajukanPO,
+  mintaKodePO,
+  setujuiPO,
+  setujuiPOdenganKode,
+  tolakPO,
+} from './persetujuan';
 
 /** K-125 order pembelian: Admin dan Owner (izin sama dengan penerimaan barang). Harga disaring di service. */
 const izin = requirePermission('persediaan.penerimaan.kelola');
@@ -33,6 +41,24 @@ const izinSetuju = requirePermission('pembelian.setujui');
 const izinOwner = requirePermission('pembelian.setujui_semua');
 
 export const orderPembelianRoutes = new Hono<EnvApp>()
+  /** K-245: minta kode ke penyetuju yang tidak di toko, lalu setujui dengan kodenya. */
+  .post('/:id/minta-kode', izin, paramId, async (c) =>
+    c.json(
+      { data: await mintaKodePO(c.req.valid('param').id, penggunaWajib(c), c.get('asal')) },
+      200,
+    ),
+  )
+  .post(
+    '/:id/setujui-kode',
+    izin,
+    paramId,
+    zValidator('json', skemaSetujuiKodePO, kaitValidasi),
+    async (c) => {
+      const id = c.req.valid('param').id;
+      await setujuiPOdenganKode(id, c.req.valid('json'), penggunaWajib(c), c.get('asal'));
+      return c.json({ data: await detailPO(id, penggunaWajib(c).izin) }, 200);
+    },
+  )
   .post('/:id/ajukan', izin, paramId, async (c) => {
     const id = c.req.valid('param').id;
     await ajukanPO(id, penggunaWajib(c), c.get('asal'));

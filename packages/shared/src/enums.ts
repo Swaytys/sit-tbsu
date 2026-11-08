@@ -233,6 +233,8 @@ export const JENIS_KODE_PERSETUJUAN = [
   'LIMIT_KREDIT',
   'UBAH_PELANGGAN',
   'KOREKSI_KAS',
+  /** K-245: persetujuan order pembelian jarak jauh. */
+  'ORDER_PEMBELIAN',
 ] as const;
 export type JenisKodePersetujuan = (typeof JENIS_KODE_PERSETUJUAN)[number];
 

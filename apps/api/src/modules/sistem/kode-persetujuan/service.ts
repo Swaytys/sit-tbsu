@@ -40,6 +40,7 @@ const LABEL: Record<JenisKodePersetujuan, { nama: string; entitas: string }> = {
   LIMIT_KREDIT: { nama: 'melewati limit kredit', entitas: 'pelanggan' },
   UBAH_PELANGGAN: { nama: 'perubahan data pelanggan', entitas: 'pelanggan' },
   KOREKSI_KAS: { nama: 'koreksi modal kas shift', entitas: 'shift_kasir' },
+  ORDER_PEMBELIAN: { nama: 'order pembelian', entitas: 'order_pembelian' },
 };
 
 function hashKode(idPermintaan: number, idAtasan: number, kode: string): string {
@@ -102,6 +103,7 @@ export async function mintaKode(
       idRetur: p.rujukan.idRetur ?? null,
       idVoid: p.rujukan.idVoid ?? null,
       idPelanggan: p.rujukan.idPelanggan ?? null,
+      idOrderPembelian: p.rujukan.idOrderPembelian ?? null,
       nilai: p.nilai,
       ringkasan: p.ringkasan.slice(0, 500),
       sidik: p.sidik ?? null,

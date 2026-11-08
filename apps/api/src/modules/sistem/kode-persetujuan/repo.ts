@@ -3,7 +3,12 @@ import type { JenisKodePersetujuan, StatusKodePersetujuan } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
 import { kodePersetujuan, pengguna, permintaanPersetujuan } from '../../../db/schema';
 
-export type Rujukan = { idRetur?: number; idVoid?: number; idPelanggan?: number };
+export type Rujukan = {
+  idRetur?: number;
+  idVoid?: number;
+  idPelanggan?: number;
+  idOrderPembelian?: number;
+};
 
 /** Permintaan lama yang masih menunggu untuk hal yang sama: hanya kode terbaru yang berlaku. */
 export async function gantikanYangMenunggu(
@@ -24,6 +29,9 @@ export async function gantikanYangMenunggu(
         r.idVoid !== undefined ? eq(permintaanPersetujuan.idVoid, r.idVoid) : undefined,
         r.idPelanggan !== undefined
           ? eq(permintaanPersetujuan.idPelanggan, r.idPelanggan)
+          : undefined,
+        r.idOrderPembelian !== undefined
+          ? eq(permintaanPersetujuan.idOrderPembelian, r.idOrderPembelian)
           : undefined,
       ),
     );

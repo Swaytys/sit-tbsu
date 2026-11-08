@@ -291,8 +291,10 @@ Aturannya di docs/05 §21 PO10–PO14. Ringkasan wewenang:
 | Kepala Toko (`pembelian.setujui`) | Setujui/Tolak order yang diajukan sampai batas Kepala Toko, **bukan buatannya sendiri**, tanpa barang khusus |
 | Owner (`pembelian.setujui_semua`) | Semua order (termasuk buatannya sendiri dan di atas batas); boleh langsung mengirim draf tanpa diajukan; menandai barang "pembelian wajib disetujui Owner" |
 
-Penyetuju memakai **akunnya sendiri** (notifikasi lonceng `PO_MENUNGGU_PERSETUJUAN`); kode sekali pakai lewat
-Telegram/email seperti retur/void belum dipakai untuk order pembelian. Semua aturan dicek di API: peran lain
+Penyetuju memakai **akunnya sendiri** (notifikasi lonceng `PO_MENUNGGU_PERSETUJUAN`), atau dari jauh dengan **kode
+sekali pakai** (K-245, jenis `ORDER_PEMBELIAN`): pembuat order menekan *Minta kode*, kode dikirim ke Telegram/email
+penyetuju yang berwenang (Owner bila order perlu Owner), kode terikat pada order dan isinya, dan order tercatat
+disetujui atas nama pemilik kode. Semua aturan dicek di API: peran lain
 ditolak 403, mengirim order yang wajib disetujui ditolak 409.
 
 ## 7. Sesi, login, password

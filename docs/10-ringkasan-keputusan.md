@@ -785,7 +785,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-242 | Saran pesan → Perencanaan Pengadaan: panduan dengan contoh, terpadu dengan order dan tanggal datang, celah kosong + kerugian peluang + saran tindakan, musim ramai, keandalan pemasok. | Berlaku (rencana) |
 | K-243 | Izin tambahan per pengguna dan peran buatan sendiri (V2); bawaan Kasir tanpa logistik setelah itu ada. | Berlaku (rencana V2) |
 | K-244 | Di jam operasional tanpa shift semua checkout ditolak; di luar jam operasional hanya non-tunai/bayar nanti dengan pemberitahuan. | Berlaku |
-| K-245 | Persetujuan order pembelian jarak jauh dengan kode sekali pakai (mekanisme K-102). | Berlaku (rencana) |
+| K-245 | Persetujuan order pembelian jarak jauh dengan kode sekali pakai (mekanisme K-102). | Berlaku |
 | K-228 | Setiap pintasan keyboard juga berupa tombol yang bisa diklik/disentuh. | Berlaku (audit selesai 7 Nov) |
 | K-229 | Mode LAN toko (HTTPS dengan sertifikat toko + perangkat terdaftar) di samping Tailscale. | Berlaku (7 Nov, 1.19.0) |
 | K-230 | Panduan label & barcode (pemindai = keyboard, Code 128); label rak dan lembar barcode kasir untuk barang curah. | Berlaku (panduan V1, label rak V2) |

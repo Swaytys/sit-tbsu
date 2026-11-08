@@ -22,6 +22,7 @@ import {
   STATUS_TRANSFER,
 } from '@sit/shared';
 import { shiftKasir } from './kas';
+import { orderPembelian } from './persediaan';
 import { penyelesaianKonsinyasi } from './transaksi-pemasok';
 import {
   dalamDaftar,
@@ -330,12 +331,19 @@ export const permintaanPersetujuan = pgTable(
      * Ditaruh terakhir karena migrasi 0015 menambahkannya di akhir tabel (urutan kolom harus sama, K-052).
      */
     sidik: varchar('sidik', { length: 64 }),
+    /** K-245 (migrasi 0050): order pembelian yang dimintakan persetujuan jarak jauh. */
+    idOrderPembelian: kolomRef('id_order_pembelian'),
   },
   (t) => [
     foreignKey({
       name: 'permintaan_persetujuan_id_pengaju_fkey',
       columns: [t.idPengaju],
       foreignColumns: [pengguna.id],
+    }),
+    foreignKey({
+      name: 'permintaan_persetujuan_id_order_pembelian_fkey',
+      columns: [t.idOrderPembelian],
+      foreignColumns: [orderPembelian.id],
     }),
     foreignKey({
       name: 'permintaan_persetujuan_id_retur_fkey',
@@ -361,7 +369,7 @@ export const permintaanPersetujuan = pgTable(
     check('chk_permintaan_persetujuan_status', dalamDaftar('status', STATUS_KODE_PERSETUJUAN)),
     check(
       'chk_permintaan_persetujuan_rujukan',
-      sql`(jenis = 'RETUR' and id_retur is not null) or (jenis = 'VOID' and id_void is not null) or (jenis in ('LIMIT_KREDIT', 'UBAH_PELANGGAN') and id_pelanggan is not null) or (jenis = 'KOREKSI_KAS' and sidik is not null)`,
+      sql`(jenis = 'RETUR' and id_retur is not null) or (jenis = 'VOID' and id_void is not null) or (jenis in ('LIMIT_KREDIT', 'UBAH_PELANGGAN') and id_pelanggan is not null) or (jenis = 'KOREKSI_KAS' and sidik is not null) or (jenis = 'ORDER_PEMBELIAN' and id_order_pembelian is not null and sidik is not null)`,
     ),
     check('chk_permintaan_persetujuan_nilai', sql`nilai >= 0 and gagal >= 0`),
     index('idx_permintaan_persetujuan_pengaju').on(t.idPengaju, t.status),
