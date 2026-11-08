@@ -181,6 +181,21 @@ describe('penerimaan dari order pembelian (K-236, K-237)', () => {
       statusHutang: 'LUNAS',
     });
     expect(t.pembayaran.map((p) => p.nominal)).toEqual([400_000]);
+    const kartu = await data<DetailOrderPembelian>(
+      minta(`/api/order-pembelian/${po.id}`, { cookie: kepala.cookie }),
+    );
+    expect(kartu.ringkasanUang).toMatchObject({
+      nilaiOrder: 500_000,
+      uangMukaDibayar: 100_000,
+      uangMukaTerpakai: 100_000,
+      uangMukaBelumTerpakai: 0,
+      nilaiDiterima: 500_000,
+      dibayarSaatDatang: 400_000,
+      sisaTagihan: 0,
+    });
+    expect(kartu.riwayat.map((r) => r.aksi)).toEqual(
+      expect.arrayContaining(['PO_BUAT', 'PO_KIRIM', 'PO_UANG_MUKA', 'PENERIMAAN_SIMPAN']),
+    );
   });
 
   it('tunai saat datang tetapi bayar kurang: hanya Kepala Toko/Owner, alasan dan jatuh tempo wajib', async () => {

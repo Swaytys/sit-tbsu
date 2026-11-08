@@ -5,6 +5,7 @@ import {
   STATUS_ORDER_PEMBELIAN,
   SYARAT_BAYAR_PO,
   type CaraKirimPO,
+  type StatusHutang,
   type StatusOrderPembelian,
   type SyaratBayarPO,
 } from '../enums';
@@ -276,5 +277,32 @@ export type DetailOrderPembelian = BarisDaftarOrderPembelian & {
   uangMuka: { nomor: string; tanggal: string; nominal: number; metode: string }[];
   /** Σ uang muka − Σ yang sudah dipakai/dikembalikan. */
   sisaUangMuka: number;
-  penerimaan: { id: number; nomor: string; tanggal: string; totalFaktur: number }[];
+  penerimaan: {
+    id: number;
+    nomor: string;
+    tanggal: string;
+    totalFaktur: number;
+    /** K-238: tagihan per penerimaan (nilai 0 bila tanpa izin harga modal). */
+    dibayar: number;
+    sisa: number;
+    statusHutang: StatusHutang;
+    tanggalJatuhTempo: string | null;
+    /** Hari lewat jatuh tempo (positif = terlambat); `null` tanpa jatuh tempo atau sudah lunas. */
+    hariLewat: number | null;
+    penyimpanganBayar: boolean;
+  }[];
+  /** K-238/K-235: ringkasan uang order (hanya untuk pemegang izin harga modal; selain itu `null`). */
+  ringkasanUang: {
+    nilaiOrder: number;
+    uangMukaDibayar: number;
+    uangMukaTerpakai: number;
+    uangMukaBelumTerpakai: number;
+    nilaiDiterima: number;
+    dibayarSaatDatang: number;
+    sisaTagihan: number;
+    jatuhTempoTerdekat: string | null;
+    terlambatHari: number | null;
+  } | null;
+  /** K-238: riwayat order dari log aktivitas (terbaru di akhir). */
+  riwayat: { waktu: string; aksi: string; nama: string | null; ringkasan: string }[];
 };

@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   Trash2,
   Undo2,
+  Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -42,6 +43,7 @@ import {
   type SaringPO,
 } from '@/api/order-pembelian';
 import { usePengguna } from '@/api/auth';
+import { DialogBayarHutang, type DokumenBayar } from '@/features/hutang/halaman-hutang';
 import { useTampilanToko } from '@/api/pengaturan';
 import { AreaCetak } from '@/components/area-cetak';
 import { OrderPembelianA4 } from '@/components/dokumen-a4';
@@ -795,6 +797,71 @@ function DialogPutusan({
   );
 }
 
+/** K-238/K-235: ringkasan uang order (uang muka belum terpakai, sisa tagihan, keterlambatan). */
+function KotakRingkasanUang({ r }: { r: NonNullable<DetailOrderPembelian['ringkasanUang']> }) {
+  const baris: [string, number, string?][] = [
+    ['Nilai order', r.nilaiOrder],
+    ['Uang muka dibayar', r.uangMukaDibayar],
+    ['Uang muka terpakai', r.uangMukaTerpakai],
+    ['Uang muka belum terpakai', r.uangMukaBelumTerpakai],
+    ['Nilai barang diterima', r.nilaiDiterima],
+    ['Dibayar saat/sesudah datang', r.dibayarSaatDatang],
+  ];
+  return (
+    <div className="rounded-md border p-3 text-sm" data-testid="ringkasan-uang-po">
+      <p className="mb-1 font-medium text-slate-700">Ringkasan uang</p>
+      <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
+        {baris.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-slate-600">{k}</dt>
+            <dd className="text-right tabular-nums">{formatRupiah(v)}</dd>
+          </div>
+        ))}
+        <dt className="font-semibold">Sisa tagihan (hutang)</dt>
+        <dd className="text-right font-semibold tabular-nums">{formatRupiah(r.sisaTagihan)}</dd>
+      </dl>
+      {r.sisaTagihan > 0 && r.jatuhTempoTerdekat && (
+        <p
+          className={cn(
+            'mt-1 text-xs',
+            r.terlambatHari ? 'font-semibold text-red-700' : 'text-slate-500',
+          )}
+        >
+          {r.terlambatHari
+            ? `Terlambat ${r.terlambatHari} hari (jatuh tempo ${formatTanggal(r.jatuhTempoTerdekat)})`
+            : `Jatuh tempo terdekat ${formatTanggal(r.jatuhTempoTerdekat)}`}
+        </p>
+      )}
+      {r.uangMukaBelumTerpakai > 0 && (
+        <p className="mt-1 text-xs text-slate-500">
+          Uang muka belum terpakai otomatis dipakai saat barang berikutnya datang; bila order
+          ditutup, dicatat dikembalikan pemasok.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** K-238: riwayat order dari log aktivitas. */
+function KotakRiwayat({ riwayat }: { riwayat: DetailOrderPembelian['riwayat'] }) {
+  if (riwayat.length === 0) return null;
+  return (
+    <div className="rounded-md border p-3 text-sm" data-testid="riwayat-po">
+      <p className="mb-1 font-medium text-slate-700">Riwayat</p>
+      <ol className="space-y-1.5 border-l pl-3">
+        {riwayat.map((r, i) => (
+          <li key={i}>
+            <p className="text-xs text-slate-500">
+              {formatWaktu(r.waktu)} · {r.nama ?? 'sistem'}
+            </p>
+            <p className="text-slate-700">{r.ringkasan}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 /** K-236/K-238: kesepakatan dengan pemasok di rincian order. */
 function KotakKesepakatan({ po }: { po: DetailOrderPembelian }) {
   const k = po.kesepakatan;
@@ -898,6 +965,8 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
   const { kirim, ajukan } = useAksiPO();
   const saya = usePengguna();
   const [dialog, setDialog] = useState<Dialogan>(null);
+  const [tagihan, setTagihan] = useState<DokumenBayar | null>(null);
+  const bolehBayarHutang = saya.izin.includes('hutang.kelola');
   const [cetak, setCetak] = useState(false);
   useEffect(() => {
     if (!cetak) return;
@@ -930,9 +999,10 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
     saya.izin.includes('pembelian.setujui') &&
     (owner || (po.persetujuan.idPembuat !== saya.id && !po.persetujuan.perluOwner));
   const adaHarga = po.baris.some((b) => b.hargaBerlaku !== undefined);
+  const adaTolak = po.baris.some((b) => Number(b.qtyDitolak) > 0);
 
   return (
-    <Card className="gap-3 p-4" data-testid="rincian-po">
+    <Card className="@container gap-3 p-4" data-testid="rincian-po">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">
@@ -1018,7 +1088,8 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
               Konfirmasi pemasok
             </Button>
           )}
-          {berjalan && adaHarga && (
+          {/* K-238: uang muka hanya sebelum barang pertama datang; sesudahnya Bayar tagihan per penerimaan. */}
+          {['DIPESAN', 'DIKONFIRMASI'].includes(po.status) && adaHarga && (
             <Button variant="outline" size="sm" onClick={() => setDialog('uang-muka')}>
               Uang muka
             </Button>
@@ -1061,83 +1132,159 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
         </div>
       </div>
 
-      <table className="w-full text-sm [&_td]:px-1.5 [&_td:first-child]:pl-0 [&_th]:px-1.5 [&_th]:whitespace-nowrap [&_th:first-child]:pl-0">
-        <thead className="text-xs text-slate-500">
-          <tr>
-            <th className="py-1 text-left font-medium">Barang</th>
-            <th className="py-1 text-right font-medium">Dipesan</th>
-            <th className="py-1 text-right font-medium">Diterima</th>
-            <th className="py-1 text-right font-medium">Sisa</th>
-            {adaHarga && <th className="py-1 text-right font-medium">Harga</th>}
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {po.baris.map((b) => (
-            <tr key={b.id}>
-              <td className="py-1.5">
-                <p className="font-medium">{b.namaBarang}</p>
-                <p className="font-mono text-xs text-slate-500">{b.kodeBarang}</p>
-              </td>
-              <td className="py-1.5 text-right tabular-nums">
-                {formatDesimal(b.qtyBerlaku)} {b.kodeSatuan}
-                {b.qtyKonfirmasi !== null && b.qtyKonfirmasi !== b.qtyPesan && (
-                  <p className="text-xs text-slate-500">pesan awal {formatDesimal(b.qtyPesan)}</p>
-                )}
-              </td>
-              <td className="py-1.5 text-right tabular-nums">{formatDesimal(b.qtyDiterima)}</td>
-              <td
-                className={cn(
-                  'py-1.5 text-right tabular-nums',
-                  Number(b.qtySisa) > 0 && 'font-semibold',
-                )}
-              >
-                {formatDesimal(b.qtySisa)}
-              </td>
-              {adaHarga && (
-                <td className="py-1.5 text-right whitespace-nowrap tabular-nums">
-                  {formatRupiah(b.hargaBerlaku ?? 0)}
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {adaHarga && (
-        <p className="text-right text-sm">
-          Perkiraan total <b>{formatRupiah(po.totalPerkiraan ?? 0)}</b>
-          {po.uangMuka.length > 0 && (
-            <>
-              {' '}
-              · uang muka {formatRupiah(po.uangMuka.reduce((t, u) => t + u.nominal, 0))} (sisa{' '}
-              {formatRupiah(po.sisaUangMuka)})
-            </>
+      <div className="grid gap-4 @3xl:grid-cols-[3fr_2fr]">
+        <div className="min-w-0 space-y-3">
+          <KotakKesepakatan po={po} />
+          <KotakPersetujuan po={po} />
+          <table className="w-full text-sm [&_td]:px-1.5 [&_td:first-child]:pl-0 [&_th]:px-1.5 [&_th]:whitespace-nowrap [&_th:first-child]:pl-0">
+            <thead className="text-xs text-slate-500">
+              <tr>
+                <th className="py-1 text-left font-medium">Barang</th>
+                <th className="py-1 text-right font-medium">Dipesan</th>
+                <th className="py-1 text-right font-medium">Diterima</th>
+                {adaTolak && <th className="py-1 text-right font-medium">Ditolak</th>}
+                <th className="py-1 text-right font-medium">Belum datang</th>
+                {adaHarga && <th className="py-1 text-right font-medium">Harga</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {po.baris.map((b) => (
+                <tr key={b.id}>
+                  <td className="py-1.5">
+                    <p className="font-medium">{b.namaBarang}</p>
+                    <p className="font-mono text-xs text-slate-500">{b.kodeBarang}</p>
+                  </td>
+                  <td className="py-1.5 text-right tabular-nums">
+                    {formatDesimal(b.qtyBerlaku)} {b.kodeSatuan}
+                    {b.qtyKonfirmasi !== null && b.qtyKonfirmasi !== b.qtyPesan && (
+                      <p className="text-xs text-slate-500">
+                        pesan awal {formatDesimal(b.qtyPesan)}
+                      </p>
+                    )}
+                  </td>
+                  <td className="py-1.5 text-right tabular-nums">{formatDesimal(b.qtyDiterima)}</td>
+                  {adaTolak && (
+                    <td className="py-1.5 text-right tabular-nums">
+                      {Number(b.qtyDitolak) > 0 ? (
+                        <span className="text-red-700">
+                          {formatDesimal(b.qtyDitolak)}
+                          {Number(b.qtyDipotong) > 0 && (
+                            <span className="block text-xs text-slate-500">
+                              {formatDesimal(b.qtyDipotong)} order dikurangi
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  )}
+                  <td
+                    className={cn(
+                      'py-1.5 text-right tabular-nums',
+                      Number(b.qtySisa) > 0 && 'font-semibold',
+                    )}
+                  >
+                    {formatDesimal(b.qtySisa)}
+                  </td>
+                  {adaHarga && (
+                    <td className="py-1.5 text-right whitespace-nowrap tabular-nums">
+                      {formatRupiah(b.hargaBerlaku ?? 0)}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {po.catatan && <p className="text-sm text-slate-600">Catatan: {po.catatan}</p>}
+          {po.alasanTutup && (
+            <p className="text-sm text-slate-600">Alasan tutup/batal: {po.alasanTutup}</p>
           )}
-        </p>
-      )}
-      <KotakKesepakatan po={po} />
-      <KotakPersetujuan po={po} />
-      {po.catatan && <p className="text-sm text-slate-600">Catatan: {po.catatan}</p>}
-      {po.alasanTutup && (
-        <p className="text-sm text-slate-600">Alasan tutup/batal: {po.alasanTutup}</p>
-      )}
-      {po.penerimaan.length > 0 && (
-        <div className="text-sm">
-          <p className="font-medium text-slate-700">Penerimaan dari order ini</p>
-          <ul className="list-disc pl-5">
-            {po.penerimaan.map((t) => (
-              <li key={t.id}>
-                <Link className="text-blue-700 hover:underline" to={`/penerimaan/${t.id}`}>
-                  {t.nomor}
-                </Link>{' '}
-                · {formatTanggal(t.tanggal)}
-              </li>
-            ))}
-          </ul>
+          {po.penerimaan.length > 0 && (
+            <div className="text-sm" data-testid="penerimaan-po">
+              <p className="mb-1 font-medium text-slate-700">Penerimaan dan tagihan</p>
+              <table className="w-full [&_td]:px-1.5 [&_td]:py-1 [&_td:first-child]:pl-0 [&_th]:px-1.5 [&_th:first-child]:pl-0">
+                <thead className="text-xs text-slate-500">
+                  <tr>
+                    <th className="text-left font-medium">Nomor</th>
+                    {adaHarga && <th className="text-right font-medium">Nilai</th>}
+                    {adaHarga && <th className="text-right font-medium">Sisa tagihan</th>}
+                    <th className="text-left font-medium">Jatuh tempo</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {po.penerimaan.map((t) => (
+                    <tr key={t.id}>
+                      <td>
+                        <Link className="text-blue-700 hover:underline" to={`/penerimaan/${t.id}`}>
+                          {t.nomor}
+                        </Link>
+                        <span className="block text-xs text-slate-500">
+                          {formatTanggal(t.tanggal)}
+                          {t.penyimpanganBayar && (
+                            <span className="text-amber-700"> · bayar kurang dari kesepakatan</span>
+                          )}
+                        </span>
+                      </td>
+                      {adaHarga && (
+                        <td className="text-right tabular-nums">{formatRupiah(t.totalFaktur)}</td>
+                      )}
+                      {adaHarga && (
+                        <td className="text-right font-medium tabular-nums">
+                          {t.sisa > 0 ? formatRupiah(t.sisa) : 'Lunas'}
+                        </td>
+                      )}
+                      <td>
+                        {t.sisa > 0 && t.tanggalJatuhTempo ? (
+                          <>
+                            {formatTanggal(t.tanggalJatuhTempo)}
+                            {t.hariLewat !== null && t.hariLewat > 0 && (
+                              <span className="block text-xs font-semibold text-red-700">
+                                Terlambat {t.hariLewat} hari
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="text-right">
+                        {bolehBayarHutang && t.sisa > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setTagihan({
+                                jenis: 'PENERIMAAN',
+                                id: t.id,
+                                nomor: t.nomor,
+                                namaPemasok: po.namaPemasok,
+                                sisa: t.sisa,
+                                tanggalJatuhTempo: t.tanggalJatuhTempo,
+                              })
+                            }
+                          >
+                            <Wallet /> Bayar tagihan
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      )}
+        <div className="min-w-0 space-y-3">
+          {po.ringkasanUang && <KotakRingkasanUang r={po.ringkasanUang} />}
+          <KotakRiwayat riwayat={po.riwayat} />
+        </div>
+      </div>
 
       {dialog === 'konfirmasi' && <DialogKonfirmasi po={po} onTutup={() => setDialog(null)} />}
       {dialog === 'uang-muka' && <DialogUangMuka po={po} onTutup={() => setDialog(null)} />}
+      {tagihan && <DialogBayarHutang h={tagihan} onTutup={() => setTagihan(null)} />}
       {(dialog === 'setujui' || dialog === 'tolak') && (
         <DialogPutusan po={po} jenis={dialog} onTutup={() => setDialog(null)} />
       )}

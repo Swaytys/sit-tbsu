@@ -69,6 +69,10 @@ test('Admin membuat order pembelian, mengirim, mengonfirmasi, lalu menerima bara
     await expect(page.getByRole('link', { name: /PO-\d{6}-\d{3}/ })).toBeVisible();
     await page.getByRole('link', { name: /PO-\d{6}-\d{3}/ }).click();
     await expect(page.getByTestId('rincian-po')).toContainText('Selesai');
+    // K-238: kartu memuat ringkasan uang, tagihan per penerimaan, dan riwayat.
+    await expect(page.getByTestId('ringkasan-uang-po')).toContainText('Sisa tagihan');
+    await expect(page.getByTestId('penerimaan-po')).toContainText('Lunas');
+    await expect(page.getByTestId('riwayat-po')).toContainText('dikirim ke pemasok');
 
     const ukuran = await page.evaluate(() => ({
       isi: document.documentElement.scrollWidth,

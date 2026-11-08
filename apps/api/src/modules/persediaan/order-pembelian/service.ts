@@ -4,6 +4,7 @@ import {
   keQty,
   kekuranganKesepakatan,
   kurangQty,
+  nomorHari,
   tambahQty,
   type BarisDaftarOrderPembelian,
   type BarisOrderPembelianDetail,
@@ -92,6 +93,24 @@ export async function detailPO(id: number, izin: ReadonlySet<Izin>): Promise<Det
   ]);
   const po = mentah[0];
   if (!po) throw new AppError('TIDAK_DITEMUKAN', 'Order pembelian tidak ditemukan.', 404);
+  const hariIni = tanggalOperasional();
+  const penerimaanPO = terima.map((t) => {
+    const sisa = t.totalFaktur - t.dibayar - t.returPotong;
+    const lewat =
+      t.tanggalJatuhTempo && sisa > 0 ? nomorHari(hariIni) - nomorHari(t.tanggalJatuhTempo) : null;
+    return {
+      id: t.id,
+      nomor: t.nomor,
+      tanggal: t.tanggal,
+      totalFaktur: nilai ? t.totalFaktur : 0,
+      dibayar: nilai ? t.dibayar : 0,
+      sisa: nilai ? sisa : 0,
+      statusHutang: t.statusHutang,
+      tanggalJatuhTempo: t.tanggalJatuhTempo,
+      hariLewat: lewat,
+      penyimpanganBayar: t.penyimpanganBayar,
+    };
+  });
   return {
     ...keBaris(b, nilai, tanggalOperasional()),
     persetujuan: await infoPersetujuan(db, po),
@@ -145,7 +164,20 @@ export async function detailPO(id: number, izin: ReadonlySet<Izin>): Promise<Det
         }))
       : [],
     sisaUangMuka: nilai ? um.reduce((t, u) => t + u.nominal - Number(u.terpakai), 0) : 0,
-    penerimaan: terima.map((t) => ({ ...t, totalFaktur: nilai ? t.totalFaktur : 0 })),
+    penerimaan: penerimaanPO,
+    ringkasanUang: nilai ? ringkasan(penerimaanPO, um, Number(b.totalPerkiraan ?? 0)) : null,
+    riwayat: (
+      await repo.riwayat(
+        db,
+        id,
+        terima.map((t) => t.id),
+      )
+    ).map((r) => ({
+      waktu: r.waktu.toISOString(),
+      aksi: r.aksi,
+      nama: r.nama,
+      ringkasan: r.ringkasan ?? '',
+    })),
   };
 }
 
@@ -212,6 +244,41 @@ function pastikanHarga(pelaku: PenggunaAktif, input: DataOrderPembelian) {
   if (!bolehHarga(pelaku.izin) && input.baris.some((b) => b.harga > 0)) {
     throw new AppError('TIDAK_BERIZIN', 'Mengisi harga beli butuh izin melihat harga modal.', 403);
   }
+}
+
+/** K-238/K-235: ringkasan uang order untuk kartu rincian. */
+function ringkasan(
+  penerimaanPO: {
+    totalFaktur: number;
+    dibayar: number;
+    sisa: number;
+    tanggalJatuhTempo: string | null;
+    hariLewat: number | null;
+  }[],
+  um: { nominal: number; terpakai: string | number }[],
+  nilaiOrder: number,
+): NonNullable<DetailOrderPembelian['ringkasanUang']> {
+  const uangMukaDibayar = um.reduce((t, u) => t + u.nominal, 0);
+  const uangMukaTerpakai = um.reduce((t, u) => t + Number(u.terpakai), 0);
+  const nilaiDiterima = penerimaanPO.reduce((t, p) => t + p.totalFaktur, 0);
+  const dibayarTotal = penerimaanPO.reduce((t, p) => t + p.dibayar, 0);
+  const terbuka = penerimaanPO.filter((p) => p.sisa > 0);
+  const jatuh = terbuka
+    .map((p) => p.tanggalJatuhTempo)
+    .filter((x): x is string => x !== null)
+    .sort();
+  const telat = terbuka.map((p) => p.hariLewat ?? -Infinity).filter((x) => x > 0);
+  return {
+    nilaiOrder,
+    uangMukaDibayar,
+    uangMukaTerpakai,
+    uangMukaBelumTerpakai: uangMukaDibayar - uangMukaTerpakai,
+    nilaiDiterima,
+    dibayarSaatDatang: dibayarTotal - uangMukaTerpakai,
+    sisaTagihan: terbuka.reduce((t, p) => t + p.sisa, 0),
+    jatuhTempoTerdekat: jatuh[0] ?? null,
+    terlambatHari: telat.length > 0 ? Math.max(...telat) : null,
+  };
 }
 
 /** PO1: draf baru. */

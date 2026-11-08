@@ -4,14 +4,16 @@ import type { Executor, Tx } from '../../../db/client';
 import {
   alokasiUangMuka,
   barang,
+  logAktivitas,
   orderPembelian,
   orderPembelianDetail,
-  pembayaranPemasok,
   pemasok,
+  pembayaranPemasok,
   penerimaanBarang,
   pengguna,
   satuan,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 
 /* K-125: bacaan dan tulisan order pembelian. Kueri berparameter (Drizzle). */
@@ -134,7 +136,7 @@ export async function uangMuka(ex: Executor, idPO: number) {
       nominal: pembayaranPemasok.nominal,
       metode: pembayaranPemasok.metode,
       terpakai: sql<string>`coalesce((select sum(a.nominal) from alokasi_uang_muka a
-        where a.id_pembayaran_pemasok = ${pembayaranPemasok.id}), 0)::text`,
+        where a.id_pembayaran_pemasok = ${kolomPenuh(pembayaranPemasok.id)}), 0)::text`,
     })
     .from(pembayaranPemasok)
     .where(eq(pembayaranPemasok.idOrderPembelian, idPO))
@@ -148,10 +150,40 @@ export async function penerimaan(ex: Executor, idPO: number) {
       nomor: penerimaanBarang.nomor,
       tanggal: penerimaanBarang.tanggalOperasional,
       totalFaktur: penerimaanBarang.totalFaktur,
+      dibayar: penerimaanBarang.totalDibayar,
+      returPotong: penerimaanBarang.totalReturPotong,
+      statusHutang: penerimaanBarang.statusHutang,
+      tanggalJatuhTempo: penerimaanBarang.tanggalJatuhTempo,
+      penyimpanganBayar: penerimaanBarang.penyimpanganBayar,
     })
     .from(penerimaanBarang)
     .where(eq(penerimaanBarang.idOrderPembelian, idPO))
     .orderBy(asc(penerimaanBarang.id));
+}
+
+/** K-238: riwayat order dan penerimaannya dari log aktivitas. */
+export function riwayat(ex: Executor, idPO: number, idPenerimaan: number[]) {
+  return ex
+    .select({
+      waktu: logAktivitas.waktu,
+      aksi: logAktivitas.aksi,
+      nama: pengguna.namaPengguna,
+      ringkasan: logAktivitas.ringkasan,
+    })
+    .from(logAktivitas)
+    .leftJoin(pengguna, eq(pengguna.id, logAktivitas.idPengguna))
+    .where(
+      or(
+        and(eq(logAktivitas.entitas, 'order_pembelian'), eq(logAktivitas.idEntitas, idPO)),
+        idPenerimaan.length > 0
+          ? and(
+              eq(logAktivitas.entitas, 'penerimaan_barang'),
+              inArray(logAktivitas.idEntitas, idPenerimaan),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(asc(logAktivitas.waktu), asc(logAktivitas.id));
 }
 
 export async function tambahAlokasi(tx: Tx, nilai: typeof alokasiUangMuka.$inferInsert) {

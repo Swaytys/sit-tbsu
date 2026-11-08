@@ -9,6 +9,7 @@ import {
   pengguna,
   penyelesaianKonsinyasi,
 } from '../../db/schema';
+import { kolomPenuh } from '../../db/kolom-penuh';
 
 /*
  * Data hutang pemasok (docs/06 HT1): penerimaan PEMBELIAN tempo yang belum lunas dan penyelesaian
@@ -48,7 +49,7 @@ export async function semuaHutang(ex: Executor): Promise<DokumenHutang[]> {
       sisa: penerimaanBarang.sisaHutang,
       statusHutang: penerimaanBarang.statusHutang,
       jumlahPerpanjang: sql<number>`(select count(*)::int from ${perpanjanganJatuhTempo}
-        where ${perpanjanganJatuhTempo.idPenerimaan} = ${penerimaanBarang.id})`,
+        where ${perpanjanganJatuhTempo.idPenerimaan} = ${kolomPenuh(penerimaanBarang.id)})`,
     })
     .from(penerimaanBarang)
     .innerJoin(pemasok, eq(pemasok.id, penerimaanBarang.idPemasok))
