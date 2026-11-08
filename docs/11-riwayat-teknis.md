@@ -830,10 +830,25 @@ barang khusus, harga naik, harga kosong, tolak ke draf, batal saat diajukan, not
 e2e `order-pembelian.spec.ts` (ajukan → Owner setujui → kirim). Seluruh e2e dijalankan di database uji sendiri:
 perbaikan K-233.
 
+### C33. Siklus pembelian lengkap dan aturan jam operasional (8 November 2026, K-234–K-239, K-244)
+
+**Masalah:** order pembelian terlalu sederhana; penerimaan harus mengulang syarat bayar; kasus lapangan (barang
+ditolak, bayar kurang, tempo dimundurkan) tidak punya jalur; checkout bisa jalan tanpa shift di jam buka.
+
+**Solusi:** kesepakatan di order (0047) diwarisi penerimaan; `penerimaan_barang_tolak` + cache tolak/potong (0048);
+penyimpangan bayar dengan penyetuju; `perpanjangan_jatuh_tempo` (0049); ringkasan uang dan riwayat di detail order;
+`pastikanShiftCheckout` + `GET /api/shift/jam-operasional`; server menolak menyala bila ada migrasi tertunda dan `pnpm
+dev` menjalankan migrasi dulu. Bug subquery uang muka terpakai (tanpa `kolomPenuh`) diperbaiki.
+
+**Tes:** `penerimaan-po.test.ts` (tempo otomatis, ditolak ganti/kurangi, tunai + uang muka, bayar kurang, perpanjang
+jatuh tempo, uang muka setelah datang), `order-pembelian.test.ts` (kesepakatan), `penjualan.test.ts` (K-244), e2e
+`order-pembelian.spec.ts`, `hutang.spec.ts` (daftar barang rusak).
+
 ---
 
 ## Riwayat dokumen
 
+- 2026-11-08 — Bagian C33 siklus pembelian lengkap, jam operasional (K-234–K-239, K-244).
 - 2026-11-07 — Bagian C32 peran V2 dan persetujuan order pembelian (K-225 tahap 1–2, K-233).
 - 2026-10-17 — v1: dibuat atas permintaan pemilik (K-118); Bagian A–B dari catatan keputusan dan riwayat git
   (146 commit non-merge, 29 September–17 Oktober 2026); Bagian C1 rekomendasi pemesanan ulang.

@@ -124,6 +124,11 @@ tercatat. Setelah ada transaksi tunai, tombolnya **Minta persetujuan…** → **
 
 **Pembeli datang setelah shift ditutup**: buka shift baru → **Enter** (pakai uang yang tadi ditinggal) → **Enter**.
 
+**Jam operasional** (bila jadwal shift diisi di Pengaturan): selama jam buka–tutup, **semua** penjualan (tunai,
+transfer, bayar nanti) menunggu shift dibuka; pita kuning di layar kasir menyebutnya. Toko ramai sebelum uang
+dihitung → pilih **Buka dulu, hitung nanti**. Di luar jam operasional tanpa shift, hanya transfer/QRIS/EDC atau bayar
+nanti yang bisa; tunai tetap menunggu shift.
+
 **Order yang tidak jadi dibayar sekarang** (layar kasir, order dari antrean sudah dibuka): tekan **F9** (atau
 **Mulai dari awal**). Muncul pilihan:
 - **A — Kembalikan ke antrean**: pembeli masih di toko dan akan dilayani lagi. Stok tetap ditahan.
@@ -557,6 +562,7 @@ Semua tugas kasir, ditambah:
 - **Jadwal shift** (*Pengaturan › Operasional › Jadwal shift*): isi **Jam buka shift** dan **Jam tutup shift**
   (boleh dikosongkan; jam tutup harus setelah jam buka). Jadwal baru berlaku untuk shift yang **dibuka setelah
   disimpan**; shift yang sedang berjalan memakai jadwal saat ia dibuka.
+  Jadwal ini juga menjadi **jam operasional**: di dalamnya semua checkout menunggu shift dibuka (K-244).
 - **Menutup shift** saat kasir berhalangan: *Shift & Clerical Check* → kotak **Tutup shift** (langkah sama).
   Shift lama dari aturan "satu shift per pengguna" yang masih terbuka tampil merah di atas: tutup semuanya, lalu
   buka satu shift toko.
@@ -570,7 +576,12 @@ Semua tugas kasir, ditambah:
   angka ini tidak wajib keterangan) dan **Batas hitung susulan** (menit; untuk shift yang dibuka dengan *hitung
   nanti*).
 - **Order pembelian** (*Persediaan › Order Pembelian*, Admin/Owner): pesanan ke pemasok sebelum barang datang.
-  1. **Order pembelian baru** → pilih pemasok → cari barang → isi qty dan harga beli perkiraan → **Simpan draf**.
+  1. **Order pembelian baru** → pilih pemasok → cari barang → isi qty dan harga beli perkiraan → isi kotak
+     **Kesepakatan dengan pemasok**: *Dikirim paling lambat*, *Cara kirim* (diantar pemasok/diambil sendiri),
+     *Syarat bayar* (**Bayar di muka** = dilunasi lewat uang muka sebelum dikirim; **Tunai saat barang datang**;
+     **Tempo** + lama tempo dalam hari), *Uang muka yang direncanakan* (boleh 0), *Rencana cara bayar* →
+     **Simpan draf**. Isian terisi bawaan dari Data Pemasok (lama kirim, tempo bayar); periksa lalu ubah bila perlu.
+     Order tidak bisa dikirim/diajukan sebelum kesepakatan lengkap (kotak kuning menyebut yang kurang).
      Cara cepat: di *Stok Persediaan › Saran pesan* tekan **Buat order pembelian** pada kelompok pemasok; draf
      terisi barang dan jumlah sarannya.
   2. Periksa draf (boleh **Ubah**), lalu **Kirim ke pemasok**: nomor PO terbit dan isinya terkunci. Kirim ke
@@ -591,8 +602,18 @@ Semua tugas kasir, ditambah:
      mengubahnya.
   4. Bila pemasok minta dibayar dulu: **Uang muka** (transfer atau tunai dari laci shift). Uang muka otomatis
      menjadi pembayaran faktur saat barang datang.
-  5. Barang datang: **Terima barang** → halaman penerimaan terisi sisa barang PO; sesuaikan qty/harga dengan
-     faktur → **Simpan penerimaan**. Boleh berkali-kali (sebagian). Semua datang = *Selesai*.
+  5. Barang datang: **Terima barang** → halaman penerimaan terisi sisa barang PO. Syarat bayar dan jatuh tempo
+     diambil dari order (tidak bisa diganti). Per barang isi **Diterima baik**; bila ada yang rusak/tidak sesuai,
+     isi **Ditolak** → alasan → pilih **Minta ganti barang** (sisa tetap ditunggu) atau **Kurangi order** (tidak
+     dikirim lagi). Barang ditolak tidak masuk stok dan tidak ditagih. Kotak **Pembayaran saat barang datang**
+     menghitung: nilai diterima − uang muka = sisa tagihan. Tunai saat datang: sisa wajib dibayar sekarang (isi
+     No. referensi bila transfer). Bila toko hanya mampu bayar sebagian, ubah *Dibayar sekarang* → isi alasan dan
+     jatuh tempo sisa → hanya Kepala Toko/Owner yang bisa menyimpan; tercatat sebagai penyimpangan. Tempo: sisa
+     menjadi hutang dengan jatuh tempo otomatis → **Simpan penerimaan**. Boleh berkali-kali (sebagian).
+     Semua datang (atau sisanya dikurangi) = *Selesai*.
+     Kartu order di kanan menampilkan ringkasan uang (uang muka belum terpakai, sisa tagihan), tagihan per
+     penerimaan dengan tombol **Bayar tagihan**, dan riwayat. Setelah barang pertama datang, tombol *Uang muka*
+     hilang: pembayaran berikutnya lewat *Bayar tagihan*.
   6. Sisa tidak jadi dikirim: **Tutup sisa** (alasan). Belum ada barang datang dan batal: **Batalkan**. Bila ada
      sisa uang muka, catat cara pemasok mengembalikannya.
   7. Barang yang sudah dipesan tampil "+ … sudah dipesan" di Saran pesan dan tidak disarankan dua kali. Setelah 3
@@ -603,6 +624,10 @@ Semua tugas kasir, ditambah:
 - **Stok** (*Persediaan › Stok Persediaan*): posisi stok, mutasi, kartu stok per barang, stok tertahan, dan
   **penyesuaian** (saldo awal, koreksi, barang rusak, **stok opname**). Barang yang tidak dihitung saat opname
   dikecualikan dengan alasan, bukan dihapus.
+- **Pemusnahan barang rusak** (*Stok Persediaan* › tab Rusak › **Musnahkan**, atau penyesuaian jenis Pemusnahan):
+  di bawah kotak cari tampil **daftar semua barang rusak** beserta jumlah rusaknya → klik barang untuk
+  menambahkannya → isi qty dan alasan → **Simpan & selesaikan**. Pencarian hanya menampilkan barang yang punya stok
+  rusak dan angkanya adalah stok rusak.
 - **Saran pesan ulang** (*Persediaan › Stok Persediaan › Saran pesan*): daftar barang yang perlu dibeli dan
   berapa banyak, dikelompokkan per pemasok.
   1. Isi dulu sekali per pemasok di *Data Pemasok* › Ubah: **Lama kirim (hari)** (dari memesan sampai barang tiba)
@@ -708,6 +733,9 @@ Mulai V2 tugas *Admin* dipecah agar satu orang tidak memesan, menyetujui, dan me
 
 Semua tugas admin, ditambah:
 
+- **Perpanjang jatuh tempo hutang:** *Hutang Pemasok* › ikon kalender pada baris hutang tempo → tanggal baru (setelah
+  jatuh tempo sekarang) + alasan (kesepakatan dengan pemasok) → **Perpanjang**. Hanya Owner; riwayat dan jumlah
+  perpanjangan tercatat. Jatuh tempo tidak bisa dimundurkan lewat form lain.
 - **Pembelian wajib disetujui Owner (V2):** *Data Barang* › buka barang › kartu **Pembelian wajib disetujui Owner**
   › nyalakan. Setiap order pembelian berisi barang itu harus Anda setujui, berapa pun nilainya. Order di atas
   batas Kepala Toko juga hanya bisa Anda setujui; Anda boleh langsung mengirim order tanpa mengajukan.

@@ -775,16 +775,16 @@ keputusan lama masih tertulis di berkasnya.
 | K-227 | Kemasan simpan tersegel + ecer, buka kemasan, hitung timbang, opname bertahap ABC dengan daftar harian acak, hitung buta, persetujuan selisih, akurasi stok. | Berlaku (rencana V2) |
 | K-233 | Perbaikan dari uji layar lengkap: baris atribut otomatis tidak merebut fokus isian muatan; tahun berjalan selalu tampil di arsip; tes layar disesuaikan dengan K-178, K-196, K-203, K-225. | Berlaku |
 | K-234 | `pnpm dev` menjalankan migrasi dulu; server menolak menyala bila ada migrasi tertunda; rincian order pembelian yang gagal dimuat menampilkan galat + Coba lagi. | Berlaku |
-| K-235 | Uang muka order pembelian: "belum terpakai", bukan "sisa"; sisa tagihan ditampilkan terpisah. | Berlaku (rencana) |
-| K-236 | Order pembelian memuat kesepakatan lengkap (tanggal kirim, cara kirim, syarat bayar, uang muka, ongkos); penerimaan mewarisi dan menguncinya; ubah kesepakatan lewat persetujuan. | Berlaku (rencana) |
-| K-237 | Penerimaan: datang/diterima baik/ditolak per baris, barang belum datang, bayar sesuai kesepakatan (kurang bayar = penyimpangan dengan persetujuan), klaim dan deposit pemasok, jatuh tempo otomatis dan hanya diperpanjang lewat persetujuan Owner. | Berlaku (rencana) |
-| K-238 | Kartu order pembelian: linimasa, kesepakatan, ringkasan uang, barang, penerimaan & pembayaran; tombol sesuai tahap. | Berlaku (rencana) |
-| K-239 | Pemusnahan hanya menampilkan barang ber-stok rusak beserta stok rusaknya; daftar barang rusak siap klik. | Berlaku (rencana) |
+| K-235 | Uang muka order pembelian: "belum terpakai", bukan "sisa"; sisa tagihan ditampilkan terpisah. | Berlaku |
+| K-236 | Order pembelian memuat kesepakatan lengkap (tanggal kirim, cara kirim, syarat bayar, uang muka, ongkos); penerimaan mewarisi dan menguncinya; ubah kesepakatan lewat persetujuan. | Berlaku |
+| K-237 | Penerimaan: datang/diterima baik/ditolak per baris, barang belum datang, bayar sesuai kesepakatan (kurang bayar = penyimpangan dengan persetujuan), klaim dan deposit pemasok, jatuh tempo otomatis dan hanya diperpanjang lewat persetujuan Owner. | Berlaku |
+| K-238 | Kartu order pembelian: linimasa, kesepakatan, ringkasan uang, barang, penerimaan & pembayaran; tombol sesuai tahap. | Berlaku |
+| K-239 | Pemusnahan hanya menampilkan barang ber-stok rusak beserta stok rusaknya; daftar barang rusak siap klik. | Berlaku |
 | K-240 | Stok opname di halaman mandiri (rancangan K-227). | Berlaku (rencana) |
 | K-241 | Saldo awal → Persediaan Awal: input cepat seperti kasir, pemasok asal, Hutang Awal Pemasok, deposit dan titipan awal. | Berlaku (rencana) |
 | K-242 | Saran pesan → Perencanaan Pengadaan: panduan dengan contoh, terpadu dengan order dan tanggal datang, celah kosong + kerugian peluang + saran tindakan, musim ramai, keandalan pemasok. | Berlaku (rencana) |
 | K-243 | Izin tambahan per pengguna dan peran buatan sendiri (V2); bawaan Kasir tanpa logistik setelah itu ada. | Berlaku (rencana V2) |
-| K-244 | Di jam operasional tanpa shift semua checkout ditolak; di luar jam operasional hanya non-tunai/bayar nanti dengan pemberitahuan. | Berlaku (rencana) |
+| K-244 | Di jam operasional tanpa shift semua checkout ditolak; di luar jam operasional hanya non-tunai/bayar nanti dengan pemberitahuan. | Berlaku |
 | K-245 | Persetujuan order pembelian jarak jauh dengan kode sekali pakai (mekanisme K-102). | Berlaku (rencana) |
 | K-228 | Setiap pintasan keyboard juga berupa tombol yang bisa diklik/disentuh. | Berlaku (audit selesai 7 Nov) |
 | K-229 | Mode LAN toko (HTTPS dengan sertifikat toko + perangkat terdaftar) di samping Tailscale. | Berlaku (7 Nov, 1.19.0) |

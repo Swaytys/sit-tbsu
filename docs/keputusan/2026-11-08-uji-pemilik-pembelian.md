@@ -7,16 +7,16 @@ aman bila sudah terjadi), **Cegah** (alur/kunci sebelum terjadi), **Ajari** (pen
 | K | Masukan | Versi | Status |
 |---|---|---|---|
 | K-234 | Bug: Data Barang "kesalahan server" dan rincian order pembelian kosong (abu-abu) | V1 | Selesai |
-| K-235 | Diksi uang muka "sisa" membingungkan | V1 | Rencana (bersama K-238) |
-| K-236 | Order pembelian lengkap: syarat bayar, tanggal kirim, dsb.; penerimaan mewarisi dan mengunci | V1 | Rencana (rancangan di bawah) |
-| K-237 | Penerimaan bervariasi: bayar campur, kurang datang, rusak saat datang, tempo dan keterlambatan | V1 | Rencana (rancangan di bawah) |
-| K-238 | Kartu order pembelian (rincian kanan) lebih informatif; tombol sesuai tahap | V1 | Rencana (rancangan di bawah) |
-| K-239 | Pemusnahan: cari hanya barang rusak, tampilkan stok rusak, daftar barang rusak siap klik | V1 | Rencana |
+| K-235 | Diksi uang muka "sisa" membingungkan | V1 | Selesai |
+| K-236 | Order pembelian lengkap: syarat bayar, tanggal kirim, dsb.; penerimaan mewarisi dan mengunci | V1 | Selesai |
+| K-237 | Penerimaan bervariasi: bayar campur, kurang datang, rusak saat datang, tempo dan keterlambatan | V1 | Selesai (deposit pemasok menyusul) |
+| K-238 | Kartu order pembelian (rincian kanan) lebih informatif; tombol sesuai tahap | V1 | Selesai |
+| K-239 | Pemusnahan: cari hanya barang rusak, tampilkan stok rusak, daftar barang rusak siap klik | V1 | Selesai |
 | K-240 | Stok opname di halaman mandiri yang lengkap | V1 | Rencana (digabung K-227) |
 | K-241 | "Saldo awal" → **Persediaan Awal**: input secepat kasir, termasuk hutang awal pemasok | V1 | Rencana (rancangan di bawah) |
 | K-242 | "Saran pesan" → **Perencanaan Pengadaan**: penjelasan dengan contoh, terpadu dengan order dan lama kirim, analisis kekosongan stok | V1 | Rencana (rancangan di bawah) |
 | K-243 | Izin tambahan per pengguna (mis. kasir boleh urus pengantaran) dan peran buatan sendiri | V2 | Rencana |
-| K-244 | Checkout sebelum shift dibuka di jam operasional ditolak; di luar jam operasional hanya non-tunai/order dengan pemberitahuan | V1 | Rencana |
+| K-244 | Checkout sebelum shift dibuka di jam operasional ditolak; di luar jam operasional hanya non-tunai/order dengan pemberitahuan | V1 | Selesai |
 | K-245 | Persetujuan order pembelian jarak jauh dengan kode sekali pakai (seperti retur/void) | V1 | Rencana |
 
 Penamaan dipilih pemilik 8 Nov: **Perencanaan Pengadaan** (pengganti *Saran pesan*) dan **Persediaan Awal**
@@ -131,6 +131,19 @@ Rincian di kanan memakai seluruh ruang:
 - **Tombol sesuai tahap:** *Uang muka* hanya sebelum barang pertama datang; sesudahnya *Bayar tagihan*.
   *Konfirmasi pemasok* (janji kirim) boleh sampai semua barang datang, setiap perubahan tercatat. *Perpanjang
   jatuh tempo* hanya untuk tagihan tempo (Owner).
+
+### Pelaksanaan (8 Nov, selesai)
+
+- Tahap A (migrasi 0047): kesepakatan di order + `pemasok.tempo_hari`; janji pertama dan jumlah perubahannya.
+- Tahap B (0048): penerimaan mewarisi kesepakatan, barang ditolak (ganti/kurangi), bayar kurang = penyimpangan.
+- Tahap C (0049): perpanjangan jatuh tempo hanya Owner; uang muka hanya sebelum barang datang.
+- Tahap D: kartu order dua kolom (kesepakatan, barang, tagihan per penerimaan, ringkasan uang, riwayat).
+- **Bug yang ditemukan:** jumlah uang muka *terpakai* selalu terbaca 0 (subquery merujuk kolom tanpa nama tabel).
+  Akibatnya tampilan "sisa" uang muka sama dengan uang muka (U118) dan uang muka yang sudah dipakai bisa terpakai
+  lagi pada penerimaan berikutnya. Diperbaiki; tes ringkasan uang menjaganya.
+- **Menyusul:** deposit pemasok (kelebihan uang muka dipakai untuk order berikutnya) — saat ini kelebihan dicatat
+  dikembalikan (tunai/transfer) ketika order ditutup; penerima ≠ pemesan, hitung buta, dan penerimaan tanpa order di
+  bawah batas (K-225 tahap 3).
 
 ## K-239 Pemusnahan barang rusak
 

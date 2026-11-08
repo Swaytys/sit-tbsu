@@ -188,7 +188,13 @@ kosong selama DRAF/DIAJUKAN/DISETUJUI (CHECK `chk_po_nomor`), `status`
 DRAF/DIAJUKAN/DISETUJUI/DIPESAN/DIKONFIRMASI/SEBAGIAN/SELESAI/DITUTUP/BATAL, `tanggal_dipesan` (wajib setelah dikirim),
 `tanggal_janji_kirim`, `alasan_tutup`; K-225 (migrasi 0046): `alasan_persetujuan`, `id_penyetuju` (FK pengguna),
 `disetujui_pada`, `catatan_persetujuan` (catatan penyetuju atau "Ditolak: …"); kolom status persetujuan ini boleh
-berubah selama order belum dikirim. Detail: `qty_pesan`,
+berubah selama order belum dikirim. K-236 (migrasi 0047): `syarat_bayar` (DI_MUKA/SAAT_TERIMA/TEMPO), `tempo_hari`,
+`uang_muka_rencana`, `tanggal_kirim_diminta`, `cara_kirim`, `metode_bayar_rencana` (boleh diubah selama draf),
+`tanggal_janji_awal`, `jumlah_ubah_janji` (cache konfirmasi). Detail: `qty_ditolak`, `qty_dipotong` (cache K-237,
+migrasi 0048). **`penerimaan_barang_tolak`** [APPEND] (0048): barang datang tetapi ditolak (qty, alasan, tindakan
+GANTI/POTONG). `penerimaan_barang`: `penyimpangan_bayar`, `alasan_penyimpangan`, `id_penyetuju_penyimpangan` (0048);
+`tanggal_jatuh_tempo` hanya berubah lewat **`perpanjangan_jatuh_tempo`** [APPEND] (0049, Owner). `pemasok.tempo_hari`
+(0047). Detail: `qty_pesan`,
 `harga_perkiraan`, `qty_konfirmasi`/`harga_konfirmasi` (jawaban pemasok), `qty_diterima` (cache Σ penerimaan,
 disinkronkan di transaksi penerimaan), UNIQUE (PO, barang). **`alokasi_uang_muka`** [APPEND]: pemakaian uang muka PO
 (DIPAKAI → `id_penerimaan`; DIKEMBALIKAN → `metode_kembali`). `penerimaan_barang.id_order_pembelian`,

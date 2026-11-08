@@ -380,6 +380,15 @@ Barang | Admin Persediaan (ajukan), Kepala Toko/Owner (setujui) | desktop
   `[KODE: web/features/order-pembelian/halaman-order-pembelian.tsx]`; `[DOK: K-225, docs/05 §21 PO10–PO14]`; tes
   `persetujuan-po.test.ts`, e2e `order-pembelian.spec.ts`. Status: BERFUNGSI (branch V2, uji U203–U207).
 
+**F69. Siklus pembelian lengkap (order → penerimaan → tagihan)** | Order Pembelian, Penerimaan Barang, Hutang
+Pemasok | Admin Persediaan, Kepala Toko, Owner | desktop
+- Fungsi: kesepakatan di order (tanggal kirim, cara kirim, syarat bayar, uang muka) diwarisi penerimaan; barang
+  ditolak saat datang (ganti/kurangi order); bayar kurang dari kesepakatan sebagai penyimpangan berpenyetuju;
+  jatuh tempo otomatis dan hanya diperpanjang Owner; kartu order dengan ringkasan uang, tagihan, dan riwayat.
+- Bukti: `[KODE: api/modules/persediaan/penerimaan/service.ts]`, `[KODE: api/modules/hutang/service.ts]`,
+  `[KODE: web/features/order-pembelian/halaman-order-pembelian.tsx]`; `[DOK: K-236–K-238, docs/05 PO15–PO22]`; tes
+  `penerimaan-po.test.ts`, e2e `order-pembelian.spec.ts`. Status: BERFUNGSI (uji U209–U214).
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1461,6 +1470,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
 - 2026-10-31 — F61 HP dan tablet (K-217).
+- 2026-11-08 — F69 siklus pembelian lengkap (K-236–K-238); pemusnahan dan jam operasional (K-239, K-244).
 - 2026-11-07 — F67 tujuh peran, F68 persetujuan order pembelian (K-225 tahap 1–2, branch V2); perbaikan uji layar
   lengkap (K-233).
 - 2026-11-07 — F64 data latihan (K-168), F65 pintasan per pengguna (K-145), F66 mode LAN toko (K-229);
