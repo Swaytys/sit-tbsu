@@ -1,11 +1,22 @@
 import { zValidator } from '@hono/zod-validator';
-import { JENIS_DOKUMEN_HUTANG, skemaBayarHutang, skemaCariHutang } from '@sit/shared';
+import {
+  JENIS_DOKUMEN_HUTANG,
+  skemaBayarHutang,
+  skemaCariHutang,
+  skemaPerpanjangJatuhTempo,
+} from '@sit/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { EnvApp } from '../../lib/konteks';
 import { kaitValidasi } from '../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../middleware/require-permission';
-import { bayarHutang, daftarHutang, pembayaranHutang, penerimaanBerhutang } from './service';
+import {
+  bayarHutang,
+  daftarHutang,
+  pembayaranHutang,
+  penerimaanBerhutang,
+  perpanjangJatuhTempo,
+} from './service';
 
 const lihat = requirePermission('hutang.lihat');
 
@@ -40,5 +51,21 @@ export const hutangRoutes = new Hono<EnvApp>()
     async (c) => {
       const data = await bayarHutang(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
       return c.json({ data }, 200);
+    },
+  )
+  /** K-237: perpanjang jatuh tempo hutang penerimaan (hanya Owner). */
+  .post(
+    '/penerimaan/:id/perpanjang',
+    requirePermission('pembelian.setujui_semua'),
+    zValidator('param', z.object({ id: z.coerce.number().int().positive() }), kaitValidasi),
+    zValidator('json', skemaPerpanjangJatuhTempo, kaitValidasi),
+    async (c) => {
+      await perpanjangJatuhTempo(
+        c.req.valid('param').id,
+        c.req.valid('json'),
+        penggunaWajib(c),
+        c.get('asal'),
+      );
+      return c.json({ data: { ok: true } }, 200);
     },
   );

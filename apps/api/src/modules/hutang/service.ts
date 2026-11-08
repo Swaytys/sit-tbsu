@@ -11,8 +11,11 @@ import {
   type KelompokUmur,
   type PembayaranPemasok,
   type StatusHutang,
+  type DataPerpanjangJatuhTempo,
 } from '@sit/shared';
+import { eq } from 'drizzle-orm';
 import { db, type Tx } from '../../db/client';
+import { penerimaanBarang, perpanjanganJatuhTempo } from '../../db/schema';
 import { AppError, galatKolom } from '../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { metaHalaman } from '../../lib/paginasi';
@@ -275,4 +278,67 @@ export async function hutangJatuhTempo(): Promise<{ terlambat: number; segera: n
 
 export async function penerimaanBerhutang(idPemasok: number) {
   return repo.penerimaanBerhutang(db, idPemasok);
+}
+
+/**
+ * K-237: perpanjang jatuh tempo hutang penerimaan. Hanya Owner (`pembelian.setujui_semua`, dicek route); alasan wajib;
+ * tanggal baru harus setelah jatuh tempo berlaku dan tidak sebelum hari ini. Riwayat append-only di
+ * `perpanjangan_jatuh_tempo`; kolom jatuh tempo penerimaan diperbarui di transaksi yang sama.
+ */
+export async function perpanjangJatuhTempo(
+  idPenerimaan: number,
+  input: DataPerpanjangJatuhTempo,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<void> {
+  await dalamTransaksi(async (tx) => {
+    const [p] = await tx
+      .select({
+        nomor: penerimaanBarang.nomor,
+        jenis: penerimaanBarang.jenis,
+        syarat: penerimaanBarang.syaratBayar,
+        jatuhTempo: penerimaanBarang.tanggalJatuhTempo,
+        status: penerimaanBarang.statusHutang,
+      })
+      .from(penerimaanBarang)
+      .where(eq(penerimaanBarang.id, idPenerimaan))
+      .for('update');
+    if (!p || p.jenis !== 'PEMBELIAN') {
+      throw new AppError('TIDAK_DITEMUKAN', 'Hutang penerimaan tidak ditemukan.', 404);
+    }
+    if (p.syarat !== 'TEMPO' || !p.jatuhTempo || p.status === 'LUNAS') {
+      throw new AppError(
+        'STATUS_TIDAK_VALID',
+        'Hanya hutang tempo yang belum lunas yang bisa diperpanjang jatuh temponya.',
+        409,
+      );
+    }
+    const hariIni = tanggalOperasional();
+    if (input.tanggalBaru <= p.jatuhTempo || input.tanggalBaru < hariIni) {
+      throw galatKolom(
+        'tanggalBaru',
+        `Jatuh tempo baru harus setelah ${p.jatuhTempo} dan tidak sebelum hari ini.`,
+      );
+    }
+    await tx.insert(perpanjanganJatuhTempo).values({
+      idPenerimaan,
+      tanggalLama: p.jatuhTempo,
+      tanggalBaru: input.tanggalBaru,
+      alasan: input.alasan,
+      idPengguna: pelaku.id,
+    });
+    await tx
+      .update(penerimaanBarang)
+      .set({ tanggalJatuhTempo: input.tanggalBaru, diubahPada: sekarang() })
+      .where(eq(penerimaanBarang.id, idPenerimaan));
+    await catatLog(tx, {
+      aksi: 'HUTANG_PERPANJANG',
+      idPengguna: pelaku.id,
+      entitas: 'penerimaan_barang',
+      idEntitas: idPenerimaan,
+      nomorDokumen: p.nomor,
+      ringkasan: `Jatuh tempo ${p.nomor} diperpanjang ${p.jatuhTempo} → ${input.tanggalBaru}: ${input.alasan}`,
+      ip: asal.ip,
+    });
+  });
 }

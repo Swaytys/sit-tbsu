@@ -155,6 +155,7 @@ export const AKSI_LOG = [
   'PO_AJUKAN',
   'PO_SETUJUI',
   'PO_TOLAK',
+  'HUTANG_PERPANJANG',
   'PO_KONFIRMASI',
   'PO_UANG_MUKA',
   'PO_TUTUP',

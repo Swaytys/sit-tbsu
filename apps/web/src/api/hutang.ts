@@ -1,5 +1,6 @@
 import type {
   DataBayarHutang,
+  DataPerpanjangJatuhTempo,
   DataReturPemasok,
   JenisDokumenHutang,
   PenyelesaianReturPemasok,
@@ -71,6 +72,23 @@ export function useBayarHutang() {
     onSuccess: () =>
       Promise.all(
         ['hutang', 'penerimaan', 'shift', 'notifikasi', 'konsinyasi'].map((k) =>
+          qc.invalidateQueries({ queryKey: [k] }),
+        ),
+      ),
+  });
+}
+
+/** K-237: Owner memperpanjang jatuh tempo hutang penerimaan. */
+export function usePerpanjangJatuhTempo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, json }: { id: number; json: DataPerpanjangJatuhTempo }) =>
+      ambilData(
+        await api.hutang.penerimaan[':id'].perpanjang.$post({ param: { id: String(id) }, json }),
+      ),
+    onSuccess: () =>
+      Promise.all(
+        ['hutang', 'penerimaan', 'order-pembelian', 'notifikasi'].map((k) =>
           qc.invalidateQueries({ queryKey: [k] }),
         ),
       ),

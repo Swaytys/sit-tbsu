@@ -5,6 +5,7 @@ import {
   pemasok,
   pembayaranPemasok,
   penerimaanBarang,
+  perpanjanganJatuhTempo,
   pengguna,
   penyelesaianKonsinyasi,
 } from '../../db/schema';
@@ -28,6 +29,7 @@ export type DokumenHutang = {
   returPotong: number;
   sisa: number;
   statusHutang: StatusHutang;
+  jumlahPerpanjang: number;
 };
 
 export async function semuaHutang(ex: Executor): Promise<DokumenHutang[]> {
@@ -45,6 +47,8 @@ export async function semuaHutang(ex: Executor): Promise<DokumenHutang[]> {
       returPotong: penerimaanBarang.totalReturPotong,
       sisa: penerimaanBarang.sisaHutang,
       statusHutang: penerimaanBarang.statusHutang,
+      jumlahPerpanjang: sql<number>`(select count(*)::int from ${perpanjanganJatuhTempo}
+        where ${perpanjanganJatuhTempo.idPenerimaan} = ${penerimaanBarang.id})`,
     })
     .from(penerimaanBarang)
     .innerJoin(pemasok, eq(pemasok.id, penerimaanBarang.idPemasok))
@@ -81,6 +85,7 @@ export async function semuaHutang(ex: Executor): Promise<DokumenHutang[]> {
       noFaktur: null,
       tanggalJatuhTempo: null,
       returPotong: 0,
+      jumlahPerpanjang: 0,
       sisa: Number(x.sisa ?? 0),
     })),
   ];

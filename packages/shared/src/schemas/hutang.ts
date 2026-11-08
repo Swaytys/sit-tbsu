@@ -78,6 +78,8 @@ export type BarisHutang = {
   statusHutang: StatusHutang;
   /** Hari lewat jatuh tempo (negatif = belum jatuh tempo); `null` bila tanpa jatuh tempo. */
   hariLewat: number | null;
+  /** K-237: berapa kali jatuh tempo diperpanjang (Owner). */
+  jumlahPerpanjang: number;
   kelompokUmur: KelompokUmur;
 };
 
@@ -276,3 +278,16 @@ export type PenerimaanBerhutang = {
   noFaktur: string | null;
   sisa: number;
 };
+
+/** K-237: perpanjangan jatuh tempo hutang penerimaan (hanya Owner). */
+export const skemaPerpanjangJatuhTempo = z.object({
+  tanggalBaru: z
+    .string('Tanggal jatuh tempo baru wajib diisi.')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal jatuh tempo baru tidak valid.'),
+  alasan: z
+    .string('Alasan wajib diisi.')
+    .trim()
+    .min(5, 'Alasan minimal 5 karakter.')
+    .max(255, 'Alasan maksimal 255 karakter.'),
+});
+export type DataPerpanjangJatuhTempo = z.output<typeof skemaPerpanjangJatuhTempo>;

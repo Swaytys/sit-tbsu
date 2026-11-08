@@ -344,6 +344,13 @@
       "when": 1794115697698,
       "tag": "0048_penerimaan_tolak_penyimpangan",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794116376728,
+      "tag": "0049_perpanjangan_jatuh_tempo",
+      "breakpoints": true
     }
   ]
 }

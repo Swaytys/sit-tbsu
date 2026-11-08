@@ -218,4 +218,44 @@ describe('penerimaan dari order pembelian (K-236, K-237)', () => {
       alasanPenyimpangan: 'Uang kas kurang',
     });
   });
+
+  it('K-237 jatuh tempo hanya diperpanjang Owner dengan alasan; uang muka ditolak setelah barang datang', async () => {
+    const owner = await sesiUji('OWNER');
+    const po = await orderDikirim({ syaratBayar: 'TEMPO', tempoHari: 10 });
+    const t = await data<DetailPenerimaan>(
+      kirim(persediaanSesi, '/api/penerimaan', terima(po, { qtyMasuk: '5' })),
+    );
+    const um = await galat(
+      kirim(kepala, `/api/order-pembelian/${po.id}/uang-muka`, {
+        nominal: 10_000,
+        metode: 'TRANSFER',
+        rekening: 'BCA 1',
+        referensi: 'TRF-UM09',
+      }),
+    );
+    expect(um.status).toBe(409);
+    expect(um.pesan).toContain('sudah datang');
+
+    const jalur = `/api/hutang/penerimaan/${t.id}/perpanjang`;
+    const baru = tambahHari(tanggalOperasional(), 20);
+    expect((await kirim(kepala, jalur, { tanggalBaru: baru, alasan: 'Kas seret' })).status).toBe(
+      403,
+    );
+    expect((await kirim(owner, jalur, { tanggalBaru: baru, alasan: 'x' })).status).toBe(400);
+    const mundur = await galat(
+      kirim(owner, jalur, {
+        tanggalBaru: tambahHari(tanggalOperasional(), 5),
+        alasan: 'Kas seret',
+      }),
+    );
+    expect(mundur.status).toBe(400);
+    await data(kirim(owner, jalur, { tanggalBaru: baru, alasan: 'Kas seret minggu ini' }));
+    const hutang = await data<
+      { id: number; tanggalJatuhTempo: string; jumlahPerpanjang: number }[]
+    >(minta('/api/hutang?perHalaman=100', { cookie: owner.cookie }));
+    expect(hutang.find((h) => h.id === t.id)).toMatchObject({
+      tanggalJatuhTempo: baru,
+      jumlahPerpanjang: 1,
+    });
+  });
 });

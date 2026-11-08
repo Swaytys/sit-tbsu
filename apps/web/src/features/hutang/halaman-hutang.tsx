@@ -10,13 +10,19 @@ import {
   type InputBayarHutang,
   type StatusHutang,
 } from '@sit/shared';
-import { History, Search, Wallet } from 'lucide-react';
+import { CalendarClock, History, Search, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { usePengguna } from '@/api/auth';
-import { useBayarHutang, useDaftarHutang, usePembayaranHutang } from '@/api/hutang';
+import { pesanGalat } from '@/api/client';
+import {
+  useBayarHutang,
+  useDaftarHutang,
+  usePembayaranHutang,
+  usePerpanjangJatuhTempo,
+} from '@/api/hutang';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { InputRupiah } from '@/components/input-rupiah';
@@ -72,6 +78,65 @@ export function BadgeStatusHutang({ status }: { status: StatusHutang }) {
   );
 }
 
+/** K-237: Owner memperpanjang jatuh tempo; alasan wajib, riwayat tercatat. */
+function DialogPerpanjang({ h, onTutup }: { h: BarisHutang; onTutup: () => void }) {
+  const ubah = usePerpanjangJatuhTempo();
+  const [tanggalBaru, setTanggalBaru] = useState('');
+  const [alasan, setAlasan] = useState('');
+  return (
+    <Dialog open onOpenChange={(b) => !b && onTutup()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Perpanjang jatuh tempo {h.nomor}</DialogTitle>
+          <DialogDescription>
+            {h.namaPemasok} · sisa {formatRupiah(h.sisa)} · jatuh tempo sekarang{' '}
+            {formatTanggal(h.tanggalJatuhTempo)}
+            {h.jumlahPerpanjang > 0 && ` · sudah diperpanjang ${h.jumlahPerpanjang}×`}. Tercatat di
+            riwayat dan log.
+          </DialogDescription>
+        </DialogHeader>
+        <label className="grid gap-1 text-sm">
+          Jatuh tempo baru
+          <Input
+            type="date"
+            aria-label="Jatuh tempo baru"
+            value={tanggalBaru}
+            onChange={(e) => setTanggalBaru(e.target.value)}
+          />
+        </label>
+        <label className="grid gap-1 text-sm">
+          Alasan (kesepakatan dengan pemasok)
+          <Input
+            aria-label="Alasan perpanjangan"
+            value={alasan}
+            maxLength={255}
+            onChange={(e) => setAlasan(e.target.value)}
+          />
+        </label>
+        <DialogFooter>
+          <Button variant="outline" onClick={onTutup}>
+            Batal
+          </Button>
+          <Button
+            disabled={ubah.isPending || !tanggalBaru || alasan.trim().length < 5}
+            onClick={() =>
+              void ubah
+                .mutateAsync({ id: h.id, json: { tanggalBaru, alasan } })
+                .then(() => {
+                  toast.success('Jatuh tempo diperpanjang.');
+                  onTutup();
+                })
+                .catch((err: unknown) => toast.error(pesanGalat(err)))
+            }
+          >
+            Perpanjang
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function KeteranganTempo({ h }: { h: BarisHutang }) {
   if (h.hariLewat === null) return <span className="text-slate-400">Tanpa jatuh tempo</span>;
   if (h.hariLewat > 0) {
@@ -101,6 +166,8 @@ export function HalamanHutang() {
   const barisPerHalaman = useBarisPerHalaman();
   const [bayar, setBayar] = useState<BarisHutang | null>(null);
   const [riwayat, setRiwayat] = useState<BarisHutang | null>(null);
+  const [perpanjang, setPerpanjang] = useState<BarisHutang | null>(null);
+  const bolehPerpanjang = usePengguna().izin.includes('pembelian.setujui_semua');
   const daftar = useDaftarHutang({
     cari: cariTertunda,
     idPemasok,
@@ -202,6 +269,17 @@ export function HalamanHutang() {
           >
             <History className="text-slate-500" />
           </Button>
+          {bolehPerpanjang && h.jenis === 'PENERIMAAN' && h.tanggalJatuhTempo && (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={`Perpanjang jatuh tempo ${h.nomor}`}
+              title="Perpanjang jatuh tempo (Owner)"
+              onClick={() => setPerpanjang(h)}
+            >
+              <CalendarClock className="text-slate-500" />
+            </Button>
+          )}
           {bolehBayar && (
             <Button size="sm" variant="outline" onClick={() => setBayar(h)}>
               <Wallet /> Bayar
@@ -330,6 +408,7 @@ export function HalamanHutang() {
       </Card>
       {bayar && <DialogBayarHutang h={bayar} onTutup={() => setBayar(null)} />}
       {riwayat && <DialogRiwayatBayar h={riwayat} onTutup={() => setRiwayat(null)} />}
+      {perpanjang && <DialogPerpanjang h={perpanjang} onTutup={() => setPerpanjang(null)} />}
     </div>
   );
 }

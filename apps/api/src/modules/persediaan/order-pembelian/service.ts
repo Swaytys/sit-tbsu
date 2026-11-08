@@ -414,7 +414,15 @@ export async function uangMukaPO(
 ) {
   await dalamTransaksi(async (tx) => {
     const po = await kunciPO(tx, id);
-    wajibStatus(po, BERJALAN, 'diberi uang muka');
+    // K-238: uang muka hanya sebelum barang pertama datang; sesudahnya bayar lewat tagihan (Hutang Pemasok).
+    if (po.status === 'SEBAGIAN') {
+      throw new AppError(
+        'STATUS_TIDAK_VALID',
+        'Barang order ini sudah datang. Pembayaran berikutnya lewat tagihan (Bayar tagihan / Hutang Pemasok).',
+        409,
+      );
+    }
+    wajibStatus(po, ['DIPESAN', 'DIKONFIRMASI'], 'diberi uang muka');
     const shift = input.metode === 'TUNAI' ? await shiftUntukCatat(tx) : null;
     if (input.metode === 'TUNAI' && !shift) {
       throw new AppError(

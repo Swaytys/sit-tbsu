@@ -303,6 +303,38 @@ export const penerimaanBarang = pgTable(
 
 /** [APPEND] */
 /**
+ * [APPEND] K-237: perpanjangan jatuh tempo hutang penerimaan (hanya Owner, alasan wajib). Kolom
+ * `penerimaan_barang.tanggal_jatuh_tempo` diperbarui di transaksi yang sama (cache jatuh tempo berlaku); tanggal
+ * semula tersimpan di baris perpanjangan pertama.
+ */
+export const perpanjanganJatuhTempo = pgTable(
+  'perpanjangan_jatuh_tempo',
+  {
+    id: kolomId(),
+    idPenerimaan: kolomRef('id_penerimaan').notNull(),
+    tanggalLama: tanggal('tanggal_lama').notNull(),
+    tanggalBaru: tanggal('tanggal_baru').notNull(),
+    alasan: varchar('alasan', { length: 255 }).notNull(),
+    idPengguna: kolomRef('id_pengguna').notNull(),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'perpanjangan_jatuh_tempo_id_penerimaan_fkey',
+      columns: [t.idPenerimaan],
+      foreignColumns: [penerimaanBarang.id],
+    }),
+    foreignKey({
+      name: 'perpanjangan_jatuh_tempo_id_pengguna_fkey',
+      columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_perpanjangan_tanggal', sql`tanggal_baru > tanggal_lama`),
+    index('idx_perpanjangan_penerimaan').on(t.idPenerimaan),
+  ],
+);
+
+/**
  * [APPEND] K-237: barang yang datang tetapi ditolak (rusak/tidak sesuai). Tidak masuk stok dan tidak ditagih.
  */
 export const penerimaanBarangTolak = pgTable(
