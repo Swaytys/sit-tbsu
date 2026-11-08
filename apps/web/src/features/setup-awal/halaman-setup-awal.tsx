@@ -596,7 +596,10 @@ function Bungkus({ ket, children }: { ket: string; children: ReactNode }) {
 function SelamatDatang({ mode }: { mode: 'baru' | 'ulang' }) {
   const fitur = [
     ['Penjualan', 'Kasir cepat dengan keyboard, order dari staf, pengantaran dengan surat jalan.'],
-    ['Persediaan', 'Stok bertambah dan berkurang otomatis; peringatan stok kritis; saran pesan.'],
+    [
+      'Persediaan',
+      'Stok bertambah dan berkurang otomatis; peringatan stok kritis; perencanaan pengadaan.',
+    ],
     ['Uang', 'Shift kasir, cocokkan uang laci, piutang pelanggan, hutang pemasok.'],
     ['Laporan', 'Penjualan, laba, stok, kas; siap cetak dan ekspor Excel.'],
   ];

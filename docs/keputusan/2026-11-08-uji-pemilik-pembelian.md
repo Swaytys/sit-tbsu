@@ -14,7 +14,7 @@ aman bila sudah terjadi), **Cegah** (alur/kunci sebelum terjadi), **Ajari** (pen
 | K-239 | Pemusnahan: cari hanya barang rusak, tampilkan stok rusak, daftar barang rusak siap klik | V1 | Selesai |
 | K-240 | Stok opname di halaman mandiri yang lengkap | V1 | Rencana (digabung K-227) |
 | K-241 | "Saldo awal" → **Persediaan Awal**: input secepat kasir, termasuk hutang awal pemasok | V1 | Selesai (pemasok asal per baris, deposit dan titipan awal menyusul) |
-| K-242 | "Saran pesan" → **Perencanaan Pengadaan**: penjelasan dengan contoh, terpadu dengan order dan lama kirim, analisis kekosongan stok | V1 | Rencana (rancangan di bawah) |
+| K-242 | "Saran pesan" → **Perencanaan Pengadaan**: penjelasan dengan contoh, terpadu dengan order dan lama kirim, analisis kekosongan stok | V1 | Selesai (musim ramai dan keandalan pemasok menyusul) |
 | K-243 | Izin tambahan per pengguna (mis. kasir boleh urus pengantaran) dan peran buatan sendiri | V2 | Rencana |
 | K-244 | Checkout sebelum shift dibuka di jam operasional ditolak; di luar jam operasional hanya non-tunai/order dengan pemberitahuan | V1 | Selesai |
 | K-245 | Persetujuan order pembelian jarak jauh dengan kode sekali pakai (seperti retur/void) | V1 | Selesai |

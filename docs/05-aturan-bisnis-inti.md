@@ -243,7 +243,7 @@ Transisi di luar tabel → `STATUS_TIDAK_VALID` (409).
 
 Semua total laporan dihitung untuk seluruh periode di server (K-033); paginasi hanya memotong baris tampilan.
 
-## 17. Rekomendasi pemesanan ulang (Fase 14, K-113)
+## 17. Perencanaan Pengadaan (rekomendasi pemesanan ulang; Fase 14, K-113, nama K-242)
 
 Bagian ini sengaja diletakkan sebelum §15 agar dekat dengan status stok; nomornya mengikuti urutan penambahan.
 
@@ -262,6 +262,7 @@ Bagian ini sengaja diletakkan sebelum §15 agar dekat dengan status stok; nomorn
 | RO11 | **C min–maks**: syarat `barang.stok_maksimum` terisi dan > 0. **Titik pesan** = `stok_minimum`; **stok target** = `stok_maksimum`; stok pengaman = `stok_minimum`. Tersedia ≤ minimum → PESAN_SEKARANG (juga bila tidak terjual); tidak terjual dan di atas minimum → TIDAK_LAKU; selain itu AMAN. Saran = maksimum − tersedia (RO5). |
 | RO12 | **D tren**: pemulusan eksponensial ganda (Holt) pada penjualan harian, α = 0,3, β = 0,1, level awal = rata 7 hari pertama, tren awal 0; syarat hari amatan ≥ 14. Perkiraan hari ke-k = maks(0, level + k × tren). **Stok pengaman** = perkiraan hari ke-1 × hari pengaman; **titik pesan** = Σ perkiraan hari 1..lama kirim + stok pengaman; **stok target** = Σ perkiraan hari 1..(lama kirim + jarak belanja) + stok pengaman. Rata per hari yang ditampilkan = perkiraan hari ke-1. |
 | RO13 | **Simpanan sementara**: hasil hitung semua barang per (metode, tingkat layanan, tanggal operasional, parameter pengaturan, id mutasi persediaan terakhir) disimpan di memori server paling lama 10 menit. Penjualan, retur, void, penerimaan, atau penyesuaian baru menambah mutasi sehingga simpanan lama tidak dipakai lagi. Server dimatikan = simpanan hilang. Saringan (pemasok, kategori, cari, status) diterapkan pada simpanan. |
+| RO14 | **Celah kosong** (K-242): bila rata per hari > 0, tanggal habis = hari ini + ⌊stok tersedia ÷ rata⌋. Tanggal datang = order berjalan tercepat yang masih ditunggu barang ini (janji pemasok → tanggal kirim diminta → tanggal pesan + lama kirim pemasok; tidak sebelum hari ini), atau hari ini + lama kirim bila belum ada order. Habis < datang → hari kosong = datang − habis; qty hilang = rata × hari kosong; omzet hilang = qty × harga jual tier dasar; laba kotor hilang (hanya `master.barang.lihat_hpp`) = omzet − qty × HPP. Saran: minta percepat (teks WhatsApp), pemasok lain yang pernah memasok barang ini dengan tanggal datang lebih awal (maks. 3, draf order darurat qty = qty hilang), jaga stok untuk pelanggan tetap. Ringkasan jumlah barang dan omzet/laba hilang di atas halaman. |
 
 ## 15. Konfigurasi tambahan (melengkapi docs/03 §6)
 

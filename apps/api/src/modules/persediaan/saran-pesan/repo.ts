@@ -20,6 +20,8 @@ export type BarisBarangSaran = {
   stokMaksimum: string | null;
   hargaBeliTerakhir: number;
   hppRata2: number;
+  /** K-242: harga jual tier dasar satuan dasar (0 bila belum ada). */
+  hargaJual: number;
   /** Terjual bersih dalam rentang tanggal (bisa negatif bila retur lebih banyak). */
   terjual: string;
   /** Tanggal operasional mutasi pertama barang ini (awal riwayat), `null` bila belum ada mutasi. */
@@ -48,6 +50,10 @@ export async function barangUntukSaran(
       stokMaksimum: barang.stokMaksimum,
       hargaBeliTerakhir: persediaan.hargaBeliTerakhir,
       hppRata2: persediaan.hppRata2,
+      hargaJual: sql<number>`coalesce((
+        select hb.harga_jual from harga_barang hb join tingkat_harga t on t.id = hb.id_tingkat_harga
+         where hb.id_barang = ${barang.id} and t.is_default and hb.id_satuan_jual is null
+         limit 1), 0)::bigint`.mapWith(Number),
       terjual: sql<string>`coalesce((
         select sum(case m.jenis_mutasi
                      when 'PENJUALAN' then m.qty_keluar
@@ -138,4 +144,50 @@ export async function versiDataSaran(ex: Executor): Promise<string> {
       (select max(coalesce(diubah_pada, dibuat_pada)) from order_pembelian),
       (select count(*) from barang)) v`);
   return r.rows[0]?.v ?? '';
+}
+
+/** K-242: baris order pembelian berjalan yang masih ditunggu, dengan tanggal datang yang diketahui. */
+export async function kedatanganOrder(ex: Executor) {
+  const r = await ex.execute<{
+    id_barang: string;
+    nomor: string | null;
+    id_pemasok: string;
+    nama_pemasok: string;
+    no_hp: string | null;
+    janji: string | null;
+    diminta: string | null;
+    dipesan: string | null;
+  }>(sql`
+    select d.id_barang, o.nomor, o.id_pemasok, p.nama_pemasok, p.no_hp,
+           o.tanggal_janji_kirim::text janji, o.tanggal_kirim_diminta::text diminta,
+           o.tanggal_dipesan::text dipesan
+      from order_pembelian_detail d
+      join order_pembelian o on o.id = d.id_order_pembelian
+      join pemasok p on p.id = o.id_pemasok
+     where o.status in ('DIPESAN', 'DIKONFIRMASI', 'SEBAGIAN')
+       and coalesce(d.qty_konfirmasi, d.qty_pesan) - d.qty_diterima - d.qty_dipotong > 0`);
+  return r.rows.map((x) => ({
+    idBarang: Number(x.id_barang),
+    nomor: x.nomor,
+    idPemasok: Number(x.id_pemasok),
+    namaPemasok: x.nama_pemasok,
+    noHp: x.no_hp,
+    janji: x.janji,
+    diminta: x.diminta,
+    dipesan: x.dipesan,
+  }));
+}
+
+/** K-242: pemasok yang pernah memasok tiap barang (penerimaan pembelian). */
+export async function pemasokPernah(ex: Executor): Promise<Map<number, number[]>> {
+  const r = await ex.execute<{ id_barang: string; id_pemasok: string }>(sql`
+    select distinct d.id_barang, pb.id_pemasok
+      from penerimaan_barang_detail d join penerimaan_barang pb on pb.id = d.id_penerimaan
+     where pb.jenis = 'PEMBELIAN'`);
+  const peta = new Map<number, number[]>();
+  for (const x of r.rows) {
+    const id = Number(x.id_barang);
+    peta.set(id, [...(peta.get(id) ?? []), Number(x.id_pemasok)]);
+  }
+  return peta;
 }

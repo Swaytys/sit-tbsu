@@ -389,7 +389,7 @@ export const DAFTAR_TUR: Tur[] = [
   {
     kode: 'STOK',
     judul: 'Stok Persediaan',
-    ringkas: 'Melihat stok, penyesuaian/opname, saran pesan.',
+    ringkas: 'Melihat stok, penyesuaian/opname, perencanaan pengadaan.',
     rute: '/persediaan',
     izin: ['persediaan.stok.lihat'],
     langkah: [
@@ -407,8 +407,8 @@ export const DAFTAR_TUR: Tur[] = [
         ],
       },
       {
-        judul: 'Saran pesan',
-        sasaran: { teks: 'Saran pesan' },
+        judul: 'Perencanaan Pengadaan',
+        sasaran: { teks: 'Perencanaan Pengadaan' },
         isi: [
           'Barang yang perlu dipesan ulang dihitung dari penjualan beberapa hari terakhir dan lama kirim pemasok. Bisa langsung dijadikan order pembelian.',
         ],

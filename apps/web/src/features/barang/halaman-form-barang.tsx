@@ -718,8 +718,8 @@ function FormBarang({
                         />
                       </FormControl>
                       <FormDescription>
-                        Untuk saran pesan metode C (min–maks): pesan sampai jumlah ini bila stok
-                        turun ke stok minimum.
+                        Untuk Perencanaan Pengadaan metode C (min–maks): pesan sampai jumlah ini
+                        bila stok turun ke stok minimum.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

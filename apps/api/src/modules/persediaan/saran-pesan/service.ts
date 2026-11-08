@@ -6,6 +6,9 @@ import {
   STATUS_SARAN_PESAN,
   subtotalRupiah,
   bagiQty,
+  kaliQty,
+  nomorHari,
+  type CelahStok,
   tambahQty,
   Z_TINGKAT_LAYANAN,
   type BarisSaranPesan,
@@ -81,8 +84,16 @@ function bolehNilai(izin: ReadonlySet<Izin>): boolean {
 /** Semua barang dihitung dengan metode pilihan (tanpa saringan), lengkap dengan nilai rupiah. */
 async function hitungSemua(prm: ParameterSaranPesan): Promise<BarisPenuh[]> {
   const barang = await repo.barangUntukSaran(db, { dari: prm.dari, sampai: prm.sampai });
+  // K-242: kedatangan order berjalan dan pemasok yang pernah memasok tiap barang.
+  const [datangOrder, pernah] = await Promise.all([
+    repo.kedatanganOrder(db),
+    repo.pemasokPernah(db),
+  ]);
   const idPemasok = [
-    ...new Set(barang.flatMap((b) => (b.idPemasok === null ? [] : [b.idPemasok]))),
+    ...new Set([
+      ...barang.flatMap((b) => (b.idPemasok === null ? [] : [b.idPemasok])),
+      ...[...pernah.values()].flat(),
+    ]),
   ];
   const pemasok = new Map((await repo.pemasokSaran(db, idPemasok)).map((p) => [p.id, p]));
   // Deret harian hanya untuk metode yang memakainya (B, D).
@@ -131,6 +142,26 @@ async function hitungSemua(prm: ParameterSaranPesan): Promise<BarisPenuh[]> {
       faktorKemasan: b.faktorKemasan,
     });
     const hargaBeli = b.hargaBeliTerakhir > 0 ? b.hargaBeliTerakhir : b.hppRata2;
+    const lamaKirimPemasok = (id: number) => {
+      const a = aktual.get(id);
+      return a !== undefined && a.jumlahPO >= MIN_PO_LAMA_KIRIM
+        ? a.hari
+        : (pemasok.get(id)?.lamaKirimHari ?? prm.lamaKirimBawaan);
+    };
+    const celah = hitungCelah({
+      hariIni: tambahHari(prm.sampai, 1),
+      rata: h.rataPerHari,
+      stokTersedia: b.stokTersedia,
+      lamaKirimHari,
+      order: datangOrder.filter((o) => o.idBarang === b.idBarang),
+      lamaKirimPemasok,
+      pemasokLain: (pernah.get(b.idBarang) ?? []).map((id) => ({
+        id,
+        nama: pemasok.get(id)?.namaPemasok ?? `Pemasok #${id}`,
+      })),
+      hargaJual: b.hargaJual,
+      hpp: b.hppRata2 > 0 ? b.hppRata2 : hargaBeli,
+    });
     return {
       idBarang: b.idBarang,
       kode: b.kode,
@@ -168,8 +199,72 @@ async function hitungSemua(prm: ParameterSaranPesan): Promise<BarisPenuh[]> {
       catatan: h.catatan,
       hargaBeliTerakhir: hargaBeli,
       perkiraanBiaya: subtotalRupiah(h.saranPesan, hargaBeli),
+      celah,
     };
   });
+}
+
+/**
+ * K-242: apakah stok habis sebelum barang berikutnya datang. Tanggal datang = order berjalan tercepat (janji pemasok,
+ * lalu tanggal kirim diminta, lalu tanggal pesan + lama kirim); tanpa order = bila dipesan hari ini. Kekosongan =
+ * hari antara habis dan datang; perkiraan penjualan hilang = rata per hari × hari kosong.
+ */
+export function hitungCelah(k: {
+  hariIni: string;
+  rata: string;
+  stokTersedia: string;
+  lamaKirimHari: number;
+  order: Awaited<ReturnType<typeof repo.kedatanganOrder>>;
+  lamaKirimPemasok: (idPemasok: number) => number;
+  pemasokLain: { id: number; nama: string }[];
+  hargaJual: number;
+  hpp: number;
+}): CelahStok | null {
+  if (bandingQty(k.rata, 0) <= 0) return null;
+  const stok = bandingQty(k.stokTersedia, 0) > 0 ? k.stokTersedia : '0';
+  // Hari penuh yang masih tercukupi; habis di hari berikutnya.
+  const hariCukup = Math.floor(Number(bagiQty(stok, k.rata)));
+  const habisPada = tambahHari(k.hariIni, hariCukup);
+  const kandidat = k.order.map((o) => {
+    const [tanggal, sumber] = o.janji
+      ? [o.janji, 'JANJI' as const]
+      : o.diminta
+        ? [o.diminta, 'DIMINTA' as const]
+        : [
+            tambahHari(o.dipesan ?? k.hariIni, k.lamaKirimPemasok(o.idPemasok)),
+            'PERKIRAAN' as const,
+          ];
+    return { ...o, tanggal: tanggal < k.hariIni ? k.hariIni : tanggal, sumber };
+  });
+  kandidat.sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+  const o = kandidat[0];
+  const datangPada = o ? o.tanggal : tambahHari(k.hariIni, k.lamaKirimHari);
+  if (habisPada >= datangPada) return null;
+  const hariKosong = nomorHari(datangPada) - nomorHari(habisPada);
+  const qtyHilang = kaliQty(k.rata, hariKosong);
+  const omzetHilang = subtotalRupiah(qtyHilang, k.hargaJual);
+  return {
+    habisPada,
+    datangPada,
+    sumberDatang: o ? o.sumber : 'PESAN_HARI_INI',
+    nomorOrder: o?.nomor ?? null,
+    namaPemasokOrder: o?.namaPemasok ?? null,
+    noHpPemasokOrder: o?.noHp ?? null,
+    hariKosong,
+    qtyHilang: keQty(qtyHilang),
+    omzetHilang,
+    labaHilang: Math.max(0, omzetHilang - subtotalRupiah(qtyHilang, k.hpp)),
+    pemasokCepat: k.pemasokLain
+      .map((p) => ({
+        idPemasok: p.id,
+        namaPemasok: p.nama,
+        lamaKirimHari: k.lamaKirimPemasok(p.id),
+        datangPada: tambahHari(k.hariIni, k.lamaKirimPemasok(p.id)),
+      }))
+      .filter((p) => p.datangPada < datangPada)
+      .sort((a, b) => a.lamaKirimHari - b.lamaKirimHari)
+      .slice(0, 3),
+  };
 }
 
 /** RO13: hasil hitung dari simpanan bila masih berlaku, atau dihitung lalu disimpan. */
@@ -213,6 +308,10 @@ function tampilkan(b: BarisPenuh, nilai: boolean): BarisSaranPesan {
   if (!nilai) {
     delete hasil.hargaBeliTerakhir;
     delete hasil.perkiraanBiaya;
+    if (hasil.celah) {
+      hasil.celah = { ...hasil.celah };
+      delete hasil.celah.labaHilang;
+    }
   }
   return hasil;
 }
@@ -264,11 +363,19 @@ export async function daftarSaranPesan(
   const perPemasok = [...grup.values()].sort((a, b) =>
     a.namaPemasok.localeCompare(b.namaPemasok, 'id'),
   );
+  const adaCelah = semua.filter((b) => b.celah !== null);
   return {
     parameter,
     jumlah,
     baris,
     perPemasok,
+    celah: {
+      jumlahBarang: adaCelah.length,
+      omzetHilang: adaCelah.reduce((t, b) => t + (b.celah?.omzetHilang ?? 0), 0),
+      ...(nilai
+        ? { labaHilang: adaCelah.reduce((t, b) => t + (b.celah?.labaHilang ?? 0), 0) }
+        : {}),
+    },
     dihitungPada: new Date(hasil.waktu).toISOString(),
     dariSimpanan: hasil.dariSimpanan,
   };

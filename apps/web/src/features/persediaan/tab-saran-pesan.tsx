@@ -76,6 +76,7 @@ export function TabSaranPesan() {
   const [p, setP] = useState<Omit<SaringSaranPesan, 'metode' | 'layanan'>>({ tampil: 'PERLU' });
   const [pilih, setPilih] = useState<PilihanMetode>(bacaMetode);
   const [kata, setKata] = useState('');
+  const [hanyaKosong, setHanyaKosong] = useState(false);
   const cari = useTunda(kata, 300);
   const q = useSaranPesan({ ...p, ...pilih, cari: cari || undefined });
   const bolehPO = usePengguna().izin.includes('persediaan.penerimaan.kelola');
@@ -112,7 +113,7 @@ export function TabSaranPesan() {
   const h = q.data;
 
   const kelompok = new Map<string, { nama: string; baris: BarisSaranPesan[] }>();
-  for (const b of h?.baris ?? []) {
+  for (const b of (h?.baris ?? []).filter((x) => !hanyaKosong || x.celah !== null)) {
     const k = String(b.idPemasok ?? 0);
     const g = kelompok.get(k) ?? { nama: b.namaPemasok ?? 'Belum pernah dibeli', baris: [] };
     g.baris.push(b);
@@ -130,8 +131,8 @@ export function TabSaranPesan() {
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1 basis-80 text-sm text-slate-600">
           <p>
-            Saran berapa banyak barang dibeli ulang, dihitung dari penjualan dan lama kirim pemasok
-            dengan metode pilihan (penjelasan tiap metode: tombol ?). Gunakan sebagai bahan
+            <b>Perencanaan Pengadaan</b>: kapan dan berapa banyak barang dibeli ulang, dihitung dari
+            penjualan, lama kirim pemasok, dan order yang sedang berjalan. Gunakan sebagai bahan
             keputusan belanja; angka akhirnya tetap keputusan Anda.
           </p>
           {h && (
@@ -154,6 +155,29 @@ export function TabSaranPesan() {
           <PenjelasanSaran />
         </div>
       </div>
+
+      <PanduanPengadaan />
+
+      {h && h.celah.jumlahBarang > 0 && (
+        <button
+          type="button"
+          onClick={() => setHanyaKosong((x) => !x)}
+          aria-pressed={hanyaKosong}
+          className={cn(
+            'w-full rounded-lg border border-red-300 bg-red-50 p-3 text-left text-sm text-red-900',
+            hanyaKosong && 'ring-2 ring-red-500',
+          )}
+          data-testid="ringkasan-celah"
+        >
+          <b>{h.celah.jumlahBarang} barang diperkirakan kosong sebelum barang berikutnya datang.</b>{' '}
+          Perkiraan penjualan hilang {formatRupiah(h.celah.omzetHilang)}
+          {h.celah.labaHilang !== undefined &&
+            ` (laba kotor ${formatRupiah(h.celah.labaHilang)})`}.{' '}
+          {hanyaKosong
+            ? 'Klik untuk menampilkan semua.'
+            : 'Klik untuk menampilkan barang itu saja.'}
+        </button>
+      )}
 
       <Card className="flex flex-row flex-wrap items-center gap-x-3 gap-y-2 p-3">
         <span className="text-xs font-medium text-slate-600">Metode hitung</span>
@@ -351,7 +375,7 @@ export function TabSaranPesan() {
                   <th className="px-2 py-2 text-right font-medium">Terjual · rata/hari</th>
                   <th className="px-2 py-2 text-right font-medium">Tersedia · cukup</th>
                   <th className="px-2 py-2 text-right font-medium">Titik pesan</th>
-                  <th className="px-2 py-2 text-right font-medium">Saran pesan</th>
+                  <th className="px-2 py-2 text-right font-medium">Saran qty pesan</th>
                   {adaBiaya && <th className="px-2 py-2 text-right font-medium">Perkiraan</th>}
                   <th className="px-4 py-2 font-medium">Status</th>
                 </tr>
@@ -420,6 +444,7 @@ export function TabSaranPesan() {
                           {b.catatan}
                         </p>
                       )}
+                      {b.celah && <KotakCelah b={b} bolehPO={bolehPO} />}
                     </td>
                   </tr>
                 ))}
@@ -432,9 +457,224 @@ export function TabSaranPesan() {
   );
 }
 
+const LABEL_SUMBER_DATANG = {
+  JANJI: 'janji pemasok',
+  DIMINTA: 'tanggal kirim diminta di order',
+  PERKIRAAN: 'perkiraan dari lama kirim',
+  PESAN_HARI_INI: 'bila dipesan hari ini',
+} as const;
+
+/** K-242: perkiraan kekosongan stok dan saran tindakan berurutan untuk satu barang. */
+function KotakCelah({ b, bolehPO }: { b: BarisSaranPesan; bolehPO: boolean }) {
+  const c = b.celah;
+  const simpan = useSimpanPO();
+  const navigasi = useNavigate();
+  if (!c) return null;
+  const teksPercepat =
+    `Selamat siang ${c.namaPemasokOrder ?? ''}. Mohon bantuannya, order ${c.nomorOrder ?? ''} untuk ` +
+    `${b.namaBarang} bisa dikirim lebih cepat? Stok kami diperkirakan habis ${formatTanggal(c.habisPada)}. ` +
+    'Terima kasih.';
+  return (
+    <details
+      className="mt-1 max-w-80 rounded-md border border-red-300 bg-red-50 p-2 text-xs text-red-900"
+      data-testid="kotak-celah"
+    >
+      <summary className="cursor-pointer font-semibold">
+        Kosong ±{c.hariKosong} hari ({formatTanggal(c.habisPada)}–{formatTanggal(c.datangPada)})
+      </summary>
+      <div className="mt-1 space-y-1">
+        <p>
+          Stok habis sekitar <b>{formatTanggal(c.habisPada)}</b>; barang datang{' '}
+          <b>{formatTanggal(c.datangPada)}</b> ({LABEL_SUMBER_DATANG[c.sumberDatang]}
+          {c.nomorOrder ? `, ${c.nomorOrder}` : ''}).
+        </p>
+        <p>
+          Perkiraan penjualan hilang {formatDesimal(c.qtyHilang)} {b.kodeSatuan} ·{' '}
+          {formatRupiah(c.omzetHilang)}
+          {c.labaHilang !== undefined && ` (laba kotor ${formatRupiah(c.labaHilang)})`}.
+        </p>
+        <p className="font-medium">Saran tindakan, berurutan:</p>
+        <ol className="list-decimal space-y-1 pl-4">
+          {c.nomorOrder && (
+            <li>
+              Minta {c.namaPemasokOrder} mempercepat kiriman.{' '}
+              <button
+                type="button"
+                className="font-medium text-blue-700 underline"
+                onClick={() =>
+                  void navigator.clipboard
+                    .writeText(teksPercepat)
+                    .then(() => toast.success('Pesan disalin. Tempel di WhatsApp pemasok.'))
+                    .catch(() => toast.error('Peramban menolak menyalin.'))
+                }
+              >
+                Salin pesan WhatsApp
+              </button>
+            </li>
+          )}
+          {c.pemasokCepat.length > 0 ? (
+            <li>
+              Beli sebagian dari pemasok yang lebih cepat:
+              <ul className="pl-2">
+                {c.pemasokCepat.map((p) => (
+                  <li key={p.idPemasok}>
+                    {p.namaPemasok} (kirim {p.lamaKirimHari} hari, datang{' '}
+                    {formatTanggal(p.datangPada)})
+                    {bolehPO && (
+                      <button
+                        type="button"
+                        className="ml-1 font-medium text-blue-700 underline"
+                        disabled={simpan.isPending}
+                        onClick={() =>
+                          void simpan
+                            .mutateAsync({
+                              id: null,
+                              json: {
+                                idPemasok: p.idPemasok,
+                                catatan: `Pengadaan darurat: ${b.namaBarang} diperkirakan kosong ${formatTanggal(c.habisPada)}`,
+                                tanggalKirimDiminta: p.datangPada,
+                                caraKirim: null,
+                                syaratBayar: null,
+                                tempoHari: null,
+                                uangMukaRencana: 0,
+                                metodeBayarRencana: null,
+                                baris: [
+                                  {
+                                    idBarang: b.idBarang,
+                                    qty: String(Math.ceil(Number(c.qtyHilang))),
+                                    harga: b.hargaBeliTerakhir ?? 0,
+                                  },
+                                ],
+                              },
+                            })
+                            .then((po) => {
+                              toast.success('Draf order dibuat. Lengkapi kesepakatan lalu kirim.');
+                              void navigasi(`/order-pembelian?status=DRAF&id=${po.id}`);
+                            })
+                            .catch((err: unknown) => toast.error(pesanGalat(err)))
+                        }
+                      >
+                        Buat draf order
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ) : (
+            !c.nomorOrder && (
+              <li>Pesan sekarang ke pemasok biasa (lihat Saran qty pesan di baris ini).</li>
+            )
+          )}
+          <li>
+            Sampai barang datang, utamakan pelanggan tetap dan hati-hati menerima pesanan partai
+            besar barang ini.
+          </li>
+        </ol>
+      </div>
+    </details>
+  );
+}
+
+const KUNCI_PANDUAN = 'pengadaan.panduanTerbuka';
+
+/**
+ * K-242: panduan dengan contoh angka untuk karyawan (bukan hanya tombol ?). Terbuka/tertutup diingat di komputer
+ * ini (preferensi tampilan).
+ */
+function PanduanPengadaan() {
+  const [buka, setBuka] = useState(() => {
+    try {
+      return localStorage.getItem(KUNCI_PANDUAN) !== '0';
+    } catch {
+      return true;
+    }
+  });
+  function ubah(b: boolean) {
+    setBuka(b);
+    try {
+      localStorage.setItem(KUNCI_PANDUAN, b ? '1' : '0');
+    } catch {
+      // Penyimpanan diblokir: tidak masalah.
+    }
+  }
+  if (!buka) {
+    return (
+      <button
+        type="button"
+        className="text-sm font-medium text-blue-700 hover:underline"
+        onClick={() => ubah(true)}
+      >
+        Tampilkan panduan membaca halaman ini (dengan contoh)
+      </button>
+    );
+  }
+  return (
+    <Card className="gap-2 p-4 text-sm text-slate-700" data-testid="panduan-pengadaan">
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-semibold text-slate-900">Cara membaca halaman ini (contoh: semen)</p>
+        <button
+          type="button"
+          className="text-xs text-blue-700 hover:underline"
+          onClick={() => ubah(false)}
+        >
+          Sembunyikan
+        </button>
+      </div>
+      <ol className="list-decimal space-y-1.5 pl-5">
+        <li>
+          <b>Lihat status.</b> <i>Pesan sekarang</i> = harus dipesan hari ini. <i>Segera pesan</i> =
+          pesan di belanja berikutnya. <i>Aman</i> = tidak perlu. <i>Tidak laku</i> = modal
+          tertahan, jangan dibeli lagi dulu.
+        </li>
+        <li>
+          <b>Kotak merah &quot;Kosong ± hari&quot;</b> = stok diperkirakan habis <i>sebelum</i>{' '}
+          barang datang. Contoh: semen laku 20 sak/hari, stok 100 sak → habis 5 hari lagi; order ke
+          pemasok dijanjikan datang 10 hari lagi → toko kosong 5 hari, kehilangan ±100 sak
+          penjualan. Buka kotaknya untuk saran: minta pemasok mempercepat, beli sebagian ke pemasok
+          yang lebih cepat, atau jaga stok untuk pelanggan tetap.
+        </li>
+        <li>
+          <b>Saran pesan</b> = jumlah yang dibeli supaya cukup sampai kiriman ini datang <i>dan</i>{' '}
+          sampai belanja berikutnya. Tombol <b>Buat order pembelian</b> per pemasok membuat drafnya.
+        </li>
+        <li>
+          <b>Pilih metode hitung</b> (tombol 1–4):
+          <ul className="mt-1 list-disc space-y-1 pl-5">
+            <li>
+              <b>A Rata-rata</b> (bawaan): semen terjual 240 sak dalam 30 hari = 8 sak/hari. Kirim 3
+              hari + cadangan 2 hari → pesan saat stok tinggal 40 sak. Cocok untuk barang yang
+              lakunya stabil.
+            </li>
+            <li>
+              <b>B Statistik</b>: kalau penjualan naik-turun (hari ini 2 sak, besok 30 sak),
+              cadangan dibuat lebih besar supaya jarang kehabisan. Pilih tingkat layanan 95% =
+              kira-kira hanya 1 dari 20 kali belanja yang sempat kehabisan.
+            </li>
+            <li>
+              <b>C Min–maks</b>: pakai angka stok minimum dan maksimum di Data Barang. Contoh min
+              50, maks 200: stok turun ke 50 → pesan 150. Cocok untuk barang yang dibeli per muatan
+              tetap.
+            </li>
+            <li>
+              <b>D Tren</b>: membaca arah penjualan. Musim bangun, penjualan semen naik dari 8 ke 15
+              sak/hari → saran ikut naik. Periksa catatan di kolom Status bila ada borongan sesaat.
+            </li>
+          </ul>
+        </li>
+        <li>
+          Lama kirim diambil dari kenyataan (rata-rata order pembelian) bila sudah ada 3 order;
+          selain itu dari Data Pemasok. Barang yang sudah dipesan dan belum datang ikut dihitung,
+          jadi tidak disarankan dua kali.
+        </li>
+      </ol>
+    </Card>
+  );
+}
+
 function PenjelasanSaran() {
   return (
-    <Penjelasan judul="Cara sistem menghitung saran pesan">
+    <Penjelasan judul="Cara sistem menghitung Perencanaan Pengadaan">
       <ButirPenjelasan>
         <li>
           <b>Rata-rata jual per hari</b> = jumlah terjual bersih (penjualan dikurangi retur dan

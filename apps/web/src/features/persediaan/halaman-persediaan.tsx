@@ -42,7 +42,7 @@ export function HalamanPersediaan() {
       <Tabs value={tab} onValueChange={(v) => setCari({ tab: v }, { replace: true })}>
         <TabsList className="print:hidden">
           <TabsTrigger value="posisi">Posisi stok</TabsTrigger>
-          <TabsTrigger value="saran-pesan">Saran pesan</TabsTrigger>
+          <TabsTrigger value="saran-pesan">Perencanaan Pengadaan</TabsTrigger>
           <TabsTrigger value="mutasi">Mutasi</TabsTrigger>
           <TabsTrigger value="kartu">Kartu stok</TabsTrigger>
           <TabsTrigger value="tertahan">Stok tertahan</TabsTrigger>

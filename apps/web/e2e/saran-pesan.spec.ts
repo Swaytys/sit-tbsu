@@ -55,7 +55,7 @@ test('Admin mengisi lama kirim pemasok; Saran Pesan menampilkan barangnya besert
   try {
     // 3. Stok Persediaan › Saran pesan: tampilkan semua barang dari pemasok itu.
     await page.goto('/persediaan?tab=saran-pesan');
-    await expect(page.getByRole('tab', { name: 'Saran pesan' })).toHaveAttribute(
+    await expect(page.getByRole('tab', { name: 'Perencanaan Pengadaan' })).toHaveAttribute(
       'data-state',
       'active',
     );
@@ -67,8 +67,13 @@ test('Admin mengisi lama kirim pemasok; Saran Pesan menampilkan barangnya besert
     await expect(baris).toContainText('Tidak laku'); // belum ada penjualan sebelum hari ini
     await expect(baris).toContainText('50');
 
+    // K-242: panduan dengan contoh tampil tanpa harus menekan tombol ?.
+    await expect(page.getByTestId('panduan-pengadaan')).toContainText('Kotak merah');
+
     // 4. Penjelasan rumus.
-    await page.getByRole('button', { name: /Cara sistem menghitung saran pesan/ }).click();
+    await page
+      .getByRole('button', { name: /Cara sistem menghitung Perencanaan Pengadaan/ })
+      .click();
     await expect(page.getByText(/8 × \(3 \+ 7\) \+ 16 − 40/)).toBeVisible();
     await page.keyboard.press('Escape');
 

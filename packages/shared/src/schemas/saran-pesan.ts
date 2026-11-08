@@ -46,6 +46,32 @@ export type ParameterSaranPesan = {
   tingkatLayanan: TingkatLayananSaran;
 };
 
+/**
+ * K-242: stok diperkirakan habis sebelum barang berikutnya datang (dari order berjalan, atau bila dipesan hari ini).
+ * Nilai rupiah: omzet hilang memakai harga jual dasar; laba kotor hilang hanya untuk `master.barang.lihat_hpp`.
+ */
+export type CelahStok = {
+  habisPada: string;
+  datangPada: string;
+  /** JANJI = janji pemasok; DIMINTA = tanggal kirim diminta di order; PERKIRAAN = tanggal pesan + lama kirim;
+   * PESAN_HARI_INI = belum ada order, bila dipesan hari ini. */
+  sumberDatang: 'JANJI' | 'DIMINTA' | 'PERKIRAAN' | 'PESAN_HARI_INI';
+  nomorOrder: string | null;
+  namaPemasokOrder: string | null;
+  noHpPemasokOrder: string | null;
+  hariKosong: number;
+  qtyHilang: string;
+  omzetHilang: number;
+  labaHilang?: number;
+  /** Pemasok lain yang pernah memasok barang ini dan bisa datang lebih cepat (lama kirim terpendek dulu). */
+  pemasokCepat: {
+    idPemasok: number;
+    namaPemasok: string;
+    lamaKirimHari: number;
+    datangPada: string;
+  }[];
+};
+
 export type BarisSaranPesan = {
   idBarang: number;
   kode: string;
@@ -90,6 +116,8 @@ export type BarisSaranPesan = {
   /** Hanya untuk pemegang `master.barang.lihat_hpp`. */
   hargaBeliTerakhir?: number;
   perkiraanBiaya?: number;
+  /** K-242: kekosongan stok sebelum barang datang; `null` bila aman atau tidak terjual. */
+  celah: CelahStok | null;
 };
 
 export type RingkasanPemasokSaran = {
@@ -105,6 +133,8 @@ export type HasilSaranPesan = {
   jumlah: Record<StatusSaranPesan, number>;
   baris: BarisSaranPesan[];
   perPemasok: RingkasanPemasokSaran[];
+  /** K-242: ringkasan kekosongan stok (jumlah barang, omzet hilang; laba hanya dengan izin harga modal). */
+  celah: { jumlahBarang: number; omzetHilang: number; labaHilang?: number };
   /** K-127 RO13: waktu hitung (ISO) dan apakah diambil dari simpanan memori server. */
   dihitungPada: string;
   dariSimpanan: boolean;

@@ -635,8 +635,13 @@ Semua tugas kasir, ditambah:
   di bawah kotak cari tampil **daftar semua barang rusak** beserta jumlah rusaknya → klik barang untuk
   menambahkannya → isi qty dan alasan → **Simpan & selesaikan**. Pencarian hanya menampilkan barang yang punya stok
   rusak dan angkanya adalah stok rusak.
-- **Saran pesan ulang** (*Persediaan › Stok Persediaan › Saran pesan*): daftar barang yang perlu dibeli dan
-  berapa banyak, dikelompokkan per pemasok.
+- **Perencanaan Pengadaan** (*Persediaan › Stok Persediaan › Perencanaan Pengadaan*; dulu *Saran pesan*): daftar
+  barang yang perlu dibeli dan berapa banyak, dikelompokkan per pemasok. Di atas halaman ada panduan singkat
+  dengan contoh. **Kotak merah "N barang diperkirakan kosong"** = stok akan habis sebelum barang berikutnya datang
+  (dari order yang berjalan, atau bila dipesan hari ini); klik untuk menampilkan barang itu saja. Pada barangnya,
+  buka **Kosong ±N hari** untuk melihat tanggal habis dan datang, perkiraan penjualan hilang, dan saran:
+  **Salin pesan WhatsApp** minta pemasok mempercepat, **Buat draf order** ke pemasok yang lebih cepat (lalu lengkapi
+  kesepakatan dan kirim), atau jaga stok untuk pelanggan tetap.
   1. Isi dulu sekali per pemasok di *Data Pemasok* › Ubah: **Lama kirim (hari)** (dari memesan sampai barang tiba)
      dan **Belanja tiap (hari)** (seberapa sering Anda belanja ke pemasok itu). Kosong = memakai bawaan di
      *Pengaturan › Operasional* (bawaan 3 dan 7 hari).

@@ -1430,8 +1430,8 @@ export function HalamanOrderPembelian() {
           <Rincian id={pilih} onUbah={(d) => setDraf({ awal: d })} />
         ) : (
           <Card className="p-8 text-center text-sm text-slate-500">
-            Pilih order di sebelah kiri, atau buat order pembelian baru. Dari tab Saran pesan juga
-            bisa langsung membuat order per pemasok.
+            Pilih order di sebelah kiri, atau buat order pembelian baru. Dari tab Perencanaan
+            Pengadaan juga bisa langsung membuat order per pemasok.
           </Card>
         )}
       </div>
