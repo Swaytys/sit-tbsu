@@ -303,6 +303,24 @@ const KONFIGURASI: BarisKonfigurasi[] = [
       'Muatan di atas 100% sampai batas ini boleh berangkat dengan alasan; di atasnya ditolak (K-203)',
   },
   {
+    kode: 'penerimaan_tanpa_po_dibatasi',
+    nilai: 'true',
+    tipe: 'BOOL',
+    deskripsi: 'Pembelian tanpa order pembelian hanya tunai sampai batas (K-225)',
+  },
+  {
+    kode: 'penerimaan_tanpa_po_batas',
+    nilai: '500000',
+    tipe: 'ANGKA',
+    deskripsi: 'Batas nilai pembelian tunai tanpa order pembelian (K-225)',
+  },
+  {
+    kode: 'po_penerima_beda',
+    nilai: 'true',
+    tipe: 'BOOL',
+    deskripsi: 'Penerima barang bukan pembuat order pembelian (K-225)',
+  },
+  {
     kode: 'po_batas_tanpa_persetujuan',
     nilai: '1000000',
     tipe: 'ANGKA',

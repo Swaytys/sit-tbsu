@@ -200,6 +200,11 @@ export type DataPenerimaan = z.output<typeof skemaPenerimaan>;
 
 export const skemaCariPenerimaan = skemaHalaman.extend({
   cari: z.string().trim().max(100).optional(),
+  /** K-225: hanya pembelian tanpa order pembelian (daftar tinjau Kepala Toko/Owner). */
+  tanpaOrder: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
   jenis: z.enum(JENIS_PENERIMAAN).optional(),
   idPemasok: z.coerce.number().int().positive().optional(),
   dari: skemaTanggal('Tanggal awal').optional(),

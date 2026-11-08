@@ -43,6 +43,7 @@ export function HalamanPenerimaan() {
   const [cari, setCari] = useIngat('penerimaan.cari', '');
   const cariTertunda = useTunda(cari, 300);
   const [jenis, setJenis] = useIngat<JenisPenerimaan | null>('penerimaan.jenis', null);
+  const [tanpaOrder, setTanpaOrder] = useIngat('penerimaan.tanpaOrder', false);
   const [dari, setDari] = useIngat('penerimaan.dari', '');
   const [sampai, setSampai] = useIngat('penerimaan.sampai', '');
   const [halaman, setHalaman] = useIngat('penerimaan.halaman', 1);
@@ -50,6 +51,7 @@ export function HalamanPenerimaan() {
   const daftar = useDaftarPenerimaan({
     cari: cariTertunda,
     jenis,
+    tanpaOrder,
     dari,
     sampai,
     halaman,
@@ -158,6 +160,18 @@ export function HalamanPenerimaan() {
               <SelectItem value="KONSINYASI">Konsinyasi</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            type="button"
+            variant={tanpaOrder ? 'default' : 'outline'}
+            aria-pressed={tanpaOrder}
+            title="K-225: pembelian yang tidak lewat order pembelian, untuk ditinjau Kepala Toko/Owner"
+            onClick={() => {
+              setTanpaOrder(!tanpaOrder);
+              setHalaman(1);
+            }}
+          >
+            Tanpa order
+          </Button>
           <label className="flex items-center gap-2 text-sm text-slate-600">
             Dari
             <Input

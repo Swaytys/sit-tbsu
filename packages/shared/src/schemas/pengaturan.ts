@@ -135,6 +135,10 @@ export const skemaOperasional = z
     poBatasTanpaPersetujuan: bulat('Batas order pembelian tanpa persetujuan', 0, 100_000_000_000),
     poBatasKepalaToko: bulat('Batas persetujuan Kepala Toko', 0, 100_000_000_000),
     poAmbangNaikPersen: bulat('Ambang kenaikan harga beli', 0, 100),
+    /** K-225: pembelian tanpa order dibatasi (tunai sampai batas); penerima ≠ pembuat order. */
+    penerimaanTanpaPoDibatasi: z.boolean(),
+    penerimaanTanpaPoBatas: bulat('Batas pembelian tanpa order', 0, 100_000_000_000),
+    poPenerimaBeda: z.boolean(),
     barisPerHalaman: z.coerce
       .number('Jumlah baris harus berupa angka.')
       .refine(

@@ -22,6 +22,7 @@ import { tambahHari, tanggalOperasional } from '../../../lib/waktu';
 import { catatKas, shiftUntukCatat } from '../../kas/shift/service';
 import { kunciBarangHarga } from '../../master/harga/repo';
 import { petaDasar, tanggapiPerubahanDasar } from '../../master/harga/service';
+import { ambilAngka, ambilTeks } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import { catatMutasi, kunciPersediaan } from '../ledger';
@@ -85,6 +86,50 @@ export async function detailPenerimaan(id: number): Promise<DetailPenerimaan> {
     penyimpanganBayar: menyimpang?.penyimpanganBayar ?? false,
     alasanPenyimpangan: menyimpang?.alasanPenyimpangan ?? null,
   };
+}
+
+/**
+ * K-225 tahap 3: (1) pembelian tanpa order hanya tunai sampai batas dan tanpa barang khusus, bila dibatasi;
+ * (2) penerima barang bukan pembuat order, bila diaktifkan. Owner dikecualikan dari keduanya.
+ */
+async function periksaPengendalian(
+  tx: Tx,
+  input: DataPenerimaan,
+  pelaku: PenggunaAktif,
+  k: { konsinyasi: boolean; tunai: boolean; totalFaktur: number; khusus: string[] },
+) {
+  if (k.konsinyasi || pelaku.peran === 'OWNER') return;
+  if (!input.idOrderPembelian) {
+    if ((await ambilTeks('penerimaan_tanpa_po_dibatasi', 'false', tx)) !== 'true') return;
+    const batas = await ambilAngka('penerimaan_tanpa_po_batas', 500_000, tx);
+    const sebab = !k.tunai
+      ? 'Pembelian tempo'
+      : k.totalFaktur > batas
+        ? `Pembelian di atas ${formatRupiah(batas)}`
+        : k.khusus.length > 0
+          ? `Barang wajib disetujui Owner (${k.khusus.join(', ')})`
+          : null;
+    if (sebab) {
+      throw new AppError(
+        'KONFLIK',
+        `${sebab} wajib lewat order pembelian. Buat order pembelian dulu, lalu terima barangnya dari order itu.`,
+        409,
+      );
+    }
+    return;
+  }
+  if ((await ambilTeks('po_penerima_beda', 'false', tx)) !== 'true') return;
+  const [po] = await tx
+    .select({ idPembuat: orderPembelian.idPembuat })
+    .from(orderPembelian)
+    .where(eq(orderPembelian.id, input.idOrderPembelian));
+  if (po?.idPembuat === pelaku.id) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Barang dari order buatan Anda sendiri harus diterima dan dihitung orang lain (pemisahan tugas).',
+      403,
+    );
+  }
 }
 
 /** K-236: kesepakatan order (kosong untuk order lama sebelum K-236 → isian form yang dipakai). */
@@ -218,6 +263,12 @@ export async function simpanPenerimaan(
 
     const totalFaktur = konsinyasi ? 0 : baris.reduce((t, b) => t + b.subtotal, 0);
     const tunai = syaratDasar === 'TUNAI';
+    await periksaPengendalian(tx, input, pelaku, {
+      konsinyasi,
+      tunai,
+      totalFaktur,
+      khusus: baris.filter((b) => b.brg.perluPersetujuanBeli).map((b) => b.brg.namaBarang),
+    });
     const nomor = await terbitkanNomor(tx, 'RCV', tanggal);
     const idBaru = await repo.tambahHeader(tx, {
       nomor,

@@ -18,6 +18,43 @@ import { CATATAN_UJI_E2E } from './pembantu';
  */
 
 const BERKAS = join(tmpdir(), 'tbsu-e2e-tier-dinonaktifkan.json');
+const BERKAS_ATURAN = join(tmpdir(), 'tbsu-e2e-aturan-penerimaan.json');
+
+type Operasional = Record<string, unknown> & {
+  penerimaanTanpaPoDibatasi: boolean;
+  poPenerimaBeda: boolean;
+};
+
+/**
+ * K-225: aturan pemisahan tugas penerimaan (pembelian tanpa order dibatasi, penerima ≠ pembuat order) dimatikan
+ * selama tes e2e karena tes lain memakai satu akun untuk membuat dan menerima; aturan ini diuji di tes API. Nilai
+ * semula dipulihkan sesudahnya.
+ */
+async function aturAturanPenerimaan(api: APIRequestContext, nilai: Partial<Operasional> | null) {
+  const res = await api.get('/api/pengaturan');
+  if (!res.ok()) return;
+  const op = ((await res.json()) as { data: { operasional: Operasional } }).data.operasional;
+  if (nilai === null) {
+    if (!op.penerimaanTanpaPoDibatasi && !op.poPenerimaBeda) return;
+    writeFileSync(
+      BERKAS_ATURAN,
+      JSON.stringify({
+        penerimaanTanpaPoDibatasi: op.penerimaanTanpaPoDibatasi,
+        poPenerimaBeda: op.poPenerimaBeda,
+      }),
+    );
+    nilai = { penerimaanTanpaPoDibatasi: false, poPenerimaBeda: false };
+  }
+  const r = await api.patch('/api/pengaturan', { data: { operasional: { ...op, ...nilai } } });
+  if (!r.ok()) throw new Error(`Penyiapan e2e: aturan penerimaan gagal diatur: ${await r.text()}`);
+}
+
+async function pulihkanAturan(api: APIRequestContext) {
+  if (!existsSync(BERKAS_ATURAN)) return;
+  const semula = JSON.parse(readFileSync(BERKAS_ATURAN, 'utf8')) as Partial<Operasional>;
+  await aturAturanPenerimaan(api, semula);
+  rmSync(BERKAS_ATURAN);
+}
 
 type Tier = { id: number; nama: string; isDefault: boolean; statusAktif: string };
 
@@ -128,6 +165,8 @@ export default async function penyiapanGlobal(config: FullConfig) {
   const baseURL = config.projects[0]?.use.baseURL ?? 'http://localhost:5173';
   const api = await masukAdmin(baseURL);
   await pulihkan(api); // sisa penyiapan yang tidak sempat dipulihkan
+  await pulihkanAturan(api);
+  await aturAturanPenerimaan(api, null);
   await tutupShiftTerlewat(api);
   await pastikanRekening(api);
   const res = await api.get('/api/tingkat-harga');
@@ -145,6 +184,7 @@ export default async function penyiapanGlobal(config: FullConfig) {
   return async () => {
     const lagi = await masukAdmin(baseURL);
     await pulihkan(lagi);
+    await pulihkanAturan(lagi);
     await rapikanNonTunai(lagi, mulai);
     await lagi.dispose();
   };

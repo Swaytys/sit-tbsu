@@ -1,4 +1,5 @@
 import {
+  isNull,
   and,
   asc,
   count,
@@ -59,6 +60,7 @@ export type SaringPenerimaan = {
   cari?: string | undefined;
   jenis?: JenisPenerimaan | undefined;
   idPemasok?: number | undefined;
+  tanpaOrder?: boolean | undefined;
   dari?: string | undefined;
   sampai?: string | undefined;
 };
@@ -68,6 +70,9 @@ function syarat(p: SaringPenerimaan): SQL | undefined {
   return and(
     p.jenis ? eq(penerimaanBarang.jenis, p.jenis) : undefined,
     p.idPemasok ? eq(penerimaanBarang.idPemasok, p.idPemasok) : undefined,
+    p.tanpaOrder
+      ? and(eq(penerimaanBarang.jenis, 'PEMBELIAN'), isNull(penerimaanBarang.idOrderPembelian))
+      : undefined,
     p.dari ? gte(penerimaanBarang.tanggalOperasional, p.dari) : undefined,
     p.sampai ? lte(penerimaanBarang.tanggalOperasional, p.sampai) : undefined,
     pola
@@ -191,6 +196,7 @@ export function barangUntukPenerimaan(ex: Executor, id: number[]) {
       kepemilikan: barang.kepemilikan,
       idPemasokKonsinyasi: barang.idPemasokKonsinyasi,
       hargaTitip: barang.hargaTitip,
+      perluPersetujuanBeli: barang.perluPersetujuanBeli,
     })
     .from(barang)
     .where(inArray(barang.id, id));

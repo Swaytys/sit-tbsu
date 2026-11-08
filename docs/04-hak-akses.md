@@ -294,7 +294,8 @@ Aturannya di docs/05 §21 PO10–PO14. Ringkasan wewenang:
 Penyetuju memakai **akunnya sendiri** (notifikasi lonceng `PO_MENUNGGU_PERSETUJUAN`), atau dari jauh dengan **kode
 sekali pakai** (K-245, jenis `ORDER_PEMBELIAN`): pembuat order menekan *Minta kode*, kode dikirim ke Telegram/email
 penyetuju yang berwenang (Owner bila order perlu Owner), kode terikat pada order dan isinya, dan order tercatat
-disetujui atas nama pemilik kode. Semua aturan dicek di API: peran lain
+disetujui atas nama pemilik kode. Penerimaan dari order dicatat orang lain selain pembuatnya (PO25, bisa dimatikan); pembelian tanpa order dibatasi
+(PO24); keduanya tidak berlaku untuk Owner. Semua aturan dicek di API: peran lain
 ditolak 403, mengirim order yang wajib disetujui ditolak 409.
 
 ## 7. Sesi, login, password

@@ -39,6 +39,9 @@ type KolomAngka = Exclude<
   | 'batasVoidTanpaSetuju'
   | 'poBatasTanpaPersetujuan'
   | 'poBatasKepalaToko'
+  | 'penerimaanTanpaPoDibatasi'
+  | 'penerimaanTanpaPoBatas'
+  | 'poPenerimaBeda'
 >;
 
 const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: string }[] = [
@@ -147,7 +150,8 @@ function Saklar({
   ket,
 }: {
   control: Control<Masukan, unknown, Keluaran>;
-  nama: 'autoBatalOrderBasi' | 'checkoutWajibShift';
+  nama:
+    'autoBatalOrderBasi' | 'checkoutWajibShift' | 'penerimaanTanpaPoDibatasi' | 'poPenerimaBeda';
   label: string;
   ket: string;
 }) {
@@ -311,6 +315,35 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
                 />
               ))}
             </div>
+          </div>
+          {/* K-225 tahap 3: pengendalian penerimaan barang. */}
+          <div className="space-y-3 rounded-lg border p-3">
+            <p className="text-sm font-medium">Penerimaan barang</p>
+            <Saklar
+              control={form.control}
+              nama="penerimaanTanpaPoDibatasi"
+              label="Pembelian tanpa order pembelian dibatasi"
+              ket="Bila aktif, penerimaan tanpa order hanya untuk pembelian tunai sampai batas di bawah; di atasnya atau tempo wajib lewat order pembelian. Owner tetap boleh. Penerimaan tanpa order bisa ditinjau di Penerimaan Barang › Tanpa order."
+            />
+            <FormField
+              control={form.control}
+              name="penerimaanTanpaPoBatas"
+              render={({ field }) => (
+                <FormItem className="max-w-xs">
+                  <FormLabel>Batas pembelian tunai tanpa order</FormLabel>
+                  <FormControl>
+                    <InputRupiah {...field} onChange={(v) => field.onChange(v ?? 0)} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Saklar
+              control={form.control}
+              nama="poPenerimaBeda"
+              label="Penerima barang bukan pembuat order"
+              ket="Bila aktif, pembuat order pembelian tidak bisa mencatat penerimaan ordernya sendiri (Owner tetap boleh). Matikan bila karyawan sedikit; siapa membuat dan siapa menerima tetap tercatat."
+            />
           </div>
           <Saklar
             control={form.control}

@@ -621,6 +621,10 @@ Semua tugas kasir, ditambah:
      lewat tanggal janji kirim.
 - **Penerimaan barang** (*Persediaan › Penerimaan Barang*): catat barang datang dari pemasok (pembelian tunai/
   tempo atau titipan). Stok dan HPP rata-rata diperbarui otomatis.
+  Aturan pengendalian (Pengaturan › Operasional › *Penerimaan barang*): pembelian **tanpa order** hanya untuk tunai
+  sampai batas (bawaan Rp 500.000); di atasnya atau tempo, buat order pembelian dulu. Barang dari order diterima
+  **orang lain** selain pembuat ordernya (bisa dimatikan bila karyawan sedikit). Owner tidak terkena kedua aturan.
+  Tombol **Tanpa order** di daftar penerimaan menampilkan pembelian tanpa order untuk ditinjau.
 - **Stok** (*Persediaan › Stok Persediaan*): posisi stok, mutasi, kartu stok per barang, stok tertahan, dan
   **penyesuaian** (persediaan awal, koreksi, barang rusak, **stok opname**). Barang yang tidak dihitung saat opname
   dikecualikan dengan alasan, bukan dihapus.

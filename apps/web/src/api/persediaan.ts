@@ -21,6 +21,8 @@ import { ambilData, ambilIsi, api, galatDariRespons, paramId } from './client';
 export type ParamDaftarPenerimaan = {
   cari: string;
   jenis: JenisPenerimaan | null;
+  /** K-225: hanya pembelian tanpa order pembelian. */
+  tanpaOrder?: boolean;
   dari: string;
   sampai: string;
   halaman: number;
@@ -36,6 +38,7 @@ export function useDaftarPenerimaan(p: ParamDaftarPenerimaan) {
           query: {
             cari: p.cari || undefined,
             jenis: p.jenis ?? undefined,
+            tanpaOrder: p.tanpaOrder ? 'true' : undefined,
             dari: p.dari || undefined,
             sampai: p.sampai || undefined,
             halaman: String(p.halaman),

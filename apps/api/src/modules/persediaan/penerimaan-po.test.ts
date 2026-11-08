@@ -1,7 +1,13 @@
 import type { DetailOrderPembelian, DetailPenerimaan } from '@sit/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan } from '../../../test/fixtur-persediaan';
-import { json, minta, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import {
+  aturKonfigurasi,
+  json,
+  minta,
+  sesiUji,
+  siapkanDatabaseSistem,
+} from '../../../test/pembantu';
 import { db } from '../../db/client';
 import { persediaan } from '../../db/schema';
 import { tambahHari, tanggalOperasional } from '../../lib/waktu';
@@ -272,5 +278,55 @@ describe('penerimaan dari order pembelian (K-236, K-237)', () => {
       tanggalJatuhTempo: baru,
       jumlahPerpanjang: 1,
     });
+  });
+
+  it('K-225 tahap 3: tanpa order hanya tunai sampai batas; penerima bukan pembuat order (Owner boleh)', async () => {
+    await aturKonfigurasi({
+      penerimaan_tanpa_po_dibatasi: 'true',
+      penerimaan_tanpa_po_batas: '100000',
+      po_penerima_beda: 'true',
+    });
+    const owner = await sesiUji('OWNER');
+    const tanpaOrder = (isi: Record<string, unknown>) => ({
+      idPemasok: m.pemasokA,
+      jenis: 'PEMBELIAN',
+      metodeBayar: 'TRANSFER',
+      referensi: 'TRF-0099',
+      baris: [{ idBarang: m.semen, hargaModalMasuk: 50_000, qtyMasuk: '1' }],
+      ...isi,
+    });
+    // Tunai Rp 50.000 ≤ batas: boleh.
+    await data(kirim(persediaanSesi, '/api/penerimaan', tanpaOrder({ syaratBayar: 'TUNAI' })));
+    // Tempo atau di atas batas: wajib order.
+    const tempo = await galat(
+      kirim(
+        persediaanSesi,
+        '/api/penerimaan',
+        tanpaOrder({
+          syaratBayar: 'TEMPO',
+          tanggalJatuhTempo: tambahHari(tanggalOperasional(), 7),
+        }),
+      ),
+    );
+    expect(tempo.status).toBe(409);
+    expect(tempo.pesan).toContain('wajib lewat order pembelian');
+    const besar = tanpaOrder({
+      syaratBayar: 'TUNAI',
+      baris: [{ idBarang: m.semen, hargaModalMasuk: 50_000, qtyMasuk: '3' }],
+    });
+    expect((await galat(kirim(persediaanSesi, '/api/penerimaan', besar))).status).toBe(409);
+    await data(kirim(owner, '/api/penerimaan', besar));
+    // Daftar tinjau: penerimaan tanpa order.
+    const tinjau = await data<{ nomor: string }[]>(
+      minta('/api/penerimaan?tanpaOrder=true', { cookie: kepala.cookie }),
+    );
+    expect(tinjau).toHaveLength(2);
+
+    // Order buatan Kepala Toko tidak boleh diterima Kepala Toko sendiri.
+    const po = await orderDikirim({ syaratBayar: 'TEMPO', tempoHari: 7 });
+    const sendiri = await galat(kirim(kepala, '/api/penerimaan', terima(po, { qtyMasuk: '10' })));
+    expect(sendiri.status).toBe(403);
+    expect(sendiri.pesan).toContain('pemisahan tugas');
+    await data(kirim(persediaanSesi, '/api/penerimaan', terima(po, { qtyMasuk: '10' })));
   });
 });

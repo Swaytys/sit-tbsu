@@ -125,6 +125,9 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       poBatasTanpaPersetujuan: angka(m, 'po_batas_tanpa_persetujuan', 1_000_000),
       poBatasKepalaToko: angka(m, 'po_batas_kepala_toko', 10_000_000),
       poAmbangNaikPersen: angka(m, 'po_ambang_naik_persen', 10),
+      penerimaanTanpaPoDibatasi: bool(m, 'penerimaan_tanpa_po_dibatasi', false),
+      penerimaanTanpaPoBatas: angka(m, 'penerimaan_tanpa_po_batas', 500_000),
+      poPenerimaBeda: bool(m, 'po_penerima_beda', false),
       barisPerHalaman: barisPerHalaman(m),
     },
     harga: {
@@ -198,6 +201,9 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     a('po_batas_tanpa_persetujuan', o.poBatasTanpaPersetujuan);
     a('po_batas_kepala_toko', o.poBatasKepalaToko);
     a('po_ambang_naik_persen', o.poAmbangNaikPersen);
+    b('penerimaan_tanpa_po_dibatasi', o.penerimaanTanpaPoDibatasi);
+    a('penerimaan_tanpa_po_batas', o.penerimaanTanpaPoBatas);
+    b('po_penerima_beda', o.poPenerimaBeda);
     a('baris_per_halaman', o.barisPerHalaman);
   }
   if (p.harga) {

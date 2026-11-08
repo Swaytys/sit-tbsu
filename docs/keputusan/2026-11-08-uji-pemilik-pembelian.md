@@ -145,6 +145,13 @@ Rincian di kanan memakai seluruh ruang:
   dikembalikan (tunai/transfer) ketika order ditutup; penerima ≠ pemesan, hitung buta, dan penerimaan tanpa order di
   bawah batas (K-225 tahap 3).
 
+### K-225 tahap 3 (8 Nov, sebagian selesai)
+
+Pilihan pemilik 8 Nov: pembelian tanpa order **dibatasi nilai** (tunai ≤ Rp 500.000, bawaan) dan penerima **wajib
+beda** dari pembuat order tetapi **bisa dimatikan** di Pengaturan. Keduanya tidak berlaku untuk Owner. Selesai: PO24,
+PO25, daftar tinjau *Tanpa order*. Menyusul: hitung buta saat menerima, pencocokan tiga dokumen dengan faktur,
+wewenang bayar hutang per batas, persetujuan perubahan rekening pemasok, laporan pengawasan.
+
 ## K-239 Pemusnahan barang rusak
 
 Pencarian di form pemusnahan hanya menampilkan barang yang punya stok rusak, dengan angka **stok rusak** (bukan stok
