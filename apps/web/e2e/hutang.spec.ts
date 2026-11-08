@@ -101,6 +101,12 @@ test('Admin membayar hutang, meretur barang rusak ke pemasok, dan memusnahkan si
     .click();
   await expect(page.getByRole('heading', { name: /Pemusnahan/ })).toBeVisible();
   await expect(page.getByLabel(`Qty dimusnahkan ${namaBarang}`)).toHaveValue('1');
+  // K-239: daftar barang rusak siap klik; barang yang sudah di baris tidak bisa ditambah lagi.
+  await expect(
+    page
+      .getByTestId('daftar-rusak')
+      .getByRole('button', { name: `Tambah ${namaBarang} (rusak 1 sak)` }),
+  ).toBeDisabled();
   await page.getByRole('button', { name: 'Simpan & selesaikan' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Selesaikan' }).click();
   await expect(page.getByText('Alasan pemusnahan wajib diisi.')).toBeVisible();

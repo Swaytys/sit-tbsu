@@ -25,7 +25,7 @@ import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
 import { siarkan } from '../../../lib/siaran';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahHari, tanggalOperasional } from '../../../lib/waktu';
-import { shiftUntukCatat } from '../../kas/shift/service';
+import { pastikanShiftCheckout, shiftUntukCatat } from '../../kas/shift/service';
 import { hargaBarangDasar } from '../../master/harga/repo';
 import { catatMutasi, kunciPersediaan, ubahReservasi } from '../../persediaan/ledger';
 import { mintaKode, pakaiKode, periksaKode } from '../../sistem/kode-persetujuan/service';
@@ -326,6 +326,8 @@ export async function checkout(
     // PR5: saat checkout yang menentukan promo.
     const saat = sekarang();
     const tanggal = tanggalOperasional(saat);
+    // K-244: di jam operasional tanpa shift, semua checkout ditolak.
+    await pastikanShiftCheckout(tx);
     const ctx = await siapkanOrder(tx, input, pelaku, asal);
     const { h } = ctx;
     const jenis = h.jenisPenjualan;

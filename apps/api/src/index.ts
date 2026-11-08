@@ -5,6 +5,7 @@ import { createServer as createServerHttps } from 'node:https';
 import { serve } from '@hono/node-server';
 import { app } from './app';
 import { pool } from './db/client';
+import { jumlahMigrasiTertunda } from './db/migrator';
 import { env } from './env';
 import { logger } from './lib/logger';
 import { ingatkanShiftPerluDitutup } from './modules/kas/shift/service';
@@ -12,6 +13,15 @@ import { jalankanJobOrder } from './modules/penjualan/order/service';
 import { nyalakanLanBilaAktif } from './modules/sistem/akses/lan';
 import { nyalakanAksesPerangkat } from './modules/sistem/akses/tailscale';
 import { cekJadwalCadangan } from './modules/sistem/cadangan/service';
+
+// K-234: jangan menyala dengan skema database lama (halaman yang membaca kolom baru akan galat).
+const tertunda = await jumlahMigrasiTertunda(pool);
+if (tertunda > 0) {
+  logger.fatal(
+    `Database belum diperbarui: ${tertunda} migrasi belum dijalankan. Jalankan \`pnpm db:migrate\` lalu nyalakan lagi.`,
+  );
+  process.exit(1);
+}
 
 const pfx = env.HTTPS_PFX;
 const https = pfx !== undefined;

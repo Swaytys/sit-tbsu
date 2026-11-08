@@ -492,6 +492,15 @@ export function useStatusShiftToko() {
   });
 }
 
+/** K-244: jam operasional dari jadwal shift (pesan tanpa shift di layar kasir). */
+export function useJamOperasional() {
+  return useQuery({
+    queryKey: ['shift', 'jam-operasional'],
+    queryFn: async () => ambilData(await api.shift['jam-operasional'].$get()),
+    refetchInterval: 60_000,
+  });
+}
+
 /** K-197: hal menggantung sebelum shift ditutup (penghalang dan yang wajib diakui). */
 export function useHalMenggantung(id: number) {
   return useQuery({

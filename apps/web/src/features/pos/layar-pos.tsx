@@ -24,6 +24,7 @@ import { useTampilanToko } from '@/api/pengaturan';
 import {
   catatCetakUlang,
   useCheckout,
+  useJamOperasional,
   useMintaKodeLimit,
   useLepasOrder,
   usePapanAntrean,
@@ -258,6 +259,7 @@ export function LayarPos({
   const totalTampil = pratinjau.segar && pratinjau.data ? pratinjau.data.total : tr.total;
   const indeksAman = Math.min(indeksTiket, Math.max(0, tiket.length - 1));
   const tanpaShift = bolehShift && shift.isSuccess && shift.data === null;
+  const jamOps = useJamOperasional().data;
 
   // Fokus mengikuti zona (juga setelah panel bayar dibuat ulang untuk transaksi baru).
   useEffect(() => {
@@ -595,8 +597,24 @@ export function LayarPos({
       {tanpaShift && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-800">
           <span className="min-w-0 flex-1">
-            Shift toko belum dibuka: pembayaran tunai belum bisa diterima (non-tunai dan order tetap
-            bisa).
+            {jamOps?.di === true ? (
+              <>
+                <b>Shift toko belum dibuka.</b> Sekarang jam operasional ({jamOps.buka}–
+                {jamOps.tutup}): semua penjualan menunggu shift dibuka. Buka shift dulu (boleh
+                &ldquo;Buka dulu, hitung nanti&rdquo;).
+              </>
+            ) : jamOps?.di === false ? (
+              <>
+                <b>Di luar jam operasional</b> ({jamOps.buka}–{jamOps.tutup}) dan shift tertutup:
+                hanya non-tunai atau bayar nanti yang bisa. Tunai menunggu shift dibuka.
+              </>
+            ) : (
+              <>
+                Shift toko belum dibuka: tunai belum bisa diterima (non-tunai dan bayar nanti tetap
+                bisa). Isi jadwal shift di Pengaturan › Operasional agar aturan jam operasional
+                berlaku.
+              </>
+            )}
           </span>
           <button
             type="button"

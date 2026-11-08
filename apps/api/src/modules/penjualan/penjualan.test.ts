@@ -2,7 +2,14 @@ import type { DetailOrder, DetailPenjualan } from '@sit/shared';
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { siapkanMasterPersediaan, siapkanTierNormal } from '../../../test/fixtur-persediaan';
-import { json, minta, rekeningUji, sesiUji, siapkanDatabaseSistem } from '../../../test/pembantu';
+import {
+  aturKonfigurasi,
+  json,
+  minta,
+  rekeningUji,
+  sesiUji,
+  siapkanDatabaseSistem,
+} from '../../../test/pembantu';
 import { kosongkanTabel } from '../../../test/reset';
 import { db } from '../../db/client';
 import {
@@ -206,6 +213,49 @@ describe('checkout dan pembayaran (docs/05 §6)', () => {
     // Gagal = tidak ada efek (stok tetap setelah satu penjualan Admin).
     expect(await stok(m.semen)).toEqual({ fisik: '9.000', dipesan: '0.000' });
     expect((await galat(minta2(staf, '/api/penjualan/checkout', { order: isi }))).status).toBe(403);
+  });
+
+  it('K-244 di jam operasional tanpa shift semua checkout ditolak; di luar jam non-tunai boleh', async () => {
+    const isi = keranjang([{ idBarang: m.semen, qty: '1' }]);
+    const transfer = async () => ({
+      order: isi,
+      pembayaran: [
+        {
+          metode: 'TRANSFER',
+          nominal: 12000,
+          idRekening: await rekeningUji('TRANSFER'),
+          referensi: 'TRX-K244',
+        },
+      ],
+    });
+    // Jam operasional sepanjang hari: Admin pun ditolak walau bayar transfer.
+    await aturKonfigurasi({ shift_jam_buka: '00:00', shift_jam_tutup: '24:00' });
+    const ditolak = await galat(minta2(admin, '/api/penjualan/checkout', await transfer()));
+    expect(ditolak.status).toBe(409);
+    expect(ditolak.pesan).toContain('jam operasional');
+    expect(await stok(m.semen)).toEqual({ fisik: '10.000', dipesan: '0.000' });
+    const jam = await kirim<{ di: boolean }>(admin, '/api/shift/jam-operasional', undefined, 'GET');
+    expect(jam.di).toBe(true);
+
+    // Di luar jam operasional: non-tunai boleh (aturan lama), tunai tetap wajib shift.
+    await aturKonfigurasi({ shift_jam_buka: '23:59', shift_jam_tutup: '23:59' });
+    const ok = await kirim(admin, '/api/penjualan/checkout', await transfer());
+    expect(ok.nomorShift).toBeNull();
+    expect(
+      (
+        await galat(
+          minta2(admin, '/api/penjualan/checkout', { order: isi, pembayaran: [tunai(12000)] }),
+        )
+      ).status,
+    ).toBe(409);
+
+    // Dengan shift terbuka di jam operasional: normal.
+    await aturKonfigurasi({ shift_jam_buka: '00:00', shift_jam_tutup: '24:00' });
+    await kirim(kasir, '/api/shift/buka', { modalAwal: 0 });
+    expect(
+      (await kirim(kasir, '/api/penjualan/checkout', { order: isi, pembayaran: [tunai(12000)] }))
+        .nomorShift,
+    ).not.toBeNull();
   });
 
   it('PT2/P7/P8/P9 order dari antrean ke pelanggan: DP, jatuh tempo bawaan, pelunasan, bayar campuran', async () => {

@@ -15,6 +15,7 @@ import {
   PackagePlus,
   Plus,
   Printer,
+  RefreshCw,
   Send,
   ShieldCheck,
   Trash2,
@@ -731,6 +732,17 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
   }, [cetak]);
 
   const po = q.data;
+  // K-234: gagal dimuat → pesan + Coba lagi (bukan kotak abu-abu tanpa akhir).
+  if (q.isError) {
+    return (
+      <Card className="items-center gap-3 p-6 text-center" data-testid="rincian-po-galat">
+        <p className="text-sm text-red-700">{pesanGalat(q.error)}</p>
+        <Button variant="outline" size="sm" onClick={() => void q.refetch()}>
+          <RefreshCw /> Coba lagi
+        </Button>
+      </Card>
+    );
+  }
   if (!po) return <Skeleton className="h-64 w-full" />;
   const berjalan = ['DIPESAN', 'DIKONFIRMASI', 'SEBAGIAN'].includes(po.status);
   const owner = saya.izin.includes('pembelian.setujui_semua');

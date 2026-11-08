@@ -28,6 +28,7 @@ import {
   type UsulanBukaShift,
   type WaktuShift,
   type HalMenggantungShift,
+  type JamOperasional,
 } from '@sit/shared';
 import { db, type Executor, type Tx } from '../../../db/client';
 import { shiftKasir } from '../../../db/schema';
@@ -155,6 +156,39 @@ async function keAktif(ex: Executor, s: ShiftTerbuka): Promise<ShiftAktif> {
 }
 
 /** K-132: shift toko yang sedang terbuka (untuk layar kasir dan halaman shift). */
+/**
+ * K-244: jam operasional = jadwal shift di Pengaturan (`shift_jam_buka` <= jam < `shift_jam_tutup`, zona toko).
+ * `di` null bila jadwal belum diisi.
+ */
+export async function jamOperasional(
+  ex: Executor = db,
+  saat: Date = sekarang(),
+): Promise<JamOperasional> {
+  const buka = (await ambilTeks('shift_jam_buka', '', ex)) || null;
+  const tutup = (await ambilTeks('shift_jam_tutup', '', ex)) || null;
+  if (!buka || !tutup) return { di: null, buka, tutup };
+  const jam = jamLokal(saat);
+  return { di: jam >= buka && jam < tutup, buka, tutup };
+}
+
+/**
+ * K-244: di jam operasional semua checkout menunggu shift toko dibuka (tunai maupun non-tunai/bayar nanti). Di luar
+ * jam operasional atau tanpa jadwal, aturan pembayaran biasa yang berlaku (tunai tetap wajib shift).
+ */
+export async function pastikanShiftCheckout(tx: Tx): Promise<void> {
+  if (await shiftUntukCatat(tx)) return;
+  const j = await jamOperasional(tx);
+  if (j.di) {
+    throw new AppError(
+      'KONFLIK',
+      `Shift toko belum dibuka. Di jam operasional (${j.buka}–${j.tutup}) semua penjualan menunggu shift dibuka: ` +
+        'buka shift dulu di Shift & Clerical Check (boleh "Buka dulu, hitung nanti").',
+      409,
+      { perluShift: true },
+    );
+  }
+}
+
 export async function shiftAktifToko(): Promise<ShiftAktif | null> {
   const s = await shiftToko(db);
   return s ? keAktif(db, s) : null;

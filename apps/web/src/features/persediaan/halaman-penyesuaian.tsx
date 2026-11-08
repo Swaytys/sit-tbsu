@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
-import { useDetailBarang } from '@/api/barang';
+import { useDaftarBarang, useDetailBarang } from '@/api/barang';
 import { pesanGalat } from '@/api/client';
 import { useTampilanToko } from '@/api/pengaturan';
 import {
@@ -447,6 +447,9 @@ function FormPenyesuaian({
                     : undefined
                 }
               />
+              {jenis === 'MUSNAH' && (
+                <DaftarBarangRusak sudah={new Set(isi.map((x) => x.idBarang))} onPilih={tambah} />
+              )}
               {jenis === 'OPNAME' && baris.fields.length > 0 && (
                 <p className="mt-2 text-xs text-slate-500" data-testid="ringkasan-opname">
                   {baris.fields.length} barang · {jumlahTerisi} sudah diisi · {jumlahKecuali}{' '}
@@ -698,6 +701,63 @@ function FormPenyesuaian({
 }
 
 /** Dokumen SELESAI/BATAL: hanya baca. */
+/** K-239: semua barang yang punya stok rusak, tinggal diklik untuk ditambahkan ke pemusnahan. */
+function DaftarBarangRusak({
+  sudah,
+  onPilih,
+}: {
+  sudah: ReadonlySet<number>;
+  onPilih: (b: BarisBarang) => void;
+}) {
+  const q = useDaftarBarang({
+    cari: '',
+    idKategori: null,
+    status: 'AKTIF',
+    perluTinjau: false,
+    adaRusak: true,
+    halaman: 1,
+    perHalaman: 100,
+  });
+  const daftar = q.data?.data ?? [];
+  if (q.isLoading) return <p className="mt-2 text-xs text-slate-500">Memuat barang rusak…</p>;
+  if (daftar.length === 0) {
+    return (
+      <p className="mt-2 text-sm text-slate-500" data-testid="daftar-rusak">
+        Tidak ada barang dengan stok rusak. Pindahkan barang ke stok rusak dulu lewat penyesuaian
+        jenis Rusak.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-3" data-testid="daftar-rusak">
+      <p className="mb-1.5 text-xs font-medium text-slate-600">
+        Barang rusak ({daftar.length}) — klik untuk menambahkan:
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {daftar.map((b) => {
+          const ada = sudah.has(b.id);
+          return (
+            <Button
+              key={b.id}
+              type="button"
+              size="sm"
+              variant={ada ? 'secondary' : 'outline'}
+              disabled={ada}
+              onClick={() => onPilih(b)}
+              aria-label={`Tambah ${b.namaBarang} (rusak ${formatDesimal(b.stokRusak)} ${b.kodeSatuan})`}
+            >
+              {b.namaBarang}
+              <span className="text-xs text-red-700 tabular-nums">
+                rusak {formatDesimal(b.stokRusak)} {b.kodeSatuan}
+              </span>
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TampilanDokumen({ d }: { d: DetailPenyesuaian }) {
   const jenis = d.jenis;
   return (

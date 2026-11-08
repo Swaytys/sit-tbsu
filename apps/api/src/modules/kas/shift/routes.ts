@@ -31,6 +31,7 @@ import {
   pengajuanMenunggu,
   shiftAktifToko,
   simpanHitungBuka,
+  jamOperasional,
   statusShiftToko,
   tutupShift,
   usulanBukaShift,
@@ -45,6 +46,10 @@ export const shiftRoutes = new Hono<EnvApp>()
   .get('/saya', sendiri, async (c) => c.json({ data: await shiftAktifToko() }, 200))
   /** K-132: status ringkas untuk semua pengguna login (indikator topbar, termasuk Staf). */
   .get('/status', requireLogin(), async (c) => c.json({ data: await statusShiftToko() }, 200))
+  /** K-244: apakah sekarang jam operasional (untuk pesan di layar kasir/order). */
+  .get('/jam-operasional', requireLogin(), async (c) =>
+    c.json({ data: await jamOperasional() }, 200),
+  )
   /** K-142: pengajuan retur/void yang belum diputuskan (informasi saat tutup shift). */
   .get('/menunggu', sendiri, async (c) => c.json({ data: await pengajuanMenunggu() }, 200))
   // K-197: hal menggantung sebelum shift ditutup.

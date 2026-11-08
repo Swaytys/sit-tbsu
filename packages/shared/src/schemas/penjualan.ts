@@ -646,6 +646,9 @@ export type HasilHitungBuka = {
 };
 
 /** K-132: status shift toko untuk semua pengguna (indikator di topbar). */
+/** K-244: jam operasional dari jadwal shift; `di` null bila jadwal belum diisi. */
+export type JamOperasional = { di: boolean | null; buka: string | null; tutup: string | null };
+
 export type StatusShiftToko = {
   id: number;
   nomor: string;

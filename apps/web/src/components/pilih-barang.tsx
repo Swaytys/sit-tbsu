@@ -126,7 +126,9 @@ export function PilihBarang({
                 {b.namaMerk && <span className="text-xs text-slate-500"> · {b.namaMerk}</span>}
               </span>
               <span className="shrink-0 text-xs text-slate-500 tabular-nums">
-                stok {formatDesimal(b.stokTersedia)} {b.kodeSatuan}
+                {hanyaRusak
+                  ? `rusak ${formatDesimal(b.stokRusak)} ${b.kodeSatuan}`
+                  : `stok ${formatDesimal(b.stokTersedia)} ${b.kodeSatuan}`}
               </span>
             </li>
           ))}
