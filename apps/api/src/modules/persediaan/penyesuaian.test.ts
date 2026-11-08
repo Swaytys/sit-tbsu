@@ -356,7 +356,7 @@ describe('import saldo awal (Excel)', () => {
 
   it('templat berisi barang aktif; qty diisi → satu draf SALDO_AWAL; kode salah ditolak', async () => {
     const wb = await templat();
-    const ws = wb.getWorksheet('Saldo Awal')!;
+    const ws = wb.getWorksheet('Persediaan Awal')!;
     const baris = new Map<string, number>();
     ws.eachRow((row, i) => {
       if (i > 1) baris.set(row.getCell(2).text, i);

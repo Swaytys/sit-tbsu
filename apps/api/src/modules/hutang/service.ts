@@ -11,11 +11,12 @@ import {
   type KelompokUmur,
   type PembayaranPemasok,
   type StatusHutang,
+  type DataHutangAwal,
   type DataPerpanjangJatuhTempo,
 } from '@sit/shared';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db, type Tx } from '../../db/client';
-import { penerimaanBarang, perpanjanganJatuhTempo } from '../../db/schema';
+import { hutangAwal, pemasok, penerimaanBarang, perpanjanganJatuhTempo } from '../../db/schema';
 import { AppError, galatKolom } from '../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../lib/konteks';
 import { metaHalaman } from '../../lib/paginasi';
@@ -174,6 +175,22 @@ async function kunciDokumen(
       },
     };
   }
+  if (jenis === 'HUTANG_AWAL') {
+    const h = await repo.kunciHutangAwal(tx, id);
+    if (!h) throw new AppError('TIDAK_DITEMUKAN', 'Dokumen hutang tidak ditemukan.', 404);
+    return {
+      idPemasok: h.idPemasok,
+      nomor: h.nomor,
+      sisa: h.total - h.totalDibayar,
+      entitas: 'hutang_awal',
+      terapkan: async (nominal) => {
+        const dibayar = h.totalDibayar + nominal;
+        const status = statusHutangDari(h.total - dibayar, true);
+        await repo.aturHutangAwal(tx, id, { totalDibayar: dibayar, statusHutang: status }, waktu);
+        return status;
+      },
+    };
+  }
   const d = await repo.kunciPenyelesaian(tx, id);
   if (!d) throw new AppError('TIDAK_DITEMUKAN', 'Dokumen hutang tidak ditemukan.', 404);
   return {
@@ -229,6 +246,7 @@ export async function bayarHutang(
       idPemasok: d.idPemasok,
       idPenerimaan: input.jenis === 'PENERIMAAN' ? input.id : null,
       idPenyelesaianKonsinyasi: input.jenis === 'KONSINYASI' ? input.id : null,
+      idHutangAwal: input.jenis === 'HUTANG_AWAL' ? input.id : null,
       idPengguna: pelaku.id,
       idShift: shift?.id ?? null,
       nominal: input.nominal,
@@ -340,5 +358,74 @@ export async function perpanjangJatuhTempo(
       ringkasan: `Jatuh tempo ${p.nomor} diperpanjang ${p.jatuhTempo} → ${input.tanggalBaru}: ${input.alasan}`,
       ip: asal.ip,
     });
+  });
+}
+
+/**
+ * K-241: catat hutang awal pemasok (faktur lama yang belum lunas saat mulai memakai aplikasi). Tidak menambah stok;
+ * menjadi tagihan di Hutang Pemasok dan dibayar seperti hutang lain. Faktur lama yang sama untuk pemasok yang sama
+ * tidak boleh dicatat dua kali.
+ */
+export async function catatHutangAwal(
+  input: DataHutangAwal,
+  pelaku: PenggunaAktif,
+  asal: AsalRequest,
+): Promise<{ id: number; nomor: string }> {
+  return dalamTransaksi(async (tx) => {
+    const [pm] = await tx
+      .select({ nama: pemasok.namaPemasok, status: pemasok.statusAktif })
+      .from(pemasok)
+      .where(eq(pemasok.id, input.idPemasok));
+    if (pm?.status !== 'AKTIF')
+      throw galatKolom('idPemasok', 'Pemasok tidak ditemukan atau nonaktif.');
+    if (input.noFakturLama) {
+      const [ganda] = await tx
+        .select({ nomor: hutangAwal.nomor })
+        .from(hutangAwal)
+        .where(
+          and(
+            eq(hutangAwal.idPemasok, input.idPemasok),
+            eq(hutangAwal.noFakturLama, input.noFakturLama),
+          ),
+        );
+      if (ganda) {
+        throw galatKolom(
+          'noFakturLama',
+          `Faktur ${input.noFakturLama} pemasok ini sudah dicatat (${ganda.nomor}).`,
+        );
+      }
+    }
+    const tanggal = tanggalOperasional();
+    if (input.tanggalFaktur && input.tanggalFaktur > tanggal) {
+      throw galatKolom('tanggalFaktur', 'Tanggal faktur tidak boleh setelah hari ini.');
+    }
+    const nomor = await terbitkanNomor(tx, 'HAW', tanggal);
+    const [b] = await tx
+      .insert(hutangAwal)
+      .values({
+        nomor,
+        tanggalOperasional: tanggal,
+        idPemasok: input.idPemasok,
+        idPengguna: pelaku.id,
+        noFakturLama: input.noFakturLama ?? null,
+        tanggalFaktur: input.tanggalFaktur ?? null,
+        total: input.sisa,
+        tanggalJatuhTempo: input.tanggalJatuhTempo,
+        catatan: input.catatan ?? null,
+      })
+      .returning({ id: hutangAwal.id });
+    if (!b) throw new Error('insert hutang_awal tidak mengembalikan id');
+    await catatLog(tx, {
+      aksi: 'HUTANG_AWAL_CATAT',
+      idPengguna: pelaku.id,
+      entitas: 'hutang_awal',
+      idEntitas: b.id,
+      nomorDokumen: nomor,
+      ringkasan:
+        `Hutang awal ke ${pm.nama}: ${formatRupiah(input.sisa)}, jatuh tempo ${input.tanggalJatuhTempo}` +
+        (input.noFakturLama ? ` (faktur ${input.noFakturLama})` : ''),
+      ip: asal.ip,
+    });
+    return { id: b.id, nomor };
   });
 }

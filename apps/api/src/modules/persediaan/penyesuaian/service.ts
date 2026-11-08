@@ -325,7 +325,7 @@ export async function selesaikanPenyesuaian(
           )
         : new Map<number, string>();
     const LABEL_KET = {
-      SALDO_AWAL: 'Saldo awal',
+      SALDO_AWAL: 'Persediaan awal',
       RUSAK: 'Pindah ke stok rusak',
       MUSNAH: 'Pemusnahan stok rusak',
       OPNAME: 'Stok opname',

@@ -119,7 +119,7 @@ function DialogImporSaldoAwal({ onTutup }: { onTutup: () => void }) {
     try {
       const d = await impor.mutateAsync(berkas);
       toast.success(
-        `Draf saldo awal ${d.nomor} dibuat (${d.baris.length} barang). Periksa lalu selesaikan.`,
+        `Draf persediaan awal ${d.nomor} dibuat (${d.baris.length} barang). Periksa lalu selesaikan.`,
       );
       void navigasi(`/persediaan/penyesuaian/${d.id}`);
     } catch (err) {
@@ -131,11 +131,11 @@ function DialogImporSaldoAwal({ onTutup }: { onTutup: () => void }) {
     <Dialog open onOpenChange={(b) => !b && onTutup()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Import saldo awal</DialogTitle>
+          <DialogTitle>Import persediaan awal</DialogTitle>
           <DialogDescription>
             Templat berisi semua barang aktif dengan nilai per satuan saat ini. Isi kolom qty saja;
-            baris kosong dilewati. Hasilnya draf saldo awal yang diperiksa dulu sebelum menambah
-            stok.
+            baris kosong dilewati. Hasilnya draf persediaan awal yang diperiksa dulu sebelum
+            menambah stok.
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-2">
@@ -151,7 +151,7 @@ function DialogImporSaldoAwal({ onTutup }: { onTutup: () => void }) {
                 type="file"
                 accept=".xlsx"
                 className="sr-only"
-                aria-label="Berkas saldo awal"
+                aria-label="Berkas persediaan awal"
                 onChange={(e) => {
                   void unggah(e.target.files?.[0]);
                   e.target.value = '';
@@ -215,11 +215,11 @@ export function TabPenyesuaian() {
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" asChild>
           <Link to="/persediaan/penyesuaian/baru?jenis=SALDO_AWAL">
-            <PackagePlus /> Saldo awal
+            <PackagePlus /> Persediaan awal
           </Link>
         </Button>
         <Button variant="outline" onClick={() => setDialog('impor')}>
-          <FileSpreadsheet /> Import saldo awal
+          <FileSpreadsheet /> Import persediaan awal
         </Button>
         <Button variant="outline" onClick={() => setDialog('opname')}>
           <ClipboardList /> Stok opname

@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  skemaHutangAwal,
   formatRupiah,
   KELOMPOK_UMUR,
   LABEL_KELOMPOK_UMUR,
@@ -10,7 +11,7 @@ import {
   type InputBayarHutang,
   type StatusHutang,
 } from '@sit/shared';
-import { CalendarClock, History, Search, Wallet } from 'lucide-react';
+import { CalendarClock, FilePlus2, History, Search, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router';
@@ -21,8 +22,10 @@ import {
   useBayarHutang,
   useDaftarHutang,
   usePembayaranHutang,
+  useCatatHutangAwal,
   usePerpanjangJatuhTempo,
 } from '@/api/hutang';
+import { useDaftarPemasok } from '@/api/mitra';
 import { useBarisPerHalaman } from '@/api/pengaturan';
 import { DataTable, type KolomTabel } from '@/components/data-table';
 import { InputRupiah } from '@/components/input-rupiah';
@@ -75,6 +78,132 @@ export function BadgeStatusHutang({ status }: { status: StatusHutang }) {
     <Badge variant="outline" className={WARNA_STATUS[status]}>
       {LABEL_STATUS_HUTANG[status]}
     </Badge>
+  );
+}
+
+/**
+ * K-241: hutang ke pemasok dari sebelum memakai aplikasi (bagian Persediaan Awal). Satu faktur lama per simpan;
+ * "Simpan & tambah lagi" mengosongkan isian kecuali pemasok, agar banyak faktur cepat dicatat.
+ */
+function DialogHutangAwal({ onTutup }: { onTutup: () => void }) {
+  const catat = useCatatHutangAwal();
+  const pemasok =
+    useDaftarPemasok({ cari: '', status: 'AKTIF', halaman: 1, perHalaman: 100 }).data?.data ?? [];
+  const [idPemasok, setIdPemasok] = useState(0);
+  const [noFaktur, setNoFaktur] = useState('');
+  const [tanggalFaktur, setTanggalFaktur] = useState('');
+  const [sisa, setSisa] = useState(0);
+  const [jatuhTempo, setJatuhTempo] = useState('');
+  const [catatan, setCatatan] = useState('');
+  const [jumlah, setJumlah] = useState(0);
+  function simpan(lagi: boolean) {
+    const data = skemaHutangAwal.safeParse({
+      idPemasok,
+      noFakturLama: noFaktur,
+      tanggalFaktur: tanggalFaktur || null,
+      sisa,
+      tanggalJatuhTempo: jatuhTempo,
+      catatan,
+    });
+    if (!data.success) {
+      toast.error(data.error.issues[0]?.message ?? 'Isian belum lengkap.');
+      return;
+    }
+    void catat
+      .mutateAsync(data.data)
+      .then((h) => {
+        toast.success(`Hutang awal ${h.nomor} dicatat.`);
+        setJumlah((n) => n + 1);
+        if (!lagi) return onTutup();
+        setNoFaktur('');
+        setTanggalFaktur('');
+        setSisa(0);
+        setJatuhTempo('');
+        setCatatan('');
+        document.getElementById('hutang-awal-faktur')?.focus();
+      })
+      .catch((err: unknown) => toast.error(pesanGalat(err)));
+  }
+  return (
+    <Dialog open onOpenChange={(b) => !b && onTutup()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Catat hutang awal pemasok</DialogTitle>
+          <DialogDescription>
+            Faktur pemasok dari sebelum memakai aplikasi yang belum lunas. Tidak menambah stok (stok
+            awal dicatat di Persediaan Awal). Tiap faktur satu catatan; faktur yang sama tidak bisa
+            dicatat dua kali.{jumlah > 0 && ` Sudah dicatat sesi ini: ${jumlah}.`}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1 text-sm sm:col-span-2">
+            Pemasok
+            <select
+              className="h-9 rounded-md border bg-white px-2"
+              aria-label="Pemasok hutang awal"
+              value={idPemasok || ''}
+              onChange={(e) => setIdPemasok(Number(e.target.value))}
+            >
+              <option value="">Pilih pemasok…</option>
+              {pemasok.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.namaPemasok}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm">
+            No. faktur lama (boleh kosong)
+            <Input
+              id="hutang-awal-faktur"
+              value={noFaktur}
+              maxLength={50}
+              onChange={(e) => setNoFaktur(e.target.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            Tanggal faktur (boleh kosong)
+            <Input
+              type="date"
+              value={tanggalFaktur}
+              onChange={(e) => setTanggalFaktur(e.target.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            Sisa hutang
+            <InputRupiah
+              aria-label="Sisa hutang awal"
+              value={sisa}
+              onChange={(v) => setSisa(v ?? 0)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            Jatuh tempo
+            <Input
+              type="date"
+              aria-label="Jatuh tempo hutang awal"
+              value={jatuhTempo}
+              onChange={(e) => setJatuhTempo(e.target.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-sm sm:col-span-2">
+            Catatan (boleh kosong)
+            <Input value={catatan} maxLength={255} onChange={(e) => setCatatan(e.target.value)} />
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onTutup}>
+            Selesai
+          </Button>
+          <Button variant="outline" disabled={catat.isPending} onClick={() => simpan(true)}>
+            Simpan & tambah lagi
+          </Button>
+          <Button disabled={catat.isPending} onClick={() => simpan(false)}>
+            Simpan
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -167,6 +296,7 @@ export function HalamanHutang() {
   const [bayar, setBayar] = useState<BarisHutang | null>(null);
   const [riwayat, setRiwayat] = useState<BarisHutang | null>(null);
   const [perpanjang, setPerpanjang] = useState<BarisHutang | null>(null);
+  const [hutangAwal, setHutangAwal] = useState(url.get('awal') === '1');
   const bolehPerpanjang = usePengguna().izin.includes('pembelian.setujui_semua');
   const daftar = useDaftarHutang({
     cari: cariTertunda,
@@ -193,7 +323,9 @@ export function HalamanHutang() {
       judul: 'Dokumen',
       sel: (h) => (
         <div>
-          {h.jenis === 'PENERIMAAN' ? (
+          {h.jenis === 'HUTANG_AWAL' ? (
+            <span className="font-mono text-xs font-medium">{h.nomor}</span>
+          ) : h.jenis === 'PENERIMAAN' ? (
             <Link
               to={`/penerimaan/${h.id}`}
               className="font-mono text-xs font-medium text-blue-700 hover:underline"
@@ -213,7 +345,11 @@ export function HalamanHutang() {
           </div>
           <div className="text-xs text-slate-500">
             {formatTanggal(h.tanggalOperasional)} ·{' '}
-            {h.jenis === 'PENERIMAAN' ? 'pembelian' : 'penyelesaian konsinyasi'}
+            {h.jenis === 'PENERIMAAN'
+              ? 'pembelian'
+              : h.jenis === 'HUTANG_AWAL'
+                ? 'hutang awal (sebelum aplikasi)'
+                : 'penyelesaian konsinyasi'}
             {h.noFaktur && ` · faktur ${h.noFaktur}`}
           </div>
         </div>
@@ -301,6 +437,11 @@ export function HalamanHutang() {
           Pembelian tempo yang belum lunas. Bayar tunai keluar dari laci shift Anda; transfer
           dicatat dengan rekening tujuan.
         </p>
+        {bolehBayar && (
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => setHutangAwal(true)}>
+            <FilePlus2 /> Catat hutang awal pemasok
+          </Button>
+        )}
       </div>
       <div className="grid grid-cols-3 gap-3">
         <button
@@ -408,6 +549,7 @@ export function HalamanHutang() {
       </Card>
       {bayar && <DialogBayarHutang h={bayar} onTutup={() => setBayar(null)} />}
       {riwayat && <DialogRiwayatBayar h={riwayat} onTutup={() => setRiwayat(null)} />}
+      {hutangAwal && <DialogHutangAwal onTutup={() => setHutangAwal(false)} />}
       {perpanjang && <DialogPerpanjang h={perpanjang} onTutup={() => setPerpanjang(null)} />}
     </div>
   );

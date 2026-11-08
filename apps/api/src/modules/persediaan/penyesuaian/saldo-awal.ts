@@ -14,7 +14,7 @@ import { buatPenyesuaian } from './service';
  * diperiksa lalu diselesaikan di layar (tidak langsung mengubah stok).
  */
 
-const LEMBAR = 'Saldo Awal';
+const LEMBAR = 'Persediaan Awal';
 const KOLOM = ['kode_barang', 'nama_barang', 'satuan', 'qty', 'hpp_satuan'] as const;
 
 function barangAktif() {
@@ -69,12 +69,12 @@ export async function templatSaldoAwal(): Promise<Uint8Array<ArrayBuffer>> {
   const p = wb.addWorksheet('Petunjuk');
   p.getColumn(1).width = 100;
   [
-    'Cara mengisi saldo awal',
+    'Cara mengisi persediaan awal',
     '',
     '1. Isi kolom qty dengan jumlah stok saat ini (dalam satuan dasar). Baris dengan qty kosong dilewati.',
     '2. hpp_satuan = nilai per satuan (rupiah bulat). Sudah terisi HPP saat ini; ubah bila perlu.',
     '   Barang konsinyasi bertanda "titip" selalu bernilai harga titip.',
-    '3. Unggah di Stok Persediaan › Penyesuaian › Import saldo awal. Hasilnya draf yang diperiksa dulu,',
+    '3. Unggah di Stok Persediaan › Import persediaan awal. Hasilnya draf yang diperiksa dulu,',
     '   lalu tekan Selesaikan agar stok bertambah.',
   ].forEach((t, i) => {
     p.getCell(`A${i + 1}`).value = t;
@@ -89,7 +89,8 @@ export async function imporSaldoAwal(
   asal: AsalRequest,
 ): Promise<DetailPenyesuaian> {
   const wb = await muatXlsx(isi);
-  const ws = wb.getWorksheet(LEMBAR) ?? wb.worksheets[0];
+  // Templat lama berlembar "Saldo Awal" tetap diterima.
+  const ws = wb.getWorksheet(LEMBAR) ?? wb.getWorksheet('Saldo Awal') ?? wb.worksheets[0];
   if (!ws) throw new AppError('VALIDASI', 'Berkas tidak berisi lembar data.', 400);
   const indeks = new Map<string, number>();
   ws.getRow(1).eachCell((c, i) => indeks.set(isiSel(c.value).teks.toLowerCase(), i));
@@ -154,7 +155,7 @@ export async function imporSaldoAwal(
     {
       jenis: 'SALDO_AWAL',
       alasan: null,
-      catatan: `Import saldo awal dari ${namaBerkas}`.slice(0, 255),
+      catatan: `Import persediaan awal dari ${namaBerkas}`.slice(0, 255),
       baris: baris.map((b) => ({
         ...b,
         qtySelisih: null,
@@ -172,7 +173,7 @@ export async function imporSaldoAwal(
     entitas: 'penyesuaian_stok',
     idEntitas: hasil.id,
     nomorDokumen: hasil.nomor,
-    ringkasan: `Import saldo awal dari ${namaBerkas}: ${baris.length} barang (draf ${hasil.nomor})`,
+    ringkasan: `Import persediaan awal dari ${namaBerkas}: ${baris.length} barang (draf ${hasil.nomor})`,
     ip: asal.ip,
   });
   return hasil;

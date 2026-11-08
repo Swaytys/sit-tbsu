@@ -47,7 +47,8 @@ export function kelompokUmur(hariLewat: number | null): KelompokUmur {
 
 // --- Hutang pemasok (HT1–HT4) ---
 
-export const JENIS_DOKUMEN_HUTANG = ['PENERIMAAN', 'KONSINYASI'] as const;
+/** K-241: HUTANG_AWAL = hutang ke pemasok dari sebelum memakai aplikasi (tanpa barang masuk). */
+export const JENIS_DOKUMEN_HUTANG = ['PENERIMAAN', 'KONSINYASI', 'HUTANG_AWAL'] as const;
 export type JenisDokumenHutang = (typeof JENIS_DOKUMEN_HUTANG)[number];
 
 export const skemaCariHutang = skemaHalaman.extend({
@@ -291,3 +292,36 @@ export const skemaPerpanjangJatuhTempo = z.object({
     .max(255, 'Alasan maksimal 255 karakter.'),
 });
 export type DataPerpanjangJatuhTempo = z.output<typeof skemaPerpanjangJatuhTempo>;
+
+/** K-241: catat hutang awal pemasok (faktur lama yang belum lunas saat mulai memakai aplikasi). */
+export const skemaHutangAwal = z.object({
+  idPemasok: z.number('Pemasok wajib dipilih.').int().positive('Pemasok wajib dipilih.'),
+  noFakturLama: z
+    .string()
+    .trim()
+    .max(50, 'No. faktur maksimal 50 karakter.')
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional(),
+  tanggalFaktur: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal faktur tidak valid.')
+    .nullable()
+    .optional(),
+  sisa: z
+    .number('Sisa hutang wajib diisi.')
+    .int('Sisa hutang dalam rupiah utuh.')
+    .positive('Sisa hutang harus lebih dari 0.'),
+  tanggalJatuhTempo: z
+    .string('Jatuh tempo wajib diisi.')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Jatuh tempo wajib diisi.'),
+  catatan: z
+    .string()
+    .trim()
+    .max(255, 'Catatan maksimal 255 karakter.')
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional(),
+});
+export type InputHutangAwal = z.input<typeof skemaHutangAwal>;
+export type DataHutangAwal = z.output<typeof skemaHutangAwal>;

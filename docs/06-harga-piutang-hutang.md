@@ -79,6 +79,7 @@ disebut; **[M2]** berarti dibangun pada fase M2 yang disebut, meskipun kolomnya 
 | HT5 | Laporan Hutang: per pemasok, per dokumen, per kelompok umur; total. |
 | HT6 | Retur pemasok POTONG_HUTANG (RP4) menambah `total_retur_potong` dokumen penerimaan sumber dan menghitung ulang `status_hutang`. |
 | HT7 | **[M2 Fase 9]** Laporan Riwayat Harga Beli: dari `penerimaan_barang_detail` PEMBELIAN, urut tanggal, per barang dan pemasok; perubahan dibanding pembelian sebelumnya dari pemasok yang sama; perbandingan antarpemasok (terendah, tertinggi, rata-rata tertimbang, terakhir). Izin `laporan.persediaan` + `laporan.laba` (K-087). |
+| HT8 | **Hutang awal pemasok** (K-241, `hutang_awal`, nomor HAW): faktur lama yang belum lunas saat mulai memakai aplikasi; pemasok aktif, sisa > 0, jatuh tempo wajib (boleh sudah lewat), tanggal faktur tidak setelah hari ini, no. faktur lama sama untuk pemasok sama ditolak. Tidak menambah stok. Tampil di Hutang Pemasok (jenis HUTANG_AWAL) dan dibayar lewat HT2 (`pembayaran_pemasok.id_hutang_awal`). Izin `hutang.kelola`; log HUTANG_AWAL_CATAT. |
 
 ## 6. Retur ke pemasok [M2 Fase 10]
 

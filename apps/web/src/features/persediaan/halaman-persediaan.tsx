@@ -35,7 +35,7 @@ export function HalamanPersediaan() {
       <div className="print:hidden">
         <h1 className="text-xl font-semibold text-slate-900">Stok Persediaan</h1>
         <p className="text-sm text-slate-500">
-          Pantau stok dan pergerakannya; saldo awal, opname, koreksi, dan stok rusak lewat
+          Pantau stok dan pergerakannya; persediaan awal, opname, koreksi, dan stok rusak lewat
           penyesuaian.
         </p>
       </div>

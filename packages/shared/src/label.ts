@@ -29,7 +29,7 @@ import type {
  */
 
 export const LABEL_JENIS_MUTASI: Record<JenisMutasi, string> = {
-  SALDO_AWAL: 'Saldo awal',
+  SALDO_AWAL: 'Persediaan awal',
   PENERIMAAN: 'Penerimaan',
   PENJUALAN: 'Penjualan',
   RETUR_JUAL: 'Retur jual',
@@ -42,7 +42,7 @@ export const LABEL_JENIS_MUTASI: Record<JenisMutasi, string> = {
 };
 
 export const LABEL_JENIS_PENYESUAIAN: Record<JenisPenyesuaian, string> = {
-  SALDO_AWAL: 'Saldo awal',
+  SALDO_AWAL: 'Persediaan awal',
   OPNAME: 'Stok opname',
   KOREKSI: 'Koreksi',
   RUSAK: 'Stok rusak',

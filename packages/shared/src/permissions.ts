@@ -25,7 +25,7 @@ export const DAFTAR_IZIN = {
   'master.pemasok.lihat': 'Lihat pemasok',
   'master.pemasok.kelola': 'Tambah/ubah/nonaktifkan pemasok',
   'master.armada.kelola': 'Tambah/ubah/nonaktifkan kendaraan dan sopir (K-150)',
-  'master.import.jalankan': 'Import Excel barang / saldo awal',
+  'master.import.jalankan': 'Import Excel barang / persediaan awal',
   'sistem.akses.kelola':
     'Akses HP/tablet: mode LAN toko, setujui/cabut perangkat, Tailscale (K-229)',
   // Pembelian (K-225)
@@ -54,7 +54,7 @@ export const DAFTAR_IZIN = {
   'persediaan.stok.lihat_tersedia': 'Lihat angka stok tersedia saat mencari barang (untuk order)',
   'persediaan.stok.lihat': 'Halaman persediaan penuh: fisik/dipesan/tersedia, mutasi, kartu stok',
   'persediaan.penerimaan.kelola': 'Catat penerimaan barang',
-  'persediaan.penyesuaian.kelola': 'Buat penyesuaian: saldo awal, opname, koreksi, rusak',
+  'persediaan.penyesuaian.kelola': 'Buat penyesuaian: persediaan awal, opname, koreksi, rusak',
   'persediaan.retur_pemasok.kelola': '(M2) Retur ke pemasok',
   'hutang.lihat': '(M2) Lihat hutang pemasok',
   'hutang.kelola': '(M2) Bayar hutang pemasok',

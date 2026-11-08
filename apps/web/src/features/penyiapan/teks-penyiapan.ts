@@ -62,10 +62,12 @@ export const TEKS_LANGKAH: Record<
     guna: 'Jumlah barang di gudang saat mulai memakai aplikasi, beserta harga modalnya.',
     langkah: [
       'Hitung stok fisik setiap barang.',
-      'Buka Stok Persediaan › Penyesuaian baru › jenis Saldo awal.',
+      'Buka Stok Persediaan › Persediaan awal.',
       'Isi jumlah dan harga modal per barang, lalu Selesaikan.',
     ],
-    tautan: [{ label: 'Buat Saldo awal', ke: '/persediaan/penyesuaian/baru?jenis=SALDO_AWAL' }],
+    tautan: [
+      { label: 'Buat Persediaan awal', ke: '/persediaan/penyesuaian/baru?jenis=SALDO_AWAL' },
+    ],
   },
   PELANGGAN: {
     judul: 'Pelanggan tetap',

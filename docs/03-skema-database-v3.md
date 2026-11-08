@@ -194,7 +194,8 @@ berubah selama order belum dikirim. K-236 (migrasi 0047): `syarat_bayar` (DI_MUK
 migrasi 0048). **`penerimaan_barang_tolak`** [APPEND] (0048): barang datang tetapi ditolak (qty, alasan, tindakan
 GANTI/POTONG). `penerimaan_barang`: `penyimpangan_bayar`, `alasan_penyimpangan`, `id_penyetuju_penyimpangan` (0048);
 `tanggal_jatuh_tempo` hanya berubah lewat **`perpanjangan_jatuh_tempo`** [APPEND] (0049, Owner). `pemasok.tempo_hari`
-(0047). Detail: `qty_pesan`,
+(0047). **`hutang_awal`** [APPEND kecuali `total_dibayar`, `status_hutang`] (K-241, 0052): hutang pemasok dari sebelum
+aplikasi; `pembayaran_pemasok.id_hutang_awal` (CHECK `chk_pbp_sumber` kini empat sumber). Kode dokumen `HAW`. Detail: `qty_pesan`,
 `harga_perkiraan`, `qty_konfirmasi`/`harga_konfirmasi` (jawaban pemasok), `qty_diterima` (cache Σ penerimaan,
 disinkronkan di transaksi penerimaan), UNIQUE (PO, barang). **`alokasi_uang_muka`** [APPEND]: pemakaian uang muka PO
 (DIPAKAI → `id_penerimaan`; DIKEMBALIKAN → `metode_kembali`). `penerimaan_barang.id_order_pembelian`,

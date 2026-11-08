@@ -181,6 +181,7 @@ export const AKSI_LOG = [
   'LAPORAN_EKSPOR',
   // Hutang, retur pemasok, limit kredit (Fase 10, K-088).
   'HUTANG_BAYAR',
+  'HUTANG_AWAL_CATAT',
   'RETUR_PEMASOK_SIMPAN',
   'PENJUALAN_LIMIT_OVERRIDE',
   // Penyelesaian konsinyasi (Fase 11, K-089).

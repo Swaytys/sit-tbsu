@@ -3,6 +3,7 @@ import {
   JENIS_DOKUMEN_HUTANG,
   skemaBayarHutang,
   skemaCariHutang,
+  skemaHutangAwal,
   skemaPerpanjangJatuhTempo,
 } from '@sit/shared';
 import { Hono } from 'hono';
@@ -12,6 +13,7 @@ import { kaitValidasi } from '../../lib/validasi';
 import { penggunaWajib, requirePermission } from '../../middleware/require-permission';
 import {
   bayarHutang,
+  catatHutangAwal,
   daftarHutang,
   pembayaranHutang,
   penerimaanBerhutang,
@@ -52,6 +54,17 @@ export const hutangRoutes = new Hono<EnvApp>()
       const data = await bayarHutang(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
       return c.json({ data }, 200);
     },
+  )
+  /** K-241: hutang awal pemasok (bagian Persediaan Awal). */
+  .post(
+    '/awal',
+    requirePermission('hutang.kelola'),
+    zValidator('json', skemaHutangAwal, kaitValidasi),
+    async (c) =>
+      c.json(
+        { data: await catatHutangAwal(c.req.valid('json'), penggunaWajib(c), c.get('asal')) },
+        201,
+      ),
   )
   /** K-237: perpanjang jatuh tempo hutang penerimaan (hanya Owner). */
   .post(

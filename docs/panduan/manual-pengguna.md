@@ -622,8 +622,15 @@ Semua tugas kasir, ditambah:
 - **Penerimaan barang** (*Persediaan › Penerimaan Barang*): catat barang datang dari pemasok (pembelian tunai/
   tempo atau titipan). Stok dan HPP rata-rata diperbarui otomatis.
 - **Stok** (*Persediaan › Stok Persediaan*): posisi stok, mutasi, kartu stok per barang, stok tertahan, dan
-  **penyesuaian** (saldo awal, koreksi, barang rusak, **stok opname**). Barang yang tidak dihitung saat opname
+  **penyesuaian** (persediaan awal, koreksi, barang rusak, **stok opname**). Barang yang tidak dihitung saat opname
   dikecualikan dengan alasan, bukan dihapus.
+- **Persediaan awal** (*Stok Persediaan › Penyesuaian › Persediaan awal*): stok yang sudah ada saat mulai memakai
+  aplikasi. Cukup keyboard: ketik nama/kode barang → **Enter** → ketik jumlah → **Enter** → ketik nilai per satuan
+  (harga modal) → **Enter** → kursor kembali ke kotak cari untuk barang berikutnya. Barang yang sama tidak membuat
+  baris kedua. Banyak barang sekaligus: **Import persediaan awal** (Excel). Hutang ke pemasok dari sebelum memakai
+  aplikasi dicatat lewat tautan **Catat hutang awal pemasok** (atau *Hutang Pemasok* › tombol yang sama): pemasok,
+  no. faktur lama, sisa hutang, jatuh tempo → **Simpan & tambah lagi** untuk faktur berikutnya. Hutang awal tidak
+  menambah stok dan dibayar seperti hutang lain.
 - **Pemusnahan barang rusak** (*Stok Persediaan* › tab Rusak › **Musnahkan**, atau penyesuaian jenis Pemusnahan):
   di bawah kotak cari tampil **daftar semua barang rusak** beserta jumlah rusaknya → klik barang untuk
   menambahkannya → isi qty dan alasan → **Simpan & selesaikan**. Pencarian hanya menampilkan barang yang punya stok

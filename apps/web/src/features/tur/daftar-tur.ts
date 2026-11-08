@@ -328,7 +328,7 @@ export const DAFTAR_TUR: Tur[] = [
         sasaran: { teks: 'Import Excel' },
         isi: [
           'Banyak barang sekaligus: unduh templat, isi di Excel, unggah. Baris yang salah ditandai beserta sebabnya sebelum disimpan.',
-          'Stok awal diisi lewat Stok Persediaan › Penyesuaian jenis Saldo awal.',
+          'Stok awal diisi lewat Stok Persediaan › Persediaan awal.',
         ],
       },
       {
@@ -403,7 +403,7 @@ export const DAFTAR_TUR: Tur[] = [
         judul: 'Penyesuaian',
         sasaran: { teks: 'Penyesuaian' },
         isi: [
-          'Saldo awal (pertama kali), Opname (hitung fisik lalu cocokkan), Koreksi (rusak, hilang, salah serah). Setiap penyesuaian wajib alasan dan tercatat.',
+          'Persediaan awal (pertama kali), Opname (hitung fisik lalu cocokkan), Koreksi (rusak, hilang, salah serah). Setiap penyesuaian wajib alasan dan tercatat.',
         ],
       },
       {

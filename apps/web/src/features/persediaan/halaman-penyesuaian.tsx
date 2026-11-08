@@ -69,7 +69,7 @@ type Info = { kode: string; nama: string; satuan: string; sistem: string; belum:
 
 const PENJELASAN: Record<JenisPenyesuaianM1, string> = {
   SALDO_AWAL:
-    'Stok awal saat mulai memakai sistem. Isi jumlah dan nilai per satuan; HPP dihitung rata-rata.',
+    'Stok yang sudah ada saat mulai memakai aplikasi. Cari barang → Enter → isi jumlah → Enter → isi nilai per satuan (harga modal) → Enter, lalu lanjut barang berikutnya. HPP dihitung rata-rata.',
   OPNAME:
     'Isi hasil hitung fisik. Selisih = fisik − stok sistem − barang terjual yang belum diambil, dihitung saat diselesaikan.',
   KOREKSI: 'Perbaikan stok langsung: + menambah, − mengurangi. Alasan wajib diisi.',
@@ -123,6 +123,15 @@ function Judul({ d, jenis }: { d: DetailPenyesuaian | null; jenis: JenisPenyesua
           {d && <BadgeStatusPenyesuaian status={d.status} />}
         </h1>
         <p className="text-sm text-slate-500">{PENJELASAN[jenis]}</p>
+        {jenis === 'SALDO_AWAL' && (
+          <p className="text-sm text-slate-500">
+            Masih punya hutang ke pemasok dari sebelum memakai aplikasi?{' '}
+            <Link to="/hutang?awal=1" className="text-blue-700 hover:underline">
+              Catat hutang awal pemasok
+            </Link>{' '}
+            (tidak menambah stok).
+          </p>
+        )}
       </div>
     </div>
   );
@@ -206,10 +215,29 @@ function FormPenyesuaian({
     });
   }
 
+  // K-241: alur secepat kasir: cari → Enter → Qty → Enter → (nilai/satuan → Enter) → kembali ke cari.
+  const namaKolomQty = jenis === 'OPNAME' || jenis === 'SALDO_AWAL' ? 'qtyFisik' : 'qtySelisih';
+  function keCari() {
+    document.getElementById('cari-barang-penyesuaian')?.focus();
+  }
+  function enterQty(e: React.KeyboardEvent, i: number) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (jenis === 'SALDO_AWAL') form.setFocus(`baris.${i}.hppSatuan`);
+    else keCari();
+  }
+  function enterNilai(e: React.KeyboardEvent) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    keCari();
+  }
+
   function tambah(b: BarisBarang) {
     const ada = isi.findIndex((x) => x.idBarang === b.id);
     if (ada >= 0) {
-      toast.info(`${b.namaBarang} sudah ada di baris ${ada + 1}.`);
+      // Barang sama tidak dibuat baris kedua: kursor pindah ke qty baris yang sudah ada.
+      toast.info(`${b.namaBarang} sudah ada di baris ${ada + 1}; ubah qty-nya.`);
+      setTimeout(() => form.setFocus(`baris.${ada}.${namaKolomQty}`), 0);
       return;
     }
     setInfo((lama) => ({
@@ -236,6 +264,8 @@ function FormPenyesuaian({
       dikecualikan: false,
       alasanKecuali: '',
     });
+    const baru = baris.fields.length;
+    setTimeout(() => form.setFocus(`baris.${baru}.${namaKolomQty}`), 0);
   }
 
   useEffect(() => {
@@ -267,6 +297,9 @@ function FormPenyesuaian({
   }
 
   const jumlahKecuali = isi.filter((b) => b.dikecualikan).length;
+  // K-241: pemeriksaan sebelum selesai: barang persediaan awal tanpa nilai per satuan.
+  const tanpaNilai =
+    jenis === 'SALDO_AWAL' ? isi.filter((b) => !b.hppSatuan || b.hppSatuan === 0).length : 0;
   const jumlahTerisi = isi.filter((b) => !b.dikecualikan && qtyDariIsian(b.qtyFisik)).length;
 
   async function simpanDraf(data: DataPenyesuaian): Promise<DetailPenyesuaian | null> {
@@ -440,6 +473,7 @@ function FormPenyesuaian({
             <div className="border-b p-4">
               <PilihBarang
                 onPilih={tambah}
+                idInput="cari-barang-penyesuaian"
                 hanyaRusak={jenis === 'MUSNAH'}
                 placeholder={
                   jenis === 'MUSNAH'
@@ -531,6 +565,7 @@ function FormPenyesuaian({
                                     aria-label={`${kolomQty} ${inf?.nama ?? i + 1}`}
                                     {...field}
                                     value={typeof field.value === 'string' ? field.value : ''}
+                                    onKeyDown={(e) => enterQty(e, i)}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -557,6 +592,7 @@ function FormPenyesuaian({
                                   <InputRupiah
                                     {...field}
                                     aria-label={`Nilai ${inf?.nama ?? i + 1}`}
+                                    onKeyDown={enterNilai}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -675,7 +711,12 @@ function FormPenyesuaian({
         terbuka={konfirmasi === 'selesai'}
         onTutup={() => setKonfirmasi(null)}
         judul="Selesaikan penyesuaian?"
-        pesan="Stok akan diperbarui sesuai dokumen ini dan tidak bisa dibatalkan. Kesalahan diperbaiki dengan penyesuaian baru."
+        pesan={
+          'Stok akan diperbarui sesuai dokumen ini dan tidak bisa dibatalkan. Kesalahan diperbaiki dengan penyesuaian baru.' +
+          (jenis === 'SALDO_AWAL' && tanpaNilai > 0
+            ? ` Perhatian: ${tanpaNilai} barang bernilai Rp 0 per satuan; HPP-nya akan 0 (laba terlihat lebih besar). Periksa dulu bila bukan barang gratis.`
+            : '')
+        }
         labelKonfirmasi="Selesaikan"
         onKonfirmasi={kirimSelesai}
       />

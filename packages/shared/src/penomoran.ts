@@ -19,6 +19,8 @@ export const KODE_DOKUMEN = [
   'PBP',
   'SHF',
   'CLC',
+  /** K-241: hutang awal pemasok (sebelum memakai aplikasi). */
+  'HAW',
 ] as const;
 export type KodeDokumen = (typeof KODE_DOKUMEN)[number];
 
@@ -43,4 +45,5 @@ export const LABEL_KODE_DOKUMEN: Record<KodeDokumen, string> = {
   PBP: 'Pembayaran pemasok',
   SHF: 'Shift kasir',
   CLC: 'Clerical check',
+  HAW: 'Hutang awal pemasok',
 };

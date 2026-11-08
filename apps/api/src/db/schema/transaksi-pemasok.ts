@@ -190,6 +190,51 @@ export const penyelesaianKonsinyasiDetail = pgTable(
   ],
 );
 
+/**
+ * K-241 (migrasi 0052): hutang ke pemasok yang sudah ada sebelum memakai aplikasi (bagian Persediaan Awal). Tidak
+ * menambah stok. [APPEND] kecuali `total_dibayar`, `status_hutang` (cache dari pembayaran_pemasok), `diubah_pada`.
+ */
+export const hutangAwal = pgTable(
+  'hutang_awal',
+  {
+    id: kolomId(),
+    nomor: varchar('nomor', { length: 30 }).notNull().unique('hutang_awal_nomor_key'),
+    tanggalOperasional: tanggal('tanggal_operasional').notNull(),
+    idPemasok: kolomRef('id_pemasok').notNull(),
+    idPengguna: kolomRef('id_pengguna').notNull(),
+    noFakturLama: varchar('no_faktur_lama', { length: 50 }),
+    tanggalFaktur: tanggal('tanggal_faktur'),
+    total: uang('total').notNull(),
+    totalDibayar: uang('total_dibayar').notNull().default(0),
+    sisaHutang: uang('sisa_hutang').generatedAlwaysAs(sql`total - total_dibayar`),
+    statusHutang: varchar('status_hutang', { length: 12, enum: STATUS_HUTANG })
+      .notNull()
+      .default('BELUM_LUNAS'),
+    tanggalJatuhTempo: tanggal('tanggal_jatuh_tempo').notNull(),
+    catatan: varchar('catatan', { length: 255 }),
+    dibuatPada: dibuatPada(),
+    diubahPada: diubahPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'hutang_awal_id_pemasok_fkey',
+      columns: [t.idPemasok],
+      foreignColumns: [pemasok.id],
+    }),
+    foreignKey({
+      name: 'hutang_awal_id_pengguna_fkey',
+      columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    check(
+      'chk_hutang_awal_total',
+      sql`total > 0 and total_dibayar >= 0 and total_dibayar <= total`,
+    ),
+    check('chk_hutang_awal_status', dalamDaftar('status_hutang', STATUS_HUTANG)),
+    index('idx_hutang_awal_pemasok').on(t.idPemasok),
+  ],
+);
+
 /** [APPEND] */
 export const pembayaranPemasok = pgTable(
   'pembayaran_pemasok',
@@ -212,6 +257,8 @@ export const pembayaranPemasok = pgTable(
     dibuatPada: dibuatPada(),
     /** K-125: uang muka order pembelian (dibayar sebelum barang datang). */
     idOrderPembelian: kolomRef('id_order_pembelian'),
+    /** K-241 (migrasi 0052): pembayaran hutang awal pemasok. */
+    idHutangAwal: kolomRef('id_hutang_awal'),
   },
   (t) => [
     foreignKey({
@@ -249,9 +296,14 @@ export const pembayaranPemasok = pgTable(
       columns: [t.idShift],
       foreignColumns: [shiftKasir.id],
     }),
+    foreignKey({
+      name: 'pembayaran_pemasok_id_hutang_awal_fkey',
+      columns: [t.idHutangAwal],
+      foreignColumns: [hutangAwal.id],
+    }),
     check(
       'chk_pbp_sumber',
-      sql`num_nonnulls(id_penerimaan, id_penyelesaian_konsinyasi, id_order_pembelian) = 1`,
+      sql`num_nonnulls(id_penerimaan, id_penyelesaian_konsinyasi, id_order_pembelian, id_hutang_awal) = 1`,
     ),
     check('chk_pbp_metode', dalamDaftar('metode', METODE_PEMBAYARAN_PEMASOK)),
     check('chk_pbp_kompensasi', sql`(metode = 'KOMPENSASI') = (id_retur_pemasok is not null)`),

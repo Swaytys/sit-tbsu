@@ -1,5 +1,6 @@
 import type {
   DataBayarHutang,
+  DataHutangAwal,
   DataPerpanjangJatuhTempo,
   DataReturPemasok,
   JenisDokumenHutang,
@@ -75,6 +76,16 @@ export function useBayarHutang() {
           qc.invalidateQueries({ queryKey: [k] }),
         ),
       ),
+  });
+}
+
+/** K-241: catat hutang awal pemasok (sebelum memakai aplikasi). */
+export function useCatatHutangAwal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (json: DataHutangAwal) => ambilData(await api.hutang.awal.$post({ json })),
+    onSuccess: () =>
+      Promise.all(['hutang', 'notifikasi'].map((k) => qc.invalidateQueries({ queryKey: [k] }))),
   });
 }
 

@@ -21,7 +21,7 @@ async function stokBarang(page: Page, id: number) {
   return (await api<{ stokFisik: string }>(page, `/barang/${id}`)).stokFisik;
 }
 
-test('Admin: saldo awal, koreksi, lalu stok opname mengubah stok sesuai dokumen', async ({
+test('Admin: persediaan awal, koreksi, lalu stok opname mengubah stok sesuai dokumen', async ({
   page,
 }) => {
   const nama = `Paku Penyesuaian E2E ${Date.now()}`;
@@ -37,15 +37,20 @@ test('Admin: saldo awal, koreksi, lalu stok opname mengubah stok sesuai dokumen'
     hargaTier: [{ idTingkatHarga: tier.find((t) => t.isDefault)!.id, hargaTetap: 12000 }],
   });
 
-  // 1. Saldo awal 20 @ 10.000.
+  // 1. Persediaan awal 20 @ 10.000, diisi hanya dengan keyboard (K-241): cari → Enter → qty → Enter → nilai.
   await menuUtama(page).getByRole('link', { name: 'Stok Persediaan' }).click();
   await expect(page.getByRole('heading', { name: 'Stok Persediaan' })).toBeVisible();
   await page.getByRole('tab', { name: 'Penyesuaian' }).click();
-  await page.getByRole('link', { name: 'Saldo awal' }).click();
-  await expect(page.getByRole('heading', { name: /Saldo awal \(baru\)/ })).toBeVisible();
+  await page.getByRole('link', { name: 'Persediaan awal' }).click();
+  await expect(page.getByRole('heading', { name: /Persediaan awal \(baru\)/ })).toBeVisible();
   await tambahBarang(page, nama);
-  await page.getByLabel(`Jumlah awal ${nama}`).fill('20');
+  await expect(page.getByLabel(`Jumlah awal ${nama}`)).toBeFocused();
+  await page.keyboard.type('20');
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel(`Nilai ${nama}`)).toBeFocused();
   await page.getByLabel(`Nilai ${nama}`).fill('10000');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#cari-barang-penyesuaian')).toBeFocused();
   await expect(page.getByText('Rp 200.000')).toBeVisible();
   await selesaikan(page);
   await expect(page.getByText('Selesai', { exact: true }).first()).toBeVisible();

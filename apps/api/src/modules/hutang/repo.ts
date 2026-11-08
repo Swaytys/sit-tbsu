@@ -4,6 +4,7 @@ import type { Executor, Tx } from '../../db/client';
 import {
   pemasok,
   pembayaranPemasok,
+  hutangAwal,
   penerimaanBarang,
   perpanjanganJatuhTempo,
   pengguna,
@@ -74,7 +75,32 @@ export async function semuaHutang(ex: Executor): Promise<DokumenHutang[]> {
     .from(penyelesaianKonsinyasi)
     .innerJoin(pemasok, eq(pemasok.id, penyelesaianKonsinyasi.idPemasok))
     .where(ne(penyelesaianKonsinyasi.statusHutang, 'LUNAS'));
+  // K-241: hutang awal pemasok (sebelum memakai aplikasi).
+  const awal = await ex
+    .select({
+      id: hutangAwal.id,
+      nomor: hutangAwal.nomor,
+      tanggalOperasional: hutangAwal.tanggalOperasional,
+      idPemasok: hutangAwal.idPemasok,
+      namaPemasok: pemasok.namaPemasok,
+      noFaktur: hutangAwal.noFakturLama,
+      tanggalJatuhTempo: hutangAwal.tanggalJatuhTempo,
+      total: hutangAwal.total,
+      dibayar: hutangAwal.totalDibayar,
+      sisa: hutangAwal.sisaHutang,
+      statusHutang: hutangAwal.statusHutang,
+    })
+    .from(hutangAwal)
+    .innerJoin(pemasok, eq(pemasok.id, hutangAwal.idPemasok))
+    .where(ne(hutangAwal.statusHutang, 'LUNAS'));
   return [
+    ...awal.map((x) => ({
+      ...x,
+      jenis: 'HUTANG_AWAL' as const,
+      returPotong: 0,
+      jumlahPerpanjang: 0,
+      sisa: Number(x.sisa ?? 0),
+    })),
     ...penerimaan.map((x) => ({
       ...x,
       jenis: 'PENERIMAAN' as const,
@@ -128,6 +154,34 @@ export async function kunciPenyelesaian(tx: Tx, id: number) {
   return b;
 }
 
+export async function kunciHutangAwal(tx: Tx, id: number) {
+  const [b] = await tx
+    .select({
+      id: hutangAwal.id,
+      nomor: hutangAwal.nomor,
+      idPemasok: hutangAwal.idPemasok,
+      total: hutangAwal.total,
+      totalDibayar: hutangAwal.totalDibayar,
+    })
+    .from(hutangAwal)
+    .where(eq(hutangAwal.id, id))
+    .limit(1)
+    .for('update');
+  return b;
+}
+
+export async function aturHutangAwal(
+  tx: Tx,
+  id: number,
+  nilai: { totalDibayar: number; statusHutang: StatusHutang },
+  waktu: Date,
+) {
+  await tx
+    .update(hutangAwal)
+    .set({ ...nilai, diubahPada: waktu })
+    .where(eq(hutangAwal.id, id));
+}
+
 export async function aturHutangPenerimaan(
   tx: Tx,
   id: number,
@@ -170,7 +224,9 @@ export function pembayaranDokumen(ex: Executor, jenis: JenisDokumenHutang, id: n
     .where(
       jenis === 'PENERIMAAN'
         ? eq(pembayaranPemasok.idPenerimaan, id)
-        : eq(pembayaranPemasok.idPenyelesaianKonsinyasi, id),
+        : jenis === 'HUTANG_AWAL'
+          ? eq(pembayaranPemasok.idHutangAwal, id)
+          : eq(pembayaranPemasok.idPenyelesaianKonsinyasi, id),
     )
     .orderBy(asc(pembayaranPemasok.tanggal), asc(pembayaranPemasok.id));
 }
