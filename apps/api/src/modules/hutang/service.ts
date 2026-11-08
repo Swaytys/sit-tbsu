@@ -26,6 +26,7 @@ import { catatKas, shiftUntukCatat } from '../kas/shift/service';
 import { tambahPembayaran } from '../persediaan/penerimaan/repo';
 import { catatLog } from '../sistem/log-aktivitas';
 import { terbitkanNomor } from '../sistem/penomoran';
+import { pastikanDeposit } from './deposit';
 import * as repo from './repo';
 
 /*
@@ -238,6 +239,7 @@ export async function bayarHutang(
         { kolom: { metode: ['Butuh shift terbuka.'] } },
       );
     }
+    if (input.metode === 'DEPOSIT') await pastikanDeposit(tx, d.idPemasok, input.nominal);
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, 'PBP', tanggal);
     const idBayar = await tambahPembayaran(tx, {

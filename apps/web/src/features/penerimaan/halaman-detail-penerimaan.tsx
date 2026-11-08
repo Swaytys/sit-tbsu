@@ -216,6 +216,7 @@ export function HalamanDetailPenerimaan() {
         <DialogBayarHutang
           h={{
             jenis: 'PENERIMAAN',
+            idPemasok: p.idPemasok,
             id: p.id,
             nomor: p.nomor,
             namaPemasok: p.namaPemasok,

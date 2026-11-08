@@ -9,7 +9,7 @@ aman bila sudah terjadi), **Cegah** (alur/kunci sebelum terjadi), **Ajari** (pen
 | K-234 | Bug: Data Barang "kesalahan server" dan rincian order pembelian kosong (abu-abu) | V1 | Selesai |
 | K-235 | Diksi uang muka "sisa" membingungkan | V1 | Selesai |
 | K-236 | Order pembelian lengkap: syarat bayar, tanggal kirim, dsb.; penerimaan mewarisi dan mengunci | V1 | Selesai |
-| K-237 | Penerimaan bervariasi: bayar campur, kurang datang, rusak saat datang, tempo dan keterlambatan | V1 | Selesai (deposit pemasok menyusul) |
+| K-237 | Penerimaan bervariasi: bayar campur, kurang datang, rusak saat datang, tempo dan keterlambatan | V1 | Selesai |
 | K-238 | Kartu order pembelian (rincian kanan) lebih informatif; tombol sesuai tahap | V1 | Selesai |
 | K-239 | Pemusnahan: cari hanya barang rusak, tampilkan stok rusak, daftar barang rusak siap klik | V1 | Selesai |
 | K-240 | Stok opname di halaman mandiri yang lengkap | V1 | Rencana (digabung K-227) |
@@ -141,9 +141,8 @@ Rincian di kanan memakai seluruh ruang:
 - **Bug yang ditemukan:** jumlah uang muka *terpakai* selalu terbaca 0 (subquery merujuk kolom tanpa nama tabel).
   Akibatnya tampilan "sisa" uang muka sama dengan uang muka (U118) dan uang muka yang sudah dipakai bisa terpakai
   lagi pada penerimaan berikutnya. Diperbaiki; tes ringkasan uang menjaganya.
-- **Menyusul:** deposit pemasok (kelebihan uang muka dipakai untuk order berikutnya) — saat ini kelebihan dicatat
-  dikembalikan (tunai/transfer) ketika order ditutup; penerima ≠ pemesan, hitung buta, dan penerimaan tanpa order di
-  bawah batas (K-225 tahap 3).
+- **Deposit pemasok (selesai 8 Nov):** sisa uang muka saat order ditutup bisa disimpan sebagai deposit dan dipakai
+  untuk uang muka order lain atau membayar hutang pemasok yang sama (PO26).
 
 ### K-225 tahap 3 (8 Nov, sebagian selesai)
 

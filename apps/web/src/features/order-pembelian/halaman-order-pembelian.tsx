@@ -45,6 +45,7 @@ import {
 } from '@/api/order-pembelian';
 import { usePengguna } from '@/api/auth';
 import { DialogKodeAtasan } from '@/components/dialog-kode-atasan';
+import { useSaldoDeposit } from '@/api/hutang';
 import { DialogBayarHutang, type DokumenBayar } from '@/features/hutang/halaman-hutang';
 import { useTampilanToko } from '@/api/pengaturan';
 import { AreaCetak } from '@/components/area-cetak';
@@ -566,7 +567,8 @@ function DialogKonfirmasi({ po, onTutup }: { po: DetailOrderPembelian; onTutup: 
 function DialogUangMuka({ po, onTutup }: { po: DetailOrderPembelian; onTutup: () => void }) {
   const { uangMuka } = useAksiPO();
   const [nominal, setNominal] = useState<number | null>(null);
-  const [metode, setMetode] = useState<'TRANSFER' | 'TUNAI'>('TRANSFER');
+  const [metode, setMetode] = useState<'TRANSFER' | 'TUNAI' | 'DEPOSIT'>('TRANSFER');
+  const deposit = useSaldoDeposit(po.idPemasok).data?.saldo ?? 0;
   const [rekening, setRekening] = useState('');
   const [referensi, setReferensi] = useState('');
   function kirim() {
@@ -596,17 +598,25 @@ function DialogUangMuka({ po, onTutup }: { po: DetailOrderPembelian; onTutup: ()
           <InputRupiah aria-label="Nominal uang muka" value={nominal} onChange={setNominal} />
         </label>
         <div className="flex gap-2" role="group" aria-label="Cara bayar">
-          {(['TRANSFER', 'TUNAI'] as const).map((m) => (
+          {(deposit > 0
+            ? (['TRANSFER', 'TUNAI', 'DEPOSIT'] as const)
+            : (['TRANSFER', 'TUNAI'] as const)
+          ).map((m) => (
             <Button
               key={m}
               type="button"
               variant={metode === m ? 'default' : 'outline'}
               onClick={() => setMetode(m)}
             >
-              {m === 'TRANSFER' ? 'Transfer' : 'Tunai'}
+              {m === 'TRANSFER' ? 'Transfer' : m === 'TUNAI' ? 'Tunai' : 'Pakai deposit'}
             </Button>
           ))}
         </div>
+        {deposit > 0 && (
+          <p className="text-xs text-slate-500">
+            Deposit {po.namaPemasok}: {formatRupiah(deposit)} (kelebihan uang muka order lama).
+          </p>
+        )}
         {metode === 'TRANSFER' && (
           <>
             <label className="grid gap-1 text-sm">
@@ -651,7 +661,7 @@ function DialogAkhiri({
 }) {
   const { akhiri } = useAksiPO();
   const [alasan, setAlasan] = useState('');
-  const [metodeKembali, setMetodeKembali] = useState<'TRANSFER' | 'TUNAI'>('TRANSFER');
+  const [metodeKembali, setMetodeKembali] = useState<'TRANSFER' | 'TUNAI' | 'DEPOSIT'>('TRANSFER');
   const adaSisa = po.sisaUangMuka > 0;
   function kirim() {
     akhiri
@@ -695,11 +705,11 @@ function DialogAkhiri({
         {adaSisa && (
           <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
             <p>
-              Sisa uang muka <b>{formatRupiah(po.sisaUangMuka)}</b> dicatat dikembalikan pemasok
-              lewat:
+              Sisa uang muka <b>{formatRupiah(po.sisaUangMuka)}</b> dikembalikan pemasok lewat, atau
+              disimpan sebagai <b>deposit</b> untuk order/tagihan berikutnya ke pemasok ini:
             </p>
             <div className="flex gap-2">
-              {(['TRANSFER', 'TUNAI'] as const).map((m) => (
+              {(['TRANSFER', 'TUNAI', 'DEPOSIT'] as const).map((m) => (
                 <Button
                   key={m}
                   type="button"
@@ -707,7 +717,11 @@ function DialogAkhiri({
                   variant={metodeKembali === m ? 'default' : 'outline'}
                   onClick={() => setMetodeKembali(m)}
                 >
-                  {m === 'TRANSFER' ? 'Transfer' : 'Tunai (masuk laci)'}
+                  {m === 'TRANSFER'
+                    ? 'Transfer'
+                    : m === 'TUNAI'
+                      ? 'Tunai (masuk laci)'
+                      : 'Jadikan deposit'}
                 </Button>
               ))}
             </div>
@@ -1264,6 +1278,7 @@ function Rincian({ id, onUbah }: { id: number; onUbah: (d: DetailOrderPembelian)
                             onClick={() =>
                               setTagihan({
                                 jenis: 'PENERIMAAN',
+                                idPemasok: po.idPemasok,
                                 id: t.id,
                                 nomor: t.nomor,
                                 namaPemasok: po.namaPemasok,

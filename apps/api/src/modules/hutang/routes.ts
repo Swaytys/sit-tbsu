@@ -19,6 +19,7 @@ import {
   penerimaanBerhutang,
   perpanjangJatuhTempo,
 } from './service';
+import { saldoDepositPemasok } from './deposit';
 
 const lihat = requirePermission('hutang.lihat');
 
@@ -54,6 +55,14 @@ export const hutangRoutes = new Hono<EnvApp>()
       const data = await bayarHutang(c.req.valid('json'), penggunaWajib(c), c.get('asal'));
       return c.json({ data }, 200);
     },
+  )
+  /** K-237: saldo deposit pemasok (kelebihan uang muka yang disimpan). */
+  .get(
+    '/deposit/:idPemasok',
+    lihat,
+    zValidator('param', z.object({ idPemasok: z.coerce.number().int().positive() }), kaitValidasi),
+    async (c) =>
+      c.json({ data: { saldo: await saldoDepositPemasok(c.req.valid('param').idPemasok) } }, 200),
   )
   /** K-241: hutang awal pemasok (bagian Persediaan Awal). */
   .post(

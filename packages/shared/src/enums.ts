@@ -137,7 +137,8 @@ export const PENYELESAIAN_RETUR_PEMASOK = [
 ] as const;
 export type PenyelesaianReturPemasok = (typeof PENYELESAIAN_RETUR_PEMASOK)[number];
 
-export const METODE_PEMBAYARAN_PEMASOK = ['TUNAI', 'TRANSFER', 'KOMPENSASI'] as const;
+/** K-237: DEPOSIT = dipotong dari deposit pemasok (kelebihan uang muka yang tidak diminta kembali). */
+export const METODE_PEMBAYARAN_PEMASOK = ['TUNAI', 'TRANSFER', 'KOMPENSASI', 'DEPOSIT'] as const;
 export type MetodePembayaranPemasok = (typeof METODE_PEMBAYARAN_PEMASOK)[number];
 
 // --- Penjualan ---

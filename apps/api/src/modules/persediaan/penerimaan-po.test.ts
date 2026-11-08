@@ -329,4 +329,61 @@ describe('penerimaan dari order pembelian (K-236, K-237)', () => {
     expect(sendiri.pesan).toContain('pemisahan tugas');
     await data(kirim(persediaanSesi, '/api/penerimaan', terima(po, { qtyMasuk: '10' })));
   });
+
+  it('K-237 deposit pemasok: kelebihan uang muka disimpan lalu dipakai untuk uang muka dan hutang', async () => {
+    const po = await orderDikirim({ syaratBayar: 'SAAT_TERIMA', uangMukaRencana: 100_000 });
+    await data(
+      kirim(kepala, `/api/order-pembelian/${po.id}/uang-muka`, {
+        nominal: 100_000,
+        metode: 'TRANSFER',
+        rekening: 'BCA 1',
+        referensi: 'TRF-DEP1',
+      }),
+    );
+    // Datang 1 sak (Rp 50.000): uang muka terpakai Rp 50.000, sisa order ditutup → sisa uang muka jadi deposit.
+    await data(kirim(persediaanSesi, '/api/penerimaan', terima(po, { qtyMasuk: '1' })));
+    await data(
+      kirim(kepala, `/api/order-pembelian/${po.id}/tutup`, {
+        alasan: 'Pemasok kehabisan stok',
+        metodeKembali: 'DEPOSIT',
+      }),
+    );
+    const saldo = async () =>
+      (
+        await data<{ saldo: number }>(
+          minta(`/api/hutang/deposit/${m.pemasokA}`, { cookie: kepala.cookie }),
+        )
+      ).saldo;
+    expect(await saldo()).toBe(50_000);
+
+    const po2 = await orderDikirim({ syaratBayar: 'TEMPO', tempoHari: 14 });
+    await data(
+      kirim(kepala, `/api/order-pembelian/${po2.id}/uang-muka`, {
+        nominal: 30_000,
+        metode: 'DEPOSIT',
+      }),
+    );
+    expect(await saldo()).toBe(20_000);
+    const lebih = await galat(
+      kirim(kepala, `/api/order-pembelian/${po2.id}/uang-muka`, {
+        nominal: 30_000,
+        metode: 'DEPOSIT',
+      }),
+    );
+    expect(lebih.status).toBe(400);
+    expect(lebih.pesan).toContain('tidak cukup');
+
+    const t = await data<DetailPenerimaan>(
+      kirim(persediaanSesi, '/api/penerimaan', terima(po2, { qtyMasuk: '10' })),
+    );
+    await data(
+      kirim(kepala, '/api/hutang/bayar', {
+        jenis: 'PENERIMAAN',
+        id: t.id,
+        nominal: 20_000,
+        metode: 'DEPOSIT',
+      }),
+    );
+    expect(await saldo()).toBe(0);
+  });
 });

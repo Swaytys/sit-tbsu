@@ -615,7 +615,9 @@ Semua tugas kasir, ditambah:
      penerimaan dengan tombol **Bayar tagihan**, dan riwayat. Setelah barang pertama datang, tombol *Uang muka*
      hilang: pembayaran berikutnya lewat *Bayar tagihan*.
   6. Sisa tidak jadi dikirim: **Tutup sisa** (alasan). Belum ada barang datang dan batal: **Batalkan**. Bila ada
-     sisa uang muka, catat cara pemasok mengembalikannya.
+     sisa uang muka, catat cara pemasok mengembalikannya (transfer, tunai ke laci) atau **Jadikan deposit**: uang
+     tetap di pemasok dan nanti dipakai lewat **Pakai deposit** saat memberi uang muka order berikutnya atau
+     membayar hutang ke pemasok yang sama.
   7. Barang yang sudah dipesan tampil "+ … sudah dipesan" di Saran pesan dan tidak disarankan dua kali. Setelah 3
      order dari satu pemasok, lama kirimnya dihitung dari kenyataan ("aktual"). Lonceng memberi tahu order yang
      lewat tanggal janji kirim.

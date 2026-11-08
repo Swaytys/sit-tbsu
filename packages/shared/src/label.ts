@@ -97,6 +97,7 @@ export const LABEL_METODE_PEMBAYARAN_PEMASOK: Record<MetodePembayaranPemasok, st
   TUNAI: 'Tunai',
   TRANSFER: 'Transfer',
   KOMPENSASI: 'Kompensasi retur',
+  DEPOSIT: 'Potong deposit pemasok',
 };
 
 export const LABEL_STATUS_TRANSAKSI: Record<StatusTransaksi, string> = {

@@ -133,6 +133,7 @@ export function HalamanDetailKonsinyasi() {
         <DialogBayarHutang
           h={{
             jenis: 'KONSINYASI',
+            idPemasok: k.idPemasok,
             id: k.id,
             nomor: k.nomor,
             namaPemasok: k.namaPemasok,

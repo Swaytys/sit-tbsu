@@ -79,6 +79,18 @@ export function useBayarHutang() {
   });
 }
 
+/** K-237: saldo deposit pemasok (kelebihan uang muka yang disimpan); `null` = belum dipilih pemasok. */
+export function useSaldoDeposit(idPemasok: number | null) {
+  return useQuery({
+    queryKey: ['hutang', 'deposit', idPemasok],
+    queryFn: async () =>
+      ambilData(
+        await api.hutang.deposit[':idPemasok'].$get({ param: { idPemasok: String(idPemasok) } }),
+      ),
+    enabled: idPemasok !== null,
+  });
+}
+
 /** K-241: catat hutang awal pemasok (sebelum memakai aplikasi). */
 export function useCatatHutangAwal() {
   const qc = useQueryClient();

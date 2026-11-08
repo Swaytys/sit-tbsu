@@ -358,7 +358,7 @@ export const alokasiUangMuka = pgTable(
     check(
       'chk_alokasi_sumber',
       sql`(jenis = 'DIPAKAI' and id_penerimaan is not null and metode_kembali is null)
-        or (jenis = 'DIKEMBALIKAN' and id_penerimaan is null and metode_kembali in ('TUNAI', 'TRANSFER'))`,
+        or (jenis = 'DIKEMBALIKAN' and id_penerimaan is null and metode_kembali in ('TUNAI', 'TRANSFER', 'DEPOSIT'))`,
     ),
     index('idx_alokasi_pembayaran').on(t.idPembayaranPemasok),
   ],

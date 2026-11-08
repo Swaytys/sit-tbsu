@@ -37,6 +37,7 @@ import { sekarang, tanggalOperasional } from '../../../lib/waktu';
 import { catatKas, shiftUntukCatat } from '../../kas/shift/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
+import { pastikanDeposit } from '../../hutang/deposit';
 import { tambahPembayaran } from '../penerimaan/repo';
 import { hitungPersetujuan, infoPersetujuan, pastikanKesepakatan } from './persetujuan';
 import * as repo from './repo';
@@ -499,6 +500,7 @@ export async function uangMukaPO(
         { kolom: { metode: ['Butuh shift terbuka.'] } },
       );
     }
+    if (input.metode === 'DEPOSIT') await pastikanDeposit(tx, po.idPemasok, input.nominal);
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, 'PBP', tanggal);
     const idBayar = await tambahPembayaran(tx, {
@@ -710,7 +712,9 @@ export async function akhiriPO(
       nomorDokumen: po.nomor ?? undefined,
       ringkasan:
         `${jenis === 'BATAL' ? 'Batal' : 'Tutup sisa'} ${po.nomor ?? `draf #${id}`}: ${input.alasan}` +
-        (sisa > 0 ? `; uang muka ${formatRupiah(sisa)} dikembalikan` : ''),
+        (sisa > 0
+          ? `; uang muka ${formatRupiah(sisa)} ${input.metodeKembali === 'DEPOSIT' ? 'menjadi deposit pemasok' : 'dikembalikan'}`
+          : ''),
       ip: asal.ip,
     });
   });

@@ -23,6 +23,7 @@ import {
   useDaftarHutang,
   usePembayaranHutang,
   useCatatHutangAwal,
+  useSaldoDeposit,
   usePerpanjangJatuhTempo,
 } from '@/api/hutang';
 import { useDaftarPemasok } from '@/api/mitra';
@@ -559,11 +560,12 @@ export function HalamanHutang() {
 /** Data dokumen yang dibutuhkan dialog bayar (juga dipakai halaman detail setoran konsinyasi). */
 export type DokumenBayar = Pick<
   BarisHutang,
-  'jenis' | 'id' | 'nomor' | 'namaPemasok' | 'sisa' | 'tanggalJatuhTempo'
+  'jenis' | 'id' | 'idPemasok' | 'nomor' | 'namaPemasok' | 'sisa' | 'tanggalJatuhTempo'
 >;
 
 export function DialogBayarHutang({ h, onTutup }: { h: DokumenBayar; onTutup: () => void }) {
   const bayar = useBayarHutang();
+  const deposit = useSaldoDeposit(h.idPemasok).data?.saldo ?? 0;
   const form = useForm<InputBayarHutang, unknown, DataBayarHutang>({
     resolver: zodResolver(skemaBayarHutang),
     defaultValues: {
@@ -639,7 +641,10 @@ export function DialogBayarHutang({ h, onTutup }: { h: DokumenBayar; onTutup: ()
                     role="radiogroup"
                     aria-label="Metode bayar"
                   >
-                    {(['TRANSFER', 'TUNAI'] as const).map((m) => (
+                    {(deposit > 0
+                      ? (['TRANSFER', 'TUNAI', 'DEPOSIT'] as const)
+                      : (['TRANSFER', 'TUNAI'] as const)
+                    ).map((m) => (
                       <Button
                         key={m}
                         type="button"
@@ -648,7 +653,11 @@ export function DialogBayarHutang({ h, onTutup }: { h: DokumenBayar; onTutup: ()
                         variant={field.value === m ? 'default' : 'outline'}
                         onClick={() => field.onChange(m)}
                       >
-                        {m === 'TUNAI' ? 'Tunai (uang shift)' : 'Transfer'}
+                        {m === 'TUNAI'
+                          ? 'Tunai (uang shift)'
+                          : m === 'TRANSFER'
+                            ? 'Transfer'
+                            : `Pakai deposit (${formatRupiah(deposit)})`}
                       </Button>
                     ))}
                   </div>

@@ -372,6 +372,13 @@
       "when": 1794123099026,
       "tag": "0052_hutang_awal",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1794142731131,
+      "tag": "0053_deposit_pemasok",
+      "breakpoints": true
     }
   ]
 }

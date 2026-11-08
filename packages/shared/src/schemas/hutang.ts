@@ -106,7 +106,8 @@ export type DaftarHutang = {
   };
 };
 
-export const METODE_BAYAR_HUTANG = ['TUNAI', 'TRANSFER'] as const;
+/** K-237: DEPOSIT = memakai deposit pemasok (tanpa uang keluar). */
+export const METODE_BAYAR_HUTANG = ['TUNAI', 'TRANSFER', 'DEPOSIT'] as const;
 
 export const skemaBayarHutang = z
   .object({
