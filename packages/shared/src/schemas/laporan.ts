@@ -32,6 +32,7 @@ export const JENIS_LAPORAN = [
   'konsinyasi',
   'daftar-harga',
   'rekomendasi-pesan',
+  'pengawasan-pembelian',
 ] as const;
 export type JenisLaporan = (typeof JENIS_LAPORAN)[number];
 
@@ -156,6 +157,16 @@ export const DAFTAR_LAPORAN = [
     izin: ['laporan.penjualan'],
     deskripsi:
       'Pemakaian promo dalam periode: transaksi, potongan yang diberikan, dan penjualan barang berpromo.',
+  },
+  {
+    kode: 'pengawasan-pembelian',
+    nama: 'Pengawasan Pembelian',
+    judul: 'Laporan Pengawasan Pembelian',
+    grup: 'PERSEDIAAN',
+    // K-225: hanya penyetuju pembelian (Kepala Toko/Owner).
+    izin: ['pembelian.setujui'],
+    deskripsi:
+      'Kejadian yang perlu diawasi: order disetujui, penerimaan tanpa order, harga faktur naik, bayar kurang, barang ditolak, perpanjangan jatuh tempo, pemasok baru dan perubahan rekening.',
   },
   {
     kode: 'riwayat-harga-beli',
@@ -334,6 +345,11 @@ export type ParamLaporanPiutang = z.input<typeof skemaLaporanPiutang>;
 
 export const skemaLaporanPromo = z.object({ ...bentukPeriode }).superRefine(cekPeriode);
 export type ParamLaporanPromo = z.input<typeof skemaLaporanPromo>;
+
+/** K-225: Laporan Pengawasan Pembelian (periode). */
+export const skemaLaporanPengawasanPembelian = z
+  .object({ ...bentukPeriode })
+  .superRefine(cekPeriode);
 
 export const skemaLaporanRiwayatHargaBeli = z
   .object({

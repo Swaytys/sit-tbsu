@@ -389,6 +389,14 @@ Pemasok | Admin Persediaan, Kepala Toko, Owner | desktop
   `[KODE: web/features/order-pembelian/halaman-order-pembelian.tsx]`; `[DOK: K-236–K-238, docs/05 PO15–PO22]`; tes
   `penerimaan-po.test.ts`, e2e `order-pembelian.spec.ts`. Status: BERFUNGSI (uji U209–U214).
 
+**F70. Pengendalian pembelian lanjutan** | Penerimaan, Hutang Pemasok, Data Pemasok, Laporan | Kepala Toko, Owner |
+desktop
+- Fungsi: Persediaan Awal secepat kasir dan hutang awal pemasok; Perencanaan Pengadaan dengan celah kosong stok,
+  penjualan hilang, dan saran tindakan; batas pembelian tanpa order; penerima ≠ pembuat order; pencocokan harga
+  faktur; batas bayar hutang Kepala Toko; rekening pemasok hanya Owner; deposit pemasok; Laporan Pengawasan Pembelian.
+- Bukti: `[DOK: K-241, K-242, K-225 tahap 3, K-237, docs/05 PO24–PO30, RO14, A2a, docs/06 HT8]`; tes
+  `penerimaan-po.test.ts`, `hutang-awal.test.ts`, `saran-pesan/celah.test.ts`. Status: BERFUNGSI (uji U219–U226).
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1470,6 +1478,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
 - 2026-10-31 — F61 HP dan tablet (K-217).
+- 2026-11-08 — F70 pengendalian pembelian lanjutan (K-241, K-242, K-225 tahap 3, deposit).
 - 2026-11-08 — F69 siklus pembelian lengkap (K-236–K-238); pemusnahan dan jam operasional (K-239, K-244).
 - 2026-11-07 — F67 tujuh peran, F68 persetujuan order pembelian (K-225 tahap 1–2, branch V2); perbaikan uji layar
   lengkap (K-233).

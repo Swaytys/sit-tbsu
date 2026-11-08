@@ -11,6 +11,7 @@ import {
   skemaLaporanProdukTerlaris,
   skemaLaporanPromo,
   skemaLaporanRetur,
+  skemaLaporanPengawasanPembelian,
   skemaLaporanRiwayatHargaBeli,
   skemaLaporanRekomendasiPesan,
   skemaLaporanStokMinimum,
@@ -36,6 +37,7 @@ const SKEMA: Record<JenisLaporan, z.ZodType> = {
   piutang: skemaLaporanPiutang,
   promo: skemaLaporanPromo,
   'riwayat-harga-beli': skemaLaporanRiwayatHargaBeli,
+  'pengawasan-pembelian': skemaLaporanPengawasanPembelian,
   hutang: skemaLaporanHutang,
   konsinyasi: skemaLaporanKonsinyasi,
   'daftar-harga': skemaLaporanDaftarHarga,
@@ -57,6 +59,7 @@ export const BERPERIODE: ReadonlySet<JenisLaporan> = new Set([
   'laba-kotor',
   'promo',
   'riwayat-harga-beli',
+  'pengawasan-pembelian',
   'konsinyasi',
 ]);
 

@@ -445,4 +445,46 @@ describe('penerimaan dari order pembelian (K-236, K-237)', () => {
     await data(um(kepala, 'bca 123 a.n. cv semen jaya'));
     await data(um(owner, 'BRI 555 a.n. Lain'));
   });
+
+  it('K-225 laporan pengawasan pembelian: kejadian terkumpul; hanya penyetuju pembelian', async () => {
+    const po = await orderDikirim({ syaratBayar: 'TEMPO', tempoHari: 30 });
+    await data(
+      kirim(
+        kepala,
+        '/api/penerimaan',
+        terima(po, {
+          qtyMasuk: '8',
+          hargaModalMasuk: 60_000,
+          qtyDitolak: '2',
+          alasanTolak: 'Sak sobek',
+          tindakanTolak: 'GANTI',
+        }),
+      ),
+    );
+    await data(
+      kirim(kepala, '/api/penerimaan', {
+        idPemasok: m.pemasokA,
+        jenis: 'PEMBELIAN',
+        syaratBayar: 'TUNAI',
+        metodeBayar: 'TRANSFER',
+        referensi: 'TRF-LAP1',
+        baris: [{ idBarang: m.pasir, hargaModalMasuk: 10_000, qtyMasuk: '1' }],
+      }),
+    );
+    const hari = tanggalOperasional();
+    const url = `/api/laporan/pengawasan-pembelian?dari=${hari}&sampai=${hari}`;
+    expect((await minta(url, { cookie: persediaanSesi.cookie })).status).toBe(403);
+    const lap = await data<{
+      bagian: { jenis: string; tabel?: { baris: { label?: string }[] } }[];
+    }>(minta(url, { cookie: kepala.cookie }));
+    const grup = lap.bagian
+      .find((b) => b.jenis === 'tabel')
+      ?.tabel?.baris.map((b) => b.label)
+      .filter(Boolean);
+    expect(grup).toEqual([
+      'Penerimaan tanpa order (1)',
+      'Harga faktur naik > 10% dari order (1)',
+      'Barang ditolak saat datang (1)',
+    ]);
+  });
 });

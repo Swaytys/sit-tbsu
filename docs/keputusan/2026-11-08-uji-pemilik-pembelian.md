@@ -150,7 +150,8 @@ Pilihan pemilik 8 Nov: pembelian tanpa order **dibatasi nilai** (tunai ≤ Rp 50
 beda** dari pembuat order tetapi **bisa dimatikan** di Pengaturan. Keduanya tidak berlaku untuk Owner. Selesai: PO24,
 PO25, daftar tinjau *Tanpa order*, pencocokan harga faktur dengan order (PO27), batas wewenang bayar hutang (PO28).
 Ditunda: hitung buta (penerima tetap bisa melihat kartu order, jadi manfaatnya kecil di toko ini). Rekening pemasok hanya
-diatur Owner dan transfer ke rekening lain ditolak (PO29). Menyusul: laporan pengawasan.
+diatur Owner dan transfer ke rekening lain ditolak (PO29). Laporan Pengawasan Pembelian
+(PO30) selesai. K-225 selesai kecuali hitung buta (ditunda).
 
 ## K-239 Pemusnahan barang rusak
 

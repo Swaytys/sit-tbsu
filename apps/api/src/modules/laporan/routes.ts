@@ -14,6 +14,7 @@ import {
   skemaLaporanProdukTerlaris,
   skemaLaporanPromo,
   skemaLaporanRetur,
+  skemaLaporanPengawasanPembelian,
   skemaLaporanRiwayatHargaBeli,
   skemaLaporanRekomendasiPesan,
   skemaLaporanStokMinimum,
@@ -37,6 +38,7 @@ import { laporanPiutang } from './piutang';
 import { laporanProdukTerlaris } from './produk-terlaris';
 import { laporanPromo } from './promo';
 import { laporanReturPenjualan } from './retur-penjualan';
+import { laporanPengawasanPembelian } from './pengawasan-pembelian';
 import { laporanRiwayatHargaBeli } from './riwayat-harga-beli';
 import { laporanRekomendasiPesan } from './rekomendasi-pesan';
 import { laporanStokMinimum } from './stok-minimum';
@@ -132,6 +134,16 @@ export const laporanRoutes = new Hono<EnvApp>()
   )
   .get('/promo', penjualan, zValidator('query', skemaLaporanPromo, kaitValidasi), async (c) =>
     c.json({ data: await laporanPromo(c.req.valid('query'), penggunaWajib(c)) }, 200),
+  )
+  .get(
+    '/pengawasan-pembelian',
+    requirePermission('pembelian.setujui'),
+    zValidator('query', skemaLaporanPengawasanPembelian, kaitValidasi),
+    async (c) =>
+      c.json(
+        { data: await laporanPengawasanPembelian(c.req.valid('query'), penggunaWajib(c)) },
+        200,
+      ),
   )
   .get(
     '/riwayat-harga-beli',
