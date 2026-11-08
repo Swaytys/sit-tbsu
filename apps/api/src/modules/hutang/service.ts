@@ -26,6 +26,7 @@ import { catatKas, shiftUntukCatat } from '../kas/shift/service';
 import { tambahPembayaran } from '../persediaan/penerimaan/repo';
 import { catatLog } from '../sistem/log-aktivitas';
 import { terbitkanNomor } from '../sistem/penomoran';
+import { ambilAngka } from '../sistem/konfigurasi/service';
 import { pastikanDeposit } from './deposit';
 import * as repo from './repo';
 
@@ -238,6 +239,17 @@ export async function bayarHutang(
         409,
         { kolom: { metode: ['Butuh shift terbuka.'] } },
       );
+    }
+    // K-225: Kepala Toko membayar sampai batasnya per pembayaran; di atasnya hanya Owner.
+    if (!pelaku.izin.has('pembelian.setujui_semua')) {
+      const batas = await ambilAngka('hutang_batas_kepala_toko', 10_000_000, tx);
+      if (input.nominal > batas) {
+        throw new AppError(
+          'TIDAK_BERIZIN',
+          `Pembayaran di atas ${formatRupiah(batas)} hanya bisa dilakukan Owner. Bayar sebagian, atau minta Owner.`,
+          403,
+        );
+      }
     }
     if (input.metode === 'DEPOSIT') await pastikanDeposit(tx, d.idPemasok, input.nominal);
     const tanggal = tanggalOperasional();

@@ -128,6 +128,7 @@ export function dariKonfigurasi(m: Peta): Pengaturan {
       penerimaanTanpaPoDibatasi: bool(m, 'penerimaan_tanpa_po_dibatasi', false),
       penerimaanTanpaPoBatas: angka(m, 'penerimaan_tanpa_po_batas', 500_000),
       poPenerimaBeda: bool(m, 'po_penerima_beda', false),
+      hutangBatasKepalaToko: angka(m, 'hutang_batas_kepala_toko', 10_000_000),
       barisPerHalaman: barisPerHalaman(m),
     },
     harga: {
@@ -204,6 +205,7 @@ function keKonfigurasi(p: Partial<Pengaturan>): Entri[] {
     b('penerimaan_tanpa_po_dibatasi', o.penerimaanTanpaPoDibatasi);
     a('penerimaan_tanpa_po_batas', o.penerimaanTanpaPoBatas);
     b('po_penerima_beda', o.poPenerimaBeda);
+    a('hutang_batas_kepala_toko', o.hutangBatasKepalaToko);
     a('baris_per_halaman', o.barisPerHalaman);
   }
   if (p.harga) {

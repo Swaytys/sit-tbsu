@@ -139,6 +139,8 @@ export const skemaOperasional = z
     penerimaanTanpaPoDibatasi: z.boolean(),
     penerimaanTanpaPoBatas: bulat('Batas pembelian tanpa order', 0, 100_000_000_000),
     poPenerimaBeda: z.boolean(),
+    /** K-225: batas satu pembayaran hutang oleh Kepala Toko; di atasnya Owner. */
+    hutangBatasKepalaToko: bulat('Batas bayar hutang Kepala Toko', 0, 100_000_000_000),
     barisPerHalaman: z.coerce
       .number('Jumlah baris harus berupa angka.')
       .refine(

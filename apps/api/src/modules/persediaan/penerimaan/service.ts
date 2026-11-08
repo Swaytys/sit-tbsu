@@ -13,7 +13,7 @@ import {
 } from '@sit/shared';
 import { eq } from 'drizzle-orm';
 import { db, type Tx } from '../../../db/client';
-import { orderPembelian, pemasok } from '../../../db/schema';
+import { orderPembelian, orderPembelianDetail, pemasok } from '../../../db/schema';
 import { AppError, galatBaris, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
@@ -130,6 +130,46 @@ async function periksaPengendalian(
       403,
     );
   }
+}
+
+/**
+ * K-225 (pencocokan order × penerimaan × faktur): harga faktur per baris dibandingkan harga berlaku order. Naik melewati
+ * ambang `po_ambang_naik_persen` hanya boleh dicatat pemegang `pembelian.setujui` (Kepala Toko/Owner); tercatat di
+ * log. Turun atau sama tidak perlu persetujuan.
+ */
+async function cocokkanHargaFaktur(
+  tx: Tx,
+  idPO: number,
+  baris: { idOrderPembelianDetail?: number | null; harga: number; brg: { namaBarang: string } }[],
+  pelaku: PenggunaAktif,
+): Promise<string[]> {
+  const ambang = await ambilAngka('po_ambang_naik_persen', 10, tx);
+  const detail = await tx
+    .select({
+      id: orderPembelianDetail.id,
+      perkiraan: orderPembelianDetail.hargaPerkiraan,
+      konfirmasi: orderPembelianDetail.hargaKonfirmasi,
+    })
+    .from(orderPembelianDetail)
+    .where(eq(orderPembelianDetail.idOrderPembelian, idPO));
+  const peta = new Map(detail.map((d) => [d.id, d.konfirmasi ?? d.perkiraan]));
+  const naik: string[] = [];
+  for (const b of baris) {
+    const order = b.idOrderPembelianDetail ? peta.get(b.idOrderPembelianDetail) : undefined;
+    if (!order || order <= 0) continue;
+    if (b.harga > order * (1 + ambang / 100)) {
+      naik.push(`${b.brg.namaBarang} ${formatRupiah(order)} → ${formatRupiah(b.harga)}`);
+    }
+  }
+  if (naik.length > 0 && !pelaku.izin.has('pembelian.setujui')) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      `Harga di faktur naik lebih dari ${ambang}% dari order (${naik.join('; ')}). Minta Kepala Toko/Owner ` +
+        'mencatat penerimaan ini, atau tanyakan pemasok.',
+      403,
+    );
+  }
+  return naik;
 }
 
 /** K-236: kesepakatan order (kosong untuk order lama sebelum K-236 → isian form yang dipakai). */
@@ -324,7 +364,9 @@ export async function simpanPenerimaan(
     // K-125 PO5: penerimaan dari order pembelian: perbarui PO dan pakai uang mukanya untuk faktur ini.
     let uangMuka = 0;
     let nomorPO: string | null = null;
+    let selisihHarga: string[] = [];
     if (input.idOrderPembelian) {
+      selisihHarga = await cocokkanHargaFaktur(tx, input.idOrderPembelian, baris, pelaku);
       const h = await terimaDariPO(tx, {
         idPO: input.idOrderPembelian,
         idPemasok: pms.id,
@@ -430,6 +472,9 @@ export async function simpanPenerimaan(
           : `, ${formatRupiah(totalFaktur)} ${tunai && !menyimpang ? 'tunai' : 'tempo'}`) +
         (menyimpang
           ? `; dibayar kurang dari kesepakatan, sisa jatuh tempo ${menyimpang.jatuhTempo}: ${menyimpang.alasan}`
+          : '') +
+        (selisihHarga.length > 0
+          ? `; harga faktur naik dari order: ${selisihHarga.join('; ')}`
           : '') +
         (nomorPO
           ? ` (dari ${nomorPO}${uangMuka > 0 ? `, uang muka ${formatRupiah(uangMuka)}` : ''})`

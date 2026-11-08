@@ -386,4 +386,30 @@ describe('penerimaan dari order pembelian (K-236, K-237)', () => {
     );
     expect(await saldo()).toBe(0);
   });
+
+  it('K-225: harga faktur naik melewati ambang perlu Kepala Toko; bayar hutang di atas batas hanya Owner', async () => {
+    await aturKonfigurasi({ hutang_batas_kepala_toko: '200000' });
+    const owner = await sesiUji('OWNER');
+    const po = await orderDikirim({ syaratBayar: 'TEMPO', tempoHari: 30 });
+    // Order @50.000; faktur @60.000 (naik 20% > ambang 10%).
+    const naik = terima(po, { qtyMasuk: '10', hargaModalMasuk: 60_000 });
+    const ditolak = await galat(kirim(persediaanSesi, '/api/penerimaan', naik));
+    expect(ditolak.status).toBe(403);
+    expect(ditolak.pesan).toContain('naik lebih dari 10%');
+    const t = await data<DetailPenerimaan>(kirim(kepala, '/api/penerimaan', naik));
+    expect(t.totalFaktur).toBe(600_000);
+
+    const bayar = (sesi: Sesi, nominal: number) =>
+      kirim(sesi, '/api/hutang/bayar', {
+        jenis: 'PENERIMAAN',
+        id: t.id,
+        nominal,
+        metode: 'TRANSFER',
+        rekening: 'BCA 1',
+        referensi: `TRF-B${nominal}`,
+      });
+    expect((await galat(bayar(kepala, 300_000))).status).toBe(403);
+    await data(bayar(kepala, 200_000));
+    await data(bayar(owner, 400_000));
+  });
 });

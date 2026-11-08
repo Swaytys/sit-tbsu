@@ -315,6 +315,13 @@ const KONFIGURASI: BarisKonfigurasi[] = [
     deskripsi: 'Batas nilai pembelian tunai tanpa order pembelian (K-225)',
   },
   {
+    kode: 'hutang_batas_kepala_toko',
+    nilai: '10000000',
+    tipe: 'ANGKA',
+    deskripsi:
+      'Kepala Toko membayar hutang pemasok sampai nilai ini per pembayaran; di atasnya Owner (K-225)',
+  },
+  {
     kode: 'po_penerima_beda',
     nilai: 'true',
     tipe: 'BOOL',

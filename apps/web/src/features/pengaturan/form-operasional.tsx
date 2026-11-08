@@ -42,6 +42,7 @@ type KolomAngka = Exclude<
   | 'penerimaanTanpaPoDibatasi'
   | 'penerimaanTanpaPoBatas'
   | 'poPenerimaBeda'
+  | 'hutangBatasKepalaToko'
 >;
 
 const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: string }[] = [
@@ -331,6 +332,19 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
               render={({ field }) => (
                 <FormItem className="max-w-xs">
                   <FormLabel>Batas pembelian tunai tanpa order</FormLabel>
+                  <FormControl>
+                    <InputRupiah {...field} onChange={(v) => field.onChange(v ?? 0)} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="hutangBatasKepalaToko"
+              render={({ field }) => (
+                <FormItem className="max-w-xs">
+                  <FormLabel>Kepala Toko membayar hutang sampai (per pembayaran)</FormLabel>
                   <FormControl>
                     <InputRupiah {...field} onChange={(v) => field.onChange(v ?? 0)} />
                   </FormControl>
