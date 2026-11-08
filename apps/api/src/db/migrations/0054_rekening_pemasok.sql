@@ -1,0 +1,1 @@
+ALTER TABLE "pemasok" ADD COLUMN "rekening" varchar(100);

@@ -138,6 +138,11 @@ export const pemasok = pgTable(
     jarakBelanjaHari: integer('jarak_belanja_hari'),
     /** K-237: lama tempo pembayaran yang biasa diberikan pemasok (hari); bawaan order bertempo. */
     tempoHari: integer('tempo_hari'),
+    /**
+     * K-225 (migrasi 0054): rekening bank pemasok untuk transfer. Hanya Owner yang mengisi/mengubah; transfer ke
+     * rekening lain ditolak bagi selain Owner (mencegah pembayaran dialihkan).
+     */
+    rekening: varchar('rekening', { length: 100 }),
   },
   () => [
     check('chk_pemasok_status', dalamDaftar('status_aktif', STATUS_AKTIF)),

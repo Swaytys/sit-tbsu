@@ -183,6 +183,8 @@ export const skemaPemasok = z.object({
   jarakBelanjaHari: z.preprocess(kosongJadiNull, hariOpsional('Jarak belanja', 1, 365)),
   /** K-237: lama tempo bayar yang biasa diberikan pemasok; bawaan order bertempo; kosong = tidak memberi tempo. */
   tempoHari: z.preprocess(kosongJadiNull, hariOpsional('Lama tempo', 1, 365)),
+  /** K-225: rekening bank pemasok (bank, nomor, atas nama); hanya Owner yang mengubah. */
+  rekening: teksOpsional(100, 'Rekening maksimal 100 karakter.'),
   /** K-164: versi data yang dimuat form; beda dengan versi sekarang = ditolak. */
   versi: z.string().max(40).nullable().optional(),
   /** K-137: pengguna menegaskan ini pemasok berbeda walau ada yang mirip. */
@@ -202,6 +204,7 @@ export type Pemasok = {
   lamaKirimHari: number | null;
   jarakBelanjaHari: number | null;
   tempoHari: number | null;
+  rekening: string | null;
   statusAktif: StatusAktif;
   dibuatPada: string;
   /** K-164: waktu ubah terakhir (ISO). */

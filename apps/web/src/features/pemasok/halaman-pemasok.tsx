@@ -11,6 +11,7 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { usePengguna } from '@/api/auth';
 import { useDaftarPemasok, useSimpanPemasok, useStatusPemasok } from '@/api/mitra';
 import { useCariUrl } from '@/lib/use-cari-url';
 import { TeksLipat } from '@/components/teks-lipat';
@@ -49,6 +50,7 @@ import { useIngat } from '@/lib/ingat-saring';
 
 function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup: () => void }) {
   const simpan = useSimpanPemasok();
+  const bolehRekening = usePengguna().izin.includes('pembelian.setujui_semua');
   const form = useForm<InputPemasok, unknown, DataPemasok>({
     resolver: zodResolver(skemaPemasok),
     defaultValues: {
@@ -59,6 +61,7 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
       keterangan: pemasok?.keterangan ?? '',
       lamaKirimHari: pemasok?.lamaKirimHari ?? '',
       tempoHari: pemasok?.tempoHari ?? '',
+      rekening: pemasok?.rekening ?? '',
       jarakBelanjaHari: pemasok?.jarakBelanjaHari ?? '',
       versi: pemasok?.versi ?? null,
     },
@@ -196,6 +199,29 @@ function DialogPemasok({ pemasok, onTutup }: { pemasok: Pemasok | null; onTutup:
                 )}
               />
             ))}
+            <FormField
+              control={form.control}
+              name="rekening"
+              render={({ field }) => (
+                <FormItem className="col-span-2">
+                  <FormLabel>Rekening bank pemasok (untuk transfer)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="mis. BCA 1234567890 a.n. CV Maju"
+                      disabled={!bolehRekening}
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    {bolehRekening
+                      ? 'Transfer ke pemasok hanya ke rekening ini; selain Owner tidak bisa mentransfer ke rekening lain.'
+                      : 'Hanya Owner yang mengisi atau mengubah rekening (mencegah pembayaran dialihkan).'}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="keterangan"

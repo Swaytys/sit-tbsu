@@ -28,6 +28,7 @@ import { catatLog } from '../sistem/log-aktivitas';
 import { terbitkanNomor } from '../sistem/penomoran';
 import { ambilAngka } from '../sistem/konfigurasi/service';
 import { pastikanDeposit } from './deposit';
+import { pastikanRekeningPemasok } from './rekening';
 import * as repo from './repo';
 
 /*
@@ -252,6 +253,9 @@ export async function bayarHutang(
       }
     }
     if (input.metode === 'DEPOSIT') await pastikanDeposit(tx, d.idPemasok, input.nominal);
+    if (input.metode === 'TRANSFER') {
+      await pastikanRekeningPemasok(tx, d.idPemasok, input.rekening, pelaku);
+    }
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, 'PBP', tanggal);
     const idBayar = await tambahPembayaran(tx, {

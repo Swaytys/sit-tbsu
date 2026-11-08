@@ -412,4 +412,37 @@ describe('penerimaan dari order pembelian (K-236, K-237)', () => {
     await data(bayar(kepala, 200_000));
     await data(bayar(owner, 400_000));
   });
+
+  it('K-225: rekening pemasok hanya diubah Owner; transfer ke rekening lain hanya Owner', async () => {
+    const owner = await sesiUji('OWNER');
+    const pm = await data<{ versi: string; namaPemasok: string; noHp: string }>(
+      minta(`/api/pemasok?perHalaman=100`, { cookie: owner.cookie }).then(async (r) => {
+        const isi = await json<{
+          data: { id: number; versi: string; namaPemasok: string; noHp: string }[];
+        }>(r);
+        return new Response(JSON.stringify({ data: isi.data.find((x) => x.id === m.pemasokA) }));
+      }),
+    );
+    const ubah = (sesi: Sesi, rekening: string, versi: string) =>
+      minta(`/api/pemasok/${m.pemasokA}`, {
+        method: 'PATCH',
+        cookie: sesi.cookie,
+        body: { namaPemasok: pm.namaPemasok, noHp: pm.noHp, rekening, versi },
+      });
+    expect((await ubah(kepala, 'BCA 999 a.n. Penipu', pm.versi)).status).toBe(403);
+    const r = await ubah(owner, 'BCA 123 a.n. CV Semen Jaya', pm.versi);
+    expect(r.status).toBe(200);
+
+    const po = await orderDikirim({ syaratBayar: 'TEMPO', tempoHari: 30 });
+    const um = (sesi: Sesi, rekening: string) =>
+      kirim(sesi, `/api/order-pembelian/${po.id}/uang-muka`, {
+        nominal: 10_000,
+        metode: 'TRANSFER',
+        rekening,
+        referensi: 'TRF-REK1',
+      });
+    expect((await galat(um(kepala, 'BCA 999 a.n. Penipu'))).status).toBe(403);
+    await data(um(kepala, 'bca 123 a.n. cv semen jaya'));
+    await data(um(owner, 'BRI 555 a.n. Lain'));
+  });
 });

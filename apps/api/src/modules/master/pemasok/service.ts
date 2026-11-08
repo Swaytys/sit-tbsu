@@ -46,7 +46,20 @@ function nilaiDari(input: DataPemasok): repo.NilaiPemasok {
     lamaKirimHari: input.lamaKirimHari ?? null,
     jarakBelanjaHari: input.jarakBelanjaHari ?? null,
     tempoHari: input.tempoHari ?? null,
+    rekening: input.rekening ?? null,
   };
+}
+
+/** K-225: rekening pemasok hanya diisi/diubah Owner (pemisahan tugas pembayaran). */
+function pastikanOwnerRekening(pelaku: PenggunaAktif) {
+  if (!pelaku.izin.has('pembelian.setujui_semua')) {
+    throw new AppError(
+      'TIDAK_BERIZIN',
+      'Rekening pemasok hanya bisa diisi atau diubah Owner (mencegah pembayaran dialihkan ke rekening lain).',
+      403,
+      { kolom: { rekening: ['Hanya Owner.'] } },
+    );
+  }
 }
 
 export async function daftarPemasok(p: {
@@ -71,6 +84,7 @@ export async function tambahPemasok(
       { nama: input.namaPemasok, noHp: input.noHp },
       input.abaikanMirip,
     );
+    if (input.rekening) pastikanOwnerRekening(pelaku);
     const nilai = { ...nilaiDari(input), kode: await terbitkanKodeMaster(tx, 'PMS') };
     const idBaru = await repo.tambahPemasok(tx, nilai);
     await catatLog(tx, {
@@ -100,6 +114,7 @@ export async function ubahPemasok(
     const baru = nilaiDari(input);
     const beda = selisih(lama, baru);
     if (beda.kolom.length === 0) return;
+    if (beda.kolom.includes('rekening')) pastikanOwnerRekening(pelaku);
     if (beda.kolom.includes('namaPemasok') || beda.kolom.includes('noHp')) {
       await pastikanTidakMirip(
         tx,

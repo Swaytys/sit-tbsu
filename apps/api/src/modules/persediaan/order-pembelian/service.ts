@@ -38,6 +38,7 @@ import { catatKas, shiftUntukCatat } from '../../kas/shift/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import { pastikanDeposit } from '../../hutang/deposit';
+import { pastikanRekeningPemasok } from '../../hutang/rekening';
 import { tambahPembayaran } from '../penerimaan/repo';
 import { hitungPersetujuan, infoPersetujuan, pastikanKesepakatan } from './persetujuan';
 import * as repo from './repo';
@@ -501,6 +502,9 @@ export async function uangMukaPO(
       );
     }
     if (input.metode === 'DEPOSIT') await pastikanDeposit(tx, po.idPemasok, input.nominal);
+    if (input.metode === 'TRANSFER') {
+      await pastikanRekeningPemasok(tx, po.idPemasok, input.rekening, pelaku);
+    }
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, 'PBP', tanggal);
     const idBayar = await tambahPembayaran(tx, {

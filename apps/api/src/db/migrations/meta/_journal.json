@@ -379,6 +379,13 @@
       "when": 1794142731131,
       "tag": "0053_deposit_pemasok",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794143356148,
+      "tag": "0054_rekening_pemasok",
+      "breakpoints": true
     }
   ]
 }

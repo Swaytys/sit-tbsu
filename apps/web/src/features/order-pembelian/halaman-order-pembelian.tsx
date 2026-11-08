@@ -569,7 +569,14 @@ function DialogUangMuka({ po, onTutup }: { po: DetailOrderPembelian; onTutup: ()
   const [nominal, setNominal] = useState<number | null>(null);
   const [metode, setMetode] = useState<'TRANSFER' | 'TUNAI' | 'DEPOSIT'>('TRANSFER');
   const deposit = useSaldoDeposit(po.idPemasok).data?.saldo ?? 0;
-  const [rekening, setRekening] = useState('');
+  // K-225: rekening dari Data Pemasok (selain Owner tidak bisa mentransfer ke rekening lain).
+  const rekeningPemasok =
+    useDaftarPemasok({ cari: '', status: 'SEMUA', halaman: 1, perHalaman: 100 }).data?.data.find(
+      (x) => x.id === po.idPemasok,
+    )?.rekening ?? '';
+  // null = belum diketik: memakai rekening Data Pemasok.
+  const [rekeningKetik, setRekening] = useState<string | null>(null);
+  const rekening = rekeningKetik ?? rekeningPemasok;
   const [referensi, setReferensi] = useState('');
   function kirim() {
     uangMuka

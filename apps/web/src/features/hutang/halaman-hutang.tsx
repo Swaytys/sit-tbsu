@@ -12,7 +12,7 @@ import {
   type StatusHutang,
 } from '@sit/shared';
 import { CalendarClock, FilePlus2, History, Search, Wallet } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -579,6 +579,14 @@ export function DialogBayarHutang({ h, onTutup }: { h: DokumenBayar; onTutup: ()
     },
   });
   const metode = useWatch({ control: form.control, name: 'metode' });
+  // K-225: rekening dari Data Pemasok (selain Owner tidak bisa mentransfer ke rekening lain).
+  const rekeningPemasok =
+    useDaftarPemasok({ cari: '', status: 'SEMUA', halaman: 1, perHalaman: 100 }).data?.data.find(
+      (x) => x.id === h.idPemasok,
+    )?.rekening ?? '';
+  useEffect(() => {
+    if (rekeningPemasok && !form.getValues('rekening')) form.setValue('rekening', rekeningPemasok);
+  }, [rekeningPemasok, form]);
 
   async function kirim(data: DataBayarHutang) {
     if (data.nominal > h.sisa) {

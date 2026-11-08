@@ -319,6 +319,7 @@ Nilai `log_aktivitas.aksi` (huruf besar, `<ENTITAS>_<KEJADIAN>`; daftar di `pack
 | PO26 | **Deposit pemasok** (K-237): saat order ditutup/dibatalkan, sisa uang muka boleh dicatat `DEPOSIT` (alokasi DIKEMBALIKAN, tanpa uang bergerak). Saldo deposit per pemasok = Σ alokasi DEPOSIT − Σ `pembayaran_pemasok` metode DEPOSIT. Deposit dipakai untuk uang muka order lain atau membayar hutang pemasok yang sama (metode DEPOSIT, tanpa shift, tanpa kas); nominal > saldo ditolak; baris pemasok dikunci saat dipakai (L11). Migrasi 0053. |
 | PO27 | **Pencocokan harga faktur** (K-225, order × penerimaan × faktur): harga per baris penerimaan dari order dibandingkan harga berlaku order; naik lebih dari `po_ambang_naik_persen` hanya boleh dicatat `pembelian.setujui` (403 untuk lainnya) dan tercatat di log penerimaan. |
 | PO28 | **Wewenang bayar hutang** (K-225): satu pembayaran hutang di atas `hutang_batas_kepala_toko` (bawaan Rp 10.000.000) hanya `pembelian.setujui_semua` (Owner); di bawahnya pemegang `hutang.kelola`. |
+| PO29 | **Rekening pemasok** (K-225): `pemasok.rekening` hanya diisi/diubah `pembelian.setujui_semua` (Owner) saat tambah maupun ubah (403, tercatat di log PEMASOK_UBAH). Transfer uang muka atau pembayaran hutang ke rekening yang berbeda dari Data Pemasok (dibandingkan tanpa spasi/tanda baca/huruf besar) ditolak bagi selain Owner; pemasok tanpa rekening tercatat menerima rekening ketikan. Migrasi 0054. |
 
 ## 20. Hasil Penjualan (K-126)
 
