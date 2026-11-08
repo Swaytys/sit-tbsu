@@ -1,3 +1,4 @@
+import { kolomIzin } from '../../../lib/izin-pengguna';
 import { and, asc, count, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm';
 import type { Peran, StatusAktif } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
@@ -25,6 +26,10 @@ const kolomDaftar = {
   terkunciSampai: pengguna.terkunciSampai,
   loginTerakhir: pengguna.loginTerakhir,
   sesiAktif: jumlahSesiAktif,
+  idPeranKustom: kolomIzin.idPeranKustom,
+  namaPeranKustom: kolomIzin.namaPeranKustom,
+  izinTambah: kolomIzin.izinTambah,
+  izinCabut: kolomIzin.izinCabut,
 };
 
 export type BarisPengguna = {
@@ -39,6 +44,10 @@ export type BarisPengguna = {
   terkunciSampai: Date | null;
   loginTerakhir: Date | null;
   sesiAktif: number;
+  idPeranKustom: number | null;
+  namaPeranKustom: string | null;
+  izinTambah: string[];
+  izinCabut: string[];
 };
 
 function syaratDaftar(p: {
@@ -146,6 +155,14 @@ export async function tambahPengguna(
     .returning({ id: pengguna.id });
   if (!baris) throw new Error('Pengguna gagal disimpan');
   return baris.id;
+}
+
+/** K-243: hapus peran khusus dan penyesuaian izin akun (saat peran diganti). */
+export async function kosongkanIzin(tx: Tx, id: number): Promise<void> {
+  await tx
+    .update(pengguna)
+    .set({ idPeranKustom: null, izinTambah: [], izinCabut: [] })
+    .where(eq(pengguna.id, id));
 }
 
 export async function ubahPengguna(

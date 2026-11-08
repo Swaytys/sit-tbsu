@@ -196,7 +196,9 @@ export function Topbar({ judul, onToggleSidebar }: Props) {
           </div>
           <div className="hidden leading-tight xl:block">
             <div className="text-xs font-semibold text-slate-700">{pengguna.namaPengguna}</div>
-            <div className="text-xs text-slate-400">{LABEL_PERAN[pengguna.peran]}</div>
+            <div className="text-xs text-slate-400">
+              {pengguna.namaPeranKustom ?? LABEL_PERAN[pengguna.peran]}
+            </div>
           </div>
           <ChevronDown className="size-3.5 text-slate-400" />
         </DropdownMenuTrigger>

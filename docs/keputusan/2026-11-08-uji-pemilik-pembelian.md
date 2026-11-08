@@ -15,7 +15,7 @@ aman bila sudah terjadi), **Cegah** (alur/kunci sebelum terjadi), **Ajari** (pen
 | K-240 | Stok opname di halaman mandiri yang lengkap | V1 | Selesai tahap 1 (kemasan tersegel, timbang, dua penghitung, dashboard menyusul K-227) |
 | K-241 | "Saldo awal" → **Persediaan Awal**: input secepat kasir, termasuk hutang awal pemasok | V1 | Selesai (pemasok asal per baris, deposit dan titipan awal menyusul) |
 | K-242 | "Saran pesan" → **Perencanaan Pengadaan**: penjelasan dengan contoh, terpadu dengan order dan lama kirim, analisis kekosongan stok | V1 | Selesai (musim ramai dan keandalan pemasok menyusul) |
-| K-243 | Izin tambahan per pengguna (mis. kasir boleh urus pengantaran) dan peran buatan sendiri | V2 | Rencana |
+| K-243 | Izin tambahan per pengguna (mis. kasir boleh urus pengantaran) dan peran buatan sendiri | V1 | Selesai |
 | K-244 | Checkout sebelum shift dibuka di jam operasional ditolak; di luar jam operasional hanya non-tunai/order dengan pemberitahuan | V1 | Selesai |
 | K-245 | Persetujuan order pembelian jarak jauh dengan kode sekali pakai (seperti retur/void) | V1 | Selesai |
 
@@ -191,11 +191,25 @@ bertahap, hitung buta, persetujuan selisih).
 - Musim ramai: periode ramai (dari pola penjualan tahun lalu atau ditandai Owner) menaikkan perkiraan.
 - Keandalan pemasok: ketepatan janji kirim (dari K-238) ikut dipakai sebagai cadangan hari.
 
-## K-243 Izin tambahan per pengguna (V2)
+## K-243 Izin tambahan per pengguna dan peran khusus
 
 Di Data Pengguna, Owner dapat menambah atau mencabut izin tertentu per akun (mis. Kasir diberi *urus pengantaran*),
 lalu membuat peran buatan sendiri dari kumpulan izin. Bawaan Kasir tanpa tugas logistik baru diterapkan setelah
 pengaturan per pengguna ini ada, agar toko kecil tetap bisa mendelegasikan pengantaran ke kasir.
+
+**Dikerjakan di V1 (9 Nov)** karena pemilik meminta V1 sudah menangani kebutuhan niche. Keputusan teknis:
+
+- Izin efektif = bawaan peran → **peran khusus** (paket untuk beberapa akun bertugas sama, berdasar satu peran
+  non-Owner) → penyesuaian **akun**. Yang disimpan hanya selisih terhadap bawaan, jadi perbaikan bawaan peran di
+  versi berikutnya tetap sampai ke akun.
+- Hanya Owner yang mengatur (izin baru `sistem.izin.atur`). Tiga izin khusus Owner (atur izin, kelola data,
+  setujui semua pembelian) tidak bisa diberikan ke siapa pun: pengaman tidak bergantung pada kepercayaan.
+- Berlaku langsung tanpa login ulang; tercatat di log aktivitas.
+- Kasir bawaan kini tanpa pengantaran. Akun kasir yang sudah ada diberi izin itu lewat migrasi supaya tidak ada
+  kasir yang tiba-tiba tidak bisa bekerja; Owner mencabutnya bila memang tidak perlu. Tombol **S** (kirim dengan
+  rit) di layar kasir hanya muncul untuk akun yang memegang izin itu.
+- Peran akun diganti = peran khusus dan penyesuaian akun dikosongkan. Peran khusus dinonaktifkan = akun pemakainya
+  kembali ke bawaan.
 
 ## K-244 Checkout dan jam operasional
 

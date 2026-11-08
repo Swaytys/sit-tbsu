@@ -611,6 +611,11 @@ export async function isiDataAwal(
           .set({ email: `${USERNAME_DEMO[peran]}@contoh.test` })
           .where(and(eq(pengguna.username, USERNAME_DEMO[peran]), isNull(pengguna.email)));
       }
+      // K-243: kasir demo juga mengurus pengantaran (contoh izin tambahan per akun; bisa dicabut Owner).
+      await tx
+        .update(pengguna)
+        .set({ izinTambah: ['penjualan.surat_jalan.kelola'] })
+        .where(eq(pengguna.username, USERNAME_DEMO.KASIR));
     }
 
     return {

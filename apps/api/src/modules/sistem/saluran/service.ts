@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
 import {
-  IZIN_PER_PERAN,
   type DataKontakSaya,
   type DataPengaturanSaluran,
   type HasilUjiSaluran,
@@ -22,6 +21,7 @@ import { sekarang } from '../../../lib/waktu';
 import { ambilTeks, invalidasiKonfigurasi } from '../konfigurasi/service';
 import { catatLog } from '../log-aktivitas';
 import { simpanKonfigurasi } from '../pengaturan/repo';
+import { izinDari } from '../../../lib/izin-pengguna';
 import * as repo from './repo';
 
 /*
@@ -173,7 +173,7 @@ export async function kirimKePengguna(
 /** Pengguna aktif pemegang `izin` yang punya kontak, selain `kecualiId` (pengaju sendiri). */
 export async function penerimaBerizin(izin: Izin, kecualiId: number): Promise<PenerimaPesan[]> {
   return (await repo.penggunaBerkontak(db)).filter(
-    (p) => p.id !== kecualiId && IZIN_PER_PERAN[p.peran].has(izin),
+    (p) => p.id !== kecualiId && izinDari(p).has(izin),
   );
 }
 
@@ -204,9 +204,7 @@ export async function bacaPengaturanSaluran(): Promise<PengaturanSaluran> {
     ambilTeks(KUNCI.sandi, ''),
   ]);
   const bot = await namaBot(s.telegramToken);
-  const atasan = (await repo.penggunaBerkontak(db)).filter((p) =>
-    IZIN_PER_PERAN[p.peran].has('retur.setujui'),
-  );
+  const atasan = (await repo.penggunaBerkontak(db)).filter((p) => izinDari(p).has('retur.setujui'));
   return {
     telegram: { terpasang: s.telegramToken !== '', bot: bot ? `@${bot}` : null },
     email: {

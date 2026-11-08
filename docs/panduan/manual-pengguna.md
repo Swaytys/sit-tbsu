@@ -221,6 +221,9 @@ alamat kirim dan ongkir → tambah barang. Pelanggan pengantaran wajib punya No.
 **Lunas** (L), **DP** (U), **Bayar nanti** (N), atau **Saat terima** (S: ditagih saat barang diterima) → **Buat
 invoice** → **P** cetak invoice, **S** kirim dengan rit: pilih rit (kendaraan + sopir) atau buat **Rit baru**
 (**Alt+N**), periksa qty, **Enter**. Surat jalan dicetak saat rit berangkat.
+Tombol **S** hanya ada untuk kasir yang diberi tugas pengantaran oleh Owner (*Data Pengguna › Atur izin*). Kasir
+tanpa tugas itu melihat tulisan "Surat jalan dan rit diatur petugas pengantaran": invoice tetap masuk ke papan
+Pengiriman (kolom **Backlog**) dan diurus Admin Persediaan/Petugas Gudang.
 
 **Mengantar barang** (*Logistik › Pengiriman*; dari halaman Penjualan Pengantaran juga ada tautan **Pengiriman
 (papan)**). Papan empat kolom seperti papan tugas; kartu dikerjakan dari kiri ke kanan. Istilah: **rit** = satu
@@ -767,6 +770,26 @@ Semua tugas admin, ditambah:
 
 - **Data Pengguna**: tambah akun karyawan (password awal wajib diganti saat login pertama), reset password,
   nonaktifkan akun karyawan yang keluar (sesinya langsung berakhir).
+- **Atur izin satu karyawan** (hanya Owner): *Data Pengguna* › titik tiga di baris akun › **Atur izin**.
+  1. Daftar centang = semua yang boleh dikerjakan akun itu, dikelompokkan (Penjualan, Kas, Persediaan, …). Kotak
+     **Cari izin…** menyaring; centang **Hanya yang berbeda** menampilkan izin yang tidak sama dengan bawaan peran.
+  2. Centang untuk memberi, hapus centang untuk mencabut. Yang diberi di luar bawaan bertanda hijau *ditambah*; yang
+     dicabut dari bawaan bertanda merah *dicabut* dan dicoret. Baris *Pembanding* menghitung jumlahnya.
+  3. **Simpan izin**. Berlaku langsung: karyawan cukup memuat ulang halaman, tidak perlu keluar-masuk.
+     **Samakan dengan bawaan** mengembalikan semua centang ke izin standar perannya.
+  - Contoh: kasir yang juga mengatur pengiriman → centang *Buat surat jalan, berangkatkan perjalanan…*. Kasir baru
+    tidak memegangnya; kasir yang sudah ada sebelum pembaruan ini tetap memegangnya sampai Anda mencabutnya.
+  - Tiga izin bertanda *khusus Owner* (mengatur izin, kelola data aplikasi, menyetujui pembelian di atas batas
+    Kepala Toko) tidak bisa diberikan ke siapa pun. Akun Owner tidak punya menu Atur izin karena selalu memegang
+    semuanya.
+  - Mengganti **peran** akun (menu *Ubah data*) menghapus semua penyesuaian izin akun itu; atur ulang bila perlu.
+- **Peran khusus** (hanya Owner; untuk beberapa karyawan bertugas sama): *Data Pengguna* › tombol **Peran khusus**
+  › **Tambah peran khusus** → isi **Nama peran** (mis. *Kasir Pengantaran*), pilih **Peran dasar** (mis. Kasir),
+  keterangan bila perlu → centang izin akhirnya seperti di atas → **Simpan peran**. Pasang ke karyawan: *Atur
+  izin* › kotak **Peran khusus** › pilih nama peran → **Simpan izin**. Hanya peran khusus yang dasarnya sama dengan
+  peran akun yang muncul di pilihan. Nama peran khusus tampil di bawah nama karyawan di daftar dan di pojok layar
+  karyawan. Mengubah peran khusus langsung berlaku untuk semua pemakainya; **Nonaktifkan** mengembalikan pemakainya
+  ke izin bawaan perannya (bisa **Aktifkan** lagi). Peran dasar tidak bisa diganti selama peran dipakai akun.
 - **Panduan penyiapan** (Pengaturan › tombol *Panduan penyiapan*, atau kotak biru di Dashboard): kerjakan
   langkah 1–9 dari atas. Tiap langkah menjelaskan gunanya, langkah pengisiannya, dan tombol **Buka …** ke layar
   yang tepat; tanda hijau *Selesai* muncul sendiri setelah datanya ada. Untuk mencoba aplikasi dulu: tombol

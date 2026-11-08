@@ -26,6 +26,8 @@ export const DAFTAR_IZIN = {
   'master.pemasok.kelola': 'Tambah/ubah/nonaktifkan pemasok',
   'master.armada.kelola': 'Tambah/ubah/nonaktifkan kendaraan dan sopir (K-150)',
   'master.import.jalankan': 'Import Excel barang / persediaan awal',
+  'sistem.izin.atur':
+    'Mengatur izin tambahan/dicabut per akun dan peran khusus (K-243; hanya Owner)',
   'sistem.akses.kelola':
     'Akses HP/tablet: mode LAN toko, setujui/cabut perangkat, Tailscale (K-229)',
   // Pembelian (K-225)

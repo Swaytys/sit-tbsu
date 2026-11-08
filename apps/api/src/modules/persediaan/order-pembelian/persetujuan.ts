@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import {
   bulatkanRupiah,
-  IZIN_PER_PERAN,
   type DataSetujuiKodePO,
   type InfoKodePersetujuan,
   type Izin,
@@ -342,7 +341,7 @@ export async function setujuiPOdenganKode(
       tx,
       id,
       input.catatan ?? null,
-      { id: sah.atasan.id, peran: sah.atasan.peran, izin: IZIN_PER_PERAN[sah.atasan.peran] },
+      { id: sah.atasan.id, peran: sah.atasan.peran, izin: sah.atasan.izin },
       pelaku,
       asal,
       sah.atasan.namaPengguna,

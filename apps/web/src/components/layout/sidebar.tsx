@@ -130,7 +130,9 @@ export function Sidebar({ terbuka }: { terbuka: boolean }) {
             </div>
             <div className="min-w-0 flex-1 overflow-hidden">
               <p className="truncate text-xs font-semibold text-white">{pengguna.namaPengguna}</p>
-              <p className="truncate text-xs text-slate-400">{LABEL_PERAN[pengguna.peran]}</p>
+              <p className="truncate text-xs text-slate-400">
+                {pengguna.namaPeranKustom ?? LABEL_PERAN[pengguna.peran]}
+              </p>
             </div>
             <button
               type="button"

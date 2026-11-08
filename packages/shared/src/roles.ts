@@ -29,7 +29,7 @@ const IZIN_KASIR: readonly Izin[] = [
   'penjualan.order.lihat_semua',
   'penjualan.checkout',
   'penjualan.pembayaran.catat',
-  'penjualan.surat_jalan.kelola',
+  // K-243: kasir bawaan tanpa tugas pengantaran; diberikan per akun bila toko mendelegasikannya.
   'penjualan.riwayat.lihat',
   'penjualan.piutang.lihat',
   'retur.ajukan',
@@ -116,6 +116,7 @@ const IZIN_OWNER: readonly Izin[] = [
     'sistem.log.lihat',
     'sistem.data.kelola',
     'pembelian.setujui_semua',
+    'sistem.izin.atur',
   ]),
 ];
 
@@ -128,6 +129,41 @@ export const IZIN_PER_PERAN: Readonly<Record<Peran, ReadonlySet<Izin>>> = {
   PETUGAS_GUDANG: new Set(IZIN_PETUGAS_GUDANG),
   OWNER: new Set(IZIN_OWNER),
 };
+
+/**
+ * K-243: izin yang hanya milik Owner dan tidak bisa diberikan ke akun/peran khusus lain (menentukan siapa pemilik:
+ * mengganti data toko, menyetujui pembelian tanpa batas, dan mengatur izin itu sendiri).
+ */
+export const IZIN_KHUSUS_OWNER: readonly Izin[] = [
+  'sistem.data.kelola',
+  'pembelian.setujui_semua',
+  'sistem.izin.atur',
+];
+
+/** K-243: penyesuaian izin (peran khusus atau akun): ditambah/dicabut dari izin bawaan peran. */
+export type PenyesuaianIzin = { tambah: readonly string[]; cabut: readonly string[] };
+
+const IZIN_SAH = new Set<string>(Object.values(IZIN_PER_PERAN).flatMap((s) => [...s]));
+
+/**
+ * K-243: izin efektif = izin bawaan peran, lalu penyesuaian peran khusus, lalu penyesuaian akun. Owner selalu
+ * memegang semua izin; izin khusus Owner tidak pernah ikut untuk peran lain; nilai yang tidak dikenal diabaikan.
+ */
+export function izinEfektif(
+  peran: Peran,
+  kustom: PenyesuaianIzin | null,
+  akun: PenyesuaianIzin | null,
+): Set<Izin> {
+  if (peran === 'OWNER') return new Set(IZIN_PER_PERAN.OWNER);
+  const s = new Set<Izin>(IZIN_PER_PERAN[peran]);
+  for (const p of [kustom, akun]) {
+    if (!p) continue;
+    for (const i of p.tambah) if (IZIN_SAH.has(i)) s.add(i as Izin);
+    for (const i of p.cabut) s.delete(i as Izin);
+  }
+  for (const i of IZIN_KHUSUS_OWNER) s.delete(i);
+  return s;
+}
 
 export function punyaIzin(peran: Peran, izin: Izin): boolean {
   return IZIN_PER_PERAN[peran].has(izin);

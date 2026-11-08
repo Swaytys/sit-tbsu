@@ -7,6 +7,7 @@ import {
   logAktivitas,
   pengguna,
   penghitungNomor,
+  peranKustom,
   rekeningToko,
   sesiLogin,
 } from '../src/db/schema';
@@ -24,7 +25,14 @@ let nomorUji = 0;
 
 /** Mengosongkan tabel sistem (pengguna, sesi, log, penomoran, konfigurasi) beserta cache terkait. */
 export async function siapkanDatabaseSistem(): Promise<void> {
-  await kosongkanTabel(pengguna, sesiLogin, logAktivitas, penghitungNomor, konfigurasi);
+  await kosongkanTabel(
+    pengguna,
+    peranKustom,
+    sesiLogin,
+    logAktivitas,
+    penghitungNomor,
+    konfigurasi,
+  );
   invalidasiKonfigurasi();
   resetBatasPercobaan();
   kosongkanKotakKeluar();
@@ -46,6 +54,8 @@ export async function buatPenggunaUji(opsi: {
   password?: string;
   statusAktif?: StatusAktif;
   wajibGantiPassword?: boolean;
+  /** K-243: izin tambahan akun (mis. kasir yang mengurus pengantaran). */
+  izinTambah?: string[];
 }) {
   nomorUji++;
   hashUji ??= hashPassword(PASSWORD_UJI);
@@ -60,6 +70,7 @@ export async function buatPenggunaUji(opsi: {
       peran: opsi.peran,
       statusAktif: opsi.statusAktif ?? 'AKTIF',
       wajibGantiPassword: opsi.wajibGantiPassword ?? false,
+      izinTambah: opsi.izinTambah ?? [],
     })
     .returning();
   if (!baris) throw new Error('Pengguna uji gagal dibuat');
@@ -116,7 +127,10 @@ export async function loginUji(username: string, password = PASSWORD_UJI): Promi
 }
 
 /** Pengguna uji dengan peran tertentu yang sudah login. */
-export async function sesiUji(peran: Peran, opsi: { wajibGantiPassword?: boolean } = {}) {
+export async function sesiUji(
+  peran: Peran,
+  opsi: { wajibGantiPassword?: boolean; izinTambah?: string[] } = {},
+) {
   const p = await buatPenggunaUji({ peran, ...opsi });
   return { pengguna: p, cookie: await loginUji(p.username) };
 }

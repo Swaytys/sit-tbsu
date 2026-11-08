@@ -844,10 +844,31 @@ dev` menjalankan migrasi dulu. Bug subquery uang muka terpakai (tanpa `kolomPenu
 jatuh tempo, uang muka setelah datang), `order-pembelian.test.ts` (kesepakatan), `penjualan.test.ts` (K-244), e2e
 `order-pembelian.spec.ts`, `hutang.spec.ts` (daftar barang rusak).
 
+### C34. Izin per akun dan peran khusus (9 November 2026, K-243)
+
+**Masalah:** izin hanya mengikuti peran tetap di `roles.ts`. Toko kecil mendelegasikan pengantaran ke kasir, toko
+besar tidak; mencabut pengantaran dari Kasir bawaan tanpa jalan keluar akan mematikan alur toko kecil.
+
+**Solusi:** `izinEfektif(peran, kustom, akun)` di `packages/shared/src/roles.ts` (bawaan → peran khusus → akun;
+`IZIN_KHUSUS_OWNER` selalu dibuang untuk non-Owner; kode tak dikenal diabaikan). Tabel `peran_kustom` dan kolom
+`pengguna.id_peran_kustom`, `izin_tambah`, `izin_cabut` (migrasi 0055, yang juga memberi akun KASIR lama izin
+pengantaran). `lib/izin-pengguna.ts` menyediakan `kolomIzin` (subquery peran khusus aktif memakai `kolomPenuh`)
+dan `izinDari()`; dipakai di sesi (`auth`), pemilik kode persetujuan, dan penerima pemberitahuan (`saluran`),
+sehingga satu sumber hitungan. Layanan `master/pengguna/izin.ts` menyimpan hanya selisih yang dirapikan; route
+`/api/pengguna/peran-kustom` dan `PUT /api/pengguna/:id/izin` memakai izin baru `sistem.izin.atur` (Owner). Web:
+`PilihIzin` (centang izin akhir, tanda ditambah/dicabut), dialog *Atur izin* dan *Peran khusus* di Data Pengguna;
+tombol S (kirim dengan rit) di POS hanya untuk pemegang `penjualan.surat_jalan.kelola`.
+
+**Tes:** `master/pengguna/izin.test.ts` (berlaku pada sesi berjalan, perapian selisih, izin khusus Owner/tak
+dikenal ditolak, hanya Owner 403, peran diganti mengosongkan, peran khusus: dasar harus sama, nama ganda, dasar
+terkunci saat dipakai, nonaktif mengembalikan bawaan); tes kasir pengantaran memakai `sesiUji('KASIR', { izinTambah
+})`; e2e `pengguna.spec.ts` (peran khusus → pasang → cabut satu izin → izin efektif kasir).
+
 ---
 
 ## Riwayat dokumen
 
+- 2026-11-09 — Bagian C34 izin per akun dan peran khusus (K-243).
 - 2026-11-08 — Bagian C33 siklus pembelian lengkap, jam operasional (K-234–K-239, K-244).
 - 2026-11-07 — Bagian C32 peran V2 dan persetujuan order pembelian (K-225 tahap 1–2, K-233).
 - 2026-10-17 — v1: dibuat atas permintaan pemilik (K-118); Bagian A–B dari catatan keputusan dan riwayat git

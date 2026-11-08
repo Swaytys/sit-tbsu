@@ -57,6 +57,11 @@ export type PenggunaDaftar = {
   terkunciSampai: string | null;
   loginTerakhir: string | null;
   sesiAktif: number;
+  /** K-243: peran khusus dan penyesuaian izin akun ini. */
+  idPeranKustom: number | null;
+  namaPeranKustom: string | null;
+  izinTambah: string[];
+  izinCabut: string[];
 };
 
 // --- K-191: akun pertama dan pemulihan password ---
@@ -121,3 +126,52 @@ export type StatusPenyiapan = {
 };
 export type InfoKodePemulihan = { ada: boolean; dibuatPada: string | null };
 export type HasilKodePemulihan = { kodePemulihan: string };
+
+// --- K-243: izin per akun dan peran khusus ---
+
+const daftarIzin = z
+  .array(z.string().trim().min(1).max(60))
+  .max(100)
+  .default([])
+  .transform((v) => [...new Set(v)]);
+
+export const skemaIzinAkun = z.object({
+  idPeranKustom: z.number().int().positive().nullable().default(null),
+  izinTambah: daftarIzin,
+  izinCabut: daftarIzin,
+});
+export type DataIzinAkun = z.output<typeof skemaIzinAkun>;
+export type InputIzinAkun = z.input<typeof skemaIzinAkun>;
+
+export const skemaPeranKustom = z.object({
+  nama: z
+    .string('Nama peran wajib diisi.')
+    .trim()
+    .min(3, 'Nama peran minimal 3 huruf.')
+    .max(50, 'Nama peran maksimal 50 huruf.'),
+  peranDasar: z.enum(PERAN, 'Pilih peran dasar.').refine((v) => v !== 'OWNER', {
+    message: 'Peran khusus tidak bisa berdasar Owner.',
+  }),
+  keterangan: z
+    .string()
+    .trim()
+    .max(150, 'Keterangan maksimal 150 huruf.')
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional(),
+  izinTambah: daftarIzin,
+  izinCabut: daftarIzin,
+});
+export type DataPeranKustom = z.output<typeof skemaPeranKustom>;
+export type InputPeranKustom = z.input<typeof skemaPeranKustom>;
+
+export type PeranKustom = {
+  id: number;
+  nama: string;
+  peranDasar: (typeof PERAN)[number];
+  keterangan: string | null;
+  izinTambah: string[];
+  izinCabut: string[];
+  statusAktif: (typeof STATUS_AKTIF)[number];
+  jumlahPengguna: number;
+};

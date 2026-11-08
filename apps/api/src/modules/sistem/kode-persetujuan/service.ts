@@ -1,6 +1,5 @@
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import {
-  IZIN_PER_PERAN,
   type InfoKodePersetujuan,
   type Izin,
   type JenisKodePersetujuan,
@@ -15,6 +14,7 @@ import { dalamTransaksi } from '../../../lib/transaksi';
 import { jamLokal, sekarang, tambahMenit } from '../../../lib/waktu';
 import { catatLog } from '../log-aktivitas';
 import { kirimKePengguna, penerimaBerizin } from '../saluran/service';
+import { izinDari } from '../../../lib/izin-pengguna';
 import * as repo from './repo';
 
 /*
@@ -32,7 +32,7 @@ const BATAS_SALAH = 5;
 export const BATAS_MINTA_KODE: OpsiBatas = { maks: 5, jendelaDetik: 300 };
 
 /** Atasan yang menyetujui lewat kodenya: cukup identitasnya (tidak login di perangkat itu). */
-export type Atasan = Pick<PenggunaAktif, 'id' | 'username' | 'namaPengguna' | 'peran'>;
+export type Atasan = Pick<PenggunaAktif, 'id' | 'username' | 'namaPengguna' | 'peran' | 'izin'>;
 
 const LABEL: Record<JenisKodePersetujuan, { nama: string; entitas: string }> = {
   RETUR: { nama: 'retur', entitas: 'retur_penjualan' },
@@ -245,7 +245,8 @@ export async function periksaKode(
       };
     }
     // Wewenang diperiksa saat kode dipakai, bukan saat dikirim: akun bisa saja dinonaktifkan sesudahnya.
-    if (pemilik.statusAktif !== 'AKTIF' || !IZIN_PER_PERAN[pemilik.peran].has(p.izin)) {
+    const izinPemilik = izinDari(pemilik);
+    if (pemilik.statusAktif !== 'AKTIF' || !izinPemilik.has(p.izin)) {
       return { galat: `Akun ${pemilik.namaPengguna} tidak lagi berwenang menyetujui.` };
     }
     return {
@@ -255,6 +256,7 @@ export async function periksaKode(
         username: pemilik.username,
         namaPengguna: pemilik.namaPengguna,
         peran: pemilik.peran,
+        izin: izinPemilik,
       },
     };
   });

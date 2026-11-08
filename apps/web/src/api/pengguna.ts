@@ -1,4 +1,6 @@
 import type {
+  InputIzinAkun,
+  InputPeranKustom,
   InputResetPassword,
   InputTambahPengguna,
   InputUbahPengguna,
@@ -81,5 +83,42 @@ export function useResetPasswordPengguna() {
 export function useCabutSesiPengguna() {
   return useMutasiPengguna(async (id: number) =>
     ambilData(await api.pengguna[':id']['cabut-sesi'].$post({ param: { id: String(id) } })),
+  );
+}
+
+/* K-243: peran khusus dan izin per akun (hanya Owner yang mengubah). */
+
+export function useDaftarPeranKustom(aktif = true) {
+  return useQuery({
+    queryKey: [...kunciPengguna.semua, 'peran-kustom'] as const,
+    queryFn: async () => ambilData(await api.pengguna['peran-kustom'].$get()),
+    enabled: aktif,
+  });
+}
+
+export function useSimpanPeranKustom() {
+  return useMutasiPengguna(async ({ id, json }: { id: number | null; json: InputPeranKustom }) =>
+    id === null
+      ? ambilData(await api.pengguna['peran-kustom'].$post({ json }))
+      : ambilData(
+          await api.pengguna['peran-kustom'][':id'].$patch({ param: { id: String(id) }, json }),
+        ),
+  );
+}
+
+export function useUbahStatusPeranKustom() {
+  return useMutasiPengguna(async ({ id, statusAktif }: { id: number; statusAktif: StatusAktif }) =>
+    ambilData(
+      await api.pengguna['peran-kustom'][':id'].status.$patch({
+        param: { id: String(id) },
+        json: { statusAktif },
+      }),
+    ),
+  );
+}
+
+export function useAturIzinAkun() {
+  return useMutasiPengguna(async ({ id, json }: { id: number; json: InputIzinAkun }) =>
+    ambilData(await api.pengguna[':id'].izin.$put({ param: { id: String(id) }, json })),
   );
 }

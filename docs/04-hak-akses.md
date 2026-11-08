@@ -13,7 +13,11 @@
 - Implementasi berbasis **izin**: setiap route API dan setiap menu memeriksa satu kode izin, bukan nama peran.
   Peran adalah kumpulan izin yang didefinisikan di `packages/shared/src/roles.ts`. Menambah atau memindahkan
   kemampuan cukup mengubah satu berkas itu, tanpa menyentuh route.
-- Tidak ada editor peran di UI pada M1. Perubahan peran → izin dilakukan lewat kode dan migrasi kecil.
+- **Izin efektif sebuah akun (K-243)** = izin bawaan perannya (`roles.ts`), lalu penyesuaian **peran khusus** bila
+  akun memakainya, lalu penyesuaian **akun** itu sendiri (izin ditambah/dicabut). Hanya Owner (`sistem.izin.atur`)
+  yang mengaturnya di Data Pengguna: menu baris *Atur izin* dan tombol *Peran khusus*. Detail di §3a.
+- Izin bawaan per peran tetap diubah lewat kode (`roles.ts`). Owner tidak mengubah bawaan dari UI; ia membuat peran
+  khusus atau penyesuaian per akun.
 - Patokan bila sumber bertentangan: **Use Case Diagram** Laporan KP. Pengecualian yang disepakati: Kasir boleh
   melihat laporan penjualan tanpa HPP/laba (K-019).
 
@@ -46,6 +50,7 @@ memakai kode di luar daftar gagal typecheck.
 | `master.pemasok.kelola` | Tambah/ubah/nonaktifkan pemasok |
 | `master.armada.kelola` | Tambah/ubah/nonaktifkan kendaraan dan sopir (K-150); catat servis, batalkan catatan BBM/servis, statistik armada, pengingat servis/STNK/KIR (K-162). Daftar kendaraan/sopir dan catatan BBM dibaca pemegang `penjualan.surat_jalan.kelola`, yang juga boleh mencatat BBM |
 | `master.import.jalankan` | Import Excel barang / saldo awal |
+| `sistem.izin.atur` | Mengatur izin tambahan/dicabut per akun dan peran khusus (K-243). **Hanya Owner**, tidak bisa diberikan ke akun lain |
 
 ### Penjualan
 
@@ -141,6 +146,7 @@ berlaku dan tabel ini diperbarui.
 | master.pemasok.kelola | | | ✓ | | | ✓ | ✓ |
 | master.armada.kelola | | | ✓ | | | ✓ | ✓ |
 | master.import.jalankan | | | ✓ | | | ✓ | ✓ |
+| sistem.izin.atur | | | | | | | ✓ |
 | sistem.akses.kelola | | | | | ✓ | | ✓ |
 | pembelian.setujui | | | | | | ✓ | ✓ |
 | pembelian.setujui_semua | | | | | | | ✓ |
@@ -152,7 +158,7 @@ berlaku dan tabel ini diperbarui.
 | penjualan.checkout | | ✓ | | | | ✓ | ✓ |
 | penjualan.harga_manual | | | | | | ✓ | ✓ |
 | penjualan.pembayaran.catat | | ✓ | | | | ✓ | ✓ |
-| penjualan.surat_jalan.kelola | | ✓ | ✓ | ✓ | | ✓ | ✓ |
+| penjualan.surat_jalan.kelola | | | ✓ | ✓ | | ✓ | ✓ |
 | penjualan.riwayat.lihat | | ✓ | ✓ | | | ✓ | ✓ |
 | penjualan.piutang.lihat | | ✓ | | | | ✓ | ✓ |
 | retur.ajukan | | ✓ | | | | ✓ | ✓ |
@@ -185,6 +191,25 @@ berlaku dan tabel ini diperbarui.
 Staf Penjualan tidak melihat omzet, harga modal, laporan, maupun halaman persediaan penuh. Ia melihat stok
 tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembeli.
 
+Sejak K-243 Kasir bawaan **tidak** memegang `penjualan.surat_jalan.kelola` (surat jalan, rit, armada): di toko
+besar pengantaran diurus Admin Persediaan/Petugas Gudang. Toko yang mendelegasikan pengantaran ke kasir memberi
+izin itu per akun atau lewat peran khusus (mis. "Kasir Pengantaran"). Akun Kasir yang sudah ada sebelum K-243
+diberi izin itu lewat migrasi `0055` agar tidak ada yang tiba-tiba kehilangan tugasnya; Owner bisa mencabutnya.
+
+### 3a. Izin per akun dan peran khusus (K-243)
+
+| Hal | Aturan |
+|---|---|
+| Urutan hitung | bawaan peran → peran khusus (tambah lalu cabut) → akun (tambah lalu cabut). Dihitung ulang tiap permintaan API, jadi perubahan berlaku langsung tanpa login ulang. |
+| Owner | Selalu memegang semua izin; akun Owner tidak bisa diatur (HTTP 409). Peran khusus tidak bisa berdasar Owner. |
+| Izin khusus Owner | `sistem.izin.atur`, `sistem.data.kelola`, `pembelian.setujui_semua` (`IZIN_KHUSUS_OWNER`) tidak bisa ditambahkan ke akun atau peran khusus mana pun (ditolak 400) dan selalu dibuang dari hitungan non-Owner. |
+| Penyimpanan | Yang disimpan hanya **selisih** terhadap bawaan (`izin_tambah`, `izin_cabut` jsonb), dirapikan server: tambahan yang sudah dimiliki bawaan dan cabutan yang tidak dimiliki dibuang; kode tak dikenal ditolak. Perubahan bawaan peran di versi berikutnya tetap ikut berlaku. |
+| Peran khusus | Nama unik (tanpa beda huruf besar/kecil), peran dasar non-Owner, keterangan opsional. Hanya bisa dipasang ke akun berperan sama dengan peran dasarnya. Peran dasar tidak bisa diganti selama dipakai akun. Data master: dinonaktifkan, tidak dihapus; nonaktif = akun pemakainya kembali ke bawaan peran. |
+| Peran akun diganti | Peran khusus dan penyesuaian akun dikosongkan (berlaku untuk peran lama). |
+| Pemakai izin efektif | Sesi (route, menu), pemilik kode persetujuan (K-102/K-245), penerima pemberitahuan Telegram/email. |
+| Log | `PENGGUNA_IZIN_UBAH`, `PERAN_KUSTOM_BUAT`, `PERAN_KUSTOM_UBAH`, `PERAN_KUSTOM_STATUS` dengan ringkasan izin ditambah/dicabut. |
+| Siapa | Ubah: `sistem.izin.atur` (Owner). Daftar peran khusus dibaca pengelola akun (`master.pengguna.kelola`). |
+
 ## 4. Menu ↔ izin
 
 | Menu (sidebar) | Izin yang membuka | Catatan |
@@ -193,7 +218,7 @@ tersedia di layar order karena tugasnya mengecek ketersediaan barang untuk pembe
 | Data Master › Data Barang | `master.barang.kelola` | Staf/Kasir mencari barang lewat layar order, bukan menu ini. Cetak label dan satuan jual (harga tetap satuan jual butuh `master.harga.kelola`; K-090, K-091) |
 | Data Master › Data Pelanggan | `master.pelanggan.lihat` | |
 | Data Master › Data Pemasok | `master.pemasok.lihat` | |
-| Data Master › Data Pengguna | `master.pengguna.kelola` | Label "Owner Only" seperti mockup |
+| Data Master › Data Pengguna | `master.pengguna.kelola` | Label "Owner Only" seperti mockup. *Atur izin* dan *Peran khusus* bila `sistem.izin.atur` (K-243) |
 | Data Master › Referensi Barang | `master.kategori.kelola` | Satu halaman bertab: Kategori, Merk, Satuan, Atribut |
 | Data Master › Harga Jual | `master.harga.kelola` | Tier dan harga per barang; tab Tinjau Harga butuh `master.harga.tinjau` + `master.barang.lihat_hpp` (K-086) |
 | Transaksi › Order Penjualan | `penjualan.order.buat` | Staf hanya melihat order miliknya kecuali `order.lihat_semua` |
@@ -334,6 +359,8 @@ maks. 50.000 baris, dicatat LAPORAN_EKSPOR, K-113). Retensi: tidak dihapus pada 
 
 ## Riwayat
 
+- 2026-11-09 — K-243: izin per akun dan peran khusus (§1, §3a); izin `sistem.izin.atur` (Owner); Kasir bawaan tanpa
+  `penjualan.surat_jalan.kelola` (akun kasir lama tetap memegangnya lewat migrasi 0055).
 - 2026-11-07 — V2 K-225: 7 peran dengan pemisahan tugas (§1, matriks §3 baru); izin `sistem.data.kelola`,
   `sistem.akses.kelola`, `pembelian.setujui`, `pembelian.setujui_semua`; persetujuan order pembelian (§6a).
 - 2026-09-19 — v1. Konflik hak akses antar-sumber diselesaikan (K-019): Laporan untuk Kasir = penjualan tanpa HPP;

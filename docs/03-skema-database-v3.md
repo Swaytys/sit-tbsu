@@ -57,6 +57,14 @@ boleh kosong) = tujuan kode persetujuan sekali pakai; diisi pemilik akun sendiri
 (argon2id, boleh kosong) dan `kode_pemulihan_dibuat_pada` = kode pemulihan sekali pakai untuk lupa password (K-191).
 v3.39: `tur_status` jsonb `{selesai: [], dilewati: []}` = tur fitur yang sudah selesai/dilewati pengguna (K-206).
 v3.41: `pintasan` jsonb `{}` = tombol pintasan layar kerja yang diganti pengguna, mis. `{"KASIR_CARI":"F6"}` (K-145).
+v3.42 (K-243, migrasi 0055): `id_peran_kustom` (FK `peran_kustom`, boleh kosong), `izin_tambah` dan `izin_cabut` jsonb
+`[]` = selisih izin akun terhadap bawaan peran (+ peran khusus). Izin efektif dihitung aplikasi (docs/04 §3a); kolom
+dikosongkan saat `peran` akun diganti. Migrasi 0055 memberi akun KASIR yang sudah ada
+`izin_tambah = ["penjualan.surat_jalan.kelola"]` karena bawaan Kasir kini tanpa pengantaran.
+
+**`peran_kustom`** (v3.42, K-243) — data master peran khusus: `nama` (unik), `peran_dasar` (CHECK bukan OWNER),
+`keterangan`, `izin_tambah`, `izin_cabut` (jsonb), `status_aktif`, `dibuat_pada`, `diubah_pada`. Tidak dihapus;
+nonaktif = tidak berlaku untuk akun pemakainya.
 
 **`kode_reset_password`** (v3.39, K-209) — kode verifikasi lupa password lewat email: `id_pengguna`, `kode_hash`
 (SHA-256), `kedaluwarsa` (10 menit), `salah` (gugur pada 5), `dipakai_pada`, `digugurkan_pada`, `dibuat_pada`.
@@ -484,7 +492,8 @@ Angka markup contoh; Admin mengubahnya.
 Alat Tukang, Kelistrikan, Kamar Mandi, Aksesoris (dari rancangan laporan dan observasi).
 
 **`pengguna`**: satu Owner (`owner`, password dari `.env`, `wajib_ganti_password = true`). Akun demo per peran hanya
-bila `NODE_ENV=development`.
+bila `NODE_ENV=development`; kasir demo diberi `izin_tambah = ["penjualan.surat_jalan.kelola"]` agar alur pengantaran
+bisa dicoba (K-243).
 
 ## 7. Perubahan vs skema FINAL2 (Laporan KP)
 
@@ -574,6 +583,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
 - 2026-10-31 — v3.39: `pengguna.tur_status` jsonb; tabel `kode_reset_password` (migrasi 0041, K-206, K-209).
 - 2026-11-07 — v3.41: `pengguna.pintasan` jsonb (migrasi 0043, K-145).
+- 2026-11-09 — v3.42: tabel `peran_kustom`; `pengguna.id_peran_kustom`, `izin_tambah`, `izin_cabut`; akun KASIR lama
+  diberi izin pengantaran (migrasi 0055, K-243).
   Konfigurasi baru tanpa migrasi: `jenis_usaha`, `jenis_usaha_lain`, `slogan_toko`, `kota_toko`, `layanan_toko`,
   `setup_awal` (K-205); data awal tidak lagi memuat nama/alamat/telepon toko tertentu (K-207).
 - 2026-10-30 — v3.38: `promo.maks_kelipatan` integer + CHECK `chk_promo_kelipatan` (1–1000, hanya GRATIS/BELI_POTONG) (migrasi 0040, K-194).

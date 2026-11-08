@@ -73,7 +73,7 @@ beforeEach(async () => {
   m = await siapkanMasterPersediaan();
   await kosongkanTabel(pelanggan, shiftKasir, kendaraan, sopir);
   admin = await sesiUji('ADMIN');
-  kasir = await sesiUji('KASIR');
+  kasir = await sesiUji('KASIR', { izinTambah: ['penjualan.surat_jalan.kelola'] });
   const idTier = await siapkanTierNormal();
   await db.insert(hargaBarang).values([
     {

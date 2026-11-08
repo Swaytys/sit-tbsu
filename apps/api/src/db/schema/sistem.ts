@@ -61,6 +61,38 @@ export const penghitungNomor = pgTable(
   (t) => [primaryKey({ name: 'penghitung_nomor_pkey', columns: [t.prefix, t.tanggalKode] })],
 );
 
+/**
+ * K-243 (migrasi 0055): peran khusus buatan Owner = peran dasar + izin ditambah/dicabut. Data master (tidak dihapus,
+ * dinonaktifkan). Peran khusus nonaktif tidak lagi menyesuaikan izin akun yang memakainya.
+ */
+export const peranKustom = pgTable(
+  'peran_kustom',
+  {
+    id: kolomId(),
+    nama: varchar('nama', { length: 50 }).notNull().unique('peran_kustom_nama_key'),
+    peranDasar: varchar('peran_dasar', { length: 20, enum: PERAN }).notNull(),
+    keterangan: varchar('keterangan', { length: 150 }),
+    izinTambah: jsonb('izin_tambah')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    izinCabut: jsonb('izin_cabut')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    statusAktif: statusAktif(),
+    dibuatPada: dibuatPada(),
+    diubahPada: diubahPada(),
+  },
+  () => [
+    check(
+      'chk_peran_kustom_dasar',
+      sql`peran_dasar in ('STAF_PENJUALAN', 'KASIR', 'ADMIN', 'ADMIN_SISTEM', 'ADMIN_PERSEDIAAN', 'PETUGAS_GUDANG')`,
+    ),
+    check('chk_peran_kustom_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
+  ],
+);
+
 export const pengguna = pgTable(
   'pengguna',
   {
@@ -94,8 +126,26 @@ export const pengguna = pgTable(
       .$type<Record<string, string>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
+    /**
+     * K-243 (migrasi 0055): peran khusus dan penyesuaian izin akun (ditambah/dicabut dari izin peran). Hanya Owner
+     * yang mengubah; izin efektif dihitung tiap request.
+     */
+    idPeranKustom: kolomRef('id_peran_kustom'),
+    izinTambah: jsonb('izin_tambah')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    izinCabut: jsonb('izin_cabut')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
   },
-  () => [
+  (t) => [
+    foreignKey({
+      name: 'pengguna_id_peran_kustom_fkey',
+      columns: [t.idPeranKustom],
+      foreignColumns: [peranKustom.id],
+    }),
     check('chk_pengguna_peran', dalamDaftar('peran', PERAN)),
     check('chk_pengguna_status', dalamDaftar('status_aktif', STATUS_AKTIF)),
   ],

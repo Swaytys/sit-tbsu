@@ -1,3 +1,4 @@
+import { kolomIzin } from '../../../lib/izin-pengguna';
 import { and, eq, isNotNull, or } from 'drizzle-orm';
 import type { Executor, Tx } from '../../../db/client';
 import { pengguna } from '../../../db/schema';
@@ -10,6 +11,7 @@ const kolomKontak = {
   statusAktif: pengguna.statusAktif,
   email: pengguna.email,
   telegramChatId: pengguna.telegramChatId,
+  ...kolomIzin,
 };
 
 export async function kontakPengguna(ex: Executor, id: number) {

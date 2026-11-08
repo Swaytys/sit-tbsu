@@ -1,12 +1,11 @@
 import {
-  IZIN_PER_PERAN,
   PASSWORD_MIN_DASAR,
   USERNAME_DEMO,
-  izinPeran,
   type InputGantiPassword,
   type InputLogin,
   type PenggunaSaya,
   type Peran,
+  type Izin,
 } from '@sit/shared';
 import { db } from '../../db/client';
 import { env } from '../../env';
@@ -17,6 +16,7 @@ import { dalamTransaksi } from '../../lib/transaksi';
 import { jamLokal, sekarang, selisihDetik, tambahJam, tambahMenit } from '../../lib/waktu';
 import { ambilAngka } from '../sistem/konfigurasi/service';
 import { catatLog } from '../sistem/log-aktivitas';
+import { izinDari } from '../../lib/izin-pengguna';
 import * as repo from './repo';
 import { buatTokenSesi, hashToken } from './token';
 
@@ -36,6 +36,8 @@ export function keSaya(p: {
   username: string;
   namaPengguna: string;
   peran: Peran;
+  namaPeranKustom?: string | null;
+  izin: Iterable<Izin>;
   wajibGantiPassword: boolean;
 }): PenggunaSaya {
   return {
@@ -44,7 +46,8 @@ export function keSaya(p: {
     username: p.username,
     namaPengguna: p.namaPengguna,
     peran: p.peran,
-    izin: izinPeran(p.peran),
+    namaPeranKustom: p.namaPeranKustom ?? null,
+    izin: [...p.izin],
     wajibGantiPassword: p.wajibGantiPassword,
   };
 }
@@ -87,7 +90,7 @@ export async function buatSesiLogin(
       ip: asal.ip,
     });
   });
-  return { token, kadaluarsa, pengguna: keSaya(calon) };
+  return { token, kadaluarsa, pengguna: keSaya({ ...calon, izin: izinDari(calon) }) };
 }
 
 type HasilKredensial = { calon: repo.CalonLogin } | { galat: string };
@@ -239,7 +242,8 @@ export async function sesiDariToken(token: string): Promise<PenggunaAktif | null
     username: sesi.username,
     namaPengguna: sesi.namaPengguna,
     peran: sesi.peran,
-    izin: IZIN_PER_PERAN[sesi.peran],
+    namaPeranKustom: sesi.namaPeranKustom,
+    izin: izinDari(sesi),
     wajibGantiPassword: sesi.wajibGantiPassword,
     idSesi: sesi.idSesi,
   };

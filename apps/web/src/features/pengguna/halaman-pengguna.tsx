@@ -1,6 +1,7 @@
 import { LABEL_PERAN, type PenggunaDaftar, type Peran, type StatusAktif } from '@sit/shared';
 import {
   KeyRound,
+  ListChecks,
   LogOut,
   MoreHorizontal,
   Pencil,
@@ -9,6 +10,7 @@ import {
   Shield,
   UserCheck,
   UserX,
+  UsersRound,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -46,6 +48,8 @@ import { LABEL_STATUS_AKTIF } from '@/lib/label';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
 import { DialogTambahPengguna, DialogUbahPengguna } from './dialog-form-pengguna';
+import { DialogIzinAkun } from './dialog-izin-akun';
+import { DialogPeranKustom } from './dialog-peran-kustom';
 import { DialogResetPassword } from './dialog-reset-password';
 
 // Warna peran seperti mockup Data Pengguna.
@@ -60,8 +64,8 @@ const WARNA_PERAN: Record<Peran, string> = {
 };
 
 type Dialog =
-  | { jenis: 'tambah' }
-  | { jenis: 'ubah' | 'reset' | 'nonaktif' | 'aktif' | 'cabut'; pengguna: PenggunaDaftar }
+  | { jenis: 'tambah' | 'peran' }
+  | { jenis: 'ubah' | 'reset' | 'nonaktif' | 'aktif' | 'cabut' | 'izin'; pengguna: PenggunaDaftar }
   | null;
 
 export function HalamanPengguna() {
@@ -71,6 +75,8 @@ export function HalamanPengguna() {
   const [status, setStatus] = useState<StatusAktif | 'SEMUA'>('SEMUA');
   const [halaman, setHalaman] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
+  // K-243: izin per akun dan peran khusus hanya diatur Owner.
+  const bolehAturIzin = saya.izin.includes('sistem.izin.atur');
 
   const barisPerHalaman = useBarisPerHalaman();
   const daftar = useDaftarPengguna({
@@ -130,11 +136,34 @@ export function HalamanPengguna() {
     {
       kunci: 'peran',
       judul: 'Peran',
-      sel: (p) => (
-        <Badge variant="outline" className={WARNA_PERAN[p.peran]}>
-          {LABEL_PERAN[p.peran]}
-        </Badge>
-      ),
+      sel: (p) => {
+        const ubahan = p.izinTambah.length + p.izinCabut.length;
+        return (
+          <div className="space-y-0.5">
+            <Badge variant="outline" className={WARNA_PERAN[p.peran]}>
+              {LABEL_PERAN[p.peran]}
+            </Badge>
+            {(p.namaPeranKustom || ubahan > 0) && (
+              <div
+                className="text-[11px] text-slate-500"
+                title={[
+                  ...p.izinTambah.map((i) => `+ ${i}`),
+                  ...p.izinCabut.map((i) => `− ${i}`),
+                ].join(', ')}
+              >
+                {p.namaPeranKustom && <span className="font-medium">{p.namaPeranKustom}</span>}
+                {p.namaPeranKustom && ubahan > 0 && ' · '}
+                {ubahan > 0 && (
+                  <>
+                    <span className="text-emerald-700">+{p.izinTambah.length}</span>{' '}
+                    <span className="text-red-700">−{p.izinCabut.length}</span> izin
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     { kunci: 'hp', judul: 'No. HP', sel: (p) => <span className="text-xs">{p.noHp ?? '—'}</span> },
     {
@@ -173,6 +202,11 @@ export function HalamanPengguna() {
             <DropdownMenuItem onSelect={() => setDialog({ jenis: 'ubah', pengguna: p })}>
               <Pencil /> Ubah data
             </DropdownMenuItem>
+            {bolehAturIzin && p.peran !== 'OWNER' && (
+              <DropdownMenuItem onSelect={() => setDialog({ jenis: 'izin', pengguna: p })}>
+                <ListChecks /> Atur izin
+              </DropdownMenuItem>
+            )}
             {p.id !== saya.id && (
               <DropdownMenuItem onSelect={() => setDialog({ jenis: 'reset', pengguna: p })}>
                 <KeyRound /> Reset password
@@ -216,9 +250,16 @@ export function HalamanPengguna() {
           </div>
           <p className="text-sm text-slate-500">Kelola akun pengguna dan peran hak akses sistem.</p>
         </div>
-        <Button onClick={() => setDialog({ jenis: 'tambah' })}>
-          <Plus /> Tambah pengguna
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {bolehAturIzin && (
+            <Button variant="outline" onClick={() => setDialog({ jenis: 'peran' })}>
+              <UsersRound /> Peran khusus
+            </Button>
+          )}
+          <Button onClick={() => setDialog({ jenis: 'tambah' })}>
+            <Plus /> Tambah pengguna
+          </Button>
+        </div>
       </div>
 
       <Card className="gap-0 overflow-hidden py-0">
@@ -271,6 +312,8 @@ export function HalamanPengguna() {
       {dialog?.jenis === 'ubah' && (
         <DialogUbahPengguna pengguna={dialog.pengguna} onTutup={tutup} />
       )}
+      {dialog?.jenis === 'izin' && <DialogIzinAkun pengguna={dialog.pengguna} onTutup={tutup} />}
+      {dialog?.jenis === 'peran' && <DialogPeranKustom onTutup={tutup} />}
       {dialog?.jenis === 'reset' && (
         <DialogResetPassword pengguna={dialog.pengguna} onTutup={tutup} />
       )}

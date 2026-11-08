@@ -54,6 +54,8 @@ export type PenggunaSaya = {
   username: string;
   namaPengguna: string;
   peran: (typeof PERAN)[number];
+  /** K-243: nama peran khusus bila akun memakainya. */
+  namaPeranKustom: string | null;
   izin: Izin[];
   wajibGantiPassword: boolean;
 };

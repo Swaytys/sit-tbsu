@@ -340,7 +340,10 @@ ditetapkan Owner.
 | Waktu | Saat karyawan masuk/keluar; tinjauan bulanan |
 
 1. Karyawan baru: buat akun dengan peran sesuai tugas (*Data Pengguna* › Tambah). Password awal diserahkan langsung
-   dan **wajib diganti** karyawan saat pertama masuk.
+   dan **wajib diganti** karyawan saat pertama masuk. Tugas di luar peran standar (mis. kasir yang juga mengatur
+   pengiriman) diberikan lewat *Atur izin* atau *Peran khusus*, bukan dengan memberi peran yang lebih tinggi
+   (K-243). Saat tinjauan bulanan, periksa kolom Peran: tanda "+n −n izin" menunjukkan akun yang berbeda dari
+   standar.
 2. Karyawan keluar: **nonaktifkan akunnya hari itu juga** dan cabut sesinya.
 3. Lupa password: karyawan memakai *Lupa password?* (kode email atau kode pemulihan) atau Owner/Admin me-reset.
    Owner yang kehilangan semua jalan masuk (password, email, kode pemulihan): **hubungi pengembang**. Pemulihan

@@ -1,3 +1,4 @@
+import { kolomIzin } from '../../lib/izin-pengguna';
 import { and, count, eq, isNull, ne, sql } from 'drizzle-orm';
 import type { Executor, Tx } from '../../db/client';
 import { kodeResetPassword, pengguna, sesiLogin } from '../../db/schema';
@@ -10,6 +11,7 @@ const kolomPengguna = {
   peran: pengguna.peran,
   statusAktif: pengguna.statusAktif,
   wajibGantiPassword: pengguna.wajibGantiPassword,
+  ...kolomIzin,
 };
 
 export async function penggunaUntukLogin(ex: Executor, username: string) {

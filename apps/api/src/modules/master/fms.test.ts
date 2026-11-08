@@ -28,7 +28,7 @@ beforeEach(async () => {
   await siapkanDatabaseSistem();
   await kosongkanTabel(kendaraan, sopir);
   admin = await sesiUji('ADMIN');
-  kasir = await sesiUji('KASIR');
+  kasir = await sesiUji('KASIR', { izinTambah: ['penjualan.surat_jalan.kelola'] });
   const res = await kirim(admin, '/api/kendaraan', {
     plat: 'S 1234 AB',
     jenis: 'Truk engkel',

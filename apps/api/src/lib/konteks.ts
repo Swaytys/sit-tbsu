@@ -7,6 +7,8 @@ export type PenggunaAktif = {
   username: string;
   namaPengguna: string;
   peran: Peran;
+  /** K-243: nama peran khusus bila akun memakainya. */
+  namaPeranKustom?: string | null;
   izin: ReadonlySet<Izin>;
   wajibGantiPassword: boolean;
   idSesi: number;

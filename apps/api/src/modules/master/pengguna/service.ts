@@ -161,6 +161,8 @@ export async function ubahPengguna(
     if (kolomBerubah.length === 0) return;
 
     await repo.ubahPengguna(tx, id, baru, sekarang());
+    // K-243: peran berganti → peran khusus dan penyesuaian izin akun dikosongkan (berlaku untuk peran lama).
+    if (lama.peran !== baru.peran) await repo.kosongkanIzin(tx, id);
     await catatLog(tx, {
       aksi: 'PENGGUNA_UBAH',
       idPengguna: pelaku.id,

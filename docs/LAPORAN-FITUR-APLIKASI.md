@@ -397,6 +397,16 @@ desktop
 - Bukti: `[DOK: K-241, K-242, K-225 tahap 3, K-237, docs/05 PO24–PO30, RO14, A2a, docs/06 HT8]`; tes
   `penerimaan-po.test.ts`, `hutang-awal.test.ts`, `saran-pesan/celah.test.ts`. Status: BERFUNGSI (uji U219–U226).
 
+**F71. Izin per akun dan peran khusus** | Data Pengguna | Owner | desktop
+- Fungsi: Owner menambah atau mencabut izin satu akun (mis. kasir boleh mengurus pengantaran) dan membuat peran
+  khusus (paket izin berdasar satu peran, mis. "Kasir Pengantaran") untuk beberapa akun; centang izin akhir dengan
+  tanda ditambah/dicabut dibanding bawaan; berlaku langsung tanpa login ulang; izin khusus Owner tidak bisa
+  diberikan; tercatat di log. Kasir bawaan kini tanpa pengantaran (tombol S di layar kasir hanya untuk akun yang
+  diberi izin).
+- Bukti: `[KODE: shared/roles.ts izinEfektif]`, `[KODE: api/modules/master/pengguna/izin.ts]`,
+  `[KODE: web/features/pengguna/pilih-izin.tsx]`; `[DOK: K-243, docs/04 §3a]`; tes `izin.test.ts`, e2e
+  `pengguna.spec.ts`. Status: BERFUNGSI (uji U228–U230).
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1316,6 +1326,11 @@ master/pengguna/routes.ts:38 POST /api/pengguna/:id/nonaktifkan master.pengguna.
 master/pengguna/routes.ts:46 POST /api/pengguna/:id/aktifkan master.pengguna.kelola
 master/pengguna/routes.ts:50 POST /api/pengguna/:id/reset-password master.pengguna.kelola
 master/pengguna/routes.ts:61 POST /api/pengguna/:id/cabut-sesi master.pengguna.kelola
+master/pengguna/routes.ts GET /api/pengguna/peran-kustom master.pengguna.kelola (K-243)
+master/pengguna/routes.ts POST /api/pengguna/peran-kustom sistem.izin.atur (K-243)
+master/pengguna/routes.ts PATCH /api/pengguna/peran-kustom/:id sistem.izin.atur (K-243)
+master/pengguna/routes.ts PATCH /api/pengguna/peran-kustom/:id/status sistem.izin.atur (K-243)
+master/pengguna/routes.ts PUT /api/pengguna/:id/izin sistem.izin.atur (K-243)
 master/satuan/routes.ts:14 GET /api/satuan/ master.barang.lihat
 master/satuan/routes.ts:20 POST /api/satuan/ master.satuan.kelola
 master/satuan/routes.ts:24 PATCH /api/satuan/:id master.satuan.kelola
@@ -1431,7 +1446,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 
 | Berkas skema | Tabel (baris deklarasi) |
 |---|---|
-| `apps/api/src/db/schema/sistem.ts` | konfigurasi:37, penghitung_nomor:51, pengguna:61, sesi_login:89, log_aktivitas:114, cadangan:146, kunci_idempoten (K-164), tutup_tahun (K-165) |
+| `apps/api/src/db/schema/sistem.ts` | konfigurasi:37, penghitung_nomor:51, pengguna:61, sesi_login:89, log_aktivitas:114, cadangan:146, kunci_idempoten (K-164), tutup_tahun (K-165), peran_kustom (K-243) |
 | `…/master.ts` | kategori:41, merk:56, satuan:69, jenis_atribut:95, pemasok:119, tingkat_harga:136, golongan_pelanggan:178, pelanggan:191, barang:224, barang_atribut:288, barang_satuan_jual:321, harga_barang:351, promo:402, promo_pelanggan:488 |
 | `…/persediaan.ts` | persediaan:41, penerimaan_barang:79, penerimaan_barang_detail:139, penyesuaian_stok:184, penyesuaian_stok_detail:213, mutasi_persediaan:274 |
 | `…/penjualan.ts` | order_penjualan:46, order_penjualan_detail:116, penjualan:180, penjualan_detail:269, surat_jalan:349, surat_jalan_detail:390, pembayaran_penjualan:416 |
@@ -1478,6 +1493,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
 - 2026-10-31 — F61 HP dan tablet (K-217).
+- 2026-11-09 — F71 izin per akun dan peran khusus (K-243).
 - 2026-11-08 — F70 pengendalian pembelian lanjutan (K-241, K-242, K-225 tahap 3, deposit).
 - 2026-11-08 — F69 siklus pembelian lengkap (K-236–K-238); pemusnahan dan jam operasional (K-239, K-244).
 - 2026-11-07 — F67 tujuh peran, F68 persetujuan order pembelian (K-225 tahap 1–2, branch V2); perbaikan uji layar

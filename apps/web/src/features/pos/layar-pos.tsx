@@ -146,7 +146,7 @@ const TOMBOL_ZONA: Record<Zona, Tombol[]> = {
   ],
   hasil: [
     { kunci: 'P', label: 'Cetak invoice' },
-    { kunci: 'S', label: 'Surat jalan & cetak' },
+    { kunci: 'S', label: 'Kirim dengan rit' },
     { kunci: 'Enter', label: 'Lanjut' },
   ],
 };
@@ -222,6 +222,8 @@ export function LayarPos({
   const [dialogShift, setDialogShift] = useState(false);
   // K-174: S = kirim invoice pengantaran dengan rit (surat jalan dibuat di dalam rit, dicetak saat berangkat).
   const [kirimRit, setKirimRit] = useState<DetailPenjualan | null>(null);
+  // K-243: kasir bawaan tanpa tugas pengantaran; Owner bisa memberikannya per akun.
+  const bolehRit = saya.izin.includes('penjualan.surat_jalan.kelola');
   const [slotBayar, setSlotBayar] = useState<HTMLDivElement | null>(null);
   const [sedangProses, setSedangProses] = useState(false);
   const [pelangganBaru, setPelangganBaru] = useState(false);
@@ -585,9 +587,12 @@ export function LayarPos({
           }
         : t,
     ),
-    ...TOMBOL_ZONA[zona].map((t) =>
-      t.kunci === 'Ctrl+Z' && tr.adaCadangan ? { ...t, aksi: () => tr.urungkan() } : t,
-    ),
+    ...TOMBOL_ZONA[zona]
+      // K-243: S (kirim dengan rit) hanya untuk akun yang diberi tugas pengantaran.
+      .filter((t) => zona !== 'hasil' || t.kunci !== 'S' || bolehRit)
+      .map((t) =>
+        t.kunci === 'Ctrl+Z' && tr.adaCadangan ? { ...t, aksi: () => tr.urungkan() } : t,
+      ),
   ];
   // K-130: dialog buka shift tidak muncul sendiri; pita kuning di atas memberi tahu dan menyediakan tombolnya.
   const tampilDialogShift = dialogShift;
@@ -858,7 +863,7 @@ export function LayarPos({
                 tabIndex={0}
                 onFocus={() => setZona('hasil')}
                 onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-                  if (e.key === 's' || e.key === 'S') {
+                  if (bolehRit && (e.key === 's' || e.key === 'S')) {
                     e.preventDefault();
                     setKirimRit(hasil);
                   } else if (e.key === 'p' || e.key === 'P') {
@@ -883,12 +888,21 @@ export function LayarPos({
                     : `sisa ${formatRupiah(hasil.sisaTagihan)}`}
                   ).
                 </div>
+                {!bolehRit && (
+                  <div className="mt-1 text-xs text-slate-600">
+                    Surat jalan dan rit diatur petugas pengantaran (menu Pengantaran).
+                  </div>
+                )}
                 {/* K-228: setiap tombol keyboard juga berupa tombol yang bisa disentuh. */}
                 <div className="mt-2 flex flex-wrap gap-2 text-slate-700">
                   {(
                     [
                       ['P', 'Cetak invoice', () => setCetak({ jenis: 'invoice', p: hasil })],
-                      ['S', 'Kirim dengan rit (kendaraan & sopir)', () => setKirimRit(hasil)],
+                      ...(bolehRit
+                        ? ([
+                            ['S', 'Kirim dengan rit (kendaraan & sopir)', () => setKirimRit(hasil)],
+                          ] as const)
+                        : []),
                       [
                         'Enter',
                         'Lanjut',

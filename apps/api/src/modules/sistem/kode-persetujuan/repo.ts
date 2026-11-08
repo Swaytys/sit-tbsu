@@ -1,3 +1,4 @@
+import { kolomIzin } from '../../../lib/izin-pengguna';
 import { and, eq, sql } from 'drizzle-orm';
 import type { JenisKodePersetujuan, StatusKodePersetujuan } from '@sit/shared';
 import type { Executor, Tx } from '../../../db/client';
@@ -109,6 +110,7 @@ export function kodeTerkirim(tx: Tx, idPermintaan: number) {
       namaPengguna: pengguna.namaPengguna,
       peran: pengguna.peran,
       statusAktif: pengguna.statusAktif,
+      ...kolomIzin,
     })
     .from(kodePersetujuan)
     .innerJoin(pengguna, eq(pengguna.id, kodePersetujuan.idAtasan))

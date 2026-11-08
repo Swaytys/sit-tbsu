@@ -27,7 +27,7 @@ beforeEach(async () => {
   await siapkanDatabaseSistem();
   await kosongkanTabel(tutupTahun, kendaraan, shiftKasir);
   owner = await sesiUji('OWNER');
-  kasir = await sesiUji('KASIR');
+  kasir = await sesiUji('KASIR', { izinTambah: ['penjualan.surat_jalan.kelola'] });
   truk = (
     await json<{ data: Kendaraan }>(
       await kirim(owner, '/api/kendaraan', { plat: 'S 1 AR', jenis: 'Truk' }),
