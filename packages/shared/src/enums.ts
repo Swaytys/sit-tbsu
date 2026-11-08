@@ -366,6 +366,17 @@ export const KET_SYARAT_BAYAR_PO: Record<SyaratBayarPO, string> = {
     'Uang muka (bila ada) dibayar dulu; sisanya menjadi hutang, jatuh tempo = tanggal terima + lama tempo.',
 };
 
+/**
+ * K-237: tindak lanjut barang yang ditolak saat diterima (rusak/tidak sesuai). GANTI = pemasok mengirim gantinya
+ * (sisa order tetap ditunggu); POTONG = order dikurangi (tidak dikirim lagi, tidak ditagih).
+ */
+export const TINDAKAN_TOLAK = ['GANTI', 'POTONG'] as const;
+export type TindakanTolak = (typeof TINDAKAN_TOLAK)[number];
+export const LABEL_TINDAKAN_TOLAK: Record<TindakanTolak, string> = {
+  GANTI: 'Minta ganti barang',
+  POTONG: 'Kurangi order',
+};
+
 /** K-236: cara barang sampai ke toko. */
 export const CARA_KIRIM_PO = ['DIANTAR', 'DIAMBIL'] as const;
 export type CaraKirimPO = (typeof CARA_KIRIM_PO)[number];

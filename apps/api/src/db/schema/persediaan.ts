@@ -21,6 +21,7 @@ import {
   STATUS_PENYESUAIAN,
   SYARAT_BAYAR,
   SYARAT_BAYAR_PO,
+  TINDAKAN_TOLAK,
   METODE_BAYAR_PENERIMAAN,
 } from '@sit/shared';
 import {
@@ -185,6 +186,16 @@ export const orderPembelianDetail = pgTable(
     qtyDiterima: qty('qty_diterima')
       .notNull()
       .default(sql`0`),
+    /**
+     * K-237 (cache, migrasi 0048): qty ditolak saat datang (Σ penerimaan_barang_tolak), dan bagian yang order-nya
+     * dikurangi (tindakan POTONG). Sisa ditunggu = berlaku − diterima − dipotong.
+     */
+    qtyDitolak: qty('qty_ditolak')
+      .notNull()
+      .default(sql`0`),
+    qtyDipotong: qty('qty_dipotong')
+      .notNull()
+      .default(sql`0`),
   },
   (t) => [
     foreignKey({
@@ -201,6 +212,7 @@ export const orderPembelianDetail = pgTable(
       'chk_po_detail_qty',
       sql`qty_pesan > 0 and (qty_konfirmasi is null or qty_konfirmasi >= 0) and qty_diterima >= 0`,
     ),
+    check('chk_po_detail_tolak', sql`qty_ditolak >= 0 and qty_dipotong >= 0`),
     check(
       'chk_po_detail_harga',
       sql`harga_perkiraan >= 0 and (harga_konfirmasi is null or harga_konfirmasi >= 0)`,
@@ -239,12 +251,24 @@ export const penerimaanBarang = pgTable(
     diubahPada: diubahPada(),
     /** K-125: penerimaan dari order pembelian (boleh kosong). */
     idOrderPembelian: kolomRef('id_order_pembelian'),
+    /**
+     * K-237: dibayar kurang dari kesepakatan order (mis. tunai saat datang, toko hanya mampu bayar sebagian): sisa
+     * jadi hutang dengan alasan dan penyetuju.
+     */
+    penyimpanganBayar: boolean('penyimpangan_bayar').notNull().default(false),
+    alasanPenyimpangan: varchar('alasan_penyimpangan', { length: 255 }),
+    idPenyetujuPenyimpangan: kolomRef('id_penyetuju_penyimpangan'),
   },
   (t) => [
     foreignKey({
       name: 'penerimaan_barang_id_order_pembelian_fkey',
       columns: [t.idOrderPembelian],
       foreignColumns: [orderPembelian.id],
+    }),
+    foreignKey({
+      name: 'penerimaan_barang_id_penyetuju_penyimpangan_fkey',
+      columns: [t.idPenyetujuPenyimpangan],
+      foreignColumns: [pengguna.id],
     }),
     foreignKey({
       name: 'penerimaan_barang_id_pemasok_fkey',
@@ -278,6 +302,43 @@ export const penerimaanBarang = pgTable(
 );
 
 /** [APPEND] */
+/**
+ * [APPEND] K-237: barang yang datang tetapi ditolak (rusak/tidak sesuai). Tidak masuk stok dan tidak ditagih.
+ */
+export const penerimaanBarangTolak = pgTable(
+  'penerimaan_barang_tolak',
+  {
+    id: kolomId(),
+    idPenerimaan: kolomRef('id_penerimaan').notNull(),
+    idBarang: kolomRef('id_barang').notNull(),
+    idOrderPembelianDetail: kolomRef('id_order_pembelian_detail').notNull(),
+    qty: qty('qty').notNull(),
+    alasan: varchar('alasan', { length: 150 }).notNull(),
+    tindakan: varchar('tindakan', { length: 8, enum: TINDAKAN_TOLAK }).notNull(),
+    dibuatPada: dibuatPada(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'penerimaan_barang_tolak_id_penerimaan_fkey',
+      columns: [t.idPenerimaan],
+      foreignColumns: [penerimaanBarang.id],
+    }),
+    foreignKey({
+      name: 'penerimaan_barang_tolak_id_barang_fkey',
+      columns: [t.idBarang],
+      foreignColumns: [barang.id],
+    }),
+    foreignKey({
+      name: 'penerimaan_barang_tolak_id_order_pembelian_detail_fkey',
+      columns: [t.idOrderPembelianDetail],
+      foreignColumns: [orderPembelianDetail.id],
+    }),
+    check('chk_tolak_qty', sql`qty > 0`),
+    check('chk_tolak_tindakan', dalamDaftar('tindakan', TINDAKAN_TOLAK)),
+    index('idx_tolak_penerimaan').on(t.idPenerimaan),
+  ],
+);
+
 export const penerimaanBarangDetail = pgTable(
   'penerimaan_barang_detail',
   {

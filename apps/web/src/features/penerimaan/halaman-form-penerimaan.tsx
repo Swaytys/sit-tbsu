@@ -1,9 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   formatRupiah,
+  LABEL_TINDAKAN_TOLAK,
   POLA_QTY,
   skemaPenerimaan,
   subtotalRupiah,
+  teksSyaratBayarPO,
+  TINDAKAN_TOLAK,
   type BarisBarang,
   type DataPenerimaan,
   type InputPenerimaan,
@@ -46,7 +49,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { tampilkanGalatForm } from '@/lib/form';
-import { formatDesimal } from '@/lib/format';
+import { formatDesimal, formatTanggal, tambahHariTanggal, tanggalHariIni } from '@/lib/format';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 
 /** Subtotal tampilan sementara (nilai final dihitung server, CLAUDE.md aturan 1). */
@@ -125,10 +128,12 @@ export function HalamanFormPenerimaan() {
       })),
     });
   }, [po, form]);
-  const [jenis, syarat, idPemasok, isiBaris, metodeBayar] = useWatch({
+  const [jenis, syarat, idPemasok, isiBaris, metodeBayar, bayarIsian] = useWatch({
     control: form.control,
-    name: ['jenis', 'syaratBayar', 'idPemasok', 'baris', 'metodeBayar'],
+    name: ['jenis', 'syaratBayar', 'idPemasok', 'baris', 'metodeBayar', 'bayarSekarang'],
   });
+  // K-236: order dengan kesepakatan → syarat bayar dan jatuh tempo dari order (tidak bisa diganti di sini).
+  const sepakat = po?.kesepakatan.syaratBayar ? po.kesepakatan : null;
   const konsinyasi = jenis === 'KONSINYASI';
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
 
@@ -154,6 +159,12 @@ export function HalamanFormPenerimaan() {
     (t, b) => t + subtotalTampil(b.qtyMasuk, b.hargaModalMasuk),
     0,
   );
+  // K-237: perkiraan tampilan pembayaran (nilai final dari API).
+  const umTerpakai = sepakat ? Math.min(po?.sisaUangMuka ?? 0, total) : 0;
+  const sisaTagihan = total - umTerpakai;
+  const wajibLunas = sepakat !== null && sepakat.syaratBayar !== 'TEMPO';
+  const bayarEfektif = typeof bayarIsian === 'number' ? bayarIsian : wajibLunas ? sisaTagihan : 0;
+  const kurangBayar = wajibLunas && bayarEfektif < sisaTagihan;
 
   function tambahBarang(b: BarisBarang) {
     const ada = (isiBaris ?? []).findIndex((x) => x.idBarang === b.id);
@@ -204,9 +215,12 @@ export function HalamanFormPenerimaan() {
         'syaratBayar',
         'tanggalJatuhTempo',
         'referensi',
+        'bayarSekarang',
+        'alasanKurangBayar',
+        'jatuhTempoKurangBayar',
         'baris',
         ...(isiBaris ?? []).flatMap((_, i) =>
-          (['idBarang', 'qtyMasuk', 'hargaModalMasuk'] as const).map(
+          (['idBarang', 'qtyMasuk', 'hargaModalMasuk', 'qtyDitolak', 'alasanTolak'] as const).map(
             (k) => `baris.${i}.${k}` as Path<InputPenerimaan>,
           ),
         ),
@@ -247,6 +261,7 @@ export function HalamanFormPenerimaan() {
                   <FormItem className="col-span-2">
                     <FormLabel>Pemasok</FormLabel>
                     <Select
+                      disabled={po !== undefined}
                       value={field.value ? String(field.value) : ''}
                       onValueChange={(v) => {
                         // Radix memanggil "" bila nilai belum ada di daftar; jangan menghapus pilihan.
@@ -292,7 +307,24 @@ export function HalamanFormPenerimaan() {
                   </FormItem>
                 )}
               />
-              {!konsinyasi && (
+              {sepakat && (
+                <div
+                  className="col-span-2 rounded-md border bg-slate-50 p-2 text-sm"
+                  data-testid="syarat-dari-order"
+                >
+                  <p className="text-xs text-slate-500">
+                    Syarat bayar dari order (tidak bisa diganti)
+                  </p>
+                  <p className="font-medium">{teksSyaratBayarPO(sepakat)}</p>
+                  {sepakat.syaratBayar === 'TEMPO' && (
+                    <p className="text-xs text-slate-600">
+                      Jatuh tempo:{' '}
+                      {formatTanggal(tambahHariTanggal(tanggalHariIni(), sepakat.tempoHari ?? 0))}
+                    </p>
+                  )}
+                </div>
+              )}
+              {!konsinyasi && !sepakat && (
                 <FormField
                   control={form.control}
                   name="syaratBayar"
@@ -321,7 +353,7 @@ export function HalamanFormPenerimaan() {
                   )}
                 />
               )}
-              {!konsinyasi && syarat === 'TEMPO' && (
+              {!konsinyasi && !sepakat && syarat === 'TEMPO' && (
                 <FormField
                   control={form.control}
                   name="tanggalJatuhTempo"
@@ -340,7 +372,7 @@ export function HalamanFormPenerimaan() {
                   )}
                 />
               )}
-              {!konsinyasi && syarat === 'TUNAI' && (
+              {!konsinyasi && (sepakat ? bayarEfektif > 0 : syarat === 'TUNAI') && (
                 <FormField
                   control={form.control}
                   name="metodeBayar"
@@ -362,25 +394,27 @@ export function HalamanFormPenerimaan() {
                   )}
                 />
               )}
-              {!konsinyasi && syarat === 'TUNAI' && metodeBayar !== 'TUNAI' && (
-                <FormField
-                  control={form.control}
-                  name="referensi"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>No. referensi transfer (wajib)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="dari bukti transfer m-banking"
-                          {...field}
-                          value={field.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              {!konsinyasi &&
+                (sepakat ? bayarEfektif > 0 : syarat === 'TUNAI') &&
+                metodeBayar !== 'TUNAI' && (
+                  <FormField
+                    control={form.control}
+                    name="referensi"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>No. referensi transfer (wajib)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="dari bukti transfer m-banking"
+                            {...field}
+                            value={field.value ?? ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               <FormField
                 control={form.control}
                 name="noFakturPemasok"
@@ -463,7 +497,8 @@ export function HalamanFormPenerimaan() {
                 <TableRow>
                   <TableHead className="w-10">#</TableHead>
                   <TableHead>Barang</TableHead>
-                  <TableHead className="w-36">Qty terima</TableHead>
+                  <TableHead className="w-36">{sepakat ? 'Diterima baik' : 'Qty terima'}</TableHead>
+                  {sepakat && <TableHead className="w-56">Ditolak (rusak/tidak sesuai)</TableHead>}
                   <TableHead className="w-48">
                     {konsinyasi ? 'Harga titip' : 'Harga modal / satuan'}
                   </TableHead>
@@ -474,7 +509,10 @@ export function HalamanFormPenerimaan() {
               <TableBody>
                 {baris.fields.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center text-sm text-slate-500">
+                    <TableCell
+                      colSpan={sepakat ? 7 : 6}
+                      className="py-8 text-center text-sm text-slate-500"
+                    >
                       Belum ada barang. Cari barang di atas untuk menambah baris.
                     </TableCell>
                   </TableRow>
@@ -523,6 +561,79 @@ export function HalamanFormPenerimaan() {
                           )}
                         />
                       </TableCell>
+                      {sepakat && (
+                        <TableCell className="space-y-1.5 align-top">
+                          <FormField
+                            control={form.control}
+                            name={`baris.${i}.qtyDitolak`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    inputMode="decimal"
+                                    placeholder="0"
+                                    aria-label={`Ditolak ${b?.namaBarang ?? i + 1}`}
+                                    {...field}
+                                    value={typeof field.value === 'string' ? field.value : ''}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          {/[1-9]/.test(
+                            typeof isi?.qtyDitolak === 'string' ? isi.qtyDitolak : '',
+                          ) && (
+                            <>
+                              <FormField
+                                control={form.control}
+                                name={`baris.${i}.alasanTolak`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Alasan (mis. sak sobek)"
+                                        aria-label={`Alasan tolak ${b?.namaBarang ?? i + 1}`}
+                                        {...field}
+                                        value={field.value ?? ''}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`baris.${i}.tindakanTolak`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <div
+                                      className="flex gap-1"
+                                      role="radiogroup"
+                                      aria-label={`Tindak lanjut ${b?.namaBarang ?? i + 1}`}
+                                    >
+                                      {TINDAKAN_TOLAK.map((t) => (
+                                        <Button
+                                          key={t}
+                                          type="button"
+                                          size="sm"
+                                          role="radio"
+                                          aria-checked={field.value === t}
+                                          variant={field.value === t ? 'default' : 'outline'}
+                                          onClick={() => field.onChange(t)}
+                                        >
+                                          {LABEL_TINDAKAN_TOLAK[t]}
+                                        </Button>
+                                      ))}
+                                    </div>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <FormField
                           control={form.control}
@@ -561,7 +672,7 @@ export function HalamanFormPenerimaan() {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-right font-medium">
+                  <TableCell colSpan={sepakat ? 5 : 4} className="text-right font-medium">
                     {konsinyasi
                       ? 'Nilai titipan (tidak menjadi hutang)'
                       : 'Total nilai barang masuk'}
@@ -574,6 +685,96 @@ export function HalamanFormPenerimaan() {
               </TableFooter>
             </Table>
           </Card>
+
+          {sepakat && (
+            <Card data-testid="ringkasan-bayar-terima">
+              <CardHeader>
+                <CardTitle className="text-base">Pembayaran saat barang datang</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 lg:grid-cols-2">
+                <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
+                  <dt>Nilai barang diterima baik</dt>
+                  <dd className="text-right tabular-nums">{formatRupiah(total)}</dd>
+                  <dt>Uang muka dipakai</dt>
+                  <dd className="text-right tabular-nums">− {formatRupiah(umTerpakai)}</dd>
+                  <dt className="font-medium">Sisa tagihan</dt>
+                  <dd className="text-right font-medium tabular-nums">
+                    {formatRupiah(sisaTagihan)}
+                  </dd>
+                  <dt>Dibayar sekarang</dt>
+                  <dd className="text-right tabular-nums">{formatRupiah(bayarEfektif)}</dd>
+                  <dt className="font-semibold">Menjadi hutang</dt>
+                  <dd className="text-right font-semibold tabular-nums">
+                    {formatRupiah(Math.max(0, sisaTagihan - bayarEfektif))}
+                  </dd>
+                </dl>
+                <div className="space-y-3">
+                  <FormField
+                    control={form.control}
+                    name="bayarSekarang"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Dibayar sekarang{' '}
+                          <span className="font-normal text-slate-500">
+                            ({wajibLunas ? 'kesepakatan: lunasi sisa tagihan' : 'boleh 0 (tempo)'})
+                          </span>
+                        </FormLabel>
+                        <FormControl>
+                          <InputRupiah
+                            aria-label="Dibayar sekarang"
+                            value={typeof field.value === 'number' ? field.value : bayarEfektif}
+                            onChange={(v) => field.onChange(v ?? 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {kurangBayar && (
+                    <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
+                      <p className="text-amber-900">
+                        <b>Dibayar kurang dari kesepakatan.</b> Sisa{' '}
+                        {formatRupiah(sisaTagihan - bayarEfektif)} menjadi hutang. Hanya Kepala
+                        Toko/Owner yang bisa menyimpan ini; tercatat sebagai penyimpangan di order.
+                      </p>
+                      <FormField
+                        control={form.control}
+                        name="alasanKurangBayar"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Alasan</FormLabel>
+                            <FormControl>
+                              <Input {...field} value={field.value ?? ''} maxLength={255} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="jatuhTempoKurangBayar"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Jatuh tempo sisa</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="date"
+                                min={tanggalHariIni()}
+                                value={field.value ?? ''}
+                                onChange={(e) => field.onChange(e.target.value || null)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="flex items-center justify-end gap-2">
             <p className="mr-auto text-sm text-slate-500">

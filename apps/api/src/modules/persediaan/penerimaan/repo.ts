@@ -19,6 +19,7 @@ import {
   pembayaranPemasok,
   pemasok,
   penerimaanBarang,
+  penerimaanBarangTolak,
   penerimaanBarangDetail,
   pengguna,
   satuan,
@@ -104,6 +105,34 @@ export async function daftarPenerimaan(
     .innerJoin(pemasok, eq(pemasok.id, penerimaanBarang.idPemasok))
     .where(where);
   return { baris, total: hitung?.total ?? 0 };
+}
+
+/** K-237: barang yang ditolak saat diterima. */
+export function tolakPenerimaan(ex: Executor, idPenerimaan: number) {
+  return ex
+    .select({
+      namaBarang: barang.namaBarang,
+      kodeSatuan: satuan.kode,
+      qty: penerimaanBarangTolak.qty,
+      alasan: penerimaanBarangTolak.alasan,
+      tindakan: penerimaanBarangTolak.tindakan,
+    })
+    .from(penerimaanBarangTolak)
+    .innerJoin(barang, eq(barang.id, penerimaanBarangTolak.idBarang))
+    .innerJoin(satuan, eq(satuan.id, barang.idSatuanDasar))
+    .where(eq(penerimaanBarangTolak.idPenerimaan, idPenerimaan))
+    .orderBy(penerimaanBarangTolak.id);
+}
+
+export async function penyimpanganPenerimaan(ex: Executor, id: number) {
+  const [p] = await ex
+    .select({
+      penyimpanganBayar: penerimaanBarang.penyimpanganBayar,
+      alasanPenyimpangan: penerimaanBarang.alasanPenyimpangan,
+    })
+    .from(penerimaanBarang)
+    .where(eq(penerimaanBarang.id, id));
+  return p;
 }
 
 export async function penerimaanById(ex: Executor, id: number) {
@@ -198,6 +227,22 @@ export async function tambahPembayaran(
 }
 
 /** K-125: pembayaran tercatat dari uang muka PO (kolom cache hutang, transaksi yang sama). */
+/** K-237: dibayar kurang dari kesepakatan → sisa jadi hutang dengan jatuh tempo, di transaksi simpan. */
+export async function aturPenyimpangan(
+  tx: Tx,
+  id: number,
+  nilai: Pick<
+    typeof penerimaanBarang.$inferInsert,
+    | 'syaratBayar'
+    | 'tanggalJatuhTempo'
+    | 'penyimpanganBayar'
+    | 'alasanPenyimpangan'
+    | 'idPenyetujuPenyimpangan'
+  >,
+) {
+  await tx.update(penerimaanBarang).set(nilai).where(eq(penerimaanBarang.id, id));
+}
+
 export async function aturDibayar(
   tx: Tx,
   id: number,

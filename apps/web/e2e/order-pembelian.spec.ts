@@ -137,6 +137,22 @@ test('Order pembelian besar diajukan, disetujui Owner, lalu dikirim ke pemasok',
     await rincian.getByRole('button', { name: 'Kirim ke pemasok' }).click();
     await expect(rincian).toContainText(/PO-\d{6}-\d{3}/);
     await expect(rincian).toContainText('Stok besi menipis');
+
+    // K-236/K-237: terima dari order: syarat bayar dari order; 10 ditolak (kurangi order); sisa dilunasi.
+    await rincian.getByRole('link', { name: 'Terima barang' }).click();
+    await expect(page.getByTestId('syarat-dari-order')).toContainText('Tunai saat barang datang');
+    await page.getByLabel(`Qty ${namaBarang}`).fill('90');
+    await page.getByLabel(`Ditolak ${namaBarang}`).fill('10');
+    await page.getByLabel(`Alasan tolak ${namaBarang}`).fill('Pecah saat bongkar');
+    await page
+      .getByRole('radiogroup', { name: `Tindak lanjut ${namaBarang}` })
+      .getByRole('radio', { name: 'Kurangi order' })
+      .click();
+    await expect(page.getByTestId('ringkasan-bayar-terima')).toContainText('Rp 3.600.000');
+    await page.getByLabel('No. referensi transfer (wajib)').fill(`TRF${String(kode).slice(-6)}`);
+    await page.getByRole('button', { name: 'Simpan penerimaan' }).click();
+    await expect(page.getByText(/Penerimaan RCV-\d{6}-\d{3,} disimpan/)).toBeVisible();
+    await expect(page.getByTestId('barang-ditolak')).toContainText('Pecah saat bongkar');
   } finally {
     await owner.close();
     await api(page, `/order-pembelian/${po.id}/batal`, 'POST', { alasan: 'Selesai uji' }).catch(

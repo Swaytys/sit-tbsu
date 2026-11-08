@@ -205,6 +205,9 @@ export type BarisOrderPembelianDetail = {
   /** qty konfirmasi bila ada, selain itu qty pesan. */
   qtyBerlaku: string;
   qtyDiterima: string;
+  /** K-237: ditolak saat datang (rusak/tidak sesuai) dan bagian order yang dikurangi karenanya. */
+  qtyDitolak: string;
+  qtyDipotong: string;
   qtySisa: string;
   hargaPerkiraan?: number;
   hargaKonfirmasi?: number | null;

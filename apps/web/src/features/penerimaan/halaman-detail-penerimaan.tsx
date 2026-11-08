@@ -1,4 +1,4 @@
-import { formatRupiah } from '@sit/shared';
+import { formatRupiah, LABEL_TINDAKAN_TOLAK } from '@sit/shared';
 import { ArrowLeft, Plus, Printer, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -178,6 +178,27 @@ export function HalamanDetailPenerimaan() {
               )
               .join('; ')}
           </div>
+        )}
+
+        {p.ditolak.length > 0 && (
+          <div className="text-sm" data-testid="barang-ditolak">
+            <p className="font-medium text-slate-700">
+              Barang ditolak saat datang (tidak masuk stok)
+            </p>
+            <ul className="list-disc pl-5 text-slate-600">
+              {p.ditolak.map((d, i) => (
+                <li key={i}>
+                  {d.namaBarang}: {formatDesimal(d.qty)} {d.kodeSatuan} — {d.alasan} (
+                  {LABEL_TINDAKAN_TOLAK[d.tindakan].toLowerCase()})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {p.penyimpanganBayar && (
+          <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
+            Dibayar kurang dari kesepakatan order: {p.alasanPenyimpangan}
+          </p>
         )}
 
         <div className="mt-8 hidden grid-cols-2 gap-8 text-center text-sm print:grid">

@@ -8,6 +8,7 @@ import {
   STATUS_PENYESUAIAN,
   STATUS_STOK,
   SYARAT_BAYAR,
+  TINDAKAN_TOLAK,
   type JenisMutasi,
   type JenisPenerimaan,
   type JenisPenyesuaian,
@@ -17,6 +18,7 @@ import {
   type StatusHutang,
   type StatusPenyesuaian,
   type SyaratBayar,
+  type TindakanTolak,
 } from '../enums';
 import type { MetaHalaman } from '../api';
 import { POLA_QTY } from '../qty';
@@ -54,9 +56,27 @@ export const skemaTanggal = (label: string) =>
 
 export const METODE_BAYAR_PENERIMAAN = ['TRANSFER', 'TUNAI'] as const;
 
+/** Qty ≥ 0 (boleh 0 bila semua yang datang ditolak, K-237). */
+const qtyBolehNol = (label: string) =>
+  z.preprocess(
+    angkaKeTeks,
+    z
+      .string(`${label} wajib diisi.`)
+      .regex(POLA_QTY, `${label} harus angka dengan maksimal 3 desimal.`),
+  );
+const adaQty = (v: string | undefined) => v !== undefined && /[1-9]/.test(v);
+
 export const skemaBarisPenerimaan = z.object({
   idBarang: z.number('Barang wajib dipilih.').int().positive('Barang wajib dipilih.'),
-  qtyMasuk: skemaQtyPositif('Qty'),
+  /** Qty diterima baik (masuk stok, ditagih). */
+  qtyMasuk: qtyBolehNol('Qty'),
+  /** K-237: qty yang datang tetapi ditolak (rusak/tidak sesuai); hanya untuk penerimaan dari order. */
+  qtyDitolak: qtyBolehNol('Qty ditolak').optional(),
+  alasanTolak: teksOpsional(150, 'Alasan tolak maksimal 150 karakter.'),
+  tindakanTolak: z
+    .enum(TINDAKAN_TOLAK, 'Pilih tindak lanjut barang ditolak.')
+    .nullable()
+    .optional(),
   /** Per satuan dasar. KONSINYASI: diabaikan, diisi harga titip oleh server (E3). */
   hargaModalMasuk: z.preprocess((v) => (v === null || v === '' ? 0 : v), skemaRupiah),
   keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
@@ -79,13 +99,21 @@ export const skemaPenerimaan = z
     catatan: teksOpsional(255, 'Catatan maksimal 255 karakter.'),
     /** K-125: penerimaan dari order pembelian. */
     idOrderPembelian: z.number().int().positive().nullable().optional(),
+    /**
+     * K-237 (dari order): nominal dibayar saat ini. Kosong = sesuai kesepakatan (tunai saat datang: lunasi sisa
+     * tagihan; tempo: 0). Kurang dari kesepakatan tunai = penyimpangan (alasan, jatuh tempo, Kepala Toko/Owner).
+     */
+    bayarSekarang: z.preprocess((v) => (v === '' ? null : v), skemaRupiah.nullable().optional()),
+    alasanKurangBayar: teksOpsional(255, 'Alasan maksimal 255 karakter.'),
+    jatuhTempoKurangBayar: skemaTanggal('Jatuh tempo sisa').nullable().optional(),
     baris: z
       .array(skemaBarisPenerimaan)
       .min(1, 'Tambahkan minimal satu barang.')
       .max(200, 'Maksimal 200 baris per penerimaan.'),
   })
   .superRefine((d, ctx) => {
-    if (d.jenis === 'PEMBELIAN' && !d.syaratBayar) {
+    // K-236: dari order, syarat bayar diambil dari kesepakatan order (isian diabaikan).
+    if (d.jenis === 'PEMBELIAN' && !d.syaratBayar && !d.idOrderPembelian) {
       ctx.addIssue({
         code: 'custom',
         path: ['syaratBayar'],
@@ -94,17 +122,64 @@ export const skemaPenerimaan = z
     }
     if (
       d.jenis === 'PEMBELIAN' &&
+      !d.idOrderPembelian &&
       d.syaratBayar === 'TUNAI' &&
       d.metodeBayar === 'TRANSFER' &&
       !referensiSah(d.referensi)
     ) {
       ctx.addIssue({ code: 'custom', path: ['referensi'], message: PESAN_REFERENSI_KELUAR });
     }
-    if (d.jenis === 'PEMBELIAN' && d.syaratBayar === 'TEMPO' && !d.tanggalJatuhTempo) {
+    if (
+      d.jenis === 'PEMBELIAN' &&
+      !d.idOrderPembelian &&
+      d.syaratBayar === 'TEMPO' &&
+      !d.tanggalJatuhTempo
+    ) {
       ctx.addIssue({
         code: 'custom',
         path: ['tanggalJatuhTempo'],
         message: 'Tanggal jatuh tempo wajib diisi untuk pembelian tempo.',
+      });
+    }
+    let diterima = 0;
+    d.baris.forEach((b, i) => {
+      const tolak = adaQty(b.qtyDitolak);
+      if (adaQty(b.qtyMasuk)) diterima += 1;
+      if (!adaQty(b.qtyMasuk) && !tolak) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['baris', i, 'qtyMasuk'],
+          message: 'Qty harus lebih dari 0.',
+        });
+      }
+      if (tolak && !d.idOrderPembelian) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['baris', i, 'qtyDitolak'],
+          message: 'Barang ditolak hanya dicatat pada penerimaan dari order pembelian.',
+        });
+      }
+      if (tolak && (b.alasanTolak ?? '').length < 3) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['baris', i, 'alasanTolak'],
+          message: 'Alasan barang ditolak wajib diisi.',
+        });
+      }
+      if (tolak && !b.tindakanTolak) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['baris', i, 'tindakanTolak'],
+          message: 'Pilih tindak lanjut barang ditolak.',
+        });
+      }
+    });
+    if (d.baris.length > 0 && diterima === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['baris'],
+        message:
+          'Tidak ada barang yang diterima. Bila semua ditolak, catat di order (Konfirmasi/Tutup sisa).',
       });
     }
     const terlihat = new Map<number, number>();
@@ -167,6 +242,17 @@ export type DetailPenerimaan = BarisDaftarPenerimaan & {
     keterangan: string | null;
   }[];
   pembayaran: { nomor: string; tanggal: string; nominal: number; metode: string }[];
+  /** K-237: barang yang datang tetapi ditolak. */
+  ditolak: {
+    namaBarang: string;
+    kodeSatuan: string;
+    qty: string;
+    alasan: string;
+    tindakan: TindakanTolak;
+  }[];
+  /** K-237: dibayar kurang dari kesepakatan order. */
+  penyimpanganBayar: boolean;
+  alasanPenyimpangan: string | null;
   /** K-125. */
   nomorOrderPembelian: string | null;
   idOrderPembelian: number | null;

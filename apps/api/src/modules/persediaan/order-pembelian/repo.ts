@@ -104,6 +104,8 @@ export async function detail(ex: Executor, id: number) {
       qtyPesan: orderPembelianDetail.qtyPesan,
       qtyKonfirmasi: orderPembelianDetail.qtyKonfirmasi,
       qtyDiterima: orderPembelianDetail.qtyDiterima,
+      qtyDitolak: orderPembelianDetail.qtyDitolak,
+      qtyDipotong: orderPembelianDetail.qtyDipotong,
       hargaPerkiraan: orderPembelianDetail.hargaPerkiraan,
       hargaKonfirmasi: orderPembelianDetail.hargaKonfirmasi,
     })
@@ -162,7 +164,7 @@ export async function tambahAlokasi(tx: Tx, nilai: typeof alokasiUangMuka.$infer
  */
 export async function sudahDipesan(ex: Executor): Promise<Map<number, string>> {
   const r = await ex.execute<{ id_barang: string; qty: string }>(sql`
-    select d.id_barang, sum(greatest(coalesce(d.qty_konfirmasi, d.qty_pesan) - d.qty_diterima, 0))::text qty
+    select d.id_barang, sum(greatest(coalesce(d.qty_konfirmasi, d.qty_pesan) - d.qty_diterima - d.qty_dipotong, 0))::text qty
       from order_pembelian_detail d join order_pembelian o on o.id = d.id_order_pembelian
      where o.status in ('DIPESAN', 'DIKONFIRMASI', 'SEBAGIAN')
      group by d.id_barang`);

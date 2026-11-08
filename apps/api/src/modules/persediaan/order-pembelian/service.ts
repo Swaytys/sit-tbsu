@@ -16,11 +16,18 @@ import {
   type MetaHalaman,
   type skemaCariOrderPembelian,
   type StatusOrderPembelian,
+  type TindakanTolak,
 } from '@sit/shared';
 import { eq, inArray } from 'drizzle-orm';
 import type { z } from 'zod';
 import { db, type Tx } from '../../../db/client';
-import { barang, orderPembelian, orderPembelianDetail, pemasok } from '../../../db/schema';
+import {
+  barang,
+  orderPembelian,
+  orderPembelianDetail,
+  pemasok,
+  penerimaanBarangTolak,
+} from '../../../db/schema';
 import { AppError, galatKolom } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { batasHalaman, metaHalaman } from '../../../lib/paginasi';
@@ -105,7 +112,8 @@ export async function detailPO(id: number, izin: ReadonlySet<Izin>): Promise<Det
     alasanTutup: b.alasanTutup,
     baris: baris.map((d): BarisOrderPembelianDetail => {
       const berlaku = d.qtyKonfirmasi ?? d.qtyPesan;
-      const sisa = kurangQty(berlaku, d.qtyDiterima);
+      // K-237: sisa ditunggu = berlaku − diterima − bagian order yang dikurangi.
+      const sisa = kurangQty(kurangQty(berlaku, d.qtyDiterima), d.qtyDipotong);
       return {
         id: d.id,
         idBarang: d.idBarang,
@@ -116,6 +124,8 @@ export async function detailPO(id: number, izin: ReadonlySet<Izin>): Promise<Det
         qtyKonfirmasi: d.qtyKonfirmasi === null ? null : keQty(d.qtyKonfirmasi),
         qtyBerlaku: keQty(berlaku),
         qtyDiterima: keQty(d.qtyDiterima),
+        qtyDitolak: keQty(d.qtyDitolak),
+        qtyDipotong: keQty(d.qtyDipotong),
         qtySisa: bandingQty(sisa, 0) > 0 ? sisa : keQty(0),
         ...(nilai
           ? {
@@ -462,7 +472,15 @@ export async function terimaDariPO(
     idPemasok: number;
     idPenerimaan: number;
     totalFaktur: number;
-    baris: { idOrderPembelianDetail?: number | null | undefined; idBarang: number; qty: string }[];
+    baris: {
+      idOrderPembelianDetail?: number | null | undefined;
+      idBarang: number;
+      qty: string;
+      /** K-237: datang tetapi ditolak. */
+      ditolak?: string;
+      alasanTolak?: string | null;
+      tindakanTolak?: TindakanTolak | null;
+    }[];
     pelaku: PenggunaAktif;
     tanggal: string;
   },
@@ -475,20 +493,43 @@ export async function terimaDariPO(
   const detail = await repo.kunciDetail(tx, k.idPO);
   const peta = new Map(detail.map((d) => [d.id, d]));
   for (const [i, b] of k.baris.entries()) {
-    if (!b.idOrderPembelianDetail) continue;
+    const tolak = keQty(b.ditolak ?? '0');
+    if (!b.idOrderPembelianDetail) {
+      if (bandingQty(tolak, 0) > 0) {
+        throw new AppError('VALIDASI', `Baris ${i + 1}: barang ditolak harus baris order.`, 400);
+      }
+      continue;
+    }
     const d = peta.get(b.idOrderPembelianDetail);
     if (d?.idBarang !== b.idBarang) {
       throw new AppError('VALIDASI', `Baris ${i + 1}: tidak cocok dengan order pembelian.`, 400);
     }
     const diterima = tambahQty(d.qtyDiterima, b.qty);
+    // K-237: ditolak dicatat (append-only) dan cache baris order diperbarui di transaksi yang sama.
+    let ditolak = d.qtyDitolak;
+    let dipotong = d.qtyDipotong;
+    if (bandingQty(tolak, 0) > 0) {
+      await tx.insert(penerimaanBarangTolak).values({
+        idPenerimaan: k.idPenerimaan,
+        idBarang: b.idBarang,
+        idOrderPembelianDetail: d.id,
+        qty: tolak,
+        alasan: b.alasanTolak ?? '',
+        tindakan: b.tindakanTolak ?? 'GANTI',
+      });
+      ditolak = tambahQty(ditolak, tolak);
+      if (b.tindakanTolak === 'POTONG') dipotong = tambahQty(dipotong, tolak);
+    }
     await tx
       .update(orderPembelianDetail)
-      .set({ qtyDiterima: diterima })
+      .set({ qtyDiterima: diterima, qtyDitolak: ditolak, qtyDipotong: dipotong })
       .where(eq(orderPembelianDetail.id, d.id));
     d.qtyDiterima = diterima;
+    d.qtyDipotong = dipotong;
   }
+  // Lengkap bila diterima + bagian order yang dikurangi sudah mencapai qty berlaku.
   const lengkap = detail.every(
-    (d) => bandingQty(d.qtyDiterima, d.qtyKonfirmasi ?? d.qtyPesan) >= 0,
+    (d) => bandingQty(tambahQty(d.qtyDiterima, d.qtyDipotong), d.qtyKonfirmasi ?? d.qtyPesan) >= 0,
   );
   await tx
     .update(orderPembelian)
