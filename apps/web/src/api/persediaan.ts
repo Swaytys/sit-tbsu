@@ -73,6 +73,24 @@ export function useSimpanPenerimaan() {
 
 // --- Penyesuaian stok ---
 
+/** K-240: ringkasan opname bertahap (kelas ABC, jatuh tempo, akurasi). */
+export function useRingkasanOpname() {
+  return useQuery({
+    queryKey: ['penyesuaian', 'opname', 'ringkasan'],
+    queryFn: async () => ambilData(await api.opname.ringkasan.$get()),
+  });
+}
+
+/** K-240: susun daftar hitung harian acak (draf OPNAME). */
+export function useSusunDaftarHarian() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (jumlah: number) =>
+      ambilData(await api.opname['daftar-harian'].$post({ json: { jumlah } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['penyesuaian'] }),
+  });
+}
+
 export type ParamDaftarPenyesuaian = {
   cari: string;
   jenis: JenisPenyesuaian | null;

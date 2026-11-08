@@ -88,6 +88,7 @@ const IZIN_KEPALA_TOKO: readonly Izin[] = [
     'laporan.laba',
     'promo.kelola',
     'pembelian.setujui',
+    'persediaan.opname.atur',
   ]),
 ];
 

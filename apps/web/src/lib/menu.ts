@@ -27,6 +27,7 @@ import {
   type LucideIcon,
   ChartColumnBig,
   ClipboardList,
+  ClipboardCheck,
 } from 'lucide-react';
 
 /*
@@ -182,6 +183,12 @@ export const MENU: EntriMenu[] = [
         ikon: Boxes,
         izin: 'persediaan.stok.lihat',
         fase: 4,
+      },
+      {
+        path: '/opname',
+        label: 'Stok Opname',
+        ikon: ClipboardCheck,
+        izin: 'persediaan.stok.lihat',
       },
       {
         path: '/retur-pemasok',

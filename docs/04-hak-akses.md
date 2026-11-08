@@ -79,6 +79,7 @@ memakai kode di luar daftar gagal typecheck.
 | `persediaan.stok.lihat_tersedia` | Lihat angka stok tersedia saat mencari barang (untuk order) |
 | `persediaan.stok.lihat` | Halaman persediaan penuh: fisik/dipesan/tersedia, mutasi, kartu stok, stok tertahan |
 | `persediaan.penerimaan.kelola` | Catat penerimaan barang |
+| `persediaan.opname.atur` | Menyusun daftar hitung opname harian dan menyelesaikan opname yang berselisih (K-240; Kepala Toko, Owner) |
 | `persediaan.penyesuaian.kelola` | Buat penyesuaian: saldo awal, opname, koreksi, rusak |
 | `persediaan.retur_pemasok.kelola` | (M2) Retur ke pemasok |
 | `hutang.lihat` / `hutang.kelola` | (M2) Lihat / bayar hutang pemasok |
@@ -162,6 +163,7 @@ berlaku dan tabel ini diperbarui.
 | persediaan.stok.lihat | | | ✓ | ✓ | | ✓ | ✓ |
 | persediaan.penerimaan.kelola | | | ✓ | | | ✓ | ✓ |
 | persediaan.penyesuaian.kelola | | | ✓ | | | ✓ | ✓ |
+| persediaan.opname.atur | | | | | | ✓ | ✓ |
 | persediaan.retur_pemasok.kelola | | | ✓ | | | ✓ | ✓ |
 | hutang.lihat | | | ✓ | | | ✓ | ✓ |
 | hutang.kelola | | | | | | ✓ | ✓ |

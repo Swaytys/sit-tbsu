@@ -238,6 +238,7 @@ export function detailUntukSelesai(tx: Tx, idPenyesuaian: number) {
       qtyFisik: penyesuaianStokDetail.qtyFisik,
       qtySelisih: penyesuaianStokDetail.qtySelisih,
       hppSatuan: penyesuaianStokDetail.hppSatuan,
+      keterangan: penyesuaianStokDetail.keterangan,
       dikecualikan: penyesuaianStokDetail.dikecualikan,
       alasanKecuali: penyesuaianStokDetail.alasanKecuali,
       namaBarang: barang.namaBarang,

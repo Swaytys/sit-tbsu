@@ -72,6 +72,8 @@ test('Admin: persediaan awal, koreksi, lalu stok opname mengubah stok sesuai dok
   await tambahBarang(page, nama);
   await page.getByLabel(`Fisik dihitung ${nama}`).fill('17');
   await expect(page.getByRole('row').filter({ hasText: nama })).toContainText('−1');
+  // K-240: barang berselisih wajib diberi sebab.
+  await page.getByLabel(`Keterangan ${nama}`).fill('Salah serah');
   await selesaikan(page);
   await expect(page.getByRole('row').filter({ hasText: nama })).toContainText('−1');
   expect(await stokBarang(page, barang.id)).toBe('17.000');
@@ -150,6 +152,7 @@ test('Admin: barang di lembar opname dikecualikan dengan alasan, tetap tercatat 
     // Barang di lembar tidak bisa dihapus, hanya dikecualikan dengan alasan.
     await expect(page.getByRole('button', { name: /^Hapus baris/ })).toHaveCount(0);
     await page.getByLabel(`Fisik dihitung Opname A ${kode}`).fill('5');
+    await page.getByLabel(`Keterangan Opname A ${kode}`).fill('Belum tercatat');
     await page.getByRole('button', { name: `Kecualikan Opname B ${kode}` }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('button', { name: 'Kecualikan' })).toBeDisabled();

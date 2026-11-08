@@ -136,7 +136,7 @@ describe('penyesuaian stok (docs/05 §12)', () => {
 
   it('A3 opname memakai stok sistem saat diselesaikan dan memperhitungkan barang terjual belum diambil', async () => {
     await saldoAwal(m.semen, '10', 10000);
-    const d = await draf('OPNAME', [baris(m.semen, { qtyFisik: '14' })]);
+    const d = await draf('OPNAME', [baris(m.semen, { qtyFisik: '14', keterangan: 'Salah serah' })]);
     // Setelah draf dibuat: 5 sak masuk lagi, dan 2 sak terjual tetapi belum diambil (masih di toko).
     await saldoAwal(m.semen, '5', 10000);
     const [jual] = await db
@@ -192,7 +192,7 @@ describe('penyesuaian stok (docs/05 §12)', () => {
     const isi = (ubah: Record<number, Record<string, unknown>>) =>
       lembar.baris.map((b) => {
         const idBarang = b.idBarang as number;
-        return { idBarang, qtyFisik: '1', ...ubah[idBarang] };
+        return { idBarang, qtyFisik: '1', keterangan: 'Hitung ulang', ...ubah[idBarang] };
       });
 
     // Menghapus baris pasir dari lembar ditolak.

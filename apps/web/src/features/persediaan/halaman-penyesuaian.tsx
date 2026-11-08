@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
+import { usePengguna } from '@/api/auth';
 import { useDaftarBarang, useDetailBarang } from '@/api/barang';
 import { pesanGalat } from '@/api/client';
 import { useTampilanToko } from '@/api/pengaturan';
@@ -189,6 +190,9 @@ function FormPenyesuaian({
   });
   const baris = useFieldArray({ control: form.control, name: 'baris' });
   const isi = useWatch({ control: form.control, name: 'baris' }) ?? [];
+  // K-240: hitung buta: penghitung (tanpa izin mengatur opname) tidak melihat stok sistem dan selisih.
+  const izinSaya = usePengguna().izin;
+  const hitungButa = jenis === 'OPNAME' && !izinSaya.includes('persediaan.opname.atur');
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
 
   // `?barang=<id>` (dari tab Stok rusak): dokumen baru langsung berisi barang itu.
@@ -538,7 +542,13 @@ function FormPenyesuaian({
                         <div className="font-mono text-xs text-slate-500">{inf?.kode}</div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {inf ? formatDesimal(inf.sistem) : '—'} {inf?.satuan}
+                        {hitungButa ? (
+                          <span className="text-xs text-slate-400">disembunyikan</span>
+                        ) : (
+                          <>
+                            {inf ? formatDesimal(inf.sistem) : '—'} {inf?.satuan}
+                          </>
+                        )}
                       </TableCell>
                       {jenis === 'OPNAME' && (
                         <TableCell className="text-right tabular-nums">
@@ -578,7 +588,7 @@ function FormPenyesuaian({
                         <TableCell
                           className={`text-right tabular-nums ${selisih?.startsWith('-') ? 'text-red-600' : selisih && /[1-9]/.test(selisih) ? 'text-emerald-700' : ''}`}
                         >
-                          {selisih === null ? '—' : formatSelisih(selisih)}
+                          {hitungButa ? '—' : selisih === null ? '—' : formatSelisih(selisih)}
                         </TableCell>
                       )}
                       {jenis === 'SALDO_AWAL' && (

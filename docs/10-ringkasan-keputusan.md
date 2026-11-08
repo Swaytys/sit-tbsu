@@ -780,7 +780,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-237 | Penerimaan: datang/diterima baik/ditolak per baris, barang belum datang, bayar sesuai kesepakatan (kurang bayar = penyimpangan dengan persetujuan), klaim dan deposit pemasok, jatuh tempo otomatis dan hanya diperpanjang lewat persetujuan Owner. | Berlaku |
 | K-238 | Kartu order pembelian: linimasa, kesepakatan, ringkasan uang, barang, penerimaan & pembayaran; tombol sesuai tahap. | Berlaku |
 | K-239 | Pemusnahan hanya menampilkan barang ber-stok rusak beserta stok rusaknya; daftar barang rusak siap klik. | Berlaku |
-| K-240 | Stok opname di halaman mandiri (rancangan K-227). | Berlaku (rencana) |
+| K-240 | Stok opname di halaman mandiri (rancangan K-227). | Berlaku (tahap 1) |
 | K-241 | Saldo awal → Persediaan Awal: input cepat seperti kasir, pemasok asal, Hutang Awal Pemasok, deposit dan titipan awal. | Berlaku |
 | K-242 | Saran pesan → Perencanaan Pengadaan: panduan dengan contoh, terpadu dengan order dan tanggal datang, celah kosong + kerugian peluang + saran tindakan, musim ramai, keandalan pemasok. | Berlaku |
 | K-243 | Izin tambahan per pengguna dan peran buatan sendiri (V2); bawaan Kasir tanpa logistik setelah itu ada. | Berlaku (rencana V2) |

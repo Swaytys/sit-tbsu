@@ -637,6 +637,13 @@ Semua tugas kasir, ditambah:
   aplikasi dicatat lewat tautan **Catat hutang awal pemasok** (atau *Hutang Pemasok* › tombol yang sama): pemasok,
   no. faktur lama, sisa hutang, jatuh tempo → **Simpan & tambah lagi** untuk faktur berikutnya. Hutang awal tidak
   menambah stok dan dibayar seperti hutang lain.
+- **Stok Opname** (*Persediaan › Stok Opname*): menghitung stok sedikit tiap hari. Kartu kelas **A/B/C** menunjukkan
+  berapa barang jatuh tempo hitung (A tiap 30 hari, B 90, C 180) dan **akurasi** 30 hari (target ≥ 95%). Kepala
+  Toko/Owner: isi jumlah barang → **Susun daftar hitung hari ini** → draf opname berisi barang acak → berikan ke
+  penghitung. Penghitung mengisi jumlah fisik (stok sistem tidak terlihat) → simpan. Kepala Toko/Owner membuka
+  draf, mengisi **keterangan sebab** untuk barang yang berselisih (salah serah, rusak, salah input, hilang, belum
+  tercatat) atau meminta hitung ulang → **Simpan & selesaikan**. Opname seluruh barang: **Opname penuh / pilih
+  sendiri**.
 - **Pemusnahan barang rusak** (*Stok Persediaan* › tab Rusak › **Musnahkan**, atau penyesuaian jenis Pemusnahan):
   di bawah kotak cari tampil **daftar semua barang rusak** beserta jumlah rusaknya → klik barang untuk
   menambahkannya → isi qty dan alasan → **Simpan & selesaikan**. Pencarian hanya menampilkan barang yang punya stok

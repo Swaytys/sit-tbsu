@@ -531,3 +531,24 @@ export type PeringatanStok = {
   /** KRITIS/HABIS lebih dulu, dibatasi beberapa baris teratas. */
   barang: BarangPeringatanStok[];
 };
+
+// --- K-240/K-227: Stok Opname bertahap ---
+
+export type KelasABC = 'A' | 'B' | 'C';
+
+export type RingkasanOpname = {
+  kelas: { kelas: KelasABC; selangHari: number; jumlah: number; jatuhTempo: number }[];
+  /** Akurasi catatan persediaan 30 hari (%): baris opname cocok ÷ baris dihitung; `null` bila belum ada. */
+  akurasi30Hari: number | null;
+  barisDihitung30Hari: number;
+  /** Nilai mutlak selisih × HPP (rupiah) 30 hari. */
+  nilaiSelisih30Hari: number;
+};
+
+export const skemaDaftarHarian = z.object({
+  jumlah: z.coerce
+    .number('Jumlah barang harus angka.')
+    .int('Jumlah barang harus bilangan bulat.')
+    .min(1, 'Minimal 1 barang.')
+    .max(100, 'Maksimal 100 barang per daftar.'),
+});

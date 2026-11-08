@@ -353,6 +353,25 @@ export async function selesaikanPenyesuaian(
           kurangQty(b.qtyFisik ?? '0', p.stokFisik),
           belum.get(b.idBarang) ?? '0',
         );
+        // K-240: selisih opname hanya dikoreksi Kepala Toko/Owner, dengan sebab per barang.
+        if (bandingQty(selisih, 0) !== 0) {
+          if (!pelaku.izin.has('persediaan.opname.atur')) {
+            throw new AppError(
+              'TIDAK_BERIZIN',
+              `${b.namaBarang} berselisih dengan stok sistem. Simpan draf; opname yang berselisih diselesaikan ` +
+                'Kepala Toko/Owner setelah diperiksa.',
+              403,
+            );
+          }
+          if (!b.keterangan || b.keterangan.trim().length < 3) {
+            throw new AppError(
+              'VALIDASI',
+              `${b.namaBarang} berselisih ${selisih}: isi keterangan sebabnya (mis. salah serah, rusak, ` +
+                'salah input, hilang, belum tercatat) atau hitung ulang.',
+              400,
+            );
+          }
+        }
       }
       let hpp = p.hppRata2;
       if (h.jenis === 'SALDO_AWAL') {
