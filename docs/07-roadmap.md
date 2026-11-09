@@ -443,7 +443,7 @@ Syarat yang **sudah tercatat** dari keputusan sebelumnya dan wajib masuk rencana
 2. K-231 lokasi barang di gudang.
 3. K-227 kemasan tersegel dan opname bertahap: opname **selesai 2026-11-09** (tahap 2: penugasan, hitung buta di
    API, waktu hitung, hitung ulang orang lain, sebab baku, timbang, kinerja; migrasi 0056). Kemasan tersegel dua
-   lapis, buka kemasan, segel, uji petik: berikutnya.
+   lapis, buka kemasan (K-246), uji petik: **selesai 2026-11-09** (migrasi 0057). Label segel bernomor: bersama K-230.
 4. K-222 nama barang otomatis.
 5. K-230 label rak.
 6. K-226 generalisasi ritel.
@@ -457,6 +457,7 @@ dan mengapa). Perubahan lingkup fase = keputusan baru di `docs/keputusan/`.
 
 ## Riwayat
 
+- 2026-11-09 — K-227 tahap 3 (kemasan tersegel) dan K-246 selesai di branch.
 - 2026-11-09 — K-227 tahap 2 (opname terkendali) selesai di branch.
 - 2026-11-09 — K-243 izin per akun dan peran khusus selesai di branch.
 - 2026-11-08 — K-225 tahap 3 dan masukan uji pemilik 8 Nov (K-234–K-242, K-244, K-245) selesai di branch.

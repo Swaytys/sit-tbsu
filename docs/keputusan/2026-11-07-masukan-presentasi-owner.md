@@ -13,7 +13,7 @@ ahli sistem informasi manajemen. Sebelas masukan dicatat di bawah. Pemilik proye
 | K-224 | Bug: draf order tidak ikut harga jual terbaru | V1 | Selesai |
 | K-225 | Peran dipisah (Administrator, Admin Persediaan, Kepala Toko) + persetujuan PO + wewenang bayar hutang | V2 | Sebagian: tahap 1 (peran) dan 2 (persetujuan PO) selesai di branch V2; tahap 3 menyusul |
 | K-226 | Sistem berlaku umum untuk toko ritel lain, fitur bahan bangunan tetap | V2 | Rencana (rancangan di bawah) |
-| K-227 | Satuan ecer/grosir, kemasan tersegel, dan opname bertahap acak | V2 | Opname selesai (tahap 1–2: butir 5–10); kemasan tersegel (butir 1–4) menyusul |
+| K-227 | Satuan ecer/grosir, kemasan tersegel, dan opname bertahap acak | V2 | Selesai (tahap 1–3, 8–9 Nov); label segel bernomor menunggu K-230 |
 | K-228 | Semua pintasan keyboard juga bisa diklik/disentuh | V1 | Selesai (audit 7 Nov) |
 | K-229 | Jaringan HP/tablet lebih mudah: mode LAN toko + Tailscale | V1 | Selesai (1.19.0) |
 | K-230 | Alur cetak label & barcode yang jelas, termasuk barang curah tanpa barcode | V1 panduan, V2 label rak | Rencana |
@@ -257,8 +257,10 @@ akurat; jadwal opname yang bisa ditebak membuka celah kecurangan sesudah opname.
     disetujui Owner lebih sering terpilih; saran jumlah per hari; barang belum dihitung tahun ini;
   - butir 10: **kinerja** per bulan, per kelas, per penghitung, per sebab; pita akurasi di Dashboard Kepala
     Toko/Owner.
-- Belum: kemasan tersegel dua lapis, buka kemasan, segel bernomor dan uji petik (butir 1–4); ecer dihitung lebih
-  sering dari segel (bergantung butir 2); opname per lokasi (K-231). "Opname penuh setahun sekali" ditampilkan
+- **Tahap 3 (9 Nov)** — butir 1–4: kemasan tersegel, stok dua lapis, buka kemasan (manual dan otomatis, K-246),
+  uji petik saat opname; rincian di `2026-11-09-kemasan-tersegel.md`.
+- Belum: label segel bernomor untuk box yang diisi ulang toko (menunggu K-230 label rak); kemasan bertingkat; ecer
+  dihitung lebih sering dari segel (sekarang lewat barang rawan/timbang); opname per lokasi (K-231). "Opname penuh setahun sekali" ditampilkan
   sebagai jumlah barang yang belum dihitung tahun ini (tidak menghalangi tutup tahun).
 
 ---

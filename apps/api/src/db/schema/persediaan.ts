@@ -13,6 +13,7 @@ import {
 import {
   CARA_HITUNG,
   CARA_KIRIM_PO,
+  JENIS_MUTASI_SEGEL,
   SEBAB_SELISIH,
   JENIS_MUTASI,
   JENIS_PENERIMAAN,
@@ -75,8 +76,16 @@ export const persediaan = pgTable(
      * Dasar markup bila `konfigurasi.dasar_markup = FIFO`; HPP dan laporan laba tetap rata-rata tertimbang.
      */
     hargaFifo: uang('harga_fifo').notNull().default(0),
+    /**
+     * K-227 (migrasi 0057) [CACHE]: jumlah box utuh tersegel (kemasan `kemasan_segel` barang), dari buku
+     * `mutasi_segel`. Ecer = stok_fisik − qty_segel × isi; aturan: qty_segel × isi ≤ stok_fisik.
+     */
+    qtySegel: qty('qty_segel')
+      .notNull()
+      .default(sql`0`),
   },
   (t) => [
+    check('chk_persediaan_segel', sql`qty_segel >= 0 and qty_segel = trunc(qty_segel)`),
     foreignKey({
       name: 'persediaan_id_barang_fkey',
       columns: [t.idBarang],
@@ -488,6 +497,8 @@ export const penyesuaianStokDetail = pgTable(
     idPenyelesaianKonsinyasi: kolomRef('id_penyelesaian_konsinyasi'),
     /** K-227 (OPNAME): sebab baku selisih. */
     sebabSelisih: varchar('sebab_selisih', { length: 20, enum: SEBAB_SELISIH }),
+    /** K-227 (OPNAME): barang ini diminta uji petik (buka 1 box segel acak dan hitung isinya). */
+    ujiPetik: boolean('uji_petik').notNull().default(false),
   },
   (t) => [
     foreignKey({
@@ -546,6 +557,11 @@ export const opnameHitung = pgTable(
     cara: varchar('cara', { length: 7, enum: CARA_HITUNG }).notNull().default('HITUNG'),
     /** TIMBANG: berat bersih yang ditimbang (gram). */
     beratGram: numeric('berat_gram', { precision: 14, scale: 3 }),
+    /** K-227 barang tersegel: box segel yang dihitung (sebelum uji petik) dan isi kemasan saat itu. */
+    qtySegel: qty('qty_segel'),
+    isiSegel: qty('isi_segel'),
+    /** K-227 uji petik: isi box yang dibuka dan dihitung. */
+    isiUjiPetik: qty('isi_uji_petik'),
   },
   (t) => [
     foreignKey({
@@ -568,6 +584,11 @@ export const opnameHitung = pgTable(
     check(
       'chk_opname_hitung_berat',
       sql`(cara = 'TIMBANG') = (berat_gram is not null) and (berat_gram is null or berat_gram > 0)`,
+    ),
+    check(
+      'chk_opname_hitung_segel',
+      sql`(qty_segel is null or (qty_segel >= 0 and qty_segel = trunc(qty_segel) and isi_segel > 0))
+        and (isi_uji_petik is null or (isi_uji_petik >= 0 and qty_segel >= 1))`,
     ),
     index('idx_opname_hitung_dokumen').on(t.idPenyesuaian, t.idBarang),
     index('idx_opname_hitung_penghitung').on(t.idPenghitung),
@@ -676,5 +697,67 @@ export const mutasiPersediaan = pgTable(
     index('idx_mutasi_void').on(t.idVoidDetail),
     index('idx_mutasi_penyesuaian').on(t.idPenyesuaianDetail),
     index('idx_mutasi_retur_pemasok').on(t.idReturPemasokDetail),
+  ],
+);
+
+/**
+ * K-227 [APPEND]: buku lapisan segel (box utuh tersegel) per barang; cache `persediaan.qty_segel`. Tidak mengubah
+ * stok total; hanya menjelaskan wujudnya (box segel atau ecer).
+ */
+export const mutasiSegel = pgTable(
+  'mutasi_segel',
+  {
+    id: kolomId(),
+    idBarang: kolomRef('id_barang').notNull(),
+    idSatuanJual: kolomRef('id_satuan_jual').notNull(),
+    waktu: timestamptz('waktu').notNull().defaultNow(),
+    tanggalOperasional: tanggal('tanggal_operasional').notNull(),
+    jenis: varchar('jenis', { length: 10, enum: JENIS_MUTASI_SEGEL }).notNull(),
+    qtyMasuk: qty('qty_masuk')
+      .notNull()
+      .default(sql`0`),
+    qtyKeluar: qty('qty_keluar')
+      .notNull()
+      .default(sql`0`),
+    saldoSetelah: qty('saldo_setelah').notNull(),
+    /** Mutasi stok yang menyebabkannya (penjualan, penerimaan, dsb.); kosong untuk buka manual/opname. */
+    idMutasiPersediaan: kolomRef('id_mutasi_persediaan'),
+    idPenyesuaianDetail: kolomRef('id_penyesuaian_detail'),
+    idPengguna: kolomRef('id_pengguna').notNull(),
+    keterangan: varchar('keterangan', { length: 255 }),
+  },
+  (t) => [
+    foreignKey({
+      name: 'mutasi_segel_id_barang_fkey',
+      columns: [t.idBarang],
+      foreignColumns: [barang.id],
+    }),
+    foreignKey({
+      name: 'mutasi_segel_id_satuan_jual_fkey',
+      columns: [t.idSatuanJual],
+      foreignColumns: [barangSatuanJual.id],
+    }),
+    foreignKey({
+      name: 'mutasi_segel_id_pengguna_fkey',
+      columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    foreignKey({
+      name: 'mutasi_segel_id_mutasi_persediaan_fkey',
+      columns: [t.idMutasiPersediaan],
+      foreignColumns: [mutasiPersediaan.id],
+    }),
+    foreignKey({
+      name: 'mutasi_segel_id_penyesuaian_detail_fkey',
+      columns: [t.idPenyesuaianDetail],
+      foreignColumns: [penyesuaianStokDetail.id],
+    }),
+    check('chk_mutasi_segel_jenis', dalamDaftar('jenis', JENIS_MUTASI_SEGEL)),
+    check(
+      'chk_mutasi_segel_qty',
+      sql`qty_masuk >= 0 and qty_keluar >= 0 and (qty_masuk > 0) <> (qty_keluar > 0)
+        and qty_masuk = trunc(qty_masuk) and qty_keluar = trunc(qty_keluar) and saldo_setelah >= 0`,
+    ),
+    index('idx_mutasi_segel_barang').on(t.idBarang, t.id),
   ],
 );

@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { formatDesimal, formatWaktu } from '@/lib/format';
+import { teksLapisanSegel } from '@/lib/segel';
 import { LABEL_STATUS_STOK } from '@/lib/label';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
@@ -95,7 +96,16 @@ export function TabPosisi() {
       kunci: 'fisik',
       judul: 'Fisik',
       className: 'text-right',
-      sel: (b) => angka(b.stokFisik, 'font-medium'),
+      sel: (b) => (
+        <>
+          {angka(b.stokFisik, 'font-medium')}
+          {b.segel && (
+            <div className="text-xs text-slate-500">
+              {teksLapisanSegel(b.stokFisik, b.stokSegel, b.segel)}
+            </div>
+          )}
+        </>
+      ),
     },
     {
       kunci: 'dipesan',

@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import {
   formatRupiah,
+  kelipatanQty,
   rapikanDesimal,
   subtotalRupiah,
   type BarisDaftarPenjualan,
@@ -27,7 +28,12 @@ import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahHari, tanggalOperasional } from '../../../lib/waktu';
 import { pastikanShiftCheckout, shiftUntukCatat } from '../../kas/shift/service';
 import { hargaBarangDasar } from '../../master/harga/repo';
-import { catatMutasi, kunciPersediaan, ubahReservasi } from '../../persediaan/ledger';
+import {
+  catatMutasi,
+  kunciPersediaan,
+  satuanJualTersegel,
+  ubahReservasi,
+} from '../../persediaan/ledger';
 import { mintaKode, pakaiKode, periksaKode } from '../../sistem/kode-persetujuan/service';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
@@ -387,6 +393,11 @@ export async function checkout(
       tx,
       rows.map((r) => ({ idBarang: r.idBarang, delta: `-${r.qtyDasar}` })),
     );
+    // K-227: baris dalam satuan kemasan tersegel mengambil box segel lebih dulu.
+    const satuanSegel = await satuanJualTersegel(
+      tx,
+      rows.flatMap((r) => (r.idSatuanJual === null ? [] : [r.idSatuanJual])),
+    );
     for (const r of [...rows].sort((a, b) => a.idBarang - b.idBarang)) {
       const p = await kunciPersediaan(tx, r.idBarang);
       const [d] = await tx
@@ -414,6 +425,9 @@ export async function checkout(
         idBarang: r.idBarang,
         jenis: 'PENJUALAN',
         qtyKeluar: r.qtyDasar,
+        ...(r.idSatuanJual !== null && satuanSegel.has(r.idSatuanJual)
+          ? { segel: { keluar: kelipatanQty(r.qty, 1) } }
+          : {}),
         sumber: { idPenjualanDetail: d.id },
         idPengguna: pelaku.id,
         tanggalOperasional: tanggal,

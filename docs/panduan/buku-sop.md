@@ -260,11 +260,14 @@ ditetapkan Owner.
    juga (jangan disusun jauh hari). Penghitung menekan *Mulai hitung* saat sudah di gudang, menghitung tanpa melihat
    stok sistem, barang kecil boleh ditimbang. Barang berselisih **dihitung ulang orang lain**; setelah dua hitungan
    sama, Kepala Toko memilih sebab dan menyelesaikan. Kepala Toko tidak menghitung barang yang akan ia setujui.
-3. Tiap bulan Owner membaca bagian kinerja di Stok Opname: akurasi < 95%, nilai selisih bersih negatif yang
+3. **Barang bersegel** (dus/box): terima dalam dus utuh bila memang tersegel; buka dus hanya lewat *Buka kemasan*
+   (alasan diisi) atau biarkan kasir membukanya otomatis saat ecer habis. Saat uji petik, buka dus yang dipilih
+   acak oleh penghitung (bukan yang paling dekat), hitung isinya di depan saksi bila memungkinkan.
+4. Tiap bulan Owner membaca bagian kinerja di Stok Opname: akurasi < 95%, nilai selisih bersih negatif yang
    membesar, penghitung dengan ketepatan rendah, dan sebab yang berulang (mis. salah serah) ditindaklanjuti.
-4. **Koreksi** (rusak, hilang, salah serah, salah input): ikuti *Panduan selisih stok* (`selisih-stok.md`) bagian 3;
+5. **Koreksi** (rusak, hilang, salah serah, salah input): ikuti *Panduan selisih stok* (`selisih-stok.md`) bagian 3;
    **alasan wajib jelas dan menyebut nomor transaksi bila diketahui**.
-5. Owner meninjau daftar penyesuaian setiap minggu; selisih berulang pada barang/kasir yang sama ditindaklanjuti.
+6. Owner meninjau daftar penyesuaian setiap minggu; selisih berulang pada barang/kasir yang sama ditindaklanjuti.
 
 ---
 

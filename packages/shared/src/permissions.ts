@@ -57,6 +57,8 @@ export const DAFTAR_IZIN = {
   'persediaan.stok.lihat': 'Halaman persediaan penuh: fisik/dipesan/tersedia, mutasi, kartu stok',
   'persediaan.penerimaan.kelola': 'Catat penerimaan barang',
   'persediaan.penyesuaian.kelola': 'Buat penyesuaian: persediaan awal, opname, koreksi, rusak',
+  'persediaan.segel.buka':
+    'Mencatat buka kemasan tersegel: box utuh dipindah menjadi ecer, dengan alasan (K-227)',
   'persediaan.opname.hitung':
     'Mengisi hasil hitung opname yang ditugaskan kepadanya tanpa melihat stok sistem (K-227)',
   'persediaan.opname.atur':

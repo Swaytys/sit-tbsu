@@ -28,6 +28,9 @@ export type Hitungan = {
   qty: string;
   cara: CaraHitung;
   beratGram: string | null;
+  qtySegel: string | null;
+  isiSegel: string | null;
+  isiUjiPetik: string | null;
 };
 
 export type HitunganBernilai = Hitungan & { selisih: string; sistem: string; belum: string };
@@ -47,6 +50,9 @@ export async function hitunganDokumen(
       qty: opnameHitung.qty,
       cara: opnameHitung.cara,
       beratGram: opnameHitung.beratGram,
+      qtySegel: opnameHitung.qtySegel,
+      isiSegel: opnameHitung.isiSegel,
+      isiUjiPetik: opnameHitung.isiUjiPetik,
     })
     .from(opnameHitung)
     .innerJoin(pengguna, eq(pengguna.id, opnameHitung.idPenghitung))
@@ -173,6 +179,9 @@ export function keRespons(h: HitunganBernilai | Hitungan, tampilSelisih: boolean
     qty: h.qty,
     cara: h.cara,
     beratGram: h.beratGram,
+    qtySegel: h.qtySegel,
+    isiSegel: h.isiSegel,
+    isiUjiPetik: h.isiUjiPetik,
     selisih: tampilSelisih && 'selisih' in h ? h.selisih : null,
   };
 }
@@ -187,6 +196,9 @@ export async function tambahHitungan(
     qty: string;
     cara: CaraHitung;
     beratGram: string | null;
+    qtySegel?: string | null;
+    isiSegel?: string | null;
+    isiUjiPetik?: string | null;
   },
 ): Promise<void> {
   await ex.insert(opnameHitung).values(h);

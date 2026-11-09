@@ -5,14 +5,15 @@ import {
   hargaSatuanJual,
   JENIS_DIMENSI_FISIK,
   rapikanDesimal,
+  teksQty,
   type DataSimpanSatuanJual,
   type DetailBarang,
   type OpsiSatuanBaris,
   type SatuanJualBarang,
 } from '@sit/shared';
 import { eq } from 'drizzle-orm';
-import type { Executor } from '../../../db/client';
-import { tingkatHarga } from '../../../db/schema';
+import type { Executor, Tx } from '../../../db/client';
+import { barangSatuanJual, persediaan, tingkatHarga } from '../../../db/schema';
 import { AppError } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { dalamTransaksi } from '../../../lib/transaksi';
@@ -92,6 +93,7 @@ export async function muatSatuanJual(
       isDefaultJual: r.isDefaultJual,
       statusAktif: r.statusAktif,
       harga,
+      kemasanSegel: r.kemasanSegel,
     });
     hasil.set(r.idBarang, daftar);
   }
@@ -145,6 +147,7 @@ export async function simpanSatuanJual(
     if (!dasar) throw new Error('satuan dasar hilang');
     const lama = await repo.satuanJualBarang(tx, [idBarang]);
     const lamaPer = new Map(lama.map((l) => [l.idSatuan, l]));
+    await jagaKemasanSegel(tx, idBarang, lama, input);
     const hargaLama = new Map(
       (await repo.hargaTetapSatuanJual(tx, [idBarang]))
         .filter((h) => h.metode === 'TETAP')
@@ -267,4 +270,40 @@ export async function simpanSatuanJual(
     }
   });
   return detail(idBarang);
+}
+
+/**
+ * K-227: kemasan tersegel yang masih berisi box tidak boleh dinonaktifkan atau diubah isinya (box lama tidak lagi
+ * cocok); bila kosong, menonaktifkannya juga melepas tanda tersegel.
+ */
+async function jagaKemasanSegel(
+  tx: Tx,
+  idBarang: number,
+  lama: Awaited<ReturnType<typeof repo.satuanJualBarang>>,
+  input: DataSimpanSatuanJual,
+): Promise<void> {
+  const segel = lama.find((l) => l.kemasanSegel);
+  if (!segel) return;
+  const kiriman = input.baris.find((b) => b.idSatuan === segel.idSatuan);
+  const dilepas = !kiriman || kiriman.statusAktif !== 'AKTIF';
+  const isiBerubah = kiriman !== undefined && bandingQty(kiriman.faktor, segel.faktor) !== 0;
+  if (!dilepas && !isiBerubah) return;
+  const [ps] = await tx
+    .select({ qty: persediaan.qtySegel })
+    .from(persediaan)
+    .where(eq(persediaan.idBarang, idBarang));
+  if (ps && bandingQty(ps.qty, 0) > 0) {
+    throw new AppError(
+      'KONFLIK',
+      `Kemasan ${segel.kodeSatuan} tersegel masih tercatat ${teksQty(ps.qty)} box. Catat "Buka kemasan" untuk ` +
+        'semua box atau lepas tanda tersegel di kartu Kemasan tersegel dulu.',
+      409,
+    );
+  }
+  if (dilepas) {
+    await tx
+      .update(barangSatuanJual)
+      .set({ kemasanSegel: false })
+      .where(eq(barangSatuanJual.id, segel.id));
+  }
 }

@@ -385,8 +385,13 @@ export const barangSatuanJual = pgTable(
     statusAktif: statusAktif(),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /** K-227: kemasan tersegel; stok barang dicatat dua lapis (box segel + ecer). Paling banyak satu per barang. */
+    kemasanSegel: boolean('kemasan_segel').notNull().default(false),
   },
   (t) => [
+    uniqueIndex('uq_bsj_kemasan_segel')
+      .on(t.idBarang)
+      .where(sql`kemasan_segel`),
     foreignKey({
       name: 'barang_satuan_jual_id_barang_fkey',
       columns: [t.idBarang],

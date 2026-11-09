@@ -69,6 +69,7 @@ import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 import { rapikanPersen, teksMargin } from '../harga-jual/isian-harga';
 import { KartuMuatan } from './kartu-muatan';
 import { KartuHitungTimbang } from './kartu-hitung-timbang';
+import { KartuKemasanSegel } from './kartu-kemasan-segel';
 import { KartuPembelianKhusus } from './kartu-pembelian-khusus';
 import { KartuSatuanJual, KELIPATAN_PERKIRAAN } from './kartu-satuan-jual';
 
@@ -1240,6 +1241,7 @@ function FormBarang({
         <KartuSatuanJual barang={barang} satuan={referensi.satuan} tier={referensi.tier} />
       )}
       {barang && <KartuPembelianKhusus barang={barang} />}
+      {barang && <KartuKemasanSegel barang={barang} />}
       {barang && <KartuHitungTimbang barang={barang} />}
       {dialogKeluar}
     </div>

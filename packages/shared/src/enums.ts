@@ -107,6 +107,21 @@ export type StatusPenyesuaian = (typeof STATUS_PENYESUAIAN)[number];
 export const KONDISI_STOK = ['BAIK', 'RUSAK'] as const;
 export type KondisiStok = (typeof KONDISI_STOK)[number];
 
+/**
+ * K-227 tahap 3: buku lapisan segel (jumlah box utuh tersegel). MASUK = diterima tersegel; KELUAR = dijual/dikembalikan
+ * per box; BUKA = box dibuka menjadi ecer (manual, otomatis karena ecer kurang, atau uji petik); OPNAME = disamakan
+ * dengan hitungan box; KOREKSI = penyesuaian lain (mis. kemasan tidak lagi ditandai tersegel).
+ */
+export const JENIS_MUTASI_SEGEL = ['MASUK', 'KELUAR', 'BUKA', 'OPNAME', 'KOREKSI'] as const;
+export type JenisMutasiSegel = (typeof JENIS_MUTASI_SEGEL)[number];
+export const LABEL_MUTASI_SEGEL: Record<JenisMutasiSegel, string> = {
+  MASUK: 'Masuk tersegel',
+  KELUAR: 'Keluar per box',
+  BUKA: 'Dibuka jadi ecer',
+  OPNAME: 'Opname box',
+  KOREKSI: 'Koreksi',
+};
+
 /** K-227: cara mendapat hasil hitung opname. TIMBANG = berat bersih dibagi berat per buah (timbangan hitung). */
 export const CARA_HITUNG = ['HITUNG', 'TIMBANG'] as const;
 export type CaraHitung = (typeof CARA_HITUNG)[number];

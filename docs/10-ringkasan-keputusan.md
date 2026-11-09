@@ -772,7 +772,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-224 | Draf order tidak menjanjikan harga; selalu harga master terbaru. | Berlaku |
 | K-225 | Peran V2: Owner, Kepala Toko, Administrator Sistem, Admin Persediaan, Petugas Gudang, Kasir, Staf; PO disetujui berjenjang; penerima ≠ pemesan; pencocokan tiga dokumen; pembayaran hutang oleh Owner/Kepala Toko sampai batas. | Berlaku (tahap 1–3 selesai; hitung buta ditunda) |
 | K-226 | Inti ritel umum + modul per jenis usaha; fitur bahan bangunan tetap. | Berlaku (rencana V2) |
-| K-227 | Kemasan simpan tersegel + ecer, buka kemasan, hitung timbang, opname bertahap ABC dengan daftar harian acak, hitung buta, persetujuan selisih, akurasi stok. Opname selesai (penugasan, hitung buta di API, waktu hitung, hitung ulang orang lain, sebab baku, penyetuju ≠ penghitung, timbang, kinerja); kemasan tersegel menyusul. | Berlaku (sebagian) |
+| K-227 | Kemasan simpan tersegel + ecer, buka kemasan, hitung timbang, opname bertahap ABC dengan daftar harian acak, hitung buta, persetujuan selisih, akurasi stok. Opname (penugasan, hitung buta di API, waktu hitung, hitung ulang orang lain, sebab baku, penyetuju ≠ penghitung, timbang, kinerja) dan kemasan tersegel (stok dua lapis, buka kemasan, uji petik) selesai. | Berlaku |
 | K-233 | Perbaikan dari uji layar lengkap: baris atribut otomatis tidak merebut fokus isian muatan; tahun berjalan selalu tampil di arsip; tes layar disesuaikan dengan K-178, K-196, K-203, K-225. | Berlaku |
 | K-234 | `pnpm dev` menjalankan migrasi dulu; server menolak menyala bila ada migrasi tertunda; rincian order pembelian yang gagal dimuat menampilkan galat + Coba lagi. | Berlaku |
 | K-235 | Uang muka order pembelian: "belum terpakai", bukan "sisa"; sisa tagihan ditampilkan terpisah. | Berlaku |
@@ -786,6 +786,7 @@ keputusan lama masih tertulis di berkasnya.
 | K-243 | Izin tambahan/dicabut per akun dan peran khusus (hanya Owner; izin khusus Owner tidak bisa diberikan); bawaan Kasir tanpa pengantaran, akun kasir lama tetap memegangnya lewat migrasi. | Berlaku |
 | K-244 | Di jam operasional tanpa shift semua checkout ditolak; di luar jam operasional hanya non-tunai/bayar nanti dengan pemberitahuan. | Berlaku |
 | K-245 | Persetujuan order pembelian jarak jauh dengan kode sekali pakai (mekanisme K-102). | Berlaku |
+| K-246 | Ecer kurang saat kasir menjual: box segel dibuka otomatis, tercatat atas nama kasir dengan nomor transaksi; keranjang memberi tahu sebelum dibayar (dipilih pemilik). | Berlaku |
 | K-228 | Setiap pintasan keyboard juga berupa tombol yang bisa diklik/disentuh. | Berlaku (audit selesai 7 Nov) |
 | K-229 | Mode LAN toko (HTTPS dengan sertifikat toko + perangkat terdaftar) di samping Tailscale. | Berlaku (7 Nov, 1.19.0) |
 | K-230 | Panduan label & barcode (pemindai = keyboard, Code 128); label rak dan lembar barcode kasir untuk barang curah. | Berlaku (panduan V1, label rak V2) |

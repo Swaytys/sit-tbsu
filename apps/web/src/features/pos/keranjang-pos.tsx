@@ -244,6 +244,16 @@ export function KeranjangPos({
                         {formatDesimal(pr.qtyTidakBiasa.biasanya)} per transaksi). Benar?
                       </div>
                     )}
+                    {pr?.segelDibuka && (
+                      // K-246: ecer di catatan kurang; box segel dibuka otomatis saat dibayar.
+                      <div
+                        className="mt-0.5 rounded bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-900"
+                        data-testid="segel-dibuka"
+                      >
+                        Ecer kurang: {pr.segelDibuka.jumlah} {pr.segelDibuka.kodeSatuan} segel
+                        dibuka saat dibayar (tercatat atas nama Anda).
+                      </div>
+                    )}
                     {r.atribut && (
                       <div
                         className={cn(

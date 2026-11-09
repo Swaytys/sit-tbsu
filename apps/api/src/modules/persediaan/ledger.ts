@@ -1,19 +1,25 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
   bandingQty,
   hppRataRata,
+  kaliQty,
   keQty,
+  kelipatanAtasQty,
+  kelipatanQty,
   kurangQty,
   tambahQty,
   teksQty,
   type JenisMutasi,
+  type JenisMutasiSegel,
   type Kepemilikan,
   type KondisiStok,
 } from '@sit/shared';
 import type { Executor, Tx } from '../../db/client';
 import {
   barang,
+  barangSatuanJual,
   mutasiPersediaan,
+  mutasiSegel,
   orderPenjualan,
   orderPenjualanDetail,
   persediaan,
@@ -87,6 +93,7 @@ export async function kunciPersediaan(tx: Tx, idBarang: number) {
       tanggalBeliTerakhir: persediaan.tanggalBeliTerakhir,
       terakhirMutasi: persediaan.terakhirMutasi,
       hargaFifo: persediaan.hargaFifo,
+      qtySegel: persediaan.qtySegel,
     })
     .from(persediaan)
     .where(eq(persediaan.idBarang, idBarang))
@@ -156,6 +163,11 @@ export type InputMutasi = {
   idPengguna: number;
   tanggalOperasional: string;
   keterangan?: string | null;
+  /**
+   * K-227 (bucket BAIK, barang berkemasan tersegel): box utuh tersegel yang ikut masuk (penerimaan) atau keluar
+   * (penjualan per box). Tanpa ini semuanya ecer; box dibuka otomatis bila ecer tidak cukup (K-246).
+   */
+  segel?: { masuk?: number | 'UTUH'; keluar?: number };
 };
 
 export type HasilMutasi = {
@@ -163,6 +175,8 @@ export type HasilMutasi = {
   saldoSetelah: string;
   hppSetelah: number;
   hppSatuan: number;
+  /** K-246: box segel yang dibuka otomatis karena ecer tidak cukup. */
+  segelDibuka: number;
 };
 
 /** Jenis yang memakai `hppSatuan` dari pemanggil (L5); selainnya memakai `hpp_rata2` saat itu. */
@@ -309,7 +323,230 @@ export async function catatMutasi(tx: Tx, m: InputMutasi): Promise<HasilMutasi> 
       }
     }
   }
-  return { idMutasi: baris.id, saldoSetelah: saldoBaru, hppSetelah: hppBaru, hppSatuan };
+  const segelDibuka =
+    kondisi === 'BAIK'
+      ? await geserSegel(tx, {
+          idBarang: m.idBarang,
+          segelLama: p.qtySegel,
+          stokBaru: saldoBaru,
+          masuk: masuk ? (m.segel?.masuk ?? 0) : 0,
+          keluar: masuk ? 0 : (m.segel?.keluar ?? 0),
+          qty,
+          idMutasiPersediaan: baris.id,
+          idPengguna: m.idPengguna,
+          tanggalOperasional: m.tanggalOperasional,
+          keterangan: m.keterangan ?? b.namaBarang,
+        })
+      : 0;
+  return {
+    idMutasi: baris.id,
+    saldoSetelah: saldoBaru,
+    hppSetelah: hppBaru,
+    hppSatuan,
+    segelDibuka,
+  };
+}
+
+// --- K-227: lapisan segel (box utuh tersegel + ecer) ---
+
+export type KemasanSegel = { idSatuanJual: number; isi: string; kodeSatuan: string };
+
+/** Satuan jual (dari daftar) yang merupakan kemasan tersegel aktif. */
+export async function satuanJualTersegel(
+  ex: Executor,
+  idSatuanJual: number[],
+): Promise<Set<number>> {
+  if (idSatuanJual.length === 0) return new Set();
+  const r = await ex
+    .select({ id: barangSatuanJual.id })
+    .from(barangSatuanJual)
+    .where(
+      and(
+        inArray(barangSatuanJual.id, idSatuanJual),
+        eq(barangSatuanJual.kemasanSegel, true),
+        eq(barangSatuanJual.statusAktif, 'AKTIF'),
+      ),
+    );
+  return new Set(r.map((x) => x.id));
+}
+
+/** Kemasan tersegel aktif barang (paling banyak satu), atau `null`. */
+export async function kemasanSegel(ex: Executor, idBarang: number): Promise<KemasanSegel | null> {
+  const [k] = await ex
+    .select({
+      idSatuanJual: barangSatuanJual.id,
+      isi: barangSatuanJual.faktorKeDasar,
+      kodeSatuan: satuan.kode,
+    })
+    .from(barangSatuanJual)
+    .innerJoin(satuan, eq(satuan.id, barangSatuanJual.idSatuan))
+    .where(
+      and(
+        eq(barangSatuanJual.idBarang, idBarang),
+        eq(barangSatuanJual.kemasanSegel, true),
+        eq(barangSatuanJual.statusAktif, 'AKTIF'),
+      ),
+    );
+  return k ?? null;
+}
+
+type CatatSegel = {
+  idBarang: number;
+  idSatuanJual: number;
+  jenis: JenisMutasiSegel;
+  saldoLama: string;
+  qtyMasuk?: number;
+  qtyKeluar?: number;
+  idMutasiPersediaan?: number | null;
+  idPenyesuaianDetail?: number | null;
+  idPengguna: number;
+  tanggalOperasional: string;
+  keterangan: string;
+};
+
+async function tulisSegel(tx: Tx, c: CatatSegel): Promise<string> {
+  const saldo = kurangQty(tambahQty(c.saldoLama, c.qtyMasuk ?? 0), c.qtyKeluar ?? 0);
+  await tx.insert(mutasiSegel).values({
+    idBarang: c.idBarang,
+    idSatuanJual: c.idSatuanJual,
+    tanggalOperasional: c.tanggalOperasional,
+    jenis: c.jenis,
+    qtyMasuk: keQty(c.qtyMasuk ?? 0),
+    qtyKeluar: keQty(c.qtyKeluar ?? 0),
+    saldoSetelah: saldo,
+    idMutasiPersediaan: c.idMutasiPersediaan ?? null,
+    idPenyesuaianDetail: c.idPenyesuaianDetail ?? null,
+    idPengguna: c.idPengguna,
+    keterangan: c.keterangan.slice(0, 255),
+  });
+  return saldo;
+}
+
+/**
+ * Lapisan segel mengikuti satu mutasi stok BAIK: box masuk/keluar sesuai permintaan pemanggil, lalu aturan
+ * segel × isi ≤ stok fisik dijaga dengan membuka box otomatis (K-246). Mengembalikan jumlah box yang dibuka.
+ */
+async function geserSegel(
+  tx: Tx,
+  g: {
+    idBarang: number;
+    segelLama: string;
+    stokBaru: string;
+    masuk: number | 'UTUH';
+    keluar: number;
+    qty: string;
+    idMutasiPersediaan: number;
+    idPengguna: number;
+    tanggalOperasional: string;
+    keterangan: string;
+  },
+): Promise<number> {
+  const k = await kemasanSegel(tx, g.idBarang);
+  if (!k) return 0;
+  const umum = {
+    idBarang: g.idBarang,
+    idSatuanJual: k.idSatuanJual,
+    idMutasiPersediaan: g.idMutasiPersediaan,
+    idPengguna: g.idPengguna,
+    tanggalOperasional: g.tanggalOperasional,
+  };
+  let segel = g.segelLama;
+  // Box masuk tidak boleh melebihi box utuh di qty yang diterima.
+  const utuh = kelipatanQty(g.qty, k.isi);
+  const masuk = g.masuk === 'UTUH' ? utuh : Math.min(g.masuk, utuh);
+  if (masuk > 0) {
+    segel = await tulisSegel(tx, {
+      ...umum,
+      jenis: 'MASUK',
+      saldoLama: segel,
+      qtyMasuk: masuk,
+      keterangan: g.keterangan,
+    });
+  }
+  const keluar = Math.min(g.keluar, kelipatanQty(segel, 1), kelipatanQty(g.qty, k.isi));
+  if (keluar > 0) {
+    segel = await tulisSegel(tx, {
+      ...umum,
+      jenis: 'KELUAR',
+      saldoLama: segel,
+      qtyKeluar: keluar,
+      keterangan: g.keterangan,
+    });
+  }
+  const lebih = kurangQty(kaliQty(segel, k.isi), g.stokBaru);
+  let dibuka = 0;
+  if (bandingQty(lebih, 0) > 0) {
+    dibuka = kelipatanAtasQty(lebih, k.isi);
+    segel = await tulisSegel(tx, {
+      ...umum,
+      jenis: 'BUKA',
+      saldoLama: segel,
+      qtyKeluar: dibuka,
+      keterangan: `Dibuka otomatis (ecer kurang): ${g.keterangan}`,
+    });
+  }
+  if (bandingQty(segel, g.segelLama) !== 0) {
+    await tx.update(persediaan).set({ qtySegel: segel }).where(eq(persediaan.idBarang, g.idBarang));
+  }
+  return dibuka;
+}
+
+/**
+ * K-227: mengubah lapisan segel tanpa mengubah stok total: buka box manual (`BUKA`), menyamakan dengan hitungan box
+ * opname (`OPNAME`), atau mengosongkan saat kemasan tidak lagi tersegel (`KOREKSI`). `saldoBaru` = jumlah box segel
+ * yang diinginkan; ditolak bila melebihi box utuh yang muat di stok fisik.
+ */
+export async function aturSegel(
+  tx: Tx,
+  a: {
+    idBarang: number;
+    jenis: Exclude<JenisMutasiSegel, 'MASUK' | 'KELUAR'>;
+    saldoBaru: number;
+    idPengguna: number;
+    tanggalOperasional: string;
+    keterangan: string;
+    idPenyesuaianDetail?: number | null;
+    /** Kemasan yang dipakai bila berbeda dari kemasan aktif (mis. saat penandaan dihapus). */
+    kemasan?: KemasanSegel;
+  },
+): Promise<{ saldoLama: string; saldoBaru: string }> {
+  const p = await kunciPersediaan(tx, a.idBarang);
+  const k = a.kemasan ?? (await kemasanSegel(tx, a.idBarang));
+  if (!k) {
+    throw new AppError('VALIDASI', 'Barang ini tidak punya kemasan tersegel.', 400);
+  }
+  if (a.saldoBaru < 0 || !Number.isInteger(a.saldoBaru)) {
+    throw new Error(`aturSegel: saldo ${a.saldoBaru} tidak sah`);
+  }
+  const maks = kelipatanQty(p.stokFisik, k.isi);
+  if (a.saldoBaru > maks) {
+    throw new AppError(
+      'KONFLIK',
+      `Box segel tidak bisa ${a.saldoBaru}: stok hanya cukup untuk ${maks} box utuh.`,
+      409,
+    );
+  }
+  const saldoBaru = keQty(a.saldoBaru);
+  const beda = kurangQty(saldoBaru, p.qtySegel);
+  if (bandingQty(beda, 0) === 0) return { saldoLama: p.qtySegel, saldoBaru };
+  await tulisSegel(tx, {
+    idBarang: a.idBarang,
+    idSatuanJual: k.idSatuanJual,
+    jenis: a.jenis,
+    saldoLama: p.qtySegel,
+    ...(bandingQty(beda, 0) > 0
+      ? { qtyMasuk: kelipatanQty(beda, 1) }
+      : { qtyKeluar: kelipatanQty(kurangQty(0, beda), 1) }),
+    idPenyesuaianDetail: a.idPenyesuaianDetail ?? null,
+    idPengguna: a.idPengguna,
+    tanggalOperasional: a.tanggalOperasional,
+    keterangan: a.keterangan,
+  });
+  await tx
+    .update(persediaan)
+    .set({ qtySegel: saldoBaru, diubahPada: sekarang() })
+    .where(eq(persediaan.idBarang, a.idBarang));
+  return { saldoLama: p.qtySegel, saldoBaru };
 }
 
 // --- Reservasi order (R2–R6, K-006) ---
@@ -408,6 +645,7 @@ export async function hitungUlangCache(ex: Executor, idBarang: number): Promise<
       hppRata2: persediaan.hppRata2,
       hargaBeliTerakhir: persediaan.hargaBeliTerakhir,
       hargaFifo: persediaan.hargaFifo,
+      qtySegel: persediaan.qtySegel,
       kepemilikan: barang.kepemilikan,
       hargaModalAwal: barang.hargaModalAwal,
     })
@@ -483,5 +721,20 @@ export async function hitungUlangCache(ex: Executor, idBarang: number): Promise<
   // K-184 L12: harga FIFO dari ledger.
   const fifo = await hitungHargaFifo(ex, idBarang, ledger.stokFisik, p.hargaBeliTerakhir);
   if (p.hargaFifo !== fifo) masalah.push(`harga_fifo ${p.hargaFifo}, ledger ${fifo}.`);
+  // K-227: qty_segel = saldo terakhir buku segel; segel × isi ≤ stok fisik.
+  const [akhirSegel] = await ex
+    .select({ saldo: mutasiSegel.saldoSetelah })
+    .from(mutasiSegel)
+    .where(eq(mutasiSegel.idBarang, idBarang))
+    .orderBy(desc(mutasiSegel.id))
+    .limit(1);
+  const segelBuku = akhirSegel?.saldo ?? '0.000';
+  if (bandingQty(p.qtySegel, segelBuku) !== 0) {
+    masalah.push(`qty_segel ${p.qtySegel}, buku segel ${segelBuku}.`);
+  }
+  const kemasan = await kemasanSegel(ex, idBarang);
+  if (kemasan && bandingQty(kaliQty(p.qtySegel, kemasan.isi), p.stokFisik) > 0) {
+    masalah.push(`box segel ${p.qtySegel} × ${kemasan.isi} melebihi stok fisik ${p.stokFisik}.`);
+  }
   return { idBarang, cocok: masalah.length === 0, cache, ledger, masalah };
 }

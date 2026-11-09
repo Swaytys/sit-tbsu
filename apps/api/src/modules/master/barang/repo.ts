@@ -30,6 +30,7 @@ const kolom = {
   stokMaksimum: barang.stokMaksimum,
   stokFisik: persediaan.stokFisik,
   stokRusak: persediaan.stokRusak,
+  stokSegel: persediaan.qtySegel,
   stokTersedia: sql<string>`coalesce(${persediaan.stokTersedia}, 0)::text`,
   kepemilikan: barang.kepemilikan,
   idPemasokKonsinyasi: barang.idPemasokKonsinyasi,

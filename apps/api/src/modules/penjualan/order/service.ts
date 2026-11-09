@@ -42,6 +42,7 @@ import { ambilAngka, ambilTeks } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
 import { hitungBarisJual, type HargaLama, type HasilHarga, type OpsiHitung } from '../harga-baris';
+import { perkiraanBukaSegel } from '../../persediaan/segel/service';
 import * as repo from './repo';
 
 /*
@@ -529,8 +530,10 @@ export async function pratinjauOrder(
       if (!q || !maks || bandingQty(maks, 0) <= 0) return null;
       return bandingQty(q, kaliQty(maks, '2')) > 0 ? { qty: q, biasanya: maks } : null;
     };
+    const segel = await perkiraanBukaSegel(tx, harga.baris);
     return {
-      baris: harga.baris.map((b) => ({
+      baris: harga.baris.map((b, i) => ({
+        segelDibuka: segel.get(i) ?? null,
         idBarang: b.idBarang,
         idSatuanJual: b.idSatuanJual,
         idTingkatHarga: b.idTingkatHarga,

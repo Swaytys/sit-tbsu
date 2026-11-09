@@ -36,6 +36,7 @@ import {
   voidTransaksi,
   voidTransaksiDetail,
 } from '../../../db/schema';
+import { kolomPenuh } from '../../../db/kolom-penuh';
 import { polaCari } from '../../../lib/paginasi';
 
 /*
@@ -100,6 +101,13 @@ function kolomStok(ambang: number) {
     stokTersedia: sql<string>`${persediaan.stokTersedia}::text`,
     stokRusak: persediaan.stokRusak,
     stokMinimum: barang.stokMinimum,
+    stokSegel: persediaan.qtySegel,
+    segelIsi: sql<string | null>`(select bsj.faktor_ke_dasar::text from barang_satuan_jual bsj
+      where bsj.id_barang = ${kolomPenuh(barang.id)} and bsj.kemasan_segel and bsj.status_aktif = 'AKTIF')`,
+    segelKode: sql<
+      string | null
+    >`(select s.kode from barang_satuan_jual bsj join satuan s on s.id = bsj.id_satuan
+      where bsj.id_barang = ${kolomPenuh(barang.id)} and bsj.kemasan_segel and bsj.status_aktif = 'AKTIF')`,
     statusStok: sqlStatusStok(ambang),
     terakhirMutasi: persediaan.terakhirMutasi,
     hppRata2: persediaan.hppRata2,

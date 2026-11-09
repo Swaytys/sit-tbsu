@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   CARA_HITUNG,
   SEBAB_SELISIH,
+  type JenisMutasiSegel,
   JENIS_MUTASI,
   JENIS_PENERIMAAN,
   JENIS_PENYESUAIAN,
@@ -86,6 +87,19 @@ export const skemaBarisPenerimaan = z.object({
   keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
   /** K-125: baris order pembelian yang diterima. */
   idOrderPembelianDetail: z.number().int().positive().nullable().optional(),
+  /**
+   * K-227: barang berkemasan tersegel: berapa box utuh tersegel di antara qty diterima. Kosong = box utuh terbanyak
+   * (qty ÷ isi dibulatkan ke bawah); sisanya ecer.
+   */
+  qtySegel: z
+    .preprocess(
+      (v) => (v === '' || v === undefined ? null : typeof v === 'number' ? String(v) : v),
+      z
+        .string()
+        .regex(/^\d{1,9}$/, 'Jumlah box segel harus bilangan bulat ≥ 0.')
+        .nullable(),
+    )
+    .optional(),
 });
 
 export const skemaPenerimaan = z
@@ -394,6 +408,11 @@ export type HitunganOpname = {
   qty: string;
   cara: CaraHitung;
   beratGram: string | null;
+  /** K-227 barang tersegel: box segel yang dihitung (sebelum uji petik) dan isi kemasan saat itu. */
+  qtySegel: string | null;
+  isiSegel: string | null;
+  /** K-227 uji petik: isi box yang dibuka dan dihitung. */
+  isiUjiPetik: string | null;
   /** Selisih terhadap stok sistem pada waktu hitungan itu; `null` untuk hitung buta. */
   selisih: string | null;
 };
@@ -433,6 +452,8 @@ export type BarisDetailPenyesuaian = {
   terkonfirmasi: boolean;
   /** K-227: kelas ABC barang (hanya untuk pengatur opname). */
   kelas: KelasABC | null;
+  /** K-227: barang ini diminta uji petik (buka 1 box segel acak, hitung isinya). */
+  ujiPetik: boolean;
 };
 
 export type DetailPenyesuaian = BarisDaftarPenyesuaian & {
@@ -471,6 +492,9 @@ export type BarisPosisiStok = {
   stokMinimum: string;
   statusStok: StatusStok;
   terakhirMutasi: string | null;
+  /** K-227: box utuh tersegel dan kemasannya (`null` = barang tanpa kemasan tersegel). */
+  stokSegel: string;
+  segel: { kodeSatuan: string; isi: string } | null;
   /** Sensitif (`master.barang.lihat_hpp`). */
   hppRata2?: number;
   /** Fisik × HPP; 0 untuk konsinyasi (L7: bukan milik toko). Sensitif. */
@@ -625,7 +649,47 @@ export type KinerjaOpname = {
     akurasi: number | null;
   }[];
   sebab: { sebab: SebabSelisih | null; baris: number; nilaiSelisih: number; nilaiBersih: number }[];
+  /** K-227 uji petik 90 hari: box segel yang dibuka saat opname dan yang isinya kurang. */
+  ujiPetik: { dibuka: number; kurang: number; kurangQty: string };
 };
+
+/** K-227: lapisan segel satu barang. */
+export type SegelBarang = {
+  idSatuanJual: number;
+  kodeSatuan: string;
+  isi: string;
+  qtySegel: string;
+  ecer: string;
+  riwayat: {
+    id: number;
+    waktu: string;
+    jenis: JenisMutasiSegel;
+    qtyMasuk: string;
+    qtyKeluar: string;
+    saldoSetelah: string;
+    namaPengguna: string;
+    keterangan: string | null;
+  }[];
+};
+
+/** K-227: menandai satu kemasan (satuan jual) barang sebagai tersegel; `null` = tidak ada. */
+export const skemaKemasanSegel = z.object({
+  idSatuanJual: z.number().int().positive().nullable(),
+});
+
+/** K-227: buka N box segel menjadi ecer. */
+export const skemaBukaSegel = z.object({
+  jumlah: z.coerce
+    .number('Jumlah box harus angka.')
+    .int('Jumlah box harus bilangan bulat.')
+    .min(1, 'Minimal 1 box.'),
+  alasan: z
+    .string('Alasan wajib diisi.')
+    .trim()
+    .min(3, 'Alasan minimal 3 huruf.')
+    .max(150, 'Alasan maksimal 150 huruf.'),
+});
+export type InputBukaSegel = z.input<typeof skemaBukaSegel>;
 
 export type PenghitungOpname = { id: number; nama: string; peran: string };
 
@@ -639,6 +703,10 @@ export type BarisLembarHitung = {
   /** Satuan dihitung per buah: hasil timbang dibulatkan ke bilangan bulat. */
   satuanBulat: boolean;
   timbang: { jumlahSampel: string; beratSampelGram: string } | null;
+  /** K-227: kemasan tersegel barang ini (hitung box segel dan ecer terpisah). */
+  segel: { kodeSatuan: string; isi: string } | null;
+  /** K-227: buka 1 box segel acak dan hitung isinya. */
+  ujiPetik: boolean;
   dikecualikan: boolean;
   /** Hitungan terakhir pengguna ini. */
   hitunganSaya: HitunganOpname | null;
@@ -713,12 +781,31 @@ export const skemaHitungOpname = z
       z.string().regex(POLA_QTY, 'Jumlah harus angka ≥ 0, maksimal 3 desimal.').nullable(),
     ),
     beratGram: angkaGram('Berat'),
+    /** K-227 barang tersegel: jumlah box utuh tersegel yang dihitung; `qty`/`beratGram` = ecer saja. */
+    qtySegel: z.preprocess(
+      (v) => kosongJadiNull(angkaKeTeks(v)),
+      z
+        .string()
+        .regex(/^\d{1,9}$/, 'Jumlah box segel harus bilangan bulat ≥ 0.')
+        .nullable(),
+    ),
+    /** K-227 uji petik: isi box yang dibuka (box itu ikut dihitung di `qtySegel`). */
+    isiUjiPetik: z.preprocess(
+      (v) => kosongJadiNull(angkaKeTeks(v)),
+      z.string().regex(POLA_QTY, 'Isi box harus angka ≥ 0, maksimal 3 desimal.').nullable(),
+    ),
   })
   .superRefine((d, ctx) => {
     if (d.cara === 'HITUNG' && d.qty === null)
       ctx.addIssue({ code: 'custom', path: ['qty'], message: 'Isi jumlah hasil hitung.' });
     if (d.cara === 'TIMBANG' && d.beratGram === null)
       ctx.addIssue({ code: 'custom', path: ['beratGram'], message: 'Isi berat bersih (gram).' });
+    if (d.isiUjiPetik !== null && (d.qtySegel === null || Number(d.qtySegel) < 1))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['qtySegel'],
+        message: 'Uji petik butuh minimal 1 box segel yang dihitung.',
+      });
   });
 export type InputHitungOpname = z.input<typeof skemaHitungOpname>;
 export type DataHitungOpname = z.output<typeof skemaHitungOpname>;

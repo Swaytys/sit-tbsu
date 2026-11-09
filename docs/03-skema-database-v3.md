@@ -71,6 +71,13 @@ yang ditugaskan) dan `waktu_mulai_hitung`; `penyesuaian_stok_detail` + `sebab_se
 `penjualan` + `waktu_diambil` (diisi saat barang yang ditinggal diambil; dipakai opname, docs/05 A3). Kunci
 konfigurasi `opname_toleransi_rp` (bawaan 0).
 
+**`mutasi_segel`** (v3.44, K-227/K-246, migrasi 0057) [APPEND] — buku lapisan segel: `id_barang`, `id_satuan_jual`
+(kemasan tersegel), `waktu`, `tanggal_operasional`, `jenis` (MASUK/KELUAR/BUKA/OPNAME/KOREKSI), `qty_masuk` /
+`qty_keluar` (bilangan bulat, tepat satu > 0), `saldo_setelah`, `id_mutasi_persediaan` (mutasi stok penyebabnya),
+`id_penyesuaian_detail` (opname), `id_pengguna`, `keterangan`. `persediaan.qty_segel` [CACHE] (CHECK ≥ 0, bulat);
+`barang_satuan_jual.kemasan_segel` (indeks unik parsial: paling banyak satu per barang); `opname_hitung.qty_segel`,
+`isi_segel`, `isi_uji_petik`; `penyesuaian_stok_detail.uji_petik`.
+
 **`peran_kustom`** (v3.42, K-243) — data master peran khusus: `nama` (unik), `peran_dasar` (CHECK bukan OWNER),
 `keterangan`, `izin_tambah`, `izin_cabut` (jsonb), `status_aktif`, `dibuat_pada`, `diubah_pada`. Tidak dihapus;
 nonaktif = tidak berlaku untuk akun pemakainya.
@@ -376,6 +383,7 @@ Semua sinkronisasi terjadi **di transaksi DB yang sama** dengan penulisan sumber
 |---|---|---|
 | `persediaan.stok_fisik`, `stok_rusak`, `hpp_rata2`, `harga_beli_terakhir`, `terakhir_mutasi`, `harga_fifo` | `mutasi_persediaan` | `ledger.catatMutasi()` |
 | `persediaan.stok_dipesan` | `order_penjualan_detail.qty_dasar` untuk order MENUNGGU/DIPROSES | service order (kirim ke antrean, ubah detail, batal, checkout) |
+| `persediaan.qty_segel` (K-227) | `mutasi_segel.saldo_setelah` terakhir | `ledger.catatMutasi()` dan `ledger.aturSegel()` |
 | `order_penjualan.subtotal`, `total` | detail | service order |
 | `penjualan.total_dibayar`, `status_pembayaran` | `pembayaran_penjualan` | service pembayaran |
 | `penjualan.total_retur`, `total_refund` | `retur_penjualan` DISETUJUI (REFUND, POTONG_TAGIHAN) | service retur |
@@ -592,6 +600,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
 - 2026-10-31 — v3.39: `pengguna.tur_status` jsonb; tabel `kode_reset_password` (migrasi 0041, K-206, K-209).
 - 2026-11-07 — v3.41: `pengguna.pintasan` jsonb (migrasi 0043, K-145).
+- 2026-11-09 — v3.44: tabel `mutasi_segel`; `persediaan.qty_segel`; `barang_satuan_jual.kemasan_segel`;
+  `opname_hitung.qty_segel`, `isi_segel`, `isi_uji_petik`; `penyesuaian_stok_detail.uji_petik` (migrasi 0057, K-227).
 - 2026-11-09 — v3.43: tabel `opname_hitung`; `penyesuaian_stok.id_penghitung`, `waktu_mulai_hitung`;
   `penyesuaian_stok_detail.sebab_selisih`; `barang.timbang_*`; `penjualan.waktu_diambil` (migrasi 0056, K-227).
 - 2026-11-09 — v3.42: tabel `peran_kustom`; `pengguna.id_peran_kustom`, `izin_tambah`, `izin_cabut`; akun KASIR lama

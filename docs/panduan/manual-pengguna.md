@@ -650,8 +650,11 @@ Semua tugas kasir, ditambah:
      **Mulai hitung** → tekan **Mulai hitung** lagi saat sudah siap di gudang (daftar barang baru tampil dan
      waktunya dicatat). Untuk tiap barang: hitung, ketik jumlah → **Enter** (tersimpan, kursor pindah ke barang
      berikutnya). Barang dengan tanda timbangan: tekan **T** atau tombol **Timbang**, letakkan wadah di timbangan dan
-     nolkan, masukkan semua barangnya, ketik beratnya (gram) → muncul perkiraan jumlah → **Enter**. Stok sistem
-     tidak pernah ditampilkan: hitung apa adanya. Saring *Perlu dihitung / Sudah saya hitung / Semua*; **F2** cari.
+     nolkan, masukkan semua barangnya, ketik beratnya (gram) → muncul perkiraan jumlah → **Enter**. Barang bertanda
+     kemasan segel: ketik jumlah **dus/box segel utuh** → **Enter** → ecer (boleh ditimbang) → **Enter**; tampil
+     "= … buah". Bila muncul kotak kuning **Uji petik**: buka 1 dus segel acak, hitung isinya, ketik isinya (dus itu
+     tetap ikut dihitung di jumlah dus). Stok sistem tidak pernah ditampilkan: hitung apa adanya. Saring *Perlu
+     dihitung / Sudah saya hitung / Semua*; **F2** cari.
   3. **Kepala Toko/Owner** membuka lembar dari *Daftar opname*: kolom barang memuat riwayat hitung (jumlah, nama,
      jam, selisih pada waktunya). Barang bertanda **Perlu hitung ulang orang lain**: pilih **Tugaskan ke…** penghitung
      lain → **Tugaskan**; ia menghitung ulang lewat lembar hitung. Setelah dua hitungan sama tertulis **Dikonfirmasi
@@ -668,6 +671,21 @@ Semua tugas kasir, ditambah:
     selisih per sebab. Dashboard menampilkan pita *Akurasi catatan stok*.
   - Opname seluruh barang: **Opname penuh / pilih barang sendiri** (lembar terbuka untuk semua penghitung; lembar
     cetak tidak memuat stok sistem).
+- **Kemasan tersegel** (barang yang disimpan dalam dus/box tersegel tetapi dijual ecer, mis. baut): *Data Barang* ›
+  buka barang.
+  1. Pastikan kemasannya ada di kartu **Kemasan (satuan jual lain)**, mis. *dus isi 250* (isi harus bilangan bulat).
+  2. Kartu **Kemasan tersegel** › pilih kemasan itu. Sejak saat itu stok ditulis dua lapis, mis. **6 dus segel +
+     226 ecer** (di Data Barang, cari barang, dan Stok Persediaan). Stok yang sudah ada dihitung ecer sampai diterima
+     lagi atau diopname.
+  3. **Penerimaan barang**: di bawah qty barang bersegel ada kolom *di antaranya … dus segel utuh*. Kosong = dus utuh
+     terbanyak dari qty (1.726 buah = 6 dus + 226 ecer); isi bila sebagian datang lepas.
+  4. **Buka kemasan** (gudang/admin, mis. mengisi rak ecer): tombol **Buka kemasan…** › jumlah dus › alasan › **Buka**.
+     Stok total tidak berubah; tercatat di riwayat.
+  5. **Di kasir**: jual per dus memakai satuan dus (dus segel berkurang). Jual ecer melebihi ecer di catatan: baris
+     keranjang menulis *Ecer kurang: 1 dus segel dibuka saat dibayar*; setelah dibayar dus itu tercatat dibuka atas
+     nama kasir. Tidak perlu langkah tambahan.
+  6. Melepas tanda tersegel: pilih *Tidak ada (semua ecer)*; dus yang tercatat dihitung ecer (tercatat). Kemasan
+     tersegel yang masih berisi dus tidak bisa dinonaktifkan atau diubah isinya.
 - **Data timbang barang kecil** (*Data Barang* › buka barang › kartu **Hitung dengan timbangan**): timbang sekian
   buah sekaligus (mis. 50 baut), isi *Jumlah sampel* dan *Beratnya (gram)* → **Simpan data timbang**. Makin banyak
   sampel, makin tepat. **Hapus** bila barang itu dihitung manual saja.

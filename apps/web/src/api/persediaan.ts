@@ -2,6 +2,7 @@ import type {
   DataPenerimaan,
   DataPenyesuaian,
   DetailPenyesuaian,
+  InputBukaSegel,
   InputHitungOpname,
   InputTimbangBarang,
   LembarHitung,
@@ -408,4 +409,39 @@ export function useSaranPesan(p: SaringSaranPesan) {
       ),
     placeholderData: keepPreviousData,
   });
+}
+
+// --- K-227: kemasan tersegel (box segel + ecer) ---
+
+export function useSegelBarang(idBarang: number | null) {
+  return useQuery({
+    queryKey: ['barang', 'segel', idBarang],
+    queryFn: async () => ambilData(await api.segel[':id'].$get({ param: paramId(idBarang ?? 0) })),
+    enabled: idBarang !== null,
+  });
+}
+
+/** Mutasi lapisan segel memuat ulang data barang (stok segel) dan persediaan. */
+function useMutasiSegel<TInput, THasil>(fn: (input: TInput) => Promise<THasil>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () =>
+      Promise.all(['barang', 'persediaan'].map((k) => qc.invalidateQueries({ queryKey: [k] }))),
+  });
+}
+
+export function useAturKemasanSegel() {
+  return useMutasiSegel(
+    async ({ idBarang, idSatuanJual }: { idBarang: number; idSatuanJual: number | null }) =>
+      ambilData(
+        await api.segel[':id'].kemasan.$put({ param: paramId(idBarang), json: { idSatuanJual } }),
+      ),
+  );
+}
+
+export function useBukaSegel() {
+  return useMutasiSegel(async ({ idBarang, json }: { idBarang: number; json: InputBukaSegel }) =>
+    ambilData(await api.segel[':id'].buka.$post({ param: paramId(idBarang), json })),
+  );
 }

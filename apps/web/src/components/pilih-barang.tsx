@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useDaftarBarang } from '@/api/barang';
 import { Input } from '@/components/ui/input';
 import { formatDesimal } from '@/lib/format';
+import { kemasanSegelBarang, teksLapisanSegel } from '@/lib/segel';
 import { useTunda } from '@/lib/use-tunda';
 import { cn } from '@/lib/utils';
 
@@ -128,7 +129,11 @@ export function PilihBarang({
               <span className="shrink-0 text-xs text-slate-500 tabular-nums">
                 {hanyaRusak
                   ? `rusak ${formatDesimal(b.stokRusak)} ${b.kodeSatuan}`
-                  : `stok ${formatDesimal(b.stokTersedia)} ${b.kodeSatuan}`}
+                  : `stok ${formatDesimal(b.stokTersedia)} ${b.kodeSatuan}${
+                      kemasanSegelBarang(b)
+                        ? ` (${teksLapisanSegel(b.stokFisik, b.stokSegel, kemasanSegelBarang(b)) ?? ''})`
+                        : ''
+                    }`}
               </span>
             </li>
           ))}

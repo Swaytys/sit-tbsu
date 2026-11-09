@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  kelipatanQty,
   formatRupiah,
   LABEL_TINDAKAN_TOLAK,
   POLA_QTY,
@@ -50,6 +51,8 @@ import {
 } from '@/components/ui/table';
 import { tampilkanGalatForm } from '@/lib/form';
 import { formatDesimal, formatTanggal, tambahHariTanggal, tanggalHariIni } from '@/lib/format';
+import { qtyDariIsian } from '@/lib/qty';
+import { kemasanSegelBarang } from '@/lib/segel';
 import { useCegahKeluar } from '@/lib/use-cegah-keluar';
 
 /** Subtotal tampilan sementara (nilai final dihitung server, CLAUDE.md aturan 1). */
@@ -70,7 +73,14 @@ export function HalamanFormPenerimaan() {
   const pemasok = useDaftarPemasok({ cari: '', status: 'AKTIF', halaman: 1, perHalaman: 100 });
   // Data tampilan barang per baris (kode, nama, satuan, harga titip).
   const [infoBarang, setInfoBarang] = useState<
-    Record<number, Pick<BarisBarang, 'namaBarang' | 'kode' | 'kodeSatuan'> & { stokFisik?: string }>
+    Record<
+      number,
+      Pick<BarisBarang, 'namaBarang' | 'kode' | 'kodeSatuan'> & {
+        stokFisik?: string;
+        /** K-227: kemasan tersegel barang (box utuh yang datang dicatat terpisah dari ecer). */
+        segel?: { kodeSatuan: string; isi: string } | null;
+      }
+    >
   >({});
   // K-125: `?po=<id>` dari Order Pembelian: pemasok dan sisa barang yang belum datang langsung terisi.
   const idPO = Number(url.get('po')) || null;
@@ -173,7 +183,7 @@ export function HalamanFormPenerimaan() {
       form.setFocus(`baris.${ada}.qtyMasuk`);
       return;
     }
-    setInfoBarang((lama) => ({ ...lama, [b.id]: b }));
+    setInfoBarang((lama) => ({ ...lama, [b.id]: { ...b, segel: kemasanSegelBarang(b) } }));
     const harga = konsinyasi ? (b.hargaTitip ?? 0) : b.hargaBeliTerakhir || b.hargaModalAwal || 0;
     baris.append({ idBarang: b.id, qtyMasuk: '', hargaModalMasuk: harga, keterangan: '' });
     setTimeout(() => form.setFocus(`baris.${baris.fields.length}.qtyMasuk`), 0);
@@ -520,6 +530,7 @@ export function HalamanFormPenerimaan() {
                 {baris.fields.map((f, i) => {
                   const b = infoBarang[f.idBarang] ?? infoPO[f.idBarang];
                   const isi = isiBaris?.[i];
+                  const segelBaris = infoBarang[f.idBarang]?.segel ?? null;
                   return (
                     <TableRow key={f.id}>
                       <TableCell className="text-slate-500">{i + 1}</TableCell>
@@ -560,6 +571,43 @@ export function HalamanFormPenerimaan() {
                             </FormItem>
                           )}
                         />
+                        {segelBaris && (
+                          <FormField
+                            control={form.control}
+                            name={`baris.${i}.qtySegel`}
+                            render={({ field }) => (
+                              <FormItem className="mt-1">
+                                <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                                  <span>di antaranya</span>
+                                  <FormControl>
+                                    <Input
+                                      inputMode="numeric"
+                                      className="h-7 w-16 text-xs"
+                                      placeholder={String(
+                                        kelipatanQty(
+                                          qtyDariIsian(isi?.qtyMasuk) ?? '0',
+                                          segelBaris.isi,
+                                        ),
+                                      )}
+                                      aria-label={`${segelBaris.kodeSatuan} segel ${b?.namaBarang ?? i + 1}`}
+                                      {...field}
+                                      value={typeof field.value === 'string' ? field.value : ''}
+                                      onChange={(e) =>
+                                        field.onChange(e.target.value.replace(/\D/g, ''))
+                                      }
+                                    />
+                                  </FormControl>
+                                  <span>
+                                    {segelBaris.kodeSatuan} segel utuh (isi{' '}
+                                    {formatDesimal(segelBaris.isi)}); kosong = sebanyak{' '}
+                                    {segelBaris.kodeSatuan} utuh, sisanya ecer
+                                  </span>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                       </TableCell>
                       {sepakat && (
                         <TableCell className="space-y-1.5 align-top">

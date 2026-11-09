@@ -277,6 +277,8 @@ export type SatuanJualBarang = {
   isDefaultJual: boolean;
   statusAktif: StatusAktif;
   harga: { idTingkatHarga: number; hargaJual: number; tetap: boolean }[];
+  /** K-227: kemasan ini tersegel; stok barang dicatat dua lapis (box segel + ecer). Paling banyak satu per barang. */
+  kemasanSegel: boolean;
 };
 
 /** Baris daftar barang. Kolom bertanda `?` hanya untuk pemegang `master.barang.lihat_hpp`. */
@@ -310,6 +312,8 @@ export type BarisBarang = {
   stokTersedia: string;
   /** Stok kondisi rusak (bucket RUSAK): tidak bisa dijual, menunggu retur pemasok atau dimusnahkan. */
   stokRusak: string;
+  /** K-227: jumlah box utuh tersegel (kemasan bertanda `kemasanSegel`); ecer = stokFisik − stokSegel × isi. */
+  stokSegel: string;
   /** ST1, dihitung API dari stok fisik dan minimum. */
   statusStok: StatusStok;
   /** K-123: label keterjualan dan angka jual 30 hari. */

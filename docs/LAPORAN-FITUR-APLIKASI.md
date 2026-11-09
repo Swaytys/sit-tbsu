@@ -421,6 +421,18 @@ Owner (mengatur), Petugas Gudang/Admin Persediaan (menghitung) | desktop + HP
   `opname.test.ts`, `penyesuaian.test.ts`, `qty-timbang.test.ts`, e2e `opname.spec.ts`. Status: BERFUNGSI (uji
   U231–U236).
 
+**F73. Kemasan tersegel (stok dua lapis)** | Data Barang, Penerimaan, Kasir, Stok Opname | Kepala Toko/Admin
+Persediaan (mengatur), Kasir, Petugas Gudang | desktop + HP
+- Fungsi: satu kemasan per barang (mis. dus isi 250) ditandai tersegel; stok tercatat sebagai box utuh tersegel +
+  ecer tanpa mengubah stok total; penerimaan mencatat box utuh yang datang; penjualan per box mengambil box;
+  penjualan ecer saat ecer kurang membuka box otomatis atas nama kasir dengan pemberitahuan di keranjang (K-246);
+  buka kemasan manual beralasan; opname menghitung box dan ecer terpisah dengan uji petik box acak; riwayat segel
+  per barang; tampilan "6 dus segel + 226 ecer" di Data Barang, cari barang, dan posisi stok.
+- Bukti: `[KODE: api/modules/persediaan/ledger.ts geserSegel/aturSegel]`,
+  `[KODE: api/modules/persediaan/segel/service.ts]`, `[KODE: web/features/barang/kartu-kemasan-segel.tsx]`;
+  `[DOK: K-227 tahap 3, K-246, docs/05 L13, A3j]`; tes `segel.test.ts`, e2e `kemasan-segel.spec.ts`. Status:
+  BERFUNGSI (uji U237–U241).
+
 **F6. Notifikasi (lonceng)** | Topbar | semua (isi disaring izin) | semua
 - Fungsi: 17 jenis pengingat: order basi, stok habis, stok kritis, barang perlu dipesan (K-113), piutang terlambat, piutang jatuh tempo ≤ 3 hari,
   void/retur menunggu, cadangan bermasalah, hutang terlambat/jatuh tempo, shift saya/shift kasir perlu ditutup,
@@ -1131,7 +1143,7 @@ Ekspor data selain laporan: data barang `[KODE: api/modules/master/import/routes
 - ~~Peran dan izin buatan Owner (Sprint B)~~ selesai K-243 (F71); keuangan ringan: deposit pelanggan, pengeluaran
   operasional, akun kas & bank (Sprint C).
 - ~~Modul stok opname terjadwal, cakupan dan grafik selisih opname (Sprint E)~~ selesai K-240/K-227 (F72); sisa:
-  kemasan tersegel dua lapis, buka kemasan, uji petik segel.
+  label segel bernomor (bersama K-230). Kemasan tersegel selesai (F73).
 - Laporan kas per shift (D-L3), analisis ABC (D-L1), perbandingan periode (D-L4).
 - Tombol "?" di setiap halaman (F7), tata letak POS yang bisa diatur (F6), pintasan yang bisa diganti (F1–F3).
 - Pembukuan/akuntansi, multi-gudang, cabang (v3.0.0).
@@ -1431,6 +1443,9 @@ persediaan/opname/routes.ts GET /api/opname/:id/lembar persediaan.opname.hitung 
 persediaan/opname/routes.ts POST /api/opname/:id/mulai persediaan.opname.hitung (K-227)
 persediaan/opname/routes.ts POST /api/opname/:id/hitung persediaan.opname.hitung (K-227)
 persediaan/opname/routes.ts PUT /api/opname/barang/:id/timbang master.barang.kelola (K-227)
+persediaan/segel/routes.ts GET /api/segel/:id persediaan.stok.lihat (K-227)
+persediaan/segel/routes.ts PUT /api/segel/:id/kemasan master.barang.kelola (K-227)
+persediaan/segel/routes.ts POST /api/segel/:id/buka persediaan.segel.buka (K-227)
 persediaan/penyesuaian/routes.ts:52 PUT /api/penyesuaian/:id persediaan.penyesuaian.kelola
 persediaan/penyesuaian/routes.ts:57 POST /api/penyesuaian/:id/selesai persediaan.penyesuaian.kelola
 persediaan/penyesuaian/routes.ts:65 POST /api/penyesuaian/:id/batal persediaan.penyesuaian.kelola
@@ -1473,7 +1488,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 |---|---|
 | `apps/api/src/db/schema/sistem.ts` | konfigurasi:37, penghitung_nomor:51, pengguna:61, sesi_login:89, log_aktivitas:114, cadangan:146, kunci_idempoten (K-164), tutup_tahun (K-165), peran_kustom (K-243) |
 | `…/master.ts` | kategori:41, merk:56, satuan:69, jenis_atribut:95, pemasok:119, tingkat_harga:136, golongan_pelanggan:178, pelanggan:191, barang:224, barang_atribut:288, barang_satuan_jual:321, harga_barang:351, promo:402, promo_pelanggan:488 |
-| `…/persediaan.ts` | persediaan:41, penerimaan_barang:79, penerimaan_barang_detail:139, penyesuaian_stok:184, penyesuaian_stok_detail:213, mutasi_persediaan:274, opname_hitung (K-227) |
+| `…/persediaan.ts` | persediaan:41, penerimaan_barang:79, penerimaan_barang_detail:139, penyesuaian_stok:184, penyesuaian_stok_detail:213, mutasi_persediaan:274, opname_hitung (K-227), mutasi_segel (K-227) |
 | `…/penjualan.ts` | order_penjualan:46, order_penjualan_detail:116, penjualan:180, penjualan_detail:269, surat_jalan:349, surat_jalan_detail:390, pembayaran_penjualan:416 |
 | `…/kas.ts` | rekening_toko:46, shift_kasir:72, kas_shift:130, clerical_check:181, hitung_kas:247 |
 | `…/koreksi.ts` | retur_penjualan:42, retur_penjualan_detail:111, void_transaksi:172, void_transaksi_detail:236, permintaan_persetujuan:275, kode_persetujuan:347 |
@@ -1518,6 +1533,7 @@ sistem/saluran/routes.ts:50 DELETE /api/saluran/saya/telegram LOGIN
 - 2026-10-28 — F42: nomor antrean, info cepat, warna kartu dibagi, penanda hari ini, saringan Backlog (K-173).
 - 2026-10-28 — F23: alasan hasil per barang, kembali mengurangi tagihan, tugas refund transfer, penanda kartu (K-176).
 - 2026-10-31 — F61 HP dan tablet (K-217).
+- 2026-11-09 — F73 kemasan tersegel (K-227 tahap 3, K-246).
 - 2026-11-09 — F72 opname terkendali (K-227 tahap 2).
 - 2026-11-09 — F71 izin per akun dan peran khusus (K-243).
 - 2026-11-08 — F70 pengendalian pembelian lanjutan (K-241, K-242, K-225 tahap 3, deposit).

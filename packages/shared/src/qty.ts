@@ -125,6 +125,13 @@ export function qtyGratis(qty: Decimal.Value, beli: Decimal.Value, gratis: Decim
   return keQty(paket.times(gratis));
 }
 
+/** K-227: ⌈qty ÷ n⌉ sebagai bilangan bulat ≥ 0 (box segel yang harus dibuka untuk menutup kekurangan ecer). */
+export function kelipatanAtasQty(qty: Decimal.Value, n: Decimal.Value): number {
+  const d = new Decimal(n);
+  if (d.lessThanOrEqualTo(0)) return 0;
+  return Decimal.max(0, new Decimal(qty).div(d).ceil()).toNumber();
+}
+
 /**
  * K-185 beli N potong Rp X: berapa kali kelipatan N penuh di dalam `qty` = ⌊qty ÷ N⌋. Contoh beli 2: qty 5 → 2,
  * qty 1 → 0. Hasil bilangan bulat (dipakai untuk mengalikan rupiah).

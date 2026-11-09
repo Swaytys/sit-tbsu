@@ -16,6 +16,7 @@ export function satuanJualBarang(ex: Executor, idBarang: number[]) {
       barcode: barangSatuanJual.barcode,
       isDefaultJual: barangSatuanJual.isDefaultJual,
       statusAktif: barangSatuanJual.statusAktif,
+      kemasanSegel: barangSatuanJual.kemasanSegel,
     })
     .from(barangSatuanJual)
     .innerJoin(satuan, eq(satuan.id, barangSatuanJual.idSatuan))

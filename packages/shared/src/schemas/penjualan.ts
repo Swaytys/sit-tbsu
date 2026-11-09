@@ -175,6 +175,8 @@ export type BarisPratinjau = {
    * hari terakhir): kemungkinan salah ketik. `biasanya` = qty terbanyak itu. `null` = wajar/belum ada riwayat.
    */
   qtyTidakBiasa: { qty: string; biasanya: string } | null;
+  /** K-246: box segel yang akan dibuka otomatis bila keranjang ini dibayar (ecer di catatan kurang). */
+  segelDibuka: { jumlah: number; kodeSatuan: string } | null;
 };
 
 /** K-098: tier harga transaksi menurut total nilai belanja (berlaku untuk semua barang). */

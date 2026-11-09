@@ -554,6 +554,9 @@ function FormPenyesuaian({
                       <TableCell>
                         <div className="font-medium">{inf?.nama}</div>
                         <div className="font-mono text-xs text-slate-500">{inf?.kode}</div>
+                        {jenis === 'OPNAME' && barisDok.get(f.idBarang)?.ujiPetik && (
+                          <div className="text-xs text-amber-700">Uji petik: buka 1 box segel</div>
+                        )}
                         {jenis === 'OPNAME' && !hitungButa && (
                           <div className="mt-1">
                             <RiwayatHitung b={barisDok.get(f.idBarang)} />
@@ -1047,6 +1050,13 @@ function RiwayatHitung({ b }: { b: BarisDetailPenyesuaian | undefined }) {
       {b.hitungan.map((h) => (
         <li key={h.id} className="whitespace-nowrap">
           <span className="font-medium tabular-nums">{formatDesimal(h.qty)}</span>
+          {h.qtySegel !== null
+            ? ` (${formatDesimal(h.qtySegel)} box segel${
+                h.isiUjiPetik !== null
+                  ? `, uji petik isi ${formatDesimal(h.isiUjiPetik)}/${formatDesimal(h.isiSegel ?? '0')}`
+                  : ''
+              })`
+            : ''}
           {h.cara === 'TIMBANG' && h.beratGram ? ` (${formatDesimal(h.beratGram)} g)` : ''} ·{' '}
           {h.namaPenghitung} {formatWaktu(h.waktu).slice(-5)}
           {h.selisih !== null && (

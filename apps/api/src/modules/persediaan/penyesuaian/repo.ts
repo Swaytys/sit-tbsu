@@ -149,6 +149,17 @@ export function detailPenyesuaian(ex: Executor, idPenyesuaian: number) {
       jenisDimensi: satuan.jenisDimensi,
       timbangJumlahSampel: barang.timbangJumlahSampel,
       timbangBeratSampelGram: barang.timbangBeratSampelGram,
+      ujiPetik: penyesuaianStokDetail.ujiPetik,
+      qtySegelKini: persediaan.qtySegel,
+      // K-227: kemasan tersegel aktif barang (isi dan kode satuannya).
+      segelIsi: sql<string | null>`(select bsj.faktor_ke_dasar::text from barang_satuan_jual bsj
+        where bsj.id_barang = ${kolomPenuh(penyesuaianStokDetail.idBarang)}
+          and bsj.kemasan_segel and bsj.status_aktif = 'AKTIF')`,
+      segelKode: sql<
+        string | null
+      >`(select s.kode from barang_satuan_jual bsj join satuan s on s.id = bsj.id_satuan
+        where bsj.id_barang = ${kolomPenuh(penyesuaianStokDetail.idBarang)}
+          and bsj.kemasan_segel and bsj.status_aktif = 'AKTIF')`,
     })
     .from(penyesuaianStokDetail)
     .innerJoin(barang, eq(barang.id, penyesuaianStokDetail.idBarang))
@@ -286,6 +297,7 @@ export function barisTersimpan(tx: Tx, idPenyesuaian: number) {
       waktuKecuali: penyesuaianStokDetail.waktuKecuali,
       qtyFisik: penyesuaianStokDetail.qtyFisik,
       sebabSelisih: penyesuaianStokDetail.sebabSelisih,
+      ujiPetik: penyesuaianStokDetail.ujiPetik,
     })
     .from(penyesuaianStokDetail)
     .innerJoin(barang, eq(barang.id, penyesuaianStokDetail.idBarang))

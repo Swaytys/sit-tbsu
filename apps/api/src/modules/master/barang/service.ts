@@ -107,6 +107,7 @@ function keBaris(
     stokMaksimum: b.stokMaksimum,
     stokFisik: b.stokFisik,
     stokRusak: b.stokRusak,
+    stokSegel: b.stokSegel,
     stokTersedia: keQty(b.stokTersedia),
     statusStok,
     keterjualan,

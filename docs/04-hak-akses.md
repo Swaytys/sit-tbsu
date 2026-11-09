@@ -86,6 +86,7 @@ memakai kode di luar daftar gagal typecheck.
 | `persediaan.penerimaan.kelola` | Catat penerimaan barang |
 | `persediaan.opname.atur` | Menyusun daftar hitung opname harian dan menyelesaikan opname yang berselisih (K-240; Kepala Toko, Owner) |
 | `persediaan.opname.hitung` | Mengisi hasil hitung opname yang ditugaskan kepadanya (atau lembar terbuka) tanpa melihat stok sistem: lembar hitung, mulai hitung, hitung/timbang (K-227). Bawaan: Admin Persediaan, Petugas Gudang, Kepala Toko, Owner |
+| `persediaan.segel.buka` | Mencatat *Buka kemasan*: box segel utuh dipindah menjadi ecer dengan alasan (K-227). Bawaan: Admin Persediaan, Petugas Gudang, Kepala Toko, Owner. Membuka otomatis saat menjual ecer (K-246) tidak butuh izin ini; tercatat atas nama kasir. Menandai kemasan tersegel = `master.barang.kelola` |
 | `persediaan.penyesuaian.kelola` | Buat penyesuaian: saldo awal, opname, koreksi, rusak |
 | `persediaan.retur_pemasok.kelola` | (M2) Retur ke pemasok |
 | `hutang.lihat` / `hutang.kelola` | (M2) Lihat / bayar hutang pemasok |
@@ -170,6 +171,7 @@ berlaku dan tabel ini diperbarui.
 | persediaan.stok.lihat | | | ✓ | ✓ | | ✓ | ✓ |
 | persediaan.penerimaan.kelola | | | ✓ | | | ✓ | ✓ |
 | persediaan.penyesuaian.kelola | | | ✓ | | | ✓ | ✓ |
+| persediaan.segel.buka | | | ✓ | ✓ | | ✓ | ✓ |
 | persediaan.opname.hitung | | | ✓ | ✓ | | ✓ | ✓ |
 | persediaan.opname.atur | | | | | | ✓ | ✓ |
 | persediaan.retur_pemasok.kelola | | | ✓ | | | ✓ | ✓ |
@@ -362,6 +364,8 @@ maks. 50.000 baris, dicatat LAPORAN_EKSPOR, K-113). Retensi: tidak dihapus pada 
 
 ## Riwayat
 
+- 2026-11-09 — K-227 tahap 3: izin `persediaan.segel.buka`; `GET /api/segel/:id` (`persediaan.stok.lihat`),
+  `PUT /api/segel/:id/kemasan` (`master.barang.kelola`).
 - 2026-11-09 — K-227: izin `persediaan.opname.hitung`; hitung buta opname ditegakkan API (stok sistem, selisih, dan
   hitungan orang lain tidak dikirim ke penghitung); lembar yang ditugaskan ke orang lain 403 (docs/05 A3c–A3g).
 - 2026-11-09 — K-243: izin per akun dan peran khusus (§1, §3a); izin `sistem.izin.atur` (Owner); Kasir bawaan tanpa

@@ -45,6 +45,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { jalankanDenganToast } from '@/lib/aksi';
 import { formatDesimal } from '@/lib/format';
+import { kemasanSegelBarang, teksLapisanSegel } from '@/lib/segel';
 import { useTunda } from '@/lib/use-tunda';
 import { useKolomTampil } from './kolom-tampil';
 import { useIngat } from '@/lib/ingat-saring';
@@ -226,6 +227,12 @@ export function HalamanBarang() {
         <span>
           <span className="font-medium">{formatDesimal(b.stokTersedia)}</span>{' '}
           <span className="text-xs text-slate-400">({formatDesimal(b.stokMinimum)})</span>
+          {/* K-227: lapisan stok barang berkemasan tersegel. */}
+          {kemasanSegelBarang(b) && (
+            <span className="block text-xs text-slate-500">
+              {teksLapisanSegel(b.stokFisik, b.stokSegel, kemasanSegelBarang(b))}
+            </span>
+          )}
         </span>
       ),
     },

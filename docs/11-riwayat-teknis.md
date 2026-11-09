@@ -888,10 +888,29 @@ timbang; toleransi & kelas A & Owner mengesampingkan), `penyesuaian.test.ts` (st
 waktu hitung, dua penghitung, penghitung tidak menyetujui sendiri), `qty-timbang.test.ts`; e2e `opname.spec.ts`
 (alur lengkap tiga akun, timbang) dan `penyesuaian.spec.ts` (Owner menyelesaikan selisih yang dihitung Kepala Toko).
 
+### C36. Kemasan tersegel (9 November 2026, K-227 tahap 3, K-246)
+
+**Masalah:** barang kecil disimpan dalam box tersegel tetapi dijual ecer; menghitungnya per buah lama dan box bisa
+diisi kurang tanpa ketahuan.
+
+**Solusi:** lapisan segel di ledger (aturan 2 tetap: hanya `ledger.ts` menulis `persediaan`): `catatMutasi` menerima
+petunjuk `segel` (box masuk/`'UTUH'`, box keluar) lalu `geserSegel` menulis `mutasi_segel` dan membuka box otomatis
+bila box × isi melebihi stok; `aturSegel` untuk buka manual, opname, dan pelepasan kemasan. Penjualan memakai
+`satuanJualTersegel`; penerimaan mengirim `qtySegel` (kosong = box utuh). Opname: `opname_hitung.qty_segel/isi_segel/
+isi_uji_petik`, `samakanSegel` saat selesai (memakai perubahan lapisan sesudah waktu hitung), uji petik dipilih di
+`pilihUjiPetik`. Pratinjau keranjang (`perkiraanBukaSegel`) memberi tahu box yang akan dibuka (K-246). Modul
+`persediaan/segel` (detail + riwayat, tandai kemasan, buka). Satuan jual tersegel yang masih berisi box tidak bisa
+dinonaktifkan/diubah isinya. L9 memeriksa cache segel.
+
+**Tes:** `segel.test.ts` (tandai/validasi/403, penerimaan utuh/terisi/dibatasi, buka manual, penjualan per box dan
+buka otomatis + pratinjau, opname box+ecer + uji petik sekali + kinerja, kemasan dilepas KOREKSI dan satuan jual
+terkunci); e2e `kemasan-segel.spec.ts` (Data Barang, penerimaan, buka, kasir F2 + pemberitahuan, lembar hitung).
+
 ---
 
 ## Riwayat dokumen
 
+- 2026-11-09 — Bagian C36 kemasan tersegel (K-227 tahap 3, K-246).
 - 2026-11-09 — Bagian C35 opname terkendali (K-227 tahap 2).
 - 2026-11-09 — Bagian C34 izin per akun dan peran khusus (K-243).
 - 2026-11-08 — Bagian C33 siklus pembelian lengkap, jam operasional (K-234–K-239, K-244).

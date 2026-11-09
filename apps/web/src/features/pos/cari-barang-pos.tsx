@@ -6,6 +6,7 @@ import { useDaftarBarang } from '@/api/barang';
 import { ambilIsi, api, pesanGalat } from '@/api/client';
 import { useDaftarKategori } from '@/api/referensi';
 import { formatDesimal } from '@/lib/format';
+import { kemasanSegelBarang, teksLapisanSegel } from '@/lib/segel';
 import { useTunda } from '@/lib/use-tunda';
 import { LencanaKeterjualan } from '@/components/lencana-keterjualan';
 import { cn } from '@/lib/utils';
@@ -411,6 +412,12 @@ export function CariBarangPos({
                           : 'harga belum ada'}{' '}
                         · stok {/* K-123: stok cepat terbaca: tebal, merah, minimal 14 px. */}
                         <b className="text-sm text-red-600">{formatDesimal(b.stokTersedia)}</b>
+                        {kemasanSegelBarang(b) && (
+                          <span>
+                            {' '}
+                            ({teksLapisanSegel(b.stokFisik, b.stokSegel, kemasanSegelBarang(b))})
+                          </span>
+                        )}
                       </span>
                     </span>
                   </span>

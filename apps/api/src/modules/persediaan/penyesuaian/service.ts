@@ -1,6 +1,7 @@
 import {
   bandingQty,
   formatRupiah,
+  kelipatanQty,
   keQty,
   kurangQty,
   LABEL_SEBAB_SELISIH,
@@ -11,6 +12,7 @@ import {
   type DetailPenyesuaian,
   type MetaHalaman,
 } from '@sit/shared';
+import { sql } from 'drizzle-orm';
 import { db, type Executor, type Tx } from '../../../db/client';
 import { AppError, galatBaris } from '../../../lib/errors';
 import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
@@ -20,7 +22,7 @@ import { sekarang, tanggalOperasional } from '../../../lib/waktu';
 import { ambilAngka } from '../../sistem/konfigurasi/service';
 import { catatLog } from '../../sistem/log-aktivitas';
 import { terbitkanNomor } from '../../sistem/penomoran';
-import { catatMutasi, kunciPersediaan } from '../ledger';
+import { aturSegel, catatMutasi, kemasanSegel, kunciPersediaan } from '../ledger';
 import {
   hitunganDokumen,
   keRespons as hitunganKeRespons,
@@ -166,6 +168,7 @@ export async function detailPenyesuaian(
         namaPenggunaKecuali: r.namaPenggunaKecuali,
         waktuKecuali: r.waktuKecuali?.toISOString() ?? null,
         sebabSelisih: r.sebabSelisih,
+        ujiPetik: r.ujiPetik,
       };
       if (buta && pelaku) {
         const milikSaya = hit.filter((x) => x.idPenghitung === pelaku.id);
@@ -230,6 +233,7 @@ async function siapkanDetail(
     hitungBaru: new Map(),
     terakhir: new Map(),
   },
+  ujiPetik: ReadonlySet<number> = new Set(),
 ) {
   const perBarang = new Map(
     (
@@ -280,6 +284,8 @@ async function siapkanDetail(
           qtyFisik: b.dikecualikan ? null : akhir,
           qtySelisih: '0',
           sebabSelisih: bolehSebab ? (b.sebabSelisih ?? null) : (sebelum?.sebabSelisih ?? null),
+          // K-227: tanda uji petik ditetapkan saat daftar harian disusun dan tidak berubah lewat form.
+          ujiPetik: ujiPetik.has(b.idBarang) || (sebelum?.ujiPetik ?? false),
         };
       }
       case 'KOREKSI':
@@ -346,12 +352,12 @@ export async function buatPenyesuaian(
   input: DataPenyesuaian,
   pelaku: PenggunaAktif,
   asal: AsalRequest,
-  opsi: { idPenghitung?: number | null } = {},
+  opsi: { idPenghitung?: number | null; ujiPetik?: ReadonlySet<number> } = {},
 ): Promise<DetailPenyesuaian> {
   const id = await dalamTransaksi(async (tx) => {
     const opname =
       input.jenis === 'OPNAME' ? await hitunganDariForm(tx, null, input, pelaku) : undefined;
-    const detail = await siapkanDetail(tx, input, pelaku, new Map(), opname);
+    const detail = await siapkanDetail(tx, input, pelaku, new Map(), opname, opsi.ujiPetik);
     const tanggal = tanggalOperasional();
     const nomor = await terbitkanNomor(tx, 'ADJ', tanggal);
     const idBaru = await repo.tambahHeader(tx, {
@@ -558,6 +564,7 @@ export async function selesaikanPenyesuaian(
       }
       let selisih = b.qtySelisih;
       let sistem = h.jenis === 'MUSNAH' ? p.stokRusak : p.stokFisik;
+      let segelOpname: { akhir: HitunganBernilai; sesudah: string } | null = null;
       if (opname) {
         const daftar = hitungan.get(b.idBarang) ?? [];
         const nilai = nilaiBaris({
@@ -573,6 +580,10 @@ export async function selesaikanPenyesuaian(
           akhir?.selisih ??
           kurangQty(kurangQty(b.qtyFisik ?? '0', p.stokFisik), belum.get(b.idBarang) ?? '0');
         const penghitung = akhir ? nilai.penghitung : new Set([h.idPengguna]);
+        // K-227: box segel yang dihitung; perubahan lapisan sesudah waktu hitung dibaca sebelum mutasi opname.
+        if (akhir?.qtySegel != null) {
+          segelOpname = { akhir, sesudah: await segelSesudahHitung(tx, akhir.id) };
+        }
         // K-240/K-227: selisih opname hanya dikoreksi Kepala Toko/Owner, dengan sebab baku per barang.
         if (bandingQty(selisih, 0) !== 0) {
           if (!pelaku.izin.has(ATUR)) {
@@ -675,6 +686,7 @@ export async function selesaikanPenyesuaian(
           sumber,
         });
       }
+      if (segelOpname) await samakanSegel(tx, b, segelOpname, h.nomor, umum);
       await repo.ubahDetail(tx, b.id, {
         qtySistem: sistem,
         qtySelisih: selisih,
@@ -768,4 +780,47 @@ export async function buatLembarOpname(
     pelaku,
     asal,
   );
+}
+
+/** K-227: perubahan lapisan segel (box) barang sesudah waktu sebuah hitungan. */
+async function segelSesudahHitung(tx: Tx, idHitungan: number): Promise<string> {
+  const r = await tx.execute<{ n: string }>(sql`
+    select coalesce(sum(m.qty_masuk - m.qty_keluar), 0)::text n
+      from mutasi_segel m join opname_hitung h on h.id = ${idHitungan}
+     where m.id_barang = h.id_barang and m.waktu > h.waktu`);
+  return r.rows[0]?.n ?? '0';
+}
+
+/**
+ * K-227: lapisan segel disamakan dengan box yang dihitung (dikurangi box yang dibuka untuk uji petik), ditambah
+ * perubahan lapisan sesudah waktu hitung; dibatasi box utuh yang muat di stok sesudah opname.
+ */
+async function samakanSegel(
+  tx: Tx,
+  b: { id: number; idBarang: number; namaBarang: string },
+  s: { akhir: HitunganBernilai; sesudah: string },
+  nomor: string,
+  umum: { idPengguna: number; tanggalOperasional: string },
+): Promise<void> {
+  const k = await kemasanSegel(tx, b.idBarang);
+  // Kemasan sudah diganti/dilepas sejak dihitung: lapisan tidak disamakan (aturan isi tetap dijaga ledger).
+  if (!k || s.akhir.isiSegel === null || bandingQty(k.isi, s.akhir.isiSegel) !== 0) return;
+  const uji = s.akhir.isiUjiPetik !== null;
+  const dihitung = kelipatanQty(s.akhir.qtySegel ?? '0', 1) - (uji ? 1 : 0);
+  const p = await kunciPersediaan(tx, b.idBarang);
+  const target = Math.max(
+    0,
+    Math.min(dihitung + Number(s.sesudah), kelipatanQty(p.stokFisik, k.isi)),
+  );
+  await aturSegel(tx, {
+    idBarang: b.idBarang,
+    jenis: 'OPNAME',
+    saldoBaru: target,
+    idPengguna: umum.idPengguna,
+    tanggalOperasional: umum.tanggalOperasional,
+    idPenyesuaianDetail: b.id,
+    keterangan: `Opname ${nomor}: dihitung ${s.akhir.qtySegel} ${k.kodeSatuan} segel${
+      uji ? `, 1 dibuka uji petik (isi ${s.akhir.isiUjiPetik} dari ${k.isi})` : ''
+    }`,
+  });
 }

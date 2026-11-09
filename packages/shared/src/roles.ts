@@ -61,6 +61,7 @@ const IZIN_ADMINISTRASI_PERSEDIAAN: readonly Izin[] = [
   'persediaan.penerimaan.kelola',
   'persediaan.penyesuaian.kelola',
   'persediaan.opname.hitung',
+  'persediaan.segel.buka',
   'persediaan.retur_pemasok.kelola',
   'penjualan.surat_jalan.kelola',
   'penjualan.riwayat.lihat',
@@ -106,8 +107,9 @@ const IZIN_PETUGAS_GUDANG: readonly Izin[] = [
   'master.barang.lihat',
   'persediaan.stok.lihat_tersedia',
   'persediaan.stok.lihat',
-  // K-227: penghitung opname (lewat HP gudang).
+  // K-227: penghitung opname (lewat HP gudang) dan pembuka box segel.
   'persediaan.opname.hitung',
+  'persediaan.segel.buka',
   'penjualan.surat_jalan.kelola',
   'dashboard.dasar',
 ];

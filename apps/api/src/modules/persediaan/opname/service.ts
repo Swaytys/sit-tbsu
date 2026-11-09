@@ -1,8 +1,11 @@
 import { randomInt } from 'node:crypto';
 import {
+  kaliQty,
   keQty,
   LABEL_PERAN,
   qtyDariTimbang,
+  rapikanDesimal,
+  tambahQty,
   SEBAB_SELISIH,
   type BarisLembarHitung,
   type DataHitungOpname,
@@ -17,10 +20,11 @@ import {
   type SebabSelisih,
   type TugasOpname,
 } from '@sit/shared';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import { db, type Tx } from '../../../db/client';
 import {
   barang,
+  opnameHitung,
   pengguna,
   penyesuaianStok,
   penyesuaianStokDetail,
@@ -32,6 +36,7 @@ import type { AsalRequest, PenggunaAktif } from '../../../lib/konteks';
 import { dalamTransaksi } from '../../../lib/transaksi';
 import { sekarang, tambahHari, tanggalOperasional } from '../../../lib/waktu';
 import { catatLog } from '../../sistem/log-aktivitas';
+import { kemasanSegel } from '../ledger';
 import * as repoPenyesuaian from '../penyesuaian/repo';
 import {
   buatPenyesuaian,
@@ -162,7 +167,31 @@ export async function susunDaftarHarian(
       alasanKecuali: null,
     })),
   };
-  return buatPenyesuaian(input, pelaku, asal, { idPenghitung });
+  return buatPenyesuaian(input, pelaku, asal, {
+    idPenghitung,
+    ujiPetik: await pilihUjiPetik(pilih.map((b) => b.idBarang)),
+  });
+}
+
+/**
+ * K-227 uji petik: dari barang terpilih yang punya box segel di stok, ± 1 dari 3 diminta membuka 1 box acak dan
+ * menghitung isinya; paling sedikit satu bila ada yang memenuhi.
+ */
+async function pilihUjiPetik(idBarang: number[]): Promise<Set<number>> {
+  if (idBarang.length === 0) return new Set();
+  const r = await db.execute<{ id: string }>(sql`
+    select p.id_barang::text id from persediaan p
+     where p.qty_segel >= 1 and p.id_barang in (${sql.join(
+       idBarang.map((x) => sql`${x}`),
+       sql`, `,
+     )})
+       and exists (select 1 from barang_satuan_jual bsj
+                    where bsj.id_barang = p.id_barang and bsj.kemasan_segel and bsj.status_aktif = 'AKTIF')`);
+  const calon = r.rows.map((x) => Number(x.id));
+  const hasil = new Set(calon.filter(() => randomInt(0, 3) === 0));
+  const satu = calon[randomInt(0, Math.max(1, calon.length))];
+  if (hasil.size === 0 && satu !== undefined) hasil.add(satu);
+  return hasil;
 }
 
 function ambilAcakBerbobot(daftar: BarangOpname[], n: number): BarangOpname[] {
@@ -309,6 +338,12 @@ export async function lembarHitung(
         r.timbangJumlahSampel !== null && r.timbangBeratSampelGram !== null
           ? { jumlahSampel: r.timbangJumlahSampel, beratSampelGram: r.timbangBeratSampelGram }
           : null,
+      segel:
+        r.segelIsi !== null && r.segelKode !== null
+          ? { kodeSatuan: r.segelKode, isi: rapikanDesimal(r.segelIsi) }
+          : null,
+      // Uji petik cukup sekali per barang: hilang setelah ada hitungan yang membuka box.
+      ujiPetik: r.ujiPetik && !hit.some((x) => x.isiUjiPetik !== null),
       dikecualikan: r.dikecualikan,
       hitunganSaya: saya ? keRespons(saya, false) : null,
       dihitungOrangLain: hit.some((x) => x.idPenghitung !== pelaku.id),
@@ -336,6 +371,7 @@ export async function catatHitung(
       .select({
         idDetail: penyesuaianStokDetail.id,
         dikecualikan: penyesuaianStokDetail.dikecualikan,
+        ujiPetik: penyesuaianStokDetail.ujiPetik,
         namaBarang: barang.namaBarang,
         kodeSatuan: satuan.kode,
         jenisDimensi: satuan.jenisDimensi,
@@ -356,6 +392,33 @@ export async function catatHitung(
     if (b.dikecualikan) {
       throw galatKolom('idBarang', `${b.namaBarang} dikecualikan dari opname ini; tidak dihitung.`);
     }
+    const kemasan = await kemasanSegel(tx, input.idBarang);
+    if (input.qtySegel !== null && !kemasan) {
+      throw galatKolom(
+        'qtySegel',
+        `${b.namaBarang} tidak punya kemasan tersegel; isi jumlah saja.`,
+      );
+    }
+    if (kemasan && b.ujiPetik && input.qtySegel !== null && Number(input.qtySegel) >= 1) {
+      // Uji petik cukup sekali per barang: penghitung ulang tidak membuka box lagi.
+      const [sudahUji] = await tx
+        .select({ id: opnameHitung.id })
+        .from(opnameHitung)
+        .where(
+          and(
+            eq(opnameHitung.idPenyesuaian, id),
+            eq(opnameHitung.idBarang, input.idBarang),
+            isNotNull(opnameHitung.isiUjiPetik),
+          ),
+        )
+        .limit(1);
+      if (input.isiUjiPetik === null && !sudahUji) {
+        throw galatKolom(
+          'isiUjiPetik',
+          `${b.namaBarang} diminta uji petik: buka 1 box segel acak, hitung isinya, lalu isi jumlahnya.`,
+        );
+      }
+    }
     let qty: string;
     if (input.cara === 'TIMBANG') {
       if (b.jumlahSampel === null || b.beratSampel === null || input.beratGram === null) {
@@ -373,6 +436,16 @@ export async function catatHitung(
     } else {
       qty = keQty(input.qty ?? '0');
     }
+    // K-227: barang tersegel: jumlah = box utuh × isi + isi box uji petik + ecer (qty di atas).
+    const ecer = qty;
+    const uji = input.isiUjiPetik !== null && input.qtySegel !== null;
+    if (kemasan && input.qtySegel !== null) {
+      const utuh = Number(input.qtySegel) - (uji ? 1 : 0);
+      qty = tambahQty(
+        tambahQty(kaliQty(utuh, kemasan.isi), uji ? (input.isiUjiPetik ?? '0') : '0'),
+        ecer,
+      );
+    }
     await tambahHitungan(tx, {
       idPenyesuaian: id,
       idBarang: input.idBarang,
@@ -380,6 +453,9 @@ export async function catatHitung(
       qty,
       cara: input.cara,
       beratGram: input.cara === 'TIMBANG' ? input.beratGram : null,
+      qtySegel: kemasan && input.qtySegel !== null ? keQty(input.qtySegel) : null,
+      isiSegel: kemasan && input.qtySegel !== null ? kemasan.isi : null,
+      isiUjiPetik: kemasan && uji ? keQty(input.isiUjiPetik ?? '0') : null,
     });
     await tx
       .update(penyesuaianStokDetail)
@@ -392,8 +468,12 @@ export async function catatHitung(
       idEntitas: id,
       nomorDokumen: h.nomor,
       ringkasan: `Hitung ${h.nomor}: ${b.namaBarang} ${qty} ${b.kodeSatuan}${
-        input.cara === 'TIMBANG' ? ` (ditimbang ${input.beratGram} g)` : ''
-      }`.slice(0, 1000),
+        kemasan && input.qtySegel !== null
+          ? ` = ${input.qtySegel} ${kemasan.kodeSatuan} segel + ecer ${ecer}${
+              uji ? `; uji petik isi ${input.isiUjiPetik} dari ${rapikanDesimal(kemasan.isi)}` : ''
+            }`
+          : ''
+      }${input.cara === 'TIMBANG' ? ` (ecer ditimbang ${input.beratGram} g)` : ''}`.slice(0, 1000),
       ip: asal.ip,
     });
   });
@@ -547,7 +627,25 @@ export async function kinerjaOpname(): Promise<KinerjaOpname> {
      group by 1
      order by 3 desc`);
 
+  // K-227 uji petik: hitungan terakhir tiap baris opname selesai yang membuka box.
+  const ru = await db.execute<{ dibuka: string; kurang: string; qty: string }>(sql`
+    select count(*)::text dibuka,
+           count(*) filter (where h.isi_uji_petik < h.isi_segel)::text kurang,
+           coalesce(sum(greatest(h.isi_segel - h.isi_uji_petik, 0)), 0)::text qty
+      from (select distinct on (h.id_penyesuaian, h.id_barang) h.*
+              from opname_hitung h
+             where h.isi_uji_petik is not null
+             order by h.id_penyesuaian, h.id_barang, h.waktu desc, h.id desc) h
+      join penyesuaian_stok p on p.id = h.id_penyesuaian
+     where p.status = 'SELESAI' and p.tanggal_operasional >= ${dari90}`);
+  const uji = ru.rows[0];
+
   return {
+    ujiPetik: {
+      dibuka: Number(uji?.dibuka ?? 0),
+      kurang: Number(uji?.kurang ?? 0),
+      kurangQty: keQty(uji?.qty ?? '0'),
+    },
     bulan: daftarBulan.map((bulan) => {
       const x = perBulan.get(bulan);
       const dihitung = Number(x?.dihitung ?? 0);

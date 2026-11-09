@@ -1,4 +1,5 @@
 import {
+  rapikanDesimal,
   keQty,
   kurangQty,
   tambahQty,
@@ -33,11 +34,15 @@ function ambangRestock(): Promise<number> {
 type BarisStokDb = Awaited<ReturnType<typeof repo.semuaStok>>[number];
 
 function keBarisStok(b: BarisStokDb, izin: ReadonlySet<Izin>): BarisPosisiStok {
-  const { hppRata2, nilaiPersediaan, terakhirMutasi, ...umum } = b;
+  const { hppRata2, nilaiPersediaan, terakhirMutasi, segelIsi, segelKode, ...umum } = b;
   const baris: BarisPosisiStok = {
     ...umum,
     stokTersedia: keQty(umum.stokTersedia),
     terakhirMutasi: terakhirMutasi?.toISOString() ?? null,
+    segel:
+      segelIsi !== null && segelKode !== null
+        ? { kodeSatuan: segelKode, isi: rapikanDesimal(segelIsi) }
+        : null,
   };
   return izin.has(IZIN_HPP) ? { ...baris, hppRata2, nilaiPersediaan } : baris;
 }

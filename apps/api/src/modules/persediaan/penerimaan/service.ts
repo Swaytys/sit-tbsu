@@ -345,6 +345,8 @@ export async function simpanPenerimaan(
         qtyMasuk: b.qty,
         hppSatuan: b.harga,
         pembelian: !konsinyasi,
+        // K-227: box utuh tersegel yang datang (kosong = sebanyak box utuh di qty); diabaikan bila tanpa kemasan segel.
+        segel: { masuk: b.qtySegel == null ? 'UTUH' : Number(b.qtySegel) },
         sumber: { idPenerimaanDetail: idDetail },
         idPengguna: pelaku.id,
         tanggalOperasional: tanggal,
