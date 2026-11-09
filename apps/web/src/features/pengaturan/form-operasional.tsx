@@ -43,6 +43,7 @@ type KolomAngka = Exclude<
   | 'penerimaanTanpaPoBatas'
   | 'poPenerimaBeda'
   | 'hutangBatasKepalaToko'
+  | 'opnameToleransiRp'
 >;
 
 const KOLOM_ANGKA: { nama: KolomAngka; label: string; satuan: string; ket: string }[] = [
@@ -357,6 +358,29 @@ export function FormOperasional({ pengaturan }: { pengaturan: Pengaturan }) {
               nama="poPenerimaBeda"
               label="Penerima barang bukan pembuat order"
               ket="Bila aktif, pembuat order pembelian tidak bisa mencatat penerimaan ordernya sendiri (Owner tetap boleh). Matikan bila karyawan sedikit; siapa membuat dan siapa menerima tetap tercatat."
+            />
+          </div>
+          {/* K-227: hitung ulang selisih opname. */}
+          <div className="rounded-lg border p-3">
+            <p className="text-sm font-medium">Stok opname</p>
+            <p className="text-muted-foreground text-sm">
+              Barang yang selisihnya bernilai lebih dari batas ini wajib dihitung ulang oleh orang
+              lain sampai dua hitungan sama, sebelum Kepala Toko/Owner menyelesaikan opname. Barang
+              kelas A selalu dihitung ulang walau selisihnya kecil. Rp 0 = semua selisih dihitung
+              ulang (paling ketat).
+            </p>
+            <FormField
+              control={form.control}
+              name="opnameToleransiRp"
+              render={({ field }) => (
+                <FormItem className="mt-3 max-w-xs">
+                  <FormLabel>Selisih boleh tanpa hitung ulang sampai</FormLabel>
+                  <FormControl>
+                    <InputRupiah {...field} onChange={(v) => field.onChange(v ?? 0)} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </div>
           <Saklar

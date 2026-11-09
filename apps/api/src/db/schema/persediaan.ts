@@ -11,7 +11,9 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import {
+  CARA_HITUNG,
   CARA_KIRIM_PO,
+  SEBAB_SELISIH,
   JENIS_MUTASI,
   JENIS_PENERIMAAN,
   JENIS_PENYESUAIAN,
@@ -438,11 +440,20 @@ export const penyesuaianStok = pgTable(
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /** K-227 (OPNAME): penghitung yang ditugaskan; kosong = terbuka untuk semua penghitung. */
+    idPenghitung: kolomRef('id_penghitung'),
+    /** K-227: pertama kali lembar dibuka penghitung yang ditugaskan (mulai hitung). */
+    waktuMulaiHitung: timestamptz('waktu_mulai_hitung'),
   },
   (t) => [
     foreignKey({
       name: 'penyesuaian_stok_id_pengguna_fkey',
       columns: [t.idPengguna],
+      foreignColumns: [pengguna.id],
+    }),
+    foreignKey({
+      name: 'penyesuaian_stok_id_penghitung_fkey',
+      columns: [t.idPenghitung],
       foreignColumns: [pengguna.id],
     }),
     check('chk_penyesuaian_jenis', dalamDaftar('jenis', JENIS_PENYESUAIAN)),
@@ -475,6 +486,8 @@ export const penyesuaianStokDetail = pgTable(
     waktuKecuali: timestamptz('waktu_kecuali'),
     /** K-092: pemusnahan barang titipan yang sudah ditagihkan sebagai ganti rugi di setoran konsinyasi. */
     idPenyelesaianKonsinyasi: kolomRef('id_penyelesaian_konsinyasi'),
+    /** K-227 (OPNAME): sebab baku selisih. */
+    sebabSelisih: varchar('sebab_selisih', { length: 20, enum: SEBAB_SELISIH }),
   },
   (t) => [
     foreignKey({
@@ -504,6 +517,10 @@ export const penyesuaianStokDetail = pgTable(
     }),
     unique('uq_penyesuaian_detail').on(t.idPenyesuaian, t.idBarang, t.kondisi),
     check('chk_penyesuaian_detail_kondisi', dalamDaftar('kondisi', KONDISI_STOK)),
+    check(
+      'chk_penyesuaian_detail_sebab',
+      sql`sebab_selisih is null or ${dalamDaftar('sebab_selisih', SEBAB_SELISIH)}`,
+    ),
     check('chk_penyesuaian_detail_hpp', sql`hpp_satuan >= 0`),
     index('idx_penyesuaian_detail_barang').on(t.idBarang),
   ],
@@ -513,6 +530,50 @@ export const penyesuaianStokDetail = pgTable(
  * [APPEND] Ledger — sumber kebenaran stok. Ditulis HANYA oleh
  * modules/persediaan/ledger.ts (CLAUDE.md aturan 2).
  */
+/**
+ * K-227: setiap hasil hitung opname [APPEND]: siapa, kapan, berapa, dengan cara apa. Hasil akhir baris opname =
+ * hitungan terakhir; hitungan lama tetap ada sebagai bukti (hitung ulang oleh orang lain, kinerja penghitung).
+ */
+export const opnameHitung = pgTable(
+  'opname_hitung',
+  {
+    id: kolomId(),
+    idPenyesuaian: kolomRef('id_penyesuaian').notNull(),
+    idBarang: kolomRef('id_barang').notNull(),
+    idPenghitung: kolomRef('id_penghitung').notNull(),
+    waktu: timestamptz('waktu').notNull().defaultNow(),
+    qty: qty('qty').notNull(),
+    cara: varchar('cara', { length: 7, enum: CARA_HITUNG }).notNull().default('HITUNG'),
+    /** TIMBANG: berat bersih yang ditimbang (gram). */
+    beratGram: numeric('berat_gram', { precision: 14, scale: 3 }),
+  },
+  (t) => [
+    foreignKey({
+      name: 'opname_hitung_id_penyesuaian_fkey',
+      columns: [t.idPenyesuaian],
+      foreignColumns: [penyesuaianStok.id],
+    }),
+    foreignKey({
+      name: 'opname_hitung_id_barang_fkey',
+      columns: [t.idBarang],
+      foreignColumns: [barang.id],
+    }),
+    foreignKey({
+      name: 'opname_hitung_id_penghitung_fkey',
+      columns: [t.idPenghitung],
+      foreignColumns: [pengguna.id],
+    }),
+    check('chk_opname_hitung_cara', dalamDaftar('cara', CARA_HITUNG)),
+    check('chk_opname_hitung_qty', sql`qty >= 0`),
+    check(
+      'chk_opname_hitung_berat',
+      sql`(cara = 'TIMBANG') = (berat_gram is not null) and (berat_gram is null or berat_gram > 0)`,
+    ),
+    index('idx_opname_hitung_dokumen').on(t.idPenyesuaian, t.idBarang),
+    index('idx_opname_hitung_penghitung').on(t.idPenghitung),
+  ],
+);
+
 export const mutasiPersediaan = pgTable(
   'mutasi_persediaan',
   {

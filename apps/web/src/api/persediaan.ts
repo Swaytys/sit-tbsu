@@ -2,6 +2,9 @@ import type {
   DataPenerimaan,
   DataPenyesuaian,
   DetailPenyesuaian,
+  InputHitungOpname,
+  InputTimbangBarang,
+  LembarHitung,
   JenisMutasi,
   JenisPenerimaan,
   JenisPenyesuaian,
@@ -81,13 +84,106 @@ export function useRingkasanOpname() {
   });
 }
 
-/** K-240: susun daftar hitung harian acak (draf OPNAME). */
+/** K-240/K-227: susun daftar hitung harian acak (draf OPNAME) untuk satu penghitung. */
 export function useSusunDaftarHarian() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (jumlah: number) =>
-      ambilData(await api.opname['daftar-harian'].$post({ json: { jumlah } })),
+    mutationFn: async (json: { jumlah: number; idPenghitung: number }) =>
+      ambilData(await api.opname['daftar-harian'].$post({ json })),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['penyesuaian'] }),
+  });
+}
+
+/** K-227: pengguna yang boleh menghitung opname (pilihan penugasan). */
+export function usePenghitungOpname(aktif = true) {
+  return useQuery({
+    queryKey: ['penyesuaian', 'opname', 'penghitung'],
+    queryFn: async () => ambilData(await api.opname.penghitung.$get()),
+    enabled: aktif,
+  });
+}
+
+/** K-227: lembar opname yang bisa dikerjakan pengguna ini. */
+export function useTugasOpname(aktif = true) {
+  return useQuery({
+    queryKey: ['penyesuaian', 'opname', 'tugas'],
+    queryFn: async () => ambilData(await api.opname.tugas.$get()),
+    enabled: aktif,
+  });
+}
+
+/** K-227: kinerja opname (akurasi per bulan, kelas, penghitung, sebab). */
+export function useKinerjaOpname(aktif = true) {
+  return useQuery({
+    queryKey: ['penyesuaian', 'opname', 'kinerja'],
+    queryFn: async () => ambilData(await api.opname.kinerja.$get()),
+    enabled: aktif,
+  });
+}
+
+/** K-227: lembar hitung (hitung buta) satu dokumen opname. */
+export function useLembarHitung(id: number | null) {
+  return useQuery({
+    queryKey: ['penyesuaian', 'opname', 'lembar', id],
+    queryFn: async () =>
+      ambilData(await api.opname[':id'].lembar.$get({ param: paramId(id ?? 0) })),
+    enabled: id !== null,
+  });
+}
+
+export function useMulaiHitung() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) =>
+      ambilData(await api.opname[':id'].mulai.$post({ param: paramId(id) })),
+    onSuccess: (lembar) => {
+      qc.setQueryData(['penyesuaian', 'opname', 'lembar', lembar.id], lembar);
+      return qc.invalidateQueries({ queryKey: ['penyesuaian', 'opname', 'tugas'] });
+    },
+  });
+}
+
+export function useCatatHitung() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, json }: { id: number; json: InputHitungOpname }) =>
+      ambilData(await api.opname[':id'].hitung.$post({ param: paramId(id), json })),
+    // Baris yang baru dihitung diganti langsung (lembar panjang tidak dimuat ulang tiap Enter).
+    onSuccess: (baru, { id }) => {
+      qc.setQueryData<LembarHitung>(['penyesuaian', 'opname', 'lembar', id], (lama) =>
+        lama
+          ? { ...lama, baris: lama.baris.map((b) => (b.idBarang === baru.idBarang ? baru : b)) }
+          : lama,
+      );
+      return Promise.all(
+        [
+          ['penyesuaian', 'detail', id],
+          ['penyesuaian', 'opname', 'tugas'],
+          ['penyesuaian', 'opname', 'ringkasan'],
+        ].map((queryKey) => qc.invalidateQueries({ queryKey })),
+      );
+    },
+  });
+}
+
+export function useTugaskanOpname() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, idPenghitung }: { id: number; idPenghitung: number | null }) =>
+      ambilData(
+        await api.opname[':id'].penghitung.$patch({ param: paramId(id), json: { idPenghitung } }),
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['penyesuaian'] }),
+  });
+}
+
+/** K-227: data timbang barang (berat sekian buah). */
+export function useAturTimbang() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ idBarang, json }: { idBarang: number; json: InputTimbangBarang }) =>
+      ambilData(await api.opname.barang[':id'].timbang.$put({ param: paramId(idBarang), json })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['barang'] }),
   });
 }
 

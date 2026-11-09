@@ -22,7 +22,7 @@ import { usePengguna } from '@/api/auth';
 import { useAktivitasDashboard, useRingkasanDashboard } from '@/api/laporan';
 import { useSetupAwalStatus } from '@/api/penyiapan';
 import { useTampilanToko } from '@/api/pengaturan';
-import { useNotifikasi, usePeringatanStok } from '@/api/persediaan';
+import { useNotifikasi, usePeringatanStok, useRingkasanOpname } from '@/api/persediaan';
 import { BadgeStatusStok } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -374,6 +374,8 @@ export function HalamanBeranda() {
         </Card>
       )}
 
+      {punya('persediaan.opname.atur') && <PitaAkurasiStok />}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           {r?.omzet && (
@@ -420,5 +422,37 @@ export function HalamanBeranda() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** K-227: akurasi catatan stok (IRA) 30 hari untuk Kepala Toko/Owner; target ≥ 95%. */
+function PitaAkurasiStok() {
+  const r = useRingkasanOpname().data;
+  if (!r) return null;
+  const rendah = r.akurasi30Hari !== null && r.akurasi30Hari < 95;
+  return (
+    <Card
+      className={cn(
+        'flex-row flex-wrap items-center gap-3 px-5 py-3 text-sm',
+        rendah ? 'border-red-200 bg-red-50 text-red-900' : 'text-slate-700',
+      )}
+      data-testid="pita-akurasi-stok"
+    >
+      <ClipboardCheck className="size-5 shrink-0" />
+      <span className="min-w-0 flex-1">
+        Akurasi catatan stok 30 hari:{' '}
+        <b>
+          {r.akurasi30Hari === null
+            ? 'belum ada opname'
+            : `${r.akurasi30Hari.toLocaleString('id-ID')}%`}
+        </b>{' '}
+        (target ≥ 95%) · selisih {formatRupiah(r.nilaiSelisih30Hari)} ·{' '}
+        {r.kelas.reduce((t, k) => t + k.jatuhTempo, 0)} barang jatuh tempo hitung
+        {r.drafAktif > 0 ? ` · ${r.drafAktif} lembar opname belum selesai` : ''}
+      </span>
+      <Link to="/opname" className="font-semibold hover:underline">
+        Buka Stok Opname
+      </Link>
+    </Card>
   );
 }

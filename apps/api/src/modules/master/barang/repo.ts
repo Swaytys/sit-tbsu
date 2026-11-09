@@ -36,6 +36,8 @@ const kolom = {
   namaPemasokKonsinyasi: pemasok.namaPemasok,
   perluTinjauHarga: barang.perluTinjauHarga,
   perluPersetujuanBeli: barang.perluPersetujuanBeli,
+  timbangJumlahSampel: barang.timbangJumlahSampel,
+  timbangBeratSampelGram: barang.timbangBeratSampelGram,
   /** K-170: berat atau ukuran/volume belum diisi. */
   muatanBelum: sql<boolean>`${syaratMuatanBelum()}`,
   hargaOtomatis: barang.hargaOtomatis,

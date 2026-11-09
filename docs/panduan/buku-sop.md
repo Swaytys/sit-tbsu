@@ -251,16 +251,20 @@ ditetapkan Owner.
 
 | | |
 |---|---|
-| Pelaksana | Admin (mencatat), Owner (meninjau) |
-| Waktu | Saldo awal: sekali saat mulai. Opname kecil: mingguan per kategori. Opname penuh: minimal setahun sekali sebelum tutup tahun. |
-| Bukti | Nomor penyesuaian (ADJ-…), lembar hitung fisik bertanda tangan |
+| Pelaksana | Kepala Toko (menyusun daftar, menyetujui), Petugas Gudang/Admin Persediaan (menghitung), Owner (meninjau) |
+| Waktu | Saldo awal: sekali saat mulai. Opname bertahap: tiap hari kerja (jumlah = saran di halaman Stok Opname). Semua barang terhitung minimal sekali setahun sebelum tutup tahun. |
+| Bukti | Nomor penyesuaian (ADJ-…), riwayat hitung per barang (siapa, jam, jumlah), lembar cetak bertanda tangan bila dipakai |
 
 1. **Saldo awal** hanya sekali per barang saat mulai memakai aplikasi.
-2. **Opname**: cetak/siapkan daftar barang, hitung fisik (dua orang bila memungkinkan), isi hasil hitung di
-   *Penyesuaian* jenis Opname, periksa selisihnya, lalu selesaikan.
-3. **Koreksi** (rusak, hilang, salah serah, salah input): ikuti *Panduan selisih stok* (`selisih-stok.md`) bagian 3;
+2. **Opname harian** (K-227): Kepala Toko menyusun daftar hitung acak untuk **satu penghitung** pada hari itu
+   juga (jangan disusun jauh hari). Penghitung menekan *Mulai hitung* saat sudah di gudang, menghitung tanpa melihat
+   stok sistem, barang kecil boleh ditimbang. Barang berselisih **dihitung ulang orang lain**; setelah dua hitungan
+   sama, Kepala Toko memilih sebab dan menyelesaikan. Kepala Toko tidak menghitung barang yang akan ia setujui.
+3. Tiap bulan Owner membaca bagian kinerja di Stok Opname: akurasi < 95%, nilai selisih bersih negatif yang
+   membesar, penghitung dengan ketepatan rendah, dan sebab yang berulang (mis. salah serah) ditindaklanjuti.
+4. **Koreksi** (rusak, hilang, salah serah, salah input): ikuti *Panduan selisih stok* (`selisih-stok.md`) bagian 3;
    **alasan wajib jelas dan menyebut nomor transaksi bila diketahui**.
-4. Owner meninjau daftar penyesuaian setiap minggu; selisih berulang pada barang/kasir yang sama ditindaklanjuti.
+5. Owner meninjau daftar penyesuaian setiap minggu; selisih berulang pada barang/kasir yang sama ditindaklanjuti.
 
 ---
 

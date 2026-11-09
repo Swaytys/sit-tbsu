@@ -85,6 +85,7 @@ memakai kode di luar daftar gagal typecheck.
 | `persediaan.stok.lihat` | Halaman persediaan penuh: fisik/dipesan/tersedia, mutasi, kartu stok, stok tertahan |
 | `persediaan.penerimaan.kelola` | Catat penerimaan barang |
 | `persediaan.opname.atur` | Menyusun daftar hitung opname harian dan menyelesaikan opname yang berselisih (K-240; Kepala Toko, Owner) |
+| `persediaan.opname.hitung` | Mengisi hasil hitung opname yang ditugaskan kepadanya (atau lembar terbuka) tanpa melihat stok sistem: lembar hitung, mulai hitung, hitung/timbang (K-227). Bawaan: Admin Persediaan, Petugas Gudang, Kepala Toko, Owner |
 | `persediaan.penyesuaian.kelola` | Buat penyesuaian: saldo awal, opname, koreksi, rusak |
 | `persediaan.retur_pemasok.kelola` | (M2) Retur ke pemasok |
 | `hutang.lihat` / `hutang.kelola` | (M2) Lihat / bayar hutang pemasok |
@@ -169,6 +170,7 @@ berlaku dan tabel ini diperbarui.
 | persediaan.stok.lihat | | | ✓ | ✓ | | ✓ | ✓ |
 | persediaan.penerimaan.kelola | | | ✓ | | | ✓ | ✓ |
 | persediaan.penyesuaian.kelola | | | ✓ | | | ✓ | ✓ |
+| persediaan.opname.hitung | | | ✓ | ✓ | | ✓ | ✓ |
 | persediaan.opname.atur | | | | | | ✓ | ✓ |
 | persediaan.retur_pemasok.kelola | | | ✓ | | | ✓ | ✓ |
 | hutang.lihat | | | ✓ | | | ✓ | ✓ |
@@ -229,6 +231,7 @@ diberi izin itu lewat migrasi `0055` agar tidak ada yang tiba-tiba kehilangan tu
 | Transaksi › Void Transaksi | `void.ajukan` | Tab "Persetujuan" bila `void.setujui` |
 | Persediaan › Penerimaan Barang | `persediaan.penerimaan.kelola` | |
 | Persediaan › Stok Persediaan | `persediaan.stok.lihat` | Tab posisi stok, mutasi, kartu stok, stok tertahan, stok rusak, penyesuaian |
+| Persediaan › Stok Opname | `persediaan.stok.lihat` | Susun daftar harian dan kinerja bila `persediaan.opname.atur`; kartu *Lembar hitung untuk Anda* dan halaman lembar hitung (`/opname/:id/hitung`) bila `persediaan.opname.hitung` (K-240, K-227) |
 | Persediaan › Retur ke Pemasok (M2) | `persediaan.retur_pemasok.kelola` | Daftar, form, detail, cetak nota retur (K-088) |
 | Persediaan › Hutang Pemasok (M2) | `hutang.lihat` | Tombol bayar bila `hutang.kelola` (K-088) |
 | Persediaan › Konsinyasi (M2) | `konsinyasi.kelola` | Posisi per pemasok, setoran KSG, nota setoran; bayar lewat `hutang.kelola` (K-089) |
@@ -359,6 +362,8 @@ maks. 50.000 baris, dicatat LAPORAN_EKSPOR, K-113). Retensi: tidak dihapus pada 
 
 ## Riwayat
 
+- 2026-11-09 — K-227: izin `persediaan.opname.hitung`; hitung buta opname ditegakkan API (stok sistem, selisih, dan
+  hitungan orang lain tidak dikirim ke penghitung); lembar yang ditugaskan ke orang lain 403 (docs/05 A3c–A3g).
 - 2026-11-09 — K-243: izin per akun dan peran khusus (§1, §3a); izin `sistem.izin.atur` (Owner); Kasir bawaan tanpa
   `penjualan.surat_jalan.kelola` (akun kasir lama tetap memegangnya lewat migrasi 0055).
 - 2026-11-07 — V2 K-225: 7 peran dengan pemisahan tugas (§1, matriks §3 baru); izin `sistem.data.kelola`,

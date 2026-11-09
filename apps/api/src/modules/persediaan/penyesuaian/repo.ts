@@ -33,6 +33,10 @@ const penggunaKecuali = aliasedTable(pengguna, 'pengguna_kecuali');
 const jumlahBaris = sql<number>`(select count(*)::int from ${penyesuaianStokDetail}
   where ${kolomPenuh(penyesuaianStokDetail.idPenyesuaian)} = ${kolomPenuh(penyesuaianStok.id)})`;
 
+/** K-227: penghitung yang ditugaskan (lembar opname). */
+const namaPenghitung = sql<string | null>`(select ${pengguna.namaPengguna} from ${pengguna}
+  where ${pengguna.id} = ${kolomPenuh(penyesuaianStok.idPenghitung)})`;
+
 const kolom = {
   id: penyesuaianStok.id,
   nomor: penyesuaianStok.nomor,
@@ -45,12 +49,18 @@ const kolom = {
   waktuSelesai: penyesuaianStok.waktuSelesai,
   jumlahBaris,
   namaPengguna: pengguna.namaPengguna,
+  idPengguna: penyesuaianStok.idPengguna,
+  idPenghitung: penyesuaianStok.idPenghitung,
+  namaPenghitung,
+  waktuMulaiHitung: penyesuaianStok.waktuMulaiHitung,
 };
 
 export type SaringPenyesuaian = {
   cari?: string | undefined;
   jenis?: JenisPenyesuaian | undefined;
   status?: StatusPenyesuaian | undefined;
+  /** K-227: sembunyikan draf opname yang ditugaskan ke orang lain (pengguna tanpa izin mengatur opname). */
+  sembunyikanTugasLainDari?: number | undefined;
 };
 
 function syarat(p: SaringPenyesuaian): SQL | undefined {
@@ -58,6 +68,11 @@ function syarat(p: SaringPenyesuaian): SQL | undefined {
     p.jenis ? eq(penyesuaianStok.jenis, p.jenis) : undefined,
     p.status ? eq(penyesuaianStok.status, p.status) : undefined,
     p.cari ? ilike(penyesuaianStok.nomor, polaCari(p.cari)) : undefined,
+    p.sembunyikanTugasLainDari === undefined
+      ? undefined
+      : sql`not (${penyesuaianStok.jenis} = 'OPNAME' and ${penyesuaianStok.status} = 'DRAFT'
+          and ${penyesuaianStok.idPenghitung} is not null
+          and ${penyesuaianStok.idPenghitung} <> ${p.sembunyikanTugasLainDari})`,
   );
 }
 
@@ -96,6 +111,9 @@ export async function kunciPenyesuaian(tx: Tx, id: number) {
       jenis: penyesuaianStok.jenis,
       status: penyesuaianStok.status,
       alasan: penyesuaianStok.alasan,
+      idPengguna: penyesuaianStok.idPengguna,
+      idPenghitung: penyesuaianStok.idPenghitung,
+      waktuMulaiHitung: penyesuaianStok.waktuMulaiHitung,
     })
     .from(penyesuaianStok)
     .where(eq(penyesuaianStok.id, id))
@@ -124,8 +142,13 @@ export function detailPenyesuaian(ex: Executor, idPenyesuaian: number) {
       alasanKecuali: penyesuaianStokDetail.alasanKecuali,
       namaPenggunaKecuali: penggunaKecuali.namaPengguna,
       waktuKecuali: penyesuaianStokDetail.waktuKecuali,
+      sebabSelisih: penyesuaianStokDetail.sebabSelisih,
       stokFisikKini: persediaan.stokFisik,
       stokRusakKini: persediaan.stokRusak,
+      hppKini: persediaan.hppRata2,
+      jenisDimensi: satuan.jenisDimensi,
+      timbangJumlahSampel: barang.timbangJumlahSampel,
+      timbangBeratSampelGram: barang.timbangBeratSampelGram,
     })
     .from(penyesuaianStokDetail)
     .innerJoin(barang, eq(barang.id, penyesuaianStokDetail.idBarang))
@@ -241,6 +264,7 @@ export function detailUntukSelesai(tx: Tx, idPenyesuaian: number) {
       keterangan: penyesuaianStokDetail.keterangan,
       dikecualikan: penyesuaianStokDetail.dikecualikan,
       alasanKecuali: penyesuaianStokDetail.alasanKecuali,
+      sebabSelisih: penyesuaianStokDetail.sebabSelisih,
       namaBarang: barang.namaBarang,
       statusAktif: barang.statusAktif,
     })
@@ -260,6 +284,8 @@ export function barisTersimpan(tx: Tx, idPenyesuaian: number) {
       alasanKecuali: penyesuaianStokDetail.alasanKecuali,
       idPenggunaKecuali: penyesuaianStokDetail.idPenggunaKecuali,
       waktuKecuali: penyesuaianStokDetail.waktuKecuali,
+      qtyFisik: penyesuaianStokDetail.qtyFisik,
+      sebabSelisih: penyesuaianStokDetail.sebabSelisih,
     })
     .from(penyesuaianStokDetail)
     .innerJoin(barang, eq(barang.id, penyesuaianStokDetail.idBarang))

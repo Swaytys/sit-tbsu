@@ -118,6 +118,21 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 | A22 | Struk BBM dicatat dua kali | Biaya ganda | Batalkan salah satunya | Daftar BBM per kendaraan menampilkan tanggal, odometer, liter berdampingan | Catatan batal tetap terlihat dengan alasannya | Ada sebagian (tanpa deteksi otomatis) |
 | A11 | Plat/nama sopir diketik beda-beda | Data ganda, riwayat terpecah | Ubah data master | Plat dirapikan huruf besar + satu spasi, unik; nama sopir unik tanpa beda huruf | Contoh format di form | Ada |
 
+## 5. Stok opname (K-227)
+
+| # | Anomali | Akibat | Atasi | Cegah | Ajari | Status |
+|---|---|---|---|---|---|---|
+| OP1 | Penghitung tahu daftar lebih dulu lalu "merapikan" barang | Kehilangan tertutupi | — | Daftar acak disusun hari itu dan ditugaskan ke satu orang; isinya baru tampil saat *Mulai hitung* (waktunya dicatat); barang yang baru dihitung tetap bisa terpilih lagi | Teks di layar mulai hitung | Ada |
+| OP2 | Penghitung menyalin stok sistem | Selisih tidak pernah terlihat | — | Hitung buta di API (stok sistem, selisih, hitungan orang lain tidak dikirim; lembar cetak tanpa stok sistem); tanda *perlu dihitung* tidak muncul untuk barang yang ia hitung sendiri sehingga tidak bisa dipakai menebak | Catatan "hitung apa adanya" | Ada |
+| OP3 | Salah hitung atau salah ketik | Stok dikoreksi keliru | Hitung lagi: hitungan terakhir dipakai, yang lama tetap tercatat | Selisih di atas toleransi (kelas A selalu) wajib dikonfirmasi hitungan orang lain yang sama | Status *Perlu hitung ulang orang lain* / *Dikonfirmasi 2 orang* | Ada |
+| OP4 | Barang terjual/diterima saat opname berjalan | Selisih palsu | — | Selisih dihitung terhadap stok dan barang belum diambil pada waktu barang dihitung | Penjelasan di judul form opname | Ada |
+| OP5 | Penghitung menyetujui selisihnya sendiri | Kehilangan "diputihkan" sendiri | Kepala Toko/Owner lain menyelesaikan | Ditolak; Owner boleh dan tercatat di log | Pesan menyebut siapa yang harus menyetujui | Ada |
+| OP6 | Selisih dibuang tanpa penjelasan | Akar masalah tidak pernah diperbaiki | — | Sebab baku wajib; nilai per sebab di kinerja opname | Daftar sebab di form | Ada |
+| OP7 | Barang kecil ribuan buah dihitung asal-asalan | Akurasi rendah | — | Hitung dengan timbangan (data timbang di Data Barang) | Perkiraan jumlah tampil sebelum disimpan | Ada |
+| OP8 | Opname terlewat berbulan-bulan | Selisih menumpuk tanpa ketahuan | — | Jatuh tempo per kelas, notifikasi tugas hitung dan lembar siap diperiksa, saran jumlah per hari, jumlah barang belum dihitung tahun ini, pita akurasi di Dashboard | Ringkasan di halaman Stok Opname | Ada |
+| OP9 | Barang yang sering hilang tetap jarang dihitung | Kerugian berulang | — | Barang rawan (berselisih 2 dari 3 opname terakhir) dihitung tiap 30 hari dan lebih sering terpilih; barang mahal juga | Jumlah barang rawan di ringkasan | Ada |
+| OP10 | Box segel diisi kurang | Stok fiktif | — | Uji petik box acak (K-227 butir 4) | — | Usulan |
+
 ---
 
 ## Riwayat
@@ -137,3 +152,4 @@ dijelaskan merusak kepercayaan antara kasir dan pemilik.
 - 2026-10-24 — P7–P9 arsip tahunan dan pembaruan aman (K-165, K-166).
 - 2026-10-24 — P10–P12 data ganda, No. HP, order disimpan (K-137, K-139).
 - 2026-10-24 — A15–A18 rit rencana dan papan Pengiriman (K-160); A5 menunjuk kolom Backlog.
+- 2026-11-09 — Bagian 5 stok opname OP1–OP10 (K-227 tahap 2).

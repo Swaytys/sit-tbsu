@@ -62,6 +62,15 @@ v3.42 (K-243, migrasi 0055): `id_peran_kustom` (FK `peran_kustom`, boleh kosong)
 dikosongkan saat `peran` akun diganti. Migrasi 0055 memberi akun KASIR yang sudah ada
 `izin_tambah = ["penjualan.surat_jalan.kelola"]` karena bawaan Kasir kini tanpa pengantaran.
 
+**`opname_hitung`** (v3.43, K-227, migrasi 0056) [APPEND] — setiap hasil hitung opname: `id_penyesuaian`,
+`id_barang`, `id_penghitung` (FK pengguna), `waktu` (now() transaksi), `qty` (≥ 0), `cara` HITUNG/TIMBANG,
+`berat_gram` (wajib tepat bila TIMBANG). `penyesuaian_stok_detail.qty_fisik` = hitungan terakhir. Migrasi 0056
+menyalin hasil hitung draf opname lama sebagai hitungan pembuat draf. `penyesuaian_stok` + `id_penghitung` (penghitung
+yang ditugaskan) dan `waktu_mulai_hitung`; `penyesuaian_stok_detail` + `sebab_selisih` (CHECK daftar docs/05 A3f);
+`barang` + `timbang_jumlah_sampel`, `timbang_berat_sampel_gram` (CHECK keduanya kosong atau keduanya > 0);
+`penjualan` + `waktu_diambil` (diisi saat barang yang ditinggal diambil; dipakai opname, docs/05 A3). Kunci
+konfigurasi `opname_toleransi_rp` (bawaan 0).
+
 **`peran_kustom`** (v3.42, K-243) — data master peran khusus: `nama` (unik), `peran_dasar` (CHECK bukan OWNER),
 `keterangan`, `izin_tambah`, `izin_cabut` (jsonb), `status_aktif`, `dibuat_pada`, `diubah_pada`. Tidak dihapus;
 nonaktif = tidak berlaku untuk akun pemakainya.
@@ -583,6 +592,8 @@ Yang tidak berubah maksudnya: 19 tabel FINAL2 semuanya tetap ada dengan nama yan
   `surat_jalan.id_perjalanan` menjadi kolom penugasan sebelum DIKIRIM (migrasi 0027, K-160).
 - 2026-10-31 — v3.39: `pengguna.tur_status` jsonb; tabel `kode_reset_password` (migrasi 0041, K-206, K-209).
 - 2026-11-07 — v3.41: `pengguna.pintasan` jsonb (migrasi 0043, K-145).
+- 2026-11-09 — v3.43: tabel `opname_hitung`; `penyesuaian_stok.id_penghitung`, `waktu_mulai_hitung`;
+  `penyesuaian_stok_detail.sebab_selisih`; `barang.timbang_*`; `penjualan.waktu_diambil` (migrasi 0056, K-227).
 - 2026-11-09 — v3.42: tabel `peran_kustom`; `pengguna.id_peran_kustom`, `izin_tambah`, `izin_cabut`; akun KASIR lama
   diberi izin pengantaran (migrasi 0055, K-243).
   Konfigurasi baru tanpa migrasi: `jenis_usaha`, `jenis_usaha_lain`, `slogan_toko`, `kota_toko`, `layanan_toko`,

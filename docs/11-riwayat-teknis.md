@@ -864,10 +864,35 @@ dikenal ditolak, hanya Owner 403, peran diganti mengosongkan, peran khusus: dasa
 terkunci saat dipakai, nonaktif mengembalikan bawaan); tes kasir pengantaran memakai `sesiUji('KASIR', { izinTambah
 })`; e2e `pengguna.spec.ts` (peran khusus → pasang → cabut satu izin → izin efektif kasir).
 
+### C35. Opname terkendali (9 November 2026, K-227 tahap 2)
+
+**Masalah:** hitung buta hanya disembunyikan di layar (API tetap mengirim stok sistem); penghitung bisa menyetujui
+selisihnya sendiri; selisih dihitung terhadap stok saat diselesaikan sehingga penjualan/penerimaan di antara waktu
+hitung dan selesai membuat selisih palsu; keterangan sebab berupa teks bebas sehingga tidak bisa dianalisis.
+
+**Solusi:** tabel `opname_hitung` [APPEND] (migrasi 0056) mencatat tiap hitungan; `opname/hitung.ts` menghitung
+keadaan pada waktu hitung lewat SQL (mutasi BAIK sesudah `h.waktu`, penjualan LANGSUNG yang pada waktu itu belum
+diambil memakai `penjualan.waktu_diambil` baru) tanpa membulatkan waktu di JavaScript; `nilaiBaris` menerapkan
+aturan hitung ulang (hitungan terakhir per orang; konfirmasi = hitungan terakhir sama selisihnya dengan hitungan orang
+lain). `selesaikanPenyesuaian` mengunci semua baris `persediaan` urut id sebelum membaca keadaan. `detailPenyesuaian`
+menyaring data untuk pengguna tanpa `persediaan.opname.atur` (hitung buta di API) dan menolak lembar yang ditugaskan
+ke orang lain. `opname/peta.ts` (kelas ABC + rawan/mahal/khusus) dipisah agar penyesuaian dan opname tidak saling
+mengimpor. Rute baru `/api/opname/{kinerja,penghitung,tugas,:id/penghitung,:id/lembar,:id/mulai,:id/hitung,
+barang/:id/timbang}`; izin `persediaan.opname.hitung`. Web: `halaman-hitung-opname.tsx` (lembar hitung HP, Enter
+simpan & lanjut, T timbang), kartu penghitung + riwayat hitung + sebab di review, kinerja di Stok Opname, kartu data
+timbang di Data Barang, toleransi di Pengaturan, pita akurasi di Dashboard; notifikasi OPNAME_TUGAS dan
+OPNAME_SIAP_DIPERIKSA.
+
+**Tes:** `opname.test.ts` (penugasan & 403, mulai hitung, hitung buta API, hitung ulang sampai sama, kinerja;
+timbang; toleransi & kelas A & Owner mengesampingkan), `penyesuaian.test.ts` (stok sistem dan belum diambil pada
+waktu hitung, dua penghitung, penghitung tidak menyetujui sendiri), `qty-timbang.test.ts`; e2e `opname.spec.ts`
+(alur lengkap tiga akun, timbang) dan `penyesuaian.spec.ts` (Owner menyelesaikan selisih yang dihitung Kepala Toko).
+
 ---
 
 ## Riwayat dokumen
 
+- 2026-11-09 — Bagian C35 opname terkendali (K-227 tahap 2).
 - 2026-11-09 — Bagian C34 izin per akun dan peran khusus (K-243).
 - 2026-11-08 — Bagian C33 siklus pembelian lengkap, jam operasional (K-234–K-239, K-244).
 - 2026-11-07 — Bagian C32 peran V2 dan persetujuan order pembelian (K-225 tahap 1–2, K-233).

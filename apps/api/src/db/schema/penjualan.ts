@@ -225,6 +225,8 @@ export const penjualan = pgTable(
     catatan: varchar('catatan', { length: 255 }),
     dibuatPada: dibuatPada(),
     diubahPada: diubahPada(),
+    /** K-227: saat barang yang ditinggal di toko diambil pembeli (opname menghitung barang belum diambil per waktu). */
+    waktuDiambil: timestamptz('waktu_diambil'),
   },
   (t) => [
     foreignKey({

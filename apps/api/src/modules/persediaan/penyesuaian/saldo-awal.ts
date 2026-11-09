@@ -160,6 +160,7 @@ export async function imporSaldoAwal(
         ...b,
         qtySelisih: null,
         keterangan: null,
+        sebabSelisih: null,
         dikecualikan: false,
         alasanKecuali: null,
       })),

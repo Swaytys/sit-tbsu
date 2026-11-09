@@ -31,6 +31,10 @@ export const JENIS_NOTIFIKASI = [
   'REFUND_TRANSFER',
   /** K-170: barang di order pengantaran yang belum dikirim tanpa data muatan. */
   'MUATAN_KOSONG',
+  /** K-227: lembar hitung opname yang ditugaskan ke pengguna ini dan masih ada barang belum dihitung. */
+  'OPNAME_TUGAS',
+  /** K-227: lembar opname yang semua barangnya sudah dihitung, menunggu diperiksa/diselesaikan. */
+  'OPNAME_SIAP_DIPERIKSA',
 ] as const;
 export type JenisNotifikasi = (typeof JENIS_NOTIFIKASI)[number];
 

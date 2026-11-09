@@ -107,6 +107,35 @@ export type StatusPenyesuaian = (typeof STATUS_PENYESUAIAN)[number];
 export const KONDISI_STOK = ['BAIK', 'RUSAK'] as const;
 export type KondisiStok = (typeof KONDISI_STOK)[number];
 
+/** K-227: cara mendapat hasil hitung opname. TIMBANG = berat bersih dibagi berat per buah (timbangan hitung). */
+export const CARA_HITUNG = ['HITUNG', 'TIMBANG'] as const;
+export type CaraHitung = (typeof CARA_HITUNG)[number];
+export const LABEL_CARA_HITUNG: Record<CaraHitung, string> = {
+  HITUNG: 'Dihitung',
+  TIMBANG: 'Ditimbang',
+};
+
+/** K-227: sebab baku selisih stok opname (dipakai untuk analisis penyebab). */
+export const SEBAB_SELISIH = [
+  'SALAH_SERAH',
+  'RUSAK',
+  'SALAH_INPUT',
+  'HILANG',
+  'BELUM_TERCATAT',
+  'SALAH_HITUNG_LALU',
+  'LAINNYA',
+] as const;
+export type SebabSelisih = (typeof SEBAB_SELISIH)[number];
+export const LABEL_SEBAB_SELISIH: Record<SebabSelisih, string> = {
+  SALAH_SERAH: 'Salah serah ke pembeli',
+  RUSAK: 'Rusak tidak tercatat',
+  SALAH_INPUT: 'Salah input transaksi',
+  HILANG: 'Hilang',
+  BELUM_TERCATAT: 'Transaksi belum tercatat',
+  SALAH_HITUNG_LALU: 'Salah hitung opname sebelumnya',
+  LAINNYA: 'Lainnya (tulis di keterangan)',
+};
+
 export const JENIS_MUTASI = [
   'SALDO_AWAL',
   'PENERIMAAN',

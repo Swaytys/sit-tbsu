@@ -285,6 +285,9 @@ export const barang = pgTable(
     stokMaksimum: qty('stok_maksimum'),
     /** K-225: pembelian barang ini selalu wajib disetujui Owner (mahal/langka); diatur hanya oleh Owner. */
     perluPersetujuanBeli: boolean('perlu_persetujuan_beli').notNull().default(false),
+    /** K-227: hitung dengan timbangan: `timbang_jumlah_sampel` (satuan dasar) beratnya `timbang_berat_sampel_gram`. */
+    timbangJumlahSampel: qty('timbang_jumlah_sampel'),
+    timbangBeratSampelGram: numeric('timbang_berat_sampel_gram', { precision: 14, scale: 3 }),
   },
   (t) => [
     foreignKey({
@@ -313,6 +316,11 @@ export const barang = pgTable(
       sql`(berat_kg is null or berat_kg >= 0) and (panjang_cm is null or panjang_cm > 0)
         and (lebar_cm is null or lebar_cm > 0) and (tinggi_cm is null or tinggi_cm > 0)
         and (volume_m3 is null or volume_m3 > 0)`,
+    ),
+    check(
+      'chk_barang_timbang',
+      sql`(timbang_jumlah_sampel is null and timbang_berat_sampel_gram is null)
+        or (timbang_jumlah_sampel > 0 and timbang_berat_sampel_gram > 0)`,
     ),
     check('chk_barang_kepemilikan', dalamDaftar('kepemilikan', KEPEMILIKAN)),
     check(

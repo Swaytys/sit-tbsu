@@ -9,6 +9,7 @@ import { jumlahDisimpanLewat, jumlahOrderBasi } from '../../penjualan/order/serv
 import { piutangJatuhTempo } from '../../penjualan/piutang/service';
 import { jumlahPOMenunggu } from '../../persediaan/order-pembelian/persetujuan';
 import { jumlahPOTerlambat } from '../../persediaan/order-pembelian/service';
+import { jumlahOpnameSiap, jumlahTugasOpname } from '../../persediaan/opname/service';
 import { jumlahPerluDipesan } from '../../persediaan/saran-pesan/service';
 import { peringatanStok } from '../../persediaan/stok/service';
 import { pengingatArmada } from '../../master/armada/service';
@@ -290,6 +291,31 @@ export async function notifikasiPengguna(pelaku: PenggunaAktif): Promise<Notifik
         keterangan: `${tunggu} order pembelian menunggu Anda setujui atau tolak.`,
         jumlah: tunggu,
         tautan: '/order-pembelian?status=DIAJUKAN',
+      });
+    }
+  }
+  // K-227: tugas hitung opname dan lembar yang siap diperiksa.
+  if (izin.has('persediaan.opname.hitung')) {
+    const tugas = await jumlahTugasOpname(pelaku.id);
+    if (tugas > 0) {
+      hasil.push({
+        jenis: 'OPNAME_TUGAS',
+        judul: 'Daftar hitung stok untuk Anda',
+        keterangan: `${tugas} lembar opname ditugaskan ke Anda dan masih ada barang yang belum dihitung.`,
+        jumlah: tugas,
+        tautan: '/opname',
+      });
+    }
+  }
+  if (izin.has('persediaan.opname.atur')) {
+    const siap = await jumlahOpnameSiap();
+    if (siap > 0) {
+      hasil.push({
+        jenis: 'OPNAME_SIAP_DIPERIKSA',
+        judul: 'Opname siap diperiksa',
+        keterangan: `${siap} lembar opname sudah selesai dihitung dan menunggu diperiksa/diselesaikan.`,
+        jumlah: siap,
+        tautan: '/opname',
       });
     }
   }

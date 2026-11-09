@@ -12,7 +12,7 @@ aman bila sudah terjadi), **Cegah** (alur/kunci sebelum terjadi), **Ajari** (pen
 | K-237 | Penerimaan bervariasi: bayar campur, kurang datang, rusak saat datang, tempo dan keterlambatan | V1 | Selesai |
 | K-238 | Kartu order pembelian (rincian kanan) lebih informatif; tombol sesuai tahap | V1 | Selesai |
 | K-239 | Pemusnahan: cari hanya barang rusak, tampilkan stok rusak, daftar barang rusak siap klik | V1 | Selesai |
-| K-240 | Stok opname di halaman mandiri yang lengkap | V1 | Selesai tahap 1 (kemasan tersegel, timbang, dua penghitung, dashboard menyusul K-227) |
+| K-240 | Stok opname di halaman mandiri yang lengkap | V1 | Selesai (tahap 2 9 Nov: penugasan, hitung ulang orang lain, timbang, kinerja; kemasan tersegel menyusul K-227) |
 | K-241 | "Saldo awal" → **Persediaan Awal**: input secepat kasir, termasuk hutang awal pemasok | V1 | Selesai (pemasok asal per baris, deposit dan titipan awal menyusul) |
 | K-242 | "Saran pesan" → **Perencanaan Pengadaan**: penjelasan dengan contoh, terpadu dengan order dan lama kirim, analisis kekosongan stok | V1 | Selesai (musim ramai dan keandalan pemasok menyusul) |
 | K-243 | Izin tambahan per pengguna (mis. kasir boleh urus pengantaran) dan peran buatan sendiri | V1 | Selesai |

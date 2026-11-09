@@ -393,6 +393,13 @@
       "when": 1794162351172,
       "tag": "0055_izin_per_pengguna",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1794178706074,
+      "tag": "0056_opname_terkendali",
+      "breakpoints": true
     }
   ]
 }

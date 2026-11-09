@@ -13,7 +13,7 @@ ahli sistem informasi manajemen. Sebelas masukan dicatat di bawah. Pemilik proye
 | K-224 | Bug: draf order tidak ikut harga jual terbaru | V1 | Selesai |
 | K-225 | Peran dipisah (Administrator, Admin Persediaan, Kepala Toko) + persetujuan PO + wewenang bayar hutang | V2 | Sebagian: tahap 1 (peran) dan 2 (persetujuan PO) selesai di branch V2; tahap 3 menyusul |
 | K-226 | Sistem berlaku umum untuk toko ritel lain, fitur bahan bangunan tetap | V2 | Rencana (rancangan di bawah) |
-| K-227 | Satuan ecer/grosir, kemasan tersegel, dan opname bertahap acak | V2 | Rencana (rancangan di bawah) |
+| K-227 | Satuan ecer/grosir, kemasan tersegel, dan opname bertahap acak | V2 | Opname selesai (tahap 1–2: butir 5–10); kemasan tersegel (butir 1–4) menyusul |
 | K-228 | Semua pintasan keyboard juga bisa diklik/disentuh | V1 | Selesai (audit 7 Nov) |
 | K-229 | Jaringan HP/tablet lebih mudah: mode LAN toko + Tailscale | V1 | Selesai (1.19.0) |
 | K-230 | Alur cetak label & barcode yang jelas, termasuk barang curah tanpa barcode | V1 panduan, V2 label rak | Rencana |
@@ -238,6 +238,28 @@ akurat; jadwal opname yang bisa ditebak membuka celah kecurangan sesudah opname.
 10. **Ukuran kinerja:** **akurasi catatan persediaan** (IRA) = barang yang cocok ÷ barang dihitung (target ≥ 95%),
     nilai selisih per bulan, selisih per penghitung/area, jumlah box segel yang terbukti kurang. Ditampilkan di
     dashboard Owner.
+
+**Status implementasi (9 Nov 2026):**
+
+- Tahap 1 (K-240, 8 Nov): halaman Stok Opname, kelas ABC dan selang hitung, daftar hitung harian acak, hitung buta
+  di layar, selisih hanya diselesaikan Kepala Toko/Owner dengan keterangan.
+- **Tahap 2 (9 Nov)** — butir 5–10 lengkap (docs/05 A3, A3c–A3i):
+  - butir 7: daftar harian **ditugaskan** ke satu penghitung dan isinya baru tampil saat ia menekan *Mulai hitung*
+    (waktunya dicatat); penghitung lain tidak bisa melihatnya;
+  - butir 8: **hitung buta ditegakkan di API** (bukan hanya disembunyikan di layar; lembar cetak juga tanpa stok
+    sistem); setiap hitungan tercatat atas nama penghitungnya; **waktu hitung** dipakai sehingga transaksi selama dan
+    sesudah penghitungan tidak membuat selisih palsu; lembar hitung khusus HP/tablet;
+  - butir 9: selisih di atas **toleransi** (Pengaturan › Operasional, bawaan Rp 0; kelas A selalu) wajib **dihitung
+    ulang orang lain** sampai dua hitungan sama; **sebab baku**; yang ikut menghitung tidak menyetujui selisihnya
+    (Owner boleh mengesampingkan, tercatat di log);
+  - butir 5: **hitung dengan timbangan** (data timbang di Data Barang);
+  - butir 6: barang **rawan** (berselisih berulang) paling lambat tiap 30 hari, barang mahal dan barang wajib
+    disetujui Owner lebih sering terpilih; saran jumlah per hari; barang belum dihitung tahun ini;
+  - butir 10: **kinerja** per bulan, per kelas, per penghitung, per sebab; pita akurasi di Dashboard Kepala
+    Toko/Owner.
+- Belum: kemasan tersegel dua lapis, buka kemasan, segel bernomor dan uji petik (butir 1–4); ecer dihitung lebih
+  sering dari segel (bergantung butir 2); opname per lokasi (K-231). "Opname penuh setahun sekali" ditampilkan
+  sebagai jumlah barang yang belum dihitung tahun ini (tidak menghalangi tutup tahun).
 
 ---
 

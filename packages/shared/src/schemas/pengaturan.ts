@@ -141,6 +141,8 @@ export const skemaOperasional = z
     poPenerimaBeda: z.boolean(),
     /** K-225: batas satu pembayaran hutang oleh Kepala Toko; di atasnya Owner. */
     hutangBatasKepalaToko: bulat('Batas bayar hutang Kepala Toko', 0, 100_000_000_000),
+    /** K-227: selisih opname bernilai sampai sekian boleh tanpa hitung ulang orang lain (kelas A selalu wajib). */
+    opnameToleransiRp: bulat('Toleransi selisih opname', 0, 100_000_000_000),
     barisPerHalaman: z.coerce
       .number('Jumlah baris harus berupa angka.')
       .refine(

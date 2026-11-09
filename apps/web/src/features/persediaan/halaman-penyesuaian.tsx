@@ -3,15 +3,18 @@ import {
   formatRupiah,
   JENIS_PENYESUAIAN_M1,
   kurangQty,
+  LABEL_SEBAB_SELISIH,
+  SEBAB_SELISIH,
   skemaPenyesuaian,
   subtotalRupiah,
   type BarisBarang,
+  type BarisDetailPenyesuaian,
   type DataPenyesuaian,
   type DetailPenyesuaian,
   type InputPenyesuaian,
   type JenisPenyesuaianM1,
 } from '@sit/shared';
-import { ArrowLeft, Ban, Printer, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, ClipboardList, Printer, RotateCcw, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useFieldArray, useForm, useWatch, type Path } from 'react-hook-form';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -23,8 +26,10 @@ import { useTampilanToko } from '@/api/pengaturan';
 import {
   useBatalkanPenyesuaian,
   useDetailPenyesuaian,
+  usePenghitungOpname,
   useSelesaikanPenyesuaian,
   useSimpanPenyesuaian,
+  useTugaskanOpname,
 } from '@/api/persediaan';
 import { DialogKonfirmasi } from '@/components/dialog-konfirmasi';
 import { InputRupiah } from '@/components/input-rupiah';
@@ -50,6 +55,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -72,7 +84,7 @@ const PENJELASAN: Record<JenisPenyesuaianM1, string> = {
   SALDO_AWAL:
     'Stok yang sudah ada saat mulai memakai aplikasi. Cari barang → Enter → isi jumlah → Enter → isi nilai per satuan (harga modal) → Enter, lalu lanjut barang berikutnya. HPP dihitung rata-rata.',
   OPNAME:
-    'Isi hasil hitung fisik. Selisih = fisik − stok sistem − barang terjual yang belum diambil, dihitung saat diselesaikan.',
+    'Isi hasil hitung fisik. Selisih = fisik − stok sistem − barang terjual yang belum diambil, keduanya pada waktu barang dihitung (transaksi sesudahnya tidak membuat selisih palsu).',
   KOREKSI: 'Perbaikan stok langsung: + menambah, − mengurangi. Alasan wajib diisi.',
   RUSAK: 'Memindahkan barang dari stok jual ke stok rusak (tidak bisa dijual).',
   MUSNAH:
@@ -183,6 +195,7 @@ function FormPenyesuaian({
               : '',
         hppSatuan: jenis === 'SALDO_AWAL' ? b.hppSatuan : null,
         keterangan: b.keterangan ?? '',
+        sebabSelisih: b.sebabSelisih ?? '',
         dikecualikan: b.dikecualikan,
         alasanKecuali: b.alasanKecuali ?? '',
       })),
@@ -190,9 +203,12 @@ function FormPenyesuaian({
   });
   const baris = useFieldArray({ control: form.control, name: 'baris' });
   const isi = useWatch({ control: form.control, name: 'baris' }) ?? [];
-  // K-240: hitung buta: penghitung (tanpa izin mengatur opname) tidak melihat stok sistem dan selisih.
+  // K-240/K-227: hitung buta: penghitung (tanpa izin mengatur opname) tidak menerima stok sistem, selisih, dan
+  // hitungan orang lain dari API.
   const izinSaya = usePengguna().izin;
-  const hitungButa = jenis === 'OPNAME' && !izinSaya.includes('persediaan.opname.atur');
+  const hitungButa =
+    dokumen?.hitungButa ?? (jenis === 'OPNAME' && !izinSaya.includes('persediaan.opname.atur'));
+  const barisDok = new Map((dokumen?.baris ?? []).map((b) => [b.idBarang, b]));
   const { lewati, dialog: dialogKeluar } = useCegahKeluar(form.formState.isDirty);
 
   // `?barang=<id>` (dari tab Stok rusak): dokumen baru langsung berisi barang itu.
@@ -265,6 +281,7 @@ function FormPenyesuaian({
             : (b.hppRata2 ?? 0)
           : null,
       keterangan: '',
+      sebabSelisih: '',
       dikecualikan: false,
       alasanKecuali: '',
     });
@@ -386,19 +403,14 @@ function FormPenyesuaian({
             </div>
             <div className="text-right">Dicetak {formatWaktu(new Date().toISOString())}</div>
           </div>
+          <p className="mb-2 text-xs">
+            Hitung apa adanya; stok sistem sengaja tidak dicetak (hitung buta). Penghitung:{' '}
+            {dokumen.penghitung?.nama ?? '……………………'} · Tanda tangan: ……………………
+          </p>
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr className="border-b">
-                {[
-                  'No',
-                  'Kode',
-                  'Nama barang',
-                  'Satuan',
-                  'Sistem',
-                  'Belum diambil',
-                  'Fisik dihitung',
-                  'Catatan',
-                ].map((h) => (
+                {['No', 'Kode', 'Nama barang', 'Satuan', 'Fisik dihitung', 'Catatan'].map((h) => (
                   <th key={h} className="border px-1 py-1 text-left">
                     {h}
                   </th>
@@ -412,8 +424,6 @@ function FormPenyesuaian({
                   <td className="border px-1 font-mono">{b.kodeBarang}</td>
                   <td className="border px-1">{b.namaBarang}</td>
                   <td className="border px-1">{b.kodeSatuan}</td>
-                  <td className="border px-1 text-right">{formatDesimal(b.qtySistem)}</td>
-                  <td className="border px-1 text-right">{formatDesimal(b.qtyBelumDiambil)}</td>
                   {b.dikecualikan ? (
                     <td colSpan={2} className="border px-1 italic">
                       Dikecualikan: {b.alasanKecuali}
@@ -430,6 +440,8 @@ function FormPenyesuaian({
           </table>
         </div>
       )}
+
+      {jenis === 'OPNAME' && dokumen && <KartuPenghitung d={dokumen} />}
 
       <Form {...form}>
         <form
@@ -510,17 +522,19 @@ function FormPenyesuaian({
                   {jenis === 'OPNAME' && (
                     <TableHead className="text-right">Belum diambil</TableHead>
                   )}
-                  <TableHead className="w-40">{kolomQty}</TableHead>
+                  <TableHead className={jenis === 'OPNAME' ? 'w-28' : 'w-40'}>{kolomQty}</TableHead>
                   {jenis === 'OPNAME' && <TableHead className="text-right">Selisih</TableHead>}
                   {jenis === 'SALDO_AWAL' && <TableHead className="w-44">Nilai / satuan</TableHead>}
-                  <TableHead>Keterangan</TableHead>
+                  <TableHead>
+                    {jenis === 'OPNAME' && !hitungButa ? 'Sebab & keterangan' : 'Keterangan'}
+                  </TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {baris.fields.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-8 text-center text-sm text-slate-500">
+                    <TableCell colSpan={10} className="py-8 text-center text-sm text-slate-500">
                       Belum ada barang. Cari barang di atas untuk menambah baris.
                     </TableCell>
                   </TableRow>
@@ -540,6 +554,11 @@ function FormPenyesuaian({
                       <TableCell>
                         <div className="font-medium">{inf?.nama}</div>
                         <div className="font-mono text-xs text-slate-500">{inf?.kode}</div>
+                        {jenis === 'OPNAME' && !hitungButa && (
+                          <div className="mt-1">
+                            <RiwayatHitung b={barisDok.get(f.idBarang)} />
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {hitungButa ? (
@@ -552,7 +571,7 @@ function FormPenyesuaian({
                       </TableCell>
                       {jenis === 'OPNAME' && (
                         <TableCell className="text-right tabular-nums">
-                          {inf ? formatDesimal(inf.belum) : '—'}
+                          {hitungButa ? '—' : inf ? formatDesimal(inf.belum) : '—'}
                         </TableCell>
                       )}
                       <TableCell>
@@ -578,6 +597,13 @@ function FormPenyesuaian({
                                     onKeyDown={(e) => enterQty(e, i)}
                                   />
                                 </FormControl>
+                                {hitungButa &&
+                                  barisDok.get(f.idBarang)?.dihitungOrangLain &&
+                                  !qtyDariIsian(isi[i]?.qtyFisik) && (
+                                    <p className="text-xs text-slate-500">
+                                      Sudah dihitung orang lain
+                                    </p>
+                                  )}
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -589,6 +615,7 @@ function FormPenyesuaian({
                           className={`text-right tabular-nums ${selisih?.startsWith('-') ? 'text-red-600' : selisih && /[1-9]/.test(selisih) ? 'text-emerald-700' : ''}`}
                         >
                           {hitungButa ? '—' : selisih === null ? '—' : formatSelisih(selisih)}
+                          <StatusHitung b={barisDok.get(f.idBarang)} buta={hitungButa} />
                         </TableCell>
                       )}
                       {jenis === 'SALDO_AWAL' && (
@@ -611,7 +638,39 @@ function FormPenyesuaian({
                           />
                         </TableCell>
                       )}
-                      <TableCell>
+                      <TableCell className="min-w-40 space-y-1">
+                        {jenis === 'OPNAME' && !hitungButa && !dikecualikan && (
+                          <FormField
+                            control={form.control}
+                            name={`baris.${i}.sebabSelisih`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <Select
+                                  value={typeof field.value === 'string' ? field.value : ''}
+                                  onValueChange={(v) => field.onChange(v === 'KOSONG' ? '' : v)}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger
+                                      className="h-8 w-full min-w-36 text-xs"
+                                      aria-label={`Sebab selisih ${inf?.nama ?? i + 1}`}
+                                    >
+                                      <SelectValue placeholder="Pilih bila berselisih" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="KOSONG">—</SelectItem>
+                                    {SEBAB_SELISIH.map((s) => (
+                                      <SelectItem key={s} value={s}>
+                                        {LABEL_SEBAB_SELISIH[s]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                         <FormField
                           control={form.control}
                           name={`baris.${i}.keterangan`}
@@ -857,6 +916,11 @@ function TampilanDokumen({ d }: { d: DetailPenyesuaian }) {
                 <TableCell>
                   <div className="font-medium">{b.namaBarang}</div>
                   <div className="font-mono text-xs text-slate-500">{b.kodeBarang}</div>
+                  {jenis === 'OPNAME' && (
+                    <div className="mt-1">
+                      <RiwayatHitung b={b} />
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatDesimal(b.qtySistem)} {b.kodeSatuan}
@@ -891,7 +955,14 @@ function TampilanDokumen({ d }: { d: DetailPenyesuaian }) {
                       </div>
                     </div>
                   ) : (
-                    (b.keterangan ?? '—')
+                    <>
+                      {b.sebabSelisih && (
+                        <div className="font-medium text-slate-700">
+                          {LABEL_SEBAB_SELISIH[b.sebabSelisih]}
+                        </div>
+                      )}
+                      {b.keterangan ?? (b.sebabSelisih ? '' : '—')}
+                    </>
                   )}
                 </TableCell>
               </TableRow>
@@ -949,5 +1020,120 @@ function DialogKecualikan({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** K-227: status konfirmasi baris opname (hitung ulang oleh orang lain). */
+function StatusHitung({ b, buta }: { b: BarisDetailPenyesuaian | undefined; buta: boolean }) {
+  if (!b || b.dikecualikan) return null;
+  if (buta) {
+    return b.perluHitungUlang ? (
+      <div className="text-xs font-normal text-amber-700">Perlu dihitung</div>
+    ) : null;
+  }
+  if (!b.perluHitungUlang) return null;
+  return b.terkonfirmasi ? (
+    <div className="text-xs font-normal text-emerald-700">Dikonfirmasi 2 orang</div>
+  ) : (
+    <div className="text-xs font-normal text-amber-700">Perlu hitung ulang orang lain</div>
+  );
+}
+
+/** K-227: riwayat hitung satu barang: siapa, kapan, berapa, cara, dan selisih pada waktunya. */
+function RiwayatHitung({ b }: { b: BarisDetailPenyesuaian | undefined }) {
+  if (!b || b.hitungan.length === 0) return <span className="text-xs text-slate-400">—</span>;
+  return (
+    <ul className="space-y-0.5 text-xs text-slate-600">
+      {b.hitungan.map((h) => (
+        <li key={h.id} className="whitespace-nowrap">
+          <span className="font-medium tabular-nums">{formatDesimal(h.qty)}</span>
+          {h.cara === 'TIMBANG' && h.beratGram ? ` (${formatDesimal(h.beratGram)} g)` : ''} ·{' '}
+          {h.namaPenghitung} {formatWaktu(h.waktu).slice(-5)}
+          {h.selisih !== null && (
+            <span className={h.selisih.startsWith('-') ? ' text-red-600' : ' text-slate-500'}>
+              {' '}
+              ({formatSelisih(h.selisih)})
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** K-227: penghitung yang ditugaskan, pindah tugas (hitung ulang), dan tautan lembar hitung. */
+function KartuPenghitung({ d }: { d: DetailPenyesuaian }) {
+  const izin = usePengguna().izin;
+  const bolehAtur = izin.includes('persediaan.opname.atur');
+  const bolehHitung = izin.includes('persediaan.opname.hitung');
+  const penghitung = usePenghitungOpname(bolehAtur && d.status === 'DRAFT').data ?? [];
+  const tugaskan = useTugaskanOpname();
+  const [pilih, setPilih] = useState('');
+  if (d.status !== 'DRAFT') return null;
+  const perluUlang = d.baris.filter((b) => b.perluHitungUlang && !b.terkonfirmasi).length;
+  return (
+    <Card
+      className="flex flex-row flex-wrap items-center gap-3 p-4 text-sm print:hidden"
+      data-testid="kartu-penghitung"
+    >
+      <div className="min-w-0 flex-1">
+        <p>
+          Penghitung: <b>{d.penghitung?.nama ?? 'semua penghitung'}</b>
+          {d.waktuMulaiHitung
+            ? ` · mulai ${formatWaktu(d.waktuMulaiHitung)}`
+            : d.penghitung
+              ? ' · belum mulai'
+              : ''}
+        </p>
+        {bolehAtur && perluUlang > 0 && (
+          <p className="text-amber-700" data-testid="perlu-hitung-ulang">
+            {perluUlang} barang perlu dihitung ulang orang lain: tugaskan lembar ke penghitung yang
+            belum menghitungnya.
+          </p>
+        )}
+      </div>
+      {bolehAtur && (
+        <>
+          <Select value={pilih} onValueChange={setPilih}>
+            <SelectTrigger className="w-56" aria-label="Tugaskan ke penghitung">
+              <SelectValue placeholder="Tugaskan ke…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SEMUA">Semua penghitung (terbuka)</SelectItem>
+              {penghitung.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.nama} ({p.peran})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!pilih || tugaskan.isPending}
+            onClick={() =>
+              void tugaskan
+                .mutateAsync({ id: d.id, idPenghitung: pilih === 'SEMUA' ? null : Number(pilih) })
+                .then((x) => {
+                  toast.success(
+                    `Lembar ${x.nomor} ${x.penghitung ? `ditugaskan ke ${x.penghitung.nama}` : 'terbuka untuk semua penghitung'}.`,
+                  );
+                  setPilih('');
+                })
+                .catch((err: unknown) => toast.error(pesanGalat(err)))
+            }
+          >
+            Tugaskan
+          </Button>
+        </>
+      )}
+      {bolehHitung && (
+        <Button type="button" variant="outline" asChild>
+          <Link to={`/opname/${d.id}/hitung`}>
+            <ClipboardList /> Lembar hitung
+          </Link>
+        </Button>
+      )}
+    </Card>
   );
 }

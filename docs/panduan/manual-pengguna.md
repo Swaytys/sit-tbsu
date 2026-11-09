@@ -641,12 +641,36 @@ Semua tugas kasir, ditambah:
   no. faktur lama, sisa hutang, jatuh tempo → **Simpan & tambah lagi** untuk faktur berikutnya. Hutang awal tidak
   menambah stok dan dibayar seperti hutang lain.
 - **Stok Opname** (*Persediaan › Stok Opname*): menghitung stok sedikit tiap hari. Kartu kelas **A/B/C** menunjukkan
-  berapa barang jatuh tempo hitung (A tiap 30 hari, B 90, C 180) dan **akurasi** 30 hari (target ≥ 95%). Kepala
-  Toko/Owner: isi jumlah barang → **Susun daftar hitung hari ini** → draf opname berisi barang acak → berikan ke
-  penghitung. Penghitung mengisi jumlah fisik (stok sistem tidak terlihat) → simpan. Kepala Toko/Owner membuka
-  draf, mengisi **keterangan sebab** untuk barang yang berselisih (salah serah, rusak, salah input, hilang, belum
-  tercatat) atau meminta hitung ulang → **Simpan & selesaikan**. Opname seluruh barang: **Opname penuh / pilih
-  sendiri**.
+  berapa barang jatuh tempo hitung (A tiap 30 hari, B 90, C 180; barang yang sering berselisih tiap 30 hari) dan
+  **akurasi** 30 hari (target ≥ 95%). Di bawahnya: saran jumlah barang per hari dan barang yang belum dihitung tahun
+  ini.
+  1. **Kepala Toko/Owner**: isi *Jumlah barang hari ini* (kosong = saran) → pilih **Penghitung** → **Susun daftar
+     hitung hari ini**. Daftar acak itu hanya terlihat oleh penghitung yang dipilih.
+  2. **Penghitung** (Petugas Gudang/Admin Persediaan, bisa di HP): Stok Opname › kartu *Lembar hitung untuk Anda* ›
+     **Mulai hitung** → tekan **Mulai hitung** lagi saat sudah siap di gudang (daftar barang baru tampil dan
+     waktunya dicatat). Untuk tiap barang: hitung, ketik jumlah → **Enter** (tersimpan, kursor pindah ke barang
+     berikutnya). Barang dengan tanda timbangan: tekan **T** atau tombol **Timbang**, letakkan wadah di timbangan dan
+     nolkan, masukkan semua barangnya, ketik beratnya (gram) → muncul perkiraan jumlah → **Enter**. Stok sistem
+     tidak pernah ditampilkan: hitung apa adanya. Saring *Perlu dihitung / Sudah saya hitung / Semua*; **F2** cari.
+  3. **Kepala Toko/Owner** membuka lembar dari *Daftar opname*: kolom barang memuat riwayat hitung (jumlah, nama,
+     jam, selisih pada waktunya). Barang bertanda **Perlu hitung ulang orang lain**: pilih **Tugaskan ke…** penghitung
+     lain → **Tugaskan**; ia menghitung ulang lewat lembar hitung. Setelah dua hitungan sama tertulis **Dikonfirmasi
+     2 orang**.
+  4. Untuk barang yang berselisih pilih **Sebab** (salah serah ke pembeli, rusak tidak tercatat, salah input
+     transaksi, hilang, transaksi belum tercatat, salah hitung opname sebelumnya, lainnya + keterangan) →
+     **Simpan & selesaikan**. Yang ikut menghitung barang berselisih tidak bisa menyelesaikannya; minta Kepala
+     Toko/Owner lain. Owner boleh menyelesaikan tanpa hitung ulang atau hitungannya sendiri (tercatat di log).
+  - Selisih dihitung terhadap stok **pada waktu barang dihitung**: penjualan dan penerimaan sesudahnya tidak
+    membuat selisih palsu, jadi lembar boleh diselesaikan sore hari.
+  - Batas selisih yang boleh tanpa hitung ulang: *Pengaturan › Operasional › Stok opname* (bawaan Rp 0 = semua
+    selisih dihitung ulang; barang kelas A selalu dihitung ulang).
+  - Bagian bawah halaman (Kepala Toko/Owner): akurasi per bulan, ketepatan tiap penghitung, per kelas, dan nilai
+    selisih per sebab. Dashboard menampilkan pita *Akurasi catatan stok*.
+  - Opname seluruh barang: **Opname penuh / pilih barang sendiri** (lembar terbuka untuk semua penghitung; lembar
+    cetak tidak memuat stok sistem).
+- **Data timbang barang kecil** (*Data Barang* › buka barang › kartu **Hitung dengan timbangan**): timbang sekian
+  buah sekaligus (mis. 50 baut), isi *Jumlah sampel* dan *Beratnya (gram)* → **Simpan data timbang**. Makin banyak
+  sampel, makin tepat. **Hapus** bila barang itu dihitung manual saja.
 - **Pemusnahan barang rusak** (*Stok Persediaan* › tab Rusak › **Musnahkan**, atau penyesuaian jenis Pemusnahan):
   di bawah kotak cari tampil **daftar semua barang rusak** beserta jumlah rusaknya → klik barang untuk
   menambahkannya → isi qty dan alasan → **Simpan & selesaikan**. Pencarian hanya menampilkan barang yang punya stok

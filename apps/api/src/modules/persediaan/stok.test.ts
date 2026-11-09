@@ -25,12 +25,14 @@ import { catatMutasi } from './ledger';
 type Sesi = Awaited<ReturnType<typeof sesiUji>>;
 
 let admin: Sesi;
+let owner: Sesi;
 let m: Awaited<ReturnType<typeof siapkanMasterPersediaan>>;
 
 beforeEach(async () => {
   await siapkanDatabaseSistem();
   m = await siapkanMasterPersediaan();
   admin = await sesiUji('ADMIN');
+  owner = await sesiUji('OWNER');
 });
 
 async function ambil<T>(path: string, sesi = admin): Promise<T> {
@@ -39,15 +41,17 @@ async function ambil<T>(path: string, sesi = admin): Promise<T> {
   return json<T>(r);
 }
 
-async function kirim(path: string, body: unknown) {
-  const r = await minta(path, { method: 'POST', cookie: admin.cookie, body });
+async function kirim(path: string, body: unknown, sesi = admin) {
+  const r = await minta(path, { method: 'POST', cookie: sesi.cookie, body });
   if (r.status >= 300) throw new Error(`gagal (${r.status}): ${await r.text()}`);
   return (await json<{ data: { id: number; nomor: string } }>(r)).data;
 }
 
 async function penyesuaian(jenis: string, baris: unknown[], alasan?: string) {
-  const d = await kirim('/api/penyesuaian', { jenis, baris, alasan });
-  await kirim(`/api/penyesuaian/${d.id}/selesai`, undefined);
+  // K-227: selisih opname yang dihitung sendiri hanya boleh disetujui Owner (tercatat).
+  const sesi = jenis === 'OPNAME' ? owner : admin;
+  const d = await kirim('/api/penyesuaian', { jenis, baris, alasan }, sesi);
+  await kirim(`/api/penyesuaian/${d.id}/selesai`, undefined, sesi);
   return d;
 }
 
@@ -75,7 +79,12 @@ describe('stok persediaan (docs/05 ST1–ST3)', () => {
     const r1 = await terima(m.semen, '5', 12000);
     const r2 = await terima(m.semen, '10', 11000);
     const op = await penyesuaian('OPNAME', [
-      { idBarang: m.semen, qtyFisik: '22', keterangan: 'Selisih hitung' },
+      {
+        idBarang: m.semen,
+        qtyFisik: '22',
+        sebabSelisih: 'SALAH_INPUT',
+        keterangan: 'Selisih hitung',
+      },
     ]);
 
     const t = hariIni();
@@ -111,7 +120,7 @@ describe('stok persediaan (docs/05 ST1–ST3)', () => {
     expect(k.baris[1]).toMatchObject({ jenisDokumen: 'PENERIMAAN', hppSatuan: 12000 });
     expect(k.baris[3]).toMatchObject({
       jenisDokumen: 'PENYESUAIAN',
-      namaPengguna: admin.pengguna.namaPengguna,
+      namaPengguna: owner.pengguna.namaPengguna,
     });
 
     // Posisi stok: nilai persediaan = 22 × 10.800.

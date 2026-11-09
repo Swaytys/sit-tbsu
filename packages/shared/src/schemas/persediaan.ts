@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  CARA_HITUNG,
+  SEBAB_SELISIH,
   JENIS_MUTASI,
   JENIS_PENERIMAAN,
   JENIS_PENYESUAIAN,
@@ -9,6 +11,8 @@ import {
   STATUS_STOK,
   SYARAT_BAYAR,
   TINDAKAN_TOLAK,
+  type CaraHitung,
+  type SebabSelisih,
   type JenisMutasi,
   type JenisPenerimaan,
   type JenisPenyesuaian,
@@ -290,6 +294,11 @@ export const skemaBarisPenyesuaian = z.object({
   /** SALDO_AWAL: nilai per satuan dasar. Lainnya diisi server (hpp_rata2 saat selesai). */
   hppSatuan: z.preprocess(kosongJadiNull, skemaRupiah.nullable()),
   keterangan: teksOpsional(150, 'Keterangan maksimal 150 karakter.'),
+  /** OPNAME (K-227): sebab baku barang yang berselisih; wajib saat diselesaikan bila ada selisih. */
+  sebabSelisih: z.preprocess(
+    kosongJadiNull,
+    z.enum(SEBAB_SELISIH, 'Sebab selisih tidak valid.').nullable(),
+  ),
   /** OPNAME (K-069): barang di lembar yang sengaja tidak dihitung; alasan wajib. */
   dikecualikan: z.boolean().default(false),
   alasanKecuali: teksOpsional(150, 'Alasan maksimal 150 karakter.'),
@@ -319,6 +328,13 @@ export const skemaPenyesuaian = z
       if (d.jenis === 'SALDO_AWAL') {
         if (nol(b.qtyFisik)) salah(['baris', i, 'qtyFisik'], 'Jumlah awal harus lebih dari 0.');
         if (b.hppSatuan === null) salah(['baris', i, 'hppSatuan'], 'Nilai per satuan wajib diisi.');
+      }
+      if (b.sebabSelisih) {
+        if (d.jenis !== 'OPNAME') {
+          salah(['baris', i, 'sebabSelisih'], 'Sebab selisih hanya untuk stok opname.');
+        } else if (b.sebabSelisih === 'LAINNYA' && (!b.keterangan || b.keterangan.length < 3)) {
+          salah(['baris', i, 'keterangan'], 'Sebab "Lainnya": tulis sebabnya di keterangan.');
+        }
       }
       if (b.dikecualikan) {
         if (d.jenis !== 'OPNAME') {
@@ -369,6 +385,19 @@ export type BarisDaftarPenyesuaian = {
   waktuSelesai: string | null;
 };
 
+/** K-227: satu hasil hitung opname (tidak pernah dihapus). */
+export type HitunganOpname = {
+  id: number;
+  idPenghitung: number;
+  namaPenghitung: string;
+  waktu: string;
+  qty: string;
+  cara: CaraHitung;
+  beratGram: string | null;
+  /** Selisih terhadap stok sistem pada waktu hitungan itu; `null` untuk hitung buta. */
+  selisih: string | null;
+};
+
 export type BarisDetailPenyesuaian = {
   id: number;
   idBarang: number;
@@ -390,11 +419,32 @@ export type BarisDetailPenyesuaian = {
   alasanKecuali: string | null;
   namaPenggunaKecuali: string | null;
   waktuKecuali: string | null;
+  /** K-227 (OPNAME): sebab baku selisih. */
+  sebabSelisih: SebabSelisih | null;
+  /** K-227 (OPNAME): riwayat hitung. Hitung buta: hanya hitungan pengguna itu sendiri. */
+  hitungan: HitunganOpname[];
+  /** K-227: ada hitungan orang lain yang disembunyikan dari pengguna ini (hitung buta). */
+  dihitungOrangLain: boolean;
+  /** K-227: waktu hitungan terakhir; stok sistem dan selisih dihitung pada waktu ini. */
+  waktuHitung: string | null;
+  /** K-227: selisih melewati toleransi (atau kelas A) sehingga wajib dikonfirmasi hitungan orang lain. */
+  perluHitungUlang: boolean;
+  /** K-227: hasil akhir sudah sama dengan hitungan orang lain. */
+  terkonfirmasi: boolean;
+  /** K-227: kelas ABC barang (hanya untuk pengatur opname). */
+  kelas: KelasABC | null;
 };
 
 export type DetailPenyesuaian = BarisDaftarPenyesuaian & {
   catatan: string | null;
   baris: BarisDetailPenyesuaian[];
+  /** K-227 (OPNAME): penghitung yang ditugaskan; `null` = terbuka untuk semua penghitung. */
+  penghitung: { id: number; nama: string } | null;
+  waktuMulaiHitung: string | null;
+  /** K-227: tampilan ini hitung buta (tanpa stok sistem, selisih, dan hitungan orang lain). */
+  hitungButa: boolean;
+  /** K-227: nilai selisih (Rp) yang masih boleh tanpa hitung ulang (kecuali kelas A). */
+  toleransiRp: number;
 };
 
 // --- Posisi stok, mutasi, kartu stok (docs/05 ST1, docs/01 §6) ---
@@ -543,6 +593,85 @@ export type RingkasanOpname = {
   barisDihitung30Hari: number;
   /** Nilai mutlak selisih × HPP (rupiah) 30 hari. */
   nilaiSelisih30Hari: number;
+  /** K-227: barang rawan (selisih di 2 dari 3 opname terakhir): dihitung paling lambat tiap 30 hari. */
+  rawan: number;
+  /** K-227: barang aktif yang belum dihitung sama sekali tahun ini. */
+  belumDihitungTahunIni: number;
+  /** K-227: jumlah barang per hari kerja agar semua kelas terhitung tepat waktu. */
+  saranPerHari: number;
+  toleransiRp: number;
+  /** K-227: draf opname yang menunggu tindakan (perlu hitung ulang / siap diselesaikan). */
+  drafAktif: number;
+};
+
+/** K-227: kinerja opname (akurasi catatan persediaan) untuk Owner/Kepala Toko. */
+export type KinerjaOpname = {
+  bulan: {
+    bulan: string;
+    dihitung: number;
+    cocok: number;
+    akurasi: number | null;
+    nilaiSelisih: number;
+    /** Σ selisih × HPP bertanda: negatif = stok hilang/kurang. */
+    nilaiBersih: number;
+  }[];
+  kelas: { kelas: KelasABC; dihitung: number; cocok: number; akurasi: number | null }[];
+  penghitung: {
+    idPengguna: number;
+    nama: string;
+    hitungan: number;
+    /** Hitungan yang sama dengan hasil akhir yang disetujui. */
+    tepat: number;
+    akurasi: number | null;
+  }[];
+  sebab: { sebab: SebabSelisih | null; baris: number; nilaiSelisih: number; nilaiBersih: number }[];
+};
+
+export type PenghitungOpname = { id: number; nama: string; peran: string };
+
+/** K-227: lembar hitung untuk penghitung (hitung buta). */
+export type BarisLembarHitung = {
+  idBarang: number;
+  kodeBarang: string;
+  namaBarang: string;
+  namaKategori: string;
+  kodeSatuan: string;
+  /** Satuan dihitung per buah: hasil timbang dibulatkan ke bilangan bulat. */
+  satuanBulat: boolean;
+  timbang: { jumlahSampel: string; beratSampelGram: string } | null;
+  dikecualikan: boolean;
+  /** Hitungan terakhir pengguna ini. */
+  hitunganSaya: HitunganOpname | null;
+  dihitungOrangLain: boolean;
+  /** Barang ini masih perlu dihitung (ulang) oleh orang lain dan pengguna ini belum menghitungnya. */
+  perluDihitung: boolean;
+};
+
+export type LembarHitung = {
+  id: number;
+  nomor: string;
+  status: StatusPenyesuaian;
+  catatan: string | null;
+  penghitung: { id: number; nama: string } | null;
+  waktuMulaiHitung: string | null;
+  /** Lembar ditugaskan ke pengguna ini dan belum dimulai: daftar barang baru tampil setelah "Mulai hitung". */
+  belumMulai: boolean;
+  jumlahBaris: number;
+  baris: BarisLembarHitung[];
+};
+
+export type TugasOpname = {
+  id: number;
+  nomor: string;
+  tanggal: string;
+  catatan: string | null;
+  jumlahBaris: number;
+  /** Barang yang sudah dihitung pengguna ini. */
+  sudahSaya: number;
+  /** Barang yang belum dihitung siapa pun. */
+  belumDihitung: number;
+  ditugaskan: boolean;
+  dimulai: boolean;
 };
 
 export const skemaDaftarHarian = z.object({
@@ -551,4 +680,65 @@ export const skemaDaftarHarian = z.object({
     .int('Jumlah barang harus bilangan bulat.')
     .min(1, 'Minimal 1 barang.')
     .max(100, 'Maksimal 100 barang per daftar.'),
+  /** K-227: daftar harian langsung ditugaskan ke satu penghitung (tidak terlihat penghitung lain). */
+  idPenghitung: z.coerce
+    .number('Pilih penghitung.')
+    .int('Pilih penghitung.')
+    .positive('Pilih penghitung.'),
 });
+
+/** K-227: menugaskan (atau memindah) lembar opname ke penghitung; `null` = terbuka untuk semua penghitung. */
+export const skemaTugaskanOpname = z.object({
+  idPenghitung: z.number().int().positive().nullable(),
+});
+
+const POLA_GRAM = /^\d{1,9}(\.\d{1,3})?$/;
+const angkaGram = (label: string) =>
+  z.preprocess(
+    (v) => kosongJadiNull(angkaKeTeks(v)),
+    z
+      .string()
+      .regex(POLA_GRAM, `${label} harus angka, maksimal 3 desimal.`)
+      .refine((v) => Number(v) > 0, `${label} harus lebih dari 0.`)
+      .nullable(),
+  );
+
+/** K-227: satu hasil hitung dari lembar hitung. TIMBANG: qty dihitung server dari berat bersih. */
+export const skemaHitungOpname = z
+  .object({
+    idBarang: z.number().int().positive(),
+    cara: z.enum(CARA_HITUNG).default('HITUNG'),
+    qty: z.preprocess(
+      (v) => kosongJadiNull(angkaKeTeks(v)),
+      z.string().regex(POLA_QTY, 'Jumlah harus angka ≥ 0, maksimal 3 desimal.').nullable(),
+    ),
+    beratGram: angkaGram('Berat'),
+  })
+  .superRefine((d, ctx) => {
+    if (d.cara === 'HITUNG' && d.qty === null)
+      ctx.addIssue({ code: 'custom', path: ['qty'], message: 'Isi jumlah hasil hitung.' });
+    if (d.cara === 'TIMBANG' && d.beratGram === null)
+      ctx.addIssue({ code: 'custom', path: ['beratGram'], message: 'Isi berat bersih (gram).' });
+  });
+export type InputHitungOpname = z.input<typeof skemaHitungOpname>;
+export type DataHitungOpname = z.output<typeof skemaHitungOpname>;
+
+/** K-227: data timbang barang: `jumlahSampel` buah (satuan dasar) beratnya `beratSampelGram` gram. */
+export const skemaTimbangBarang = z
+  .object({
+    jumlahSampel: z.preprocess(
+      (v) => kosongJadiNull(angkaKeTeks(v)),
+      z
+        .string()
+        .regex(POLA_QTY, 'Jumlah sampel harus angka, maksimal 3 desimal.')
+        .refine((v) => Number(v) > 0, 'Jumlah sampel harus lebih dari 0.')
+        .nullable(),
+    ),
+    beratSampelGram: angkaGram('Berat sampel'),
+  })
+  .refine((d) => (d.jumlahSampel === null) === (d.beratSampelGram === null), {
+    path: ['beratSampelGram'],
+    message: 'Isi keduanya (jumlah sampel dan beratnya) atau kosongkan keduanya.',
+  });
+export type InputTimbangBarang = z.input<typeof skemaTimbangBarang>;
+export type DataTimbangBarang = z.output<typeof skemaTimbangBarang>;

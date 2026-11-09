@@ -12,8 +12,9 @@ import {
   penjualanDetail,
   persediaan,
 } from '../../db/schema';
+import { dalamTransaksi } from '../../lib/transaksi';
 import { tanggalOperasional } from '../../lib/waktu';
-import { hitungUlangCache } from './ledger';
+import { catatMutasi, hitungUlangCache } from './ledger';
 
 type Galat = {
   error: { kode: string; pesan: string; detail?: { kolom?: Record<string, string[]> } };
@@ -134,11 +135,9 @@ describe('penyesuaian stok (docs/05 §12)', () => {
     expect((await json<Galat>(mati)).error.pesan).toContain('nonaktif');
   });
 
-  it('A3 opname memakai stok sistem saat diselesaikan dan memperhitungkan barang terjual belum diambil', async () => {
+  it('A3/K-227 opname: stok sistem dan barang belum diambil pada waktu hitung; konfirmasi dua penghitung', async () => {
     await saldoAwal(m.semen, '10', 10000);
-    const d = await draf('OPNAME', [baris(m.semen, { qtyFisik: '14', keterangan: 'Salah serah' })]);
-    // Setelah draf dibuat: 5 sak masuk lagi, dan 2 sak terjual tetapi belum diambil (masih di toko).
-    await saldoAwal(m.semen, '5', 10000);
+    // Terjual 2 sak tetapi belum diambil: stok sistem 8, fisik di toko masih 10.
     const [jual] = await db
       .insert(penjualan)
       .values({
@@ -151,26 +150,84 @@ describe('penyesuaian stok (docs/05 §12)', () => {
         statusPengambilan: 'BELUM_DIAMBIL',
       })
       .returning();
-    await db.insert(penjualanDetail).values({
-      idPenjualan: jual!.id,
-      idBarang: m.semen,
-      qty: '2',
-      qtyDasar: '2',
-      hargaManual: true,
-      hargaSatuan: 0,
-      subtotal: 0,
-      hppSaatTransaksi: 10000,
+    const [det] = await db
+      .insert(penjualanDetail)
+      .values({
+        idPenjualan: jual!.id,
+        idBarang: m.semen,
+        qty: '2',
+        qtyDasar: '2',
+        hargaManual: true,
+        hargaSatuan: 0,
+        subtotal: 0,
+        hppSaatTransaksi: 10000,
+      })
+      .returning();
+    await dalamTransaksi((tx) =>
+      catatMutasi(tx, {
+        idBarang: m.semen,
+        jenis: 'PENJUALAN',
+        qtyKeluar: '2',
+        idPengguna: admin.pengguna.id,
+        tanggalOperasional: tanggalOperasional(),
+        keterangan: 'Jual uji',
+        sumber: { idPenjualanDetail: det!.id },
+      }),
+    );
+    // Penghitung pertama (Kepala Toko) menemukan 9 sak: hilang 1 (9 − 8 − 2 = −1).
+    const d = await draf('OPNAME', [baris(m.semen, { qtyFisik: '9' })]);
+    // Sesudah dihitung: 5 sak masuk dan 2 sak diambil pembeli → sistem 13, fisik 12.
+    await saldoAwal(m.semen, '5', 10000);
+    const ambil = await minta(`/api/penjualan/${jual!.id}/diambil`, {
+      method: 'POST',
+      cookie: admin.cookie,
     });
-    // Stok sistem 15 (penjualan uji belum memotong stok; ledger penjualan dibangun Fase 5).
-    const draf2 = await ok(minta(`/api/penyesuaian/${d.id}`, { cookie: admin.cookie }));
-    expect(draf2.baris[0]).toMatchObject({ qtySistem: '15.000', qtyBelumDiambil: '2.000' });
-
-    const hasil = await selesai(d.id);
-    // selisih = fisik 14 − sistem 15 − belum diambil 2 = −3.
-    expect(hasil.baris[0]).toMatchObject({
-      qtySistem: '15.000',
-      qtySelisih: '-3.000',
+    expect(ambil.status).toBe(200);
+    let isi = await ok(minta(`/api/penyesuaian/${d.id}`, { cookie: admin.cookie }));
+    // Stok sistem dan belum diambil pada waktu hitung (8 dan 2), bukan saat ini (13 dan 0).
+    expect(isi.baris[0]).toMatchObject({
+      qtySistem: '8.000',
       qtyBelumDiambil: '2.000',
+      perluHitungUlang: true,
+      terkonfirmasi: false,
+    });
+
+    // Belum dikonfirmasi hitungan orang lain: Kepala Toko lain belum bisa menyelesaikan.
+    const kepala2 = await sesiUji('ADMIN');
+    const sebab = {
+      jenis: 'OPNAME',
+      baris: [baris(m.semen, { qtyFisik: null, sebabSelisih: 'HILANG' })],
+    };
+    await ok(kirim(`/${d.id}`, sebab, 'PUT', kepala2));
+    const belumUlang = await kirim(`/${d.id}/selesai`, undefined, 'POST', kepala2);
+    expect(belumUlang.status).toBe(400);
+    expect((await json<Galat>(belumUlang)).error.pesan).toContain('dihitung ulang oleh orang lain');
+
+    // Hitung ulang oleh Admin Persediaan: 12 sak (selisih pada waktunya tetap −1) → terkonfirmasi.
+    const persediaanSesi = await sesiUji('ADMIN_PERSEDIAAN');
+    const ulang = await minta(`/api/opname/${d.id}/hitung`, {
+      method: 'POST',
+      cookie: persediaanSesi.cookie,
+      body: { idBarang: m.semen, qty: '12' },
+    });
+    expect(ulang.status).toBe(200);
+    isi = await ok(minta(`/api/penyesuaian/${d.id}`, { cookie: kepala2.cookie }));
+    expect(isi.baris[0]).toMatchObject({
+      qtyFisik: '12.000',
+      qtySistem: '13.000',
+      qtyBelumDiambil: '0.000',
+      terkonfirmasi: true,
+    });
+
+    // Penghitung pertama tidak boleh menyetujui selisih yang ikut ia hitung.
+    const sendiri = await kirim(`/${d.id}/selesai`);
+    expect(sendiri.status).toBe(403);
+    const hasil = await ok(kirim(`/${d.id}/selesai`, undefined, 'POST', kepala2));
+    expect(hasil.baris[0]).toMatchObject({
+      qtySistem: '13.000',
+      qtySelisih: '-1.000',
+      qtyBelumDiambil: '0.000',
+      sebabSelisih: 'HILANG',
     });
     expect((await stok(m.semen)).stokFisik).toBe('12.000');
   });
@@ -192,7 +249,13 @@ describe('penyesuaian stok (docs/05 §12)', () => {
     const isi = (ubah: Record<number, Record<string, unknown>>) =>
       lembar.baris.map((b) => {
         const idBarang = b.idBarang as number;
-        return { idBarang, qtyFisik: '1', keterangan: 'Hitung ulang', ...ubah[idBarang] };
+        return {
+          idBarang,
+          qtyFisik: '1',
+          keterangan: 'Hitung ulang',
+          sebabSelisih: 'BELUM_TERCATAT',
+          ...ubah[idBarang],
+        };
       });
 
     // Menghapus baris pasir dari lembar ditolak.
@@ -247,7 +310,8 @@ describe('penyesuaian stok (docs/05 §12)', () => {
       admin.pengguna.namaPengguna,
     );
 
-    await selesai(lembar.id);
+    // K-227: selisih yang dihitung Kepala Toko diselesaikan Owner (tanpa hitung ulang, tercatat di log).
+    await ok(kirim(`/${lembar.id}/selesai`, undefined, 'POST', owner));
     expect((await stok(m.pasir)).stokFisik).toBe('7.000'); // tidak dihitung → tidak berubah
     expect((await stok(m.semen)).stokFisik).toBe('1.000');
     const mutasiPasir = await db
@@ -264,6 +328,7 @@ describe('penyesuaian stok (docs/05 §12)', () => {
       .limit(1);
     expect(log?.ringkasan).toContain('dikecualikan 1 (Pasir: Gudang belakang terkunci)');
     expect(log?.ringkasan).toContain('barang aktif di luar dokumen 0');
+    expect(log?.ringkasan).toContain('Owner menyetujui tanpa hitung ulang');
 
     // Pengecualian hanya untuk opname.
     const koreksi = await kirim('', {

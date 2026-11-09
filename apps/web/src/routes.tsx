@@ -201,6 +201,12 @@ export const router = createBrowserRouter([
                     (m) => m.HalamanDetailReturPemasok,
                   ),
               ),
+              // K-227: lembar hitung opname (hitung buta) untuk penghitung.
+              ruteLazy('opname/:id/hitung', 'Stok Opname', 'persediaan.opname.hitung', () =>
+                import('@/features/persediaan/halaman-hitung-opname').then(
+                  (m) => m.HalamanHitungOpname,
+                ),
+              ),
               ruteLazy(
                 'persediaan/penyesuaian/baru',
                 'Stok Persediaan',

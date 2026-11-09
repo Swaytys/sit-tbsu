@@ -40,6 +40,20 @@ export function bulatAtasQty(a: Decimal.Value): string {
   return keQty(new Decimal(a).ceil());
 }
 
+/**
+ * K-227: jumlah dari hasil timbang (timbangan hitung): berat bersih × jumlah sampel ÷ berat sampel. Satuan yang
+ * dihitung per buah (`bulat`) dibulatkan ke bilangan bulat terdekat; satuan lain 3 desimal.
+ */
+export function qtyDariTimbang(
+  beratGram: Decimal.Value,
+  jumlahSampel: Decimal.Value,
+  beratSampelGram: Decimal.Value,
+  bulat: boolean,
+): string {
+  const q = new Decimal(beratGram).times(jumlahSampel).div(beratSampelGram);
+  return keQty(bulat ? q.toDecimalPlaces(0, Decimal.ROUND_HALF_UP) : q);
+}
+
 /** `a ÷ b` dibulatkan 3 desimal (konversi qty dasar → satuan jual, K-091). */
 export function bagiQty(a: Decimal.Value, b: Decimal.Value): string {
   return keQty(new Decimal(a).div(b));

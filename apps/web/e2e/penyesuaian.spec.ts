@@ -23,6 +23,7 @@ async function stokBarang(page: Page, id: number) {
 
 test('Admin: persediaan awal, koreksi, lalu stok opname mengubah stok sesuai dokumen', async ({
   page,
+  browser,
 }) => {
   const nama = `Paku Penyesuaian E2E ${Date.now()}`;
   await masukCepat(page, 'ADMIN');
@@ -67,15 +68,27 @@ test('Admin: persediaan awal, koreksi, lalu stok opname mengubah stok sesuai dok
   await selesaikan(page);
   expect(await stokBarang(page, barang.id)).toBe('18.000');
 
-  // 3. Stok opname: fisik 17 → selisih −1.
+  // 3. Stok opname: fisik 17 → selisih −1. K-227: sebab baku; yang ikut menghitung tidak menyetujui
+  // selisihnya sendiri dan selisih wajib dihitung ulang orang lain.
   await page.goto('/persediaan/penyesuaian/baru?jenis=OPNAME');
   await tambahBarang(page, nama);
   await page.getByLabel(`Fisik dihitung ${nama}`).fill('17');
   await expect(page.getByRole('row').filter({ hasText: nama })).toContainText('−1');
-  // K-240: barang berselisih wajib diberi sebab.
-  await page.getByLabel(`Keterangan ${nama}`).fill('Salah serah');
-  await selesaikan(page);
-  await expect(page.getByRole('row').filter({ hasText: nama })).toContainText('−1');
+  await page.getByLabel(`Sebab selisih ${nama}`).click();
+  await page.getByRole('option', { name: 'Salah serah ke pembeli' }).click();
+  await page.getByRole('button', { name: 'Simpan & selesaikan' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Selesaikan' }).click();
+  await expect(page.getByText(/dihitung ulang oleh orang lain/)).toBeVisible();
+  await expect(page).toHaveURL(/\/persediaan\/penyesuaian\/\d+$/);
+  // Owner (tidak ikut menghitung) boleh menyelesaikan tanpa hitung ulang; tercatat di log.
+  const owner = await browser.newPage();
+  await masukCepat(owner, 'OWNER');
+  await owner.goto(page.url());
+  await selesaikan(owner);
+  await expect(owner.getByRole('row').filter({ hasText: nama })).toContainText('−1');
+  await expect(owner.getByRole('row').filter({ hasText: nama })).toContainText(
+    'Salah serah ke pembeli',
+  );
   expect(await stokBarang(page, barang.id)).toBe('17.000');
 
   // Daftar penyesuaian menampilkan ketiganya sebagai Selesai.
@@ -151,8 +164,8 @@ test('Admin: barang di lembar opname dikecualikan dengan alasan, tetap tercatat 
 
     // Barang di lembar tidak bisa dihapus, hanya dikecualikan dengan alasan.
     await expect(page.getByRole('button', { name: /^Hapus baris/ })).toHaveCount(0);
-    await page.getByLabel(`Fisik dihitung Opname A ${kode}`).fill('5');
-    await page.getByLabel(`Keterangan Opname A ${kode}`).fill('Belum tercatat');
+    // Cocok dengan stok sistem (0): tanpa selisih, Kepala Toko boleh langsung menyelesaikan.
+    await page.getByLabel(`Fisik dihitung Opname A ${kode}`).fill('0');
     await page.getByRole('button', { name: `Kecualikan Opname B ${kode}` }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('button', { name: 'Kecualikan' })).toBeDisabled();
@@ -165,7 +178,7 @@ test('Admin: barang di lembar opname dikecualikan dengan alasan, tetap tercatat 
     await expect(barisB).toContainText('Dikecualikan');
     await expect(barisB).toContainText('Rak atas belum bisa dijangkau');
     await expect(barisB).toContainText('oleh');
-    expect(await stokBarang(page, a.id)).toBe('5.000');
+    expect(await stokBarang(page, a.id)).toBe('0.000');
     expect(await stokBarang(page, b.id)).toBe('0.000');
   } finally {
     for (const id of [a.id, b.id]) {

@@ -31,10 +31,10 @@ export const penyesuaianRoutes = new Hono<EnvApp>()
     return c.json({ data }, 201);
   })
   .get('/', lihat, zValidator('query', skemaCariPenyesuaian, kaitValidasi), async (c) =>
-    c.json(await daftarPenyesuaian(c.req.valid('query')), 200),
+    c.json(await daftarPenyesuaian(c.req.valid('query'), penggunaWajib(c)), 200),
   )
   .get('/:id', lihat, paramId, async (c) =>
-    c.json({ data: await detailPenyesuaian(c.req.valid('param').id) }, 200),
+    c.json({ data: await detailPenyesuaian(c.req.valid('param').id, penggunaWajib(c)) }, 200),
   )
   .post('/', kelola, zValidator('json', skemaPenyesuaian, kaitValidasi), async (c) => {
     const data = await buatPenyesuaian(c.req.valid('json'), penggunaWajib(c), c.get('asal'));

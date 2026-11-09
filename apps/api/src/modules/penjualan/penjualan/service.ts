@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import {
   formatRupiah,
   rapikanDesimal,
@@ -564,7 +564,8 @@ export async function tandaiDiambil(
     }
     await tx
       .update(penjualan)
-      .set({ statusPengambilan: 'DIAMBIL', diubahPada: sekarang() })
+      // K-227: waktu diambil dipakai opname untuk barang terjual yang belum diambil pada waktu hitung.
+      .set({ statusPengambilan: 'DIAMBIL', waktuDiambil: sql`now()`, diubahPada: sekarang() })
       .where(eq(penjualan.id, id));
     await catatLog(tx, {
       aksi: 'PENJUALAN_DIAMBIL',
